@@ -45,6 +45,16 @@ from cramera_protocol.events import (
     SelectionKind,
     ViewerEvent,
 )
+from cramera_protocol.cable_lab import (
+    CableConfigurationKey,
+    CableLabFile,
+    CableLabKey,
+    CableLabRoute,
+    GraspState,
+    GripperAction,
+    GripperCommandKey,
+    SimulationLifecycle,
+)
 from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.laboratory.knowledge import (
     CitationKey,
@@ -589,6 +599,14 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     ThreadKey,
     ContactKey,
     WorkshopStateKey,
+    CableLabRoute,
+    CableLabFile,
+    CableConfigurationKey,
+    GripperAction,
+    GripperCommandKey,
+    SimulationLifecycle,
+    GraspState,
+    CableLabKey,
 )
 """
 The enumerations the browser application reads.

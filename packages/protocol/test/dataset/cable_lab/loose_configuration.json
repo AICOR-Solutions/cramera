@@ -1,0 +1,1 @@
+{"segmentCount": 12, "segmentLength": 0.025, "radius": 0.004, "mass": 0.05, "color": [0.2, 0.4, 0.9, 1], "bend": 50000, "twist": 50000, "anchored": false, "anchorOffset": [0, 0, 0.02], "anchorRotation": [0, 0, 0.3], "friction": [0.6, 0.005, 0.0001], "contactDimension": 4, "solverReference": [0.004, 1], "solverImpedance": [0.9, 0.95, 0.001, 0.5, 2]}
