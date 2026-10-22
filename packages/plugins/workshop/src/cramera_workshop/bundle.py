@@ -42,6 +42,17 @@ class WorkshopBundleName(StrEnum):
     """
 
 
+class WorkshopFile(StrEnum):
+    """
+    The files a workshop bundle holds besides the scene bundle's own.
+    """
+
+    RIGHTS = "rights.json"
+    """
+    The asset rights as a document of their own, beside the licence and the notice.
+    """
+
+
 # %% bundle
 
 

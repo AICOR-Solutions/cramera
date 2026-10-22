@@ -14,7 +14,12 @@ from cramera.exceptions import PathOutsideDirectory
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.workshop import WorkshopSceneKey
-from cramera_workshop.bundle import RESOURCES, WorkshopBundle, WorkshopBundleName
+from cramera_workshop.bundle import (
+    RESOURCES,
+    WorkshopBundle,
+    WorkshopBundleName,
+    WorkshopFile,
+)
 from cramera_workshop.exceptions import NotAWorkshopBundle
 
 # %% packaged bundle
@@ -27,7 +32,9 @@ def test_the_packaged_bundle_describes_the_aicor_workshop(bundle):
 
 def test_the_licence_and_notice_the_rights_name_are_in_the_bundle(bundle):
     rights = bundle.asset_rights
-    rights_file = json.loads(bundle.file("rights.json").read_text(encoding="utf-8"))
+    rights_file = json.loads(
+        bundle.file(WorkshopFile.RIGHTS).read_text(encoding="utf-8")
+    )
     assert rights.to_json() == rights_file
     assert bundle.file(rights.license_file).is_file()
     assert bundle.file(rights.notice_file).is_file()
