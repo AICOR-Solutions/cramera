@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
 from pathlib import Path
+from types import MappingProxyType
 
 from typing_extensions import Iterable, List, Sized, Union
 
@@ -99,14 +100,16 @@ class PlanFile(StrEnum):
     """
 
 
-STEP_PARAMETERS = {
-    StepKind.PARK_ARMS: (PlanStepKey.ARM,),
-    StepKind.MOVE_TORSO: (PlanStepKey.TORSO_STATE,),
-    StepKind.NAVIGATE: (PlanStepKey.TARGET,),
-    StepKind.TRANSPORT: (PlanStepKey.OBJECT, PlanStepKey.ARM),
-    StepKind.PICK_UP: (PlanStepKey.OBJECT, PlanStepKey.ARM),
-    StepKind.PLACE: (PlanStepKey.OBJECT, PlanStepKey.ARM),
-}
+STEP_PARAMETERS = MappingProxyType(
+    {
+        StepKind.PARK_ARMS: (PlanStepKey.ARM,),
+        StepKind.MOVE_TORSO: (PlanStepKey.TORSO_STATE,),
+        StepKind.NAVIGATE: (PlanStepKey.TARGET,),
+        StepKind.TRANSPORT: (PlanStepKey.OBJECT, PlanStepKey.ARM),
+        StepKind.PICK_UP: (PlanStepKey.OBJECT, PlanStepKey.ARM),
+        StepKind.PLACE: (PlanStepKey.OBJECT, PlanStepKey.ARM),
+    }
+)
 """
 The parameters each step kind needs, apart from where it puts an object down.
 """
