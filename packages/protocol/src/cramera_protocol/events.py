@@ -80,3 +80,44 @@ class ViewerEvent(StrEnum):
     """
     Panels were shown, hidden or resized.
     """
+
+
+# %% page state
+
+
+class PageStateAttribute(StrEnum):
+    """
+    The data attributes of the page's root element that tell tools such as the
+    screenshot command how far the page is.
+    """
+
+    STATE = "viewerState"
+    """
+    The page state, a :class:`PageState` value.
+    """
+
+    STATUS = "viewerStatus"
+    """
+    The status line shown to the user.
+    """
+
+
+class PageState(StrEnum):
+    """
+    How far the page is with showing its scene.
+    """
+
+    LOADING = "loading"
+    """
+    The scene is still loading.
+    """
+
+    READY = "ready"
+    """
+    The scene is shown.
+    """
+
+    FAILED = "failed"
+    """
+    The scene could not be shown.
+    """

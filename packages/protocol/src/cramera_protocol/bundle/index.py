@@ -64,10 +64,19 @@ class SceneName:
     """
 
     def __post_init__(self) -> None:
-        if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.text) is None or self.text in {
-            member.value for member in ReservedSceneName
-        }:
+        if not self.is_valid(self.text):
             raise InvalidSceneName(self.text)
+
+    @staticmethod
+    def is_valid(text: str) -> bool:
+        """
+        :param text: A proposed bundle name.
+        :return: Whether it is 1 to 64 letters, digits, ``_`` or ``-`` and not
+            reserved.
+        """
+        return re.fullmatch(r"[A-Za-z0-9_-]{1,64}", text) is not None and text not in {
+            member.value for member in ReservedSceneName
+        }
 
 
 # %% index
