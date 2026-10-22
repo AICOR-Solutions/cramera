@@ -1,0 +1,10 @@
+{
+ "plotly.js-basic-dist-min": {
+  "version": "3.7.0",
+  "files": [
+   "plotly-basic.min.js",
+   "LICENSE",
+   "package.json"
+  ]
+ }
+}
