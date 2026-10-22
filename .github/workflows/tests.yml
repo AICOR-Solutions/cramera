@@ -1,7 +1,8 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
 # of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
 # cramera-questions and cramera-cram run only their tests without CRAM, measured over
-# the modules those tests reach. The models plugin is tested
+# the modules those tests reach; so does the laboratory plugin without MuJoCo. The
+# models plugin is tested
 # without the circuit libraries: its tests against them are skipped and their
 # counterparts against stand-ins run.
 name: Tests
@@ -58,6 +59,24 @@ jobs:
           - package: plugins/scene-builder
             module: cramera_scene_builder
             install: -e ./packages/plugins/scene-builder
+          # The laboratory is tested without MuJoCo and without CRAM: the simulation's
+          # and the CRAM world's tests are left out, and coverage is measured over
+          # the modules the remaining tests reach.
+          - package: plugins/laboratory
+            install: -e ./packages/plugins/laboratory
+            coverage: >-
+              --cov=cramera_laboratory.commands
+              --cov=cramera_laboratory.devices
+              --cov=cramera_laboratory.dispenser
+              --cov=cramera_laboratory.exceptions
+              --cov=cramera_laboratory.geometry
+              --cov=cramera_laboratory.knowledge
+              --cov=cramera_laboratory.liquid
+              --cov=cramera_laboratory.plugin
+              --cov=cramera_laboratory.resources
+              --cov=cramera_laboratory.scene_files
+              --cov=cramera_laboratory.session
+              --cov=cramera_laboratory.urdf
     steps:
       - uses: actions/checkout@v4
 

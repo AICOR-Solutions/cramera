@@ -8,19 +8,15 @@ from dataclasses import replace
 
 import pytest
 
-from .conftest import requires_mujoco
-
-pytestmark = requires_mujoco
-
-from cramera_laboratory.exceptions import (  # noqa: E402
+from cramera_laboratory.exceptions import (
     InvalidLaboratoryModel,
     UnknownInstrument,
 )
-from cramera_laboratory.physics.instruments import InstrumentModelPart  # noqa: E402
-from cramera_laboratory.physics.simulation import LaboratoryPhysics  # noqa: E402
-from cramera_laboratory.resources import LaboratoryResource  # noqa: E402
-from cramera_protocol.laboratory.layout import InstrumentJointKind  # noqa: E402
-from cramera_protocol.laboratory.physics import (  # noqa: E402
+from cramera_laboratory.physics.instruments import InstrumentModelPart
+from cramera_laboratory.physics.simulation import LaboratoryPhysics
+from cramera_laboratory.resources import LaboratoryResource
+from cramera_protocol.laboratory.layout import InstrumentJointKind
+from cramera_protocol.laboratory.physics import (
     InstrumentPose,
     InstrumentRequest,
 )

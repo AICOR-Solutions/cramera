@@ -2,7 +2,7 @@
 Shared fixtures of the laboratory's tests.
 
 The tests of the simulation need MuJoCo and those of the CRAM world the CRAM workspace;
-where either is missing they are skipped, and everything else still runs.
+where either is missing they are left out, and everything else still runs.
 """
 
 from __future__ import annotations
@@ -46,19 +46,25 @@ CRAM_PACKAGES = ("semantic_digital_twin", "coraplex", "giskardpy", "cramera_cram
 The packages the CRAM world and the task demo need.
 """
 
-requires_mujoco = pytest.mark.skipif(
-    importlib.util.find_spec("mujoco") is None, reason="MuJoCo is not installed"
-)
+TESTS_NEEDING_MUJOCO = ["test_physics*.py"]
 """
-Skips a test that simulates where MuJoCo is missing.
+The test modules that simulate, which import MuJoCo.
 """
 
-requires_cram = pytest.mark.skipif(
-    any(importlib.util.find_spec(package) is None for package in CRAM_PACKAGES),
-    reason="the CRAM workspace is not on the path",
+TESTS_NEEDING_CRAM = ["cram/*"]
+"""
+The tests that build CRAM worlds, which import the CRAM workspace.
+"""
+
+collect_ignore_glob = (
+    TESTS_NEEDING_MUJOCO if importlib.util.find_spec("mujoco") is None else []
+) + (
+    TESTS_NEEDING_CRAM
+    if any(importlib.util.find_spec(package) is None for package in CRAM_PACKAGES)
+    else []
 )
 """
-Skips a test that builds CRAM worlds where the workspace is missing.
+The tests left out where MuJoCo or the CRAM workspace is missing; the rest still run.
 """
 
 # %% laboratories

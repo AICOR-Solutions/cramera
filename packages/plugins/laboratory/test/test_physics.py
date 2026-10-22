@@ -11,25 +11,21 @@ import json
 import numpy as np
 import pytest
 
-from .conftest import requires_mujoco
-
-pytestmark = requires_mujoco
-
-from cramera_laboratory.dispenser import ReagentChannel  # noqa: E402
-from cramera_laboratory.exceptions import (  # noqa: E402
+from cramera_laboratory.dispenser import ReagentChannel
+from cramera_laboratory.exceptions import (
     OperationRefused,
     Refusal,
     TooFewSamples,
     UnknownObject,
     ValueOutOfRange,
 )
-from cramera_laboratory.liquid import LaboratoryVessel  # noqa: E402
-from cramera_laboratory.physics.mass import GRAMS_PER_KILOGRAM  # noqa: E402
-from cramera_laboratory.physics.simulation import LaboratoryPhysics  # noqa: E402
-from cramera_laboratory.session import ContactSimulation  # noqa: E402
-from cramera_protocol.geometry import Vector3  # noqa: E402
-from cramera_protocol.laboratory.knowledge import ManualEdition  # noqa: E402
-from cramera_protocol.laboratory.physics import (  # noqa: E402
+from cramera_laboratory.liquid import LaboratoryVessel
+from cramera_laboratory.physics.mass import GRAMS_PER_KILOGRAM
+from cramera_laboratory.physics.simulation import LaboratoryPhysics
+from cramera_laboratory.session import ContactSimulation
+from cramera_protocol.geometry import Vector3
+from cramera_protocol.laboratory.knowledge import ManualEdition
+from cramera_protocol.laboratory.physics import (
     CentrifugeAction,
     CentrifugeRequest,
     DispenserAction,
@@ -42,7 +38,7 @@ from cramera_protocol.laboratory.physics import (  # noqa: E402
     SimulationSnapshot,
     TargetRequest,
 )
-from cramera_protocol.laboratory.layout import Quaternion  # noqa: E402
+from cramera_protocol.laboratory.layout import Quaternion
 
 SETTLE_STEPS = 1500
 """
