@@ -1,0 +1,7 @@
+{
+  "title": "A presentation that cannot travel",
+  "chapters": [
+    {"title": "The complete cell", "scene": "complete_cell", "durationSeconds": 5},
+    {"title": "The broken cell", "scene": "broken_cell", "durationSeconds": 5}
+  ]
+}

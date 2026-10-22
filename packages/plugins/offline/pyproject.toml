@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cramera-offline"
 version = "1.0.0"
-description = "Present recorded CRAM runs as a storyboard, and check that scene bundles hold every file they reference."
+description = "Present recorded CRAM runs as a storyboard without a robot or a network, and check that scene bundles hold every file they reference."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Vanessa Hassouna" }]
@@ -17,6 +17,7 @@ offline = "cramera_offline.plugin:OfflinePlugin"
 
 [project.scripts]
 cramera-check-bundle = "cramera_offline.check_command:main"
+cramera-offline = "cramera_offline.presentation_command:main"
 
 [project.urls]
 Source = "https://github.com/sunava/cramera"

@@ -4,13 +4,14 @@ Errors the offline plugin raises.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPStatus
 from pathlib import Path
 
 from typing_extensions import List
 
 from cramera.exceptions import ViewerError
+from cramera_protocol.offline import BundleCheckReport
 
 # %% files
 
@@ -92,3 +93,59 @@ class MissingQueryParameter(ViewerError):
 
     def message(self) -> str:
         return f"The request needs the query parameter {self.parameter!r}."
+
+
+@dataclass
+class PresentationExists(ViewerError):
+    """
+    A presentation directory that would overwrite files.
+    """
+
+    destination: Path
+    """
+    The directory that exists and is not empty.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{self.destination} exists and is not empty; choose a new directory for "
+            f"the presentation."
+        )
+
+
+@dataclass
+class IncompleteBundles(ViewerError):
+    """
+    Bundles a presentation needs that do not hold every file they reference.
+    """
+
+    reports: List[BundleCheckReport] = field(default_factory=list)
+    """
+    The reports of the incomplete bundles.
+    """
+
+    def message(self) -> str:
+        names = [report.bundle for report in self.reports]
+        return f"The bundles {names} do not hold every file they reference."
+
+
+# %% network
+
+
+@dataclass
+class NetworkIsolationUnavailable(ViewerError):
+    """
+    A system on which the current user cannot create a network namespace.
+    """
+
+    reason: str
+    """
+    What ``unshare`` reported.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The viewer cannot be started without network routes: {self.reason.strip()} "
+            f"Unprivileged user namespaces may be disabled, for example by "
+            f"kernel.apparmor_restrict_unprivileged_userns; serve without --isolated."
+        )
