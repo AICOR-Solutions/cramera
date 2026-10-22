@@ -11,7 +11,7 @@ import signal
 import threading
 from dataclasses import dataclass
 
-from typing_extensions import BinaryIO, Callable, Optional
+from typing_extensions import Callable, Optional
 
 READ_SIZE = 4096
 """
@@ -27,9 +27,12 @@ class Lifeline:
     Watches an input that stays open while the owning process lives.
     """
 
-    stream: BinaryIO
+    descriptor: int
     """
-    The input; the owner never writes to it, so it only ends.
+    The file descriptor of the input; the owner never writes to it, so it only ends.
+
+    It is read unbuffered, so the watching thread holds no lock of a file object the
+    interpreter closes when it shuts down.
     """
 
     end: Optional[Callable[[], None]] = None
@@ -50,7 +53,7 @@ class Lifeline:
         """
         Read the input until it ends, then call :attr:`end`.
         """
-        for _ in iter(lambda: self.stream.read(READ_SIZE), b""):
+        for _ in iter(lambda: os.read(self.descriptor, READ_SIZE), b""):
             continue
         if self.end is None:
             os.kill(os.getpid(), signal.SIGTERM)

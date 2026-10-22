@@ -120,7 +120,7 @@ class PlanDemoCommand:
         )
         options, remaining = parser.parse_known_args(list(arguments))
         if options.lifeline:
-            Lifeline(sys.stdin.buffer).watch()
+            Lifeline(sys.stdin.fileno()).watch()
         demo = PlannedTaskDemo.of_document(self.document, port=options.port)
         if options.stage:
             StagedWorld(demo).run()

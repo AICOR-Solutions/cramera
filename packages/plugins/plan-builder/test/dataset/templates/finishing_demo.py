@@ -12,5 +12,5 @@ ${demo}
 """
 
 if __name__ == "__main__":
-    Lifeline(sys.stdin.buffer).watch()
+    Lifeline(sys.stdin.fileno()).watch()
     print("performed", flush=True)

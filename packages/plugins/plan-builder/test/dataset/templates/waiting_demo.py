@@ -22,6 +22,6 @@ if __name__ == "__main__":
     if "--stage" in sys.argv:
         ended = threading.Event()
         signal.signal(signal.SIGTERM, lambda number, frame: ended.set())
-        Lifeline(sys.stdin.buffer, end=ended.set).watch()
+        Lifeline(sys.stdin.fileno(), end=ended.set).watch()
         ended.wait()
         print("stage ended", flush=True)
