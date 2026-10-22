@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { aboutAxis, multiply, rotated, separation, shifted, zAxis } from '../pose-math.js';
+import { aboutAxis, multiply, rotated, separation, shifted, zAxis } from '../../src/cramera_workshop/web/pose-math.js';
 
 const IDENTITY = [0, 0, 0, 1];
 const QUARTER_TURN = Math.PI / 2;

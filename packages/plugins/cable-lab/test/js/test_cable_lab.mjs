@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { PanelHost } from '../../../panels/panel-host.js';
+import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import {
   CableConfigurationKey,
   CableLabKey,
@@ -10,11 +10,11 @@ import {
   GripperCommandKey,
   PluginName,
   SimulationLifecycle,
-} from '../../../protocol.js';
-import { LINK_TEXT, register } from '../index.js';
-import { CableLabClient } from '../lab/cable-client.js';
-import { ConfigurationForm, NUMBER_FIELDS, OTHER_FRICTION } from '../lab/configuration-form.js';
-import { ElementId, GRASP_TEXT, LIFECYCLE_TEXT, LabPage, POLL_MILLISECONDS } from '../lab/lab-page.js';
+} from 'cramera-viewer/protocol.js';
+import { LINK_TEXT, register } from '../../src/cramera_cable_lab/web/index.js';
+import { CableLabClient } from '../../src/cramera_cable_lab/web/lab/cable-client.js';
+import { ConfigurationForm, NUMBER_FIELDS, OTHER_FRICTION } from '../../src/cramera_cable_lab/web/lab/configuration-form.js';
+import { ElementId, GRASP_TEXT, LIFECYCLE_TEXT, LabPage, POLL_MILLISECONDS } from '../../src/cramera_cable_lab/web/lab/lab-page.js';
 import {
   BUTTON_ACTIONS,
   FORM_FIELDS,
@@ -27,7 +27,7 @@ import {
   PAGE,
   RUNNING_STATE,
 } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
  * The page over fake routes.

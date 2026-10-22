@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { EventBus } from '../../../core/event-bus.js';
-import { PanelHost } from '../../../panels/panel-host.js';
+import { EventBus } from 'cramera-viewer/core/event-bus.js';
+import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import {
   AssetRightsKey,
   DrawerKey,
@@ -19,13 +19,13 @@ import {
   WorkshopKey,
   WorkshopSceneKey,
   WorkshopStateKey,
-} from '../../../protocol.js';
-import { WorkshopClient } from '../workshop-client.js';
-import { Manipulation, WorkshopController } from '../workshop-controller.js';
-import { WorkshopPanel, rightsElement } from '../workshop-panel.js';
-import { IDLE_TEXT, PANEL, WorkshopModule, register } from '../index.js';
+} from 'cramera-viewer/protocol.js';
+import { WorkshopClient } from '../../src/cramera_workshop/web/workshop-client.js';
+import { Manipulation, WorkshopController } from '../../src/cramera_workshop/web/workshop-controller.js';
+import { WorkshopPanel, rightsElement } from '../../src/cramera_workshop/web/workshop-panel.js';
+import { IDLE_TEXT, PANEL, WorkshopModule, register } from '../../src/cramera_workshop/web/index.js';
 import { FakeAnswer, FakeClient, FakeScene, FakeTimers, SCENE, STATE, WORKSHOP } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
  * @param {Object} element An element.

@@ -12,14 +12,14 @@ import {
   WorkshopKey,
   WorkshopStateKey,
   WorkshopView,
-} from '../../../protocol.js';
-import { QUATERNION_START, multiply, aboutAxis } from '../pose-math.js';
+} from 'cramera-viewer/protocol.js';
+import { QUATERNION_START, multiply, aboutAxis } from '../../src/cramera_workshop/web/pose-math.js';
 import {
   AlignmentKind,
   Manipulation,
   WorkshopController,
   WorkshopMessage,
-} from '../workshop-controller.js';
+} from '../../src/cramera_workshop/web/workshop-controller.js';
 import { FakeClient, FakeClock, FakeScene, STATE, WORKSHOP, refused } from './fakes.mjs';
 
 /**

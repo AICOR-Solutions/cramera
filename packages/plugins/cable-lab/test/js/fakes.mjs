@@ -5,9 +5,9 @@
 
 import { readFileSync } from 'node:fs';
 
-import { CableConfigurationKey, CableLabKey, SimulationLifecycle } from '../../../protocol.js';
-import { ElementId } from '../lab/lab-page.js';
-import { FakeDocument, FakeElement } from './support/fake-document.mjs';
+import { CableConfigurationKey, CableLabKey, SimulationLifecycle } from 'cramera-viewer/protocol.js';
+import { ElementId } from '../../src/cramera_cable_lab/web/lab/lab-page.js';
+import { FakeDocument, FakeElement } from 'cramera-testing/fake-document.mjs';
 
 /**
  * A measured state of a running lab.
@@ -17,7 +17,7 @@ export const RUNNING_STATE = JSON.parse(readFileSync(new URL('./running_state.js
 /**
  * The page's markup.
  */
-export const PAGE = readFileSync(new URL('../cable-lab.html', import.meta.url), 'utf-8');
+export const PAGE = readFileSync(new URL('../../src/cramera_cable_lab/web/cable-lab.html', import.meta.url), 'utf-8');
 
 /**
  * The gripper actions the page's buttons send.
