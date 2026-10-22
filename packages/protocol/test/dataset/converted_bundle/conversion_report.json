@@ -1,0 +1,58 @@
+{
+ "source": "scenes/robot_markers.usda",
+ "converter": "26.07.0",
+ "readSeconds": 0.025,
+ "writeSeconds": 0.003,
+ "bundleBytes": 11620,
+ "counts": {
+  "disabledJoints": 0,
+  "instanceProxies": 0,
+  "joints.fixed": 5,
+  "lights": 0,
+  "links": 6,
+  "materials": 1,
+  "meshes": 5,
+  "prims": 15,
+  "semanticPrims": 1,
+  "triangles": 60
+ },
+ "skipped": {
+  "joint to an excluded prim": 3
+ },
+ "skippedExamples": {
+  "joint to an excluded prim": [
+   "/World/Joints/Tow",
+   "/World/Joints/Dock",
+   "/World/Joints/Grip"
+  ]
+ },
+ "excluded": [
+  {
+   "path": "/World/Robots/Rover",
+   "reason": "Isaac robot schema"
+  },
+  {
+   "path": "/World/Robots/Walker",
+   "reason": "robot entity type"
+  }
+ ],
+ "detached": [
+  {
+   "body": "/World/Hook",
+   "parentBody": "/World/Robots/Walker",
+   "joint": "/World/Joints/Grip",
+   "movableJoints": []
+  },
+  {
+   "body": "/World/Cart",
+   "parentBody": "/World/Robots/Rover/Chassis",
+   "joint": "/World/Joints/Tow",
+   "movableJoints": []
+  }
+ ],
+ "articulations": [],
+ "unmappedInputs": {},
+ "missingTextures": [],
+ "warnings": [],
+ "animation": null
+}

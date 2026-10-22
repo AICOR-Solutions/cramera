@@ -1,0 +1,38 @@
+#usda 1.0
+(
+    doc = """The robots of the workshop twin: one arm, marked by Isaac Sim's robot schema and by its entity type, with its mount joint inside its own subtree."""
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "World"
+{
+    def Scope "Robots"
+    {
+        def Xform "Arm" (
+            prepend apiSchemas = ["IsaacRobotAPI"]
+        )
+        {
+            custom string sdt:entityType = "Robot"
+
+            def Xform "Base" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                double3 xformOp:translate = (0, 0, 0.8)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+
+                def Cube "Body"
+                {
+                    double size = 0.2
+                }
+            }
+
+            def PhysicsFixedJoint "Mount"
+            {
+                rel physics:body1 = </World/Robots/Arm/Base>
+            }
+        }
+    }
+}

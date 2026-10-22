@@ -18,6 +18,12 @@ which this repository was mirrored until 22 Oct 2026.
 - **A demo site that shows what is published.** Every push to `main` rebuilds the
   site with three demo scenes, stamps it with the commit and takes a screenshot that
   the status page and the README show.
+- **USD import without the viewer.** `cramera-usd` converts a USD stage into a scene
+  bundle (`cramera-import`), gates and publishes a twin's environment by rename
+  (`cramera-export`) and audits how a twin separates its robots
+  (`cramera-audit-robots`). On the test stages its meshes, URDFs, semantics and
+  residuals are byte for byte those of the earlier converter; every JSON file of a
+  bundle is written through a protocol document.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),
   `cramera-export-site` (static site), `cramera-upgrade-bundle` (rewrite a bundle in
   the current format).

@@ -1,0 +1,21 @@
+{
+ "units": "metres",
+ "upAxis": "Z",
+ "source": "scenes/two_joint_arm.usda",
+ "prims": {
+  "/World/Arm/Base/Upper": {
+   "model": "arm",
+   "link": "Upper",
+   "sdt": {
+    "class": "ArmLink"
+   }
+  },
+  "/World/Puck": {
+   "model": "Puck",
+   "link": "Puck",
+   "sdt": {
+    "class": "Puck"
+   }
+  }
+ }
+}

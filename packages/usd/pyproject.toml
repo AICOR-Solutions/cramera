@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cramera-usd"
+version = "1.0.0"
+description = "Convert a USD stage into a cramera scene bundle, gate its export and audit how a twin separates its robots."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Vanessa Hassouna" }]
+dependencies = [
+    "cramera-protocol==1.0.0",
+    "typing_extensions>=4.8",
+    "usd-core>=26.8",
+    "numpy",
+    "scipy",
+    "pillow",
+]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.optional-dependencies]
+viewer = ["cramera==1.0.0"]
+test = ["pytest", "pytest-cov", "trimesh"]
+
+[project.scripts]
+cramera-import = "cramera_usd.commands.import_scene:main"
+cramera-export = "cramera_usd.commands.export_scene:main"
+cramera-audit-robots = "cramera_usd.commands.audit_robots:main"
+
+[project.urls]
+Source = "https://github.com/sunava/cramera"
+
+[tool.setuptools.packages.find]
+where = ["src"]

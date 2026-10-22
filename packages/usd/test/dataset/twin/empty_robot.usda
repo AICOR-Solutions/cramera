@@ -1,0 +1,15 @@
+#usda 1.0
+(
+    doc = """A robot marked by its entity type outside any robots scope, whose geometry never resolved."""
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "World"
+{
+    def Xform "Rover"
+    {
+        custom string sdt:entityType = "Robot"
+    }
+}

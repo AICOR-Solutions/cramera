@@ -1,0 +1,8 @@
+kind,path,name,model,largest_distance_mm,largest_angle_deg,frame,within_tolerance
+body,/World/Arm/Base,Base,arm,0.0,0.0,0,True
+body,/World/Arm/Base/Upper,Upper,arm,0.0,0.0,6,True
+body,/World/Arm/Base/Upper/Lower,Lower,arm,0.0003,0.0,6,True
+body,/World/Puck,Puck,Puck,0.0,0.0,0,True
+body,/World/Crate,Crate,environment,0.0,0.0,0,True
+joint,/World/Arm/Joints/Shoulder,Shoulder,arm,0.0,0.0,6,True
+joint,/World/Arm/Joints/Slide,Slide,arm,0.0,0.0,1,True

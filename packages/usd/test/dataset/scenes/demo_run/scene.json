@@ -1,0 +1,8 @@
+{
+ "name": "demo_run",
+ "formatVersion": "1.0",
+ "environmentName": "Bench",
+ "task": "Pick the plate",
+ "robot": {"name": "arm", "prefix": "arm", "baseBody": "Arm"},
+ "robotName": "Arm two"
+}

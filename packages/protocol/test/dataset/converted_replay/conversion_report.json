@@ -1,0 +1,41 @@
+{
+ "source": "scenes/two_joint_arm.usda",
+ "converter": "26.07.0",
+ "readSeconds": 0.031,
+ "writeSeconds": 0.005,
+ "bundleBytes": 21550,
+ "counts": {
+  "disabledJoints": 3,
+  "instanceProxies": 0,
+  "joints.fixed": 5,
+  "joints.prismatic": 1,
+  "joints.revolute": 1,
+  "lights": 0,
+  "links": 8,
+  "materials": 1,
+  "meshes": 6,
+  "prims": 17,
+  "semanticPrims": 2,
+  "triangles": 252
+ },
+ "skipped": {},
+ "skippedExamples": {},
+ "excluded": [],
+ "detached": [],
+ "articulations": [],
+ "unmappedInputs": {},
+ "missingTextures": [],
+ "warnings": [],
+ "animation": {
+  "source": "scenes/two_joint_arm_trace.npz",
+  "frameCount": 7,
+  "framesPerSecond": 2.0,
+  "largestBodyDistanceMillimetres": 0.0003,
+  "largestBodyAngleDegrees": 0.0,
+  "beyondTolerance": [],
+  "objects": [
+   "Puck"
+  ],
+  "untrackedBodies": []
+ }
+}
