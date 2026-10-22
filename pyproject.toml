@@ -1,56 +1,18 @@
-[build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+# Tool settings shared by every package of the repository; each package has its own
+# pyproject.toml under packages/.
 
-[project]
-name = "cramera"
-authors = [
-    { name = "Vanessa Hassouna", email = "hassouna@uni-bremen.de" },
-]
-description = "Browser-based visualization for the CRAM architecture: 3D scene, EQL knowledge panel and execution graphs as swappable panels."
-readme = "README.md"
-requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
-]
-keywords = ["robotics", "visualization"]
-dynamic = ["version", "dependencies"]
-# Software, laboratory assets and workshop assets have separately scoped terms.
-license = { text = "GPL-3.0-only AND LicenseRef-AICOR-Laboratory-Assets AND LicenseRef-AICOR-Workshop-Assets" }
+[tool.black]
+target-version = ["py311"]
 
-[project.urls]
-"Source" = 'https://github.com/sunava/cramera'
-"Demo" = 'https://sunava.github.io/cramera/'
-"Issues" = 'https://github.com/sunava/cramera/issues'
+[tool.docformatter]
+make-summary-multi-line = true
+pre-summary-newline = true
+close-quotes-on-newline = true
+black = true
 
-[project.scripts]
-cramera = "cramera.server:main"
-cramera-live = "cramera.live.runner:main"
-cramera-onboard = "cramera.onboard.demo:main"
-cramera-import = "cramera.onboard.usd_scene.command_line:main"
+[tool.pytest.ini_options]
+addopts = "-p no:cacheprovider"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["cramera*"]
-
-[tool.setuptools.package-data]
-# The frontend, laboratory and workshop ship with their local runtime assets.
-cramera = ["web/**/*", "resources/aicor_workshop/*", "resources/aicor_workshop/assets/*", "resources/aicor_medical_lab/*", "resources/aicor_medical_lab/assets/*", "resources/centrifuge_manuals/*.md", "resources/laboratory_devices/*", "resources/laboratory_devices/*/*", "resources/laboratory_devices/*/assets/*"]
-
-[tool.setuptools.dynamic]
-version = { attr = "cramera._version.__version__" }
-dependencies = { file = "requirements.txt" }
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0,<8.0.0",
-]
-# Converting USD stages (Isaac Sim twins) into scene bundles with `cramera-import`.
-usd = [
-    "usd-core>=26.8",
-    "trimesh>=4",
-    "numpy",
-    "scipy",
-    "Pillow",
-]
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
