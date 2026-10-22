@@ -406,6 +406,22 @@ class ModelAnswerKey(StrEnum):
     """
 
 
+class FigureKey(StrEnum):
+    """
+    The keys of a Plotly figure's JSON form, as :class:`PosteriorAnswer` carries it.
+    """
+
+    DATA = "data"
+    """
+    The figure's traces.
+    """
+
+    LAYOUT = "layout"
+    """
+    The figure's layout.
+    """
+
+
 @dataclass(kw_only=True)
 class ProbabilityAnswer(JsonDocument):
     """
@@ -426,8 +442,8 @@ class PosteriorAnswer(JsonDocument):
 
     figures: Dict[str, Any] = document_field(ModelAnswerKey.FIGURES)
     """
-    The posterior marginal of each asked variable as a Plotly figure with ``data`` and
-    ``layout``, by variable name.
+    The posterior marginal of each asked variable as a Plotly figure with the keys of
+    :class:`FigureKey`, by variable name.
     """
 
 

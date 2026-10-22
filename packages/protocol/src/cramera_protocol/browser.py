@@ -49,6 +49,7 @@ from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
 from cramera_protocol.models import (
     ConstraintKey,
+    FigureKey,
     IntervalKey,
     ModelAnswerKey,
     ModelRequestKey,
@@ -140,6 +141,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     ConstraintKey,
     ModelRequestKey,
     ModelAnswerKey,
+    FigureKey,
 )
 """
 The enumerations the browser application reads.

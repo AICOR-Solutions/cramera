@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import pytest
 
+from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.exceptions import InvalidDocumentValue, MissingDocumentField
 from cramera_protocol.models import (
     ConstraintKey,
+    FigureKey,
     IntervalKey,
     ModeAnswer,
     ModelRequestKey,
@@ -92,3 +94,10 @@ def test_a_model_upload_round_trips():
 def test_a_mode_answer_round_trips(read_json):
     data = read_json("models/mode_answer.json")
     assert ModeAnswer.from_json(data).to_json() == data
+
+
+# %% figures
+
+
+def test_the_figure_keys_reach_the_browser():
+    assert FigureKey in BROWSER_ENUMERATIONS
