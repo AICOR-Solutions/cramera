@@ -50,6 +50,11 @@ NEGLIGIBLE_FRICTION = ContactFriction(0.00001, 0.0, 0.0)
 Friction too small to hold the cable.
 """
 
+STARTS = 5
+"""
+How often a test starts a cable, since a start races with the simulation thread.
+"""
+
 WAIT_SECONDS = 2.0
 """
 How long a test waits for the background simulation.
@@ -158,6 +163,17 @@ def test_a_reset_simulation_reports_where_the_cable_is(loose_cable):
     heights = [segment.start.z for segment in loose_cable.measure().segments]
     assert heights == pytest.approx(
         [loose_cable.parameters.mount_height] * len(heights), abs=0.001
+    )
+
+
+@pytest.mark.parametrize("attempt", range(STARTS))
+def test_a_cable_measured_right_after_its_start_is_where_it_was_built(attempt):
+    physics = CablePhysics(configuration=CableConfiguration(anchored=False))
+    physics.start()
+    heights = [segment.start.z for segment in physics.measure().segments]
+    physics.stop()
+    assert heights == pytest.approx(
+        [physics.parameters.mount_height] * len(heights), abs=0.001
     )
 
 
