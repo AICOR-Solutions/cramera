@@ -31,8 +31,8 @@ the branch [`archive/pre-v1`](https://github.com/sunava/cramera/tree/archive/pre
 | [`cramera-protocol`](packages/protocol) | The formats and messages: scene bundles, the scenes index, live messages, routes, versions. Python and the browser read the same definitions. | done |
 | [`cramera`](packages/viewer) | The viewer: HTTP server, scene catalog, plugins, the browser application, screenshots, the static site export. Runs without CRAM. | done |
 | [`cramera-usd`](packages/usd) | Converting an Isaac Sim or USD stage into a scene bundle, with the export gate and the robot separation audit. | done |
-| `cramera-cram` | Live publishing from a running plan, recording, onboarding demos, task demos. | in progress |
-| `cramera-questions` | Questions in the entity query language over worlds and recordings. | in progress |
+| [`cramera-cram`](packages/cram) | Live publishing from a running plan, recording, onboarding demos, task demos. | done |
+| [`cramera-questions`](packages/questions) | Questions in the entity query language over worlds and recordings. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
