@@ -1,0 +1,45 @@
+{
+ "three": {
+  "version": "0.186.1",
+  "files": [
+   "build/three.core.js",
+   "build/three.module.js",
+   "examples/jsm/controls/OrbitControls.js",
+   "examples/jsm/controls/TransformControls.js",
+   "examples/jsm/environments/RoomEnvironment.js",
+   "examples/jsm/loaders/ColladaLoader.js",
+   "examples/jsm/loaders/GLTFLoader.js",
+   "examples/jsm/loaders/MTLLoader.js",
+   "examples/jsm/loaders/OBJLoader.js",
+   "examples/jsm/loaders/STLLoader.js",
+   "examples/jsm/loaders/TGALoader.js",
+   "examples/jsm/loaders/collada/ColladaComposer.js",
+   "examples/jsm/loaders/collada/ColladaParser.js",
+   "examples/jsm/math/SimplexNoise.js",
+   "examples/jsm/postprocessing/EffectComposer.js",
+   "examples/jsm/postprocessing/GTAOPass.js",
+   "examples/jsm/postprocessing/MaskPass.js",
+   "examples/jsm/postprocessing/OutputPass.js",
+   "examples/jsm/postprocessing/Pass.js",
+   "examples/jsm/postprocessing/RenderPass.js",
+   "examples/jsm/postprocessing/ShaderPass.js",
+   "examples/jsm/shaders/CopyShader.js",
+   "examples/jsm/shaders/GTAOShader.js",
+   "examples/jsm/shaders/OutputShader.js",
+   "examples/jsm/shaders/PoissonDenoiseShader.js",
+   "examples/jsm/utils/BufferGeometryUtils.js",
+   "examples/jsm/utils/SkeletonUtils.js",
+   "LICENSE",
+   "package.json"
+  ]
+ },
+ "urdf-loader": {
+  "version": "0.13.1",
+  "files": [
+   "src/URDFClasses.js",
+   "src/URDFLoader.js",
+   "LICENSE",
+   "package.json"
+  ]
+ }
+}
