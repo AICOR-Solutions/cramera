@@ -22,6 +22,9 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov", "trimesh"]
 
+[project.scripts]
+cramera-import = "cramera_usd.commands.import_scene:main"
+
 [project.urls]
 Source = "https://github.com/sunava/cramera"
 

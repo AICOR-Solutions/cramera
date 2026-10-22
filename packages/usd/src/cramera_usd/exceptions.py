@@ -233,3 +233,34 @@ class TraceIncomplete(ConversionError):
             "trace again; it needs the body paths, positions, scalar-first "
             "quaternions and the sample rate."
         )
+
+
+@dataclass
+class RobotRootNotFound(ConversionError):
+    """
+    The prim chosen as the robot holds no link, or several links none of which holds all
+    the others.
+    """
+
+    path: str
+    """
+    The prim chosen as the robot.
+    """
+
+    candidates: List[str]
+    """
+    The names of the topmost links below the prim.
+    """
+
+    def message(self) -> str:
+        if not self.candidates:
+            problem = f"No converted link stands for {self.path} or lies below it."
+        else:
+            problem = (
+                f"{self.path} holds several separate links: "
+                f"{', '.join(self.candidates)}."
+            )
+        return (
+            f"{problem} Choose the prim of the robot's root link, such as the robot "
+            "asset or its articulation root body."
+        )

@@ -1,0 +1,8 @@
+{
+ "name": "bench",
+ "formatVersion": "1.0",
+ "models": [
+  {"name": "environment", "urdf": "environment.urdf", "prefix": "", "robot": false},
+  {"name": "rack", "urdf": "rack.urdf", "prefix": "rack", "robot": false}
+ ]
+}
