@@ -240,3 +240,63 @@ class UnsupportedShape(CramPublisherError):
 
     def message(self) -> str:
         return f"Shapes of type {self.shape_type} cannot be published."
+
+
+# %% export
+
+
+@dataclass
+class ExportError(ViewerError):
+    """
+    A world or a file that cannot be written into a scene bundle.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@dataclass
+class UnrepresentableJointLimits(ExportError):
+    """
+    A bounded joint whose native degree of freedom lacks two finite position limits.
+    """
+
+    joint: str
+    """
+    The name of the connection.
+    """
+
+    def message(self) -> str:
+        return f"The joint {self.joint!r} needs two finite position limits for a URDF."
+
+
+@dataclass
+class PathOutsideBundle(ExportError):
+    """
+    A file reference or destination that would leave the bundle directory.
+    """
+
+    path: str
+    """
+    The reference or destination.
+    """
+
+    def message(self) -> str:
+        return f"{self.path!r} leads out of the bundle directory."
+
+
+@dataclass
+class UrdfSourceNotFound(ExportError):
+    """
+    A URDF or xacro source that resolves to no file.
+    """
+
+    source: str
+    """
+    The source as it was given.
+    """
+
+    def message(self) -> str:
+        return f"The URDF source {self.source!r} does not exist."
+
+
