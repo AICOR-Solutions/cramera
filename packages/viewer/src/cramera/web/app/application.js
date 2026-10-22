@@ -4,9 +4,9 @@
  */
 
 import { EventBus } from '../core/event-bus.js';
-import { sceneOf, withScene } from '../core/scene-address.js';
+import { liveAddressOf, sceneOf, withLive, withScene } from '../core/scene-address.js';
 import { PageStatus } from '../core/page-status.js';
-import { BuildKey, SceneKey, ViewerEvent, ViewerInfoKey } from '../protocol.js';
+import { BuildKey, LiveRoute, SceneKey, ViewerEvent, ViewerInfoKey } from '../protocol.js';
 import { PlaybackClock } from '../playback/playback-clock.js';
 import { TimelineView } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
@@ -19,6 +19,9 @@ import { StepsPanel } from '../panels/steps-panel.js';
 import { ViewPanel, ViewSwitch } from '../panels/view-panel.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
+import { LiveClient } from '../live/live-client.js';
+import { LiveListener, LiveSession } from '../live/live-session.js';
+import { LiveActions, LivePanel } from '../panels/live-panel.js';
 import { SceneHighlights } from '../scene/scene-highlights.js';
 import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
@@ -207,6 +210,30 @@ export class Application {
   #highlights = null;
 
   /**
+   * The Live panel.
+   * @type {LivePanel}
+   */
+  #livePanel;
+
+  /**
+   * The connection to a live publisher, or null while none is wanted.
+   * @type {LiveSession|null}
+   */
+  #live = null;
+
+  /**
+   * Fetches a URL; `window.fetch` in the browser.
+   * @type {function(string, Object=): Promise<Response>}
+   */
+  #fetch;
+
+  /**
+   * Starts and stops the live session's timers; `window` in the browser.
+   * @type {{setInterval: Function, clearInterval: Function}}
+   */
+  #timers;
+
+  /**
    * The scene picker's choice, once the scenes are known.
    * @type {SceneChoice|null}
    */
@@ -223,9 +250,13 @@ export class Application {
    * @param {import('../core/viewer-api.js').ViewerApi} api The viewer's routes.
    * @param {Location} location The page's location.
    * @param {History} history The browser's history.
+   * @param {function(string, Object=): Promise<Response>} fetch Fetches a URL.
+   * @param {{setInterval: Function, clearInterval: Function}} timers Starts and stops timers.
    */
-  constructor(elements, api, location, history) {
+  constructor(elements, api, location, history, fetch, timers) {
     this.#elements = elements;
+    this.#fetch = fetch;
+    this.#timers = timers;
     this.#api = api;
     this.#location = location;
     this.#history = history;
@@ -236,7 +267,19 @@ export class Application {
     this.#plan = new PlanPanel(elements.document);
     this.#details = new DetailsPanel(elements.document);
     this.#statechart = new StatechartPanel(elements.document);
-    for (const part of [this.#steps, this.#plan, this.#statechart, this.#details]) this.#panels.add(part.panel);
+    this.#livePanel = new LivePanel(
+      elements.document,
+      new LiveActions(
+        (address) => this.connectLive(address),
+        () => this.disconnectLive(),
+        () => this.#live.client.send(LiveRoute.RECORDING_STOP),
+        (request) => this.#live.client.saveRecording(request),
+        () => this.#live.client.send(LiveRoute.RECORDING_DISCARD),
+      ),
+    );
+    for (const part of [this.#steps, this.#plan, this.#statechart, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    this.bus.subscribe(ViewerEvent.LIVE_CONNECTED, (info) => this.#showLiveConnection(info));
+    this.bus.subscribe(ViewerEvent.LIVE_DISCONNECTED, () => this.#showLiveConnection(null));
   }
 
   /**
@@ -251,12 +294,16 @@ export class Application {
     const choice = new SceneChoice(index);
     const requested = sceneOf(this.#location.href);
     if (requested) choice.chooseScene(requested);
-    if (!choice.scene) {
+    const liveAddress = liveAddressOf(this.#location.href);
+    if (!choice.scene && !liveAddress) {
       this.#fail('No scenes found. Record a run or add a scenes directory.');
       return;
     }
     this.#choice = choice;
-    this.#picker = new ScenePickerView(this.#elements.picker, choice, (name) => this.show(name));
+    this.#picker = new ScenePickerView(this.#elements.picker, choice, (name) => {
+      this.disconnectLive();
+      this.show(name);
+    });
     this.#view = new SceneView(this.#elements.stage);
     this.#view.scene.add(this.#lighting.group);
     this.#addViewPanel(this.#view);
@@ -278,7 +325,8 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    await this.show(choice.scene);
+    if (liveAddress) this.connectLive(liveAddress);
+    else await this.show(choice.scene);
   }
 
   /**
@@ -330,6 +378,61 @@ export class Application {
     }
     this.#picker.render();
     return this.show(name);
+  }
+
+  /**
+   * Follow a live publisher: show its world and apply its states as they arrive.
+   * @param {string} address The publisher's address.
+   */
+  connectLive(address) {
+    this.disconnectLive();
+    this.#live = new LiveSession(
+      new LiveClient(this.#fetch, address),
+      this.#timers,
+      this.bus,
+      new LiveListener(
+        (scene) => this.show(scene).then(() => this.#live?.sceneShown()),
+        (state) => this.#showLiveState(state),
+        (plan) => this.#plan.showLive(plan),
+        (chart) => this.#statechart.showLive(chart),
+        (status) => this.#livePanel.showRecording(status),
+      ),
+    );
+    this.#livePanel.showConnecting(true, null, address);
+    this.#history.replaceState(null, '', withLive(this.#location.href, address));
+    this.#live.start();
+  }
+
+  /**
+   * Stop following the live publisher.
+   */
+  disconnectLive() {
+    if (!this.#live) return;
+    this.#live.stop();
+    this.#live = null;
+    this.#livePanel.showConnecting(false, null);
+    this.#elements.statusLine.dataset.live = 'false';
+  }
+
+  /**
+   * @param {Object} state A live publisher's world state.
+   */
+  #showLiveState(state) {
+    if (!this.#scene) return;
+    this.#scene.showState(state);
+    this.#picking.update();
+    this.#highlights.update();
+    this.#view.requestRender();
+  }
+
+  /**
+   * @param {Object|null} info The publisher's information, or null when it stopped answering.
+   */
+  #showLiveConnection(info) {
+    if (!this.#live) return;
+    this.#livePanel.showConnecting(true, info);
+    this.#elements.statusLine.dataset.live = String(Boolean(info));
+    if (!info) this.#status.ready('The live publisher does not answer; showing the last state.');
   }
 
   /**
@@ -394,6 +497,7 @@ export class Application {
    * @param {string} name The bundle's name.
    */
   #rememberScene(name) {
+    if (this.#live) return;
     this.#history.replaceState(null, '', withScene(this.#location.href, name));
   }
 

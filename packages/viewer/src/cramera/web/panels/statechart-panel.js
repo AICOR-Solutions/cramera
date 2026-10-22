@@ -3,7 +3,7 @@
  * tree, each with the life-cycle and observation state the recording stored.
  */
 
-import { ChartKey, ChartNodeKey, MomentKey, StatechartsKey } from '../protocol.js';
+import { ChartKey, ChartNodeKey, LiveChartNodeKey, LiveStatechartKey, MomentKey, StatechartsKey } from '../protocol.js';
 import { SidePanel } from './panel-host.js';
 
 /**
@@ -68,6 +68,34 @@ export class StatechartPanel {
     const title = this.panel.element.ownerDocument.createElement('h2');
     title.textContent = chart[ChartKey.TITLE];
     this.panel.element.replaceChildren(title, this.#tree(chart, state));
+  }
+
+  /**
+   * Show the statechart a live publisher ticks, with each node's current states.
+   * @param {Object} chart A live statechart.
+   */
+  showLive(chart) {
+    const nodes = chart[LiveStatechartKey.NODES] ?? [];
+    this.#statecharts = null;
+    this.#shownMoment = null;
+    if (nodes.length === 0) {
+      this.#message('No motion statechart runs.');
+      return;
+    }
+    const title = this.panel.element.ownerDocument.createElement('h2');
+    title.textContent = chart[LiveStatechartKey.TITLE];
+    const structure = {
+      [ChartKey.NODES]: nodes.map((node) => ({
+        [ChartNodeKey.IDENTIFIER]: node[LiveChartNodeKey.IDENTIFIER],
+        [ChartNodeKey.NAME]: node[LiveChartNodeKey.NAME],
+        [ChartNodeKey.PARENT]: node[LiveChartNodeKey.PARENT] ?? null,
+      })),
+    };
+    const state = {
+      [MomentKey.LIFE_CYCLES]: nodes.map((node) => node[LiveChartNodeKey.LIFE_CYCLE]),
+      [MomentKey.OBSERVATIONS]: nodes.map((node) => node[LiveChartNodeKey.OBSERVATION]),
+    };
+    this.panel.element.replaceChildren(title, this.#tree(structure, state));
   }
 
   /**

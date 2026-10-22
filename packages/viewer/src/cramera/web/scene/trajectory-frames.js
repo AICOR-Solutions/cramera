@@ -125,8 +125,16 @@ export class TrajectoryFrames {
    * @returns {Map<string, Map<string, number>>} The joint values of each model.
    */
   jointValues(frame) {
+    return this.jointValuesOf(this.#trajectory[TrajectoryKey.FRAMES]?.[frame] ?? {});
+  }
+
+  /**
+   * @param {Object<string, number>} recorded Joint values by trajectory key, as a
+   *   trajectory frame or a live state holds them.
+   * @returns {Map<string, Map<string, number>>} The joint values of each model.
+   */
+  jointValuesOf(recorded) {
     const values = new Map();
-    const recorded = this.#trajectory[TrajectoryKey.FRAMES]?.[frame] ?? {};
     for (const [key, value] of Object.entries(recorded)) {
       const address = this.#addresses.get(key);
       if (!address) continue;

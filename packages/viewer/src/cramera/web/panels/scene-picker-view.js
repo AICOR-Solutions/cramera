@@ -41,6 +41,7 @@ export class ScenePickerView {
    * Show the pickers for the current choice.
    */
   render() {
+    this.#root.hidden = this.#choice.robots().length === 0;
     const pickers = [
       this.#picker('Robot', this.#choice.robots(), this.#choice.robot, (value) => this.#choice.chooseRobot(value)),
       this.#picker('Environment', this.#choice.environments(), this.#choice.environment, (value) => this.#choice.chooseEnvironment(value)),

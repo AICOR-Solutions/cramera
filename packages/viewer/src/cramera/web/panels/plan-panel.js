@@ -3,7 +3,7 @@
  * each had when the run ended.
  */
 
-import { PlanNodeKey } from '../protocol.js';
+import { LivePlanKey, LivePlanNodeKey, PlanNodeKey } from '../protocol.js';
 import { SidePanel } from './panel-host.js';
 
 // %% panel
@@ -41,6 +41,14 @@ export class PlanPanel {
   }
 
   /**
+   * Show the plan a live publisher executes, its nodes listed flat with their parents.
+   * @param {Object} plan A live plan.
+   */
+  showLive(plan) {
+    this.show(planTreesOf(plan[LivePlanKey.NODES] ?? []));
+  }
+
+  /**
    * @param {Object} node A plan node.
    * @returns {HTMLElement} The node with its children.
    */
@@ -68,4 +76,33 @@ export class PlanPanel {
     }
     return item;
   }
+}
+
+// %% live plans
+
+/**
+ * @param {Array<Object>} nodes The nodes of a live plan, each naming its parent.
+ * @returns {Array<Object>} The same nodes as plan trees, children in the order listed.
+ */
+export function planTreesOf(nodes) {
+  const trees = new Map(
+    nodes.map((node) => [
+      node[LivePlanNodeKey.IDENTIFIER],
+      {
+        [PlanNodeKey.IDENTIFIER]: node[LivePlanNodeKey.IDENTIFIER],
+        [PlanNodeKey.KIND]: node[LivePlanNodeKey.KIND],
+        [PlanNodeKey.LABEL]: node[LivePlanNodeKey.LABEL],
+        [PlanNodeKey.STATUS]: node[LivePlanNodeKey.STATUS],
+        [PlanNodeKey.CHILDREN]: [],
+      },
+    ]),
+  );
+  const roots = [];
+  for (const node of nodes) {
+    const tree = trees.get(node[LivePlanNodeKey.IDENTIFIER]);
+    const parent = trees.get(node[LivePlanNodeKey.PARENT]);
+    if (parent) parent[PlanNodeKey.CHILDREN].push(tree);
+    else roots.push(tree);
+  }
+  return roots;
 }

@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 
-import { BundleFile, CameraKey, RenderingKey, SceneKey, TrajectoryKey } from '../protocol.js';
+import { BundleFile, CameraKey, LiveStateKey, RenderingKey, SceneKey, TrajectoryKey } from '../protocol.js';
 import { Bounds } from './bounds.js';
 import { LoadingProgress } from './loading-progress.js';
 import { SceneModels } from './scene-models.js';
@@ -82,6 +82,17 @@ export class LoadedScene {
     this.models.setRobotPose(this.frames.robotPose(frame));
     this.models.setInstancePoses(this.frames.instancePoses(frame));
     this.objects.setPoses(this.frames.objectPoses(frame));
+  }
+
+  /**
+   * Show a live publisher's world state.
+   * @param {Object} state A live state.
+   */
+  showState(state) {
+    this.models.setJointValues(this.frames.jointValuesOf(state[LiveStateKey.FRAMES] ?? {}));
+    this.models.setRobotPose(state[LiveStateKey.BASE] ?? null);
+    this.models.setInstancePoses(new Map(Object.entries(state[LiveStateKey.MODEL_BASES] ?? {})));
+    this.objects.setPoses(new Map(Object.entries(state[LiveStateKey.OBJECTS] ?? {})));
   }
 
   /**

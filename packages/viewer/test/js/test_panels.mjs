@@ -149,3 +149,10 @@ test('durations read as minutes and seconds with tenths', () => {
   assert.equal(formatSeconds(0), '0:00.0');
   assert.equal(formatSeconds(75.25), '1:15.3');
 });
+
+test('the scene picker hides when there are no scenes to choose', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('nav');
+  new ScenePickerView(root, new SceneChoice({}), () => {});
+  assert.equal(root.hidden, true);
+});

@@ -12,6 +12,8 @@ const application = new Application(
   new ViewerApi((url, options) => fetch(url, options), document.baseURI),
   window.location,
   window.history,
+  (url, options) => fetch(url, options),
+  window,
 );
 application.start((url) => import(url)).catch((error) => {
   new PageStatus(document.documentElement, elements.statusLine).failed(`The viewer could not start: ${error.message}`);

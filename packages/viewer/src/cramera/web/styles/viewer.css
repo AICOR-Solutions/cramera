@@ -272,3 +272,12 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 
 .chart-node { display: flex; align-items: baseline; gap: 6px; padding: 2px 4px; border-radius: 6px; }
 .chart-node .status { margin-left: auto; font: 11px var(--mono); color: var(--text-muted); white-space: nowrap; }
+
+/* %% live */
+
+.live { display: grid; gap: 10px; align-content: start; }
+.live .connect, .live .save { display: flex; flex-wrap: wrap; gap: 6px; }
+.live input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+.live-state { margin: 0; color: var(--text-muted); }
+.live[data-connected="true"] .live-state { color: var(--success); }
+.status-line[data-live="true"]::before { content: "● live "; color: var(--success); }
