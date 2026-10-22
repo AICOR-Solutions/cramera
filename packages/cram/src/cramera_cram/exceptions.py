@@ -632,6 +632,25 @@ class TaskFailed(DemoError):
 
 
 @dataclass
+class EnvironmentBundleHoldsRobot(DemoError):
+    """
+    A task demo asked to start from a bundle that holds a robot model; a task's robot
+    comes from its CRAM specification, so its environment must hold none.
+    """
+
+    directory: Path
+    """
+    The bundle directory.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{str(self.directory)!r} holds a robot model; a task demo starts from an "
+            f"environment bundle."
+        )
+
+
+@dataclass
 class RecordingNotSaved(DemoError):
     """
     A recording asked for before any run saved it.

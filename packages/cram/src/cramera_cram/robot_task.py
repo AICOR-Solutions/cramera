@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Optional, Sequence
+from typing_extensions import Any, Optional, Self, Sequence
 
 from coraplex.datastructures.dataclasses import Context
 from coraplex.execution_environment import ExecutionEnvironment
@@ -27,9 +27,14 @@ from coraplex.plans.plan import Plan
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
 from cramera_cram.documents import DocumentFile
-from cramera_cram.exceptions import RecordingNotSaved, SceneNameTaken
+from cramera_cram.exceptions import (
+    EnvironmentBundleHoldsRobot,
+    RecordingNotSaved,
+    SceneNameTaken,
+)
 from cramera_cram.export.scene_index import SceneIndexFile
 from cramera_cram.live.server import LIVE_PORT
+from cramera_cram.scenes.bundle_world import BundleEnvironment
 from cramera_cram.scenes.environment import SceneEnvironment
 from cramera_cram.scenes.presentation import ScenePresentation
 from cramera_cram.visualization import LiveVisualization
@@ -48,6 +53,16 @@ from semantic_digital_twin.world import World
 PUBLISHING_PREFIX = ".publish_"
 """
 The prefix of the folder a bundle is staged in while it is published.
+"""
+
+REPLACED_SUFFIX = ".replaced"
+"""
+The suffix of a shared bundle's old version while the new one takes its place.
+"""
+
+NAME_PART_SEPARATOR = "_"
+"""
+What separates the environment, the robot and the task in a recording's name.
 """
 
 # %% demo
@@ -140,6 +155,47 @@ class RobotTaskDemo(ABC):
         :return: The measurements.
         :raises TaskFailed: When the outcome is not the task's.
         """
+
+    @classmethod
+    def in_environment_bundle(
+        cls,
+        directory: Path,
+        robot: RobotSpecification,
+        robot_name: str,
+        task_identifier: str,
+        task: str,
+        **fields: Any,
+    ) -> Self:
+        """
+        A task in the environment of a scene bundle, recorded as ``<bundle>_<robot
+        name>_<task identifier>`` with the bundle's environment name and appearance, so
+        the viewer offers the recording beside its environment.
+
+        :param directory: An environment bundle.
+        :param robot: The CRAM robot and where it starts.
+        :param robot_name: The robot's part of the recording's name.
+        :param task_identifier: The task's part of the recording's name.
+        :param task: What the task does, as the scene picker labels it.
+        :param fields: The other fields of the demo.
+        :return: The demo.
+        :raises BundleNotFound: When the directory holds no bundle.
+        :raises EnvironmentBundleHoldsRobot: When the bundle holds a robot model.
+        """
+        environment = BundleEnvironment(directory)
+        scene = environment.contents.scene
+        if any(model.robot for model in scene.models):
+            raise EnvironmentBundleHoldsRobot(environment.directory)
+        return cls(
+            environment=environment,
+            robot=robot,
+            name=NAME_PART_SEPARATOR.join(
+                (environment.directory.name, robot_name, task_identifier)
+            ),
+            task=task,
+            environment_name=scene.environment_name or scene.name,
+            presentation=ScenePresentation.of_bundle(environment.directory),
+            **fields,
+        )
 
     # %% running
 
@@ -249,7 +305,7 @@ class RobotTaskDemo(ABC):
         shutil.copytree(saved, staging / name)
         target = shared / name
         if target.exists():
-            target.rename(staging / f"{name}.replaced")
+            target.rename(staging / f"{name}{REPLACED_SUFFIX}")
         (staging / name).rename(target)
         shutil.rmtree(staging)
         scene = scene_file.read(SceneDescription)

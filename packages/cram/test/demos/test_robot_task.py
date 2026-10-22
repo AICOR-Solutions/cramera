@@ -4,12 +4,20 @@ Robot task demos: running, measuring, saving and publishing a task.
 
 from __future__ import annotations
 
+import shutil
+from dataclasses import replace
+
 import pytest
 
 from cramera.locations import DataLocations
 from cramera_cram.demos.navigation import BarrierEnvironment
 from cramera_cram.documents import DocumentFile
-from cramera_cram.exceptions import RecordingNotSaved, SceneNameTaken, TaskFailed
+from cramera_cram.exceptions import (
+    EnvironmentBundleHoldsRobot,
+    RecordingNotSaved,
+    SceneNameTaken,
+    TaskFailed,
+)
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
 from cramera_protocol.bundle.index import InvalidSceneName, SceneIndex
@@ -20,8 +28,9 @@ from semantic_digital_twin.api import RobotSpecification
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.pr2 import PR2
 
-from cramera_cram.robot_task import TaskArgument, TaskCommand
+from cramera_cram.robot_task import NAME_PART_SEPARATOR, TaskArgument, TaskCommand
 
+from ..dataset.bundles import ANNOTATED_BUNDLE
 from ..dataset.demos import TorsoDemo, TorsoMeasurement
 
 SCENE_NAME = "barrier_pr2_torso"
@@ -143,6 +152,91 @@ def test_a_demo_saves_where_the_environment_configures(monkeypatch, tmp_path):
         task=TASK,
     )
     assert TorsoDemo(**fields).locations.data == tmp_path / "configured"
+
+
+# %% environment bundles
+
+ROBOT_NAME = "pr2"
+"""
+The robot's part of a bundle demo's recording name.
+"""
+
+TASK_IDENTIFIER = "torso"
+"""
+The task's part of a bundle demo's recording name.
+"""
+
+
+@pytest.fixture
+def environment_bundle(tmp_path):
+    """
+    :return: A copy of the annotated bundle without its robot model and without its
+        free objects, whose mesh files the dataset does not hold.
+    """
+    bundle = shutil.copytree(ANNOTATED_BUNDLE, tmp_path / "lab")
+    scene_file = DocumentFile(bundle / BundleFile.SCENE)
+    scene = scene_file.read(SceneDescription)
+    scene_file.write(
+        replace(
+            scene,
+            models=[model for model in scene.models if not model.robot],
+            robot=None,
+            objects=[],
+        )
+    )
+    return bundle
+
+
+def bundle_demo(directory, locations) -> TorsoDemo:
+    """
+    :return: The torso task in the environment of a bundle.
+    """
+    return TorsoDemo.in_environment_bundle(
+        directory,
+        RobotSpecification(semantic_annotation_type=PR2),
+        ROBOT_NAME,
+        TASK_IDENTIFIER,
+        TASK,
+        locations=locations,
+        port=0,
+    )
+
+
+def test_a_bundle_demo_is_named_and_labelled_after_its_environment(
+    environment_bundle, locations
+):
+    demo = bundle_demo(environment_bundle, locations)
+    environment = DocumentFile(environment_bundle / BundleFile.SCENE).read(
+        SceneDescription
+    )
+    assert demo.name == NAME_PART_SEPARATOR.join(
+        (environment_bundle.name, ROBOT_NAME, TASK_IDENTIFIER)
+    )
+    assert demo.environment_name == environment.environment_name
+
+
+def test_a_bundle_demo_records_with_its_environments_appearance(
+    environment_bundle, locations
+):
+    demo = bundle_demo(environment_bundle, locations)
+    saved = demo.run()
+    scene = DocumentFile(locations.local_scenes / saved.scene / BundleFile.SCENE).read(
+        SceneDescription
+    )
+    environment = DocumentFile(environment_bundle / BundleFile.SCENE).read(
+        SceneDescription
+    )
+    assert scene.environment_name == environment.environment_name
+    assert scene.rendering == environment.rendering
+    assert scene.camera == environment.camera
+    assert (
+        locations.local_scenes / saved.scene / scene.rendering.environment
+    ).is_file()
+
+
+def test_a_bundle_holding_a_robot_is_no_environment(locations):
+    with pytest.raises(EnvironmentBundleHoldsRobot):
+        bundle_demo(ANNOTATED_BUNDLE, locations)
 
 
 # %% refusals
