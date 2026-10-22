@@ -136,6 +136,7 @@ class ModuleSetup {
     const view = { requestRender() {}, camera: { position: { set() {} } }, controls: { target: { set() {} }, update() {} } };
     this.context = { bus: this.bus, panels: this.panels, api, view };
     this.module = new WorkshopModule(this.context, this.document, this.timers, this.client);
+    this.panels.add(this.module.panel);
   }
 
   /**
@@ -159,10 +160,11 @@ test('a scene without a workshop shows what the panel is for', () => {
   assert.equal(setup.module.panel.identifier, PANEL.IDENTIFIER);
 });
 
-test('a workshop scene starts its world and polls it', async () => {
+test('a workshop scene starts its world, polls it and shows the panel', async () => {
   const setup = new ModuleSetup();
   await setup.module.enter(setup.loaded(SCENE));
   assert.ok(setup.module.controller);
+  assert.equal(setup.panels.shown, PANEL.IDENTIFIER);
   assert.deepEqual([...setup.timers.intervals.values()].map((interval) => interval.milliseconds), [Manipulation.POLL_MILLISECONDS]);
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(setup.module.controller.isRunning(), true);
@@ -210,8 +212,9 @@ test('the recorded demo the workshop names is offered and opened', async () => {
 
 test('registering adds the panel and its stylesheet', () => {
   const setup = new ModuleSetup();
-  const module = register(setup.context, setup.document, setup.timers);
-  assert.deepEqual(setup.panels.identifiers(), [PANEL.IDENTIFIER]);
+  const panels = new PanelHost(setup.document.createElement('aside'));
+  const module = register({ ...setup.context, panels }, setup.document, setup.timers);
+  assert.deepEqual(panels.identifiers(), [PANEL.IDENTIFIER]);
   assert.equal(setup.document.head.children.length, 1);
   assert.ok(module instanceof WorkshopModule);
 });

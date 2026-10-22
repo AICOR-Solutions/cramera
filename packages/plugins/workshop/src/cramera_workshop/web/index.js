@@ -130,6 +130,7 @@ export class WorkshopModule {
       this.#context.bus.publish(ViewerEvent.SCENE_REQUESTED, demoScene),
     );
     this.panel.element.replaceChildren(this.content.element);
+    this.#context.panels.show(PANEL.IDENTIFIER);
     this.#timer = this.#timers.setInterval(() => this.controller.poll(), Manipulation.POLL_MILLISECONDS);
     this.controller.start();
     if (demoScene) await this.#offerDemo(demoScene, this.content);
