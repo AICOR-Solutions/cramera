@@ -8,6 +8,7 @@ it neither depends on nor shuts down a context the demo owns.
 from __future__ import annotations
 
 import threading
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 
 import rclpy
@@ -98,19 +99,25 @@ class RosMarkerListener(MarkerTopicSource):
 
     def start(self, topics: List[str]) -> RosMarkerListener:
         """
-        Create the context, node and subscriptions and start spinning.
+        Create the context, node and subscriptions and start spinning; a start that
+        fails part-way releases what it created.
 
         :param topics: The topics read from the start.
         :return: This listener.
         """
         rclpy.init(context=self.context)
-        self.node = rclpy.create_node(NODE_NAME, context=self.context)
-        self.executor = SingleThreadedExecutor(context=self.context)
-        self.executor.add_node(self.node)
-        for topic in topics:
-            self.subscribe(topic)
-        self.thread = threading.Thread(target=self.spin, name=NODE_NAME, daemon=True)
-        self.thread.start()
+        with ExitStack() as starting:
+            starting.callback(self.stop)
+            self.node = rclpy.create_node(NODE_NAME, context=self.context)
+            self.executor = SingleThreadedExecutor(context=self.context)
+            self.executor.add_node(self.node)
+            for topic in topics:
+                self.subscribe(topic)
+            self.thread = threading.Thread(
+                target=self.spin, name=NODE_NAME, daemon=True
+            )
+            self.thread.start()
+            starting.pop_all()
         return self
 
     def spin(self) -> None:

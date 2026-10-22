@@ -12,6 +12,7 @@ import pytest
 rclpy = pytest.importorskip("rclpy")
 
 from rclpy.context import Context
+from rclpy.exceptions import InvalidTopicNameException
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -79,3 +80,18 @@ def test_topics_are_added_once_and_dropped():
     listener.stop()
     assert subscribed == [TOPIC]
     assert remaining == []
+
+
+INVALID_TOPIC = "not a topic"
+"""
+A topic name ROS refuses, which fails a start after the node exists.
+"""
+
+
+def test_a_failed_start_releases_the_node_and_the_context():
+    listener = RosMarkerListener(MarkerBoard())
+    with pytest.raises(InvalidTopicNameException):
+        listener.start([INVALID_TOPIC])
+    assert listener.node is None
+    assert listener.executor is None
+    assert listener.context.ok() is False
