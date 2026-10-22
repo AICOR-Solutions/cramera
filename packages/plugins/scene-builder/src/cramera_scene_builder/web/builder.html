@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scene builder · cramera</title>
+  <link rel="icon" href="../../images/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles/viewer.css">
+  <link rel="stylesheet" href="builder.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../vendor/three/build/three.module.js",
+        "three/addons/": "../../vendor/three/examples/jsm/",
+        "three/examples/jsm/": "../../vendor/three/examples/jsm/",
+        "urdf-loader": "../../vendor/urdf-loader/src/URDFLoader.js"
+      }
+    }
+  </script>
+  <script type="module" src="builder/main.js"></script>
+</head>
+<body class="builder-page">
+  <div id="scene-builder" class="builder-root"></div>
+</body>
+</html>

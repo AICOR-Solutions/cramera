@@ -156,3 +156,11 @@ def test_binary_records_are_read_in_the_declared_byte_order(limits):
     assert list(PointCloudFile(PointCloudFormat.PLY, body, limits).sample().positions)[
         :3
     ] == list(first)
+
+
+@pytest.mark.parametrize("name", ["colored_ascii.ply", "missing_measurements.pcd"])
+def test_the_browser_tests_decode_the_samples_the_server_writes(limits, name):
+    browser_fixture = (
+        DATASET.parent / "js" / "dataset" / f"{name.split('.')[0]}_sample.bin"
+    )
+    assert cloud(name, limits).sample().to_bytes() == browser_fixture.read_bytes()

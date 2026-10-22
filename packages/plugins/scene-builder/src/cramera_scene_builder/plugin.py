@@ -1,6 +1,6 @@
 """
 The scene builder as a viewer plugin: where it keeps its files, which directories its
-resource library holds, and the routes it adds.
+resource library holds, and the routes and browser files it adds.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from enum import StrEnum
 from importlib.metadata import version
 from pathlib import Path
 
-from typing_extensions import Dict, List, Mapping
+from typing_extensions import Dict, List, Mapping, Optional
 
 from cramera.locations import DataLocations
 from cramera.plugins import PluginContext, RouteDeclaration, ViewerPlugin
@@ -19,6 +19,7 @@ from cramera.scenes import SceneCatalog
 from cramera_protocol.bundle.index import SceneName
 from cramera_protocol.scene_builder import (
     ReservedResourceRoot,
+    SceneBuilderFile,
     SceneBuilderLimits,
     SceneBuilderName,
     SceneBuilderVariable,
@@ -28,6 +29,11 @@ from cramera_scene_builder.exceptions import InvalidRootName
 from cramera_scene_builder.resources import ResourceLibrary
 from cramera_scene_builder.routes import SceneBuilderRoutes
 from cramera_scene_builder.uploads import PointCloudStore
+
+WEB_DIRECTORY = Path(__file__).parent / "web"
+"""
+The scene builder's browser files.
+"""
 
 # %% storage
 
@@ -198,3 +204,9 @@ class SceneBuilderPlugin(ViewerPlugin):
             point_clouds=PointCloudStore(storage.point_clouds, self.limits),
             limits=self.limits,
         ).declarations()
+
+    def web_directory(self) -> Optional[Path]:
+        return WEB_DIRECTORY
+
+    def module(self) -> Optional[str]:
+        return SceneBuilderFile.MODULE
