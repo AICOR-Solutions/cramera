@@ -8,8 +8,11 @@ import json
 import urllib.request
 from http import HTTPStatus
 
+import pytest
+
 from cramera.http.messages import Header, HttpMethod
 from cramera.http.origin import LOCAL_HOSTS
+from cramera_cram.exceptions import NonLocalAddress
 from cramera_cram.live.server import LIVE_HOST, LIVE_PORT, LiveServer
 from cramera_protocol.live import Capability, LiveInfo, LiveRoute
 from cramera_protocol.live_messages import MarkerTopics
@@ -21,6 +24,11 @@ EVIL_ORIGIN = "https://evil.example"
 A page of another site.
 """
 
+EVERY_ADDRESS = "0.0.0.0"
+"""
+The address that listens on every network interface.
+"""
+
 # %% where and whom
 
 
@@ -29,6 +37,13 @@ def test_the_publisher_listens_on_this_machine_only(publisher):
     assert server.host == LIVE_HOST
     assert server.host in LOCAL_HOSTS
     assert server.port == LIVE_PORT
+
+
+def test_a_server_refuses_to_listen_beyond_this_machine(publisher):
+    server = LiveServer(publisher, host=EVERY_ADDRESS, port=0)
+    with pytest.raises(NonLocalAddress):
+        server.start()
+    assert server.server is None
 
 
 def test_a_started_server_is_bound_to_the_loopback_address(publisher):

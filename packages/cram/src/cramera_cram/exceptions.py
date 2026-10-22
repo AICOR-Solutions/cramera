@@ -594,6 +594,22 @@ class MalformedBody(CramPublisherError):
 
 
 @dataclass
+class NonLocalAddress(ViewerError):
+    """
+    A live publisher asked to listen on an address other machines reach; its query route
+    runs code, so it serves this machine only.
+    """
+
+    host: str
+    """
+    The address asked for.
+    """
+
+    def message(self) -> str:
+        return f"The live publisher listens on this machine only, not on {self.host!r}."
+
+
+@dataclass
 class DemoError(ViewerError):
     """
     A task demo or an onboarding run that cannot be completed.

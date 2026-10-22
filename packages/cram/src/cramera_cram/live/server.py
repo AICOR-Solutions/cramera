@@ -9,8 +9,9 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Optional
 
-from cramera.http.origin import OriginPolicy
+from cramera.http.origin import LOCAL_HOSTS, OriginPolicy
 from cramera.http.server import HttpServer, RequestAnswerer
+from cramera_cram.exceptions import NonLocalAddress
 from cramera_cram.live.publisher import LivePublisher
 from cramera_cram.live.routes import LiveRoutes
 
@@ -40,7 +41,7 @@ class LiveServer:
 
     host: str = LIVE_HOST
     """
-    The address to listen on.
+    The address to listen on, one of this machine's own.
     """
 
     port: int = LIVE_PORT
@@ -69,7 +70,10 @@ class LiveServer:
     def start(self) -> LiveServer:
         """
         :return: This server, listening.
+        :raises NonLocalAddress: When the address is not one of this machine's own.
         """
+        if self.host not in LOCAL_HOSTS:
+            raise NonLocalAddress(self.host)
         self.server = HttpServer(
             answerer=self.answerer(), host=self.host, port=self.port
         ).start()
