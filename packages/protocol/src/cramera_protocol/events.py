@@ -82,6 +82,46 @@ class ViewerEvent(StrEnum):
     """
 
 
+# %% selection
+
+
+class SelectionKind(StrEnum):
+    """
+    What a person selected in the 3D view.
+    """
+
+    LINK = "link"
+    """
+    A link of a kinematic model.
+    """
+
+    OBJECT = "object"
+    """
+    A free object.
+    """
+
+
+class SelectionKey(StrEnum):
+    """
+    The keys of the payload of :attr:`ViewerEvent.ENTITY_SELECTED`.
+    """
+
+    KIND = "kind"
+    """
+    A :class:`SelectionKind` value.
+    """
+
+    MODEL = "model"
+    """
+    The model the selected link belongs to; absent for a free object.
+    """
+
+    NAME = "name"
+    """
+    The link's name in its URDF, or the object's trajectory key.
+    """
+
+
 # %% page state
 
 

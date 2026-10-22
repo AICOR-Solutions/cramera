@@ -41,6 +41,8 @@ from cramera_protocol.events import (
     PageReportKey,
     PageState,
     PageStateAttribute,
+    SelectionKey,
+    SelectionKind,
     ViewerEvent,
 )
 from cramera_protocol.geometry import RectangleKey
@@ -98,6 +100,8 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     PageStateAttribute,
     PageState,
     PageReportKey,
+    SelectionKind,
+    SelectionKey,
 )
 """
 The enumerations the browser application reads.
