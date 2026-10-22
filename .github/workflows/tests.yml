@@ -107,6 +107,7 @@ jobs:
               --cov=cramera_workshop.plugin
               --cov=cramera_workshop.release
               --cov=cramera_workshop.session
+              --cov=cramera_workshop.timeline
           # The cable simulation needs MuJoCo and the CRAM workspace.
           - package: plugins/cable-lab
             install: -e ./packages/plugins/cable-lab
