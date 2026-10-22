@@ -368,6 +368,11 @@ class ConstraintRuleKey(StrEnum):
     Wordings the rule understands, for people.
     """
 
+    SENTENCE = "sentence"
+    """
+    A whole constraint the rule understands, offered to start from.
+    """
+
     EFFECT = "effect"
     """
     What the monitor checks, for people.
@@ -413,6 +418,11 @@ class ConstraintRule(JsonDocument):
     examples: str = document_field(ConstraintRuleKey.EXAMPLES)
     """
     Wordings the rule understands, for the builder's explanation.
+    """
+
+    sentence: str = document_field(ConstraintRuleKey.SENTENCE)
+    """
+    A whole constraint the rule understands, which the builder offers to start from.
     """
 
     effect: str = document_field(ConstraintRuleKey.EFFECT)

@@ -9,7 +9,7 @@
   "torsoStates": ["HIGH", "MID", "LOW"],
   "surfaceTypes": ["Table"],
   "constraintRules": [
-    {"monitorType": "HeightMonitor", "phrasing": "above|higher", "examples": "above, higher", "effect": "keeps the object above a height", "parameters": {"tip_link": "@object", "lower_limit": "@length", "upper_limit": 2.0}, "defaultLength": 0.05}
+    {"monitorType": "HeightMonitor", "phrasing": "above|higher", "examples": "above, higher", "sentence": "Keep the milk above the table", "effect": "keeps the object above a height", "parameters": {"tip_link": "@object", "lower_limit": "@length", "upper_limit": 2.0}, "defaultLength": 0.05}
   ],
   "plans": [{"id": "plan-1", "name": "milk_to_table", "updatedAt": "2026-10-22T10:00:00+00:00"}],
   "limits": {"maximumSteps": 12},

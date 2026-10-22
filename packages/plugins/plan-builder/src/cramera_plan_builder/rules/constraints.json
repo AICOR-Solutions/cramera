@@ -4,11 +4,20 @@
       "monitorType": "VectorsAligned",
       "phrasing": "upright|stand up|stay up|vertical|straight up|tip over|\\btips?\\b|tilt|spill|\\blevel\\b|\\bflat\\b|horizontal|steady|balanc",
       "examples": "upright, level, flat, tilt, spill, steady, balanced",
+      "sentence": "Keep the milk upright",
       "effect": "observes whether the object's up axis stays aligned with the world's up axis",
       "parameters": {
         "tip_link": "@object",
-        "tip_normal": [0.0, 0.0, 1.0],
-        "goal_normal": [0.0, 0.0, 1.0],
+        "tip_normal": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "goal_normal": [
+          0.0,
+          0.0,
+          1.0
+        ],
         "threshold": 0.1
       }
     },
@@ -16,33 +25,52 @@
       "monitorType": "PointingAt",
       "phrasing": "\\blook|watch|gaze|point (at|the camera)|face the|observ|in view|an eye on|focus on|keep sight|see the|where it (operat|work)",
       "examples": "look, watch, observe, keep in view, gaze, face the",
+      "sentence": "Look where it operates",
       "effect": "the transport looks at the object before picking it up and at the target before placing it",
       "parameters": {},
       "observed": false,
-      "switches": {"transport": "look_at_operation_site"}
+      "switches": {
+        "transport": "look_at_operation_site"
+      }
     },
     {
       "monitorType": "HeightMonitor",
       "phrasing": "above|higher|over the|off the (table|ground|surface|bench|floor)|keep .*(high|elevated)|\\blift",
       "examples": "above, higher, off the table, keep high, lift",
+      "sentence": "Keep the bowl 5 cm above the table",
       "effect": "observes whether the object stays above a height; a length in the sentence sets it",
-      "parameters": {"tip_link": "@object", "lower_limit": "@length", "upper_limit": 2.0},
+      "parameters": {
+        "tip_link": "@object",
+        "lower_limit": "@length",
+        "upper_limit": 2.0
+      },
       "defaultLength": 0.05
     },
     {
       "monitorType": "HeightMonitor",
       "phrasing": "below|under(neath)?|lower than|keep .*(low|down)|close to the (table|surface|ground|floor)",
       "examples": "below, under, lower than, keep low",
+      "sentence": "Keep the cup below 20 cm",
       "effect": "observes whether the object stays below a height; a length in the sentence sets it",
-      "parameters": {"tip_link": "@object", "lower_limit": 0.0, "upper_limit": "@length"},
+      "parameters": {
+        "tip_link": "@object",
+        "lower_limit": 0.0,
+        "upper_limit": "@length"
+      },
       "defaultLength": 0.1
     },
     {
       "monitorType": "DistanceMonitor",
       "phrasing": "away from|clear of|clearance|distance|avoid|don.?t (hit|touch|collide|bump)|too close|stay .*away|far from",
       "examples": "away from, keep clear of, clearance, avoid, don't touch",
+      "sentence": "Keep the milk 10 cm away from the bowl",
       "effect": "observes whether the object keeps a distance from a second object the sentence names; a length sets it",
-      "parameters": {"tip_link": "@object", "root_link": "@reference", "lower_limit": "@length", "upper_limit": 5.0},
+      "parameters": {
+        "tip_link": "@object",
+        "root_link": "@reference",
+        "lower_limit": "@length",
+        "upper_limit": 5.0
+      },
       "defaultLength": 0.05
     }
   ],

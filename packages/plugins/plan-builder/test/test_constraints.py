@@ -52,6 +52,11 @@ def test_every_example_of_a_rule_is_understood_as_that_rule(compiler):
             assert compiler.rule_for(example) is rule, example
 
 
+def test_every_rules_sentence_is_understood_as_that_rule(compiler):
+    for rule in compiler.book.rules:
+        assert compiler.rule_for(rule.sentence.lower()) is rule, rule.sentence
+
+
 def test_every_rule_measuring_a_length_has_a_default_one(compiler):
     for rule in compiler.book.rules:
         if RuleValue.LENGTH in rule.parameters.values():
