@@ -18,7 +18,7 @@ through a plugin.
             cramera     cramera-usd    cramera-cram ──── CRAM workspace
            (viewer)    (USD import)   (live publisher, recording, questions, demos)
                |
-     plugins: cramera-laboratory, cramera-workshop, cramera-cable-lab, cramera-builders
+     plugins: cramera-offline, cramera-models, cramera-laboratory, cramera-workshop, ...
 ```
 
 | Package | Import name | Depends on | Responsibility |
@@ -27,6 +27,8 @@ through a plugin.
 | `cramera` | `cramera` | `cramera-protocol` | The viewer: HTTP server, scene catalog, plugin loading, the browser application, screenshots. Installs and runs without CRAM. |
 | `cramera-usd` | `cramera_usd` | `cramera-protocol`, `usd-core`, `numpy` | Converting a USD stage into a scene bundle, the export gate, the robot separation audit. |
 | `cramera-cram` | `cramera_cram` | `cramera`, CRAM packages | Live publishing from a running plan, recording into bundles, questions in the entity query language, demo onboarding, task demos. |
+| `cramera-offline` | `cramera_offline` | `cramera` | The Tour panel over a storyboard, `cramera-check-bundle`, and `cramera-offline`, which prepares, checks, serves (optionally from a network namespace without routes) and exports a presentation of recorded bundles. |
+| `cramera-models` | `cramera_models` | `cramera`; `probabilistic_model`, `random_events`, `krrood` and `plotly` optionally | The Models panel: probability, posterior and mode questions about a probabilistic circuit. Without the circuit libraries its routes answer which are missing. |
 | `cramera-laboratory` and the other plugins | `cramera_laboratory`, ... | `cramera`, and what the plugin itself needs | One self-contained feature each: its Python routes, its browser module, its assets. |
 
 ## Protocol

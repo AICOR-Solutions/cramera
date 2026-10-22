@@ -1,5 +1,7 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
-# of 85 %, and checks that the Python code is formatted.
+# of 85 %, and checks that the Python code is formatted. The models plugin is tested
+# without the circuit libraries: its tests against them are skipped and their
+# counterparts against stand-ins run.
 name: Tests
 
 on:
@@ -23,6 +25,10 @@ jobs:
             module: cramera_protocol
           - package: viewer
             module: cramera
+          - package: plugins/offline
+            module: cramera_offline
+          - package: plugins/models
+            module: cramera_models
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +41,10 @@ jobs:
           node-version: 20
 
       - name: Install the packages and the test tools
-        run: pip install -e ./packages/protocol -e ./packages/viewer -r requirements-development.txt
+        run: >-
+          pip install -e ./packages/protocol -e ./packages/viewer
+          -e ./packages/plugins/offline -e ./packages/plugins/models
+          -r requirements-development.txt
 
       - name: Run the tests with coverage
         working-directory: packages/${{ matrix.package }}
