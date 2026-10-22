@@ -19,3 +19,8 @@ class PluginName(StrEnum):
     """
     Presents recorded scenes as a storyboard and checks that bundles are complete.
     """
+
+    MODELS = "models"
+    """
+    Answers probability, posterior and mode questions about a probabilistic circuit.
+    """
