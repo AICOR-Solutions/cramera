@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import logging
 import socket
+import sys
 import threading
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
 
-from typing_extensions import Optional, Self, Type
+from typing_extensions import Optional, Self, Tuple, Type
 
 from cramera.exceptions import ViewerError
 from cramera.http.messages import CacheDirective, Header, HttpMethod, Request, Response
@@ -133,6 +134,33 @@ class RequestHandler(BaseHTTPRequestHandler):
 # %% server
 
 
+class ViewerHttpServer(ThreadingHTTPServer):
+    """
+    A threading HTTP server whose socket family follows its host, and for which a client
+    that closes its connection before the answer is written is no error.
+    """
+
+    daemon_threads = True
+
+    def __init__(self, address: Tuple[str, int], handler: Type[RequestHandler]) -> None:
+        """
+        :param address: The host and port to listen on; a host with ``:`` is IPv6.
+        :param handler: Answers the requests.
+        """
+        self.address_family = socket.AF_INET6 if ":" in address[0] else socket.AF_INET
+        super().__init__(address, handler)
+
+    def handle_error(self, request: object, client_address: Tuple[str, int]) -> None:
+        """
+        A browser closing a connection, for example when a page is left or a newer
+        request replaces an older one, is logged; other errors are reported as usual.
+        """
+        if isinstance(sys.exc_info()[1], ConnectionError):
+            logger.debug("%s closed the connection before the answer", client_address)
+            return
+        super().handle_error(request, client_address)
+
+
 @dataclass
 class HttpServer:
     """
@@ -174,13 +202,7 @@ class HttpServer:
         handler: Type[RequestHandler] = type(
             "BoundRequestHandler", (RequestHandler,), {"answerer": self.answerer}
         )
-        server_class: Type[ThreadingHTTPServer] = type(
-            "AddressedHttpServer",
-            (ThreadingHTTPServer,),
-            {"address_family": socket.AF_INET6 if ":" in self.host else socket.AF_INET},
-        )
-        self.server = server_class((self.host, self.port), handler)
-        self.server.daemon_threads = True
+        self.server = ViewerHttpServer((self.host, self.port), handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         return self

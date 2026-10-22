@@ -5,6 +5,7 @@ Routing, the origin policy and the server.
 from __future__ import annotations
 
 import json
+import socket
 import urllib.error
 import urllib.request
 from http import HTTPStatus
@@ -21,7 +22,12 @@ from cramera.http.messages import (
 )
 from cramera.http.origin import OriginPolicy
 from cramera.http.routing import ExactRoute, PrefixRoute, Router
-from cramera.http.server import HttpServer, RequestAnswerer
+from cramera.http.server import (
+    HttpServer,
+    RequestAnswerer,
+    RequestHandler,
+    ViewerHttpServer,
+)
 from cramera_protocol.exceptions import MissingDocumentField
 from cramera_protocol.viewer import ErrorKey, ViewerRoute
 
@@ -206,3 +212,32 @@ def test_the_url_brackets_an_ipv6_host(answerer):
     server = HttpServer(answerer=answerer, host="::1")
     with server:
         assert server.url().startswith("http://[::1]:")
+
+
+# %% dropped connections
+
+
+def test_a_client_that_drops_its_connection_is_no_server_error(capsys):
+    server = ViewerHttpServer(("127.0.0.1", 0), RequestHandler)
+    try:
+        raise BrokenPipeError("the client went away")
+    except BrokenPipeError:
+        server.handle_error(None, ("127.0.0.1", 1))
+    server.server_close()
+    assert capsys.readouterr().err == ""
+
+
+def test_other_errors_while_answering_are_still_reported(capsys):
+    server = ViewerHttpServer(("127.0.0.1", 0), RequestHandler)
+    try:
+        raise ValueError("a real fault")
+    except ValueError:
+        server.handle_error(None, ("127.0.0.1", 1))
+    server.server_close()
+    assert "ValueError: a real fault" in capsys.readouterr().err
+
+
+def test_an_ipv6_host_gets_an_ipv6_socket():
+    server = ViewerHttpServer(("::1", 0), RequestHandler)
+    server.server_close()
+    assert server.address_family == socket.AF_INET6
