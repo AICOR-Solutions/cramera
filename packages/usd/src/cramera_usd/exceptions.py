@@ -264,3 +264,47 @@ class RobotRootNotFound(ConversionError):
             f"{problem} Choose the prim of the robot's root link, such as the robot "
             "asset or its articulation root body."
         )
+
+
+# %% export
+
+
+@dataclass
+class ViewerNotInstalled(ConversionError):
+    """
+    A screenshot was asked for, but the viewer package that takes it is not installed.
+    """
+
+    distribution: str
+    """
+    The distribution that provides the screenshot.
+    """
+
+    def message(self) -> str:
+        return (
+            f"A screenshot needs the viewer: install {self.distribution} (the "
+            "'viewer' extra of cramera-usd) or leave out the screenshot."
+        )
+
+
+@dataclass
+class PublicationNotListed(ConversionError):
+    """
+    A published bundle is not listed in the scenes index as the export expected.
+    """
+
+    index: Path
+    """
+    The scenes index.
+    """
+
+    name: str
+    """
+    The published bundle.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{self.index} does not list {self.name} as expected after publishing; "
+            "check the index and the bundle's scene.json."
+        )

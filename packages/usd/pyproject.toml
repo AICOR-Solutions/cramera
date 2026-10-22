@@ -20,10 +20,12 @@ dependencies = [
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
 
 [project.optional-dependencies]
+viewer = ["cramera==1.0.0"]
 test = ["pytest", "pytest-cov", "trimesh"]
 
 [project.scripts]
 cramera-import = "cramera_usd.commands.import_scene:main"
+cramera-export = "cramera_usd.commands.export_scene:main"
 
 [project.urls]
 Source = "https://github.com/sunava/cramera"
