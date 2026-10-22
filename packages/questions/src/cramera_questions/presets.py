@@ -238,7 +238,9 @@ class PresetsPerType:
 
     def questions(self) -> List[Preset]:
         """
-        :return: One question per type, worded the way it is asked out loud.
+        :return: One question per type, worded the way it is asked out loud; a name
+            that is no class name, which a crafted bundle could list to put code into
+            the query, gets none.
         """
         return [
             Preset(
@@ -247,6 +249,7 @@ class PresetsPerType:
                 scope=self.scope,
             )
             for name in self.class_names
+            if name.isidentifier()
         ]
 
     def spoken_type(self, class_name: str) -> str:

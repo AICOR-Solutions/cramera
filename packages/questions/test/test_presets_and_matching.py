@@ -4,6 +4,8 @@ Ready-made questions and recognizing which one a question asks.
 
 from __future__ import annotations
 
+import json
+
 from cramera_protocol.questions import QueryScope, Verbalization
 from cramera_questions.matching import (
     MINIMUM_SIMILARITY,
@@ -21,6 +23,8 @@ from cramera_questions.presets import (
     RobotQuestion,
     RobotQuestions,
 )
+
+from .dataset.files import EVENT_TYPES_WITH_QUERY_CODE
 
 ROBOT = Preset(RobotQuestion.WHICH_ROBOT, "the(entity(robot))")
 ARMS = Preset(RobotQuestion.WHICH_ARMS, "an(entity(arm))")
@@ -49,6 +53,15 @@ def test_detections_offer_one_listed_question_and_one_per_type():
     assert unlisted[0].text == f"give me all pick up {EVENT_CLASS_SUFFIX.lower()}s"
     assert "'PickUpEvent'" in unlisted[0].code
     assert {preset.scope for preset in unlisted} == {QueryScope.DETECTED_EVENTS}
+
+
+def test_an_event_type_that_is_no_class_name_is_never_put_into_a_query():
+    event_types = json.loads(EVENT_TYPES_WITH_QUERY_CODE.read_text(encoding="utf-8"))
+    questions = DetectedEventQuestions.of_types(event_types).unlisted()
+    valid = [name for name in event_types if name.isidentifier()]
+    assert [question.code for question in questions] == [
+        question.code for question in DetectedEventQuestions.of_types(valid).unlisted()
+    ]
 
 
 def test_nothing_detected_offers_no_questions():

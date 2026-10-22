@@ -95,3 +95,9 @@ CLASS_TREE = DATASET / "class_tree" / "mimicked_package"
 """
 A package directory whose classes are indexed.
 """
+
+EVENT_TYPES_WITH_QUERY_CODE = DATASET / "events" / "event_types_with_query_code.json"
+"""
+Detected event types as a crafted bundle could list them: one real type and one that
+would close the query's quotes and run code of its own.
+"""
