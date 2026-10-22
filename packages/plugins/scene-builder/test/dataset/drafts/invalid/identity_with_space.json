@@ -1,0 +1,71 @@
+{
+  "document": {
+    "formatVersion": "1.0",
+    "name": "Kitchen corner",
+    "instances": [
+      {
+        "id": "cabinet 1",
+        "asset": "library/kitchen/cabinet.urdf",
+        "name": "cabinet",
+        "position": [
+          1.0,
+          0.5,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          1.5707963
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "linkOffsets": {
+          "drawer": {
+            "position": [
+              0.05,
+              0.0,
+              0.0
+            ],
+            "rotation": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "jointPositions": {
+          "slide": 0.2
+        }
+      },
+      {
+        "id": "cup-1",
+        "asset": "library/props/cup.gltf",
+        "name": "cup",
+        "position": [
+          1.0,
+          0.5,
+          0.9
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          2.0,
+          2.0,
+          2.0
+        ]
+      }
+    ],
+    "notices": [
+      {
+        "name": "LICENSE",
+        "asset": "library/elsewhere/LICENSE"
+      }
+    ]
+  }
+}

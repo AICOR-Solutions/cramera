@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<robot name="cell_table"><link name="top"><visual><geometry><mesh filename="meshes/box.stl"/></geometry></visual></link></robot>

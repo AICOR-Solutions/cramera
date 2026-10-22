@@ -1,0 +1,61 @@
+{
+  "formatVersion": "1.0",
+  "name": " ",
+  "instances": [
+    {
+      "id": "cabinet-1",
+      "asset": "library/kitchen/cabinet.urdf",
+      "name": "cabinet",
+      "position": [
+        1.0,
+        0.5,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963
+      ],
+      "linkOffsets": {
+        "drawer": {
+          "position": [
+            0.05,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "jointPositions": {
+        "slide": 0.2
+      }
+    },
+    {
+      "id": "scan",
+      "asset": "point-clouds/4f2a.ply",
+      "name": "room scan",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "pointCloud": {
+        "locked": false
+      }
+    }
+  ]
+}

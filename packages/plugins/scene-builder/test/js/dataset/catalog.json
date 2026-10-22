@@ -1,0 +1,43 @@
+{
+  "resources": [
+    {
+      "id": "library/kitchen/cabinet.urdf",
+      "name": "cabinet",
+      "kind": "urdf",
+      "category": "object",
+      "notices": [
+        {"name": "LICENSE.txt", "asset": "library/kitchen/LICENSE.txt"},
+        {"name": "NOTICE.md", "asset": "library/NOTICE.md"}
+      ]
+    },
+    {"id": "library/robots/arm/model.urdf", "name": "arm", "kind": "urdf", "category": "robot", "notices": []},
+    {"id": "library/kitchen/meshes/door.stl", "name": "door", "kind": "mesh", "category": "object", "notices": []},
+    {
+      "id": "point-clouds/4f2a.ply",
+      "name": "4f2a",
+      "kind": "point-cloud",
+      "category": "point-cloud",
+      "notices": [],
+      "pointCloud": {"format": "ply", "encoding": "ascii", "pointCount": 3, "finitePointCount": 3}
+    }
+  ],
+  "scenes": [{"name": "cell", "robot": "arm", "environment": "Test cell"}],
+  "drafts": [{"id": "4f2a", "name": "Kitchen corner", "updatedAt": "2026-10-22T13:00:00+00:00"}],
+  "limits": {
+    "maximumInstances": 4,
+    "maximumDocumentBytes": 2097152,
+    "maximumNameLength": 160,
+    "maximumIdentifierLength": 96,
+    "maximumReferenceLength": 2048,
+    "maximumCoordinate": 10000.0,
+    "maximumScale": 1000.0,
+    "minimumPointSize": 0.0001,
+    "maximumPointSize": 0.1,
+    "minimumOpacity": 0.05,
+    "maximumOpacity": 1.0,
+    "maximumPointCloudBytes": 67108864,
+    "maximumPoints": 2000000,
+    "maximumSamplePoints": 250000
+  },
+  "defaultAppearance": {"visible": true, "locked": true, "pointSize": 0.006, "opacity": 0.65}
+}

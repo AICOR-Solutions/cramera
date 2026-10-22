@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<robot name="missing"><link name="body"><visual><geometry><mesh filename="meshes/gone.stl"/></geometry></visual></link></robot>

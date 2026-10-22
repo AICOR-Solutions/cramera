@@ -1,0 +1,9 @@
+ply
+format ascii 1.0
+element vertex 1
+property float x
+property float y
+property float z
+material shiny
+end_header
+0 0 0

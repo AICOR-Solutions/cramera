@@ -1,0 +1,8 @@
+{
+  "name": "escaping",
+  "formatVersion": "1.0",
+  "models": [
+    {"name": "borrowed_arm", "urdf": "../cell/arm.urdf", "prefix": "", "robot": true, "links": 2, "movableJoints": []}
+  ],
+  "objects": []
+}

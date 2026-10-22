@@ -20,7 +20,7 @@ The entry point names a callable that returns a `cramera.plugins.ViewerPlugin`:
 | `name()` | The plugin's name: lowercase letters, digits and `-`. It is also its route segment. |
 | `version()` | The plugin's version. |
 | `capabilities()` | The `cramera_protocol.live.Capability` members it adds. |
-| `routes(context)` | `PluginRoute(method, path, handler)` objects, served at `/api/plugins/<name>/<path>`. `context.catalog` is the viewer's `SceneCatalog`, `context.locations` its `DataLocations`. |
+| `routes(context)` | `PluginRoute(method, path, handler)` objects, served at `/api/plugins/<name>/<path>`, and `PluginPrefixRoute(method, prefix, handler)` objects, which answer every path below `/api/plugins/<name>/<prefix>` and hand the rest of the path to the handler. `context.catalog` is the viewer's `SceneCatalog`, `context.locations` its `DataLocations`. |
 | `web_directory()` | The directory of the plugin's browser files, served at `/plugins/<name>/`. |
 | `module()` | The plugin's browser module, relative to `web_directory()`. |
 

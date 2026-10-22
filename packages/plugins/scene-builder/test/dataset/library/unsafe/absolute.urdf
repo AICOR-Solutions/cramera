@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<robot name="absolute"><link name="body"><visual><geometry><mesh filename="/usr/share/door.stl"/></geometry></visual></link></robot>

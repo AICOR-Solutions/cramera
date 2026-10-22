@@ -36,6 +36,9 @@ jobs:
           - package: plugins/models
             module: cramera_models
             install: -e ./packages/plugins/models
+          - package: plugins/scene-builder
+            module: cramera_scene_builder
+            install: -e ./packages/plugins/scene-builder
     steps:
       - uses: actions/checkout@v4
 

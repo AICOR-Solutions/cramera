@@ -91,13 +91,9 @@ class ViewerApplication:
         """
         context = PluginContext(catalog=self.catalog, locations=self.locations)
         for plugin in self.plugins:
-            for route in plugin.routes(context):
+            for declaration in plugin.routes(context):
                 router.add(
-                    ExactRoute(
-                        route.method,
-                        f"{ViewerRoute.PLUGIN_API}{plugin.name()}/{route.path}",
-                        route.handler,
-                    )
+                    declaration.route(f"{ViewerRoute.PLUGIN_API}{plugin.name()}/")
                 )
 
     # %% answers

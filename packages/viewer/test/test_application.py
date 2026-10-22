@@ -101,6 +101,15 @@ def test_plugin_files_and_routes_are_served_below_the_plugin_name(
     assert plugin.contexts[0].catalog is catalog
 
 
+def test_a_plugin_prefix_route_answers_every_path_below_it(plugged):
+    answer = get(plugged, f"{ViewerRoute.PLUGIN_API}questions/topics/robots/arms")
+    assert json.loads(answer.body) == {"topic": "robots/arms"}
+    assert (
+        get(plugged, f"{ViewerRoute.PLUGIN_API}questions/topics").status
+        is HTTPStatus.NOT_FOUND
+    )
+
+
 def test_the_page_and_its_files_are_served_last(plugged):
     assert get(plugged, "/").body == b"<!doctype html>"
     assert get(plugged, "/app.js").media_type is MediaType.JAVASCRIPT
