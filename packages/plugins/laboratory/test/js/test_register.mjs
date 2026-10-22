@@ -8,7 +8,7 @@ import { LaboratoryCatalogKey, LaboratoryName, LaboratoryRoute, TaskRunState, Vi
 import { register } from '../../src/cramera_laboratory/web/index.js';
 import { Text } from '../../src/cramera_laboratory/web/laboratory-panel.js';
 import { FakeApi, FakeFetch, FakeTimer, FakeView } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 const routeUrl = (route) => `http://viewer${ViewerRoute.PLUGIN_API}${LaboratoryName.PLUGIN}/${route}`;
 const LABORATORY = 'aicor_medical_lab';

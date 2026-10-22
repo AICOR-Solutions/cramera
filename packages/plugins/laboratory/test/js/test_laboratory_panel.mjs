@@ -22,7 +22,7 @@ import {
 import { LaboratoryClient } from '../../src/cramera_laboratory/web/laboratory-client.js';
 import { LOOK_OFFSET, LaboratoryPanel, MOVE_STEP, Text } from '../../src/cramera_laboratory/web/laboratory-panel.js';
 import { FakeApi, FakeFetch, readDataset } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 const routeUrl = (route) => `http://viewer${ViewerRoute.PLUGIN_API}${LaboratoryName.PLUGIN}/${route}`;
 const SCENE = 'aicor_medical_lab_contact_physics';
