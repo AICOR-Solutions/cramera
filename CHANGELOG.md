@@ -24,6 +24,15 @@ which this repository was mirrored until 22 Oct 2026.
   (`cramera-audit-robots`). On the test stages its meshes, URDFs, semantics and
   residuals are byte for byte those of the earlier converter; every JSON file of a
   bundle is written through a protocol document.
+- **Live mode.** `cramera-live` runs a CRAM demo and publishes its world; the viewer
+  opened with `?live=` follows its joint states, plan and statecharts without a
+  recorded scene, and the Live tab stops, saves and replays the recording.
+- **Questions and graphs.** The `questions` plugin adds a Questions tab, which
+  answers presets, plain English and entity queries with a sentence and a table
+  whose entities light up in 3D, and a Graph tab, which draws the scene's knowledge,
+  plan, statechart and kinematic tree as SVG with pan, zoom and node details.
+- **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
+  against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),
   `cramera-export-site` (static site), `cramera-upgrade-bundle` (rewrite a bundle in
   the current format).

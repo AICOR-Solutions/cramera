@@ -36,7 +36,7 @@ the branch [`archive/pre-v1`](https://github.com/sunava/cramera/tree/archive/pre
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
-| laboratory, workshop, cable lab, plan builder | One plugin package each; they need `cramera-cram`. | planned |
+| laboratory, workshop, cable lab, plan builder | One plugin package each; they need `cramera-cram`. | in progress |
 
 Recordings made with earlier versions open unchanged: a document without a
 `formatVersion` is read as version 0.
@@ -73,6 +73,36 @@ machine.
 | `cramera-shot URL OUT.png` | Take a screenshot in headless Chrome (`--browser chrome`, needs `chromedriver`) or Firefox (`--browser firefox`, needs `geckodriver`) once the page reports its scene as shown; exits 1 when it fails. |
 | `cramera-export-site OUT --scenes DIR` | Write the viewer and the bundles of a directory as a static site, for any web server. |
 | `cramera-upgrade-bundle SRC DST` | Copy a bundle and rewrite its documents in the current format, optionally with new labels for the scene picker. |
+
+## Follow a running plan
+
+`cramera-cram` publishes a running CRAM world on `http://127.0.0.1:8765`. Run a demo
+file with the cramera backend and keep publishing until Ctrl-C:
+
+```bash
+pip install ./packages/questions ./packages/cram   # inside the CRAM environment
+cramera-live demo.py -- --demo-option value
+cramera --no-browser
+# then open http://127.0.0.1:8711/?live=http://127.0.0.1:8765
+```
+
+The viewer starts without a recorded scene, loads the live world, and follows its
+joint states, plan and motion statecharts. The **Live** tab connects to another
+publisher, stops and saves the recording as a bundle, and replays it.
+`cramera-onboard demo.py --name NAME` runs a demo and saves its run as a bundle
+without keeping a publisher up.
+
+## Ask the scene
+
+With `cramera-questions` installed, the viewer gets two tabs:
+
+- **Questions** offers the presets of the shown scene and takes questions in
+  plain English or in CRAM's entity query language. An answer is a sentence and a
+  table; the entities it names light up in the 3D view, and **Replay** jumps to
+  the moment an answer is about.
+- **Graph** draws the scene's knowledge, plan, statechart and robot kinematics as a
+  graph. Clicking a node shows its details and lights it up in the 3D view; drag to
+  pan, scroll to zoom.
 
 ## Import a USD stage
 
