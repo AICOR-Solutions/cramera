@@ -1,0 +1,1 @@
+{"name": "bad", "robot": {"name": "r", "prefix": "", "baseBody": "base", "partAnnotations": [{"name": "Arm", "role": "leg"}]}}

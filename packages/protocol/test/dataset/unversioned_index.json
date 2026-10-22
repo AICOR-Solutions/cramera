@@ -1,0 +1,120 @@
+{
+ "default": "pr2_kitchen",
+ "scenes": [
+  {
+   "name": "_empty_test",
+   "robot": "none",
+   "environment": "Empty (debug)",
+   "task": "none"
+  },
+  {
+   "name": "Franka_Montessori",
+   "robot": "panda",
+   "environment": "Table",
+   "task": "pick up"
+  },
+  {
+   "name": "g1_multiple_pkg_warehouse",
+   "robot": "unitreeg1",
+   "environment": "warehouse_dhl",
+   "task": "pick up"
+  },
+  {
+   "name": "g1_screw_box_shuttle",
+   "robot": "unitreeg1",
+   "environment": "Warehouse Hall",
+   "task": "shuttle box"
+  },
+  {
+   "name": "garmi_pick_place",
+   "robot": "garmi",
+   "environment": "GarmiApartment",
+   "task": "pick up"
+  },
+  {
+   "name": "garmi_screw_box_shuttle",
+   "robot": "garmi",
+   "environment": "Warehouse Hall",
+   "task": "shuttle box"
+  },
+  {
+   "name": "pr2_breakfast",
+   "robot": "pr2",
+   "environment": "apartment",
+   "task": "pick up"
+  },
+  {
+   "name": "pr2_breakfast_c",
+   "robot": "pr2",
+   "environment": "apartment",
+   "task": "transport breakfast"
+  },
+  {
+   "name": "pr2_pouring",
+   "robot": "pr2",
+   "environment": "environment",
+   "task": "pick up"
+  },
+  {
+   "name": "pr2_warehouse_single",
+   "robot": "pr2",
+   "environment": "Warehouse Hall",
+   "task": "transport"
+  },
+  {
+   "name": "HSR_Apartment",
+   "robot": "hsrb",
+   "environment": "apartment"
+  },
+  {
+   "name": "PR2_Apartment",
+   "robot": "pr2",
+   "environment": "apartment"
+  },
+  {
+   "name": "TIAGO_Apartment",
+   "robot": "tiago",
+   "environment": "apartment"
+  },
+  {
+   "name": "Unitree_storage_warehouse",
+   "robot": "unitreeg1",
+   "environment": "storage_warehouse"
+  },
+  {
+   "name": "Unitree_warehouse",
+   "robot": "unitreeg1",
+   "environment": "no_roof_small_warehouse"
+  },
+  {
+   "name": "Unitree_wind_farm_service",
+   "robot": "unitreeg1",
+   "environment": "wind_farm"
+  },
+  {
+   "name": "Unitree_wind_turbine_assembly",
+   "robot": "unitreeg1",
+   "environment": "wind_turbine_assembly+no_roof_small_warehouse"
+  },
+  {
+   "name": "Unitree_wind_turbine_hall",
+   "robot": "unitreeg1",
+   "environment": "wind_turbine_hall"
+  },
+  {
+   "name": "aicor_cell",
+   "robot": "aicor_cell_arm",
+   "environment": "aicor_cell_environment"
+  },
+  {
+   "name": "garmi_garmiapartment",
+   "robot": "garmi",
+   "environment": "scene-bodies"
+  },
+  {
+   "name": "tracy_lab",
+   "robot": "tracy",
+   "environment": null
+  }
+ ]
+}

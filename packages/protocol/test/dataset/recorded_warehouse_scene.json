@@ -1,0 +1,248 @@
+{
+ "name": "pr2_warehouse_single",
+ "framesPerSecond": 472.02,
+ "trajectory": "trajectory.json",
+ "models": [
+  {
+   "name": "environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 3,
+   "movableJoints": [
+    "f60638f3-6f17-452c-b888-39faee679f3c/map_T_odom"
+   ]
+  },
+  {
+   "name": "pr2",
+   "urdf": "pr2.urdf",
+   "prefix": "",
+   "robot": true,
+   "links": 104,
+   "movableJoints": [
+    "pr2/torso_lift_motor_screw_joint",
+    "pr2/torso_lift_joint",
+    "pr2/l_shoulder_pan_joint",
+    "pr2/l_shoulder_lift_joint",
+    "pr2/l_upper_arm_roll_joint",
+    "pr2/l_elbow_flex_joint",
+    "pr2/l_forearm_roll_joint",
+    "pr2/l_wrist_flex_joint",
+    "pr2/l_wrist_roll_joint",
+    "pr2/l_gripper_r_finger_joint",
+    "pr2/l_gripper_r_finger_tip_joint",
+    "pr2/l_gripper_joint",
+    "pr2/l_gripper_l_finger_joint",
+    "pr2/l_gripper_l_finger_tip_joint",
+    "pr2/l_gripper_motor_slider_joint",
+    "pr2/l_gripper_motor_screw_joint",
+    "pr2/r_shoulder_pan_joint",
+    "pr2/r_shoulder_lift_joint",
+    "pr2/r_upper_arm_roll_joint",
+    "pr2/r_elbow_flex_joint",
+    "pr2/r_forearm_roll_joint",
+    "pr2/r_wrist_flex_joint",
+    "pr2/r_wrist_roll_joint",
+    "pr2/r_gripper_r_finger_joint",
+    "pr2/r_gripper_r_finger_tip_joint",
+    "pr2/r_gripper_joint",
+    "pr2/r_gripper_l_finger_joint",
+    "pr2/r_gripper_l_finger_tip_joint",
+    "pr2/r_gripper_motor_slider_joint",
+    "pr2/r_gripper_motor_screw_joint",
+    "pr2/laser_tilt_mount_joint",
+    "pr2/head_pan_joint",
+    "pr2/head_tilt_joint",
+    "pr2/br_caster_rotation_joint",
+    "pr2/br_caster_r_wheel_joint",
+    "pr2/br_caster_l_wheel_joint",
+    "pr2/bl_caster_rotation_joint",
+    "pr2/bl_caster_r_wheel_joint",
+    "pr2/bl_caster_l_wheel_joint",
+    "pr2/fr_caster_rotation_joint",
+    "pr2/fr_caster_r_wheel_joint",
+    "pr2/fr_caster_l_wheel_joint",
+    "pr2/fl_caster_rotation_joint",
+    "pr2/fl_caster_r_wheel_joint",
+    "pr2/fl_caster_l_wheel_joint"
+   ]
+  }
+ ],
+ "robot": {
+  "name": "pr2",
+  "prefix": "pr2",
+  "baseBody": "base_footprint",
+  "parts": {
+   "PR2LeftArm": [
+    "l_elbow_flex_link",
+    "l_forearm_link",
+    "l_forearm_roll_link",
+    "l_shoulder_lift_link",
+    "l_shoulder_pan_link",
+    "l_upper_arm_link",
+    "l_upper_arm_roll_link",
+    "l_wrist_flex_link",
+    "l_wrist_roll_link",
+    "torso_lift_link"
+   ],
+   "PR2LeftGripper": [
+    "l_gripper_l_finger_link",
+    "l_gripper_l_finger_tip_frame",
+    "l_gripper_l_finger_tip_link",
+    "l_gripper_led_frame",
+    "l_gripper_motor_accelerometer_link",
+    "l_gripper_motor_screw_link",
+    "l_gripper_motor_slider_link",
+    "l_gripper_palm_link",
+    "l_gripper_r_finger_link",
+    "l_gripper_r_finger_tip_link",
+    "l_gripper_tool_frame"
+   ],
+   "PR2RightArm": [
+    "r_elbow_flex_link",
+    "r_forearm_link",
+    "r_forearm_roll_link",
+    "r_shoulder_lift_link",
+    "r_shoulder_pan_link",
+    "r_upper_arm_link",
+    "r_upper_arm_roll_link",
+    "r_wrist_flex_link",
+    "r_wrist_roll_link",
+    "torso_lift_link"
+   ],
+   "PR2RightGripper": [
+    "r_gripper_l_finger_link",
+    "r_gripper_l_finger_tip_frame",
+    "r_gripper_l_finger_tip_link",
+    "r_gripper_led_frame",
+    "r_gripper_motor_accelerometer_link",
+    "r_gripper_motor_screw_link",
+    "r_gripper_motor_slider_link",
+    "r_gripper_palm_link",
+    "r_gripper_r_finger_link",
+    "r_gripper_r_finger_tip_link",
+    "r_gripper_tool_frame"
+   ]
+  },
+  "partAnnotations": [
+   {
+    "name": "PR2LeftArm",
+    "role": "arm",
+    "side": "left",
+    "links": [
+     "l_elbow_flex_link",
+     "l_forearm_link",
+     "l_forearm_roll_link",
+     "l_shoulder_lift_link",
+     "l_shoulder_pan_link",
+     "l_upper_arm_link",
+     "l_upper_arm_roll_link",
+     "l_wrist_flex_link",
+     "l_wrist_roll_link",
+     "torso_lift_link"
+    ],
+    "attachedTo": null
+   },
+   {
+    "name": "PR2LeftGripper",
+    "role": "end_effector",
+    "side": "left",
+    "links": [
+     "l_gripper_l_finger_link",
+     "l_gripper_l_finger_tip_frame",
+     "l_gripper_l_finger_tip_link",
+     "l_gripper_led_frame",
+     "l_gripper_motor_accelerometer_link",
+     "l_gripper_motor_screw_link",
+     "l_gripper_motor_slider_link",
+     "l_gripper_palm_link",
+     "l_gripper_r_finger_link",
+     "l_gripper_r_finger_tip_link",
+     "l_gripper_tool_frame"
+    ],
+    "attachedTo": "PR2LeftArm"
+   },
+   {
+    "name": "PR2RightArm",
+    "role": "arm",
+    "side": "right",
+    "links": [
+     "r_elbow_flex_link",
+     "r_forearm_link",
+     "r_forearm_roll_link",
+     "r_shoulder_lift_link",
+     "r_shoulder_pan_link",
+     "r_upper_arm_link",
+     "r_upper_arm_roll_link",
+     "r_wrist_flex_link",
+     "r_wrist_roll_link",
+     "torso_lift_link"
+    ],
+    "attachedTo": null
+   },
+   {
+    "name": "PR2RightGripper",
+    "role": "end_effector",
+    "side": "right",
+    "links": [
+     "r_gripper_l_finger_link",
+     "r_gripper_l_finger_tip_frame",
+     "r_gripper_l_finger_tip_link",
+     "r_gripper_led_frame",
+     "r_gripper_motor_accelerometer_link",
+     "r_gripper_motor_screw_link",
+     "r_gripper_motor_slider_link",
+     "r_gripper_palm_link",
+     "r_gripper_r_finger_link",
+     "r_gripper_r_finger_tip_link",
+     "r_gripper_tool_frame"
+    ],
+    "attachedTo": "PR2RightArm"
+   }
+  ]
+ },
+ "objects": [
+  {
+   "id": "milk",
+   "key": "milk.stl",
+   "spawn": [
+    2.45,
+    -0.1,
+    0.7,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#99a1ad",
+   "height": 0.19378,
+   "mesh": "meshes/objects/milk.stl.stl"
+  }
+ ],
+ "segments": [
+  {
+   "step": "run",
+   "action": null,
+   "arm": null,
+   "start": 0,
+   "end": 2004
+  },
+  {
+   "step": "ReachAction",
+   "action": null,
+   "arm": null,
+   "start": 2004,
+   "end": 3575,
+   "picks": "milk.stl",
+   "attach": 2004,
+   "detach": 2991
+  }
+ ],
+ "missingAssets": [],
+ "worldBound": true,
+ "bundleSignature": "world-802df821fe6d8049-robot-pr2",
+ "statecharts": "statecharts.json",
+ "robotName": "pr2",
+ "environmentName": "Warehouse Hall",
+ "task": "transport"
+}

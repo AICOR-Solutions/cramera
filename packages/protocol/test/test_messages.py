@@ -1,0 +1,85 @@
+"""
+The live and viewer information documents, and the browser module.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import shutil
+import subprocess
+
+import pytest
+
+from cramera_protocol.browser import BROWSER_ENUMERATIONS, BrowserModule
+from cramera_protocol.exceptions import UnsupportedProtocolVersion
+from cramera_protocol.live import Capability, LiveInfo, LiveInfoKey
+from cramera_protocol.version import CURRENT_VERSION
+from cramera_protocol.viewer import PluginInfo, ViewerInfo, ViewerInfoKey
+
+# %% information documents
+
+
+def test_live_information_round_trips():
+    info = LiveInfo(publisher="cramera-cram 1.0.0", capabilities=[Capability.PLAN])
+    written = info.to_json()
+    assert written[LiveInfoKey.PROTOCOL_VERSION] == CURRENT_VERSION.to_json()
+    assert written[LiveInfoKey.CAPABILITIES] == [Capability.PLAN.value]
+    assert LiveInfo.from_json(written) == info
+
+
+def test_live_information_of_another_major_version_is_refused():
+    with pytest.raises(UnsupportedProtocolVersion):
+        LiveInfo.from_json(
+            {LiveInfoKey.PROTOCOL_VERSION: "9.0", LiveInfoKey.PUBLISHER: "x"}
+        )
+
+
+def test_viewer_information_lists_plugins():
+    info = ViewerInfo(
+        version="1.0.0",
+        plugins=[
+            PluginInfo(
+                name="laboratory",
+                version="1.0.0",
+                module="/plugins/laboratory/index.js",
+            )
+        ],
+    )
+    assert ViewerInfo.from_json(info.to_json()) == info
+    assert info.to_json()[ViewerInfoKey.PLUGINS][0]["name"] == "laboratory"
+
+
+# %% browser module
+
+
+def test_the_browser_module_exports_every_member():
+    source = BrowserModule().source()
+    for enumeration in BROWSER_ENUMERATIONS:
+        exported = re.search(
+            rf"export const {enumeration.__name__} = Object\.freeze\((.*?)\);",
+            source,
+            re.S,
+        )
+        assert json.loads(exported.group(1)) == {
+            member.name: member.value for member in enumeration
+        }
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is not installed")
+def test_the_browser_module_imports_in_node(tmp_path):
+    module = tmp_path / "protocol.mjs"
+    module.write_text(BrowserModule().source(), encoding="utf-8")
+    result = subprocess.run(
+        [
+            "node",
+            "--input-type=module",
+            "-e",
+            f"import {{ PROTOCOL_VERSION }} from {json.dumps(module.as_uri())}; console.log(PROTOCOL_VERSION);",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == CURRENT_VERSION.to_json()

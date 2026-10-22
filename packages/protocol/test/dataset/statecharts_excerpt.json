@@ -1,0 +1,551 @@
+{
+ "charts": [
+  {
+   "signature": "chart_node_0:JointPositionList|chart_node_1:JointPositionList|chart_node_2:SetOdometry|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion",
+   "title": "ParkArmsAction",
+   "nodes": [
+    {
+     "id": "chart_node_0",
+     "name": "JointPositionList",
+     "class_name": "JointPositionList",
+     "parent": null
+    },
+    {
+     "id": "chart_node_1",
+     "name": "JointPositionList",
+     "class_name": "JointPositionList",
+     "parent": null
+    },
+    {
+     "id": "chart_node_2",
+     "name": "SetOdometry",
+     "class_name": "SetOdometry",
+     "parent": null
+    },
+    {
+     "id": "chart_node_3",
+     "name": "paused#0",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_4",
+     "name": "interrupted#0",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_5",
+     "name": "paused#1",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_6",
+     "name": "interrupted#1",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_7",
+     "name": "paused#2",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_8",
+     "name": "interrupted#2",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_9",
+     "name": "EndMotion",
+     "class_name": "EndMotion",
+     "parent": null
+    }
+   ],
+   "edges": [
+    {
+     "from": "chart_node_0",
+     "to": "chart_node_3",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_0",
+     "to": "chart_node_0",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_0",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_6",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_5",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_1",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_1",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_8",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_7",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_2",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_2",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_0",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_6",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_1",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_8",
+     "kind": "START"
+    }
+   ]
+  },
+  {
+   "signature": "chart_node_0:JointPositionList|chart_node_1:JointPositionList|chart_node_2:SetOdometry|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion",
+   "title": "MoveTorsoAction",
+   "nodes": [
+    {
+     "id": "chart_node_0",
+     "name": "JointPositionList",
+     "class_name": "JointPositionList",
+     "parent": null
+    },
+    {
+     "id": "chart_node_1",
+     "name": "JointPositionList",
+     "class_name": "JointPositionList",
+     "parent": null
+    },
+    {
+     "id": "chart_node_2",
+     "name": "SetOdometry",
+     "class_name": "SetOdometry",
+     "parent": null
+    },
+    {
+     "id": "chart_node_3",
+     "name": "paused#0",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_4",
+     "name": "interrupted#0",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_5",
+     "name": "paused#1",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_6",
+     "name": "interrupted#1",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_7",
+     "name": "paused#2",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_8",
+     "name": "interrupted#2",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_9",
+     "name": "EndMotion",
+     "class_name": "EndMotion",
+     "parent": null
+    }
+   ],
+   "edges": [
+    {
+     "from": "chart_node_0",
+     "to": "chart_node_3",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_0",
+     "to": "chart_node_0",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_0",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_6",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_5",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_1",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_1",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_8",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_7",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_2",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_2",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_0",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_6",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_1",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_8",
+     "kind": "START"
+    }
+   ]
+  },
+  {
+   "signature": "chart_node_0:JointPositionList|chart_node_1:JointPositionList|chart_node_2:SetOdometry|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion",
+   "title": "NavigateAction",
+   "nodes": [
+    {
+     "id": "chart_node_0",
+     "name": "JointPositionList",
+     "class_name": "JointPositionList",
+     "parent": null
+    },
+    {
+     "id": "chart_node_1",
+     "name": "JointPositionList",
+     "class_name": "JointPositionList",
+     "parent": null
+    },
+    {
+     "id": "chart_node_2",
+     "name": "SetOdometry",
+     "class_name": "SetOdometry",
+     "parent": null
+    },
+    {
+     "id": "chart_node_3",
+     "name": "paused#0",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_4",
+     "name": "interrupted#0",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_5",
+     "name": "paused#1",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_6",
+     "name": "interrupted#1",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_7",
+     "name": "paused#2",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_8",
+     "name": "interrupted#2",
+     "class_name": "PlanNodeStatusMonitor",
+     "parent": null
+    },
+    {
+     "id": "chart_node_9",
+     "name": "EndMotion",
+     "class_name": "EndMotion",
+     "parent": null
+    }
+   ],
+   "edges": [
+    {
+     "from": "chart_node_0",
+     "to": "chart_node_3",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_0",
+     "to": "chart_node_0",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_0",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_6",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_5",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_1",
+     "to": "chart_node_1",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_1",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_8",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_7",
+     "kind": "PAUSE"
+    },
+    {
+     "from": "chart_node_2",
+     "to": "chart_node_2",
+     "kind": "END"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_2",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_0",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_6",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_1",
+     "kind": "START"
+    },
+    {
+     "from": "chart_node_9",
+     "to": "chart_node_8",
+     "kind": "START"
+    }
+   ]
+  }
+ ],
+ "moments": [
+  {
+   "chart": 0,
+   "lifeCycles": [
+    "RUNNING",
+    "NOT_STARTED",
+    "NOT_STARTED",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "NOT_STARTED"
+   ],
+   "observations": [
+    "FALSE",
+    "UNKNOWN",
+    "UNKNOWN",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "UNKNOWN"
+   ]
+  },
+  {
+   "chart": 1,
+   "lifeCycles": [
+    "DONE",
+    "RUNNING",
+    "NOT_STARTED",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "NOT_STARTED"
+   ],
+   "observations": [
+    "TRUE",
+    "UNKNOWN",
+    "UNKNOWN",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "UNKNOWN"
+   ]
+  },
+  {
+   "chart": 1,
+   "lifeCycles": [
+    "DONE",
+    "RUNNING",
+    "NOT_STARTED",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "NOT_STARTED"
+   ],
+   "observations": [
+    "TRUE",
+    "FALSE",
+    "UNKNOWN",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "UNKNOWN"
+   ]
+  },
+  {
+   "chart": 2,
+   "lifeCycles": [
+    "DONE",
+    "DONE",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "RUNNING",
+    "NOT_STARTED"
+   ],
+   "observations": [
+    "TRUE",
+    "TRUE",
+    "UNKNOWN",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "FALSE",
+    "UNKNOWN"
+   ]
+  }
+ ],
+ "frames": [
+  -1,
+  0,
+  0,
+  1,
+  2,
+  3
+ ]
+}

@@ -1,0 +1,11 @@
+{
+  "title": "root",
+  "count": 3,
+  "ratio": 2,
+  "enabled": true,
+  "color": "blue",
+  "poses": [[1, 2, 3, 0, 0, 0, 1]],
+  "table": {"a": [1.5, 2.5]},
+  "children": [{"title": "child", "children": [{"title": "grandchild"}]}],
+  "anything": {"free": ["form"]}
+}
