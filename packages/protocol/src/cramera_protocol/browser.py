@@ -46,6 +46,18 @@ from cramera_protocol.events import (
     ViewerEvent,
 )
 from cramera_protocol.geometry import RectangleKey
+from cramera_protocol.laboratory.knowledge import (
+    CitationKey,
+    EvaluationKey,
+    KnowledgeKey,
+    ManualEdition,
+    ManualKey,
+    OperatingRule,
+    RequirementKey,
+    RevisionKey,
+    RuleChangeKey,
+    StartRequirementName,
+)
 from cramera_protocol.laboratory.layout import (
     AssetRightsKey,
     BenchDrawerKey,
@@ -374,6 +386,16 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     CornerBoxKey,
     ContactExclusionKey,
     AssetRightsKey,
+    ManualEdition,
+    CitationKey,
+    ManualKey,
+    OperatingRule,
+    RuleChangeKey,
+    RevisionKey,
+    StartRequirementName,
+    RequirementKey,
+    EvaluationKey,
+    KnowledgeKey,
 )
 """
 The enumerations the browser application reads.
