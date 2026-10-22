@@ -1,0 +1,18 @@
+{
+  "name": "complete_cell",
+  "formatVersion": "1.0",
+  "framesPerSecond": 10,
+  "trajectory": "trajectory.json",
+  "statecharts": "statecharts.json",
+  "background": "images/backdrop.svg",
+  "rendering": {"environment": "lighting.json"},
+  "models": [{"name": "robot", "urdf": "robot.urdf", "prefix": "robot", "robot": true}],
+  "objects": [
+    {"id": "cup", "key": "cup", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/object.obj", "mtl": "meshes/materials/surface.mtl"},
+    {"id": "bowl", "key": "bowl", "spawn": [1, 0, 0, 0, 0, 0, 1], "mesh": "meshes/object.gltf"},
+    {"id": "plate", "key": "plate", "spawn": [2, 0, 0, 0, 0, 0, 1], "mesh": "meshes/object.glb"}
+  ],
+  "task": "transport",
+  "robotName": "Test arm",
+  "environmentName": "Test cell"
+}

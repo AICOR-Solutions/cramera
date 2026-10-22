@@ -1,0 +1,9 @@
+{
+  "title": "Two recordings",
+  "description": "A cell and a transport.",
+  "chapters": [
+    {"title": "The cell", "narration": "The arm at rest.", "scene": "cell", "panel": "details", "durationSeconds": 2},
+    {"title": "The transport", "narration": "The robot carries the cup.", "scene": "transport", "frame": 3, "playback": true, "durationSeconds": 1},
+    {"title": "The cell again", "scene": "cell", "frame": 1, "panel": "unknown-panel", "durationSeconds": 1}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "broken_cell",
+  "formatVersion": "1.0",
+  "trajectory": "trajectory.json",
+  "missingAssets": ["meshes/lost.stl"],
+  "models": [
+    {"name": "robot", "urdf": "robot.urdf", "prefix": "robot", "robot": true},
+    {"name": "unfinished", "urdf": "broken.urdf", "prefix": "unfinished", "robot": false}
+  ],
+  "objects": [
+    {"id": "a", "key": "a", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/empty_library.obj"},
+    {"id": "b", "key": "b", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/plain.obj", "mtl": "meshes/materials/unknown_option.mtl"},
+    {"id": "c", "key": "c", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/plain.obj", "mtl": "meshes/materials/missing_filename.mtl"},
+    {"id": "d", "key": "d", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/plain.obj", "mtl": "meshes/materials/empty_vector.mtl"},
+    {"id": "e", "key": "e", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/plain.obj", "mtl": "meshes/materials/empty_directive.mtl"},
+    {"id": "f", "key": "f", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/plain.obj", "mtl": "meshes/materials/external_texture.mtl"},
+    {"id": "g", "key": "g", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/invalid_header.glb"},
+    {"id": "h", "key": "h", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/invalid_chunk.glb"},
+    {"id": "i", "key": "i", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/no_json.glb"},
+    {"id": "j", "key": "j", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/not_json.gltf"},
+    {"id": "k", "key": "k", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "meshes/list.gltf"},
+    {"id": "l", "key": "l", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "https://example.com/cup.stl"},
+    {"id": "m", "key": "m", "spawn": [0, 0, 0, 0, 0, 0, 1], "mesh": "C:\\meshes\\cup.stl"}
+  ]
+}
