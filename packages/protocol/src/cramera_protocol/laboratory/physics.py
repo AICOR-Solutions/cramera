@@ -138,6 +138,21 @@ class LaboratoryRoute(StrEnum):
     Moves an instrument of the expanded laboratory to its rest or inspection pose.
     """
 
+    TRANSFER_STATE = "transfer/state"
+    """
+    Whether the PR2 vessel transfer demo runs, and the recording it saved.
+    """
+
+    TRANSFER_START = "transfer/start"
+    """
+    Runs the PR2 vessel transfer demo.
+    """
+
+    TRANSFER_STOP = "transfer/stop"
+    """
+    Ends a running PR2 vessel transfer demo.
+    """
+
 
 # %% catalog
 
