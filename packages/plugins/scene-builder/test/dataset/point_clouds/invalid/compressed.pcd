@@ -1,0 +1,8 @@
+VERSION 0.7
+FIELDS x y z
+SIZE 4 4 4
+TYPE F F F
+WIDTH 1
+HEIGHT 1
+POINTS 1
+DATA binary_compressed

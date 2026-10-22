@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<robot name="web"><link name="body"><visual><geometry><mesh filename="https://example.org/door.stl"/></geometry></visual></link></robot>

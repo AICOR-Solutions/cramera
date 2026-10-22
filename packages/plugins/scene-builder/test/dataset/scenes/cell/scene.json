@@ -1,0 +1,15 @@
+{
+  "name": "cell",
+  "formatVersion": "1.0",
+  "framesPerSecond": 10,
+  "trajectory": "trajectory.json",
+  "environmentName": "Test cell",
+  "models": [
+    {"name": "cell_arm", "urdf": "arm.urdf", "prefix": "arm", "robot": true, "links": 2, "movableJoints": ["shoulder", "elbow"]},
+    {"name": "cell_table", "urdf": "table.urdf", "prefix": "", "robot": false, "links": 1, "movableJoints": [], "pose": [0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]}
+  ],
+  "objects": [
+    {"id": "box", "key": "box_1", "spawn": [1.0, 0.5, 0.8, 0.0, 0.0, 0.0, 1.0], "mesh": "meshes/box.stl"},
+    {"id": "marker", "key": "marker_1", "spawn": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], "box": [0.1, 0.1, 0.1]}
+  ]
+}

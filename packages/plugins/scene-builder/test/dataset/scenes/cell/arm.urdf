@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<robot name="cell_arm">
+  <link name="base"/>
+  <link name="upper"/>
+  <joint name="shoulder" type="revolute">
+    <parent link="base"/>
+    <child link="upper"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3" upper="3" effort="1" velocity="1"/>
+  </joint>
+</robot>

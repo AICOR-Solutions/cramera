@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!DOCTYPE robot [<!ENTITY part "body">]>
+<robot name="doctype"><link name="&part;"/></robot>
