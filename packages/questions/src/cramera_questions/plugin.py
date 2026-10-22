@@ -5,6 +5,7 @@ The viewer plugin answering questions about recorded scenes.
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 from dataclasses import dataclass, field
 from importlib.metadata import distributions
 
@@ -12,6 +13,7 @@ from typing_extensions import Dict, List, Optional, Tuple
 
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.plugins import PluginContext, PluginRoute, ViewerPlugin
+from cramera_protocol.plugins import PluginName
 from cramera.scenes import SceneCatalog
 from cramera_protocol.live import Capability
 from cramera_protocol.questions import (
@@ -28,9 +30,14 @@ from cramera_questions.recorded.bundle import BundleReader, RecordedBundle
 from cramera_questions.recorded.knowledge_base import RecordedKnowledge
 from cramera_questions.workspace_classes import WorkspaceClassIndex
 
-PLUGIN_NAME = "questions"
+WEB_DIRECTORY = Path(__file__).parent / "web"
 """
-The plugin's name, which is also its route segment.
+The plugin's browser files.
+"""
+
+BROWSER_MODULE = "index.js"
+"""
+The plugin's browser module, relative to :data:`WEB_DIRECTORY`.
 """
 
 DISTRIBUTION_NAME = "cramera-questions"
@@ -142,7 +149,7 @@ class QuestionsPlugin(ViewerPlugin):
     """
 
     def name(self) -> str:
-        return PLUGIN_NAME
+        return PluginName.QUESTIONS.value
 
     def version(self) -> str:
         """
@@ -159,6 +166,12 @@ class QuestionsPlugin(ViewerPlugin):
 
     def capabilities(self) -> List[Capability]:
         return [Capability.QUESTIONS]
+
+    def web_directory(self) -> Optional[Path]:
+        return WEB_DIRECTORY
+
+    def module(self) -> Optional[str]:
+        return BROWSER_MODULE
 
     def routes(self, context: PluginContext) -> List[PluginRoute]:
         cache = SceneQuestionCache(context.catalog, self.class_index)

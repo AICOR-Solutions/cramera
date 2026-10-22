@@ -32,7 +32,8 @@ from cramera_protocol.questions import (
     Vocabulary,
 )
 from cramera_protocol.viewer import ViewerRoute
-from cramera_questions.plugin import PLUGIN_NAME, SOURCE_VERSION, QuestionsPlugin
+from cramera_questions.plugin import SOURCE_VERSION, QuestionsPlugin
+from cramera_protocol.plugins import PluginName
 from cramera_questions.presets import QueryVariable, RobotQuestion
 from cramera_questions.workspace_classes import WorkspaceClassIndex
 from .dataset.files import SceneName
@@ -69,7 +70,7 @@ def route(plugin_route: QuestionsRoute) -> str:
     :param plugin_route: One of the plugin's routes.
     :return: Its path on the viewer.
     """
-    return f"{ViewerRoute.PLUGIN_API}{PLUGIN_NAME}/{plugin_route}"
+    return f"{ViewerRoute.PLUGIN_API}{PluginName.QUESTIONS}/{plugin_route}"
 
 
 def get(answerer, plugin_route: QuestionsRoute, **parameters):
@@ -122,7 +123,7 @@ def read(response, document_class):
 
 
 def test_the_plugin_adds_questions(plugin):
-    assert plugin.name() == PLUGIN_NAME
+    assert plugin.name() == PluginName.QUESTIONS
     assert plugin.capabilities() == [Capability.QUESTIONS]
     assert plugin.version() == SOURCE_VERSION
 

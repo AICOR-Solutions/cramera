@@ -22,3 +22,6 @@ Source = "https://github.com/sunava/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+cramera_questions = ["web/**/*"]

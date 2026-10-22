@@ -1,0 +1,22 @@
+/* The Questions panel. */
+
+.questions { display: grid; gap: 12px; align-content: start; }
+
+.questions .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.questions .preset { text-align: left; background: var(--surface); }
+
+.questions .ask { display: flex; gap: 6px; }
+.questions .ask input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+
+.questions details { display: grid; gap: 6px; }
+.questions summary { cursor: pointer; color: var(--text-muted); }
+.questions textarea { width: 100%; font: 12px var(--mono); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; resize: vertical; }
+
+.answer .reading { margin: 0; font-style: italic; }
+.answer .count { margin: 4px 0; color: var(--text-muted); font-size: 12px; }
+.answer .error { color: var(--danger); }
+.answer table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.answer th, .answer td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.answer th { color: var(--text-muted); font-weight: 600; }
+.answer td button { padding: 2px 8px; font-size: 12px; }
