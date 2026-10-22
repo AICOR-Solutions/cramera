@@ -147,11 +147,13 @@ class UrdfStructure:
     def of_file(cls, path: Path) -> UrdfStructure:
         """
         :param path: A URDF file of a bundle.
-        :return: Its links and joints.
+        :return: Its links and joints: the direct children of ``<robot>``; elements
+            of the same name inside other blocks, such as ``<ros2_control>``, describe
+            controllers, not the robot's structure.
         """
         root = ElementTree.parse(path).getroot()
         return cls(
-            links=[link.attrib[UrdfTag.NAME] for link in root.iter(UrdfTag.LINK)],
+            links=[link.attrib[UrdfTag.NAME] for link in root.findall(UrdfTag.LINK)],
             joints=[
                 UrdfJoint(
                     name=joint.attrib[UrdfTag.NAME],
@@ -159,7 +161,7 @@ class UrdfStructure:
                     parent=joint.find(UrdfTag.PARENT).attrib[UrdfTag.LINK_REFERENCE],
                     child=joint.find(UrdfTag.CHILD).attrib[UrdfTag.LINK_REFERENCE],
                 )
-                for joint in root.iter(UrdfTag.JOINT)
+                for joint in root.findall(UrdfTag.JOINT)
             ],
         )
 

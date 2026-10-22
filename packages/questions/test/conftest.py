@@ -19,8 +19,10 @@ from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from .dataset.files import SCENES
 
 TESTS_WITHOUT_KRROOD = (
+    "test_browser_modules.py",
     "test_presets_and_matching.py",
     "test_recorded_bundle.py",
+    "test_urdf_structure.py",
 )
 """
 The test modules that import nothing of krrood.
