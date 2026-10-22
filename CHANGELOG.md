@@ -27,6 +27,12 @@ which this repository was mirrored until 22 Oct 2026.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),
   `cramera-export-site` (static site), `cramera-upgrade-bundle` (rewrite a bundle in
   the current format).
+- **The laboratory as a plugin.** `cramera-laboratory` ships the bench and the
+  expanded AICOR laboratory and their twenty devices with their asset terms, runs
+  their MuJoCo contact simulation behind a Laboratory panel (bounded pulling, liquid
+  with pouring and spilling, scale, centrifuge with operating manuals, refrigerator,
+  drawer, dispensing station, instruments), loads the laboratory into CRAM worlds
+  and records a PR2 vessel transfer as a task demo.
 - The earlier code is kept on the branch `archive/pre-v1`.
 
 ## Week 43 · 20 Oct 2026

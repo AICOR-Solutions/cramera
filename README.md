@@ -36,7 +36,8 @@ the branch [`archive/pre-v1`](https://github.com/sunava/cramera/tree/archive/pre
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
-| laboratory, workshop, cable lab, plan builder | One plugin package each; they need `cramera-cram`. | planned |
+| [`cramera-laboratory`](packages/plugins/laboratory) | The AICOR laboratory: its bundles and devices, a MuJoCo contact simulation with liquid, scale, centrifuge, refrigerator, drawer and dispensing station operated from a Laboratory panel, the laboratory as a CRAM world and a PR2 vessel transfer demo. | done |
+| workshop, cable lab, plan builder | One plugin package each; they need `cramera-cram`. | planned |
 
 Recordings made with earlier versions open unchanged: a document without a
 `formatVersion` is read as version 0.
