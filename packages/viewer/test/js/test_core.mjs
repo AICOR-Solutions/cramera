@@ -109,3 +109,17 @@ test('a page address names the bundle to show', () => {
   assert.equal(sceneOf('https://sunava.github.io/cramera/'), null);
   assert.equal(withScene('https://sunava.github.io/cramera/?x=1', 'a b').href, 'https://sunava.github.io/cramera/?x=1&scene=a+b');
 });
+
+test('a JSON document is posted with its media type and the answer decoded', async () => {
+  const base = 'http://localhost:8711/';
+  const requests = [];
+  const fetch = async (url, init) => {
+    requests.push({ url, init });
+    return { ok: true, status: 200, headers: new Map(), json: async () => ({ answered: true }) };
+  };
+  const answer = await new ViewerApi(fetch, base).postJson(`${base}api/plugins/questions/query`, { code: 'x' });
+  assert.deepEqual(answer, { answered: true });
+  assert.equal(requests[0].init.method, 'POST');
+  assert.equal(requests[0].init.headers['Content-Type'], 'application/json');
+  assert.deepEqual(JSON.parse(requests[0].init.body), { code: 'x' });
+});

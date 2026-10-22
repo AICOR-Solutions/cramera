@@ -102,3 +102,20 @@ test('a link\'s box encloses its own meshes, not the links below it', () => {
   assert.deepEqual(box.min.toArray(), [-0.5, -0.5, -0.5]);
   assert.deepEqual(box.max.toArray(), [0.5, 0.5, 0.5]);
 });
+
+// %% highlights
+
+import { highlightedParts } from '../../src/cramera/web/scene/scene-highlights.js';
+
+test('highlight keys name links by their URDF name and objects by their key', () => {
+  const content = new THREE.Group();
+  const robot = Object.assign(new THREE.Group(), { isURDFRobot: true });
+  const link = Object.assign(new THREE.Group(), { isURDFLink: true, urdfName: 'l_gripper_palm_link' });
+  const other = Object.assign(new THREE.Group(), { isURDFLink: true, urdfName: 'base_link' });
+  const cup = new THREE.Group();
+  cup.userData.objectKey = 'cup';
+  robot.add(link, other);
+  content.add(robot, cup);
+  assert.deepEqual(highlightedParts(content, ['cup', 'l_gripper_palm_link', 'missing']), [link, cup]);
+  assert.deepEqual(highlightedParts(content, []), []);
+});

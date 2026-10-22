@@ -112,7 +112,28 @@ export class ViewerApi {
    * @throws {RequestFailed} When the answer has an error status.
    */
   async json(url, signal) {
-    const answer = await this.#fetch(url, { signal });
+    return this.#decoded(url, await this.#fetch(url, { signal }));
+  }
+
+  /**
+   * @param {string} url A URL that takes a JSON body and answers JSON.
+   * @param {Object} body The request document.
+   * @param {AbortSignal=} signal Cancels the request.
+   * @returns {Promise<Object>} The decoded answer.
+   * @throws {RequestFailed} When the answer has an error status.
+   */
+  async postJson(url, body, signal) {
+    const init = { method: 'POST', headers: { 'Content-Type': JSON_MEDIA_TYPE }, body: JSON.stringify(body), signal };
+    return this.#decoded(url, await this.#fetch(url, init));
+  }
+
+  /**
+   * @param {string} url The requested URL.
+   * @param {Response} answer Its answer.
+   * @returns {Promise<Object>} The decoded answer.
+   * @throws {RequestFailed} When the answer has an error status.
+   */
+  async #decoded(url, answer) {
     if (answer.ok) return answer.json();
     const explained = (answer.headers.get('Content-Type') ?? '').startsWith(JSON_MEDIA_TYPE);
     const reason = explained ? (await answer.json())[ErrorKey.ERROR] : answer.statusText;

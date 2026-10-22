@@ -26,4 +26,4 @@ Demo = "https://sunava.github.io/cramera/"
 where = ["src"]
 
 [tool.setuptools.package-data]
-cramera = ["web/**/*"]
+cramera = ["web/**/*", "testing/*.mjs"]

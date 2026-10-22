@@ -19,6 +19,7 @@ import { StepsPanel } from '../panels/steps-panel.js';
 import { ViewPanel, ViewSwitch } from '../panels/view-panel.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
+import { SceneHighlights } from '../scene/scene-highlights.js';
 import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
 import { KeyboardShortcuts, PlaybackActions } from './keyboard-shortcuts.js';
@@ -200,6 +201,12 @@ export class Application {
   #picking = null;
 
   /**
+   * Lights up what answers name, once the 3D view exists.
+   * @type {SceneHighlights|null}
+   */
+  #highlights = null;
+
+  /**
    * The scene picker's choice, once the scenes are known.
    * @type {SceneChoice|null}
    */
@@ -254,6 +261,8 @@ export class Application {
     this.#view.scene.add(this.#lighting.group);
     this.#addViewPanel(this.#view);
     this.#picking = new ScenePicking(this.#view, this.bus);
+    this.#highlights = new SceneHighlights(this.#view);
+    this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
     this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => this.#details.showSelection(selection));
     this.bus.subscribe(ViewerEvent.SCENE_REQUESTED, (name) => this.showRequested(name));
     this.bus.subscribe(ViewerEvent.FRAME_REQUESTED, (frame) => this.seek(frame));
@@ -293,6 +302,7 @@ export class Application {
     this.#scene?.dispose();
     this.#scene = loaded;
     this.#picking.select(null);
+    this.#highlights.clear();
     this.#viewPanel.refresh();
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
@@ -354,6 +364,7 @@ export class Application {
     this.#steps.mark(segment);
     this.#statechart.showFrame(frame);
     this.#picking.update();
+    this.#highlights.update();
     this.#view.requestRender();
     this.bus.publish(ViewerEvent.FRAME_CHANGED, frame);
   }
