@@ -31,6 +31,10 @@ which this repository was mirrored until 22 Oct 2026.
   answers presets, plain English and entity queries with a sentence and a table
   whose entities light up in 3D, and a Graph tab, which draws the scene's knowledge,
   plan, statechart and kinematic tree as SVG with pan, zoom and node details.
+- **Plan builder.** `cramera-plan-builder` composes a plan from the robots, objects
+  and environments the CRAM workspace offers, turns sentences such as "keep the milk
+  upright" into constraint monitors, writes the plan as a CRAM demo and runs it live,
+  with its constraints shown on the steps.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),
