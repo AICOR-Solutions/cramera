@@ -76,6 +76,38 @@ a `SimulationAnswer`.
 | `physics/dispenser` | POST | `DispenserRequest` |
 | `physics/instrument` | POST | `InstrumentRequest` |
 
+## The laboratory as a CRAM world
+
+Needs the CRAM workspace and cramera-cram (the `cram` extra).
+`LaboratoryEnvironment` builds on `cramera_cram.scenes.BundleEnvironment`: the
+environment with its joints, the vessels and the stopper from their own URDFs with
+collision shapes and inertia, the closed cabinet panels, and a `Handle` annotation on
+every handle bar. Loading starts no motion and no simulation.
+
+```python
+from semantic_digital_twin.api import RobotSpecification
+from semantic_digital_twin.robots.pr2 import PR2
+
+from cramera_laboratory.world import LaboratoryEnvironment
+
+laboratory = LaboratoryEnvironment()
+world = laboratory.create_world(robots=[RobotSpecification(semantic_annotation_type=PR2)])
+target = laboratory.slot_pose("A3", world)
+```
+
+`LaboratoryEnvironment(allow_support_contacts=True)` leaves out the contacts between
+the vessels and the rack they rest in, and nothing else.
+
+### PR2 vessel transfer
+
+`cramera-laboratory-transfer` runs a `RobotTaskDemo`: a PR2 at the bench picks the
+vessel in A1 with CRAM's pickup, closing its fingers only until both pads reach the
+glass, lifts it 16 cm and places it into A3. The run is published while it runs and
+saved as `aicor_medical_lab_pr2_transfer` with its measurements; it fails unless both
+actions succeed, the vessel was carried and lifted, ends within a millimetre of A3,
+nothing else moved and the pads never cut into the glass. `--publish DIR` copies the
+saved recording into a shared scenes directory.
+
 ## Tests
 
 ```bash

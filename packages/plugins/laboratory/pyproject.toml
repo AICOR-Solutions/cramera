@@ -25,6 +25,9 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 physics = ["mujoco>=3.2"]
 cram = ["cramera-cram==1.0.0"]
 
+[project.scripts]
+cramera-laboratory-transfer = "cramera_laboratory.transfer:main"
+
 [project.entry-points."cramera.plugins"]
 laboratory = "cramera_laboratory.plugin:LaboratoryPlugin"
 
