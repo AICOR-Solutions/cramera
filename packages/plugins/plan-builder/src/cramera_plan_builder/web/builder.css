@@ -2,6 +2,11 @@
 
 /* %% page */
 
+/* Scrollbars and form controls follow the theme the viewer chose, not only the system's. */
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+.builder-side, .builder-plan, .builder-output, .builder-output pre { scrollbar-color: var(--border) var(--surface-raised); }
+
 body.builder-page { display: block; overflow: hidden; }
 
 .builder-root {
