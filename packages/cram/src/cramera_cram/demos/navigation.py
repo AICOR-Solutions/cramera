@@ -27,6 +27,16 @@ BASE_TOLERANCE = 0.05
 How far, in metres, the robot's base may end up from its target.
 """
 
+TARGET_DISTANCE = 3.0
+"""
+How far the target lies along the world's x axis, in metres.
+"""
+
+BARRIER_SIZE = (0.6, 0.8, 1.0)
+"""
+The barrier's extent along x, y and z, in metres.
+"""
+
 # %% environment
 
 
@@ -58,12 +68,12 @@ class BarrierEnvironment(SceneEnvironment):
     An empty floor with one box standing halfway to a target.
     """
 
-    distance: float = 3.0
+    distance: float = TARGET_DISTANCE
     """
     How far the target lies along the world's x axis, in metres.
     """
 
-    barrier_size: Scale = field(default_factory=lambda: Scale(0.6, 0.8, 1.0))
+    barrier_size: Scale = field(default_factory=lambda: Scale(*BARRIER_SIZE))
     """
     The box's size in metres.
     """
@@ -88,7 +98,7 @@ class NavigationDemo(RobotTaskDemo):
     measures where its base ends up.
     """
 
-    target_x: float = 3.0
+    target_x: float = TARGET_DISTANCE
     """
     The target's x coordinate in the world, in metres.
     """
