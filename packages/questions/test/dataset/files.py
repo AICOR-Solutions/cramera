@@ -109,6 +109,6 @@ The scene description of a recording of two robots, the second one selected.
 
 PREFIXED_LINKS_URDF = DATASET / "urdf" / "prefixed_links.urdf"
 """
-The annotated recording's robot model with every link named below the robot's prefix,
-as CRAM writes models while the part annotations name bare links.
+The annotated recording's robot model with every link named below the robot's prefix, as
+CRAM writes models while the part annotations name bare links.
 """
