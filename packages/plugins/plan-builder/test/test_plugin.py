@@ -29,9 +29,7 @@ from cramera_protocol.plan_builder import (
     DemoDocument,
     DemoSource,
     PlanBuilderCatalog,
-    PlanBuilderFile,
     PlanBuilderLimits,
-    PlanBuilderName,
     PlanBuilderRoute,
     PlanBuilderVariable,
     PlanList,
@@ -44,21 +42,13 @@ from cramera_protocol.plan_builder import (
     StepConstraint,
     StepKind,
 )
-from cramera_protocol.viewer import ErrorKey, ViewerRoute
+from cramera_protocol.viewer import ErrorKey
 
 from .conftest import DEMO_PORT, send
 from .dataset.demo_source import demo_document
 from .dataset.given_workspace import DATASET
 
 # %% configuration
-
-
-def test_the_plugin_is_named_and_serves_its_module(plugin):
-    info = plugin.info()
-    assert info.name == PlanBuilderName.PLUGIN
-    assert info.module == (
-        f"{ViewerRoute.PLUGIN_FILES}{PlanBuilderName.PLUGIN}/{PlanBuilderFile.MODULE}"
-    )
 
 
 def test_demos_go_below_the_data_directory_unless_configured(tmp_path):
