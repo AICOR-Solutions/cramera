@@ -1,0 +1,11 @@
+#usda 1.0
+(
+    doc = """A twin composed as the separation audit wants it: the root layer sublayers the robots layer and the environment layer next to it."""
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+    subLayers = [
+        @./workshop_robots.usda@,
+        @./workshop_environment.usda@
+    ]
+)

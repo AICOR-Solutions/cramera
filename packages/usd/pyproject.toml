@@ -26,6 +26,7 @@ test = ["pytest", "pytest-cov", "trimesh"]
 [project.scripts]
 cramera-import = "cramera_usd.commands.import_scene:main"
 cramera-export = "cramera_usd.commands.export_scene:main"
+cramera-audit-robots = "cramera_usd.commands.audit_robots:main"
 
 [project.urls]
 Source = "https://github.com/sunava/cramera"
