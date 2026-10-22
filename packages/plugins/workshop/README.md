@@ -61,6 +61,13 @@ The assembly's ten stages are: retrieve and place the screw box, pick up a screw
 move to the assembly station, pick up the screwdriver, stabilize the screw at the
 pilot hole, align the screwdriver, engage it, release the supporting hand, drive the
 screw, put the screwdriver down.
+Each stage is one step of the saved recording.
+
+The assembly runs every stage but is not saved yet: it fails the requirement that
+nothing penetrates. While the screw is driven the left elbow drifts into the
+furniture and the screw box, and while the screwdriver is put down the right arm
+passes through the workbench's furniture; the seated blade also overlaps the
+fingertips holding the screw by a few millimetres.
 
 - The robot moves its base only along straight corridors with its heading kept, each
   checked against the collision shapes in a separate copy of the collision geometry.
