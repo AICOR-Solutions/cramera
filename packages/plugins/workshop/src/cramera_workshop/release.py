@@ -20,7 +20,8 @@ from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.geometry import Pose
-from cramera_protocol.workshop import AssetRights
+from cramera_protocol.rights import AssetRights
+from cramera_protocol.workshop import WorkshopSceneKey
 from cramera_workshop.acceptance import (
     ACTION_SUCCEEDED,
     ASSEMBLY_TOLERANCES,
@@ -223,7 +224,7 @@ class WorkshopRelease:
         :param scene: The scene description.
         :raises InvalidWorkshopRelease: When the rights or their files are missing.
         """
-        rights = AssetRights.of_scene(scene.extensions)
+        rights = AssetRights.of_scene(scene.extensions, WorkshopSceneKey.ASSET_RIGHTS)
         require(rights is not None, ReleaseProblem.MISSING_RIGHTS)
         files = (rights.license_file, rights.notice_file, WorkshopFile.RIGHTS)
         require(

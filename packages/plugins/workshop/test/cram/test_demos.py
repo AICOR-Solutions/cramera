@@ -19,7 +19,8 @@ from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import SceneDescription, Segment
 from cramera_protocol.bundle.trajectory import Trajectory
-from cramera_protocol.workshop import AssetRights
+from cramera_protocol.rights import AssetRights
+from cramera_protocol.workshop import WorkshopSceneKey
 from cramera_workshop.acceptance import (
     AssemblyStage,
     ContentsMeasurement,
@@ -136,7 +137,10 @@ def test_a_saved_recording_carries_the_rights_and_notices(insertion_demo, bundle
     written = SceneDescription.from_json(
         json.loads((saved / BundleFile.SCENE).read_text(encoding="utf-8"))
     )
-    assert AssetRights.of_scene(written.extensions) == bundle.asset_rights
+    assert (
+        AssetRights.of_scene(written.extensions, WorkshopSceneKey.ASSET_RIGHTS)
+        == bundle.asset_rights
+    )
     rights = bundle.asset_rights
     for name in (rights.license_file, rights.notice_file, WorkshopFile.RIGHTS):
         assert (saved / name).read_bytes() == bundle.file(name).read_bytes()

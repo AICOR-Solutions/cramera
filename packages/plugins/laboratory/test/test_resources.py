@@ -26,7 +26,8 @@ from cramera_laboratory.resources import (
 from cramera_laboratory.scene_files import JsonFile
 from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
 from cramera_protocol.bundle.index import SceneIndex, SceneIndexEntry
-from cramera_protocol.laboratory.layout import AssetRights, LaboratorySceneKey
+from cramera_protocol.laboratory.layout import LaboratorySceneKey
+from cramera_protocol.rights import AssetRights
 
 from .conftest import DATASET
 

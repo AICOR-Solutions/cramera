@@ -12,9 +12,9 @@ import pytest
 from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.exceptions import InvalidDocumentValue, MissingDocumentField
+from cramera_protocol.rights import AssetRights
 from cramera_protocol.workshop import (
     COMMAND_ARGUMENTS,
-    AssetRights,
     DriveDirection,
     InvalidWorkshopCommand,
     ThreadState,
@@ -72,13 +72,13 @@ def test_every_movable_body_of_the_workshop_is_an_object_of_the_scene(scene):
 
 def test_a_scene_without_a_workshop_describes_none():
     assert WorkshopDescription.of_scene({}) is None
-    assert AssetRights.of_scene({}) is None
+    assert AssetRights.of_scene({}, WorkshopSceneKey.ASSET_RIGHTS) is None
 
 
 def test_the_asset_rights_name_the_licence_and_its_files(read_json, scene):
     data = read_json("workshop/workshop_scene.json")[WorkshopSceneKey.ASSET_RIGHTS]
-    rights = AssetRights.of_scene(scene.extensions)
-    assert rights.license == data["license"]
+    rights = AssetRights.of_scene(scene.extensions, WorkshopSceneKey.ASSET_RIGHTS)
+    assert rights.license_identifier == data["license"]
     assert rights.to_json() == data
 
 

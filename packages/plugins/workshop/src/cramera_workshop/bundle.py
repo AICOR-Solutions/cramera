@@ -16,9 +16,10 @@ from cramera.confinement import ConfinedDirectory
 from cramera.scenes import SceneCatalog
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import ObjectDescription, SceneDescription
+from cramera_protocol.rights import AssetRights
 from cramera_protocol.workshop import (
-    AssetRights,
     WorkshopDescription,
+    WorkshopSceneKey,
     WorkshopSemantics,
 )
 from cramera_workshop.exceptions import NotAWorkshopBundle
@@ -94,7 +95,7 @@ class WorkshopBundle:
             json.loads((directory / BundleFile.SCENE).read_text(encoding="utf-8"))
         )
         workshop = WorkshopDescription.of_scene(scene.extensions)
-        rights = AssetRights.of_scene(scene.extensions)
+        rights = AssetRights.of_scene(scene.extensions, WorkshopSceneKey.ASSET_RIGHTS)
         if workshop is None or rights is None:
             raise NotAWorkshopBundle(directory)
         return cls(

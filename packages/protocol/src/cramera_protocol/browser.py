@@ -69,7 +69,6 @@ from cramera_protocol.laboratory.knowledge import (
     StartRequirementName,
 )
 from cramera_protocol.laboratory.layout import (
-    AssetRightsKey,
     BenchDrawerKey,
     BenchKey,
     CentrifugeKey,
@@ -318,6 +317,7 @@ from cramera_protocol.viewer import (
     ViewerInfoKey,
     ViewerRoute,
 )
+from cramera_protocol.rights import AssetRightsKey
 
 # %% module
 

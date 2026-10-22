@@ -54,7 +54,7 @@ class WorkshopSceneKey(StrEnum):
 
     ASSET_RIGHTS = "assetRights"
     """
-    The :class:`AssetRights` of the bundle's original assets.
+    The :class:`~cramera_protocol.rights.AssetRights` of the bundle's original assets.
     """
 
 
@@ -737,108 +737,6 @@ class WorkshopDescription(JsonDocument):
         :return: The workshop the scene describes, or None for another scene.
         """
         data = extensions.get(WorkshopSceneKey.WORKSHOP)
-        return None if data is None else cls.from_json(data)
-
-
-class AssetRightsKey(StrEnum):
-    """
-    The keys of the rights of a bundle's original assets.
-    """
-
-    PRINCIPAL_AUTHOR = "principalAuthor"
-    """
-    Who designed the assets.
-    """
-
-    INSTITUTION = "institution"
-    """
-    The institution the assets were made at.
-    """
-
-    COPYRIGHT = "copyright"
-    """
-    The copyright notice.
-    """
-
-    LICENSE = "license"
-    """
-    The licence identifier.
-    """
-
-    PERMISSION_NOTICE = "permissionNotice"
-    """
-    What reuse needs.
-    """
-
-    PRIOR_LICENSE_NOTICE = "priorLicenseNotice"
-    """
-    Which rights remain unaffected.
-    """
-
-    LICENSE_FILE = "licenseFile"
-    """
-    The licence file, relative to the bundle.
-    """
-
-    NOTICE_FILE = "noticeFile"
-    """
-    The notice file, relative to the bundle.
-    """
-
-
-@dataclass(kw_only=True)
-class AssetRights(JsonDocument):
-    """
-    Who made a bundle's original assets and on which terms they may be reused.
-    """
-
-    principal_author: str = document_field(AssetRightsKey.PRINCIPAL_AUTHOR)
-    """
-    Who designed the assets.
-    """
-
-    institution: str = document_field(AssetRightsKey.INSTITUTION)
-    """
-    The institution the assets were made at.
-    """
-
-    copyright: str = document_field(AssetRightsKey.COPYRIGHT)
-    """
-    The copyright notice.
-    """
-
-    license: str = document_field(AssetRightsKey.LICENSE)
-    """
-    The licence identifier, such as ``LicenseRef-AICOR-Workshop-Assets``.
-    """
-
-    permission_notice: str = document_field(AssetRightsKey.PERMISSION_NOTICE)
-    """
-    What reuse, modification and redistribution need.
-    """
-
-    prior_license_notice: str = document_field(AssetRightsKey.PRIOR_LICENSE_NOTICE)
-    """
-    Which existing rights and permissions remain unaffected.
-    """
-
-    license_file: str = document_field(AssetRightsKey.LICENSE_FILE)
-    """
-    The licence file, relative to the bundle.
-    """
-
-    notice_file: str = document_field(AssetRightsKey.NOTICE_FILE)
-    """
-    The notice file, relative to the bundle.
-    """
-
-    @classmethod
-    def of_scene(cls, extensions: Mapping[str, Any]) -> Optional[AssetRights]:
-        """
-        :param extensions: The plugin content of a scene description.
-        :return: The rights the scene names, or None for a scene without them.
-        """
-        data = extensions.get(WorkshopSceneKey.ASSET_RIGHTS)
         return None if data is None else cls.from_json(data)
 
 
