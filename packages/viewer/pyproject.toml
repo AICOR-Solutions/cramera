@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cramera"
+version = "1.0.0"
+description = "Watch CRAM robot runs, recorded or live, in the browser and ask the scene what happened."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Vanessa Hassouna" }]
+dependencies = ["cramera-protocol==1.0.0", "typing_extensions>=4.8"]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.scripts]
+cramera = "cramera.command_line:main"
+cramera-shot = "cramera.screenshot:main"
+
+[project.urls]
+Source = "https://github.com/sunava/cramera"
+Demo = "https://sunava.github.io/cramera/"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cramera = ["web/**/*"]

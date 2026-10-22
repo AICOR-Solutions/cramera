@@ -1,0 +1,50 @@
+{
+ "name": "aicor_cell",
+ "fps": 50,
+ "trajectory": "trajectory.json",
+ "models": [
+  {
+   "name": "aicor_cell_arm",
+   "urdf": "arm.urdf",
+   "prefix": "arm",
+   "robot": true,
+   "links": 7,
+   "movableJoints": [
+    "arm_j1",
+    "arm_j2",
+    "arm_j3",
+    "arm_j4",
+    "arm_j5"
+   ]
+  },
+  {
+   "name": "aicor_cell_environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 7,
+   "movableJoints": []
+  }
+ ],
+ "robot": {
+  "name": "aicor_cell_arm",
+  "prefix": "arm",
+  "baseBody": "arm_basis",
+  "parts": {}
+ },
+ "objects": [],
+ "segments": [
+  {
+   "step": "plan",
+   "action": null,
+   "arm": null,
+   "start": 0,
+   "end": 451
+  }
+ ],
+ "actions": [],
+ "planTrees": [],
+ "placeTarget": null,
+ "dragBounds": null,
+ "missingAssets": []
+}
