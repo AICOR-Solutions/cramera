@@ -122,6 +122,22 @@ How an integer value is written in an ASCII record.
 # %% scalars
 
 
+class ByteOrder(StrEnum):
+    """
+    The byte orders of binary records, as ``struct`` formats spell them.
+    """
+
+    LITTLE_ENDIAN = "<"
+    """
+    The least significant byte first.
+    """
+
+    BIG_ENDIAN = ">"
+    """
+    The most significant byte first.
+    """
+
+
 class ScalarType(Enum):
     """
     The binary scalars point fields are stored as, by their ``struct`` code.
@@ -171,7 +187,7 @@ class ScalarType(Enum):
         """
         :return: The scalar's size in bytes, without alignment.
         """
-        return struct.calcsize(f"<{self.value}")
+        return struct.calcsize(f"{ByteOrder.LITTLE_ENDIAN}{self.value}")
 
     def is_floating(self) -> bool:
         """
@@ -191,7 +207,12 @@ class ScalarType(Enum):
         :return: Its bits as an unsigned 32-bit integer.
         """
         if self is ScalarType.FLOAT:
-            return struct.unpack("<I", struct.pack("<f", value))[0]
+            packed = struct.pack(
+                f"{ByteOrder.LITTLE_ENDIAN}{ScalarType.FLOAT.value}", value
+            )
+            return struct.unpack(
+                f"{ByteOrder.LITTLE_ENDIAN}{ScalarType.UNSIGNED_INTEGER.value}", packed
+            )[0]
         return int(value) & UNSIGNED_32_BIT_MASK
 
     def read(self, token: bytes) -> float:
@@ -878,6 +899,11 @@ VIEWPOINT_VALUES = 7
 How many numbers a PCD viewpoint holds: a position and a quaternion.
 """
 
+SINGLE_COMPONENT = "1"
+"""
+The component count of a PCD field whose header has no ``COUNT`` line.
+"""
+
 PCD_COMMENT = "#"
 """
 Starts a comment in a PCD header line.
@@ -967,7 +993,7 @@ class PcdHeaderReader(HeaderReader):
         names = declarations[PcdKeyword.FIELDS]
         sizes = declarations[PcdKeyword.SIZE]
         kinds = declarations[PcdKeyword.TYPE]
-        counts = declarations.get(PcdKeyword.COUNT, ["1"] * len(names))
+        counts = declarations.get(PcdKeyword.COUNT, [SINGLE_COMPONENT] * len(names))
         if not len(names) == len(sizes) == len(kinds) == len(counts):
             raise MalformedPointCloud(PointCloudProblem.INVALID_FIELDS)
         if len(names) > MAXIMUM_FIELDS:
@@ -1250,7 +1276,11 @@ class PointCloudFile:
         :param scalars: The scalar of every component.
         :return: The records of a binary file.
         """
-        order = ">" if layout.encoding is PointCloudEncoding.BINARY_BIG_ENDIAN else "<"
+        order = (
+            ByteOrder.BIG_ENDIAN
+            if layout.encoding is PointCloudEncoding.BINARY_BIG_ENDIAN
+            else ByteOrder.LITTLE_ENDIAN
+        )
         record = struct.Struct(order + "".join(scalar.value for scalar in scalars))
         if len(self.body) - layout.offset != layout.point_count * record.size:
             raise MalformedPointCloud(PointCloudProblem.TRUNCATED)

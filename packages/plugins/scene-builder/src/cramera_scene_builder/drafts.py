@@ -61,6 +61,11 @@ CONTROL_CHARACTER_LIMIT = 32
 Characters below this code point are control characters, which texts must not hold.
 """
 
+DRAFT_INDENTATION = 2
+"""
+The indentation of a saved draft's JSON, so it stays readable in an editor.
+"""
+
 LOCATION_SEPARATOR = "."
 """
 Joins the keys of a location in a draft, for error messages.
@@ -432,7 +437,12 @@ class DraftStore:
             prefix=DraftFile.TEMPORARY_PREFIX,
             delete=False,
         ) as temporary:
-            json.dump(record.document.to_json(), temporary, indent=2, allow_nan=False)
+            json.dump(
+                record.document.to_json(),
+                temporary,
+                indent=DRAFT_INDENTATION,
+                allow_nan=False,
+            )
             temporary.write("\n")
         os.replace(temporary.name, target)
         return DraftRecord(identifier=identifier, document=record.document)
