@@ -72,3 +72,26 @@ Rules for browser modules:
 
 A plugin may also ship pages of its own in its web directory, for example a builder
 that needs the whole window; link to them from a panel with a relative URL.
+
+## Testing the browser side
+
+`cramera.testing` runs a plugin's Node tests against the viewer's modules, resolved
+as the viewer serves them:
+
+```python
+# test/test_browser_modules.py of the plugin
+from pathlib import Path
+from cramera.testing.browser_tests import PluginBrowserTests
+
+def test_the_browser_modules_pass_their_tests():
+    result = PluginBrowserTests(
+        plugin_web=Path(__file__).parent.parent / "src" / "cramera_laboratory" / "web",
+        tests=Path(__file__).parent / "js",
+    ).run()
+    assert result.returncode == 0, result.stdout + result.stderr
+```
+
+Tests import the viewer's modules as `cramera-viewer/...` and the shared fake DOM as
+`cramera-testing/fake-document.mjs`, and the plugin's own modules by their path. Put
+a `package.json` with `"type": "module"` in the plugin's web directory, so Node reads
+its files as ES modules.
