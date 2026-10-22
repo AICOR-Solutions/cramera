@@ -1,7 +1,7 @@
-# Publishes the viewer as a
-# static site with two ready-made recordings from cram2/cram-scenes: the frontend needs
-# no Python for replaying a recorded scene, only for the EQL and knowledge panels,
-# which the demo build leaves out.
+# Publishes https://sunava.github.io/cramera/ from every push to main: the viewer with
+# the demo scenes under demo/scenes, and a status page that shows the version, the
+# commit, the build time and a screenshot of the viewer taken in this build. A build
+# whose viewer does not show its scene fails, so the site keeps the last working build.
 name: Publish the demo site
 
 on:
@@ -19,28 +19,36 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SCENES: g1_multiple_pkg_warehouse pr2_pouring
-  DEFAULT_SCENE: g1_multiple_pkg_warehouse
+  DEFAULT_SCENE: pr2_warehouse_transport
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch only the recordings the demo shows
-        run: |
-          git clone --depth 1 --filter=blob:none --sparse https://github.com/cram2/cram-scenes.git scenes-repo
-          git -C scenes-repo sparse-checkout set $SCENES
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Assemble the site
+      - name: Install the viewer
+        run: pip install ./packages/protocol ./packages/viewer
+
+      - name: Export the site with the demo scenes
+        run: >
+          cramera-export-site site
+          --scenes demo/scenes
+          --default-scene "$DEFAULT_SCENE"
+          --commit "$GITHUB_SHA"
+          --source "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+
+      - name: Take the screenshot the status page shows
         run: |
-          mkdir -p site/scenes
-          cp -r src/cramera/web/. site/
-          for scene in $SCENES; do cp -r "scenes-repo/$scene" site/scenes/; done
-          python3 src/cramera/demo_site.py scenes-repo/index.json site/scenes/index.json "$DEFAULT_SCENE" $SCENES
-          cp scripts/demo_site_config.js site/config.js
-          du -sh site
+          mkdir -p site/status
+          python -m http.server 8000 --bind 127.0.0.1 &
+          export PATH="$CHROMEWEBDRIVER:$PATH"
+          cramera-shot "http://127.0.0.1:8000/site/" site/status/viewer.png \
+            --browser chrome --timeout 180 --report site/status/viewer.json
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -48,7 +56,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

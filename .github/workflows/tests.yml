@@ -1,0 +1,59 @@
+# Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
+# of 85 %, and checks that the Python code is formatted.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: protocol
+            module: cramera_protocol
+          - package: viewer
+            module: cramera
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install the packages and the test tools
+        run: pip install ./packages/protocol ./packages/viewer -r requirements-development.txt
+
+      - name: Run the tests with coverage
+        working-directory: packages/${{ matrix.package }}
+        run: python -m pytest -q --cov=${{ matrix.module }} --cov-report=term-missing --cov-fail-under=85 test
+
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the formatters
+        run: pip install -r requirements-development.txt typing_extensions
+
+      - name: Check that black and docformatter change nothing
+        run: |
+          python scripts/format_python.py
+          git diff --exit-code
