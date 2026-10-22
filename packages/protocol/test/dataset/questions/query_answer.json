@@ -1,0 +1,3 @@
+{"ok": true, "kind": "entities", "rows": [{"__entity__": "pr2", "__type__": "PR2", "arms": 2}],
+ "count": 1, "more": false, "highlight": ["pr2"], "replay": [null],
+ "verbalization": {"text": "a robot", "html": "<span class=\"entity\">a robot</span>"}}

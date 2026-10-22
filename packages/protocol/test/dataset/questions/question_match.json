@@ -1,0 +1,1 @@
+{"ok": true, "matched": true, "similarity": 91.5, "preset": {"text": "which robot is this?", "code": "the(entity(robot))", "scope": "current_state"}}

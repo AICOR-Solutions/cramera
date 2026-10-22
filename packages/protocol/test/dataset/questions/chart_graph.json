@@ -1,0 +1,3 @@
+{"ok": true, "key": "chart", "layout": "hier-lr", "empty": "no statechart was recorded",
+ "recorded": {"charts": [{"signature": "s", "title": "PickUpAction", "nodes": [{"id": "chart_node_0", "name": "goal", "class_name": "CartesianPose"}], "edges": []}],
+              "moments": [{"chart": 0, "lifeCycles": ["RUNNING"], "observations": ["UNKNOWN"]}], "frames": [0, -1]}}

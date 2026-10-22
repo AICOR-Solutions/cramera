@@ -1,0 +1,4 @@
+{"ok": true, "title": "Live world", "presets": [
+ {"text": "which robot is this?", "code": "the(entity(robot))", "requires_live": false, "scope": "current_state", "verbalization": {"text": "the robot", "html": "the robot"}},
+ {"text": "what was detected, and when?", "code": "set_of(event.name, event.timestamp)", "scope": "detected_events"}],
+ "scopes": [{"name": "current_state", "label": "Current State Queries", "variables": ["robot", "arm"]}]}
