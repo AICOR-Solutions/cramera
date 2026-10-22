@@ -1,0 +1,4 @@
+{"signature": "chart_node_0:goal|chart_node_1:end", "title": "PickUpAction",
+ "nodes": [{"id": "chart_node_0", "name": "goal", "class_name": "CartesianPose", "parent": null, "life_cycle": "RUNNING", "observation": "UNKNOWN"},
+           {"id": "chart_node_1", "name": "end", "class_name": "EndMotion", "parent": null, "life_cycle": "NOT_STARTED", "observation": "FALSE"}],
+ "edges": [{"from": "chart_node_0", "to": "chart_node_1", "kind": "START"}]}

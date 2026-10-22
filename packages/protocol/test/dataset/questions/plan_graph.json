@@ -1,0 +1,4 @@
+{"ok": true, "key": "plan", "layout": "hier", "nodes": [
+ {"id": "plan_node_1", "label": "PickUpAction", "group": "action", "title": "PickUpAction", "status": "SUCCEEDED", "kind": "ActionNode", "parent": null, "target": "milk"}],
+ "edges": [], "details": {"plan_node_1": {"label": "PickUpAction", "group": "action", "lines": ["an ActionNode"]}},
+ "legend": [{"group": "action", "label": "Action"}]}

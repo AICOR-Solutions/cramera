@@ -1,0 +1,5 @@
+{"objects": [{"key": "6f1c9a3e-6d51-4d0f-9c55-1c2f8f0a7d10", "id": "milk", "shapes": [
+ {"kind": "mesh", "position": [0, 0, 0], "quaternion": [0, 0, 0, 1], "color": "#ffffff", "opacity": 1.0,
+  "mesh": "/mesh?key=6f1c9a3e-6d51-4d0f-9c55-1c2f8f0a7d10%230", "mtl": "/mesh?key=6f1c9a3e-6d51-4d0f-9c55-1c2f8f0a7d10%230&side=milk.mtl", "format": "obj", "scale": [1, 1, 1]},
+ {"kind": "cylinder", "position": [0, 0, 0.1], "quaternion": [0, 0, 0, 1], "color": "#3366cc", "opacity": 0.5, "radius": 0.03, "height": 0.2}]},
+ {"key": "0b3e3f3e-0000-4000-8000-000000000001", "id": "marker_frame", "shapes": []}]}

@@ -1,0 +1,2 @@
+{"robots": [{"identifier": "pr2", "label": "pr2", "model": "PR2", "pose": [0, 0, 0, 0, 0, 0, 1], "jointPositions": {"pr2/torso_lift_joint": 0.2}},
+ {"identifier": "tiago", "label": "tiago", "model": "Tiago", "pose": [2, 0, 0, 0, 0, 0, 1], "jointPositions": {}}], "activeIdentifier": "pr2"}

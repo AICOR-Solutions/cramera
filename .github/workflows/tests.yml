@@ -1,5 +1,7 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
-# of 85 %, and checks that the Python code is formatted. The models plugin is tested
+# of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
+# cramera-questions and cramera-cram run only their tests without CRAM, measured over
+# the modules those tests reach. The models plugin is tested
 # without the circuit libraries: its tests against them are skipped and their
 # counterparts against stand-ins run.
 name: Tests
@@ -25,6 +27,23 @@ jobs:
             module: cramera_protocol
           - package: viewer
             module: cramera
+          - package: questions
+            install: -e ./packages/questions
+            coverage: >-
+              --cov=cramera_questions.matching
+              --cov=cramera_questions.presets
+              --cov=cramera_questions.recorded.bundle
+          - package: cram
+            install: -e ./packages/questions -e ./packages/cram
+            coverage: >-
+              --cov=cramera_cram.demo_script
+              --cov=cramera_cram.documents
+              --cov=cramera_cram.export.scene_index
+              --cov=cramera_cram.live.activity
+              --cov=cramera_cram.live.marker_topics
+              --cov=cramera_cram.live.recording
+              --cov=cramera_cram.live.segments
+              --cov=cramera_cram.scenes.presentation
           # The converter's tests need usd-core; the viewer is installed as well, so
           # the screenshot step is tested.
           - package: usd
@@ -55,7 +74,7 @@ jobs:
 
       - name: Run the tests with coverage
         working-directory: packages/${{ matrix.package }}
-        run: python -m pytest -q --cov=${{ matrix.module }} --cov-report=term-missing --cov-fail-under=85 test
+        run: python -m pytest -q ${{ matrix.coverage || format('--cov={0}', matrix.module) }} --cov-report=term-missing --cov-fail-under=85 test
 
   format:
     runs-on: ubuntu-24.04

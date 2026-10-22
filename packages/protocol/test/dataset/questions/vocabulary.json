@@ -1,0 +1,2 @@
+{"ok": true, "entries": [{"name": "robot", "kind": "variable", "detail": "ranges over AbstractRobot", "module": "", "type": "AbstractRobot", "further_modules": 0},
+ {"name": "the", "kind": "factory", "detail": "The one entity matching a query."}]}

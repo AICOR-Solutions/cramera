@@ -1,0 +1,4 @@
+{"sequenceNumber": 42, "frames": {"pr2/torso_lift_joint": 0.25, "pr2/head_pan_joint": -0.1},
+ "base": [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+ "objects": {"6f1c9a3e-6d51-4d0f-9c55-1c2f8f0a7d10": [0.5, 0.1, 0.8, 0.0, 0.0, 0.7071, 0.7071]},
+ "modelBases": {"pr2": [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0]}, "markersVersion": 3}

@@ -1,0 +1,3 @@
+{"signature": "a1b2", "connections": [
+ {"name": "map_T_milk", "parent": "map", "child": "milk", "kind": "free", "writer": "viewer", "freshness": "MOVING", "ageSeconds": 0.1},
+ {"name": "map_T_table", "parent": "map", "child": "table", "kind": "fixed", "writer": "nobody", "freshness": "STATIC", "ageSeconds": null}]}
