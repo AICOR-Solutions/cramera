@@ -151,9 +151,9 @@ def test_a_world_nobody_watches_pauses(session, dynamics, clock):
 
 def test_a_watched_world_keeps_running(session, clock):
     act(session, WorkshopAction.START)
-    clock.now += session.inactivity_timeout
-    session.state()
     with session.lock:
+        clock.now += session.inactivity_timeout
+        session.state()
         session.advance()
         assert session.running
 
