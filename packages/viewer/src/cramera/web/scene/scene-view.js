@@ -19,9 +19,9 @@ export const DEFAULT_CAMERA = Object.freeze({ FIELD_OF_VIEW: 45, NEAR: 0.02, FAR
 export const DEFAULT_EXPOSURE = 1;
 
 /**
- * How much wider than the content the camera frames it.
+ * How much farther than needed to fit the content's bounding sphere the camera stands.
  */
-const FRAMING_MARGIN = 1.25;
+const FRAMING_MARGIN = 1.0;
 
 /**
  * The way the camera looks at content it frames: from the front left, above.

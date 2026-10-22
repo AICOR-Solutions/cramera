@@ -129,6 +129,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 
 .version {
   color: var(--text-muted);
+  text-decoration: none;
   font: 12px var(--mono);
   white-space: nowrap;
 }

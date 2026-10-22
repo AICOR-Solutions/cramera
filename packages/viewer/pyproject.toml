@@ -15,6 +15,8 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 [project.scripts]
 cramera = "cramera.command_line:main"
 cramera-shot = "cramera.screenshot:main"
+cramera-upgrade-bundle = "cramera.bundle_upgrade:main"
+cramera-export-site = "cramera.static_site:main"
 
 [project.urls]
 Source = "https://github.com/sunava/cramera"

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cramera status</title>
+  <link rel="icon" href="images/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles/viewer.css">
+  <link rel="stylesheet" href="styles/status.css">
+  <script type="module" src="app/status-main.js"></script>
+</head>
+<body class="status-page">
+  <header class="bar">
+    <a class="brand" href="./" aria-label="Open the viewer">
+      <img src="images/icon.svg" alt="" width="22" height="22">
+      <span>cramera</span>
+    </a>
+    <span class="bar-title">How cramera looks right now</span>
+  </header>
+
+  <main class="status-content">
+    <section class="build" aria-labelledby="build-heading">
+      <h1 id="build-heading">This build</h1>
+      <dl class="facts" id="build-facts"></dl>
+      <a class="button primary" href="./">Open the viewer</a>
+    </section>
+
+    <figure class="shot">
+      <img id="shot" src="status/viewer.png" alt="The viewer as this build shows it">
+      <figcaption id="shot-caption">Taken by the build.</figcaption>
+    </figure>
+
+    <section aria-labelledby="scenes-heading">
+      <h2 id="scenes-heading">Demo scenes</h2>
+      <ul class="scene-list" id="scene-list"></ul>
+    </section>
+  </main>
+</body>
+</html>

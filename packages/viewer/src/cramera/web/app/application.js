@@ -4,6 +4,7 @@
  */
 
 import { EventBus } from '../core/event-bus.js';
+import { sceneOf, withScene } from '../core/scene-address.js';
 import { PageStatus } from '../core/page-status.js';
 import { BuildKey, SceneKey, ViewerEvent, ViewerInfoKey } from '../protocol.js';
 import { PlaybackClock } from '../playback/playback-clock.js';
@@ -18,11 +19,6 @@ import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
 import { SceneView } from '../scene/scene-view.js';
 import { PluginContext, PluginModules } from './plugin-modules.js';
-
-/**
- * The query parameter naming the shown bundle.
- */
-export const SCENE_PARAMETER = 'scene';
 
 /**
  * How many characters of a commit hash the version badge shows.
@@ -211,7 +207,7 @@ export class Application {
     const [info, index] = await Promise.all([this.#api.info(), this.#api.scenes()]);
     this.#showVersion(info);
     const choice = new SceneChoice(index);
-    const requested = new URL(this.#location.href).searchParams.get(SCENE_PARAMETER);
+    const requested = sceneOf(this.#location.href);
     if (requested) choice.chooseScene(requested);
     if (!choice.scene) {
       this.#fail('No scenes found. Record a run or add a scenes directory.');
@@ -307,9 +303,7 @@ export class Application {
    * @param {string} name The bundle's name.
    */
   #rememberScene(name) {
-    const url = new URL(this.#location.href);
-    url.searchParams.set(SCENE_PARAMETER, name);
-    this.#history.replaceState(null, '', url);
+    this.#history.replaceState(null, '', withScene(this.#location.href, name));
   }
 
   /**

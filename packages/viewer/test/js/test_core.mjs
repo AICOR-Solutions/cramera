@@ -99,3 +99,13 @@ test('an error answer that is not JSON falls back to the status text', async () 
   const { fetch } = fakeFetch({ [url]: { status: 502, body: null, type: 'text/html' } });
   await assert.rejects(new ViewerApi(fetch, base).sceneJson('cell', 'scene.json'), (error) => error.reason === 'Status text');
 });
+
+// %% scene addresses
+
+import { SCENE_PARAMETER, sceneOf, withScene } from '../../src/cramera/web/core/scene-address.js';
+
+test('a page address names the bundle to show', () => {
+  assert.equal(sceneOf(`https://sunava.github.io/cramera/?${SCENE_PARAMETER}=cell&x=1`), 'cell');
+  assert.equal(sceneOf('https://sunava.github.io/cramera/'), null);
+  assert.equal(withScene('https://sunava.github.io/cramera/?x=1', 'a b').href, 'https://sunava.github.io/cramera/?x=1&scene=a+b');
+});

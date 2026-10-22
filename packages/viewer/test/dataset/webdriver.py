@@ -12,7 +12,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from typing_extensions import Any, Dict, List, Optional
 
-from cramera.screenshot import ReportKey, WebDriverEndpoint, WebDriverKey
+from cramera.screenshot import WebDriverEndpoint, WebDriverKey
+from cramera_protocol.events import PageReportKey
 
 MIMIC_SESSION = "mimic"
 """
@@ -106,7 +107,7 @@ class MimicWebDriver:
             return {WebDriverKey.SESSION_IDENTIFIER: MIMIC_SESSION}
         if path == endpoint.script():
             state = self.states.pop(0) if len(self.states) > 1 else self.states[0]
-            return {ReportKey.STATE: state, ReportKey.STATUS: self.status}
+            return {PageReportKey.STATE: state, PageReportKey.STATUS: self.status}
         if path == endpoint.screenshot():
             return base64.b64encode(PNG_SIGNATURE).decode()
         return None

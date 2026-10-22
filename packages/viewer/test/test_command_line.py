@@ -21,12 +21,11 @@ from cramera.scenes import SceneSource
 from cramera.screenshot import (
     BrowserKind,
     PageReport,
-    ReportKey,
     Screenshot,
     WebDriver,
     WebDriverKey,
 )
-from cramera_protocol.events import PageState
+from cramera_protocol.events import PageReportKey, PageState
 from cramera_protocol.viewer import EnvironmentVariable, ViewerRoute
 
 from .conftest import DATASET
@@ -132,7 +131,9 @@ def test_the_command_writes_the_report_and_exits_by_the_page_state(
     )
     mimic.stop()
     assert code == 0
-    assert json.loads(report_file.read_text())[ReportKey.STATE] == PageState.READY
+    report = json.loads(report_file.read_text())
+    assert report[PageReportKey.STATE] == PageState.READY
+    assert report[PageReportKey.BROWSER] == BrowserKind.CHROME
 
 
 def test_a_missing_driver_program_is_reported(monkeypatch):

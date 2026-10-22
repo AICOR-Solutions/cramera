@@ -21,7 +21,7 @@ const EMPTY_SCENE_BOUNDS = new Bounds([-1, -1, 0], [1, 1, 1]);
  * The smallest half width of the region a robot recording is framed by, in metres:
  * enough to show the robot's surroundings.
  */
-const FOCUS_HALF_WIDTH = 1.6;
+const FOCUS_HALF_WIDTH = 1.0;
 
 // %% loaded scene
 

@@ -28,7 +28,8 @@ export class FakeElement {
   }
 
   append(...children) {
-    for (const child of children) {
+    for (const given of children) {
+      const child = typeof given === 'string' ? Object.assign(new FakeElement('#text', this.ownerDocument), { textContent: given }) : given;
       child.parentElement = this;
       this.children.push(child);
     }

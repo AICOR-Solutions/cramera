@@ -24,31 +24,15 @@ from pathlib import Path
 from typing_extensions import Any, Dict, Optional, Sequence
 
 from cramera.http.messages import HttpMethod
-from cramera_protocol.events import PageState, PageStateAttribute
+from cramera_protocol.events import PageReportKey, PageState, PageStateAttribute
 
 # %% page state
 
 
-class ReportKey(StrEnum):
-    """
-    The keys of the page report the state script returns and the command writes.
-    """
-
-    STATE = "state"
-    """
-    The page state.
-    """
-
-    STATUS = "status"
-    """
-    The status line.
-    """
-
-
 PAGE_STATE_SCRIPT = (
     "const data = document.documentElement.dataset;"
-    f"return {{{ReportKey.STATE}: data.{PageStateAttribute.STATE} || null,"
-    f" {ReportKey.STATUS}: data.{PageStateAttribute.STATUS} || null}};"
+    f"return {{{PageReportKey.STATE}: data.{PageStateAttribute.STATE} || null,"
+    f" {PageReportKey.STATUS}: data.{PageStateAttribute.STATUS} || null}};"
 )
 """
 The script reading the page's state and status line.
@@ -437,7 +421,7 @@ class Screenshot:
                 {WebDriverKey.SCRIPT: PAGE_STATE_SCRIPT, WebDriverKey.ARGUMENTS: []},
             )
             report = PageReport(
-                state=values[ReportKey.STATE], status=values[ReportKey.STATUS]
+                state=values[PageReportKey.STATE], status=values[PageReportKey.STATUS]
             )
             if report.state in (PageState.READY, PageState.FAILED):
                 return report
@@ -483,7 +467,11 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
     if parsed.report is not None:
         parsed.report.write_text(
             json.dumps(
-                {ReportKey.STATE: report.state, ReportKey.STATUS: report.status},
+                {
+                    PageReportKey.STATE: report.state,
+                    PageReportKey.STATUS: report.status,
+                    PageReportKey.BROWSER: parsed.browser.value,
+                },
                 indent=1,
             )
         )
