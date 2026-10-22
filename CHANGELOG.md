@@ -1,9 +1,15 @@
 # Changelog
 
-What landed in cramera, by week and area. Entries are features, not commits; the
-hashes point into the `cramera-port` branch of the monorepo.
+What landed in cramera, by week and area. Entries are features, not commits; hashes
+in entries up to week 43 point into the `cramera-port` branch of the CRAM fork, from
+which this repository was mirrored until 22 Oct 2026.
 
 ## Week 43 · 20 Oct 2026
+
+### Repository
+- **This repository is now the home of cramera.** The six-hourly sync from the CRAM
+  fork is retired and its workflow removed; development, issues and pull requests
+  happen here. Packaging metadata points at this repository.
 
 ### Isaac Sim import
 - **Convert an Isaac Sim / USD stage into a scene bundle** with `cramera-import` (the

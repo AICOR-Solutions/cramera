@@ -20,7 +20,9 @@ dynamic = ["version", "dependencies"]
 license = { text = "GPL-3.0-only AND LicenseRef-AICOR-Laboratory-Assets AND LicenseRef-AICOR-Workshop-Assets" }
 
 [project.urls]
-"Source" = 'https://github.com/cram2/cognitive_robot_abstract_machine'
+"Source" = 'https://github.com/sunava/cramera'
+"Demo" = 'https://sunava.github.io/cramera/'
+"Issues" = 'https://github.com/sunava/cramera/issues'
 
 [project.scripts]
 cramera = "cramera.server:main"

@@ -4,7 +4,7 @@
 
 [![Live demo](docs/demo.gif)](https://sunava.github.io/cramera/)
 
-**[Open the live demo](https://sunava.github.io/cramera/)** · [Changelog](CHANGELOG.md) · [Source in the CRAM monorepo](https://github.com/sunava/cognitive_robot_abstract_machine/tree/cramera-port/cramera)
+**[Open the live demo](https://sunava.github.io/cramera/)** · [Changelog](CHANGELOG.md) · [Issues](https://github.com/sunava/cramera/issues)
 
 cramera is the visualization front end of the [CRAM](https://github.com/cram2/cognitive_robot_abstract_machine)
 cognitive architecture. One tool, three ways to look at a robot:
@@ -37,13 +37,16 @@ The **Cable Lab** navigation entry opens an independent native MuJoCo cable
 experiment with a physical friction gripper, live contact forces, and adjustable
 cable parameters. See the [Composite Cable Lab guide](docs/composite_cable_lab.md).
 
-cramera lives inside the CRAM monorepo; this repository is a read-only mirror of its
-`cramera/` directory, kept in sync by a scheduled workflow.
+This repository is the home of cramera. The Python server and the live bridge still
+import CRAM workspace packages, so install the
+[CRAM fork](https://github.com/sunava/cognitive_robot_abstract_machine) (branch
+`cramera-port`, which also carries the demos and a copy of this code under
+`cramera/`) into the same environment first, then install cramera from here:
 
 ```bash
-git clone https://github.com/sunava/cognitive_robot_abstract_machine.git
-cd cognitive_robot_abstract_machine
-pip install -e cramera
+git clone https://github.com/sunava/cramera.git
+cd cramera
+pip install -e .
 cramera                                              # serves http://localhost:8711
 ```
 
@@ -51,7 +54,7 @@ Ready-made recordings live in [cram2/cram-scenes](https://github.com/cram2/cram-
 initialize the optional submodule to get them locally:
 
 ```bash
-git submodule update --init cramera/scenes
+git submodule update --init scenes
 ```
 
 Record and watch a demo of your own:
@@ -79,11 +82,11 @@ or see [loading the laboratory as a world](docs/photorealistic_laboratory.md#als
 for direct imports, existing-world integration and the separate contact-physics mode.
 
 For the prepared single-robot presentation, run `./scripts/start_cramera_offline.sh`
-from the monorepo root. The [offline presentation guide](docs/offline_presentation.md)
+from the root of the CRAM fork checkout. The [offline presentation guide](docs/offline_presentation.md)
 describes its six recorded chapters, local asset checks and isolated launch.
 
 A small semantic Transport rehearsal is included. With the Tracy model installed,
-run this from the monorepo root:
+run this from the root of the CRAM fork checkout, where the demos live:
 
 ```bash
 cramera-live --viewer cramera/src/cramera/semantic_transport_demo.py
@@ -129,8 +132,8 @@ completing required turns in free space before the final approach. See the
 [navigation rehearsal](docs/single_robot_rehearsal.md#included-obstacle-navigation)
 for the supported behavior and planning bounds.
 
-The viewer looks for bundles in `CRAMERA_SCENES=/path`, then the `cramera/scenes`
-submodule, then `~/.cramera/scenes` (where the onboarder writes). Pick a scene with
+The viewer looks for bundles in `CRAMERA_SCENES=/path`, then the `scenes`
+submodule (`cramera/scenes` inside the CRAM fork), then `~/.cramera/scenes` (where the onboarder writes). Pick a scene with
 `?scene=<name>`.
 
 ## Import an Isaac Sim / USD scene
@@ -286,6 +289,9 @@ src/cramera/
 
 ## Tests
 
+The test suite still lives in the CRAM fork under `test/cramera_test`, because the
+Python tests need the CRAM workspace. From the fork's root:
+
 ```bash
 pytest test/cramera_test
 ```
@@ -293,13 +299,14 @@ pytest test/cramera_test
 The JS core is covered by node-based tests invoked from pytest (skipped when node is
 unavailable).
 
-## About this mirror
+## About this repository
 
-The source of truth is the monorepo branch
-[`cramera-port`](https://github.com/sunava/cognitive_robot_abstract_machine/tree/cramera-port);
-`.github/workflows/sync.yml` splits its `cramera/` directory into this repository's
-`main` every six hours, and `pages.yml` publishes the demo site from it. Please open
-issues and pull requests against the monorepo.
+This repository is where cramera is developed; please open issues and pull requests
+here. Until 22 October 2026 it was a read-only mirror, refreshed every six hours from
+the `cramera/` directory of the CRAM fork branch
+[`cramera-port`](https://github.com/sunava/cognitive_robot_abstract_machine/tree/cramera-port).
+That sync is retired; the copy in the fork serves the monorepo demos and is updated
+from here. `pages.yml` publishes the demo site from `main`.
 
 cramera is developed by [Vanessa Hassouna](https://github.com/sunava) at the Institute for
 Artificial Intelligence, University of Bremen. GPL-3.0.
