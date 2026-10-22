@@ -14,6 +14,7 @@ import { PanelHost } from '../panels/panel-host.js';
 import { PlanPanel } from '../panels/plan-panel.js';
 import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
+import { StatechartPanel } from '../panels/statechart-panel.js';
 import { StepsPanel } from '../panels/steps-panel.js';
 import { ViewPanel, ViewSwitch } from '../panels/view-panel.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
@@ -181,6 +182,12 @@ export class Application {
   #details;
 
   /**
+   * The statechart panel.
+   * @type {StatechartPanel}
+   */
+  #statechart;
+
+  /**
    * The view panel, once the 3D view exists.
    * @type {ViewPanel|null}
    */
@@ -209,7 +216,8 @@ export class Application {
     this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));
     this.#plan = new PlanPanel(elements.document);
     this.#details = new DetailsPanel(elements.document);
-    for (const part of [this.#steps, this.#plan, this.#details]) this.#panels.add(part.panel);
+    this.#statechart = new StatechartPanel(elements.document);
+    for (const part of [this.#steps, this.#plan, this.#statechart, this.#details]) this.#panels.add(part.panel);
   }
 
   /**
@@ -275,6 +283,7 @@ export class Application {
     this.#timeline.show(this.#clock, segments);
     this.#steps.show(segments);
     this.#plan.show(loaded.description[SceneKey.PLAN_TREES] ?? []);
+    this.#statechart.show(loaded.statecharts);
     this.#details.show(loaded);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
@@ -313,6 +322,7 @@ export class Application {
     const segment = this.#scene.frames.segmentAt(frame);
     this.#timeline.update(segment);
     this.#steps.mark(segment);
+    this.#statechart.showFrame(frame);
     this.#picking.update();
     this.#view.requestRender();
     this.bus.publish(ViewerEvent.FRAME_CHANGED, frame);

@@ -265,3 +265,8 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 
 .switch { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
 .switch input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* %% statechart */
+
+.chart-node { display: flex; align-items: baseline; gap: 6px; padding: 2px 4px; border-radius: 6px; }
+.chart-node .status { margin-left: auto; font: 11px var(--mono); color: var(--text-muted); white-space: nowrap; }
