@@ -249,6 +249,16 @@ class LiveInfoKey(StrEnum):
     The bundle that shows the publisher's world.
     """
 
+    RUNNING = "running"
+    """
+    Whether a world is attached.
+    """
+
+    BUNDLE_SIGNATURE = "bundleSignature"
+    """
+    The identity of the world model the live bundle shows.
+    """
+
 
 @dataclass(kw_only=True)
 class LiveInfo(JsonDocument):
@@ -278,6 +288,20 @@ class LiveInfo(JsonDocument):
     scene: Optional[str] = document_field(LiveInfoKey.SCENE, default=None)
     """
     The bundle that shows the publisher's world, once it exists.
+    """
+
+    running: bool = document_field(LiveInfoKey.RUNNING, default=False)
+    """
+    Whether the publisher is attached to a world.
+    """
+
+    bundle_signature: Optional[str] = document_field(
+        LiveInfoKey.BUNDLE_SIGNATURE, default=None
+    )
+    """
+    The identity of the world model; when it differs from
+    :attr:`~cramera_protocol.bundle.scene.SceneDescription.bundle_signature` of the
+    loaded live bundle, the bundle is out of date.
     """
 
     def __post_init__(self) -> None:

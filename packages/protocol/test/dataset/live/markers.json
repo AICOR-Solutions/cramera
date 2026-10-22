@@ -1,0 +1,3 @@
+{"version": 2, "markers": [{"topic": "/semworld/viz_marker", "ns": "closest_points", "id": 4, "kind": "line_list",
+ "pose": [0, 0, 0, 0, 0, 0, 1], "scale": [0.01, 0.0, 0.0], "color": "#ff0000", "opacity": 1.0,
+ "points": [[0, 0, 0], [0.1, 0.2, 0.3]], "text": ""}]}
