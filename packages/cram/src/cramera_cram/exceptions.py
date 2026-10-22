@@ -588,3 +588,64 @@ class MalformedBody(CramPublisherError):
 
     def message(self) -> str:
         return f"The request body is no JSON document: {self.reason}"
+
+
+# %% demos
+
+
+@dataclass
+class DemoError(ViewerError):
+    """
+    A task demo or an onboarding run that cannot be completed.
+    """
+
+
+@dataclass
+class TaskFailed(DemoError):
+    """
+    A task whose measured outcome is not what the task was to achieve.
+    """
+
+    reason: str
+    """
+    What the measurement showed.
+    """
+
+    def message(self) -> str:
+        return f"The task failed: {self.reason}"
+
+
+@dataclass
+class RecordingNotSaved(DemoError):
+    """
+    A recording asked for before any run saved it.
+    """
+
+    name: str
+    """
+    The name the recording would be saved under.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"No run saved a recording named {self.name!r} yet."
+
+
+@dataclass
+class DemoStartedNoWorld(DemoError):
+    """
+    An onboarded demo that finished without starting a visualization of a world.
+    """
+
+    demo: Path
+    """
+    The demo file.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{str(self.demo)!r} started no visualization; select the cramera backend "
+            f"through coraplex's visualization in the demo."
+        )
