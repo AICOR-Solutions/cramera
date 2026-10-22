@@ -2,7 +2,7 @@
  * Stand-ins for the browser's timers and network, for the offline plugin's tests.
  */
 
-import { ErrorKey } from '../../../protocol.js';
+import { ErrorKey } from 'cramera-viewer/protocol.js';
 
 /**
  * The HTTP status of a path the network has no answer for.

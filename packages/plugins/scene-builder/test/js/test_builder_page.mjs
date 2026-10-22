@@ -25,7 +25,7 @@ import { RECOVERY_KEY } from '../../src/cramera_scene_builder/web/builder/draft-
 import { Selection, TransformMode } from '../../src/cramera_scene_builder/web/builder/draft-view.js';
 import { BuilderAction, DomEvent } from '../../src/cramera_scene_builder/web/builder/elements.js';
 import { PANEL_TITLE, register } from '../../src/cramera_scene_builder/web/index.js';
-import { FakeDocument, FakeStorage } from './support/fake-document.mjs';
+import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
 const read = (name) => JSON.parse(readFileSync(new URL(`dataset/${name}`, import.meta.url), 'utf8'));
 const byAction = (root, action) => root.findAll((element) => element.dataset.action === action);

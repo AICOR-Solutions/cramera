@@ -3,7 +3,7 @@
  * tests.
  */
 
-import { RequestFailed } from '../../../core/viewer-api.js';
+import { RequestFailed } from 'cramera-viewer/core/viewer-api.js';
 
 /**
  * The first HTTP status of a refused request.

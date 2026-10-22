@@ -11,7 +11,7 @@ import { DEGREES_PER_RADIAN, InspectorActions, InspectorView, MILLIMETRES_PER_ME
 import { InstanceList, MISSING_RESOURCE } from '../../src/cramera_scene_builder/web/builder/instance-list.js';
 import { CATEGORY_LABELS, LIBRARY_PAGE_SIZE, LibraryView } from '../../src/cramera_scene_builder/web/builder/library-view.js';
 import { JointType } from '../../src/cramera_scene_builder/web/builder/placed-instance.js';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 const read = (name) => JSON.parse(readFileSync(new URL(`dataset/${name}`, import.meta.url), 'utf8'));
 const catalog = read('catalog.json');

@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { ConstraintKey, IntervalKey, ModelVariableKey, VariableKind, WorkbenchStateKey } from '../../../protocol.js';
-import { ConstraintRows, intervalConstraint, stepOf, valuesConstraint } from '../constraint-rows.js';
-import { FakeDocument } from './support/fake-document.mjs';
+import { ConstraintKey, IntervalKey, ModelVariableKey, VariableKind, WorkbenchStateKey } from 'cramera-viewer/protocol.js';
+import { ConstraintRows, intervalConstraint, stepOf, valuesConstraint } from '../../src/cramera_models/web/constraint-rows.js';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
  * The variables of the tests: a symbolic, a continuous and an integer one.

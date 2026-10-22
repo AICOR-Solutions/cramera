@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { EventBus } from '../../../core/event-bus.js';
-import { PanelHost } from '../../../panels/panel-host.js';
+import { EventBus } from 'cramera-viewer/core/event-bus.js';
+import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import {
   AssetProblemKey,
   AssetProblemKind,
@@ -15,13 +15,13 @@ import {
   StoryboardKey,
   ViewerEvent,
   ViewerRoute,
-} from '../../../protocol.js';
-import { register } from '../index.js';
-import { OfflineClient } from '../offline-client.js';
-import { Tour } from '../tour.js';
-import { TourPanel } from '../tour-panel.js';
+} from 'cramera-viewer/protocol.js';
+import { register } from '../../src/cramera_offline/web/index.js';
+import { OfflineClient } from '../../src/cramera_offline/web/offline-client.js';
+import { Tour } from '../../src/cramera_offline/web/tour.js';
+import { TourPanel } from '../../src/cramera_offline/web/tour-panel.js';
 import { FakeAnswer, FakeApi, FakeNetwork, ManualTimer } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
  * The storyboard of the tests.

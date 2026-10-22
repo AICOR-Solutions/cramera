@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { PanelHost } from '../../../panels/panel-host.js';
-import { FigureKey, ModelAnswerKey, ModelVariableKey, PluginName, VariableKind, WorkbenchStateKey } from '../../../protocol.js';
-import { register } from '../index.js';
-import { ModelsPanel } from '../models-panel.js';
-import { PlotlyLoader, PlotlyUnavailable } from '../plotly-loader.js';
+import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
+import { FigureKey, ModelAnswerKey, ModelVariableKey, PluginName, VariableKind, WorkbenchStateKey } from 'cramera-viewer/protocol.js';
+import { register } from '../../src/cramera_models/web/index.js';
+import { ModelsPanel } from '../../src/cramera_models/web/models-panel.js';
+import { PlotlyLoader, PlotlyUnavailable } from '../../src/cramera_models/web/plotly-loader.js';
 import { FakeClient, FakePlotly, FakePlotlyLoader, refused } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
  * The workbench state of the tests.

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { RequestFailed } from '../../../core/viewer-api.js';
-import { ErrorKey, ModelRequestKey, ModelsRoute, ModelUploadKey, PluginName, ViewerRoute } from '../../../protocol.js';
-import { ModelsClient } from '../models-client.js';
+import { RequestFailed } from 'cramera-viewer/core/viewer-api.js';
+import { ErrorKey, ModelRequestKey, ModelsRoute, ModelUploadKey, PluginName, ViewerRoute } from 'cramera-viewer/protocol.js';
+import { ModelsClient } from '../../src/cramera_models/web/models-client.js';
 import { FakeAnswer, FakeApi } from './fakes.mjs';
 
 /**

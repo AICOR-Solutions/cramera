@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { BundleCheckKey, ErrorKey, OfflineParameter, OfflineRoute, PluginName, ViewerRoute } from '../../../protocol.js';
-import { OfflineClient } from '../offline-client.js';
+import { BundleCheckKey, ErrorKey, OfflineParameter, OfflineRoute, PluginName, ViewerRoute } from 'cramera-viewer/protocol.js';
+import { OfflineClient } from '../../src/cramera_offline/web/offline-client.js';
 import { FakeAnswer, FakeApi, FakeNetwork } from './fakes.mjs';
 
 /**

@@ -1,7 +1,7 @@
 /**
- * Just enough of the DOM for the viewer's parts to build and update their elements
- * in Node: elements with children, attributes, data attributes, text, classes and
- * listeners.
+ * Just enough of the DOM for the viewer's and the plugins' parts to build and update
+ * their elements in Node: elements with children, attributes, data attributes, text,
+ * classes, form state and listeners, and a stand-in for local storage.
  */
 
 // %% elements
@@ -23,8 +23,11 @@ export class FakeElement {
     this.value = '';
     this.hidden = false;
     this.disabled = false;
+    this.checked = false;
     this.style = {};
     this.classList = new FakeClassList();
+    this.files = [];
+    this.clicks = 0;
   }
 
   append(...children) {
@@ -33,6 +36,13 @@ export class FakeElement {
       child.parentElement = this;
       this.children.push(child);
     }
+  }
+
+  prepend(...children) {
+    const existing = this.children;
+    this.children = [];
+    this.append(...children);
+    this.children.push(...existing);
   }
 
   replaceChildren(...children) {
@@ -60,6 +70,11 @@ export class FakeElement {
 
   removeEventListener(type, listener) {
     this.listeners.get(type)?.delete(listener);
+  }
+
+  click() {
+    this.clicks += 1;
+    this.dispatch('click');
   }
 
   dispatch(type, event = {}) {
@@ -124,6 +139,7 @@ export class FakeDocument {
     this.head = new FakeElement('head', this);
     this.body = new FakeElement('body', this);
     this.documentElement.append(this.head, this.body);
+    this.listeners = new Map();
   }
 
   createElement(tagName) {
@@ -135,5 +151,42 @@ export class FakeDocument {
     element.namespaceURI = namespace;
     element.tagName = tagName;
     return element;
+  }
+
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type).add(listener);
+  }
+
+  removeEventListener(type, listener) {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  dispatch(type, event = {}) {
+    for (const listener of [...(this.listeners.get(type) ?? [])]) listener({ preventDefault() {}, ...event });
+  }
+
+  listenerCount(type) {
+    return this.listeners.get(type)?.size ?? 0;
+  }
+}
+
+// %% storage
+
+export class FakeStorage {
+  constructor() {
+    this.items = new Map();
+  }
+
+  getItem(key) {
+    return this.items.has(key) ? this.items.get(key) : null;
+  }
+
+  setItem(key, value) {
+    this.items.set(key, String(value));
+  }
+
+  removeItem(key) {
+    this.items.delete(key);
   }
 }

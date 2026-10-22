@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { EventBus } from '../../../core/event-bus.js';
-import { PanelHost, SidePanel } from '../../../panels/panel-host.js';
-import { ChapterKey, StoryboardKey, ViewerEvent } from '../../../protocol.js';
-import { Tour } from '../tour.js';
+import { EventBus } from 'cramera-viewer/core/event-bus.js';
+import { PanelHost, SidePanel } from 'cramera-viewer/panels/panel-host.js';
+import { ChapterKey, StoryboardKey, ViewerEvent } from 'cramera-viewer/protocol.js';
+import { Tour } from '../../src/cramera_offline/web/tour.js';
 import { ManualTimer } from './fakes.mjs';
-import { FakeDocument } from './support/fake-document.mjs';
+import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
  * The storyboard of the tests: two bundles, a played chapter, an unknown panel.
