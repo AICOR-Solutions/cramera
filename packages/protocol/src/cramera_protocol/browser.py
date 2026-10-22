@@ -284,6 +284,23 @@ from cramera_protocol.questions import (
     VocabularyKind,
 )
 from cramera_protocol.version import CURRENT_VERSION
+from cramera_protocol.workshop import (
+    CameraViewKey,
+    ContactKey,
+    DrawerKey,
+    DriveDirection,
+    ThreadKey,
+    ThreadState,
+    WorkshopAction,
+    WorkshopBodyKey,
+    WorkshopCommandKey,
+    WorkshopKey,
+    WorkshopPartKind,
+    WorkshopRoute,
+    WorkshopSceneKey,
+    WorkshopStateKey,
+    WorkshopView,
+)
 from cramera_protocol.viewer import (
     BuildKey,
     ErrorKey,
@@ -557,6 +574,21 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     RunState,
     RunRequestKey,
     RunStatusKey,
+    WorkshopRoute,
+    WorkshopSceneKey,
+    WorkshopKey,
+    DrawerKey,
+    WorkshopBodyKey,
+    WorkshopPartKind,
+    CameraViewKey,
+    WorkshopView,
+    WorkshopAction,
+    DriveDirection,
+    WorkshopCommandKey,
+    ThreadState,
+    ThreadKey,
+    ContactKey,
+    WorkshopStateKey,
 )
 """
 The enumerations the browser application reads.

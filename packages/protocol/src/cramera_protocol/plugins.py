@@ -29,3 +29,8 @@ class PluginName(StrEnum):
     """
     The questions plugin: queries, plain-language questions and graph views.
     """
+
+    WORKSHOP = "workshop"
+    """
+    Runs the woodworking workshop's contact simulation.
+    """
