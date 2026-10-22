@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cramera-cram"
+version = "1.0.0"
+description = "Publish a running CRAM world to the cramera viewer, record runs into scene bundles and onboard demos."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Vanessa Hassouna" }]
+# The CRAM packages (coraplex, semantic_digital_twin, giskardpy, krrood) come from the
+# CRAM workspace and are not installable from an index, so they are not listed here.
+dependencies = [
+    "cramera==1.0.0",
+    "cramera-protocol==1.0.0",
+    "cramera-questions==1.0.0",
+    "numpy",
+    "scipy",
+    "typing_extensions>=4.8",
+]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.scripts]
+cramera-live = "cramera_cram.command_line:live"
+cramera-onboard = "cramera_cram.command_line:onboard"
+
+[project.urls]
+Source = "https://github.com/sunava/cramera"
+
+[tool.setuptools.packages.find]
+where = ["src"]
