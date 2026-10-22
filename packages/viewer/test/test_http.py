@@ -9,10 +9,11 @@ import socket
 import urllib.error
 import urllib.request
 from http import HTTPStatus
+from pathlib import Path
 
 import pytest
 
-from cramera.exceptions import UnknownScene
+from cramera.exceptions import MalformedRequestBody, UnknownScene
 from cramera.http.messages import (
     Header,
     HttpMethod,
@@ -28,6 +29,7 @@ from cramera.http.server import (
     RequestHandler,
     ViewerHttpServer,
 )
+from cramera_protocol.bundle.index import SceneIndex
 from cramera_protocol.exceptions import MissingDocumentField
 from cramera_protocol.viewer import ErrorKey, ViewerRoute
 
@@ -79,6 +81,31 @@ def test_a_request_reads_headers_without_regard_to_case_and_parses_its_query():
     assert incoming.header(Header.ORIGIN) == "x"
     assert incoming.header(Header.HOST) is None
     assert incoming.parameters() == {"scene": ["cell", "two"]}
+
+
+REQUESTS = Path(__file__).parent / "dataset" / "requests"
+"""
+The request bodies.
+"""
+
+
+def posted(file_name):
+    return Request(
+        method=HttpMethod.POST, path="/", body=(REQUESTS / file_name).read_bytes()
+    )
+
+
+def test_a_request_reads_its_body_as_a_protocol_document():
+    index = posted("scene_index.json").document(SceneIndex)
+    expected = json.loads((REQUESTS / "scene_index.json").read_text(encoding="utf-8"))
+    assert index == SceneIndex.from_json(expected)
+
+
+@pytest.mark.parametrize("file_name", ["truncated.json", "not_utf8.json"])
+def test_a_body_that_is_not_json_is_a_malformed_request(file_name):
+    with pytest.raises(MalformedRequestBody) as refused:
+        posted(file_name).document(SceneIndex)
+    assert refused.value.status() is HTTPStatus.BAD_REQUEST
 
 
 def test_a_json_response_serializes_protocol_values():

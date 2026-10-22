@@ -90,6 +90,24 @@ class UnknownScene(ViewerError):
         return f"No scenes directory holds a bundle named {self.name!r}."
 
 
+# %% requests
+
+
+@dataclass
+class MalformedRequestBody(ViewerError):
+    """
+    A request body that should hold JSON and does not.
+    """
+
+    reason: str
+    """
+    What the JSON reader reported.
+    """
+
+    def message(self) -> str:
+        return f"The request body is not JSON: {self.reason}"
+
+
 # %% plugins
 
 

@@ -11,10 +11,16 @@ from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import parse_qs
 
-from typing_extensions import Any, Dict, List, Optional, Self
+from typing_extensions import Any, Dict, List, Optional, Self, Type, TypeVar
 
-from cramera_protocol.document import JsonValue
+from cramera.exceptions import MalformedRequestBody
+from cramera_protocol.document import JsonDocument, JsonValue
 from cramera_protocol.viewer import ErrorKey
+
+DocumentType = TypeVar("DocumentType", bound=JsonDocument)
+"""
+The protocol document a request body holds.
+"""
 
 # %% vocabulary
 
@@ -297,6 +303,20 @@ class Request:
         :return: The decoded JSON body.
         """
         return json.loads(self.body.decode("utf-8"))
+
+    def document(self, document_class: Type[DocumentType]) -> DocumentType:
+        """
+        :param document_class: The protocol document the body holds.
+        :return: The body read as that document.
+        :raises MalformedRequestBody: When the body is not UTF-8 JSON.
+        :raises ProtocolError: When the JSON does not describe such a document.
+        """
+        # the one place where a body that is no JSON at all becomes a refused request
+        try:
+            data = self.json()
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise MalformedRequestBody(str(error)) from error
+        return document_class.from_json(data)
 
 
 # %% response
