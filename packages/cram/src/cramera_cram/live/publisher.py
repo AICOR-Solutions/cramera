@@ -678,7 +678,10 @@ class LivePublisher:
                 raise TeleoperationUnavailable("no robot is selected")
             if self.teleoperation is None:
                 self.teleoperation = TeleoperationDriver(
-                    self.require_world(), self.selected_robot, self.activity
+                    self.require_world(),
+                    self.selected_robot,
+                    self.activity,
+                    self.world_lock,
                 )
             driver = self.teleoperation
         driver.submit(request)

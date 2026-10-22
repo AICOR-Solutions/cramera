@@ -13,7 +13,7 @@ import threading
 from dataclasses import dataclass, field
 
 import numpy
-from typing_extensions import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing_extensions import TYPE_CHECKING, Dict, Optional, Tuple
 
 from cramera_cram.exceptions import (
     TeleoperationStillRunning,
@@ -30,9 +30,6 @@ from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 if TYPE_CHECKING:
     from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm
     from semantic_digital_twin.world import World
-    from semantic_digital_twin.world_description.connections import (
-        ActiveConnection1DOF,
-    )
 
 TICKS_PER_SECOND = 30.0
 """
@@ -60,6 +57,22 @@ The iterations one solve may take; a near step converges in far fewer.
 STOP_TIMEOUT_SECONDS = 2.0
 """
 How long stopping waits for the driver thread.
+"""
+
+REACHED_TOLERANCE_METRES = 1e-4
+"""
+How near the tool frame must be to its target to count as there, so a hand at rest
+writes nothing.
+"""
+
+GRIPPER_TOLERANCE = 1e-6
+"""
+How near a gripper joint must be to its commanded value to count as there.
+"""
+
+DRIVER_THREAD_NAME = "cramera-teleoperation"
+"""
+The name of the driver thread.
 """
 
 # %% one arm
@@ -111,7 +124,8 @@ class ServoedArm:
         Move the tool frame one bounded step towards the request's target.
 
         :param request: The newest target of the arm.
-        :return: Whether joint values were written.
+        :return: Whether joint values were written; a tool frame at its target is left
+            alone.
         """
         goal = self.centre + numpy.asarray(request.position.to_json()) * (
             WORKSPACE_HALF_EXTENT_METRES
@@ -119,6 +133,8 @@ class ServoedArm:
         current = numpy.asarray(self.tool_pose().position)
         step = goal - current
         distance = float(numpy.linalg.norm(step))
+        if distance <= REACHED_TOLERANCE_METRES:
+            return False
         if distance > MAXIMUM_STEP_METRES:
             step = step / distance * MAXIMUM_STEP_METRES
         stepped = current + step
@@ -143,8 +159,9 @@ class ServoedArm:
     def open_gripper(self, opening: float) -> bool:
         """
         :param opening: How far the gripper opens, from 0 closed to 1 open.
-        :return: Whether the end effector defines open and closed joint states, and so
-            whether joint values were written.
+        :return: Whether joint values were written: the end effector must define open
+            and closed joint states, and a gripper already at the opening is left
+            alone.
         """
         end_effector = self.arm.end_effector
         if not (
@@ -154,27 +171,26 @@ class ServoedArm:
             return False
         opened = end_effector.get_joint_state_by_type(GripperState.OPEN)
         closed = end_effector.get_joint_state_by_type(GripperState.CLOSE)
-        closed_values = self.values_by_connection(
-            closed.connections, closed.target_values
-        )
-        for connection, open_value in zip(opened.connections, opened.target_values):
-            closed_value = closed_values.get(str(connection.name), open_value)
-            connection.position = closed_value + opening * (open_value - closed_value)
-        return True
-
-    @staticmethod
-    def values_by_connection(
-        connections: List[ActiveConnection1DOF], values: List[float]
-    ) -> Dict[str, float]:
-        """
-        :param connections: The connections of a joint state.
-        :param values: Their target values.
-        :return: The target values by connection name.
-        """
-        return {
-            str(connection.name): value
-            for connection, value in zip(connections, values)
+        closed_values = {
+            connection: value
+            for connection, value in zip(closed.connections, closed.target_values)
         }
+        commanded = [
+            (
+                connection,
+                closed_values.get(connection, open_value)
+                + opening * (open_value - closed_values.get(connection, open_value)),
+            )
+            for connection, open_value in zip(opened.connections, opened.target_values)
+        ]
+        if all(
+            abs(connection.position - value) <= GRIPPER_TOLERANCE
+            for connection, value in commanded
+        ):
+            return False
+        for connection, value in commanded:
+            connection.position = value
+        return True
 
 
 # %% driver
@@ -184,6 +200,9 @@ class ServoedArm:
 class TeleoperationDriver:
     """
     Servos the arms of one robot towards the newest targets on a thread it owns.
+
+    The driver writes the world only while it holds the publisher's world lock, so a
+    request answered under that lock sees the world unchanged.
     """
 
     world: World
@@ -199,6 +218,11 @@ class TeleoperationDriver:
     activity: SimulationActivity
     """
     Tells whether a plan moves the robot, in which case the driver stands aside.
+    """
+
+    world_lock: threading.RLock
+    """
+    The lock every reader and writer of the world holds.
     """
 
     targets: Dict[str, TeleoperationRequest] = field(default_factory=dict, init=False)
@@ -218,12 +242,13 @@ class TeleoperationDriver:
 
     stopping: threading.Event = field(default_factory=threading.Event, init=False)
     """
-    Set when the driver thread is to end.
+    Set when the current driver thread is to end; each thread gets its own, so a thread
+    stopped while it was busy never runs on beside its successor.
     """
 
     lock: threading.Lock = field(default_factory=threading.Lock, init=False)
     """
-    Guards :attr:`targets`, :attr:`arms` and :attr:`thread`.
+    Guards :attr:`targets`, :attr:`arms`, :attr:`thread` and :attr:`stopping`.
     """
 
     def submit(self, request: TeleoperationRequest) -> None:
@@ -236,30 +261,43 @@ class TeleoperationDriver:
         """
         if self.activity.is_busy():
             raise TeleoperationUnavailable("a plan is moving the robot")
-        arm = RobotParts(self.world, self.robot).arm_named(request.arm)
-        with self.lock:
-            if request.arm not in self.arms:
-                self.arms[request.arm] = ServoedArm(self.world, arm)
-            self.targets[request.arm] = request
-            if self.thread is None:
-                self.stopping.clear()
-                self.thread = threading.Thread(
-                    target=self.run, name="cramera-teleoperation", daemon=True
-                )
-                self.thread.start()
+        with self.world_lock:
+            arm = RobotParts(self.world, self.robot).arm_named(request.arm)
+            with self.lock:
+                if request.arm not in self.arms:
+                    self.arms[request.arm] = ServoedArm(self.world, arm)
+                self.targets[request.arm] = request
+                if self.thread is None:
+                    self.stopping = threading.Event()
+                    self.thread = threading.Thread(
+                        target=self.run,
+                        args=(self.stopping,),
+                        name=DRIVER_THREAD_NAME,
+                        daemon=True,
+                    )
+                    self.thread.start()
 
-    def run(self) -> None:
+    def run(self, stopping: threading.Event) -> None:
         """
-        Servo the arms until the driver stops.
+        Servo the arms until the driver stops; a tick waiting longer than one period for
+        the world is skipped, so stopping never waits on a thread that holds it.
+
+        :param stopping: Set when this thread is to end.
         """
         period = 1.0 / TICKS_PER_SECOND
-        while not self.stopping.wait(period):
-            if not self.activity.is_busy():
-                self.servo()
+        while not stopping.wait(period):
+            if self.activity.is_busy() or not self.world_lock.acquire(timeout=period):
+                continue
+            try:
+                if not stopping.is_set():
+                    self.servo()
+            finally:
+                self.world_lock.release()
 
     def servo(self) -> bool:
         """
-        Step every commanded arm towards its target and announce the new state once.
+        Step every commanded arm towards its target and announce the new state once; the
+        caller holds the world lock.
 
         :return: Whether joint values were written.
         """
@@ -282,8 +320,8 @@ class TeleoperationDriver:
 
         :raises TeleoperationStillRunning: When the thread does not end in time.
         """
-        self.stopping.set()
         with self.lock:
+            self.stopping.set()
             thread, self.thread = self.thread, None
             self.targets.clear()
             self.arms.clear()

@@ -4,6 +4,9 @@ Robots of the live world: listing, selecting and moving their hands.
 
 from __future__ import annotations
 
+import threading
+import time
+
 import numpy
 import pytest
 
@@ -15,6 +18,7 @@ from cramera_cram.exceptions import (
 from cramera_cram.live.publisher import LivePublisher
 from cramera_cram.live.teleoperation import (
     MAXIMUM_STEP_METRES,
+    TICKS_PER_SECOND,
     ServoedArm,
 )
 from cramera_cram.robots import RobotRoster
@@ -144,3 +148,88 @@ def test_hand_control_needs_a_robot(publisher):
         publisher.teleoperate(
             TeleoperationRequest(arm="any", position=Vector3(0, 0, 0))
         )
+
+
+# %% hand control alongside other threads
+
+WAITED_TICKS = 5
+"""
+How many driver periods a test waits for the driver to act.
+"""
+
+
+def left_arm_positions(fresh_robot: RobotWorld) -> list:
+    """
+    :return: The joint values of the PR2's left arm.
+    """
+    arm = fresh_robot.robot.get_left_arm_if_specified()
+    return [
+        connection.position
+        for connection in fresh_robot.world.connections
+        if connection.child in arm.bodies and connection.dofs
+    ]
+
+
+def wait_ticks(count: int = WAITED_TICKS) -> None:
+    """
+    Let the driver thread run for a number of its periods.
+    """
+    time.sleep(count / TICKS_PER_SECOND)
+
+
+def test_a_hand_at_its_target_writes_nothing(fresh_robot):
+    arm = ServoedArm(fresh_robot.world, fresh_robot.robot.get_left_arm_if_specified())
+    request = TeleoperationRequest(
+        arm=left_arm_name(fresh_robot), position=Vector3(0.0, 0.0, 0.0)
+    )
+    assert arm.step_towards(request) is False
+
+
+def test_an_open_gripper_is_not_written_again(fresh_robot):
+    arm = ServoedArm(fresh_robot.world, fresh_robot.robot.get_left_arm_if_specified())
+    arm.open_gripper(1.0)
+    assert arm.open_gripper(1.0) is False
+
+
+def test_the_driver_waits_while_another_thread_holds_the_world(
+    fresh_robot, robot_publisher
+):
+    robot_publisher.teleoperate(
+        TeleoperationRequest(
+            arm=left_arm_name(fresh_robot), position=Vector3(-1.0, 0.0, 0.0)
+        )
+    )
+    holding, released = threading.Event(), threading.Event()
+
+    def hold_world() -> None:
+        with robot_publisher.world_lock:
+            holding.set()
+            released.wait()
+
+    holder = threading.Thread(target=hold_world)
+    holder.start()
+    holding.wait()
+    held_before = left_arm_positions(fresh_robot)
+    wait_ticks()
+    held_after = left_arm_positions(fresh_robot)
+    released.set()
+    holder.join()
+    wait_ticks()
+    released_after = left_arm_positions(fresh_robot)
+    robot_publisher.stop_teleoperation()
+    assert held_after == held_before
+    assert released_after != held_before
+
+
+def test_stopping_while_holding_the_world_does_not_wait_for_the_driver(
+    fresh_robot, robot_publisher
+):
+    robot_publisher.teleoperate(
+        TeleoperationRequest(
+            arm=left_arm_name(fresh_robot), position=Vector3(-1.0, 0.0, 0.0)
+        )
+    )
+    thread = robot_publisher.teleoperation.thread
+    with robot_publisher.world_lock:
+        robot_publisher.stop_teleoperation()
+    assert not thread.is_alive()
