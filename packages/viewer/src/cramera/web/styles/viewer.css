@@ -164,13 +164,15 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   border-left: 1px solid var(--border);
   background: var(--surface-raised);
 }
 
 .tabs {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 2px;
   padding: 8px 8px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -181,7 +183,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
   border-radius: 0;
   background: none;
   color: var(--text-muted);
-  padding: 6px 10px;
+  padding: 6px 8px;
 }
 
 .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
