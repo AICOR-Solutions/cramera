@@ -131,6 +131,15 @@ def test_a_performing_demo_ends_on_its_own(runner, demo):
     )
 
 
+def test_a_demo_watching_its_owner_ends_cleanly_on_its_own(tmp_path, demo):
+    runner = runner_of(tmp_path, "finishing_demo.py")
+    runner.start(demo, RunMode.PERFORM)
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    runner.stop()
+    assert ended.state is RunState.FINISHED, ended.log
+    assert ended.return_code == 0
+
+
 def test_a_failing_demo_shows_its_output(tmp_path, demo):
     runner = runner_of(tmp_path, "failing_demo.py")
     runner.start(demo, RunMode.PERFORM)
