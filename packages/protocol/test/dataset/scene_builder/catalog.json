@@ -1,0 +1,22 @@
+{
+  "resources": [
+    {
+      "id": "demo/cell/robot.urdf",
+      "name": "robot",
+      "kind": "urdf",
+      "category": "robot",
+      "notices": [{"name": "NOTICE.md", "asset": "demo/NOTICE.md"}]
+    },
+    {
+      "id": "point-clouds/0b5c.ply",
+      "name": "0b5c",
+      "kind": "point-cloud",
+      "category": "point-cloud",
+      "pointCloud": {"format": "ply", "encoding": "binary_little_endian", "pointCount": 3, "finitePointCount": 2}
+    }
+  ],
+  "scenes": [{"name": "cell", "robot": "arm", "environment": "cell"}],
+  "drafts": [{"id": "4f2a", "name": "Kitchen with a scan", "updatedAt": "2026-10-22T13:00:00+00:00"}],
+  "limits": {"maximumInstances": 20},
+  "defaultAppearance": {"opacity": 0.5}
+}

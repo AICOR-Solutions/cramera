@@ -1,0 +1,1 @@
+{"name": "Draft", "instances": [{"id": "a", "asset": "demo/a.urdf", "name": "a", "position": [0, 0, 0], "rotation": [0, 0, 0], "jointPositions": {"elbow": "up"}}]}

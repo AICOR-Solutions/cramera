@@ -1,0 +1,29 @@
+{
+  "formatVersion": "1.0",
+  "name": "Kitchen with a scan",
+  "sourceScene": "cell",
+  "instances": [
+    {
+      "id": "model-1",
+      "asset": "demo/cell/robot.urdf",
+      "name": "arm",
+      "position": [1.5, -0.25, 0.0],
+      "rotation": [0.0, 0.0, 1.5707963],
+      "scale": [1.0, 1.0, 1.0],
+      "linkOffsets": {
+        "drawer": {"position": [0.1, 0.0, 0.0], "rotation": [0.0, 0.0, 0.5]}
+      },
+      "jointPositions": {"shoulder": 0.4}
+    },
+    {
+      "id": "scan",
+      "asset": "point-clouds/0b5c.ply",
+      "name": "room scan",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [0.01, 0.01, 0.01],
+      "pointCloud": {"visible": true, "locked": false, "pointSize": 0.004, "opacity": 0.8}
+    }
+  ],
+  "notices": [{"name": "NOTICE.md", "asset": "demo/NOTICE.md"}]
+}

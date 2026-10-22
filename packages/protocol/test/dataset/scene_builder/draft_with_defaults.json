@@ -1,0 +1,7 @@
+{
+  "name": "Bare draft",
+  "instances": [
+    {"id": "cup", "asset": "demo/cell/cup.stl", "name": "cup", "position": [0, 0, 0.7], "rotation": [0, 0, 0]},
+    {"id": "scan", "asset": "point-clouds/0b5c.pcd", "name": "scan", "position": [0, 0, 0], "rotation": [0, 0, 0], "pointCloud": {}}
+  ]
+}
