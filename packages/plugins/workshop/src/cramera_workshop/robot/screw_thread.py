@@ -224,6 +224,12 @@ class ThreadLimits:
     periods.
     """
 
+    seating_margin: float = 0.05
+    """
+    How far short of the thread's end the screw is driven, in radians; the controller
+    cannot settle exactly on the helical connection's limit.
+    """
+
     tool_linear_velocity: float = 0.08
     """
     The held tool's largest speed while aligning, in metres per second.
@@ -642,7 +648,9 @@ class TurnScrewMotion(BaseMotion):
             not math.isfinite(self.turns) or self.turns <= 0
         ):
             raise ScrewEngagementFailed(EngagementProblem.INVALID_TURNS)
-        final = float(connection.dof.limits.lower.position)
+        final = (
+            float(connection.dof.limits.lower.position) + THREAD_LIMITS.seating_margin
+        )
         if self.turns is not None:
             return [max(final, -self.turns * math.tau)]
         current = float(connection.position)
