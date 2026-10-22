@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 from http import HTTPStatus
 
-import pytest
 
 from cramera.http.messages import HttpMethod, MediaType
 from cramera.locations import DataLocations

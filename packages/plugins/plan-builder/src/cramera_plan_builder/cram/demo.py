@@ -32,7 +32,6 @@ from cramera_protocol.plan_builder import (
     PlanStep,
     StepKind,
 )
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
