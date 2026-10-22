@@ -102,6 +102,17 @@ class TemplateParameter(StrEnum):
     """
 
 
+class BuilderPageParameter(StrEnum):
+    """
+    The query parameters of the builder page, :attr:`SceneBuilderFile.PAGE`.
+    """
+
+    SCENE = "scene"
+    """
+    The name of a bundle the page starts a new draft from when it opens.
+    """
+
+
 class SceneBuilderVariable(StrEnum):
     """
     The environment variables the scene builder reads.

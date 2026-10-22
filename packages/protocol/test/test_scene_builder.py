@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 
+from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.exceptions import (
     InvalidDocumentValue,
     UnexpectedDocumentField,
@@ -14,6 +15,7 @@ from cramera_protocol.exceptions import (
 from cramera_protocol.geometry import Vector3
 from cramera_protocol.scene_builder import (
     AppearanceKey,
+    BuilderPageParameter,
     CatalogKey,
     DraftKey,
     DraftRecord,
@@ -135,3 +137,10 @@ def test_an_empty_catalog_carries_the_default_limits_and_appearance():
     written = SceneBuilderCatalog().to_json()
     assert written[CatalogKey.LIMITS] == SceneBuilderLimits().to_json()
     assert written[CatalogKey.DEFAULT_APPEARANCE] == PointCloudAppearance().to_json()
+
+
+# %% browser
+
+
+def test_the_builder_page_parameters_reach_the_browser():
+    assert BuilderPageParameter in BROWSER_ENUMERATIONS

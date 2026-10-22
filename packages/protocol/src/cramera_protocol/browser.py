@@ -49,6 +49,7 @@ from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
 from cramera_protocol.scene_builder import (
     AppearanceKey,
+    BuilderPageParameter,
     CatalogKey,
     DraftKey,
     DraftListKey,
@@ -128,6 +129,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     SceneBuilderFile,
     SceneBuilderRoute,
     TemplateParameter,
+    BuilderPageParameter,
     ResourceKind,
     ResourceCategory,
     ReservedResourceRoot,
