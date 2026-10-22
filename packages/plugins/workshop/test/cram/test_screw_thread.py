@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from cramera_workshop.robot.screw_thread import (
+    THREAD_LIMITS,
     EngagementProblem,
     ScrewAssembly,
     ScrewEngagementFailed,
@@ -159,11 +160,17 @@ def test_a_threaded_screw_is_not_threaded_twice(rig):
 def test_the_whole_thread_is_driven_in_bounded_stages(rig):
     connection = rig.assembly().install(rig.world)
     targets = TurnScrewMotion(screw=rig.screw, driver=rig.driver).joint_targets()
-    final = connection.dof.limits.lower.position
     stage = ThreadLimits().maximum_turns_per_stage * math.tau
-    assert targets[-1] == final
     steps = np.diff([0.0, *targets])
     assert np.all(np.abs(steps) <= stage + 1e-9)
+
+
+def test_the_screw_is_driven_to_just_short_of_the_threads_end(rig):
+    connection = rig.assembly().install(rig.world)
+    targets = TurnScrewMotion(screw=rig.screw, driver=rig.driver).joint_targets()
+    assert targets[-1] == pytest.approx(
+        connection.dof.limits.lower.position + THREAD_LIMITS.seating_margin
+    )
 
 
 def test_engagement_turns_once_by_the_given_amount(rig):
