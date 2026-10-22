@@ -44,15 +44,9 @@ class RobotParts:
 
     def arms(self) -> List[Arm]:
         """
-        :return: The arm annotations whose bodies belong to the robot, in the order the
-            world holds them.
+        :return: The arms the robot's annotation names as its parts.
         """
-        robot_bodies = {body.id for body in self.robot.bodies}
-        return [
-            arm
-            for arm in self.world.get_semantic_annotations_by_type(Arm)
-            if arm.root.id in robot_bodies
-        ]
+        return self.robot.get_arms()
 
     def side_of(self, arm: Arm) -> Optional[PartSide]:
         """
