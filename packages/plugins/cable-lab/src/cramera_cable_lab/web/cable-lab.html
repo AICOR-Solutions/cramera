@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-viewer-state="loading">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cable lab · cramera</title>
+  <link rel="icon" href="../../images/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles/viewer.css">
+  <link rel="stylesheet" href="cable-lab.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../vendor/three/build/three.module.js",
+        "three/addons/": "../../vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="lab/main.js"></script>
+</head>
+<body class="cable-lab">
+  <header class="bar">
+    <a class="brand" href="../../" aria-label="Back to the viewer">
+      <img src="../../images/icon.svg" alt="" width="22" height="22">
+      <span>cramera</span>
+    </a>
+    <h1 class="cable-title">Cable lab</h1>
+    <span class="cable-engine">MuJoCo · composite cable</span>
+  </header>
+  <main class="cable-workspace">
+    <section class="cable-stage" aria-label="The simulated cable in 3D">
+      <div class="cable-viewport" id="cable-viewport"></div>
+      <p class="cable-caption" id="cable-caption">Waiting for the simulation</p>
+      <p class="cable-empty" id="cable-empty">Build a cable to start a live simulation.</p>
+      <label class="cable-points"><input type="checkbox" id="show-points"> Semantic points</label>
+    </section>
+    <aside class="cable-side" aria-label="Experiment">
+      <p class="cable-status" id="cable-status" role="status">Connecting…</p>
+      <p class="cable-notice cable-error" id="cable-error" role="alert" hidden></p>
+      <p class="cable-notice cable-warning" id="cable-warning" hidden></p>
+      <dl class="cable-readings">
+        <div><dt>Simulation time</dt><dd id="reading-time">—</dd></div>
+        <div><dt>Pad contacts</dt><dd id="reading-contacts">—</dd></div>
+        <div><dt>Normal force</dt><dd id="reading-normal">—</dd></div>
+        <div><dt>Friction force</dt><dd id="reading-friction">—</dd></div>
+      </dl>
+      <section class="cable-section" aria-labelledby="gripper-title">
+        <h2 id="gripper-title">Gripper <span class="cable-grasp" id="grasp-state">No contact data</span></h2>
+        <div class="cable-buttons">
+          <button type="button" data-action="pinch" disabled>Pinch</button>
+          <button type="button" data-action="release" disabled>Open</button>
+          <button type="button" data-action="lift" disabled>Lift 5 cm</button>
+          <button type="button" data-action="lower" disabled>Lower 5 cm</button>
+        </div>
+        <p class="cable-hint">The pads hold the cable by friction alone. Opening lets a loose cable fall; a pinned cable stays at its first point.</p>
+      </section>
+      <form class="cable-section" id="cable-configuration">
+        <h2>Cable</h2>
+        <div class="cable-presets">
+          <button type="button" id="preset-pinned">Pinned cable</button>
+          <button type="button" id="preset-loose">Loose cable</button>
+        </div>
+        <label>Elements <input name="segmentCount" type="number" min="2" max="100" step="1" value="10" required></label>
+        <label>Element length (m) <input name="segmentLength" type="number" min="0.005" max="0.2" step="0.005" value="0.03" required></label>
+        <label>Radius (m) <input name="radius" type="number" min="0.001" max="0.05" step="0.001" value="0.005" required></label>
+        <label>Total mass (kg) <input name="mass" type="number" min="0.001" max="10" step="0.001" value="0.1" required></label>
+        <label>Bending modulus (Pa) <input name="bend" type="number" min="0" step="1000" value="100000" required></label>
+        <label>Twisting modulus (Pa) <input name="twist" type="number" min="0" step="1000" value="100000" required></label>
+        <label>Sliding friction <output id="friction-value">1.00</output><input name="friction" type="range" min="0" max="2" step="0.01" value="1"></label>
+        <label class="cable-check"><input name="anchored" type="checkbox" checked> Pin the first point</label>
+        <p class="cable-hint" id="cable-length">0.30 m cable · 10 elements</p>
+        <div class="cable-buttons">
+          <button type="submit" id="start-button" class="cable-primary">Build and start</button>
+          <button type="button" id="reset-button" disabled>Reset</button>
+          <button type="button" id="stop-button" disabled>Stop</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "lifecycle": "running",
+  "simulationTime": 0.25,
+  "configuration": {"segmentCount": 2},
+  "segments": [{"name": "cable_segment_B0", "start": [0, 0, 0.35], "end": [0.03, 0, 0.35]}, {"name": "cable_segment_B1", "start": [0.03, 0, 0.35], "end": [0.06, 0, 0.35]}],
+  "points": [{"name": "cable_segment_0", "position": [0, 0, 0.35]}, {"name": "cable_segment_1", "position": [0.03, 0, 0.35]}],
+  "gripper": {"position": [0.03, 0, 0.35], "opening": 0.05, "pads": [{"pose": [0.03, 0.029, 0.35, 0, 0, 0, 1], "size": [0.12, 0.008, 0.04]}, {"pose": [0.03, -0.029, 0.35, 0, 0, 0, 1], "size": [0.12, 0.008, 0.04]}]},
+  "contacts": [{"position": [0.03, 0, 0.345], "normalForce": 0.01, "frictionForce": 0.0, "bodyA": "cable_support", "bodyB": "cable_segment_B1"}],
+  "anchor": {"position": [0, 0, 0.35], "enabled": true},
+  "grasp": {"state": "open", "normalForce": 0, "frictionForce": 0, "contactCount": 0},
+  "warnings": [],
+  "support": {"pose": [0.03, 0, 0.335, 0, 0, 0, 1], "size": [0.16, 0.005, 0.02]}
+}
