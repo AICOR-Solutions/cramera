@@ -56,6 +56,7 @@ import {
   ContactPhysicsKey,
   DropletKey,
   VesselLiquidKey,
+  WorkstationKey,
 } from '../../protocol.js';
 
 /**
@@ -629,8 +630,10 @@ export class LaboratoryPanel {
    */
   #viewSection(description) {
     const elements = this.#elements;
-    const cameras = description?.[LaboratorySceneKey.LABORATORY]?.[BenchKey.CAMERAS] ?? {};
-    const presets = Object.entries(cameras).map(([name, camera]) =>
+    const cameras = Object.entries(description?.[LaboratorySceneKey.LABORATORY]?.[BenchKey.CAMERAS] ?? {});
+    const stations = description?.[LaboratorySceneKey.INSTRUMENTS]?.[InstrumentCollectionKey.STATIONS] ?? [];
+    for (const station of stations) cameras.push([station[WorkstationKey.LABEL], station[WorkstationKey.CAMERA]]);
+    const presets = cameras.map(([name, camera]) =>
       elements.button(name, () => this.#lookFrom(camera[CameraKey.POSITION], camera[CameraKey.TARGET])),
     );
     const object = elements.button(Text.LOOK, () => {

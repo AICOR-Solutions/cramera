@@ -117,6 +117,14 @@ test('the view section offers the bench cameras and a close look', () => {
   assert.deepEqual(looks[1].position, object.map((value, axis) => value + LOOK_OFFSET[axis]));
 });
 
+test('the view section offers each workstation of the expanded laboratory', () => {
+  const { panel, looks } = setUp();
+  const station = { id: 'measurement', label: '04 \u00b7 Analysis', camera: { position: [2, 0.7, 1.9], target: [1, 2.4, 1.1] } };
+  panel.showAnswer(answer(), readDataset('controls.json'), { [LaboratorySceneKey.INSTRUMENTS]: { instruments: [], stations: [station] } });
+  buttons(panel.simulation, station.label)[0].click();
+  assert.deepEqual(looks, [{ position: station.camera.position, target: station.camera.target }]);
+});
+
 test('hiding the simulation forgets its controls', () => {
   const { panel } = setUp();
   panel.showAnswer(answer(), readDataset('controls.json'));
