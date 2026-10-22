@@ -439,13 +439,14 @@ class KinematicTree(GraphViewBuilder):
         parts: Dict[str, RobotPart] = {}
         for part in knowledge.parts:
             for link in part.links:
-                parts.setdefault(link.rsplit(NAME_SEPARATOR, 1)[-1], part)
+                parts.setdefault(self.bare_name(link), part)
         graph = GraphBuilder()
         carrying = structure.joints_by_child()
         for link in structure.links:
             joint = carrying.get(link)
             lines = [] if joint is None else [f"{joint.name} ({joint.joint_type})"]
-            graph.add_node(link, link, KinematicsGroup.of_part(parts.get(link)), lines)
+            group = KinematicsGroup.of_part(parts.get(self.bare_name(link)))
+            graph.add_node(link, link, group, lines)
         for joint in structure.joints:
             graph.add_edge(
                 joint.parent,
@@ -459,7 +460,17 @@ class KinematicTree(GraphViewBuilder):
             edges=graph.edges,
             details=graph.details,
             legend=KinematicsGroup.legend(),
+            layout=GraphLayout.HIERARCHY,
         )
+
+    @staticmethod
+    def bare_name(link: str) -> str:
+        """
+        :param link: A link name, with or without the robot's prefix.
+        :return: The name without the prefix; recordings name a part's links and the
+            robot model's links with or without it independently.
+        """
+        return link.rsplit(NAME_SEPARATOR, 1)[-1]
 
 
 @dataclass(frozen=True)

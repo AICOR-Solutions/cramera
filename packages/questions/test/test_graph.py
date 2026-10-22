@@ -4,6 +4,8 @@ The views of a recorded scene's knowledge graph.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from cramera_protocol.bundle.scene import PartRole, RobotPart
@@ -20,7 +22,8 @@ from cramera_questions.graph.views import (
 )
 from cramera_questions.recorded.bundle import RecordedBundle
 from cramera_questions.recorded.knowledge_base import RecordedKnowledge
-from .dataset.files import SceneName
+from cramera_questions.recorded.urdf import UrdfStructure
+from .dataset.files import PREFIXED_LINKS_URDF, SceneName
 
 
 @pytest.fixture
@@ -78,6 +81,28 @@ def test_the_kinematic_tree_colours_links_by_part_and_dashes_fixed_joints(knowle
     kinds = {edge.destination: edge.kind for edge in view.edges}
     assert kinds["l_gripper_link"] is GraphEdgeKind.TYPE
     assert kinds["l_wrist_link"] is GraphEdgeKind.PROPERTY
+
+
+def test_the_kinematic_tree_matches_parts_to_links_named_below_the_robot_prefix(
+    knowledge,
+):
+    prefixed = RecordedKnowledge(
+        bundle=replace(
+            knowledge.bundle,
+            robot_structure=UrdfStructure.of_file(PREFIXED_LINKS_URDF),
+        ),
+        parts=knowledge.parts,
+    )
+    view = GraphViews().build(GraphViewName.KINEMATICS, prefixed)
+    groups = {node.identifier: node.group for node in view.nodes}
+    assert groups["pr2/l_wrist_link"] == KinematicsGroup.LEFT_ARM
+    assert groups["pr2/l_gripper_link"] == KinematicsGroup.GRIPPER
+    assert groups["pr2/base_link"] == KinematicsGroup.BASE
+
+
+def test_the_kinematic_tree_is_drawn_as_a_hierarchy(knowledge):
+    view = GraphViews().build(GraphViewName.KINEMATICS, knowledge)
+    assert view.layout is GraphLayout.HIERARCHY
 
 
 def test_a_scene_without_a_robot_model_has_an_empty_kinematic_tree(knowledge):
