@@ -747,6 +747,8 @@ class CablePhysics(CableSimulation):
 
     def measure(self) -> CableLabState:
         with self.simulation.simulator._model_lock:
+            # a reset keeps the joints but clears the bodies' poses until the next step
+            mujoco.mj_kinematics(self.model, self.data)
             contacts = self.contacts()
             return CableLabState(
                 lifecycle=SimulationLifecycle.IDLE,
