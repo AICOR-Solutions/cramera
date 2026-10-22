@@ -4,6 +4,25 @@ What landed in cramera, by week and area. Entries are features, not commits; has
 in entries up to week 43 point into the `cramera-port` branch of the CRAM fork, from
 which this repository was mirrored until 22 Oct 2026.
 
+
+## 1.0.0 · in progress since 22 Oct 2026
+
+### A rewrite into packages
+- **One protocol for everything.** `cramera-protocol` defines scene bundles, the
+  scenes index, live messages, routes and versions once; the browser reads the same
+  names from a generated `protocol.js`. Every recording on the development machine
+  (62 scenes) reads without error, including those written before versions existed.
+- **A viewer without CRAM.** `cramera` serves the browser application, merges local,
+  shared and demo scenes, loads plugins through entry points, and answers only pages
+  of the same machine. The page is rebuilt as ES modules on three.js 0.186.1.
+- **A demo site that shows what is published.** Every push to `main` rebuilds the
+  site with three demo scenes, stamps it with the commit and takes a screenshot that
+  the status page and the README show.
+- **Tools.** `cramera-shot` (screenshots once the page is ready),
+  `cramera-export-site` (static site), `cramera-upgrade-bundle` (rewrite a bundle in
+  the current format).
+- The earlier code is kept on the branch `archive/pre-v1`.
+
 ## Week 43 · 20 Oct 2026
 
 ### Repository
