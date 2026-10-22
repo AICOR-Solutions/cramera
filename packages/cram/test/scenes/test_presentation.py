@@ -4,7 +4,11 @@ The authored appearance of a scene carried into written bundles.
 
 from __future__ import annotations
 
+import shutil
+
 import pytest
+
+from cramera.exceptions import PathOutsideDirectory
 
 from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import BundleNotFound
@@ -16,6 +20,11 @@ from cramera_protocol.bundle.scene import (
     SceneDescription,
 )
 from cramera_protocol.geometry import Pose
+
+OUTSIDE_LIGHTING = "outside_lighting.json"
+"""
+A lighting file beside a bundle rather than inside it.
+"""
 
 # %% presentation
 
@@ -54,6 +63,22 @@ def test_rendering_camera_and_lighting_are_carried_over(
         lighting.read_bytes()
         == (annotated_bundle / source.rendering.environment).read_bytes()
     )
+
+
+def test_a_lighting_file_outside_the_bundle_is_refused(
+    annotated_bundle, source, tmp_path
+):
+    outside = annotated_bundle.parent / OUTSIDE_LIGHTING
+    shutil.copy(annotated_bundle / source.rendering.environment, outside)
+    source.rendering.environment = f"../{OUTSIDE_LIGHTING}"
+    DocumentFile(annotated_bundle / BundleFile.SCENE).write(source)
+    destination = tmp_path / "written" / "bundle"
+    destination.mkdir(parents=True)
+    with pytest.raises(PathOutsideDirectory):
+        ScenePresentation.of_bundle(annotated_bundle).apply(
+            written_scene(source), destination
+        )
+    assert not (destination.parent / OUTSIDE_LIGHTING).exists()
 
 
 def test_materials_are_kept_only_where_the_source_keeps_them(

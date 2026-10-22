@@ -16,6 +16,7 @@ from pathlib import Path
 
 from typing_extensions import FrozenSet, Optional
 
+from cramera.confinement import ConfinedDirectory
 from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import BundleNotFound
 from cramera_protocol.bundle.files import BundleFile
@@ -131,15 +132,16 @@ class ScenePresentation:
     def copy_lighting(self, destination: Path) -> None:
         """
         :param destination: The directory of the bundle receiving the settings.
+        :raises PathOutsideDirectory: When the lighting file named lies outside the
+            source bundle or would be written outside the destination.
         """
         if self.rendering.environment is None:
             return
-        source = self.source_directory / self.rendering.environment
-        if (
-            source.is_file()
-            and source.resolve() != (destination / self.rendering.environment).resolve()
-        ):
-            target = destination / self.rendering.environment
+        source = ConfinedDirectory(self.source_directory).resolve(
+            self.rendering.environment
+        )
+        target = ConfinedDirectory(destination).resolve(self.rendering.environment)
+        if source.is_file() and source != target:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
 
