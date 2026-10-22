@@ -46,6 +46,20 @@ which this repository was mirrored until 22 Oct 2026.
   with pouring and spilling, scale, centrifuge with operating manuals, refrigerator,
   drawer, dispensing station, instruments), loads the laboratory into CRAM worlds
   and records a PR2 vessel transfer as a task demo.
+- **The wood workshop as a plugin.** `cramera-workshop` ships the AICOR workshop bundle
+  with its asset licence and notice, runs its MuJoCo contact world with the ideal screw
+  thread behind a Workshop panel, records the PR2 screw insertion as a task demo,
+  runs the two-handed assembly through all its stages (not yet recorded: its arms still
+  penetrate the furniture while driving and putting the screwdriver down), and checks a recorded assembly before it is published
+  (`cramera-workshop check-release`). A screw is grasped the same way however far it
+  rolled in its box, and a recording's steps are the stages of its plan. The asset
+  rights document is shared with the laboratory as `cramera_protocol.rights`.
+- **The cable lab as a plugin.** `cramera-cable-lab` simulates a MuJoCo composite cable
+  whose capsules semantic CRAM points follow, with a friction gripper, on a page of its
+  own; it owns its session instead of reusing the laboratory's. A cable MuJoCo cannot
+  build is refused instead of being kept as points without physics.
+- **Plugins release what they own.** `ViewerPlugin.close()` is called once the viewer
+  stops serving; `Request.document()` reads a request body as a protocol document.
 - The earlier code is kept on the branch `archive/pre-v1`.
 
 ## Week 43 · 20 Oct 2026

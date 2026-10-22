@@ -13,7 +13,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
 
-from typing_extensions import Optional, Self, Tuple, Type
+from typing_extensions import Callable, List, Optional, Self, Tuple, Type
 
 from cramera.exceptions import ViewerError
 from cramera.http.messages import CacheDirective, Header, HttpMethod, Request, Response
@@ -183,6 +183,11 @@ class HttpServer:
     The port to listen on; 0 picks a free port.
     """
 
+    on_stop: List[Callable[[], None]] = field(default_factory=list)
+    """
+    Called in order once the server has stopped serving, to release what its routes own.
+    """
+
     server: Optional[ThreadingHTTPServer] = field(default=None, init=False)
     """
     The listening server while started.
@@ -209,7 +214,8 @@ class HttpServer:
 
     def stop(self) -> None:
         """
-        Stop serving, close the socket and wait for the serving thread.
+        Stop serving, close the socket, wait for the serving thread and call
+        :attr:`on_stop`.
         """
         if self.server is None:
             return
@@ -218,6 +224,8 @@ class HttpServer:
         self.thread.join()
         self.server = None
         self.thread = None
+        for release in self.on_stop:
+            release()
 
     def bound_port(self) -> int:
         """

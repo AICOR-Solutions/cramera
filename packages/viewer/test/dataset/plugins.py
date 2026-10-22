@@ -41,6 +41,11 @@ class QuestionPlugin(ViewerPlugin):
     The contexts the viewer gave the plugin.
     """
 
+    closings: int = 0
+    """
+    How often the viewer closed the plugin.
+    """
+
     def name(self) -> str:
         return self.plugin_name
 
@@ -74,6 +79,9 @@ class QuestionPlugin(ViewerPlugin):
 
     def web_directory(self) -> Optional[Path]:
         return PLUGIN_WEB
+
+    def close(self) -> None:
+        self.closings += 1
 
     def module(self) -> Optional[str]:
         return "index.js"

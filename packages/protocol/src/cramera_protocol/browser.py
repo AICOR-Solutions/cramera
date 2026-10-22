@@ -45,6 +45,16 @@ from cramera_protocol.events import (
     SelectionKind,
     ViewerEvent,
 )
+from cramera_protocol.cable_lab import (
+    CableConfigurationKey,
+    CableLabFile,
+    CableLabKey,
+    CableLabRoute,
+    GraspState,
+    GripperAction,
+    GripperCommandKey,
+    SimulationLifecycle,
+)
 from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.laboratory.knowledge import (
     CitationKey,
@@ -59,7 +69,6 @@ from cramera_protocol.laboratory.knowledge import (
     StartRequirementName,
 )
 from cramera_protocol.laboratory.layout import (
-    AssetRightsKey,
     BenchDrawerKey,
     BenchKey,
     CentrifugeKey,
@@ -284,6 +293,23 @@ from cramera_protocol.questions import (
     VocabularyKind,
 )
 from cramera_protocol.version import CURRENT_VERSION
+from cramera_protocol.workshop import (
+    CameraViewKey,
+    ContactKey,
+    DrawerKey,
+    DriveDirection,
+    ThreadKey,
+    ThreadState,
+    WorkshopAction,
+    WorkshopBodyKey,
+    WorkshopCommandKey,
+    WorkshopKey,
+    WorkshopPartKind,
+    WorkshopRoute,
+    WorkshopSceneKey,
+    WorkshopStateKey,
+    WorkshopView,
+)
 from cramera_protocol.viewer import (
     BuildKey,
     ErrorKey,
@@ -291,6 +317,7 @@ from cramera_protocol.viewer import (
     ViewerInfoKey,
     ViewerRoute,
 )
+from cramera_protocol.rights import AssetRightsKey
 
 # %% module
 
@@ -557,6 +584,29 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     RunState,
     RunRequestKey,
     RunStatusKey,
+    WorkshopRoute,
+    WorkshopSceneKey,
+    WorkshopKey,
+    DrawerKey,
+    WorkshopBodyKey,
+    WorkshopPartKind,
+    CameraViewKey,
+    WorkshopView,
+    WorkshopAction,
+    DriveDirection,
+    WorkshopCommandKey,
+    ThreadState,
+    ThreadKey,
+    ContactKey,
+    WorkshopStateKey,
+    CableLabRoute,
+    CableLabFile,
+    CableConfigurationKey,
+    GripperAction,
+    GripperCommandKey,
+    SimulationLifecycle,
+    GraspState,
+    CableLabKey,
 )
 """
 The enumerations the browser application reads.

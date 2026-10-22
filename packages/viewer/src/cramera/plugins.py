@@ -152,6 +152,14 @@ class ViewerPlugin(ABC):
         """
         return None
 
+    def close(self) -> None:
+        """
+        Release what the plugin owns, such as a simulation its routes started; the
+        viewer calls it once it has stopped serving.
+
+        Nothing by default.
+        """
+
     def info(self) -> PluginInfo:
         """
         :return: The plugin as the browser learns about it.

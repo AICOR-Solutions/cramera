@@ -10,8 +10,6 @@ from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.exceptions import InvalidDocumentValue
 from cramera_protocol.geometry import Pose, Vector3
 from cramera_protocol.laboratory.layout import (
-    AssetRights,
-    AssetRightsKey,
     BenchKey,
     BenchLayout,
     CentrifugeKey,
@@ -29,6 +27,7 @@ from cramera_protocol.laboratory.layout import (
     VesselDimensionsKey,
     VesselPlacementKey,
 )
+from cramera_protocol.rights import AssetRights, AssetRightsKey
 
 LABORATORY_LICENSE = "LicenseRef-AICOR-Laboratory-Assets"
 """

@@ -28,11 +28,11 @@ from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import SceneIndexEntry
 from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.laboratory.layout import (
-    AssetRights,
     BenchLayout,
     InstrumentCollection,
     LaboratorySceneKey,
 )
+from cramera_protocol.rights import AssetRights
 
 RESOURCES_DIRECTORY = Path(__file__).parent / "resources"
 """
