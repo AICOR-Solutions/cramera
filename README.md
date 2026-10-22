@@ -33,7 +33,10 @@ the branch [`archive/pre-v1`](https://github.com/sunava/cramera/tree/archive/pre
 | [`cramera-usd`](packages/usd) | Converting an Isaac Sim or USD stage into a scene bundle, with the export gate and the robot separation audit. | done |
 | `cramera-cram` | Live publishing from a running plan, recording, onboarding demos, task demos. | in progress |
 | `cramera-questions` | Questions in the entity query language over worlds and recordings. | in progress |
-| laboratory, workshop, cable lab, scene and plan builder | One plugin package each. | planned |
+| [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
+| [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
+| [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
+| laboratory, workshop, cable lab, plan builder | One plugin package each; they need `cramera-cram`. | planned |
 
 Recordings made with earlier versions open unchanged: a document without a
 `formatVersion` is read as version 0.
