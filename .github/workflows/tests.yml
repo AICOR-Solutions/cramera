@@ -1,0 +1,94 @@
+# Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
+# of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
+# cramera-questions and cramera-cram run only their tests without CRAM, measured over
+# the modules those tests reach. The models plugin is tested
+# without the circuit libraries: its tests against them are skipped and their
+# counterparts against stand-ins run.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: protocol
+            module: cramera_protocol
+          - package: viewer
+            module: cramera
+          - package: questions
+            install: -e ./packages/questions
+            coverage: >-
+              --cov=cramera_questions.matching
+              --cov=cramera_questions.presets
+              --cov=cramera_questions.recorded.bundle
+          - package: cram
+            install: -e ./packages/questions -e ./packages/cram
+            coverage: >-
+              --cov=cramera_cram.demo_script
+              --cov=cramera_cram.documents
+              --cov=cramera_cram.export.scene_index
+              --cov=cramera_cram.live.activity
+              --cov=cramera_cram.live.marker_topics
+              --cov=cramera_cram.live.recording
+              --cov=cramera_cram.live.segments
+              --cov=cramera_cram.scenes.presentation
+          # The converter's tests need usd-core; the viewer is installed as well, so
+          # the screenshot step is tested.
+          - package: usd
+            module: cramera_usd
+            install: -e './packages/usd[test]' usd-core
+          - package: plugins/offline
+            module: cramera_offline
+            install: -e ./packages/plugins/offline
+          - package: plugins/models
+            module: cramera_models
+            install: -e ./packages/plugins/models
+          - package: plugins/scene-builder
+            module: cramera_scene_builder
+            install: -e ./packages/plugins/scene-builder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install the packages and the test tools
+        run: pip install -e ./packages/protocol -e ./packages/viewer ${{ matrix.install }} -r requirements-development.txt
+
+      - name: Run the tests with coverage
+        working-directory: packages/${{ matrix.package }}
+        run: python -m pytest -q ${{ matrix.coverage || format('--cov={0}', matrix.module) }} --cov-report=term-missing --cov-fail-under=85 test
+
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the formatters
+        run: pip install -r requirements-development.txt typing_extensions
+
+      - name: Check that black and docformatter change nothing
+        run: |
+          python scripts/format_python.py
+          git diff --exit-code
