@@ -10,7 +10,13 @@ from pathlib import Path
 from typing_extensions import List, Optional
 
 from cramera.http.messages import HttpMethod, Request, Response
-from cramera.plugins import PluginContext, PluginRoute, ViewerPlugin
+from cramera.plugins import (
+    PluginContext,
+    PluginPrefixRoute,
+    PluginRoute,
+    RouteDeclaration,
+    ViewerPlugin,
+)
 from cramera_protocol.live import Capability
 
 PLUGIN_WEB = Path(__file__).parent / "plugin_web"
@@ -44,9 +50,12 @@ class QuestionPlugin(ViewerPlugin):
     def capabilities(self) -> List[Capability]:
         return [Capability.QUESTIONS]
 
-    def routes(self, context: PluginContext) -> List[PluginRoute]:
+    def routes(self, context: PluginContext) -> List[RouteDeclaration]:
         self.contexts.append(context)
-        return [PluginRoute(HttpMethod.POST, "ask", self.answer)]
+        return [
+            PluginRoute(HttpMethod.POST, "ask", self.answer),
+            PluginPrefixRoute(HttpMethod.GET, "topics/", self.answer_topic),
+        ]
 
     def answer(self, request: Request) -> Response:
         """
@@ -54,6 +63,14 @@ class QuestionPlugin(ViewerPlugin):
         :return: The question echoed back.
         """
         return Response.of_json({"echo": request.json()})
+
+    def answer_topic(self, request: Request, topic: str) -> Response:
+        """
+        :param request: A request for a topic.
+        :param topic: The path below the route's prefix.
+        :return: The topic echoed back.
+        """
+        return Response.of_json({"topic": topic})
 
     def web_directory(self) -> Optional[Path]:
         return PLUGIN_WEB

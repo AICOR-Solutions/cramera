@@ -14,7 +14,13 @@ from typing_extensions import Callable, Iterable, List, Optional
 
 from cramera.exceptions import DuplicatePlugin, InvalidPluginName
 from cramera.http.messages import HttpMethod
-from cramera.http.routing import RequestHandler
+from cramera.http.routing import (
+    ExactRoute,
+    PrefixHandler,
+    PrefixRoute,
+    RequestHandler,
+    Route,
+)
 from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog
 from cramera_protocol.live import Capability
@@ -41,14 +47,28 @@ class PluginContext:
 
 
 @dataclass(frozen=True)
-class PluginRoute:
+class RouteDeclaration(ABC):
     """
-    One route of a plugin, served at ``/api/plugins/<plugin>/<path>``.
+    A route a plugin declares below its prefix ``/api/plugins/<plugin>/``.
     """
 
     method: HttpMethod
     """
     The method the route answers.
+    """
+
+    @abstractmethod
+    def route(self, plugin_prefix: str) -> Route:
+        """
+        :param plugin_prefix: The plugin's prefix, ending in ``/``.
+        :return: The router's route for this declaration.
+        """
+
+
+@dataclass(frozen=True)
+class PluginRoute(RouteDeclaration):
+    """
+    One route of a plugin, served at ``/api/plugins/<plugin>/<path>``.
     """
 
     path: str
@@ -60,6 +80,31 @@ class PluginRoute:
     """
     Answers the requests.
     """
+
+    def route(self, plugin_prefix: str) -> Route:
+        return ExactRoute(self.method, f"{plugin_prefix}{self.path}", self.handler)
+
+
+@dataclass(frozen=True)
+class PluginPrefixRoute(RouteDeclaration):
+    """
+    One route of a plugin for every path below ``/api/plugins/<plugin>/<prefix>``, such
+    as files addressed by their path.
+    """
+
+    prefix: str
+    """
+    The route's prefix below the plugin's prefix, without a leading ``/`` and ending in
+    ``/``.
+    """
+
+    handler: PrefixHandler
+    """
+    Answers the requests, given the path after the prefix.
+    """
+
+    def route(self, plugin_prefix: str) -> Route:
+        return PrefixRoute(self.method, f"{plugin_prefix}{self.prefix}", self.handler)
 
 
 class ViewerPlugin(ABC):
@@ -86,7 +131,7 @@ class ViewerPlugin(ABC):
         """
         return []
 
-    def routes(self, context: PluginContext) -> List[PluginRoute]:
+    def routes(self, context: PluginContext) -> List[RouteDeclaration]:
         """
         :param context: What the viewer offers the plugin.
         :return: The plugin's routes; none by default.
