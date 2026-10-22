@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="environment">
+  <link name="world_root" />
+  <link name="map" />
+  <joint name="world_root_to_map" type="fixed">
+    <parent link="world_root" />
+    <child link="map" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="warehouse6">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/worlds/warehouse6.glb" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="map_T_warehouse6" type="fixed">
+    <parent link="map" />
+    <child link="warehouse6" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="f60638f3-6f17-452c-b888-39faee679f3c/odom" />
+  <joint name="f60638f3-6f17-452c-b888-39faee679f3c/map_T_odom" type="floating">
+    <parent link="map" />
+    <child link="f60638f3-6f17-452c-b888-39faee679f3c/odom" />
+    <origin xyz="1.5 2.5 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+</robot>

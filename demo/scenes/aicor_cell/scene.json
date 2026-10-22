@@ -1,0 +1,54 @@
+{
+ "name": "aicor_cell",
+ "formatVersion": "1.0",
+ "framesPerSecond": 50.0,
+ "trajectory": "trajectory.json",
+ "models": [
+  {
+   "name": "aicor_cell_arm",
+   "urdf": "arm.urdf",
+   "prefix": "arm",
+   "robot": true,
+   "links": 7,
+   "movableJoints": [
+    "arm_j1",
+    "arm_j2",
+    "arm_j3",
+    "arm_j4",
+    "arm_j5"
+   ],
+   "posedJoints": []
+  },
+  {
+   "name": "aicor_cell_environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 7,
+   "movableJoints": [],
+   "posedJoints": []
+  }
+ ],
+ "robot": {
+  "name": "aicor_cell_arm",
+  "prefix": "arm",
+  "baseBody": "arm_basis",
+  "parts": {},
+  "partAnnotations": []
+ },
+ "objects": [],
+ "segments": [
+  {
+   "step": "plan",
+   "start": 0,
+   "end": 451
+  }
+ ],
+ "planTrees": [],
+ "actions": [],
+ "detectedEvents": [],
+ "missingAssets": [],
+ "task": "plan",
+ "robotName": "AICOR cell arm",
+ "environmentName": "AICOR cell"
+}

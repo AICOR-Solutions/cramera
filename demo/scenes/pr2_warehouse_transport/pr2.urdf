@@ -1,0 +1,1239 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="pr2">
+  <link name="world_root" />
+  <link name="pr2/base_footprint" />
+  <joint name="world_root_to_pr2/base_footprint" type="fixed">
+    <parent link="world_root" />
+    <child link="pr2/base_footprint" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/base_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/base.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/base_footprint_joint" type="fixed">
+    <parent link="pr2/base_footprint" />
+    <child link="pr2/base_link" />
+    <origin xyz="0.0 0.0 0.051" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/torso_lift_motor_screw_link" />
+  <joint name="pr2/torso_lift_motor_screw_joint" type="continuous">
+    <parent link="pr2/base_link" />
+    <child link="pr2/torso_lift_motor_screw_link" />
+    <origin xyz="-0.15 0.0 0.7" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+  </joint>
+  <link name="pr2/torso_lift_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/torso_v0/torso_lift.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.9 0.9 0.9 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/torso_lift_joint" type="prismatic">
+    <parent link="pr2/base_link" />
+    <child link="pr2/torso_lift_link" />
+    <origin xyz="-0.05 0.0 0.739675" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0115" upper="0.325" velocity="0.013" effort="0.0" />
+  </joint>
+  <link name="pr2/l_shoulder_pan_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/shoulder_v0/shoulder_pan.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.0 0.8 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_shoulder_pan_joint" type="revolute">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/l_shoulder_pan_link" />
+    <origin xyz="0.0 0.188 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-0.564601836603" upper="2.1353981634" velocity="0.15" effort="0.0" />
+  </joint>
+  <link name="pr2/l_shoulder_lift_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/shoulder_v0/shoulder_lift.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_shoulder_lift_joint" type="revolute">
+    <parent link="pr2/l_shoulder_pan_link" />
+    <child link="pr2/l_shoulder_lift_link" />
+    <origin xyz="0.1 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-0.3536" upper="1.2963" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="pr2/l_upper_arm_roll_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/shoulder_v0/upper_arm_roll.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_upper_arm_roll_joint" type="revolute">
+    <parent link="pr2/l_shoulder_lift_link" />
+    <child link="pr2/l_upper_arm_roll_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+    <limit lower="-0.65" upper="3.75" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/l_upper_arm_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/upper_arm_v0/upper_arm.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_upper_arm_joint" type="fixed">
+    <parent link="pr2/l_upper_arm_roll_link" />
+    <child link="pr2/l_upper_arm_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_elbow_flex_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/upper_arm_v0/elbow_flex.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_elbow_flex_joint" type="revolute">
+    <parent link="pr2/l_upper_arm_link" />
+    <child link="pr2/l_elbow_flex_link" />
+    <origin xyz="0.4 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-2.1213" upper="-0.15" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/l_forearm_roll_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/upper_arm_v0/forearm_roll.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_forearm_roll_joint" type="continuous">
+    <parent link="pr2/l_elbow_flex_link" />
+    <child link="pr2/l_forearm_roll_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_forearm_cam_frame" />
+  <joint name="pr2/l_forearm_cam_frame_joint" type="fixed">
+    <parent link="pr2/l_forearm_roll_link" />
+    <child link="pr2/l_forearm_cam_frame" />
+    <origin xyz="0.144227 -0.007019 0.035422" rpy="-1.570661 -0.556339 0.0087" />
+  </joint>
+  <link name="pr2/l_forearm_cam_optical_frame" />
+  <joint name="pr2/l_forearm_cam_optical_frame_joint" type="fixed">
+    <parent link="pr2/l_forearm_cam_frame" />
+    <child link="pr2/l_forearm_cam_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/l_forearm_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/forearm_v0/forearm.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_forearm_joint" type="fixed">
+    <parent link="pr2/l_forearm_roll_link" />
+    <child link="pr2/l_forearm_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_wrist_flex_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/forearm_v0/wrist_flex.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_wrist_flex_joint" type="revolute">
+    <parent link="pr2/l_forearm_link" />
+    <child link="pr2/l_wrist_flex_link" />
+    <origin xyz="0.321 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-2.0" upper="-0.1" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/l_wrist_roll_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/forearm_v0/wrist_roll.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_wrist_roll_joint" type="continuous">
+    <parent link="pr2/l_wrist_flex_link" />
+    <child link="pr2/l_wrist_roll_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_force_torque_adapter_link" />
+  <joint name="pr2/l_force_torque_adapter_joint" type="fixed">
+    <parent link="pr2/l_wrist_roll_link" />
+    <child link="pr2/l_force_torque_adapter_link" />
+    <origin xyz="0.0356 0.0 -0.0" rpy="0.0 -1.570796 0.0" />
+  </joint>
+  <link name="pr2/l_force_torque_link">
+    <visual>
+      <origin xyz="0.0 0.0 -0.012" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <cylinder radius="0.0225" length="0.0356" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_force_torque_joint" type="fixed">
+    <parent link="pr2/l_force_torque_adapter_link" />
+    <child link="pr2/l_force_torque_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 1.22173" />
+  </joint>
+  <link name="pr2/l_gripper_palm_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/gripper_palm.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.8 0.0 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_gripper_palm_joint" type="fixed">
+    <parent link="pr2/l_force_torque_link" />
+    <child link="pr2/l_gripper_palm_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="1.22173 1.570796 0.0" />
+  </joint>
+  <link name="pr2/l_gripper_r_finger_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_gripper_r_finger_joint" type="revolute">
+    <parent link="pr2/l_gripper_palm_link" />
+    <child link="pr2/l_gripper_r_finger_link" />
+    <origin xyz="0.07691 -0.01 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 -1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/l_gripper_r_finger_tip_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_gripper_r_finger_tip_joint" type="revolute">
+    <parent link="pr2/l_gripper_r_finger_link" />
+    <child link="pr2/l_gripper_r_finger_tip_link" />
+    <origin xyz="0.09137 -0.00495 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/l_gripper_l_finger_tip_frame" />
+  <joint name="pr2/l_gripper_joint" type="prismatic">
+    <parent link="pr2/l_gripper_r_finger_tip_link" />
+    <child link="pr2/l_gripper_l_finger_tip_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.088" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="pr2/l_gripper_l_finger_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_gripper_l_finger_joint" type="revolute">
+    <parent link="pr2/l_gripper_palm_link" />
+    <child link="pr2/l_gripper_l_finger_link" />
+    <origin xyz="0.07691 0.01 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/l_gripper_l_finger_tip_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_gripper_l_finger_tip_joint" type="revolute">
+    <parent link="pr2/l_gripper_l_finger_link" />
+    <child link="pr2/l_gripper_l_finger_tip_link" />
+    <origin xyz="0.09137 0.00495 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 -1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/l_gripper_motor_slider_link" />
+  <joint name="pr2/l_gripper_motor_slider_joint" type="prismatic">
+    <parent link="pr2/l_gripper_palm_link" />
+    <child link="pr2/l_gripper_motor_slider_link" />
+    <origin xyz="0.16828 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+    <limit lower="-0.1" upper="0.1" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="pr2/l_gripper_motor_screw_link" />
+  <joint name="pr2/l_gripper_motor_screw_joint" type="continuous">
+    <parent link="pr2/l_gripper_motor_slider_link" />
+    <child link="pr2/l_gripper_motor_screw_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/l_gripper_tool_frame" />
+  <joint name="pr2/l_gripper_tool_joint" type="fixed">
+    <parent link="pr2/l_gripper_palm_link" />
+    <child link="pr2/l_gripper_tool_frame" />
+    <origin xyz="0.18 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_gripper_motor_accelerometer_link" />
+  <joint name="pr2/l_gripper_motor_accelerometer_joint" type="fixed">
+    <parent link="pr2/l_gripper_palm_link" />
+    <child link="pr2/l_gripper_motor_accelerometer_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_gripper_led_frame" />
+  <joint name="pr2/l_gripper_led_joint" type="fixed">
+    <parent link="pr2/l_gripper_palm_link" />
+    <child link="pr2/l_gripper_led_frame" />
+    <origin xyz="0.0513 0.0 0.0244" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_shoulder_pan_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/shoulder_v0/shoulder_pan.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.0 0.8 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_shoulder_pan_joint" type="revolute">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/r_shoulder_pan_link" />
+    <origin xyz="0.0 -0.188 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.1353981634" upper="0.564601836603" velocity="0.15" effort="0.0" />
+  </joint>
+  <link name="pr2/r_shoulder_lift_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/shoulder_v0/shoulder_lift.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_shoulder_lift_joint" type="revolute">
+    <parent link="pr2/r_shoulder_pan_link" />
+    <child link="pr2/r_shoulder_lift_link" />
+    <origin xyz="0.1 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-0.3536" upper="1.2963" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="pr2/r_upper_arm_roll_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/shoulder_v0/upper_arm_roll.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_upper_arm_roll_joint" type="revolute">
+    <parent link="pr2/r_shoulder_lift_link" />
+    <child link="pr2/r_upper_arm_roll_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+    <limit lower="-3.75" upper="0.65" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/r_upper_arm_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/upper_arm_v0/upper_arm.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_upper_arm_joint" type="fixed">
+    <parent link="pr2/r_upper_arm_roll_link" />
+    <child link="pr2/r_upper_arm_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_elbow_flex_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/upper_arm_v0/elbow_flex.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_elbow_flex_joint" type="revolute">
+    <parent link="pr2/r_upper_arm_link" />
+    <child link="pr2/r_elbow_flex_link" />
+    <origin xyz="0.4 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-2.1213" upper="-0.15" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/r_forearm_roll_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/upper_arm_v0/forearm_roll.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_forearm_roll_joint" type="continuous">
+    <parent link="pr2/r_elbow_flex_link" />
+    <child link="pr2/r_forearm_roll_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_forearm_cam_frame" />
+  <joint name="pr2/r_forearm_cam_frame_joint" type="fixed">
+    <parent link="pr2/r_forearm_roll_link" />
+    <child link="pr2/r_forearm_cam_frame" />
+    <origin xyz="0.139183 0.002252 0.038146" rpy="1.569726 -0.540237 -0.02275" />
+  </joint>
+  <link name="pr2/r_forearm_cam_optical_frame" />
+  <joint name="pr2/r_forearm_cam_optical_frame_joint" type="fixed">
+    <parent link="pr2/r_forearm_cam_frame" />
+    <child link="pr2/r_forearm_cam_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 -0.0 -1.570796" />
+  </joint>
+  <link name="pr2/r_forearm_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/forearm_v0/forearm.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_forearm_joint" type="fixed">
+    <parent link="pr2/r_forearm_roll_link" />
+    <child link="pr2/r_forearm_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_wrist_flex_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/forearm_v0/wrist_flex.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_wrist_flex_joint" type="revolute">
+    <parent link="pr2/r_forearm_link" />
+    <child link="pr2/r_wrist_flex_link" />
+    <origin xyz="0.321 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-2.0" upper="-0.1" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/r_wrist_roll_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/forearm_v0/wrist_roll.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_wrist_roll_joint" type="continuous">
+    <parent link="pr2/r_wrist_flex_link" />
+    <child link="pr2/r_wrist_roll_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_gripper_palm_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/gripper_palm.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.8 0.0 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_gripper_palm_joint" type="fixed">
+    <parent link="pr2/r_wrist_roll_link" />
+    <child link="pr2/r_gripper_palm_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_gripper_r_finger_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_gripper_r_finger_joint" type="revolute">
+    <parent link="pr2/r_gripper_palm_link" />
+    <child link="pr2/r_gripper_r_finger_link" />
+    <origin xyz="0.07691 -0.01 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 -1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/r_gripper_r_finger_tip_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_gripper_r_finger_tip_joint" type="revolute">
+    <parent link="pr2/r_gripper_r_finger_link" />
+    <child link="pr2/r_gripper_r_finger_tip_link" />
+    <origin xyz="0.09137 -0.00495 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/r_gripper_l_finger_tip_frame" />
+  <joint name="pr2/r_gripper_joint" type="prismatic">
+    <parent link="pr2/r_gripper_r_finger_tip_link" />
+    <child link="pr2/r_gripper_l_finger_tip_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.088" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="pr2/r_gripper_l_finger_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_gripper_l_finger_joint" type="revolute">
+    <parent link="pr2/r_gripper_palm_link" />
+    <child link="pr2/r_gripper_l_finger_link" />
+    <origin xyz="0.07691 0.01 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/r_gripper_l_finger_tip_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/gripper_v0/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_gripper_l_finger_tip_joint" type="revolute">
+    <parent link="pr2/r_gripper_l_finger_link" />
+    <child link="pr2/r_gripper_l_finger_tip_link" />
+    <origin xyz="0.09137 0.00495 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 -1.0" />
+    <limit lower="0.0" upper="0.548" velocity="0.5" effort="0.0" />
+  </joint>
+  <link name="pr2/r_gripper_motor_slider_link" />
+  <joint name="pr2/r_gripper_motor_slider_joint" type="prismatic">
+    <parent link="pr2/r_gripper_palm_link" />
+    <child link="pr2/r_gripper_motor_slider_link" />
+    <origin xyz="0.16828 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+    <limit lower="-0.1" upper="0.1" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="pr2/r_gripper_motor_screw_link" />
+  <joint name="pr2/r_gripper_motor_screw_joint" type="continuous">
+    <parent link="pr2/r_gripper_motor_slider_link" />
+    <child link="pr2/r_gripper_motor_screw_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/r_gripper_tool_frame" />
+  <joint name="pr2/r_gripper_tool_joint" type="fixed">
+    <parent link="pr2/r_gripper_palm_link" />
+    <child link="pr2/r_gripper_tool_frame" />
+    <origin xyz="0.18 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_gripper_motor_accelerometer_link" />
+  <joint name="pr2/r_gripper_motor_accelerometer_joint" type="fixed">
+    <parent link="pr2/r_gripper_palm_link" />
+    <child link="pr2/r_gripper_motor_accelerometer_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_gripper_led_frame" />
+  <joint name="pr2/r_gripper_led_joint" type="fixed">
+    <parent link="pr2/r_gripper_palm_link" />
+    <child link="pr2/r_gripper_led_frame" />
+    <origin xyz="0.0513 0.0 0.0244" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/laser_tilt_mount_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/tilting_laser_v0/tilting_hokuyo.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.8 0.0 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/laser_tilt_mount_joint" type="revolute">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/laser_tilt_mount_link" />
+    <origin xyz="0.09893 0.0 0.227" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-0.7354" upper="1.43353" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/laser_tilt_link" />
+  <joint name="pr2/laser_tilt_joint" type="fixed">
+    <parent link="pr2/laser_tilt_mount_link" />
+    <child link="pr2/laser_tilt_link" />
+    <origin xyz="0.0 0.0 0.029202" rpy="0.0 0.0 -0.011866" />
+  </joint>
+  <link name="pr2/head_pan_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/head_v0/head_pan.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.0 0.8 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/head_pan_joint" type="revolute">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/head_pan_link" />
+    <origin xyz="-0.01707 0.0 0.38145" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.857" upper="2.857" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="pr2/head_tilt_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/head_v0/head_tilt.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/head_tilt_joint" type="revolute">
+    <parent link="pr2/head_pan_link" />
+    <child link="pr2/head_tilt_link" />
+    <origin xyz="0.068 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="-0.3712" upper="1.29626" velocity="3.5" effort="0.0" />
+  </joint>
+  <link name="pr2/head_plate_frame" />
+  <joint name="pr2/head_plate_frame_joint" type="fixed">
+    <parent link="pr2/head_tilt_link" />
+    <child link="pr2/head_plate_frame" />
+    <origin xyz="0.0232 0.0 0.0645" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/head_mount_kinect2_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/sensors/microsoft_kinect2.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.5 0.5 0.5 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/head_mount_kinect2_joint" type="fixed">
+    <parent link="pr2/head_plate_frame" />
+    <child link="pr2/head_mount_kinect2_link" />
+    <origin xyz="-0.024 0.0 0.091" rpy="0.0 0.0 -1.5708" />
+  </joint>
+  <link name="pr2/head_mount_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/kinect_prosilica_v0/115x100_swept_back--coarse.STL" scale="0.001 0.001 0.001" />
+      </geometry>
+      <material name="">
+        <color rgba="0.5 0.5 0.5 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/head_mount_joint" type="fixed">
+    <parent link="pr2/head_plate_frame" />
+    <child link="pr2/head_mount_link" />
+    <origin xyz="-0.138 0.0 0.091" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/head_mount_prosilica_link" />
+  <joint name="pr2/head_mount_prosilica_joint" type="fixed">
+    <parent link="pr2/head_mount_link" />
+    <child link="pr2/head_mount_prosilica_link" />
+    <origin xyz="-0.046457 0.0125 0.088921" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/head_mount_prosilica_optical_frame" />
+  <joint name="pr2/head_mount_prosilica_optical_frame_joint" type="fixed">
+    <parent link="pr2/head_mount_prosilica_link" />
+    <child link="pr2/head_mount_prosilica_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/head_mount_kinect_ir_link" />
+  <joint name="pr2/head_mount_kinect_ir_joint" type="fixed">
+    <parent link="pr2/head_mount_link" />
+    <child link="pr2/head_mount_kinect_ir_link" />
+    <origin xyz="-0.032267 0.0125 0.136453" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/head_mount_kinect_rgb_link" />
+  <joint name="pr2/head_mount_kinect_rgb_joint" type="fixed">
+    <parent link="pr2/head_mount_kinect_ir_link" />
+    <child link="pr2/head_mount_kinect_rgb_link" />
+    <origin xyz="-0.011275 -0.024596 -0.010103" rpy="-0.006362 -0.036289 -0.003498" />
+  </joint>
+  <link name="pr2/head_mount_kinect_rgb_optical_frame" />
+  <joint name="pr2/head_mount_kinect_rgb_optical_frame_joint" type="fixed">
+    <parent link="pr2/head_mount_kinect_rgb_link" />
+    <child link="pr2/head_mount_kinect_rgb_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/head_mount_kinect_ir_optical_frame" />
+  <joint name="pr2/head_mount_kinect_ir_optical_frame_joint" type="fixed">
+    <parent link="pr2/head_mount_kinect_ir_link" />
+    <child link="pr2/head_mount_kinect_ir_optical_frame" />
+    <origin xyz="0.0 0.01 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/projector_wg6802418_frame" />
+  <joint name="pr2/projector_wg6802418_frame_joint" type="fixed">
+    <parent link="pr2/head_plate_frame" />
+    <child link="pr2/projector_wg6802418_frame" />
+    <origin xyz="0.0 0.11 0.0546" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/projector_wg6802418_child_frame" />
+  <joint name="pr2/projector_wg6802418_child_frame_joint" type="fixed">
+    <parent link="pr2/projector_wg6802418_frame" />
+    <child link="pr2/projector_wg6802418_child_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 -1.570796 0.0" />
+  </joint>
+  <link name="pr2/sensor_mount_link" />
+  <joint name="pr2/sensor_mount_frame_joint" type="fixed">
+    <parent link="pr2/head_plate_frame" />
+    <child link="pr2/sensor_mount_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/double_stereo_link">
+    <visual>
+      <origin xyz="-0.01 0.0 0.025" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.02 0.12 0.05" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0 0.0 0.8 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/double_stereo_frame_joint" type="fixed">
+    <parent link="pr2/sensor_mount_link" />
+    <child link="pr2/double_stereo_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/narrow_stereo_link" />
+  <joint name="pr2/narrow_stereo_frame_joint" type="fixed">
+    <parent link="pr2/double_stereo_link" />
+    <child link="pr2/narrow_stereo_link" />
+    <origin xyz="0.043113 0.059341 0.052721" rpy="-0.00438 -0.011998 0.001732" />
+  </joint>
+  <link name="pr2/narrow_stereo_l_stereo_camera_frame" />
+  <joint name="pr2/narrow_stereo_l_stereo_camera_frame_joint" type="fixed">
+    <parent link="pr2/narrow_stereo_link" />
+    <child link="pr2/narrow_stereo_l_stereo_camera_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/narrow_stereo_r_stereo_camera_frame" />
+  <joint name="pr2/narrow_stereo_r_stereo_camera_frame_joint" type="fixed">
+    <parent link="pr2/narrow_stereo_l_stereo_camera_frame" />
+    <child link="pr2/narrow_stereo_r_stereo_camera_frame" />
+    <origin xyz="0.0 -0.09 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/narrow_stereo_r_stereo_camera_optical_frame" />
+  <joint name="pr2/narrow_stereo_r_stereo_camera_optical_frame_joint" type="fixed">
+    <parent link="pr2/narrow_stereo_r_stereo_camera_frame" />
+    <child link="pr2/narrow_stereo_r_stereo_camera_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/narrow_stereo_l_stereo_camera_optical_frame" />
+  <joint name="pr2/narrow_stereo_l_stereo_camera_optical_frame_joint" type="fixed">
+    <parent link="pr2/narrow_stereo_l_stereo_camera_frame" />
+    <child link="pr2/narrow_stereo_l_stereo_camera_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/narrow_stereo_optical_frame" />
+  <joint name="pr2/narrow_stereo_optical_frame_joint" type="fixed">
+    <parent link="pr2/narrow_stereo_link" />
+    <child link="pr2/narrow_stereo_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/wide_stereo_link" />
+  <joint name="pr2/wide_stereo_frame_joint" type="fixed">
+    <parent link="pr2/double_stereo_link" />
+    <child link="pr2/wide_stereo_link" />
+    <origin xyz="0.046545 0.028052 0.052333" rpy="-0.005117 -0.016123 0.023787" />
+  </joint>
+  <link name="pr2/wide_stereo_l_stereo_camera_frame" />
+  <joint name="pr2/wide_stereo_l_stereo_camera_frame_joint" type="fixed">
+    <parent link="pr2/wide_stereo_link" />
+    <child link="pr2/wide_stereo_l_stereo_camera_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/wide_stereo_r_stereo_camera_frame" />
+  <joint name="pr2/wide_stereo_r_stereo_camera_frame_joint" type="fixed">
+    <parent link="pr2/wide_stereo_l_stereo_camera_frame" />
+    <child link="pr2/wide_stereo_r_stereo_camera_frame" />
+    <origin xyz="0.0 -0.09 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/wide_stereo_r_stereo_camera_optical_frame" />
+  <joint name="pr2/wide_stereo_r_stereo_camera_optical_frame_joint" type="fixed">
+    <parent link="pr2/wide_stereo_r_stereo_camera_frame" />
+    <child link="pr2/wide_stereo_r_stereo_camera_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/wide_stereo_l_stereo_camera_optical_frame" />
+  <joint name="pr2/wide_stereo_l_stereo_camera_optical_frame_joint" type="fixed">
+    <parent link="pr2/wide_stereo_l_stereo_camera_frame" />
+    <child link="pr2/wide_stereo_l_stereo_camera_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/wide_stereo_optical_frame" />
+  <joint name="pr2/wide_stereo_optical_frame_joint" type="fixed">
+    <parent link="pr2/wide_stereo_link" />
+    <child link="pr2/wide_stereo_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/high_def_frame" />
+  <joint name="pr2/high_def_frame_joint" type="fixed">
+    <parent link="pr2/sensor_mount_link" />
+    <child link="pr2/high_def_frame" />
+    <origin xyz="0.044491 -0.110992 0.05734" rpy="-0.010993 -0.007224 0.003167" />
+  </joint>
+  <link name="pr2/high_def_optical_frame" />
+  <joint name="pr2/high_def_optical_frame_joint" type="fixed">
+    <parent link="pr2/high_def_frame" />
+    <child link="pr2/high_def_optical_frame" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+  </joint>
+  <link name="pr2/head_mount_kinect2_rgb_optical_frame" />
+  <joint name="pr2/head_mount_kinect2_rgb_optical_frame_joint" type="fixed">
+    <parent link="pr2/high_def_optical_frame" />
+    <child link="pr2/head_mount_kinect2_rgb_optical_frame" />
+    <origin xyz="-0.017815 -0.064648 -0.037164" rpy="-0.020494 0.000163 0.005596" />
+  </joint>
+  <link name="pr2/head_mount_kinect2_ir_optical_frame" />
+  <joint name="pr2/head_mount_kinect2_ir_optical_frame_joint" type="fixed">
+    <parent link="pr2/head_mount_kinect2_rgb_optical_frame" />
+    <child link="pr2/head_mount_kinect2_ir_optical_frame" />
+    <origin xyz="-0.050973 0.000178 0.001332" rpy="0.002312 0.005632 0.002208" />
+  </joint>
+  <link name="pr2/imu_link" />
+  <joint name="pr2/imu_joint" type="fixed">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/imu_link" />
+    <origin xyz="-0.02977 -0.1497 0.164" rpy="3.141593 -0.0 3.141593" />
+  </joint>
+  <link name="pr2/r_torso_lift_side_plate_link" />
+  <joint name="pr2/r_torso_lift_side_plate_joint" type="fixed">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/r_torso_lift_side_plate_link" />
+    <origin xyz="0.0535 -0.209285 0.176625" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/r_torso_lift_side_item_profile_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/cableguide/item_Profil_8_40x40_leicht_L410.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.9 0.9 0.9 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/r_torso_lift_side_item_profile_joint" type="fixed">
+    <parent link="pr2/r_torso_lift_side_plate_link" />
+    <child link="pr2/r_torso_lift_side_item_profile_link" />
+    <origin xyz="-0.205 -0.02 0.05" rpy="0.0 0.0 1.570796" />
+  </joint>
+  <link name="pr2/m_torso_lift_side_item_profile_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/cableguide/item_Profil_8_40x40_leicht_L420.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.9 0.9 0.9 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/m_torso_lift_side_item_profile_joint" type="fixed">
+    <parent link="pr2/r_torso_lift_side_item_profile_link" />
+    <child link="pr2/m_torso_lift_side_item_profile_link" />
+    <origin xyz="0.23 0.185 0.0" rpy="0.0 0.0 1.570796" />
+  </joint>
+  <link name="pr2/t_torso_lift_side_item_profile_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/cableguide/item_Profil_8_40x40_leicht_L1000.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.9 0.9 0.9 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/t_torso_lift_side_item_profile_joint" type="fixed">
+    <parent link="pr2/m_torso_lift_side_item_profile_link" />
+    <child link="pr2/t_torso_lift_side_item_profile_link" />
+    <origin xyz="0.0 0.0 0.52" rpy="1.570796 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_torso_lift_side_plate_link" />
+  <joint name="pr2/l_torso_lift_side_plate_joint" type="fixed">
+    <parent link="pr2/torso_lift_link" />
+    <child link="pr2/l_torso_lift_side_plate_link" />
+    <origin xyz="0.0535 0.209285 0.176625" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/l_torso_lift_side_item_profile_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/cableguide/item_Profil_8_40x40_leicht_L410.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.9 0.9 0.9 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/l_torso_lift_side_item_profile_joint" type="fixed">
+    <parent link="pr2/l_torso_lift_side_plate_link" />
+    <child link="pr2/l_torso_lift_side_item_profile_link" />
+    <origin xyz="-0.205 0.02 0.05" rpy="0.0 0.0 1.570796" />
+  </joint>
+  <link name="pr2/br_caster_rotation_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/caster.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/br_caster_rotation_joint" type="continuous">
+    <parent link="pr2/base_link" />
+    <child link="pr2/br_caster_rotation_link" />
+    <origin xyz="-0.2246 -0.2246 0.0282" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+  </joint>
+  <link name="pr2/br_caster_r_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/br_caster_r_wheel_joint" type="continuous">
+    <parent link="pr2/br_caster_rotation_link" />
+    <child link="pr2/br_caster_r_wheel_link" />
+    <origin xyz="0.0 -0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/br_caster_l_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/br_caster_l_wheel_joint" type="continuous">
+    <parent link="pr2/br_caster_rotation_link" />
+    <child link="pr2/br_caster_l_wheel_link" />
+    <origin xyz="0.0 0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/bl_caster_rotation_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/caster.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/bl_caster_rotation_joint" type="continuous">
+    <parent link="pr2/base_link" />
+    <child link="pr2/bl_caster_rotation_link" />
+    <origin xyz="-0.2246 0.2246 0.0282" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+  </joint>
+  <link name="pr2/bl_caster_r_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/bl_caster_r_wheel_joint" type="continuous">
+    <parent link="pr2/bl_caster_rotation_link" />
+    <child link="pr2/bl_caster_r_wheel_link" />
+    <origin xyz="0.0 -0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/bl_caster_l_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/bl_caster_l_wheel_joint" type="continuous">
+    <parent link="pr2/bl_caster_rotation_link" />
+    <child link="pr2/bl_caster_l_wheel_link" />
+    <origin xyz="0.0 0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/fr_caster_rotation_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/caster.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/fr_caster_rotation_joint" type="continuous">
+    <parent link="pr2/base_link" />
+    <child link="pr2/fr_caster_rotation_link" />
+    <origin xyz="0.2246 -0.2246 0.0282" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+  </joint>
+  <link name="pr2/fr_caster_r_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/fr_caster_r_wheel_joint" type="continuous">
+    <parent link="pr2/fr_caster_rotation_link" />
+    <child link="pr2/fr_caster_r_wheel_link" />
+    <origin xyz="0.0 -0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/fr_caster_l_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/fr_caster_l_wheel_joint" type="continuous">
+    <parent link="pr2/fr_caster_rotation_link" />
+    <child link="pr2/fr_caster_l_wheel_link" />
+    <origin xyz="0.0 0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/fl_caster_rotation_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/caster.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/fl_caster_rotation_joint" type="continuous">
+    <parent link="pr2/base_link" />
+    <child link="pr2/fl_caster_rotation_link" />
+    <origin xyz="0.2246 0.2246 0.0282" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+  </joint>
+  <link name="pr2/fl_caster_r_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/fl_caster_r_wheel_joint" type="continuous">
+    <parent link="pr2/fl_caster_rotation_link" />
+    <child link="pr2/fl_caster_r_wheel_link" />
+    <origin xyz="0.0 -0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/fl_caster_l_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/base_v0/wheel.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/fl_caster_l_wheel_joint" type="continuous">
+    <parent link="pr2/fl_caster_rotation_link" />
+    <child link="pr2/fl_caster_l_wheel_link" />
+    <origin xyz="0.0 0.049 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="pr2/base_laser_link" />
+  <joint name="pr2/base_laser_joint" type="fixed">
+    <parent link="pr2/base_link" />
+    <child link="pr2/base_laser_link" />
+    <origin xyz="0.275 0.0 0.252" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="pr2/base_bellow_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.05 0.37 0.3" />
+      </geometry>
+      <material name="">
+        <color rgba="0.1 0.1 0.1 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="pr2/base_bellow_joint" type="fixed">
+    <parent link="pr2/base_link" />
+    <child link="pr2/base_bellow_link" />
+    <origin xyz="-0.29 0.0 0.8" rpy="0.0 0.0 0.0" />
+  </joint>
+</robot>

@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<!-- AICOR automation cell environment, converted from
+     automationMockup/src/camera_sim/cell_scene.xml (MJCF).
+     MJCF half-extents are doubled to URDF full extents; world-fixed body
+     poses are baked in via fixed joints. The freely movable parts (deckel,
+     boxteil) are pinned at their MJCF spawn poses for viewing. -->
+<robot name="aicor_cell_environment">
+
+  <material name="floor_grey"><color rgba="0.45 0.45 0.45 1"/></material>
+  <material name="band_dark"><color rgba="0.22 0.24 0.28 1"/></material>
+  <material name="deckel_red"><color rgba="0.80 0.15 0.15 1"/></material>
+  <material name="boxteil_blue"><color rgba="0.15 0.25 0.80 1"/></material>
+  <material name="container_wood"><color rgba="0.72 0.55 0.36 1"/></material>
+  <material name="column_grey"><color rgba="0.3 0.3 0.33 1"/></material>
+
+  <link name="boden">
+    <visual>
+      <origin xyz="0 0 -0.01"/>
+      <geometry><box size="8 8 0.02"/></geometry>
+      <material name="floor_grey"/>
+    </visual>
+  </link>
+
+  <link name="band">
+    <visual>
+      <geometry><box size="1.4 0.5 0.8"/></geometry>
+      <material name="band_dark"/>
+    </visual>
+  </link>
+  <joint name="band_fix" type="fixed">
+    <parent link="boden"/>
+    <child link="band"/>
+    <origin xyz="1.05 0 0.4"/>
+  </joint>
+
+  <link name="deckel">
+    <visual>
+      <geometry><cylinder radius="0.06" length="0.024"/></geometry>
+      <material name="deckel_red"/>
+    </visual>
+  </link>
+  <joint name="deckel_fix" type="fixed">
+    <parent link="boden"/>
+    <child link="deckel"/>
+    <origin xyz="0.6 0.0 0.815"/>
+  </joint>
+
+  <link name="boxteil">
+    <visual>
+      <geometry><box size="0.14 0.10 0.064"/></geometry>
+      <material name="boxteil_blue"/>
+    </visual>
+  </link>
+  <joint name="boxteil_fix" type="fixed">
+    <parent link="boden"/>
+    <child link="boxteil"/>
+    <origin xyz="0.85 0.08 0.835"/>
+  </joint>
+
+  <link name="box_links">
+    <visual>
+      <origin xyz="0 0 0.08"/>
+      <geometry><box size="0.74 0.74 0.16"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="0.385 0 0.485"/>
+      <geometry><box size="0.03 0.80 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="-0.385 0 0.485"/>
+      <geometry><box size="0.03 0.80 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0.385 0.485"/>
+      <geometry><box size="0.74 0.03 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="0 -0.385 0.485"/>
+      <geometry><box size="0.74 0.03 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+  </link>
+  <joint name="box_links_fix" type="fixed">
+    <parent link="boden"/>
+    <child link="box_links"/>
+    <origin xyz="0.1 0.785 0"/>
+  </joint>
+
+  <link name="box_rechts">
+    <visual>
+      <origin xyz="0 0 0.08"/>
+      <geometry><box size="0.74 0.74 0.16"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="0.385 0 0.485"/>
+      <geometry><box size="0.03 0.80 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="-0.385 0 0.485"/>
+      <geometry><box size="0.03 0.80 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0.385 0.485"/>
+      <geometry><box size="0.74 0.03 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+    <visual>
+      <origin xyz="0 -0.385 0.485"/>
+      <geometry><box size="0.74 0.03 0.97"/></geometry>
+      <material name="container_wood"/>
+    </visual>
+  </link>
+  <joint name="box_rechts_fix" type="fixed">
+    <parent link="boden"/>
+    <child link="box_rechts"/>
+    <origin xyz="0.1 -0.785 0"/>
+  </joint>
+
+  <link name="saeule">
+    <visual>
+      <geometry><cylinder radius="0.11" length="0.97"/></geometry>
+      <material name="column_grey"/>
+    </visual>
+  </link>
+  <joint name="saeule_fix" type="fixed">
+    <parent link="boden"/>
+    <child link="saeule"/>
+    <origin xyz="0 0 0.485"/>
+  </joint>
+
+</robot>
