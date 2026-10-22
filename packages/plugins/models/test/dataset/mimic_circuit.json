@@ -1,0 +1,8 @@
+{
+  "variables": [
+    {"name": "color", "kind": "symbolic", "values": ["red", "blue"]},
+    {"name": "x", "kind": "continuous", "low": 0.0, "high": 1.0},
+    {"name": "count", "kind": "integer", "low": 3, "high": 3},
+    {"name": "distance", "kind": "continuous", "low": -Infinity, "high": Infinity}
+  ]
+}

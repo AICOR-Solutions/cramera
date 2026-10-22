@@ -1,0 +1,6 @@
+{
+  "query": [
+    {"variable": "x", "intervals": [{"low": 0.0, "high": 0.1}]},
+    {"variable": "x", "intervals": [{"low": 0.9, "high": 0.8}]}
+  ]
+}

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cramera-models"
+version = "1.0.0"
+description = "Ask a probabilistic circuit probability, posterior and mode questions from a side panel of the cramera viewer."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Vanessa Hassouna" }]
+dependencies = ["cramera==1.0.0", "cramera-protocol==1.0.0", "typing_extensions>=4.8"]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.optional-dependencies]
+circuits = ["probabilistic-model>=26.7", "random-events>=26.7", "krrood>=26.7", "plotly>=5"]
+
+[project.entry-points."cramera.plugins"]
+models = "cramera_models.plugin:ModelsPlugin"
+
+[project.urls]
+Source = "https://github.com/sunava/cramera"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cramera_models = ["web/**/*"]

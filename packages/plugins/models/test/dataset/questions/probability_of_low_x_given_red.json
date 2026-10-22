@@ -1,0 +1,4 @@
+{
+  "query": [{"variable": "x", "intervals": [{"low": 0.0, "high": 0.25}]}],
+  "evidence": [{"variable": "color", "values": ["red"]}]
+}
