@@ -324,14 +324,16 @@ class AttachedConstraint:
 
     def activate(self, world: World) -> None:
         """
-        Compile the monitor into a statechart of its own against the world.
+        Compile the monitor into a statechart of its own against the world; the
+        constraint counts as active only once it is compiled.
 
         :param world: The live world.
         """
         chart = MotionStatechart()
         chart.add_node(self.monitor)
-        self.executor = Executor(MotionStatechartContext(world=world))
-        self.executor.compile(motion_statechart=chart)
+        executor = Executor(MotionStatechartContext(world=world))
+        executor.compile(motion_statechart=chart)
+        self.executor = executor
 
     def tick(self) -> None:
         """

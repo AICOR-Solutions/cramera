@@ -5,7 +5,7 @@ The executing plan as the viewer shows it: every node with its native status.
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Set
 
@@ -196,28 +196,44 @@ class PlanPublisher:
         with self.lock:
             return self.latest
 
-    def node(self, identifier: str) -> PlanNode:
+    def published_node(self, identifier: str) -> LivePlanNode:
         """
-        :param identifier: The identity of a node of the plan.
-        :return: The node.
-        :raises UnknownPlanNode: When the plan holds no such node.
+        :param identifier: The identity of a node of the published plan.
+        :return: The node as last published.
+        :raises UnknownPlanNode: When the published plan holds no such node.
         """
-        root = self.root()
-        nodes = [] if root is None else [root] + root.descendants
-        for node in nodes:
-            if self.identifier(node) == identifier:
+        for node in self.current().nodes:
+            if node.identifier == identifier:
                 return node
         raise UnknownPlanNode(identifier)
 
     def is_executing(self) -> bool:
         """
-        :return: Whether the plan's root is running or paused.
+        :return: Whether the published plan's root is running or paused.
         """
-        root = self.root()
-        return root is not None and root.status in (
-            TaskStatus.RUNNING,
-            TaskStatus.PAUSE,
+        roots = [node for node in self.current().nodes if node.parent is None]
+        return bool(roots) and roots[0].status in (
+            TaskStatus.RUNNING.name,
+            TaskStatus.PAUSE.name,
         )
+
+    def with_constraints(self, constraints: ConstraintLookup) -> LivePlan:
+        """
+        Publish the last snapshot again with the current constraint monitors, without
+        reading the plan, which the thread performing it changes.
+
+        :param constraints: The constraint monitors attached to each node.
+        :return: The newest snapshot.
+        """
+        with self.lock:
+            self.latest = replace(
+                self.latest,
+                nodes=[
+                    replace(node, constraints=constraints(node.identifier))
+                    for node in self.latest.nodes
+                ],
+            )
+            return self.latest
 
     def running_action(self) -> Optional[str]:
         """

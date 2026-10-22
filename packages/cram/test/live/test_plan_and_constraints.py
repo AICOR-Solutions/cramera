@@ -67,9 +67,9 @@ def test_a_node_is_found_by_its_identity(publisher, small_plan):
     publisher.begin_plan(small_plan.plan)
     identifier = PlanPublisher.identifier(small_plan.action)
     assert identifier.startswith(PLAN_NODE_PREFIX)
-    assert publisher.plan.node(identifier) is small_plan.action
+    assert publisher.plan.published_node(identifier).identifier == identifier
     with pytest.raises(UnknownPlanNode):
-        publisher.plan.node("plan_node_99")
+        publisher.plan.published_node("plan_node_99")
 
 
 def test_no_plan_has_no_nodes(publisher):

@@ -326,22 +326,24 @@ class LivePublisher:
         """
         :param node: The plan node that started.
         """
-        if isinstance(node, MotionNode):
-            action = node.parent_action_node
-            self.chart_title = (
-                type(action.designator).__name__ if action is not None else ""
-            )
-            self.motion_running = True
-            self.constraints.note_motion_started()
-        self.refresh_plan()
+        with self.world_lock:
+            if isinstance(node, MotionNode):
+                action = node.parent_action_node
+                self.chart_title = (
+                    type(action.designator).__name__ if action is not None else ""
+                )
+                self.motion_running = True
+                self.constraints.note_motion_started()
+            self.refresh_plan()
 
     def observe_node_ended(self, node: PlanNode) -> None:
         """
         :param node: The plan node that ended.
         """
-        if isinstance(node, MotionNode):
-            self.motion_running = False
-        self.refresh_plan()
+        with self.world_lock:
+            if isinstance(node, MotionNode):
+                self.motion_running = False
+            self.refresh_plan()
 
     def observe_motion_tick(self, chart: MotionStatechart) -> None:
         """
@@ -626,7 +628,8 @@ class LivePublisher:
         :param request: The move.
         :return: The acknowledgement.
         """
-        self.edits.queue_move(request, self.require_model())
+        with self.world_lock:
+            self.edits.queue_move(request, self.require_model())
         self.write_edits_while_idle()
         return Acknowledgement()
 
@@ -637,7 +640,8 @@ class LivePublisher:
         :param request: The joint value.
         :return: The acknowledgement.
         """
-        self.edits.queue_joint(request, self.require_model())
+        with self.world_lock:
+            self.edits.queue_joint(request, self.require_model())
         self.write_edits_while_idle()
         return Acknowledgement()
 
@@ -661,11 +665,11 @@ class LivePublisher:
         :raises UnknownPlanNode: When the plan has no such node.
         """
         identifier = request.target_plan_node.identifier
-        self.plan.node(identifier)
+        self.plan.published_node(identifier)
         with self.world_lock:
             monitor = ConstraintMonitorFactory(self.require_world()).monitor(request)
         self.constraints.attach(identifier, AttachedConstraint(request, monitor))
-        return self.refresh_plan()
+        return self.plan.with_constraints(self.constraints.observations)
 
     def teleoperate(self, request: TeleoperationRequest) -> Acknowledgement:
         """

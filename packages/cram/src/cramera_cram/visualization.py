@@ -179,10 +179,8 @@ class LiveVisualization:
                 acquired.callback(publisher.marker_source.stop)
             publisher.attach(self.world)
             acquired.callback(self.finish_recording, publisher)
-            for callback in (
-                PublishedStateChange(_world=self.world, publisher=publisher),
-                PublishedModelChange(_world=self.world, publisher=publisher),
-            ):
+            for callback_class in (PublishedStateChange, PublishedModelChange):
+                callback = callback_class(_world=self.world, publisher=publisher)
                 acquired.callback(callback.stop)
             acquired.callback(publisher.stop_teleoperation)
             server = LiveServer(publisher, host=self.host, port=self.port).start()
