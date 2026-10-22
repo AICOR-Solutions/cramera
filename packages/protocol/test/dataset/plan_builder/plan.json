@@ -1,0 +1,46 @@
+{
+  "formatVersion": "1.0",
+  "name": "milk_to_table",
+  "task": "Carry the milk to the table",
+  "environment": "aicor_medical_lab",
+  "selectedRobot": "robot_1",
+  "robots": [
+    {
+      "id": "robot_1",
+      "model": "PR2",
+      "label": "PR2 1",
+      "pose": [1.0, 2.5, 0.0, 0.0, 0.0, 0.0, 1.0],
+      "jointPositions": {"robot_1/torso_lift_joint": 0.2},
+      "steps": [
+        {"id": "step_1", "kind": "park_arms", "arm": "BOTH"},
+        {"id": "step_2", "kind": "move_torso", "torsoState": "HIGH"},
+        {
+          "id": "step_3",
+          "kind": "transport",
+          "object": "milk",
+          "arm": "LEFT",
+          "placement": "surface",
+          "surfaceType": "Table",
+          "constraints": [
+            {
+              "text": "Milk must always stay upright",
+              "monitorType": "VectorsAligned",
+              "monitor": {"type": "VectorsAligned", "params": {"tip_link": "milk", "tip_normal": [0, 0, 1], "goal_normal": [0, 0, 1], "threshold": 0.1}}
+            },
+            {"text": "Look where it operates", "monitorType": "PointingAt", "switch": "look_at_operation_site"}
+          ]
+        },
+        {"id": "step_4", "kind": "navigate", "target": [2.6, 1.8, 0.0, 0.0, 0.0, 0.0, 1.0]}
+      ]
+    },
+    {
+      "id": "robot_2",
+      "model": "Stretch",
+      "label": "Stretch 1",
+      "pose": [4.0, 1.0, 0.0, 0.0, 0.0, 0.7071, 0.7071]
+    }
+  ],
+  "objects": [
+    {"id": "milk", "model": "milk.stl", "pose": [2.4, 2.2, 0.95, 0.0, 0.0, 0.0, 1.0], "color": "#e6ecff"}
+  ]
+}
