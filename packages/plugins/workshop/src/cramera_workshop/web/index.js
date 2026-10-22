@@ -164,7 +164,7 @@ export class WorkshopModule {
    * @param {WorkshopPanel} content The content offering it.
    */
   async #offerDemo(name, content) {
-    const index = await this.#context.api.scenes().catch(() => ({}));
+    const index = await this.#context.api.scenes();
     const entries = index[IndexKey.SCENES] ?? [];
     content.offerDemo(entries.some((entry) => entry[IndexEntryKey.NAME] === name));
   }

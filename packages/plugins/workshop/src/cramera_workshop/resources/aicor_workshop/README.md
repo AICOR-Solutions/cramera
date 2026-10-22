@@ -41,10 +41,10 @@ from the interactive contact world.
 Load the full environment in CRAM:
 
 ```python
-from cramera.workshop_world import WorkshopWorld
+from cramera_workshop.robot.world import RobotStart, WorkshopEnvironment
 
-world = WorkshopWorld().create_world()
-world_with_pr2 = WorkshopWorld().build()
+world = WorkshopEnvironment().create_world()
+world_with_pr2 = WorkshopEnvironment().create_world(robots=[RobotStart().pr2()])
 ```
 
 For other resource users, load `environment.urdf` with a URDF parser, then instantiate
@@ -52,6 +52,6 @@ the loose-body URDFs at the `spawn` poses in `scene.json`. To copy the world, pr
 the entire directory and its relative mesh references and notices. The PR2 robot
 model is an external dependency and is not included in this original asset bundle.
 
-The reproducible Blender authoring script is `cramera/tools/workshop/build_blender.py`
-in the application repository. Browser controls and native demo instructions are
-in `cramera/docs/aicor_workshop.md` there.
+The reproducible Blender authoring script is `tools/workshop/build_blender.py` on the
+`archive/pre-v1` branch of the application repository. Browser controls and the
+native demos are described in the `cramera-workshop` package's README.

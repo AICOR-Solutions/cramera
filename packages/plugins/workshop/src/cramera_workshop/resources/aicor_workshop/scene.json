@@ -754,7 +754,8 @@
           0.5
         ]
       }
-    }
+    },
+    "demoScene": "aicor_workshop_pr2_screw_assembly"
   },
   "assetRights": {
     "principalAuthor": "Vanessa Hassouna",
