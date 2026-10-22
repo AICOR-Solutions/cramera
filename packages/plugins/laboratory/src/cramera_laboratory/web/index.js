@@ -6,9 +6,19 @@
 import * as THREE from 'three';
 
 import { withScene } from '../../core/scene-address.js';
-import { IndexEntryKey, IndexKey, TaskRunKey, TaskRunState, ViewerEvent } from '../../protocol.js';
+import {
+  ContactPhysicsKey,
+  IndexEntryKey,
+  IndexKey,
+  LaboratoryRoute,
+  TargetRequestKey,
+  TaskRunKey,
+  TaskRunState,
+  ViewerEvent,
+} from '../../protocol.js';
 import { LaboratoryClient } from './laboratory-client.js';
 import { LaboratoryPanel } from './laboratory-panel.js';
+import { PullGesture } from './pull-gesture.js';
 import { BrowserTimer, SimulationFollower } from './simulation-follower.js';
 
 /**
@@ -30,7 +40,7 @@ const STYLESHEET = new URL('./laboratory.css', import.meta.url).href;
  * @param {BrowserTimer=} timer Schedules the simulation's state requests.
  * @param {Location=} location The page's location, loaded anew for a bundle the page does not list.
  * @param {function(string, Object=): Promise<Response>=} fetch Fetches a URL.
- * @returns {Promise<{panel: LaboratoryPanel, follower: SimulationFollower}>} The panel and the follower.
+ * @returns {Promise<{panel: LaboratoryPanel, follower: SimulationFollower, gesture: PullGesture}>} The panel, the follower and the pull gesture.
  */
 export async function register(
   context,
@@ -59,10 +69,23 @@ export async function register(
     client,
     timer,
     (answer, controls) => panel.showAnswer(answer, controls, follower.scene.description),
-    () => context.panels.show(panel.panel.identifier),
+    () => {
+      context.panels.show(panel.panel.identifier);
+      gesture.attach(follower.scene.objects.group, follower.controls[ContactPhysicsKey.OBJECTS]);
+    },
     (error) => panel.showMessage(error.reason ?? error.message, true),
   );
-  context.bus.subscribe(ViewerEvent.SCENE_LOADING, () => panel.hideSimulation());
+  const gesture = new PullGesture(
+    context.view.renderer.domElement,
+    context.view.camera,
+    context.view.controls,
+    (key, position) => panel.command(LaboratoryRoute.TARGET, { [TargetRequestKey.KEY]: key, [TargetRequestKey.POSITION]: position }),
+    () => panel.command(LaboratoryRoute.RELEASE),
+  );
+  context.bus.subscribe(ViewerEvent.SCENE_LOADING, () => {
+    panel.hideSimulation();
+    gesture.detach();
+  });
   const [laboratories, devices, transfer] = await Promise.all([client.laboratories(), client.devices(), client.transfer()]);
   panel.showLaboratories(laboratories);
   panel.showDevices(devices);
@@ -73,5 +96,5 @@ export async function register(
   };
   panel.showTransfer(transfer, followTransfer);
   if (transfer[TaskRunKey.STATE] === TaskRunState.RUNNING) timer.after(TRANSFER_INTERVAL, followTransfer);
-  return { panel, follower };
+  return { panel, follower, gesture };
 }

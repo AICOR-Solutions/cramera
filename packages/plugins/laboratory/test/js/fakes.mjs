@@ -90,10 +90,35 @@ export class FakeTimer {
 
 // %% view and scene
 
+export class FakeCanvas {
+  constructor() {
+    this.listeners = new Map();
+  }
+
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type).add(listener);
+  }
+
+  removeEventListener(type, listener) {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  dispatch(type, event) {
+    for (const listener of [...(this.listeners.get(type) ?? [])]) listener({ preventDefault() {}, ...event });
+  }
+
+  getBoundingClientRect() {
+    return { left: 0, top: 0, width: 200, height: 200 };
+  }
+}
+
 export class FakeView {
   constructor() {
     this.scene = new THREE.Scene();
-    this.renderer = { localClippingEnabled: false };
+    this.renderer = { localClippingEnabled: false, domElement: new FakeCanvas() };
+    this.camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+    this.controls = { enabled: true };
     this.renders = 0;
   }
 
