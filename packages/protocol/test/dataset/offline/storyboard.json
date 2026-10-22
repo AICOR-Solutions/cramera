@@ -1,0 +1,28 @@
+{
+  "formatVersion": "1.0",
+  "title": "From world model to action",
+  "description": "Recorded runs, presented without a robot.",
+  "chapters": [
+    {
+      "title": "The cell",
+      "narration": "The arm and its workspace.",
+      "scene": "aicor_cell",
+      "panel": "details",
+      "durationSeconds": 8
+    },
+    {
+      "title": "Transport",
+      "narration": "Tracy carries the canister to the bench.",
+      "scene": "tracy_bench_transport",
+      "panel": "steps",
+      "frame": 10,
+      "playback": true,
+      "durationSeconds": 12.5
+    },
+    {
+      "title": "The cell again",
+      "scene": "aicor_cell",
+      "durationSeconds": 4
+    }
+  ]
+}

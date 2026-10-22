@@ -1,0 +1,1 @@
+{"variables": ["x", "color"], "evidence": [{"variable": "x", "intervals": [{"low": 0.0, "high": 0.5}]}]}

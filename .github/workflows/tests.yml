@@ -1,5 +1,7 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
-# of 85 %, and checks that the Python code is formatted.
+# of 85 %, and checks that the Python code is formatted. The models plugin is tested
+# without the circuit libraries: its tests against them are skipped and their
+# counterparts against stand-ins run.
 name: Tests
 
 on:
@@ -28,6 +30,12 @@ jobs:
           - package: usd
             module: cramera_usd
             install: -e './packages/usd[test]' usd-core
+          - package: plugins/offline
+            module: cramera_offline
+            install: -e ./packages/plugins/offline
+          - package: plugins/models
+            module: cramera_models
+            install: -e ./packages/plugins/models
     steps:
       - uses: actions/checkout@v4
 

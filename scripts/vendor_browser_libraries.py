@@ -1,7 +1,8 @@
 """
-Copy the browser libraries the viewer imports into its web directory: the pinned npm
-releases are downloaded, checked against the registry's integrity hash, and only the
-modules the viewer names, with every module they import, are kept.
+Copy the browser libraries the viewer and its plugins import into their web
+directories: the pinned npm releases are downloaded, checked against the registry's
+integrity hash, and only the modules named, with every module they import, are kept,
+together with the licence.
 """
 
 from __future__ import annotations
@@ -27,7 +28,19 @@ The repository root.
 
 VENDOR_DIRECTORY = REPOSITORY_ROOT / "packages/viewer/src/cramera/web/vendor"
 """
-Where the vendored libraries go.
+Where the viewer's vendored libraries go.
+"""
+
+MODELS_VENDOR_DIRECTORY = (
+    REPOSITORY_ROOT / "packages/plugins/models/src/cramera_models/web/vendor"
+)
+"""
+Where the models plugin's vendored libraries go.
+"""
+
+MANIFEST_FILE = "manifest.json"
+"""
+The file listing the vendored releases and their files, in each vendor directory.
 """
 
 REGISTRY = "https://registry.npmjs.org"
@@ -88,6 +101,17 @@ class VendoredPackage:
     it does.
     """
 
+    vendor_directory: Path = VENDOR_DIRECTORY
+    """
+    The directory the package's directory is written into.
+    """
+
+    self_contained: bool = False
+    """
+    Whether the entry modules are bundles that import nothing, such as a minified
+    browser build whose text is not searched for import statements.
+    """
+
     def download(self) -> Dict[str, bytes]:
         """
         :return: The release's files by path relative to the package root, after the
@@ -119,6 +143,8 @@ class VendoredPackage:
         :param files: The release's files.
         :return: The entry modules and every module of the package they import.
         """
+        if self.self_contained:
+            return sorted(self.entry_modules)
         needed: Set[str] = set()
         pending = list(self.entry_modules)
         while pending:
@@ -199,28 +225,40 @@ PACKAGES: Tuple[VendoredPackage, ...] = (
         entry_modules=("src/URDFLoader.js",),
         licence_url="https://raw.githubusercontent.com/gkjohnson/urdf-loaders/v0.13.1/LICENSE",
     ),
+    VendoredPackage(
+        name="plotly.js-basic-dist-min",
+        version="3.7.0",
+        entry_modules=("plotly-basic.min.js",),
+        vendor_directory=MODELS_VENDOR_DIRECTORY,
+        self_contained=True,
+    ),
 )
 """
-The libraries the viewer uses.
+The libraries the viewer and its plugins use.
 """
 
 
 def main(arguments: Sequence[str]) -> int:
     """
-    Download, check and copy every vendored library, and write a manifest.
+    Download, check and copy every vendored library, and write a manifest into each
+    vendor directory.
 
     :param arguments: Unused.
     :return: The process exit code.
     """
-    manifest = {}
+    manifests: Dict[Path, Dict[str, Dict[str, object]]] = {}
     for package in PACKAGES:
         files = package.download()
-        written = package.write(files, VENDOR_DIRECTORY / package.name)
-        manifest[package.name] = {"version": package.version, "files": written}
+        written = package.write(files, package.vendor_directory / package.name)
+        manifests.setdefault(package.vendor_directory, {})[package.name] = {
+            "version": package.version,
+            "files": written,
+        }
         print(f"{package.name}@{package.version}: {len(written)} files")
-    (VENDOR_DIRECTORY / "manifest.json").write_text(
-        json.dumps(manifest, indent=1) + "\n", encoding="utf-8"
-    )
+    for directory, manifest in manifests.items():
+        (directory / MANIFEST_FILE).write_text(
+            json.dumps(manifest, indent=1) + "\n", encoding="utf-8"
+        )
     return 0
 
 

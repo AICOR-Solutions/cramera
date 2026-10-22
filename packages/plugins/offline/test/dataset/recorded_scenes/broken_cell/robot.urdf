@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<robot name="broken">
+  <link name="base"><visual><geometry><mesh filename="package://robot/meshes/base.stl"/></geometry></visual></link>
+  <link name="shoulder"><visual><geometry><mesh filename="/opt/robot/meshes/shoulder.stl"/></geometry></visual></link>
+  <link name="elbow"><visual><geometry><mesh filename="../outside.stl"/></geometry></visual></link>
+  <link name="wrist"><visual><geometry><mesh filename="meshes/missing.dae"/></geometry></visual></link>
+  <link name="hand"><visual><geometry><mesh filename=""/></geometry></visual></link>
+</robot>

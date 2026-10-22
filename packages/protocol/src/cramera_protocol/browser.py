@@ -47,6 +47,28 @@ from cramera_protocol.events import (
 )
 from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
+from cramera_protocol.models import (
+    ConstraintKey,
+    FigureKey,
+    IntervalKey,
+    ModelAnswerKey,
+    ModelRequestKey,
+    ModelsRoute,
+    ModelUploadKey,
+    ModelVariableKey,
+    VariableKind,
+    WorkbenchStateKey,
+)
+from cramera_protocol.offline import (
+    AssetProblemKey,
+    AssetProblemKind,
+    BundleCheckKey,
+    ChapterKey,
+    OfflineParameter,
+    OfflineRoute,
+    StoryboardKey,
+)
+from cramera_protocol.plugins import PluginName
 from cramera_protocol.version import CURRENT_VERSION
 from cramera_protocol.viewer import (
     BuildKey,
@@ -102,6 +124,24 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     PageReportKey,
     SelectionKind,
     SelectionKey,
+    PluginName,
+    OfflineRoute,
+    OfflineParameter,
+    StoryboardKey,
+    ChapterKey,
+    BundleCheckKey,
+    AssetProblemKey,
+    AssetProblemKind,
+    ModelsRoute,
+    VariableKind,
+    ModelVariableKey,
+    WorkbenchStateKey,
+    ModelUploadKey,
+    IntervalKey,
+    ConstraintKey,
+    ModelRequestKey,
+    ModelAnswerKey,
+    FigureKey,
 )
 """
 The enumerations the browser application reads.

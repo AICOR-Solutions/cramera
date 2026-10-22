@@ -1,0 +1,8 @@
+{
+  "bundle": "recorded_cell",
+  "checkedFiles": ["arm.urdf", "meshes/base.obj", "scene.json"],
+  "problems": [
+    {"kind": "missing", "source": "meshes/base.obj", "reference": "base.mtl"},
+    {"kind": "unreadable", "source": "arm.urdf", "reference": "arm.urdf", "detail": "mismatched tag: line 3, column 2"}
+  ]
+}

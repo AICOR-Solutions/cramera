@@ -1,0 +1,8 @@
+{
+  "title": "A cell without a robot connection",
+  "description": "One recorded bundle, shown twice.",
+  "chapters": [
+    {"title": "The cell", "narration": "The arm and the objects on its table.", "scene": "complete_cell", "panel": "details", "durationSeconds": 5},
+    {"title": "The run", "narration": "The recorded motion.", "scene": "complete_cell", "panel": "steps", "frame": 1, "playback": true, "durationSeconds": 3}
+  ]
+}

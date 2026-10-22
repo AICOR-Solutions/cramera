@@ -200,6 +200,18 @@ export class Application {
   #picking = null;
 
   /**
+   * The scene picker's choice, once the scenes are known.
+   * @type {SceneChoice|null}
+   */
+  #choice = null;
+
+  /**
+   * The scene picker, once the scenes are known.
+   * @type {ScenePickerView|null}
+   */
+  #picker = null;
+
+  /**
    * @param {PageElements} elements The page elements.
    * @param {import('../core/viewer-api.js').ViewerApi} api The viewer's routes.
    * @param {Location} location The page's location.
@@ -236,12 +248,16 @@ export class Application {
       this.#fail('No scenes found. Record a run or add a scenes directory.');
       return;
     }
-    new ScenePickerView(this.#elements.picker, choice, (name) => this.show(name));
+    this.#choice = choice;
+    this.#picker = new ScenePickerView(this.#elements.picker, choice, (name) => this.show(name));
     this.#view = new SceneView(this.#elements.stage);
     this.#view.scene.add(this.#lighting.group);
     this.#addViewPanel(this.#view);
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => this.#details.showSelection(selection));
+    this.bus.subscribe(ViewerEvent.SCENE_REQUESTED, (name) => this.showRequested(name));
+    this.bus.subscribe(ViewerEvent.FRAME_REQUESTED, (frame) => this.seek(frame));
+    this.bus.subscribe(ViewerEvent.PLAYBACK_REQUESTED, (playing) => this.#timeline.setPlaying(playing));
     new KeyboardShortcuts(
       this.#elements.document,
       new PlaybackActions(
@@ -290,6 +306,20 @@ export class Application {
     const missing = loaded.missingFiles().length;
     this.#status.ready(missing ? `Showing ${name}; ${missing} files could not be loaded (see Details)` : `Showing ${name}`);
     this.bus.publish(ViewerEvent.SCENE_LOADED, loaded);
+  }
+
+  /**
+   * Show a bundle another part asked for, and let the scene picker show it as chosen.
+   * @param {string} name The bundle's name.
+   * @returns {Promise<void>} Settles once the scene is shown, has failed or was replaced.
+   */
+  showRequested(name) {
+    if (!this.#choice.chooseScene(name)) {
+      this.#fail(`No scenes directory holds a bundle named ${name}.`);
+      return Promise.resolve();
+    }
+    this.#picker.render();
+    return this.show(name);
   }
 
   /**

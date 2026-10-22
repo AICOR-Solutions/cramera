@@ -81,6 +81,23 @@ class ViewerEvent(StrEnum):
     Panels were shown, hidden or resized.
     """
 
+    SCENE_REQUESTED = "scene:requested"
+    """
+    A part or plugin asks the application to show a bundle; the payload names it.
+    """
+
+    FRAME_REQUESTED = "frame:requested"
+    """
+    A part or plugin asks the application to show a frame of the shown recording; the
+    payload is the frame number.
+    """
+
+    PLAYBACK_REQUESTED = "playback:requested"
+    """
+    A part or plugin asks the application to start or pause playback; the payload is
+    whether to play.
+    """
+
 
 # %% selection
 
