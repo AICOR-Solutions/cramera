@@ -51,6 +51,11 @@ STAGING_SUFFIX = ".writing"
 Ends the name of a bundle directory being written.
 """
 
+REPLACED_SUFFIX = ".replaced"
+"""
+The suffix of an old bundle version moved aside while the new one takes its place.
+"""
+
 LIVE_MESH_DIRECTORY = "live"
 """
 The directory below ``meshes`` holding the live bundle's meshes.
@@ -140,11 +145,21 @@ class BundleDirectory:
 
     def publish(self, staging: Path) -> None:
         """
+        Move the old version aside, the new one into place, and only then delete the
+        old one, so the directory never holds a partly deleted bundle.
+
         :param staging: The complete new version.
         """
+        replaced = self.path.parent / (
+            f"{STAGING_PREFIX}{self.path.name}{REPLACED_SUFFIX}"
+        )
+        if replaced.exists():
+            shutil.rmtree(replaced)
         if self.path.exists():
-            shutil.rmtree(self.path)
+            self.path.rename(replaced)
         staging.rename(self.path)
+        if replaced.exists():
+            shutil.rmtree(replaced)
 
 
 @dataclass(frozen=True)
