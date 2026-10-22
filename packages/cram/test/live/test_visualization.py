@@ -6,13 +6,16 @@ command running a demo.
 from __future__ import annotations
 
 import json
+import signal
 import socket
 import sys
+import threading
 import urllib.request
 
 import pytest
 
-from cramera_cram.command_line import LiveCommand, VisualizationVariable
+from cramera_cram.command_line import DEMO_ARGUMENTS_SEPARATOR, LiveCommand, live
+from cramera_cram.coraplex_backend import CoraplexBackend
 from cramera_cram.documents import DocumentFile
 from cramera_cram.visualization import (
     LiveVisualization,
@@ -121,9 +124,32 @@ def test_a_failed_start_releases_what_it_acquired(kitchen, locations):
 def test_the_live_command_runs_a_demo_with_the_cramera_backend(tmp_path, monkeypatch):
     output = tmp_path / "output.txt"
     monkeypatch.setenv(DEMO_OUTPUT_VARIABLE, str(output))
-    monkeypatch.delenv(VisualizationVariable.BACKEND, raising=False)
-    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.delenv(CoraplexBackend.VARIABLE, raising=False)
+    path_before = list(sys.path)
     command = LiveCommand.parse([str(LIVE_DATASET / "demo_script.py"), "a", "b"])
     command.run_demo()
-    assert output.read_text(encoding="utf-8") == f"a b {VisualizationVariable.CRAMERA}"
-    assert sys.path[0] == str(LIVE_DATASET)
+    assert output.read_text(encoding="utf-8") == f"a b {CoraplexBackend.VALUE}"
+    assert sys.path == path_before
+
+
+def test_demo_options_follow_the_separator(tmp_path, monkeypatch):
+    output = tmp_path / "output.txt"
+    monkeypatch.setenv(DEMO_OUTPUT_VARIABLE, str(output))
+    monkeypatch.delenv(CoraplexBackend.VARIABLE, raising=False)
+    command = LiveCommand.parse(
+        [str(LIVE_DATASET / "demo_script.py"), DEMO_ARGUMENTS_SEPARATOR, "--seed", "3"]
+    )
+    command.run_demo()
+    assert output.read_text(encoding="utf-8") == f"--seed 3 {CoraplexBackend.VALUE}"
+
+
+def test_the_live_command_runs_until_interrupted(tmp_path, monkeypatch):
+    output = tmp_path / "output.txt"
+    monkeypatch.setenv(DEMO_OUTPUT_VARIABLE, str(output))
+    original_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+    signal.pthread_kill(threading.main_thread().ident, signal.SIGINT)
+    live([str(LIVE_DATASET / "demo_script.py")])
+    pending = signal.sigpending()
+    signal.pthread_sigmask(signal.SIG_SETMASK, original_mask)
+    assert output.read_text(encoding="utf-8") == CoraplexBackend.VALUE
+    assert signal.SIGINT not in pending

@@ -5,8 +5,6 @@ The commands of cramera-cram.
 from __future__ import annotations
 
 import logging
-import os
-import runpy
 import signal
 import sys
 from argparse import ArgumentParser
@@ -16,24 +14,48 @@ from pathlib import Path
 
 from typing_extensions import List, Optional, Sequence
 
+from cramera_cram.coraplex_backend import CoraplexBackendRegistration
+from cramera_cram.demo_script import DemoScript
+
+DEMO_ARGUMENTS_SEPARATOR = "--"
+"""
+Everything after it on a command line is handed to the demo unread.
+"""
+
+# %% arguments
+
+
+@dataclass(frozen=True)
+class CommandLine:
+    """
+    A command line split into the command's own arguments and those after
+    :data:`DEMO_ARGUMENTS_SEPARATOR`, which belong to the demo, such as its own options.
+    """
+
+    own: List[str]
+    """
+    The arguments the command reads.
+    """
+
+    demo: List[str]
+    """
+    The arguments handed to the demo unread.
+    """
+
+    @classmethod
+    def split(cls, arguments: Sequence[str]) -> CommandLine:
+        """
+        :param arguments: A command's arguments.
+        :return: The arguments split at the first separator.
+        """
+        arguments = list(arguments)
+        if DEMO_ARGUMENTS_SEPARATOR not in arguments:
+            return cls(own=arguments, demo=[])
+        separator = arguments.index(DEMO_ARGUMENTS_SEPARATOR)
+        return cls(own=arguments[:separator], demo=arguments[separator + 1 :])
+
+
 # %% live
-
-
-class VisualizationVariable(StrEnum):
-    """
-    The coraplex environment variable selecting the visualization backend, and the value
-    selecting cramera's.
-    """
-
-    BACKEND = "CORAPLEX_VISUALIZATION"
-    """
-    Names the backend.
-    """
-
-    CRAMERA = "cramera"
-    """
-    Selects the cramera backend.
-    """
 
 
 class LiveArgument(StrEnum):
@@ -61,14 +83,9 @@ class LiveCommand:
     The viewer is started separately with ``cramera``; this command only publishes.
     """
 
-    demo: Path
+    demo: DemoScript
     """
-    The demo file.
-    """
-
-    demo_arguments: List[str]
-    """
-    The arguments handed to the demo.
+    The demo file and its arguments.
     """
 
     @classmethod
@@ -85,30 +102,27 @@ class LiveCommand:
         parser.add_argument(
             LiveArgument.DEMO_ARGUMENTS, nargs="*", help="arguments for the demo"
         )
-        options = vars(parser.parse_args(list(arguments)))
+        command_line = CommandLine.split(arguments)
+        options = vars(parser.parse_args(command_line.own))
         return cls(
-            demo=options[LiveArgument.DEMO].resolve(),
-            demo_arguments=list(options[LiveArgument.DEMO_ARGUMENTS]),
+            DemoScript(
+                options[LiveArgument.DEMO].resolve(),
+                options[LiveArgument.DEMO_ARGUMENTS] + command_line.demo,
+            )
         )
 
     def run_demo(self) -> None:
         """
-        Run the demo as its own ``__main__`` with the cramera backend selected; the
-        demo's directory comes first on the import path, as when it runs directly.
+        Run the demo as its own ``__main__`` with the cramera backend selected.
         """
-        os.environ.setdefault(
-            VisualizationVariable.BACKEND, VisualizationVariable.CRAMERA
-        )
-        sys.path.insert(0, str(self.demo.parent))
-        original_arguments = sys.argv
-        sys.argv = [str(self.demo), *self.demo_arguments]
-        runpy.run_path(str(self.demo), run_name="__main__")
-        sys.argv = original_arguments
+        with CoraplexBackendRegistration():
+            self.demo.run()
 
 
 def live(arguments: Optional[Sequence[str]] = None) -> None:
     """
-    ``cramera-live demo.py [arguments]``: run a demo and keep publishing until Ctrl-C.
+    ``cramera-live demo.py [arguments] [-- demo options]``: run a demo and keep
+    publishing until Ctrl-C.
 
     :param arguments: The arguments, or None for the process's.
     """
@@ -122,6 +136,3 @@ def live(arguments: Optional[Sequence[str]] = None) -> None:
     )
     signal.sigwait(stop_signals)
     signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
-
-
-# %% onboard
