@@ -48,8 +48,9 @@ which this repository was mirrored until 22 Oct 2026.
   and records a PR2 vessel transfer as a task demo.
 - **The wood workshop as a plugin.** `cramera-workshop` ships the AICOR workshop bundle
   with its asset licence and notice, runs its MuJoCo contact world with the ideal screw
-  thread behind a Workshop panel, records the PR2 screw insertion and two-handed
-  assembly as task demos, and checks a recorded assembly before it is published
+  thread behind a Workshop panel, records the PR2 screw insertion as a task demo,
+  runs the two-handed assembly through all its stages (not yet recorded: its arms still
+  penetrate the furniture while driving and putting the screwdriver down), and checks a recorded assembly before it is published
   (`cramera-workshop check-release`). A screw is grasped the same way however far it
   rolled in its box, and a recording's steps are the stages of its plan. The asset
   rights document is shared with the laboratory as `cramera_protocol.rights`.
