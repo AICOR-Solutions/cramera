@@ -1,0 +1,2819 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="aicor_medical_lab"><!-- CRAMERA laboratory asset rights:
+Principal author: Vanessa Hassouna
+Institution: AICOR Institute
+Copyright (c) 2026 Vanessa Hassouna. All rights reserved where rights subsist.
+License: LicenseRef-AICOR-Laboratory-Assets
+See LICENSE.txt and NOTICE.md.
+-->
+  <link name="laboratory_root" />
+  <link name="laboratory_room">
+    <visual>
+      <geometry>
+        <mesh filename="assets/environment.glb" />
+      </geometry>
+    </visual>
+    <collision name="worktop">
+      <origin xyz="0 0 0.88" rpy="0 0 0" />
+      <geometry>
+        <box size="1.8 0.75 0.04" />
+      </geometry>
+    </collision>
+    <collision name="bench_leg_0_0">
+      <origin xyz="-0.85 -0.32 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.86" />
+      </geometry>
+    </collision>
+    <collision name="bench_leg_0_1">
+      <origin xyz="-0.85 0.32 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.86" />
+      </geometry>
+    </collision>
+    <collision name="bench_leg_1_0">
+      <origin xyz="0.85 -0.32 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.86" />
+      </geometry>
+    </collision>
+    <collision name="bench_leg_1_1">
+      <origin xyz="0.85 0.32 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.04 0.04 0.86" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_room_joint" type="fixed">
+    <parent link="laboratory_root" />
+    <child link="laboratory_room" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_drawer">
+    <visual>
+      <geometry>
+        <mesh filename="assets/drawer.glb" />
+      </geometry>
+    </visual>
+    <collision name="drawer_bottom">
+      <origin xyz="0 0 -0.064" rpy="0 0 0" />
+      <geometry>
+        <box size="0.55 0.62 0.012" />
+      </geometry>
+    </collision>
+    <collision name="drawer_side_0">
+      <origin xyz="-0.269 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.62 0.14" />
+      </geometry>
+    </collision>
+    <collision name="drawer_side_1">
+      <origin xyz="0.269 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.62 0.14" />
+      </geometry>
+    </collision>
+    <collision name="drawer_end_0">
+      <origin xyz="0 -0.304 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.55 0.012 0.14" />
+      </geometry>
+    </collision>
+    <collision name="drawer_end_1">
+      <origin xyz="0 0.304 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.55 0.012 0.14" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="3.5" />
+      <inertia ixx="0.11783333333333335" iyy="0.09394583333333335" izz="0.20034583333333336" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision name="drawer_handle">
+      <origin xyz="0 -0.336 0.015" rpy="0 0 0" />
+      <geometry>
+        <box size="0.14 0.014 0.014" />
+      </geometry>
+    </collision>
+    <collision name="drawer_handle_mount_0">
+      <origin xyz="-0.061 -0.323 0.015" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.025 0.014" />
+      </geometry>
+    </collision>
+    <collision name="drawer_handle_mount_1">
+      <origin xyz="0.061 -0.323 0.015" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.025 0.014" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_drawer_joint" type="prismatic">
+    <parent link="laboratory_root" />
+    <child link="laboratory_drawer" />
+    <origin xyz="-0.52 0 0.69" rpy="0 0 0" />
+    <axis xyz="0 -1 0" />
+    <limit lower="0" upper="0.36" effort="40" velocity="0.15" />
+    <dynamics damping="2" friction="1" />
+  </joint>
+  <link name="laboratory_rack">
+    <visual>
+      <geometry>
+        <mesh filename="assets/tube_rack.glb" />
+      </geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0.034" />
+      <mass value="0.18" />
+      <inertia ixx="0.00025086" iyy="0.0006108600000000001" izz="0.000723" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision name="rack_handle">
+      <origin xyz="0 -0.125 0.055" rpy="0 0 0" />
+      <geometry>
+        <box size="0.12 0.024 0.024" />
+      </geometry>
+    </collision>
+    <collision name="rack_handle_mount_0">
+      <origin xyz="-0.052 -0.0875 0.055" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.075 0.014" />
+      </geometry>
+    </collision>
+    <collision name="rack_handle_mount_1">
+      <origin xyz="0.052 -0.0875 0.055" rpy="0 0 0" />
+      <geometry>
+        <box size="0.012 0.075 0.014" />
+      </geometry>
+    </collision>
+    <collision name="rack_base">
+      <origin xyz="0 0 0.003" rpy="0 0 0" />
+      <geometry>
+        <box size="0.19 0.11 0.006" />
+      </geometry>
+    </collision>
+    <collision name="rack_support_0">
+      <origin xyz="-0.09 0 0.034" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01 0.11 0.056" />
+      </geometry>
+    </collision>
+    <collision name="rack_support_1">
+      <origin xyz="0.09 0 0.034" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01 0.11 0.056" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_0_0">
+      <origin xyz="-0.08325 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_0_1">
+      <origin xyz="-0.08325 -0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_0_2">
+      <origin xyz="-0.08325 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_0_3">
+      <origin xyz="-0.08325 0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_0_4">
+      <origin xyz="-0.08325 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_1_0">
+      <origin xyz="-0.06 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_1_2">
+      <origin xyz="-0.06 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_1_4">
+      <origin xyz="-0.06 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_2_0">
+      <origin xyz="-0.03 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_2_1">
+      <origin xyz="-0.03 -0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_2_2">
+      <origin xyz="-0.03 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_2_3">
+      <origin xyz="-0.03 0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_2_4">
+      <origin xyz="-0.03 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_3_0">
+      <origin xyz="0 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_3_2">
+      <origin xyz="0 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_3_4">
+      <origin xyz="0 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_4_0">
+      <origin xyz="0.03 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_4_1">
+      <origin xyz="0.03 -0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_4_2">
+      <origin xyz="0.03 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_4_3">
+      <origin xyz="0.03 0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_4_4">
+      <origin xyz="0.03 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.037 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_5_0">
+      <origin xyz="0.06 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_5_2">
+      <origin xyz="0.06 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_5_4">
+      <origin xyz="0.06 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.023 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_6_0">
+      <origin xyz="0.08325 -0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_6_1">
+      <origin xyz="0.08325 -0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_6_2">
+      <origin xyz="0.08325 0 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.027 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_6_3">
+      <origin xyz="0.08325 0.025 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.023 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_web_6_4">
+      <origin xyz="0.08325 0.04575 0.065" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0235 0.0185 0.006" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_0">
+      <origin xyz="-0.04925 -0.025 0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_0">
+      <origin xyz="-0.04825 -0.025 0.019" rpy="0 0.32175055 0" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_1">
+      <origin xyz="-0.050690227 -0.019625 0.011" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_1">
+      <origin xyz="-0.049824202 -0.019125 0.019" rpy="0 0.32175055 0.52359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_2">
+      <origin xyz="-0.054625 -0.015690227 0.011" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_2">
+      <origin xyz="-0.054125 -0.014824202 0.019" rpy="0 0.32175055 1.0471976" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_3">
+      <origin xyz="-0.06 -0.01425 0.011" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_3">
+      <origin xyz="-0.06 -0.01325 0.019" rpy="0 0.32175055 1.5707963" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_4">
+      <origin xyz="-0.065375 -0.015690227 0.011" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_4">
+      <origin xyz="-0.065875 -0.014824202 0.019" rpy="0 0.32175055 2.0943951" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_5">
+      <origin xyz="-0.069309773 -0.019625 0.011" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_5">
+      <origin xyz="-0.070175798 -0.019125 0.019" rpy="0 0.32175055 2.6179939" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_6">
+      <origin xyz="-0.07075 -0.025 0.011" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_6">
+      <origin xyz="-0.07175 -0.025 0.019" rpy="0 0.32175055 3.1415927" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_7">
+      <origin xyz="-0.069309773 -0.030375 0.011" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_7">
+      <origin xyz="-0.070175798 -0.030875 0.019" rpy="0 0.32175055 3.6651914" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_8">
+      <origin xyz="-0.065375 -0.034309773 0.011" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_8">
+      <origin xyz="-0.065875 -0.035175798 0.019" rpy="0 0.32175055 4.1887902" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_9">
+      <origin xyz="-0.06 -0.03575 0.011" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_9">
+      <origin xyz="-0.06 -0.03675 0.019" rpy="0 0.32175055 4.712389" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_10">
+      <origin xyz="-0.054625 -0.034309773 0.011" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_10">
+      <origin xyz="-0.054125 -0.035175798 0.019" rpy="0 0.32175055 5.2359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_0_11">
+      <origin xyz="-0.050690227 -0.030375 0.011" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_0_11">
+      <origin xyz="-0.049824202 -0.030875 0.019" rpy="0 0.32175055 5.7595865" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_0">
+      <origin xyz="-0.04925 0.025 0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_0">
+      <origin xyz="-0.04825 0.025 0.019" rpy="0 0.32175055 0" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_1">
+      <origin xyz="-0.050690227 0.030375 0.011" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_1">
+      <origin xyz="-0.049824202 0.030875 0.019" rpy="0 0.32175055 0.52359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_2">
+      <origin xyz="-0.054625 0.034309773 0.011" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_2">
+      <origin xyz="-0.054125 0.035175798 0.019" rpy="0 0.32175055 1.0471976" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_3">
+      <origin xyz="-0.06 0.03575 0.011" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_3">
+      <origin xyz="-0.06 0.03675 0.019" rpy="0 0.32175055 1.5707963" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_4">
+      <origin xyz="-0.065375 0.034309773 0.011" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_4">
+      <origin xyz="-0.065875 0.035175798 0.019" rpy="0 0.32175055 2.0943951" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_5">
+      <origin xyz="-0.069309773 0.030375 0.011" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_5">
+      <origin xyz="-0.070175798 0.030875 0.019" rpy="0 0.32175055 2.6179939" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_6">
+      <origin xyz="-0.07075 0.025 0.011" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_6">
+      <origin xyz="-0.07175 0.025 0.019" rpy="0 0.32175055 3.1415927" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_7">
+      <origin xyz="-0.069309773 0.019625 0.011" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_7">
+      <origin xyz="-0.070175798 0.019125 0.019" rpy="0 0.32175055 3.6651914" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_8">
+      <origin xyz="-0.065375 0.015690227 0.011" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_8">
+      <origin xyz="-0.065875 0.014824202 0.019" rpy="0 0.32175055 4.1887902" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_9">
+      <origin xyz="-0.06 0.01425 0.011" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_9">
+      <origin xyz="-0.06 0.01325 0.019" rpy="0 0.32175055 4.712389" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_10">
+      <origin xyz="-0.054625 0.015690227 0.011" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_10">
+      <origin xyz="-0.054125 0.014824202 0.019" rpy="0 0.32175055 5.2359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_0_1_11">
+      <origin xyz="-0.050690227 0.019625 0.011" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_0_1_11">
+      <origin xyz="-0.049824202 0.019125 0.019" rpy="0 0.32175055 5.7595865" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_0">
+      <origin xyz="0.01075 -0.025 0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_0">
+      <origin xyz="0.01175 -0.025 0.019" rpy="0 0.32175055 0" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_1">
+      <origin xyz="0.0093097731 -0.019625 0.011" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_1">
+      <origin xyz="0.010175798 -0.019125 0.019" rpy="0 0.32175055 0.52359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_2">
+      <origin xyz="0.005375 -0.015690227 0.011" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_2">
+      <origin xyz="0.005875 -0.014824202 0.019" rpy="0 0.32175055 1.0471976" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_3">
+      <origin xyz="6.5824765e-19 -0.01425 0.011" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_3">
+      <origin xyz="7.1947999e-19 -0.01325 0.019" rpy="0 0.32175055 1.5707963" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_4">
+      <origin xyz="-0.005375 -0.015690227 0.011" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_4">
+      <origin xyz="-0.005875 -0.014824202 0.019" rpy="0 0.32175055 2.0943951" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_5">
+      <origin xyz="-0.0093097731 -0.019625 0.011" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_5">
+      <origin xyz="-0.010175798 -0.019125 0.019" rpy="0 0.32175055 2.6179939" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_6">
+      <origin xyz="-0.01075 -0.025 0.011" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_6">
+      <origin xyz="-0.01175 -0.025 0.019" rpy="0 0.32175055 3.1415927" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_7">
+      <origin xyz="-0.0093097731 -0.030375 0.011" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_7">
+      <origin xyz="-0.010175798 -0.030875 0.019" rpy="0 0.32175055 3.6651914" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_8">
+      <origin xyz="-0.005375 -0.034309773 0.011" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_8">
+      <origin xyz="-0.005875 -0.035175798 0.019" rpy="0 0.32175055 4.1887902" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_9">
+      <origin xyz="-1.974743e-18 -0.03575 0.011" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_9">
+      <origin xyz="-2.15844e-18 -0.03675 0.019" rpy="0 0.32175055 4.712389" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_10">
+      <origin xyz="0.005375 -0.034309773 0.011" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_10">
+      <origin xyz="0.005875 -0.035175798 0.019" rpy="0 0.32175055 5.2359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_0_11">
+      <origin xyz="0.0093097731 -0.030375 0.011" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_0_11">
+      <origin xyz="0.010175798 -0.030875 0.019" rpy="0 0.32175055 5.7595865" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_0">
+      <origin xyz="0.01075 0.025 0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_0">
+      <origin xyz="0.01175 0.025 0.019" rpy="0 0.32175055 0" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_1">
+      <origin xyz="0.0093097731 0.030375 0.011" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_1">
+      <origin xyz="0.010175798 0.030875 0.019" rpy="0 0.32175055 0.52359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_2">
+      <origin xyz="0.005375 0.034309773 0.011" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_2">
+      <origin xyz="0.005875 0.035175798 0.019" rpy="0 0.32175055 1.0471976" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_3">
+      <origin xyz="6.5824765e-19 0.03575 0.011" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_3">
+      <origin xyz="7.1947999e-19 0.03675 0.019" rpy="0 0.32175055 1.5707963" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_4">
+      <origin xyz="-0.005375 0.034309773 0.011" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_4">
+      <origin xyz="-0.005875 0.035175798 0.019" rpy="0 0.32175055 2.0943951" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_5">
+      <origin xyz="-0.0093097731 0.030375 0.011" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_5">
+      <origin xyz="-0.010175798 0.030875 0.019" rpy="0 0.32175055 2.6179939" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_6">
+      <origin xyz="-0.01075 0.025 0.011" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_6">
+      <origin xyz="-0.01175 0.025 0.019" rpy="0 0.32175055 3.1415927" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_7">
+      <origin xyz="-0.0093097731 0.019625 0.011" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_7">
+      <origin xyz="-0.010175798 0.019125 0.019" rpy="0 0.32175055 3.6651914" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_8">
+      <origin xyz="-0.005375 0.015690227 0.011" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_8">
+      <origin xyz="-0.005875 0.014824202 0.019" rpy="0 0.32175055 4.1887902" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_9">
+      <origin xyz="-1.974743e-18 0.01425 0.011" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_9">
+      <origin xyz="-2.15844e-18 0.01325 0.019" rpy="0 0.32175055 4.712389" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_10">
+      <origin xyz="0.005375 0.015690227 0.011" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_10">
+      <origin xyz="0.005875 0.014824202 0.019" rpy="0 0.32175055 5.2359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_1_1_11">
+      <origin xyz="0.0093097731 0.019625 0.011" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_1_1_11">
+      <origin xyz="0.010175798 0.019125 0.019" rpy="0 0.32175055 5.7595865" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_0">
+      <origin xyz="0.07075 -0.025 0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_0">
+      <origin xyz="0.07175 -0.025 0.019" rpy="0 0.32175055 0" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_1">
+      <origin xyz="0.069309773 -0.019625 0.011" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_1">
+      <origin xyz="0.070175798 -0.019125 0.019" rpy="0 0.32175055 0.52359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_2">
+      <origin xyz="0.065375 -0.015690227 0.011" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_2">
+      <origin xyz="0.065875 -0.014824202 0.019" rpy="0 0.32175055 1.0471976" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_3">
+      <origin xyz="0.06 -0.01425 0.011" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_3">
+      <origin xyz="0.06 -0.01325 0.019" rpy="0 0.32175055 1.5707963" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_4">
+      <origin xyz="0.054625 -0.015690227 0.011" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_4">
+      <origin xyz="0.054125 -0.014824202 0.019" rpy="0 0.32175055 2.0943951" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_5">
+      <origin xyz="0.050690227 -0.019625 0.011" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_5">
+      <origin xyz="0.049824202 -0.019125 0.019" rpy="0 0.32175055 2.6179939" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_6">
+      <origin xyz="0.04925 -0.025 0.011" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_6">
+      <origin xyz="0.04825 -0.025 0.019" rpy="0 0.32175055 3.1415927" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_7">
+      <origin xyz="0.050690227 -0.030375 0.011" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_7">
+      <origin xyz="0.049824202 -0.030875 0.019" rpy="0 0.32175055 3.6651914" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_8">
+      <origin xyz="0.054625 -0.034309773 0.011" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_8">
+      <origin xyz="0.054125 -0.035175798 0.019" rpy="0 0.32175055 4.1887902" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_9">
+      <origin xyz="0.06 -0.03575 0.011" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_9">
+      <origin xyz="0.06 -0.03675 0.019" rpy="0 0.32175055 4.712389" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_10">
+      <origin xyz="0.065375 -0.034309773 0.011" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_10">
+      <origin xyz="0.065875 -0.035175798 0.019" rpy="0 0.32175055 5.2359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_0_11">
+      <origin xyz="0.069309773 -0.030375 0.011" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_0_11">
+      <origin xyz="0.070175798 -0.030875 0.019" rpy="0 0.32175055 5.7595865" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_0">
+      <origin xyz="0.07075 0.025 0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_0">
+      <origin xyz="0.07175 0.025 0.019" rpy="0 0.32175055 0" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_1">
+      <origin xyz="0.069309773 0.030375 0.011" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_1">
+      <origin xyz="0.070175798 0.030875 0.019" rpy="0 0.32175055 0.52359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_2">
+      <origin xyz="0.065375 0.034309773 0.011" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_2">
+      <origin xyz="0.065875 0.035175798 0.019" rpy="0 0.32175055 1.0471976" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_3">
+      <origin xyz="0.06 0.03575 0.011" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_3">
+      <origin xyz="0.06 0.03675 0.019" rpy="0 0.32175055 1.5707963" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_4">
+      <origin xyz="0.054625 0.034309773 0.011" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_4">
+      <origin xyz="0.054125 0.035175798 0.019" rpy="0 0.32175055 2.0943951" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_5">
+      <origin xyz="0.050690227 0.030375 0.011" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_5">
+      <origin xyz="0.049824202 0.030875 0.019" rpy="0 0.32175055 2.6179939" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_6">
+      <origin xyz="0.04925 0.025 0.011" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_6">
+      <origin xyz="0.04825 0.025 0.019" rpy="0 0.32175055 3.1415927" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_7">
+      <origin xyz="0.050690227 0.019625 0.011" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_7">
+      <origin xyz="0.049824202 0.019125 0.019" rpy="0 0.32175055 3.6651914" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_8">
+      <origin xyz="0.054625 0.015690227 0.011" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_8">
+      <origin xyz="0.054125 0.014824202 0.019" rpy="0 0.32175055 4.1887902" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_9">
+      <origin xyz="0.06 0.01425 0.011" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_9">
+      <origin xyz="0.06 0.01325 0.019" rpy="0 0.32175055 4.712389" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_10">
+      <origin xyz="0.065375 0.015690227 0.011" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_10">
+      <origin xyz="0.065875 0.014824202 0.019" rpy="0 0.32175055 5.2359878" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+    <collision name="lower_socket_2_1_11">
+      <origin xyz="0.069309773 0.019625 0.011" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0025 0.0064307806 0.01" />
+      </geometry>
+    </collision>
+    <collision name="upper_socket_2_1_11">
+      <origin xyz="0.070175798 0.019125 0.019" rpy="0 0.32175055 5.7595865" />
+      <geometry>
+        <box size="0.0023717082 0.0075025774 0.0063245553" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_rack_joint" type="floating">
+    <parent link="laboratory_root" />
+    <child link="laboratory_rack" />
+    <origin xyz="0.22 -0.04 0.9" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_rack_handle" />
+  <joint name="laboratory_rack_handle_joint" type="fixed">
+    <parent link="laboratory_rack" />
+    <child link="laboratory_rack_handle" />
+    <origin xyz="0 -0.125 0.055" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_balance">
+    <collision name="weighing_pan">
+      <origin xyz="0 0 0" />
+      <geometry>
+        <cylinder radius="0.085" length="0.012" />
+      </geometry>
+    </collision>
+    <collision name="housing">
+      <origin xyz="0 -0.02 -0.037" rpy="0 0 0" />
+      <geometry>
+        <box size="0.3 0.22 0.058" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_0">
+      <origin xyz="0.01375 0 0.026" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_1">
+      <origin xyz="0.01328148 0.0035587619 0.026" rpy="0 0 0.26179939" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_2">
+      <origin xyz="0.011907849 0.006875 0.026" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_3">
+      <origin xyz="0.0097227182 0.0097227182 0.026" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_4">
+      <origin xyz="0.006875 0.011907849 0.026" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_5">
+      <origin xyz="0.0035587619 0.01328148 0.026" rpy="0 0 1.3089969" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_6">
+      <origin xyz="8.4194467e-19 0.01375 0.026" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_7">
+      <origin xyz="-0.0035587619 0.01328148 0.026" rpy="0 0 1.8325957" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_8">
+      <origin xyz="-0.006875 0.011907849 0.026" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_9">
+      <origin xyz="-0.0097227182 0.0097227182 0.026" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_10">
+      <origin xyz="-0.011907849 0.006875 0.026" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_11">
+      <origin xyz="-0.01328148 0.0035587619 0.026" rpy="0 0 2.8797933" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_12">
+      <origin xyz="-0.01375 1.6838893e-18 0.026" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_13">
+      <origin xyz="-0.01328148 -0.0035587619 0.026" rpy="0 0 3.403392" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_14">
+      <origin xyz="-0.011907849 -0.006875 0.026" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_15">
+      <origin xyz="-0.0097227182 -0.0097227182 0.026" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_16">
+      <origin xyz="-0.006875 -0.011907849 0.026" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_17">
+      <origin xyz="-0.0035587619 -0.01328148 0.026" rpy="0 0 4.4505896" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_18">
+      <origin xyz="-2.525834e-18 -0.01375 0.026" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_19">
+      <origin xyz="0.0035587619 -0.01328148 0.026" rpy="0 0 4.9741884" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_20">
+      <origin xyz="0.006875 -0.011907849 0.026" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_21">
+      <origin xyz="0.0097227182 -0.0097227182 0.026" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_22">
+      <origin xyz="0.011907849 -0.006875 0.026" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+    <collision name="weighing_holder_23">
+      <origin xyz="0.01328148 -0.0035587619 0.026" rpy="0 0 6.0213859" />
+      <geometry>
+        <box size="0.0045 0.0042128799 0.04" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_balance_joint" type="fixed">
+    <parent link="laboratory_root" />
+    <child link="laboratory_balance" />
+    <origin xyz="0.65 0.21 0.968" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_centrifuge_base">
+    <visual>
+      <geometry>
+        <mesh filename="assets/centrifuge_base.glb" />
+      </geometry>
+    </visual>
+    <collision name="chamber_floor">
+      <origin xyz="0 0 0.016" rpy="0 0 0" />
+      <geometry>
+        <box size="0.34 0.32 0.032" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_0">
+      <origin xyz="0.1435 0 0.1225" rpy="0 0 0" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_1">
+      <origin xyz="0.13861036 0.037140533 0.1225" rpy="0 0 0.26179939" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_2">
+      <origin xyz="0.12427465 0.07175 0.1225" rpy="0 0 0.52359878" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_3">
+      <origin xyz="0.10146982 0.10146982 0.1225" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_4">
+      <origin xyz="0.07175 0.12427465 0.1225" rpy="0 0 1.0471976" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_5">
+      <origin xyz="0.037140533 0.13861036 0.1225" rpy="0 0 1.3089969" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_6">
+      <origin xyz="8.7868408e-18 0.1435 0.1225" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_7">
+      <origin xyz="-0.037140533 0.13861036 0.1225" rpy="0 0 1.8325957" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_8">
+      <origin xyz="-0.07175 0.12427465 0.1225" rpy="0 0 2.0943951" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_9">
+      <origin xyz="-0.10146982 0.10146982 0.1225" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_10">
+      <origin xyz="-0.12427465 0.07175 0.1225" rpy="0 0 2.6179939" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_11">
+      <origin xyz="-0.13861036 0.037140533 0.1225" rpy="0 0 2.8797933" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_12">
+      <origin xyz="-0.1435 1.7573682e-17 0.1225" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_13">
+      <origin xyz="-0.13861036 -0.037140533 0.1225" rpy="0 0 3.403392" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_14">
+      <origin xyz="-0.12427465 -0.07175 0.1225" rpy="0 0 3.6651914" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_15">
+      <origin xyz="-0.10146982 -0.10146982 0.1225" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_16">
+      <origin xyz="-0.07175 -0.12427465 0.1225" rpy="0 0 4.1887902" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_17">
+      <origin xyz="-0.037140533 -0.13861036 0.1225" rpy="0 0 4.4505896" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_18">
+      <origin xyz="-2.6360522e-17 -0.1435 0.1225" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_19">
+      <origin xyz="0.037140533 -0.13861036 0.1225" rpy="0 0 4.9741884" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_20">
+      <origin xyz="0.07175 -0.12427465 0.1225" rpy="0 0 5.2359878" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_21">
+      <origin xyz="0.10146982 -0.10146982 0.1225" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_22">
+      <origin xyz="0.12427465 -0.07175 0.1225" rpy="0 0 5.7595865" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+    <collision name="chamber_wall_23">
+      <origin xyz="0.13861036 -0.037140533 0.1225" rpy="0 0 6.0213859" />
+      <geometry>
+        <box size="0.013 0.039495749 0.181" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_centrifuge_base_joint" type="fixed">
+    <parent link="laboratory_root" />
+    <child link="laboratory_centrifuge_base" />
+    <origin xyz="-0.53 -0.18 0.9" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_centrifuge_rotor">
+    <visual>
+      <geometry>
+        <mesh filename="assets/centrifuge_rotor.glb" />
+      </geometry>
+    </visual>
+    <collision name="rotor_plate">
+      <origin xyz="0 0 0.003" />
+      <geometry>
+        <cylinder radius="0.111" length="0.006" />
+      </geometry>
+    </collision>
+    <collision name="rotor_hub">
+      <origin xyz="0 0 0.018" />
+      <geometry>
+        <cylinder radius="0.023" length="0.036" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_floor">
+      <origin xyz="0.072 0 0.005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.032 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_0">
+      <origin xyz="0.08575 0 0.0655" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_1">
+      <origin xyz="0.084703344 0.0052618972 0.0655" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_2">
+      <origin xyz="0.081722718 0.0097227182 0.0655" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_3">
+      <origin xyz="0.077261897 0.012703344 0.0655" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_4">
+      <origin xyz="0.072 0.01375 0.0655" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_5">
+      <origin xyz="0.066738103 0.012703344 0.0655" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_6">
+      <origin xyz="0.062277282 0.0097227182 0.0655" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_7">
+      <origin xyz="0.059296656 0.0052618972 0.0655" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_8">
+      <origin xyz="0.05825 1.6838893e-18 0.0655" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_9">
+      <origin xyz="0.059296656 -0.0052618972 0.0655" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_10">
+      <origin xyz="0.062277282 -0.0097227182 0.0655" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_11">
+      <origin xyz="0.066738103 -0.012703344 0.0655" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_12">
+      <origin xyz="0.072 -0.01375 0.0655" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_13">
+      <origin xyz="0.077261897 -0.012703344 0.0655" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_14">
+      <origin xyz="0.081722718 -0.0097227182 0.0655" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_1_wall_15">
+      <origin xyz="0.084703344 -0.0052618972 0.0655" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_floor">
+      <origin xyz="4.4087285e-18 0.072 0.005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.032 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_0">
+      <origin xyz="0.01375 0.072 0.0655" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_1">
+      <origin xyz="0.012703344 0.077261897 0.0655" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_2">
+      <origin xyz="0.0097227182 0.081722718 0.0655" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_3">
+      <origin xyz="0.0052618972 0.084703344 0.0655" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_4">
+      <origin xyz="5.2506732e-18 0.08575 0.0655" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_5">
+      <origin xyz="-0.0052618972 0.084703344 0.0655" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_6">
+      <origin xyz="-0.0097227182 0.081722718 0.0655" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_7">
+      <origin xyz="-0.012703344 0.077261897 0.0655" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_8">
+      <origin xyz="-0.01375 0.072 0.0655" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_9">
+      <origin xyz="-0.012703344 0.066738103 0.0655" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_10">
+      <origin xyz="-0.0097227182 0.062277282 0.0655" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_11">
+      <origin xyz="-0.0052618972 0.059296656 0.0655" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_12">
+      <origin xyz="1.8828945e-18 0.05825 0.0655" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_13">
+      <origin xyz="0.0052618972 0.059296656 0.0655" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_14">
+      <origin xyz="0.0097227182 0.062277282 0.0655" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_2_wall_15">
+      <origin xyz="0.012703344 0.066738103 0.0655" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_floor">
+      <origin xyz="-0.072 8.817457e-18 0.005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.032 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_0">
+      <origin xyz="-0.05825 8.817457e-18 0.0655" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_1">
+      <origin xyz="-0.059296656 0.0052618972 0.0655" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_2">
+      <origin xyz="-0.062277282 0.0097227182 0.0655" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_3">
+      <origin xyz="-0.066738103 0.012703344 0.0655" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_4">
+      <origin xyz="-0.072 0.01375 0.0655" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_5">
+      <origin xyz="-0.077261897 0.012703344 0.0655" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_6">
+      <origin xyz="-0.081722718 0.0097227182 0.0655" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_7">
+      <origin xyz="-0.084703344 0.0052618972 0.0655" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_8">
+      <origin xyz="-0.08575 1.0501346e-17 0.0655" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_9">
+      <origin xyz="-0.084703344 -0.0052618972 0.0655" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_10">
+      <origin xyz="-0.081722718 -0.0097227182 0.0655" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_11">
+      <origin xyz="-0.077261897 -0.012703344 0.0655" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_12">
+      <origin xyz="-0.072 -0.01375 0.0655" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_13">
+      <origin xyz="-0.066738103 -0.012703344 0.0655" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_14">
+      <origin xyz="-0.062277282 -0.0097227182 0.0655" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_3_wall_15">
+      <origin xyz="-0.059296656 -0.0052618972 0.0655" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_floor">
+      <origin xyz="-1.3226185e-17 -0.072 0.005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.032 0.006" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_0">
+      <origin xyz="0.01375 -0.072 0.0655" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_1">
+      <origin xyz="0.012703344 -0.066738103 0.0655" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_2">
+      <origin xyz="0.0097227182 -0.062277282 0.0655" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_3">
+      <origin xyz="0.0052618972 -0.059296656 0.0655" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_4">
+      <origin xyz="-1.2384241e-17 -0.05825 0.0655" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_5">
+      <origin xyz="-0.0052618972 -0.059296656 0.0655" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_6">
+      <origin xyz="-0.0097227182 -0.062277282 0.0655" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_7">
+      <origin xyz="-0.012703344 -0.066738103 0.0655" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_8">
+      <origin xyz="-0.01375 -0.072 0.0655" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_9">
+      <origin xyz="-0.012703344 -0.077261897 0.0655" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_10">
+      <origin xyz="-0.0097227182 -0.081722718 0.0655" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_11">
+      <origin xyz="-0.0052618972 -0.084703344 0.0655" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_12">
+      <origin xyz="-1.5752019e-17 -0.08575 0.0655" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_13">
+      <origin xyz="0.0052618972 -0.084703344 0.0655" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_14">
+      <origin xyz="0.0097227182 -0.081722718 0.0655" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <collision name="slot_4_wall_15">
+      <origin xyz="0.012703344 -0.077261897 0.0655" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.0045 0.0063651958 0.115" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0.035" />
+      <mass value="0.4" />
+      <inertia ixx="0.0021471000000000003" iyy="0.0021471000000000003" izz="0.0032856" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+  </link>
+  <joint name="laboratory_centrifuge_rotor_joint" type="continuous">
+    <parent link="laboratory_centrifuge_base" />
+    <child link="laboratory_centrifuge_rotor" />
+    <origin xyz="0 0 0.052" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <dynamics damping="0.03" friction="0.002" />
+  </joint>
+  <link name="laboratory_centrifuge_lid">
+    <visual>
+      <geometry>
+        <mesh filename="assets/centrifuge_lid.glb" />
+      </geometry>
+    </visual>
+    <collision name="lid_cover">
+      <origin xyz="0 -0.155 0.007" rpy="0 0 0" />
+      <geometry>
+        <box size="0.3 0.3 0.014" />
+      </geometry>
+    </collision>
+    <collision name="lid_handle">
+      <origin xyz="0 -0.21 0.09" rpy="0 0 0" />
+      <geometry>
+        <box size="0.069 0.019 0.02" />
+      </geometry>
+    </collision>
+    <collision name="lid_handle_mount_0">
+      <origin xyz="-0.026 -0.21 0.047" rpy="0 0 0" />
+      <geometry>
+        <box size="0.014 0.016 0.086" />
+      </geometry>
+    </collision>
+    <collision name="lid_handle_mount_1">
+      <origin xyz="0.026 -0.21 0.047" rpy="0 0 0" />
+      <geometry>
+        <box size="0.014 0.016 0.086" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 -0.155 0.007" />
+      <mass value="0.55" />
+      <inertia ixx="0.004133983333333333" iyy="0.004133983333333333" izz="0.00825" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+  </link>
+  <joint name="laboratory_centrifuge_lid_joint" type="revolute">
+    <parent link="laboratory_centrifuge_base" />
+    <child link="laboratory_centrifuge_lid" />
+    <origin xyz="0 0.155 0.223" rpy="0 0 0" />
+    <axis xyz="-1 0 0" />
+    <limit lower="0" upper="1.35" effort="8" velocity="1" />
+    <dynamics damping="0.03" friction="0.002" />
+  </joint>
+  <link name="laboratory_pipetting_station">
+    <visual>
+      <geometry>
+        <mesh filename="assets/pipetting_station.glb" />
+      </geometry>
+    </visual>
+    <collision name="pipetting_platform">
+      <origin xyz="0 -0.015 0.008" rpy="0 0 0" />
+      <geometry>
+        <box size="0.22 0.29 0.016" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_column">
+      <origin xyz="0 0.085 0.133" rpy="0 0 0" />
+      <geometry>
+        <box size="0.22 0.09 0.234" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_head">
+      <origin xyz="0 -0.032 0.219" rpy="0 0 0" />
+      <geometry>
+        <box size="0.054 0.194 0.024" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_holder_side_0">
+      <origin xyz="-0.01375 -0.1165 0.032" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.045 0.032" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_holder_side_1">
+      <origin xyz="0.01375 -0.1165 0.032" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.045 0.032" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_holder_back">
+      <origin xyz="0 -0.09625 0.032" rpy="0 0 0" />
+      <geometry>
+        <box size="0.032 0.0045 0.032" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_amber_nozzle">
+      <origin xyz="-0.0018 -0.11 0.1935" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0016 0.0016 0.027" />
+      </geometry>
+    </collision>
+    <collision name="pipetting_teal_nozzle">
+      <origin xyz="0.0018 -0.11 0.1935" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0016 0.0016 0.027" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_pipetting_station_joint" type="fixed">
+    <parent link="laboratory_root" />
+    <child link="laboratory_pipetting_station" />
+    <origin xyz="-0.1 0 0.9" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_refrigerator_base">
+    <visual>
+      <geometry>
+        <mesh filename="assets/refrigerator_base.glb" />
+      </geometry>
+    </visual>
+    <collision name="refrigerator_left_wall">
+      <origin xyz="-0.2525 0 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.035 0.58 0.82" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_right_wall">
+      <origin xyz="0.2525 0 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.035 0.58 0.82" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_rear_wall">
+      <origin xyz="0 0.27 0.43" rpy="0 0 0" />
+      <geometry>
+        <box size="0.47 0.04 0.82" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_compressor">
+      <origin xyz="0 0 0.08" rpy="0 0 0" />
+      <geometry>
+        <box size="0.47 0.58 0.12" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_header">
+      <origin xyz="0 0 0.78" rpy="0 0 0" />
+      <geometry>
+        <box size="0.47 0.58 0.12" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_shelf_1">
+      <origin xyz="0 -0.005 0.234" rpy="0 0 0" />
+      <geometry>
+        <box size="0.454 0.47 0.012" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_shelf_2">
+      <origin xyz="0 -0.005 0.474" rpy="0 0 0" />
+      <geometry>
+        <box size="0.454 0.47 0.012" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_0">
+      <origin xyz="-0.125 -0.1 0.26" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_1">
+      <origin xyz="-0.12614181 -0.094259749 0.26" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_2">
+      <origin xyz="-0.1293934 -0.089393398 0.26" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_3">
+      <origin xyz="-0.13425975 -0.086141807 0.26" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_4">
+      <origin xyz="-0.14 -0.085 0.26" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_5">
+      <origin xyz="-0.14574025 -0.086141807 0.26" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_6">
+      <origin xyz="-0.1506066 -0.089393398 0.26" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_7">
+      <origin xyz="-0.15385819 -0.094259749 0.26" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_8">
+      <origin xyz="-0.155 -0.1 0.26" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_9">
+      <origin xyz="-0.15385819 -0.10574025 0.26" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_10">
+      <origin xyz="-0.1506066 -0.1106066 0.26" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_11">
+      <origin xyz="-0.14574025 -0.11385819 0.26" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_12">
+      <origin xyz="-0.14 -0.115 0.26" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_13">
+      <origin xyz="-0.13425975 -0.11385819 0.26" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_14">
+      <origin xyz="-0.1293934 -0.1106066 0.26" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R1_collar_15">
+      <origin xyz="-0.12614181 -0.10574025 0.26" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_0">
+      <origin xyz="0.015 -0.1 0.26" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_1">
+      <origin xyz="0.013858193 -0.094259749 0.26" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_2">
+      <origin xyz="0.010606602 -0.089393398 0.26" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_3">
+      <origin xyz="0.0057402515 -0.086141807 0.26" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_4">
+      <origin xyz="9.184851e-19 -0.085 0.26" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_5">
+      <origin xyz="-0.0057402515 -0.086141807 0.26" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_6">
+      <origin xyz="-0.010606602 -0.089393398 0.26" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_7">
+      <origin xyz="-0.013858193 -0.094259749 0.26" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_8">
+      <origin xyz="-0.015 -0.1 0.26" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_9">
+      <origin xyz="-0.013858193 -0.10574025 0.26" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_10">
+      <origin xyz="-0.010606602 -0.1106066 0.26" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_11">
+      <origin xyz="-0.0057402515 -0.11385819 0.26" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_12">
+      <origin xyz="-2.7554553e-18 -0.115 0.26" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_13">
+      <origin xyz="0.0057402515 -0.11385819 0.26" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_14">
+      <origin xyz="0.010606602 -0.1106066 0.26" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R2_collar_15">
+      <origin xyz="0.013858193 -0.10574025 0.26" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_0">
+      <origin xyz="0.155 -0.1 0.26" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_1">
+      <origin xyz="0.15385819 -0.094259749 0.26" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_2">
+      <origin xyz="0.1506066 -0.089393398 0.26" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_3">
+      <origin xyz="0.14574025 -0.086141807 0.26" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_4">
+      <origin xyz="0.14 -0.085 0.26" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_5">
+      <origin xyz="0.13425975 -0.086141807 0.26" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_6">
+      <origin xyz="0.1293934 -0.089393398 0.26" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_7">
+      <origin xyz="0.12614181 -0.094259749 0.26" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_8">
+      <origin xyz="0.125 -0.1 0.26" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_9">
+      <origin xyz="0.12614181 -0.10574025 0.26" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_10">
+      <origin xyz="0.1293934 -0.1106066 0.26" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_11">
+      <origin xyz="0.13425975 -0.11385819 0.26" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_12">
+      <origin xyz="0.14 -0.115 0.26" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_13">
+      <origin xyz="0.14574025 -0.11385819 0.26" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_14">
+      <origin xyz="0.1506066 -0.1106066 0.26" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R3_collar_15">
+      <origin xyz="0.15385819 -0.10574025 0.26" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_0">
+      <origin xyz="-0.125 -0.1 0.5" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_1">
+      <origin xyz="-0.12614181 -0.094259749 0.5" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_2">
+      <origin xyz="-0.1293934 -0.089393398 0.5" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_3">
+      <origin xyz="-0.13425975 -0.086141807 0.5" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_4">
+      <origin xyz="-0.14 -0.085 0.5" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_5">
+      <origin xyz="-0.14574025 -0.086141807 0.5" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_6">
+      <origin xyz="-0.1506066 -0.089393398 0.5" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_7">
+      <origin xyz="-0.15385819 -0.094259749 0.5" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_8">
+      <origin xyz="-0.155 -0.1 0.5" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_9">
+      <origin xyz="-0.15385819 -0.10574025 0.5" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_10">
+      <origin xyz="-0.1506066 -0.1106066 0.5" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_11">
+      <origin xyz="-0.14574025 -0.11385819 0.5" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_12">
+      <origin xyz="-0.14 -0.115 0.5" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_13">
+      <origin xyz="-0.13425975 -0.11385819 0.5" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_14">
+      <origin xyz="-0.1293934 -0.1106066 0.5" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R4_collar_15">
+      <origin xyz="-0.12614181 -0.10574025 0.5" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_0">
+      <origin xyz="0.015 -0.1 0.5" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_1">
+      <origin xyz="0.013858193 -0.094259749 0.5" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_2">
+      <origin xyz="0.010606602 -0.089393398 0.5" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_3">
+      <origin xyz="0.0057402515 -0.086141807 0.5" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_4">
+      <origin xyz="9.184851e-19 -0.085 0.5" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_5">
+      <origin xyz="-0.0057402515 -0.086141807 0.5" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_6">
+      <origin xyz="-0.010606602 -0.089393398 0.5" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_7">
+      <origin xyz="-0.013858193 -0.094259749 0.5" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_8">
+      <origin xyz="-0.015 -0.1 0.5" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_9">
+      <origin xyz="-0.013858193 -0.10574025 0.5" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_10">
+      <origin xyz="-0.010606602 -0.1106066 0.5" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_11">
+      <origin xyz="-0.0057402515 -0.11385819 0.5" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_12">
+      <origin xyz="-2.7554553e-18 -0.115 0.5" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_13">
+      <origin xyz="0.0057402515 -0.11385819 0.5" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_14">
+      <origin xyz="0.010606602 -0.1106066 0.5" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R5_collar_15">
+      <origin xyz="0.013858193 -0.10574025 0.5" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_0">
+      <origin xyz="0.155 -0.1 0.5" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_1">
+      <origin xyz="0.15385819 -0.094259749 0.5" rpy="0 0 0.39269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_2">
+      <origin xyz="0.1506066 -0.089393398 0.5" rpy="0 0 0.78539816" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_3">
+      <origin xyz="0.14574025 -0.086141807 0.5" rpy="0 0 1.1780972" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_4">
+      <origin xyz="0.14 -0.085 0.5" rpy="0 0 1.5707963" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_5">
+      <origin xyz="0.13425975 -0.086141807 0.5" rpy="0 0 1.9634954" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_6">
+      <origin xyz="0.1293934 -0.089393398 0.5" rpy="0 0 2.3561945" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_7">
+      <origin xyz="0.12614181 -0.094259749 0.5" rpy="0 0 2.7488936" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_8">
+      <origin xyz="0.125 -0.1 0.5" rpy="0 0 3.1415927" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_9">
+      <origin xyz="0.12614181 -0.10574025 0.5" rpy="0 0 3.5342917" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_10">
+      <origin xyz="0.1293934 -0.1106066 0.5" rpy="0 0 3.9269908" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_11">
+      <origin xyz="0.13425975 -0.11385819 0.5" rpy="0 0 4.3196899" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_12">
+      <origin xyz="0.14 -0.115 0.5" rpy="0 0 4.712389" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_13">
+      <origin xyz="0.14574025 -0.11385819 0.5" rpy="0 0 5.1050881" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_14">
+      <origin xyz="0.1506066 -0.1106066 0.5" rpy="0 0 5.4977871" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_R6_collar_15">
+      <origin xyz="0.15385819 -0.10574025 0.5" rpy="0 0 5.8904862" />
+      <geometry>
+        <box size="0.007 0.0073597576 0.04" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="laboratory_refrigerator_base_joint" type="fixed">
+    <parent link="laboratory_root" />
+    <child link="laboratory_refrigerator_base" />
+    <origin xyz="-1.23 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_refrigerator_door">
+    <visual>
+      <geometry>
+        <mesh filename="assets/refrigerator_door.glb" />
+      </geometry>
+    </visual>
+    <collision name="refrigerator_door_glass">
+      <origin xyz="0.25 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.418 0.006 0.49" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_door_left">
+      <origin xyz="0.018 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.036 0.032 0.58" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_door_right">
+      <origin xyz="0.482 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.036 0.032 0.58" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_door_top">
+      <origin xyz="0.25 0 0.2675" rpy="0 0 0" />
+      <geometry>
+        <box size="0.428 0.032 0.045" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_door_bottom">
+      <origin xyz="0.25 0 -0.2675" rpy="0 0 0" />
+      <geometry>
+        <box size="0.428 0.032 0.045" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_handle">
+      <origin xyz="0.482 -0.044 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.018 0.203" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_handle_mount_0">
+      <origin xyz="0.482 -0.026 -0.085" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016 0.035 0.016" />
+      </geometry>
+    </collision>
+    <collision name="refrigerator_handle_mount_1">
+      <origin xyz="0.482 -0.026 0.085" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016 0.035 0.016" />
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0.25 0 0" />
+      <mass value="3.0" />
+      <inertia ixx="0.084356" iyy="0.1466" izz="0.062756" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+  </link>
+  <joint name="laboratory_refrigerator_door_joint" type="revolute">
+    <parent link="laboratory_refrigerator_base" />
+    <child link="laboratory_refrigerator_door" />
+    <origin xyz="-0.25 -0.31 0.43" rpy="0 0 0" />
+    <axis xyz="0 0 -1" />
+    <limit lower="0" upper="1.75" effort="15" velocity="1" />
+    <dynamics damping="0.2" friction="0.04" />
+  </joint>
+  <link name="laboratory_drawer_handle" />
+  <joint name="laboratory_drawer_handle_joint" type="fixed">
+    <parent link="laboratory_drawer" />
+    <child link="laboratory_drawer_handle" />
+    <origin xyz="0 -0.336 0.015" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_cabinet_lower_handle" />
+  <joint name="laboratory_cabinet_lower_handle_joint" type="fixed">
+    <parent link="laboratory_room" />
+    <child link="laboratory_cabinet_lower_handle" />
+    <origin xyz="-0.52 -0.346 0.546" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_cabinet_middle_handle" />
+  <joint name="laboratory_cabinet_middle_handle_joint" type="fixed">
+    <parent link="laboratory_room" />
+    <child link="laboratory_cabinet_middle_handle" />
+    <origin xyz="0.005 -0.346 0.744" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_cabinet_right_handle" />
+  <joint name="laboratory_cabinet_right_handle_joint" type="fixed">
+    <parent link="laboratory_room" />
+    <child link="laboratory_cabinet_right_handle" />
+    <origin xyz="0.523 -0.346 0.744" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_centrifuge_lid_handle" />
+  <joint name="laboratory_centrifuge_lid_handle_joint" type="fixed">
+    <parent link="laboratory_centrifuge_lid" />
+    <child link="laboratory_centrifuge_lid_handle" />
+    <origin xyz="0 -0.21 0.09" rpy="0 0 0" />
+  </joint>
+  <link name="laboratory_refrigerator_door_handle" />
+  <joint name="laboratory_refrigerator_door_handle_joint" type="fixed">
+    <parent link="laboratory_refrigerator_door" />
+    <child link="laboratory_refrigerator_door_handle" />
+    <origin xyz="0.482 -0.044 0" rpy="0 0 0" />
+  </joint>
+</robot>

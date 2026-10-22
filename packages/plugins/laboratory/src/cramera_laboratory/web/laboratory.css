@@ -1,0 +1,14 @@
+/* The Laboratory panel; colours come from the viewer's theme variables. */
+
+.laboratory-panel h3 { font-size: 12px; margin: 10px 0 4px; color: var(--text); }
+.laboratory-panel ul { margin: 0 0 8px; padding-left: 18px; }
+.laboratory-panel li { margin-bottom: 6px; }
+.laboratory-section { margin-bottom: 12px; }
+.laboratory-section section { border-top: 1px solid var(--border); padding-top: 4px; }
+.laboratory-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.laboratory-row input[type="number"] { width: 72px; }
+.laboratory-facts { font: 12px var(--mono); color: var(--text-muted); margin: 2px 0; overflow-wrap: anywhere; }
+.laboratory-note { color: var(--text-muted); margin: 0 0 6px; }
+.laboratory-message { margin: 0 0 8px; min-height: 1em; }
+.laboratory-message:empty { display: none; }
+.laboratory-error { color: var(--danger); }

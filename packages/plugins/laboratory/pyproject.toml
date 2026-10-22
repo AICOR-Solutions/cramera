@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cramera-laboratory"
+version = "1.0.0"
+description = "A cramera viewer plugin: the AICOR laboratory as scene bundles and CRAM worlds, its MuJoCo contact simulation with liquid, scale, centrifuge, refrigerator, drawer, rack and dispensing station, and a PR2 transfer task demo."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Vanessa Hassouna" }]
+# The CRAM packages (coraplex, semantic_digital_twin, giskardpy) come from the CRAM
+# workspace and are not installable from an index; only the world and the task demo
+# need them, together with cramera-cram (the "cram" extra).
+dependencies = [
+    "cramera==1.0.0",
+    "cramera-protocol==1.0.0",
+    "numpy",
+    "scipy",
+    "typing_extensions>=4.8",
+]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.optional-dependencies]
+physics = ["mujoco>=3.2"]
+cram = ["cramera-cram==1.0.0"]
+
+[project.scripts]
+cramera-laboratory-transfer = "cramera_laboratory.transfer:main"
+
+[project.entry-points."cramera.plugins"]
+laboratory = "cramera_laboratory.plugin:LaboratoryPlugin"
+
+[project.urls]
+Source = "https://github.com/sunava/cramera"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cramera_laboratory = ["web/**/*", "resources/**/*"]
+
+[tool.setuptools.exclude-package-data]
+cramera_laboratory = ["resources/**/*.blend"]
