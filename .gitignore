@@ -1,6 +1,8 @@
 __pycache__/
 *.egg-info/
-build/
-dist/
+/build/
+/dist/
 .coverage
 /site/
+packages/*/build/
+packages/plugins/*/build/
