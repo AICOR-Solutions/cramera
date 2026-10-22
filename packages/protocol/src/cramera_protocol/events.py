@@ -121,3 +121,24 @@ class PageState(StrEnum):
     """
     The scene could not be shown.
     """
+
+
+class PageReportKey(StrEnum):
+    """
+    The keys of the report the screenshot command writes about a page.
+    """
+
+    STATE = "state"
+    """
+    The page state when the screenshot was taken.
+    """
+
+    STATUS = "status"
+    """
+    The page's status line when the screenshot was taken.
+    """
+
+    BROWSER = "browser"
+    """
+    The browser the screenshot was taken in.
+    """

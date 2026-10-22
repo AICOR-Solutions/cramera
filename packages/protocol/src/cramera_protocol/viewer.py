@@ -169,6 +169,11 @@ class BuildKey(StrEnum):
     When the build was made.
     """
 
+    SOURCE = "source"
+    """
+    The repository the build was made from.
+    """
+
 
 @dataclass(kw_only=True)
 class BuildStamp(JsonDocument):
@@ -184,6 +189,11 @@ class BuildStamp(JsonDocument):
     built_at: str = document_field(BuildKey.BUILT_AT)
     """
     When the build was made, as an ISO 8601 date and time in UTC.
+    """
+
+    source: Optional[str] = document_field(BuildKey.SOURCE, default=None)
+    """
+    The web address of the repository the build was made from.
     """
 
 

@@ -37,7 +37,12 @@ from cramera_protocol.bundle.statecharts import (
     StatechartsKey,
 )
 from cramera_protocol.bundle.trajectory import TrajectoryKey
-from cramera_protocol.events import PageState, PageStateAttribute, ViewerEvent
+from cramera_protocol.events import (
+    PageReportKey,
+    PageState,
+    PageStateAttribute,
+    ViewerEvent,
+)
 from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
 from cramera_protocol.version import CURRENT_VERSION
@@ -92,6 +97,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     ViewerEvent,
     PageStateAttribute,
     PageState,
+    PageReportKey,
 )
 """
 The enumerations the browser application reads.
