@@ -55,21 +55,11 @@ from cramera_laboratory.grasping import (
     VesselGrasp,
     VesselPickUpAction,
 )
-from cramera_laboratory.resources import LaboratoryResource
+from cramera_laboratory.task_runs import TaskRecording
 from cramera_laboratory.world import LaboratoryEnvironment
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.scene import Camera
 from cramera_protocol.geometry import Vector3
-
-ROBOT_NAME = "pr2"
-"""
-The robot's part of the recording's name.
-"""
-
-TASK_IDENTIFIER = "transfer"
-"""
-The task's part of the recording's name.
-"""
 
 TASK = "PR2: vessel transfer A1 → A3"
 """
@@ -649,7 +639,7 @@ class VesselTransferDemo(RobotTaskDemo):
                     x=x, y=y, yaw=heading
                 ),
             ),
-            name="_".join((LaboratoryResource.BENCH, ROBOT_NAME, TASK_IDENTIFIER)),
+            name=TaskRecording.TRANSFER.value,
             task=TASK,
             environment_name=environment.contents.scene.environment_name,
             presentation=ScenePresentation.of_bundle(environment.directory),
@@ -669,3 +659,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
     TaskCommand(VesselTransferDemo.at_the_bench()).main(
         sys.argv[1:] if arguments is None else arguments
     )
+
+
+if __name__ == "__main__":
+    main()

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { LaboratoryCatalogKey, LaboratoryName, LaboratoryRoute, ViewerEvent, ViewerRoute } from 'cramera-viewer/protocol.js';
+import { LaboratoryCatalogKey, LaboratoryName, LaboratoryRoute, TaskRunState, ViewerEvent, ViewerRoute } from 'cramera-viewer/protocol.js';
 
 import { register } from '../../src/cramera_laboratory/web/index.js';
 import { Text } from '../../src/cramera_laboratory/web/laboratory-panel.js';
@@ -22,6 +22,7 @@ async function registered(listed) {
     [LaboratoryCatalogKey.PHYSICS_AVAILABLE]: true,
   });
   api.answers.set(routeUrl(LaboratoryRoute.DEVICES), { devices: [] });
+  api.answers.set(routeUrl(LaboratoryRoute.TRANSFER_STATE), { state: TaskRunState.IDLE, scene: 'aicor_medical_lab_pr2_transfer' });
   const network = new FakeFetch();
   network.answer(routeUrl(LaboratoryRoute.INSTALL), 200, { scene: LABORATORY });
   const bus = new EventBus();

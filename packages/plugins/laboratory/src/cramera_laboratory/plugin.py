@@ -26,6 +26,7 @@ from cramera.plugins import (
 from cramera_laboratory.devices import DeviceShelf
 from cramera_laboratory.exceptions import InvalidRequestBody
 from cramera_laboratory.resources import LaboratoryInstallation, LaboratoryShelf
+from cramera_laboratory.task_runs import LaboratoryTask, TaskProcess, TaskRecording
 from cramera_laboratory.session import (
     ContactSimulation,
     MujocoSimulations,
@@ -180,8 +181,16 @@ class LaboratoryRoutes:
     The contact simulation's session.
     """
 
+    transfer: TaskProcess = field(init=False)
+    """
+    Runs the PR2 vessel transfer demo.
+    """
+
     def __post_init__(self) -> None:
         self.session = SimulationSession(self.locations, self.factory)
+        self.transfer = TaskProcess.of_task(
+            LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, self.locations
+        )
 
     @property
     def installation(self) -> LaboratoryInstallation:
@@ -266,6 +275,29 @@ class LaboratoryRoutes:
 
     # %% simulation
 
+    def answer_transfer_state(self, request: Request) -> Response:
+        """
+        :param request: A request for the transfer demo's state.
+        :return: How far the demo is.
+        """
+        return Response.of_json(self.transfer.state())
+
+    def answer_transfer_start(self, request: Request) -> Response:
+        """
+        :param request: A request carrying an :class:`EmptyRequest`.
+        :return: How far the demo is after starting it.
+        """
+        self.body(request, EmptyRequest)
+        return Response.of_json(self.transfer.start())
+
+    def answer_transfer_stop(self, request: Request) -> Response:
+        """
+        :param request: A request carrying an :class:`EmptyRequest`.
+        :return: How far the demo is after ending it.
+        """
+        self.body(request, EmptyRequest)
+        return Response.of_json(self.transfer.stop())
+
     def answer_state(self, request: Request) -> Response:
         """
         :param request: A request for the simulation's state.
@@ -319,6 +351,21 @@ class LaboratoryRoutes:
             PluginRoute(HttpMethod.GET, LaboratoryRoute.DEVICES, self.answer_devices),
             PluginPrefixRoute(
                 HttpMethod.GET, LaboratoryRoute.DEVICE_FILES, self.answer_device_file
+            ),
+            PluginRoute(
+                HttpMethod.GET,
+                LaboratoryRoute.TRANSFER_STATE,
+                self.answer_transfer_state,
+            ),
+            PluginRoute(
+                HttpMethod.POST,
+                LaboratoryRoute.TRANSFER_START,
+                self.answer_transfer_start,
+            ),
+            PluginRoute(
+                HttpMethod.POST,
+                LaboratoryRoute.TRANSFER_STOP,
+                self.answer_transfer_stop,
             ),
             PluginRoute(HttpMethod.GET, LaboratoryRoute.STATE, self.answer_state),
             PluginRoute(HttpMethod.POST, LaboratoryRoute.START, self.answer_start),

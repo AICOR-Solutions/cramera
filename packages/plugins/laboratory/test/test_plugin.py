@@ -17,6 +17,8 @@ from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_laboratory.devices import DeviceFile, LaboratoryDevice
 from cramera_laboratory.plugin import COMMAND_ROUTES, LaboratoryPlugin
 from cramera_laboratory.resources import LaboratoryResource
+from cramera_laboratory.task_runs import TaskRecording
+from cramera_protocol.laboratory.runs import TaskRun, TaskRunState
 from cramera_protocol.laboratory.physics import (
     DeviceCatalog,
     InstalledLaboratory,
@@ -108,6 +110,23 @@ def test_the_devices_and_their_files_are_served(get):
 )
 def test_device_files_stay_inside_their_folder(get, path, status):
     assert get(f"{LaboratoryRoute.DEVICE_FILES}{path}").status == status
+
+
+# %% task demos
+
+
+def test_the_transfer_demo_names_its_recording(get):
+    run = TaskRun.from_json(decoded(get(LaboratoryRoute.TRANSFER_STATE)))
+    assert run.scene == TaskRecording.TRANSFER
+
+
+def test_an_existing_recording_is_not_run_again(post, locations):
+    bundle = locations.local_scenes / TaskRecording.TRANSFER
+    bundle.mkdir(parents=True)
+    (bundle / BundleFile.SCENE).write_text("{}", encoding="utf-8")
+    started = TaskRun.from_json(decoded(post(LaboratoryRoute.TRANSFER_START, {})))
+    stopped = TaskRun.from_json(decoded(post(LaboratoryRoute.TRANSFER_STOP, {})))
+    assert started.state is stopped.state is TaskRunState.RECORDED
 
 
 # %% simulation

@@ -72,6 +72,13 @@ export class LaboratoryClient {
   }
 
   /**
+   * @returns {Promise<Object>} The PR2 vessel transfer demo's state.
+   */
+  transfer() {
+    return this.#api.json(this.url(LaboratoryRoute.TRANSFER_STATE));
+  }
+
+  /**
    * @returns {Promise<Object>} The simulation's state.
    */
   state() {

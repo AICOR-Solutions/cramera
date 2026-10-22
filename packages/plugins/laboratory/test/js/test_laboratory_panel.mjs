@@ -14,6 +14,8 @@ import {
   SimulationState,
   SnapshotKey,
   TargetRequestKey,
+  TaskRunKey,
+  TaskRunState,
   ViewerRoute,
 } from 'cramera-viewer/protocol.js';
 
@@ -128,4 +130,26 @@ test('the devices link to their URDFs', () => {
   panel.showDevices({ devices: [{ name: 'scale', title: 'AICOR scale', description: 'model.urdf', movingJoints: 0 }] });
   const [link] = panel.devices.findAll((child) => child.tagName === 'A');
   assert.equal(link.href, routeUrl(`${LaboratoryRoute.DEVICE_FILES}scale/model.urdf`));
+});
+
+test('the transfer demo runs, can be ended and opens its recording', async () => {
+  const { panel, network, shown } = setUp();
+  const scene = 'aicor_medical_lab_pr2_transfer';
+  const followed = [];
+  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: scene }, () => followed.push(true));
+  network.answer(routeUrl(LaboratoryRoute.TRANSFER_START), 200, { [TaskRunKey.STATE]: TaskRunState.RUNNING, [TaskRunKey.SCENE]: scene });
+  buttons(panel.demos, Text.RUN)[0].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(followed, [true]);
+  assert.equal(buttons(panel.demos, Text.END_RUN).length, 1);
+  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: scene }, () => null);
+  buttons(panel.demos, Text.OPEN_RECORDING)[0].click();
+  assert.deepEqual(shown, [scene]);
+});
+
+test('a failed transfer shows its output and may run again', () => {
+  const { panel } = setUp();
+  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.FAILED, [TaskRunKey.SCENE]: 'x', [TaskRunKey.ERROR]: 'the vessel is still held' }, () => null);
+  assert.ok(panel.demos.innerText.includes('the vessel is still held'));
+  assert.equal(buttons(panel.demos, Text.RUN).length, 1);
 });

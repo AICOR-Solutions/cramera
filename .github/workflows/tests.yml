@@ -76,6 +76,7 @@ jobs:
               --cov=cramera_laboratory.resources
               --cov=cramera_laboratory.scene_files
               --cov=cramera_laboratory.session
+              --cov=cramera_laboratory.task_runs
               --cov=cramera_laboratory.urdf
     steps:
       - uses: actions/checkout@v4

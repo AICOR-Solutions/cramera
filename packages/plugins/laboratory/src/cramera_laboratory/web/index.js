@@ -6,10 +6,15 @@
 import * as THREE from 'three';
 
 import { withScene } from '../../core/scene-address.js';
-import { IndexEntryKey, IndexKey, ViewerEvent } from '../../protocol.js';
+import { IndexEntryKey, IndexKey, TaskRunKey, TaskRunState, ViewerEvent } from '../../protocol.js';
 import { LaboratoryClient } from './laboratory-client.js';
 import { LaboratoryPanel } from './laboratory-panel.js';
 import { BrowserTimer, SimulationFollower } from './simulation-follower.js';
+
+/**
+ * How often a running task demo's state is asked for, in milliseconds.
+ */
+const TRANSFER_INTERVAL = 2000;
 
 /**
  * The panel's stylesheet, next to this module.
@@ -58,8 +63,15 @@ export async function register(
     (error) => panel.showMessage(error.reason ?? error.message, true),
   );
   context.bus.subscribe(ViewerEvent.SCENE_LOADING, () => panel.hideSimulation());
-  const [laboratories, devices] = await Promise.all([client.laboratories(), client.devices()]);
+  const [laboratories, devices, transfer] = await Promise.all([client.laboratories(), client.devices(), client.transfer()]);
   panel.showLaboratories(laboratories);
   panel.showDevices(devices);
+  const followTransfer = async () => {
+    const run = await client.transfer();
+    panel.showTransfer(run, followTransfer);
+    if (run[TaskRunKey.STATE] === TaskRunState.RUNNING) timer.after(TRANSFER_INTERVAL, followTransfer);
+  };
+  panel.showTransfer(transfer, followTransfer);
+  if (transfer[TaskRunKey.STATE] === TaskRunState.RUNNING) timer.after(TRANSFER_INTERVAL, followTransfer);
   return { panel, follower };
 }

@@ -5,6 +5,8 @@
 
 import { SidePanel } from '../../panels/panel-host.js';
 import {
+  TaskRunKey,
+  TaskRunState,
   BenchDrawerStateKey,
   BenchKey,
   CameraKey,
@@ -123,6 +125,10 @@ export const Text = Object.freeze({
   INSPECT: 'Inspection pose',
   REST: 'Rest pose',
   EMPTY: '—',
+  TRANSFER: 'PR2 vessel transfer (CRAM)',
+  RUN: 'Run the demo',
+  OPEN_RECORDING: 'Open the recording',
+  END_RUN: 'End the run',
   LID_OPEN: 'lid open',
   LID_CLOSED: 'lid closed',
   LID_MOVING: 'lid moving',
@@ -281,6 +287,12 @@ export class LaboratoryPanel {
   devices;
 
   /**
+   * The task demo part.
+   * @type {HTMLElement}
+   */
+  demos;
+
+  /**
    * The simulation part.
    * @type {HTMLElement}
    */
@@ -345,8 +357,9 @@ export class LaboratoryPanel {
     this.laboratories = this.#elements.element('div', '', Style.SECTION);
     this.simulation = this.#elements.element('div', '', Style.SECTION);
     this.devices = this.#elements.element('div', '', Style.SECTION);
+    this.demos = this.#elements.element('div', '', Style.SECTION);
     this.simulation.append(this.#elements.element('h2', Text.SIMULATION), this.#elements.element('p', Text.NOT_SHOWN, Style.NOTE));
-    root.append(this.message, this.laboratories, this.simulation, this.devices);
+    root.append(this.message, this.laboratories, this.demos, this.simulation, this.devices);
     this.panel = new SidePanel(LaboratoryName.PLUGIN, Text.TITLE, root);
   }
 
@@ -435,6 +448,41 @@ export class LaboratoryPanel {
   async simulate(choice) {
     const started = await this.attempt(() => this.#client.send(LaboratoryRoute.START, choice));
     if (started) this.#showScene(started[SimulationAnswerKey.SCENE]);
+  }
+
+  // %% task demos
+
+  /**
+   * Show the transfer demo's state with the actions it allows.
+   * @param {Object} run The demo's state, keyed by `TaskRunKey`.
+   * @param {function(): void} onStarted Called once a run started, to follow it.
+   */
+  showTransfer(run, onStarted) {
+    const elements = this.#elements;
+    const state = run[TaskRunKey.STATE];
+    const scene = run[TaskRunKey.SCENE];
+    const actions = elements.row();
+    if (state === TaskRunState.IDLE || state === TaskRunState.FAILED) {
+      actions.append(
+        elements.button(Text.RUN, async () => {
+          const started = await this.attempt(() => this.#client.send(LaboratoryRoute.TRANSFER_START));
+          if (started) {
+            this.showTransfer(started, onStarted);
+            onStarted();
+          }
+        }),
+      );
+    }
+    if (state === TaskRunState.RUNNING) {
+      actions.append(elements.button(Text.END_RUN, async () => {
+        const stopped = await this.attempt(() => this.#client.send(LaboratoryRoute.TRANSFER_STOP));
+        if (stopped) this.showTransfer(stopped, onStarted);
+      }));
+    }
+    if (state === TaskRunState.RECORDED) actions.append(elements.button(Text.OPEN_RECORDING, () => this.#showScene(scene)));
+    const parts = [elements.element('h2', Text.TRANSFER), elements.element('p', `${state} \u00b7 ${scene}`, Style.NOTE), actions];
+    if (run[TaskRunKey.ERROR]) parts.push(elements.element('pre', run[TaskRunKey.ERROR], Style.FACTS));
+    this.demos.replaceChildren(...parts);
   }
 
   // %% devices
