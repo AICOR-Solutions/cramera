@@ -300,3 +300,137 @@ class UrdfSourceNotFound(ExportError):
         return f"The URDF source {self.source!r} does not exist."
 
 
+# %% scenes
+
+
+@dataclass
+class SceneWorldError(ViewerError):
+    """
+    A scene bundle or a robot configuration a world cannot be built from.
+    """
+
+
+@dataclass
+class BundleNotFound(SceneWorldError):
+    """
+    A directory that holds no scene bundle.
+    """
+
+    directory: Path
+    """
+    The directory that was given.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"{str(self.directory)!r} holds no scene.json."
+
+
+@dataclass
+class UnknownPrimLink(SceneWorldError):
+    """
+    An annotated prim whose link the bundle's environment does not hold.
+    """
+
+    prim: str
+    """
+    The USD path of the prim.
+    """
+
+    link: str
+    """
+    The link the prim names.
+    """
+
+    def message(self) -> str:
+        return f"The prim {self.prim!r} names the missing link {self.link!r}."
+
+
+@dataclass
+class InvalidRobotPlacement(SceneWorldError):
+    """
+    A robot configuration that cannot name its robot unambiguously.
+    """
+
+    reason: str
+    """
+    What is wrong with the configuration.
+    """
+
+    def message(self) -> str:
+        return self.reason
+
+
+@dataclass
+class RobotPlacementUnavailable(SceneWorldError):
+    """
+    A configured robot that does not resolve to exactly one robot of a world.
+    """
+
+    namespace: str
+    """
+    The namespace of the configured robot.
+    """
+
+    matches: int
+    """
+    How many robots of the world carry it.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The robot namespace {self.namespace!r} matches {self.matches} robots; "
+            f"expected one."
+        )
+
+
+@dataclass
+class MissingParameter(CramPublisherError):
+    """
+    A request without a query parameter its route needs.
+    """
+
+    name: str
+    """
+    The missing parameter.
+    """
+
+    def message(self) -> str:
+        return f"The request needs the query parameter {self.name!r}."
+
+
+@dataclass
+class InvalidParameter(CramPublisherError):
+    """
+    A query parameter whose value its route does not accept.
+    """
+
+    name: str
+    """
+    The parameter.
+    """
+
+    value: str
+    """
+    The value given.
+    """
+
+    def message(self) -> str:
+        return f"{self.value!r} is no valid value of the parameter {self.name!r}."
+
+
+@dataclass
+class MalformedBody(CramPublisherError):
+    """
+    A request body that is not JSON.
+    """
+
+    reason: str
+    """
+    Why it cannot be read.
+    """
+
+    def message(self) -> str:
+        return f"The request body is no JSON document: {self.reason}"

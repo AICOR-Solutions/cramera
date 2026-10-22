@@ -1,0 +1,86 @@
+"""
+The authored appearance of a scene carried into written bundles.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from cramera_cram.documents import DocumentFile
+from cramera_cram.exceptions import BundleNotFound
+from cramera_cram.scenes.presentation import ScenePresentation
+from cramera_protocol.bundle.files import BundleFile
+from cramera_protocol.bundle.scene import (
+    ModelDescription,
+    ObjectDescription,
+    SceneDescription,
+)
+from cramera_protocol.geometry import Pose
+
+# %% presentation
+
+
+@pytest.fixture
+def source(annotated_bundle):
+    return DocumentFile(annotated_bundle / BundleFile.SCENE).read(SceneDescription)
+
+
+def written_scene(source: SceneDescription) -> SceneDescription:
+    return SceneDescription(
+        name="written",
+        models=[
+            ModelDescription(name="environment", urdf="e.urdf", prefix="", robot=False),
+            ModelDescription(name="robot", urdf="r.urdf", prefix="", robot=True),
+        ],
+        objects=[
+            ObjectDescription(
+                identifier=entry.identifier, key=entry.key, spawn=entry.spawn
+            )
+            for entry in source.objects
+        ]
+        + [ObjectDescription(identifier="cup", key="cup", spawn=Pose(*[0.0] * 6, 1.0))],
+    )
+
+
+def test_rendering_camera_and_lighting_are_carried_over(
+    annotated_bundle, source, tmp_path
+):
+    scene = written_scene(source)
+    ScenePresentation.of_bundle(annotated_bundle).apply(scene, tmp_path)
+    assert scene.rendering == source.rendering
+    assert scene.camera == source.camera
+    lighting = tmp_path / source.rendering.environment
+    assert (
+        lighting.read_bytes()
+        == (annotated_bundle / source.rendering.environment).read_bytes()
+    )
+
+
+def test_materials_are_kept_only_where_the_source_keeps_them(
+    annotated_bundle, source, tmp_path
+):
+    scene = written_scene(source)
+    ScenePresentation.of_bundle(annotated_bundle).apply(scene, tmp_path)
+    assert [model.preserve_materials for model in scene.models] == [True, None]
+    assert [entry.preserve_materials for entry in scene.objects] == [True, None]
+
+
+def test_the_signature_follows_the_settings(annotated_bundle):
+    authored = ScenePresentation.of_bundle(annotated_bundle)
+    plain = ScenePresentation(source_directory=annotated_bundle)
+    assert authored.signature() != plain.signature()
+    assert (
+        authored.signature()
+        == ScenePresentation.of_bundle(annotated_bundle).signature()
+    )
+
+
+def test_a_scene_without_settings_stays_as_it_is(annotated_bundle, source, tmp_path):
+    scene = written_scene(source)
+    ScenePresentation(source_directory=annotated_bundle).apply(scene, tmp_path)
+    assert scene == written_scene(source)
+
+
+def test_a_directory_without_a_scene_has_no_presentation(tmp_path):
+    with pytest.raises(BundleNotFound):
+        ScenePresentation.of_bundle(tmp_path)
