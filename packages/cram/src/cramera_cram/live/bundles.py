@@ -145,8 +145,8 @@ class BundleDirectory:
 
     def publish(self, staging: Path) -> None:
         """
-        Move the old version aside, the new one into place, and only then delete the
-        old one, so the directory never holds a partly deleted bundle.
+        Move the old version aside, the new one into place, and only then delete the old
+        one, so the directory never holds a partly deleted bundle.
 
         :param staging: The complete new version.
         """

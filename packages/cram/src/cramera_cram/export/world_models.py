@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy
 from typing_extensions import Dict, List, Optional, Sequence
 
+from cramera_cram.exceptions import MissingMeshFile
 from cramera_cram.export.assets import BundledAssets, MaterialLibrary, MeshFormat
 from cramera_cram.export.urdf import ModelReport, UrdfDocument
 from cramera_cram.geometry import (
@@ -210,11 +211,15 @@ class ObjectFiles:
         :return: The object: a box for a single untransformed box, a copied mesh for a
             single untransformed mesh at unit scale, a combined OBJ mesh otherwise, and
             no geometry or colour for a body without shapes.
+        :raises MissingMeshFile: When a mesh shape names a file that does not exist.
         """
         description = ObjectDescription(identifier=str(body.name), key=key, spawn=spawn)
         shapes = self.shapes_of(body)
         if not shapes:
             return description
+        for shape in shapes:
+            if isinstance(shape, Mesh) and not Path(shape.filename).is_file():
+                raise MissingMeshFile(Path(shape.filename))
         description.color = PublishedColor(shapes[0].color).hexadecimal()
         description.height = self.height_of(shapes)
         if len(shapes) == 1 and self.is_untransformed(shapes[0]):

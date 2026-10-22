@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 
+from cramera_cram.exceptions import MissingMeshFile
 from cramera_cram.export.world_models import (
     ENVIRONMENT_MODEL_NAME,
     ObjectFiles,
@@ -93,6 +94,15 @@ def test_a_single_mesh_is_copied_with_its_material_library(kitchen, tmp_path):
     assert description.mesh == f"{BundleFile.OBJECT_MESHES}/{key}/{CUP_MESH.name}"
     assert (tmp_path / description.mesh).read_bytes() == CUP_MESH.read_bytes()
     assert description.material_library == f"{BundleFile.OBJECT_MESHES}/{key}/cup.mtl"
+
+
+def test_a_missing_mesh_file_is_an_error(kitchen, tmp_path):
+    [mesh] = kitchen.cup.visual.shapes
+    mesh.filename = str(tmp_path / "absent" / CUP_MESH.name)
+    with pytest.raises(MissingMeshFile):
+        ObjectFiles(tmp_path / "bundle").describe(
+            kitchen.cup, str(kitchen.cup.id), spawn_of(kitchen.world, kitchen.cup)
+        )
 
 
 def test_other_shapes_become_one_combined_mesh(kitchen, tmp_path):
