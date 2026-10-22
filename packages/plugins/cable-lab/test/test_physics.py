@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import time
 
+import mujoco
 import numpy as np
 import pytest
 from typing_extensions import Iterator
@@ -150,6 +151,14 @@ def test_the_state_reports_every_capsule_and_its_point(loose_cable):
         )
     assert state.anchor.enabled is False
     assert state.warnings == []
+
+
+def test_a_reset_simulation_reports_where_the_cable_is(loose_cable):
+    mujoco.mj_resetDataKeyframe(loose_cable.model, loose_cable.data, 0)
+    heights = [segment.start.z for segment in loose_cable.measure().segments]
+    assert heights == pytest.approx(
+        [loose_cable.parameters.mount_height] * len(heights), abs=0.001
+    )
 
 
 def test_numerical_warnings_are_reported(loose_cable):
