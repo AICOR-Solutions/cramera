@@ -130,6 +130,21 @@ test('the timeline hides for a still scene and follows its clock', () => {
   assert.equal(root.hidden, true);
 });
 
+test('playback can be started and paused without a click', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  const timeline = new TimelineView(root, () => {});
+  timeline.setPlaying(true);
+  const clock = new PlaybackClock(10, 31);
+  timeline.show(clock, SEGMENTS);
+  timeline.setPlaying(true);
+  assert.equal(clock.playing, true);
+  assert.equal(root.children[0].textContent, 'Pause');
+  timeline.setPlaying(false);
+  assert.equal(clock.playing, false);
+  assert.equal(root.children[0].textContent, 'Play');
+});
+
 test('durations read as minutes and seconds with tenths', () => {
   assert.equal(formatSeconds(0), '0:00.0');
   assert.equal(formatSeconds(75.25), '1:15.3');

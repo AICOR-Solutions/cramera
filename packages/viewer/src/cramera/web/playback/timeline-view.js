@@ -128,7 +128,16 @@ export class TimelineView {
    */
   togglePlaying() {
     if (!this.#clock) return;
-    this.#clock.playing = !this.#clock.playing;
+    this.setPlaying(!this.#clock.playing);
+  }
+
+  /**
+   * Start or pause playback.
+   * @param {boolean} playing Whether to play.
+   */
+  setPlaying(playing) {
+    if (!this.#clock) return;
+    this.#clock.playing = playing;
     this.update(-1);
   }
 

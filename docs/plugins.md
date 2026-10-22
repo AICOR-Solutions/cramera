@@ -51,7 +51,7 @@ export function register(context) {
 
 | Context field | What it is |
 | --- | --- |
-| `bus` | The application's `EventBus`; event names are the members of `ViewerEvent`. |
+| `bus` | The application's `EventBus`; event names are the members of `ViewerEvent`. Publish `SCENE_REQUESTED` (a bundle name), `FRAME_REQUESTED` (a frame number) or `PLAYBACK_REQUESTED` (whether to play) to steer the application. |
 | `panels` | The `PanelHost`; `add(new SidePanel(identifier, title, element))` adds a tab. |
 | `api` | The `ViewerApi`; `api.url('/api/plugins/<name>/<route>')` gives a route's URL below the page's base. |
 | `view` | The `SceneView`: `scene`, `content`, `camera`, `renderer`, `requestRender()`. |
