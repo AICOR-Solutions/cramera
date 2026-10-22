@@ -24,3 +24,8 @@ class PluginName(StrEnum):
     """
     Answers probability, posterior and mode questions about a probabilistic circuit.
     """
+
+    QUESTIONS = "questions"
+    """
+    The questions plugin: queries, plain-language questions and graph views.
+    """
