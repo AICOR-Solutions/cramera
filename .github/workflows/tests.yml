@@ -2,7 +2,8 @@
 # of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
 # cramera-questions, cramera-cram and the plan builder run only their tests without
 # CRAM, measured over the modules those tests reach; so does the laboratory plugin
-# without MuJoCo. The models plugin is tested
+# without MuJoCo, and so do the workshop and the cable lab, whose simulations need
+# MuJoCo and CRAM. The models plugin is tested
 # without the circuit libraries: its tests against them are skipped and their
 # counterparts against stand-ins run.
 name: Tests
@@ -93,6 +94,26 @@ jobs:
               --cov=cramera_plan_builder.routes
               --cov=cramera_plan_builder.runs
               --cov=cramera_plan_builder.workspace
+          # The workshop's contact world needs MuJoCo and its robot demos the CRAM
+          # workspace; CI has neither, so their tests are skipped and the coverage is
+          # measured over the modules the remaining tests reach.
+          - package: plugins/workshop
+            install: -e ./packages/plugins/workshop
+            coverage: >-
+              --cov=cramera_workshop.acceptance
+              --cov=cramera_workshop.bundle
+              --cov=cramera_workshop.command_line
+              --cov=cramera_workshop.exceptions
+              --cov=cramera_workshop.plugin
+              --cov=cramera_workshop.release
+              --cov=cramera_workshop.session
+          # The cable simulation needs MuJoCo and the CRAM workspace.
+          - package: plugins/cable-lab
+            install: -e ./packages/plugins/cable-lab
+            coverage: >-
+              --cov=cramera_cable_lab.exceptions
+              --cov=cramera_cable_lab.plugin
+              --cov=cramera_cable_lab.session
     steps:
       - uses: actions/checkout@v4
 
