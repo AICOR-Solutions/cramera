@@ -96,6 +96,13 @@ class ViewerApplication:
                     declaration.route(f"{ViewerRoute.PLUGIN_API}{plugin.name()}/")
                 )
 
+    def close(self) -> None:
+        """
+        Release what the plugins own, once the viewer has stopped serving.
+        """
+        for plugin in self.plugins:
+            plugin.close()
+
     # %% answers
 
     def answer_info(self, request: Request) -> Response:

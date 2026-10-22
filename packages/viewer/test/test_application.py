@@ -123,6 +123,14 @@ def test_the_packaged_page_exists(answerer):
 # %% loading plugins
 
 
+def test_closing_the_application_closes_every_plugin(catalog, locations, plugin):
+    application = ViewerApplication(
+        catalog=catalog, locations=locations, plugins=[plugin, SilentPlugin()]
+    )
+    application.close()
+    assert plugin.closings == 1
+
+
 def test_plugins_are_loaded_from_entry_points_sorted_by_name():
     loader = PluginLoader(
         entry_points=[

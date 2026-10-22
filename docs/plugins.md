@@ -23,6 +23,7 @@ The entry point names a callable that returns a `cramera.plugins.ViewerPlugin`:
 | `routes(context)` | `PluginRoute(method, path, handler)` objects, served at `/api/plugins/<name>/<path>`, and `PluginPrefixRoute(method, prefix, handler)` objects, which answer every path below `/api/plugins/<name>/<prefix>` and hand the rest of the path to the handler. `context.catalog` is the viewer's `SceneCatalog`, `context.locations` its `DataLocations`. |
 | `web_directory()` | The directory of the plugin's browser files, served at `/plugins/<name>/`. |
 | `module()` | The plugin's browser module, relative to `web_directory()`. |
+| `close()` | Releases what the plugin owns, such as a simulation its routes started; called once the viewer has stopped serving. Does nothing by default. |
 
 Handlers take a `cramera.http.messages.Request` and return a `Response`
 (`Response.of_json`, `Response.of_file`, ...). Raise a `cramera.exceptions.ViewerError`

@@ -193,6 +193,15 @@ def test_the_server_answers_over_a_socket_and_stops(answerer):
     server.stop()
 
 
+def test_the_server_releases_its_routes_once_it_stopped_serving(answerer):
+    serving_when_released = []
+    server = HttpServer(answerer=answerer)
+    server.on_stop.append(lambda: serving_when_released.append(server.server))
+    with server:
+        assert serving_when_released == []
+    assert serving_when_released == [None]
+
+
 def test_the_server_decodes_percent_encoded_paths(answerer):
     with HttpServer(answerer=answerer) as server:
         url = server.url() + ViewerRoute.SCENE_FILES + "cell/meshes/arm%20base.stl"

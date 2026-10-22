@@ -156,7 +156,12 @@ class ViewerConfiguration:
             plugins=PluginLoader().load(),
         )
         answerer = RequestAnswerer(router=application.router(), policy=OriginPolicy())
-        return HttpServer(answerer=answerer, host=self.host, port=self.port)
+        return HttpServer(
+            answerer=answerer,
+            host=self.host,
+            port=self.port,
+            on_stop=[application.close],
+        )
 
 
 # %% command
