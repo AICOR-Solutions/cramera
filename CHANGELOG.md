@@ -51,7 +51,8 @@ which this repository was mirrored until 22 Oct 2026.
   thread behind a Workshop panel, records the PR2 screw insertion and two-handed
   assembly as task demos, and checks a recorded assembly before it is published
   (`cramera-workshop check-release`). A screw is grasped the same way however far it
-  rolled in its box.
+  rolled in its box, and a recording's steps are the stages of its plan. The asset
+  rights document is shared with the laboratory as `cramera_protocol.rights`.
 - **The cable lab as a plugin.** `cramera-cable-lab` simulates a MuJoCo composite cable
   whose capsules semantic CRAM points follow, with a friction gripper, on a page of its
   own; it owns its session instead of reusing the laboratory's. A cable MuJoCo cannot
