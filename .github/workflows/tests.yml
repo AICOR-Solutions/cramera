@@ -23,6 +23,8 @@ jobs:
             module: cramera_protocol
           - package: viewer
             module: cramera
+          - package: plugins/scene-builder
+            module: cramera_scene_builder
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +37,7 @@ jobs:
           node-version: 20
 
       - name: Install the packages and the test tools
-        run: pip install -e ./packages/protocol -e ./packages/viewer -r requirements-development.txt
+        run: pip install -e ./packages/protocol -e ./packages/viewer -e ./packages/plugins/scene-builder -r requirements-development.txt
 
       - name: Run the tests with coverage
         working-directory: packages/${{ matrix.package }}
