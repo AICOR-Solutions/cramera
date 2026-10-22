@@ -14,16 +14,7 @@ from cramera.http.server import HttpServer, RequestAnswerer
 from cramera_cram.exceptions import NonLocalAddress
 from cramera_cram.live.publisher import LivePublisher
 from cramera_cram.live.routes import LiveRoutes
-
-LIVE_HOST = "127.0.0.1"
-"""
-The address the publisher listens on: this machine only, since a query runs code.
-"""
-
-LIVE_PORT = 8765
-"""
-The port the viewer looks for a live publisher on.
-"""
+from cramera_protocol.live import LIVE_HOST, LIVE_PORT
 
 # %% server
 

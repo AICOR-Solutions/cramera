@@ -1,0 +1,17 @@
+{
+  "liveUrl": "http://127.0.0.1:8765",
+  "robots": [
+    {"name": "PR2", "module": "semantic_digital_twin.robots.pr2", "steps": ["park_arms", "move_torso", "navigate", "transport", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]},
+    {"name": "Tracy", "module": "semantic_digital_twin.robots.tracy", "steps": ["park_arms", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]}
+  ],
+  "environments": [{"name": "aicor_medical_lab", "environment": "AICOR Laboratory"}],
+  "objects": [{"id": "milk.stl", "name": "milk"}],
+  "torsoStates": ["HIGH", "MID", "LOW"],
+  "surfaceTypes": ["Table"],
+  "constraintRules": [
+    {"monitorType": "HeightMonitor", "phrasing": "above|higher", "examples": "above, higher", "sentence": "Keep the milk above the table", "effect": "keeps the object above a height", "parameters": {"tip_link": "@object", "lower_limit": "@length", "upper_limit": 2.0}, "defaultLength": 0.05}
+  ],
+  "plans": [{"id": "plan-1", "name": "milk_to_table", "updatedAt": "2026-10-22T10:00:00+00:00"}],
+  "limits": {"maximumSteps": 12},
+  "missing": []
+}

@@ -1,0 +1,213 @@
+/**
+ * The plan builder's routes as the builder page calls them.
+ */
+
+import { ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RunRequestKey, ViewerRoute } from '../../../protocol.js';
+
+/**
+ * The media type of JSON bodies, which also explain errors.
+ */
+const JSON_MEDIA_TYPE = 'application/json';
+
+/**
+ * The HTTP methods the page uses.
+ */
+const Method = Object.freeze({ GET: 'GET', POST: 'POST' });
+
+/**
+ * The header naming a body's media type.
+ */
+const CONTENT_TYPE = 'Content-Type';
+
+/**
+ * The cache mode of reads: live answers change between requests.
+ */
+const NO_STORE = 'no-store';
+
+// %% errors
+
+/**
+ * A request the server refused, with the reason it gave.
+ */
+export class RequestRefused extends Error {
+  /**
+   * @param {number} status The answer's HTTP status.
+   * @param {string} reason The reason the server gave, or the status text.
+   */
+  constructor(status, reason) {
+    super(reason);
+    /**
+     * The answer's HTTP status.
+     * @type {number}
+     */
+    this.status = status;
+  }
+}
+
+// %% JSON over HTTP
+
+export class JsonClient {
+  /**
+   * Fetches a URL; `window.fetch` in the browser.
+   * @type {function(string, Object=): Promise<Response>}
+   */
+  #fetch;
+
+  /**
+   * @param {function(string, Object=): Promise<Response>} fetch Fetches a URL.
+   */
+  constructor(fetch) {
+    this.#fetch = fetch;
+  }
+
+  /**
+   * @param {string} url A URL answering JSON.
+   * @returns {Promise<Object>} The decoded answer.
+   */
+  get(url) {
+    return this.#send(url, { method: Method.GET, cache: NO_STORE });
+  }
+
+  /**
+   * @param {string} url A URL accepting JSON.
+   * @param {Object} body The body.
+   * @returns {Promise<Object>} The decoded answer.
+   */
+  post(url, body) {
+    return this.#send(url, { method: Method.POST, headers: { [CONTENT_TYPE]: JSON_MEDIA_TYPE }, body: JSON.stringify(body) });
+  }
+
+  /**
+   * @param {string} url The URL.
+   * @param {Object} options The request's options.
+   * @returns {Promise<Object>} The decoded answer.
+   * @throws {RequestRefused} When the answer has an error status.
+   */
+  async #send(url, options) {
+    const answer = await this.#fetch(url, options);
+    const explained = (answer.headers.get(CONTENT_TYPE) ?? '').startsWith(JSON_MEDIA_TYPE);
+    if (answer.ok) return answer.json();
+    throw new RequestRefused(answer.status, explained ? (await answer.json())[ErrorKey.ERROR] : answer.statusText);
+  }
+}
+
+// %% plan builder
+
+export class PlanBuilderApi {
+  /**
+   * Sends and decodes the requests.
+   * @type {JsonClient}
+   */
+  #client;
+
+  /**
+   * The viewer's root URL, ending in `/`.
+   * @type {string}
+   */
+  #viewer;
+
+  /**
+   * @param {function(string, Object=): Promise<Response>} fetch Fetches a URL.
+   * @param {string} viewer The viewer's root URL, ending in `/`.
+   */
+  constructor(fetch, viewer) {
+    this.#client = new JsonClient(fetch);
+    this.#viewer = viewer;
+  }
+
+  /**
+   * @param {string} route A `PlanBuilderRoute` value, possibly followed by a path.
+   * @returns {string} The route's URL.
+   */
+  url(route) {
+    return new URL(`${ViewerRoute.PLUGIN_API.slice(1)}${PlanBuilderName.PLUGIN}/${route}`, this.#viewer).href;
+  }
+
+  /**
+   * @returns {Promise<Object>} The catalog.
+   */
+  catalog() {
+    return this.#client.get(this.url(PlanBuilderRoute.CATALOG));
+  }
+
+  /**
+   * @returns {Promise<Object>} The saved plans.
+   */
+  plans() {
+    return this.#client.get(this.url(PlanBuilderRoute.PLANS));
+  }
+
+  /**
+   * @param {string} identifier A saved plan's identity.
+   * @returns {Promise<Object>} The plan record.
+   */
+  plan(identifier) {
+    return this.#client.get(this.url(`${PlanBuilderRoute.PLAN}${encodeURIComponent(identifier)}`));
+  }
+
+  /**
+   * @param {Object} plan A plan document.
+   * @param {string|null} identifier The saved plan it replaces, or null for a new one.
+   * @returns {Promise<Object>} The saved plan record.
+   */
+  save(plan, identifier) {
+    const record = { [PlanRecordKey.DOCUMENT]: plan };
+    if (identifier !== null) record[PlanRecordKey.IDENTIFIER] = identifier;
+    return this.#client.post(this.url(PlanBuilderRoute.PLANS), record);
+  }
+
+  /**
+   * @param {Object} request A `ConstraintText` document.
+   * @returns {Promise<Object>} The compiled `StepConstraint`.
+   */
+  compile(request) {
+    return this.#client.post(this.url(PlanBuilderRoute.CONSTRAINT), request);
+  }
+
+  /**
+   * @param {Object} plan A plan document.
+   * @returns {Promise<Object>} The generated demo, not written.
+   */
+  demo(plan) {
+    return this.#client.post(this.url(PlanBuilderRoute.DEMO), plan);
+  }
+
+  /**
+   * @param {Object} plan A plan document.
+   * @returns {Promise<Object>} Where the demo was written and how to run it.
+   */
+  writeDemo(plan) {
+    return this.#client.post(this.url(PlanBuilderRoute.DEMOS), plan);
+  }
+
+  /**
+   * @param {Object} plan A plan document.
+   * @param {string} mode A `RunMode` value.
+   * @returns {Promise<Object>} The started demo's status.
+   */
+  run(plan, mode) {
+    return this.#client.post(this.url(PlanBuilderRoute.RUN), { [RunRequestKey.PLAN]: plan, [RunRequestKey.MODE]: mode });
+  }
+
+  /**
+   * @returns {Promise<Object>} The status of the demo started last.
+   */
+  runStatus() {
+    return this.#client.get(this.url(PlanBuilderRoute.RUN));
+  }
+
+  /**
+   * @returns {Promise<Object>} The stopped demo's status.
+   */
+  stop() {
+    return this.#client.post(this.url(PlanBuilderRoute.RUN_STOP), {});
+  }
+
+  /**
+   * @param {string} identifier An object model's identifier.
+   * @returns {string} The URL of its mesh.
+   */
+  objectUrl(identifier) {
+    return this.url(`${PlanBuilderRoute.OBJECT_FILES}${encodeURIComponent(identifier)}`);
+  }
+}

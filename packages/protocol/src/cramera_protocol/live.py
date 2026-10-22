@@ -161,6 +161,19 @@ class LiveRoute(StrEnum):
     """
 
 
+# %% address
+
+LIVE_HOST = "127.0.0.1"
+"""
+The address a live publisher listens on: this machine only, since a query runs code.
+"""
+
+LIVE_PORT = 8765
+"""
+The port a live publisher listens on unless told otherwise, where the viewer looks for
+it.
+"""
+
 # %% capabilities
 
 

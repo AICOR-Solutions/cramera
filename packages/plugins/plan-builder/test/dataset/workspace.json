@@ -1,0 +1,10 @@
+{
+  "liveUrl": "http://127.0.0.1:8765",
+  "robots": [
+    {"name": "PR2", "module": "semantic_digital_twin.robots.pr2", "steps": ["park_arms", "move_torso", "navigate", "transport", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]},
+    {"name": "Tracy", "module": "semantic_digital_twin.robots.tracy", "steps": ["park_arms", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]}
+  ],
+  "objects": [{"id": "cup.obj", "name": "cup"}, {"id": "milk.stl", "name": "milk"}],
+  "torsoStates": ["HIGH", "MID", "LOW"],
+  "surfaceTypes": ["CounterTop", "Table"]
+}

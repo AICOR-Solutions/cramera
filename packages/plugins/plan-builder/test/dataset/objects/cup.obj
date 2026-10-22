@@ -1,0 +1,6 @@
+mtllib cup.mtl
+v 0 0 0
+v 0.05 0 0
+v 0 0.05 0
+usemtl glaze
+f 1 2 3

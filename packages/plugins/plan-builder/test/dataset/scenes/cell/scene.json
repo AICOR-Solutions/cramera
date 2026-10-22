@@ -1,0 +1,9 @@
+{
+  "name": "cell",
+  "formatVersion": "1.0",
+  "environmentName": "Test cell",
+  "models": [
+    {"name": "cell_arm", "urdf": "arm.urdf", "prefix": "arm", "robot": true, "links": 1, "movableJoints": []}
+  ],
+  "objects": []
+}

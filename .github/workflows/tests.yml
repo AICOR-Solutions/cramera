@@ -1,8 +1,8 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
 # of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
-# cramera-questions and cramera-cram run only their tests without CRAM, measured over
-# the modules those tests reach; so does the laboratory plugin without MuJoCo. The
-# models plugin is tested
+# cramera-questions, cramera-cram and the plan builder run only their tests without
+# CRAM, measured over the modules those tests reach; so does the laboratory plugin
+# without MuJoCo. The models plugin is tested
 # without the circuit libraries: its tests against them are skipped and their
 # counterparts against stand-ins run.
 name: Tests
@@ -78,6 +78,21 @@ jobs:
               --cov=cramera_laboratory.session
               --cov=cramera_laboratory.task_runs
               --cov=cramera_laboratory.urdf
+          # CI has no CRAM workspace, so the plan builder's tests against it are not
+          # collected and the coverage is measured over the modules that need none.
+          - package: plugins/plan-builder
+            install: -e ./packages/plugins/plan-builder
+            coverage: >-
+              --cov=cramera_plan_builder.constraints
+              --cov=cramera_plan_builder.demos
+              --cov=cramera_plan_builder.environments
+              --cov=cramera_plan_builder.exceptions
+              --cov=cramera_plan_builder.lifeline
+              --cov=cramera_plan_builder.plans
+              --cov=cramera_plan_builder.plugin
+              --cov=cramera_plan_builder.routes
+              --cov=cramera_plan_builder.runs
+              --cov=cramera_plan_builder.workspace
     steps:
       - uses: actions/checkout@v4
 

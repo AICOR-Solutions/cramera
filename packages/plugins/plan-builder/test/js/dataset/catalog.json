@@ -1,0 +1,17 @@
+{
+  "liveUrl": "http://127.0.0.1:18765",
+  "robots": [
+    {"name": "Armar7", "module": "semantic_digital_twin.robots.armar7", "steps": ["park_arms", "move_torso", "navigate", "transport", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]},
+    {"name": "PR2", "module": "semantic_digital_twin.robots.pr2", "steps": ["park_arms", "move_torso", "navigate", "transport", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]},
+    {"name": "Stretch", "module": "semantic_digital_twin.robots.stretch", "steps": ["park_arms", "move_torso", "navigate", "transport", "pick_up", "place"], "arms": ["BOTH"]},
+    {"name": "Tracy", "module": "semantic_digital_twin.robots.tracy", "steps": ["park_arms", "pick_up", "place"], "arms": ["LEFT", "RIGHT", "BOTH"]}
+  ],
+  "environments": [{"name": "lab", "environment": "Test laboratory"}],
+  "objects": [{"id": "big-knife.stl", "name": "big-knife"}, {"id": "milk.stl", "name": "milk"}, {"id": "3d_cup.obj", "name": "3d_cup"}],
+  "torsoStates": ["HIGH", "MID", "LOW"],
+  "surfaceTypes": ["CounterTop", "Table"],
+  "constraintRules": [],
+  "plans": [{"id": "saved-1", "name": "milk_to_table", "updatedAt": "2026-10-22T10:00:00+00:00"}],
+  "limits": {"maximumRobots": 3, "maximumObjects": 4, "maximumSteps": 6, "maximumConstraints": 2},
+  "missing": []
+}

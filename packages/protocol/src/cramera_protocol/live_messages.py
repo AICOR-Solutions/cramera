@@ -1967,6 +1967,63 @@ class MonitorSpecificationKey(StrEnum):
     """
 
 
+class MonitorParameterKey(StrEnum):
+    """
+    The parameters a constraint request may give its monitor, by their keys in
+    :attr:`MonitorSpecification.parameters`.
+    """
+
+    ROOT_LINK = "root_link"
+    """
+    The body the monitor measures from; the world's root when absent.
+    """
+
+    TIP_LINK = "tip_link"
+    """
+    The body the monitor observes.
+    """
+
+    GOAL_NORMAL = "goal_normal"
+    """
+    The direction in the root body the tip's normal should align with.
+    """
+
+    TIP_NORMAL = "tip_normal"
+    """
+    The direction in the tip body that should align.
+    """
+
+    THRESHOLD = "threshold"
+    """
+    The tolerance of an alignment or pointing monitor.
+    """
+
+    GOAL_POINT = "goal_point"
+    """
+    A point in the root body the tip should point at.
+    """
+
+    GOAL_POINT_BODY = "goal_point_body"
+    """
+    A body whose origin the tip should point at.
+    """
+
+    POINTING_AXIS = "pointing_axis"
+    """
+    The axis of the tip that should point.
+    """
+
+    LOWER_LIMIT = "lower_limit"
+    """
+    The lowest allowed height or distance.
+    """
+
+    UPPER_LIMIT = "upper_limit"
+    """
+    The highest allowed height or distance.
+    """
+
+
 @dataclass(kw_only=True)
 class MonitorSpecification(JsonDocument):
     """
