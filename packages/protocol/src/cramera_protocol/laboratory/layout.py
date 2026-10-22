@@ -1640,3 +1640,90 @@ class AssetRights(JsonDocument):
     """
     The credits' file, beside the record.
     """
+
+
+# %% semantics
+
+
+class LaboratorySemanticsKey(StrEnum):
+    """
+    The keys a laboratory adds to ``semantics.json``.
+    """
+
+    VESSEL = "tube"
+    """
+    The dimensions every vessel shares.
+    """
+
+
+class VesselDimensionsKey(StrEnum):
+    """
+    The keys of the vessels' dimensions.
+    """
+
+    HEIGHT = "height"
+    """
+    The vessel's height.
+    """
+
+    OUTER_RADIUS = "outerRadius"
+    """
+    The glass's outer radius.
+    """
+
+    INNER_RADIUS = "innerRadius"
+    """
+    The glass's inner radius.
+    """
+
+    GRASP_HEIGHT = "graspHeight"
+    """
+    Where above its bottom the vessel is grasped.
+    """
+
+    INSERTION_AXIS = "insertionAxis"
+    """
+    The direction a vessel moves into a rack slot.
+    """
+
+    MASS = "massKilograms"
+    """
+    The empty vessel's mass.
+    """
+
+
+@dataclass(kw_only=True)
+class VesselDimensions(JsonDocument):
+    """
+    The dimensions every vessel of a laboratory shares.
+    """
+
+    height: float = document_field(VesselDimensionsKey.HEIGHT)
+    """
+    The vessel's height, in metres.
+    """
+
+    outer_radius: float = document_field(VesselDimensionsKey.OUTER_RADIUS)
+    """
+    The glass's outer radius, in metres.
+    """
+
+    inner_radius: float = document_field(VesselDimensionsKey.INNER_RADIUS)
+    """
+    The glass's inner radius, in metres.
+    """
+
+    grasp_height: float = document_field(VesselDimensionsKey.GRASP_HEIGHT)
+    """
+    Where above its bottom the vessel is grasped, in metres.
+    """
+
+    insertion_axis: Vector3 = document_field(VesselDimensionsKey.INSERTION_AXIS)
+    """
+    The direction a vessel moves into a rack slot.
+    """
+
+    mass: float = document_field(VesselDimensionsKey.MASS)
+    """
+    The empty vessel's mass, in kilograms.
+    """

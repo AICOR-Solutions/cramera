@@ -25,6 +25,8 @@ from cramera_protocol.laboratory.layout import (
     Quaternion,
     RackSlotKey,
     ScaleKey,
+    VesselDimensions,
+    VesselDimensionsKey,
     VesselPlacementKey,
 )
 
@@ -155,3 +157,13 @@ def test_the_browser_reads_the_laboratory_keys():
 def test_every_enumeration_the_browser_reads_has_its_own_name():
     names = [enumeration.__name__ for enumeration in BROWSER_ENUMERATIONS]
     assert len(names) == len(set(names))
+
+
+# %% semantics
+
+
+def test_the_vessel_dimensions_round_trip(read_json):
+    data = read_json("laboratory/vessel_dimensions.json")
+    dimensions = VesselDimensions.from_json(data)
+    assert dimensions.grasp_height == data[VesselDimensionsKey.GRASP_HEIGHT]
+    assert dimensions.to_json() == data
