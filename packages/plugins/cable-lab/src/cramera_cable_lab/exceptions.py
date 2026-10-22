@@ -123,3 +123,16 @@ class StoppedSimulation(ViewerError):
 
     def message(self) -> str:
         return "A stopped cable simulation cannot start again; build a new cable."
+
+
+@dataclass
+class SimulationNotAdvancing(ViewerError):
+    """
+    A started simulation whose thread took no step in time.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def message(self) -> str:
+        return "The cable simulation started but did not advance."

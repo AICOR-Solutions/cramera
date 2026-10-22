@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from threading import current_thread
+from threading import Event, current_thread
 
 import mujoco
 import numpy as np
@@ -25,6 +25,7 @@ from cramera_cable_lab.cable import (
 )
 from cramera_cable_lab.exceptions import (
     GripperTargetOutsideWorkspace,
+    SimulationNotAdvancing,
     SteppingWhileRunning,
     StoppedSimulation,
 )
@@ -234,6 +235,11 @@ class RigParameters:
     impedance_ratio: float = 10.0
     """
     MuJoCo's ratio of frictional to normal constraint impedance.
+    """
+
+    first_step_timeout: float = 5.0
+    """
+    How long a start waits for the background simulation's first step, in seconds.
     """
 
     support_color: Sequence[float] = (0.28, 0.36, 0.43, 1.0)
@@ -601,6 +607,11 @@ class CablePhysics(CableSimulation):
     Whether the simulation was stopped for good.
     """
 
+    stepping: Event = field(default_factory=Event, init=False)
+    """
+    Set once the background simulation took its first step.
+    """
+
     def __post_init__(self) -> None:
         self.world = World()
         root = Body(name=PrefixedName(RigName.WORLD))
@@ -674,10 +685,21 @@ class CablePhysics(CableSimulation):
         )
 
     def start(self) -> None:
+        """
+        Start the background simulation and wait for its first step, after which its
+        thread no longer resets the state.
+
+        :raises StoppedSimulation: When the simulation was stopped before.
+        :raises SimulationNotAdvancing: When the first step does not come in time.
+        """
         if self.stopped:
             raise StoppedSimulation()
-        if not self.running():
-            self.simulation.start_simulation()
+        if self.running():
+            return
+        self.stepping.clear()
+        self.simulation.start_simulation()
+        if not self.stepping.wait(self.parameters.first_step_timeout):
+            raise SimulationNotAdvancing()
 
     def stop(self) -> None:
         if self.stopped:
@@ -726,6 +748,7 @@ class CablePhysics(CableSimulation):
         Move the actuators' targets towards the commanded ones, no faster than the
         carriage and pad speeds allow.
         """
+        self.stepping.set()
         control = self.data.ctrl
         local = self.frame.rotation.T @ (self.target - self.frame.origin)
         carriage_step = self.parameters.carriage_speed * self.parameters.timestep
