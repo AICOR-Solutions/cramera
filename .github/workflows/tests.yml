@@ -23,6 +23,11 @@ jobs:
             module: cramera_protocol
           - package: viewer
             module: cramera
+          # The converter's tests need usd-core; the viewer is installed as well, so
+          # the screenshot step is tested.
+          - package: usd
+            module: cramera_usd
+            install: -e './packages/usd[test]' usd-core
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +40,7 @@ jobs:
           node-version: 20
 
       - name: Install the packages and the test tools
-        run: pip install -e ./packages/protocol -e ./packages/viewer -r requirements-development.txt
+        run: pip install -e ./packages/protocol -e ./packages/viewer ${{ matrix.install }} -r requirements-development.txt
 
       - name: Run the tests with coverage
         working-directory: packages/${{ matrix.package }}
