@@ -16,7 +16,7 @@ from enum import StrEnum
 import mujoco
 import numpy as np
 from scipy.spatial.transform import Rotation
-from typing_extensions import List, Optional, Tuple
+from typing_extensions import List, Tuple
 
 from cramera_cable_lab.exceptions import CableNotBuilt, CablePrefixTaken
 from cramera_protocol.cable_lab import CableConfiguration
@@ -210,7 +210,7 @@ class Cable(SimulatorAdditionalProperty):
     The points' free connections below the world's root.
     """
 
-    root_t_anchor: np.ndarray = field(default_factory=lambda: np.eye(4), init=False)
+    root_T_anchor: np.ndarray = field(default_factory=lambda: np.eye(4), init=False)
     """
     The anchor frame in the world's root frame.
     """
@@ -225,14 +225,14 @@ class Cable(SimulatorAdditionalProperty):
         if any(name in taken for name in self.point_names()):
             raise CablePrefixTaken(self.prefix)
         configuration = self.configuration
-        root_t_parent = self.world.compute_forward_kinematics_np(
+        root_T_parent = self.world.compute_forward_kinematics_np(
             self.world.root, self.parent
         )
-        parent_t_anchor = HomogeneousTransformationMatrix.from_xyz_rpy(
+        parent_T_anchor = HomogeneousTransformationMatrix.from_xyz_rpy(
             *configuration.anchor_offset.to_json(),
             *configuration.anchor_rotation.to_json(),
         ).to_np()
-        self.root_t_anchor = root_t_parent @ parent_t_anchor
+        self.root_T_anchor = root_T_parent @ parent_T_anchor
         points: List[Body] = []
         connections: List[Connection6DoF] = []
         with self.world.modify_world():
@@ -251,16 +251,16 @@ class Cable(SimulatorAdditionalProperty):
         self.points = tuple(points)
         self.connections = tuple(connections)
         with self.world.batch_state_changes():
-            direction = self.root_t_anchor[:3, 0]
+            direction = self.root_T_anchor[:3, 0]
             for index, connection in enumerate(self.connections):
                 position = (
-                    self.root_t_anchor[:3, 3]
+                    self.root_T_anchor[:3, 3]
                     + direction * index * configuration.segment_length
                 )
                 self.place(
                     connection,
                     position,
-                    Rotation.from_matrix(self.root_t_anchor[:3, :3]).as_quat(),
+                    Rotation.from_matrix(self.root_T_anchor[:3, :3]).as_quat(),
                 )
         self.world.notify_state_change()
         self.world.simulator_additional_properties.append(self)
@@ -389,16 +389,16 @@ class Cable(SimulatorAdditionalProperty):
         """
         candidate = specification.copy()
         parent = candidate.worldbody
-        frame_t_anchor = self.root_t_anchor
+        frame_T_anchor = self.root_T_anchor
         if self.configuration.anchored:
             parent = candidate.body(self.parent.name.name)
-            root_t_parent = self.world.compute_forward_kinematics_np(
+            root_T_parent = self.world.compute_forward_kinematics_np(
                 self.world.root, self.parent
             )
-            frame_t_anchor = np.linalg.inv(root_t_parent) @ self.root_t_anchor
+            frame_T_anchor = np.linalg.inv(root_T_parent) @ self.root_T_anchor
         frame = parent.add_frame(
-            pos=frame_t_anchor[:3, 3],
-            quat=Rotation.from_matrix(frame_t_anchor[:3, :3]).as_quat(
+            pos=frame_T_anchor[:3, 3],
+            quat=Rotation.from_matrix(frame_T_anchor[:3, :3]).as_quat(
                 scalar_first=True
             ),
         )
@@ -615,10 +615,10 @@ class HomeKeyframe:
                 continue
             address = model.jnt_qposadr[joint]
             if isinstance(connection, Connection6DoF):
-                root_t_body = world.compute_forward_kinematics_np(world.root, body)
-                positions[address : address + 3] = root_t_body[:3, 3]
+                root_T_body = world.compute_forward_kinematics_np(world.root, body)
+                positions[address : address + 3] = root_T_body[:3, 3]
                 positions[address + 3 : address + 7] = Rotation.from_matrix(
-                    root_t_body[:3, :3]
+                    root_T_body[:3, :3]
                 ).as_quat(scalar_first=True)
                 continue
             coordinates = [

@@ -360,9 +360,9 @@ class RigFrame:
         :return: The rig's frame under and over the cable.
         """
         configuration = cable.configuration
-        rotation = cable.root_t_anchor[:3, :3]
+        rotation = cable.root_T_anchor[:3, :3]
         origin = (
-            cable.root_t_anchor[:3, 3] + rotation[:, 0] * configuration.length() / 2
+            cable.root_T_anchor[:3, 3] + rotation[:, 0] * configuration.length() / 2
         )
         size = np.array(
             [

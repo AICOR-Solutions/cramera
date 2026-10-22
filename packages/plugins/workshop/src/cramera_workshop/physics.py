@@ -808,22 +808,22 @@ class IdealThread:
         Capture a screw at the entrance, follow the driver's measured rotation and apply
         the thread's reactions for the next step.
         """
-        mouth, world_r_assembly = self.socket()
-        axis = world_r_assembly.apply(SHAFT_AXIS)
+        mouth, world_R_assembly = self.socket()
+        axis = world_R_assembly.apply(SHAFT_AXIS)
         if self.seated_screw is None:
-            self.capture(mouth, world_r_assembly, axis)
+            self.capture(mouth, world_R_assembly, axis)
         if self.seated_screw is None:
             return
         if self.grasp.held == self.seated_screw:
-            self.release_when_pulled(mouth, world_r_assembly)
+            self.release_when_pulled(mouth, world_R_assembly)
             return
-        self.follow_driver(world_r_assembly)
+        self.follow_driver(world_R_assembly)
         depth = self.turns * self.geometry.pitch
         target = np.concatenate(
             (
                 mouth - depth * axis,
                 (
-                    world_r_assembly
+                    world_R_assembly
                     * Rotation.from_rotvec(-2 * math.pi * self.turns * SHAFT_AXIS)
                     * self.initial_screw_rotation
                 ).as_quat(),
@@ -832,18 +832,18 @@ class IdealThread:
         self.apply_constraint(target)
 
     def capture(
-        self, mouth: np.ndarray, world_r_assembly: Rotation, axis: np.ndarray
+        self, mouth: np.ndarray, world_R_assembly: Rotation, axis: np.ndarray
     ) -> None:
         """
         Capture the first screw whose tip is at the entrance and whose shaft is aligned.
 
         :param mouth: The measured pilot entrance.
-        :param world_r_assembly: The workpiece's orientation.
+        :param world_R_assembly: The workpiece's orientation.
         :param axis: The pilot axis, out of the hole.
         """
         for key in self.geometry.screws:
             screw = self.world.pose(key)
-            relative = world_r_assembly.inv().apply(screw[:3] - mouth)
+            relative = world_R_assembly.inv().apply(screw[:3] - mouth)
             shaft = Rotation.from_quat(screw[3:]).apply(SHAFT_AXIS)
             if (
                 np.linalg.norm(relative[:2]) < self.parameters.pilot_distance
@@ -855,7 +855,7 @@ class IdealThread:
                 self.seated_screw = key
                 self.turns = 0.0
                 relative_rotation = (
-                    world_r_assembly.inv() * Rotation.from_quat(screw[3:])
+                    world_R_assembly.inv() * Rotation.from_quat(screw[3:])
                 ).as_quat()
                 self.initial_screw_rotation = Rotation.from_quat(
                     [0, 0, relative_rotation[2], relative_rotation[3]]
@@ -864,15 +864,15 @@ class IdealThread:
                 return
 
     def release_when_pulled(
-        self, mouth: np.ndarray, world_r_assembly: Rotation
+        self, mouth: np.ndarray, world_R_assembly: Rotation
     ) -> None:
         """
         Let a held screw go once it is pulled away from the entrance.
 
         :param mouth: The measured pilot entrance.
-        :param world_r_assembly: The workpiece's orientation.
+        :param world_R_assembly: The workpiece's orientation.
         """
-        relative = world_r_assembly.inv().apply(
+        relative = world_R_assembly.inv().apply(
             self.world.pose(self.seated_screw)[:3] - mouth
         )
         if (
@@ -882,11 +882,11 @@ class IdealThread:
             self.seated_screw = None
             self.phase = ThreadState.FREE
 
-    def follow_driver(self, world_r_assembly: Rotation) -> None:
+    def follow_driver(self, world_R_assembly: Rotation) -> None:
         """
         Keep the guided driver on its slot and add its measured rotation to the turns.
 
-        :param world_r_assembly: The workpiece's orientation.
+        :param world_R_assembly: The workpiece's orientation.
         """
         engaged = self.driver_aligned()
         self.contact_gap_time = (
@@ -905,25 +905,25 @@ class IdealThread:
             or self.contact_gap_time > self.parameters.contact_gap
         ):
             self.release_driver()
-        actual_rotation = world_r_assembly.inv() * self.world.rotation(
+        actual_rotation = world_R_assembly.inv() * self.world.rotation(
             self.geometry.driver
         )
         if self.guided_driver and self.grasp.held == self.geometry.driver:
             self.grasp.target[:3] = goal[:3]
         if self.direction and self.previous_driver_rotation is not None:
-            self.turn(world_r_assembly, actual_rotation, goal)
+            self.turn(world_R_assembly, actual_rotation, goal)
         elif self.turns and self.phase is not ThreadState.LIMIT:
             self.phase = ThreadState.STOPPED
         self.previous_driver_rotation = actual_rotation
 
     def turn(
-        self, world_r_assembly: Rotation, actual_rotation: Rotation, goal: np.ndarray
+        self, world_R_assembly: Rotation, actual_rotation: Rotation, goal: np.ndarray
     ) -> None:
         """
         Count the driver's measured rotation since the previous step and turn its target
         on; stop at either end of the thread.
 
-        :param world_r_assembly: The workpiece's orientation.
+        :param world_R_assembly: The workpiece's orientation.
         :param actual_rotation: The driver's orientation relative to the workpiece.
         :param goal: The driver's slot target.
         """
@@ -936,7 +936,7 @@ class IdealThread:
             )
         )
         increment = Rotation.from_rotvec(
-            world_r_assembly.apply(self.geometry.drive_axis)
+            world_R_assembly.apply(self.geometry.drive_axis)
             * self.direction
             * self.parameters.driver_speed
             * self.parameters.contact.timestep
