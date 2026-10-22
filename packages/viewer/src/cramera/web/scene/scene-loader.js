@@ -182,6 +182,9 @@ export class SceneLoader {
     const camera = description[SceneKey.CAMERA];
     view.setExposure(rendering[RenderingKey.EXPOSURE] ?? null);
     view.showGround(rendering[RenderingKey.GROUND_PLANE] ?? true);
+    view.setAmbientOcclusion(rendering[RenderingKey.AMBIENT_OCCLUSION] ?? false);
+    const background = description[SceneKey.BACKGROUND];
+    view.setBackground(background ? this.#api.sceneFileUrl(loaded.name, background) : null);
     view.setLens(camera?.[CameraKey.FIELD_OF_VIEW] ?? null, camera?.[CameraKey.FAR] ?? null);
     const contentBounds = view.contentBounds() ?? EMPTY_SCENE_BOUNDS;
     const focus = this.#focusOf(view, loaded.models, loaded.objects) ?? contentBounds;

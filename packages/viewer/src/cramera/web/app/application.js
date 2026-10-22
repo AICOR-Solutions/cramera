@@ -15,9 +15,12 @@ import { PlanPanel } from '../panels/plan-panel.js';
 import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
 import { StepsPanel } from '../panels/steps-panel.js';
+import { ViewPanel, ViewSwitch } from '../panels/view-panel.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
+import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
+import { KeyboardShortcuts, PlaybackActions } from './keyboard-shortcuts.js';
 import { PluginContext, PluginModules } from './plugin-modules.js';
 
 /**
@@ -178,6 +181,18 @@ export class Application {
   #details;
 
   /**
+   * The view panel, once the 3D view exists.
+   * @type {ViewPanel|null}
+   */
+  #viewPanel = null;
+
+  /**
+   * Selects links and objects in the 3D view, once it exists.
+   * @type {ScenePicking|null}
+   */
+  #picking = null;
+
+  /**
    * @param {PageElements} elements The page elements.
    * @param {import('../core/viewer-api.js').ViewerApi} api The viewer's routes.
    * @param {Location} location The page's location.
@@ -216,6 +231,17 @@ export class Application {
     new ScenePickerView(this.#elements.picker, choice, (name) => this.show(name));
     this.#view = new SceneView(this.#elements.stage);
     this.#view.scene.add(this.#lighting.group);
+    this.#addViewPanel(this.#view);
+    this.#picking = new ScenePicking(this.#view, this.bus);
+    this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => this.#details.showSelection(selection));
+    new KeyboardShortcuts(
+      this.#elements.document,
+      new PlaybackActions(
+        () => this.#timeline.togglePlaying(),
+        (frames) => this.seek((this.#clock?.frame ?? 0) + frames),
+        (last) => this.seek(last ? (this.#clock?.lastFrame ?? 0) : 0),
+      ),
+    );
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
@@ -242,6 +268,8 @@ export class Application {
     if (!loaded) return;
     this.#scene?.dispose();
     this.#scene = loaded;
+    this.#picking.select(null);
+    this.#viewPanel.refresh();
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
     this.#timeline.show(this.#clock, segments);
@@ -285,8 +313,20 @@ export class Application {
     const segment = this.#scene.frames.segmentAt(frame);
     this.#timeline.update(segment);
     this.#steps.mark(segment);
+    this.#picking.update();
     this.#view.requestRender();
     this.bus.publish(ViewerEvent.FRAME_CHANGED, frame);
+  }
+
+  /**
+   * @param {SceneView} view The 3D view the panel's switches change.
+   */
+  #addViewPanel(view) {
+    this.#viewPanel = new ViewPanel(this.#elements.document, [
+      new ViewSwitch('Ambient occlusion', () => view.ambientOcclusion, (enabled) => view.setAmbientOcclusion(enabled)),
+      new ViewSwitch('Shadows on the ground', () => view.ground.visible, (shown) => view.showGround(shown)),
+    ]);
+    this.#panels.add(this.#viewPanel.panel);
   }
 
   /**

@@ -5,6 +5,10 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 
 import { Bounds } from './bounds.js';
 
@@ -124,6 +128,18 @@ export class SceneView {
   ground;
 
   /**
+   * The passes drawing ambient occlusion, or null while it is off.
+   * @type {EffectComposer|null}
+   */
+  #composer = null;
+
+  /**
+   * The scene's background image, or null.
+   * @type {THREE.Texture|null}
+   */
+  #background = null;
+
+  /**
    * @param {HTMLElement} container The element the canvas fills.
    * @throws {WebGlUnavailable} When the browser has no WebGL.
    */
@@ -168,7 +184,8 @@ export class SceneView {
       if (this.controls.update()) this.#needsRender = true;
       if (this.#needsRender) {
         this.#needsRender = false;
-        this.renderer.render(this.scene, this.camera);
+        if (this.#composer) this.#composer.render();
+        else this.renderer.render(this.scene, this.camera);
       }
       this.#animationFrame = requestAnimationFrame(loop);
     };
@@ -244,12 +261,57 @@ export class SceneView {
   }
 
   /**
+   * @returns {boolean} Whether ambient occlusion is drawn.
+   */
+  get ambientOcclusion() {
+    return this.#composer !== null;
+  }
+
+  /**
+   * @param {boolean} enabled Whether to darken creases and contacts by ambient occlusion.
+   */
+  setAmbientOcclusion(enabled) {
+    if (enabled === this.ambientOcclusion) return;
+    if (enabled) {
+      const size = this.renderer.getSize(new THREE.Vector2());
+      this.#composer = new EffectComposer(this.renderer);
+      this.#composer.addPass(new RenderPass(this.scene, this.camera));
+      this.#composer.addPass(new GTAOPass(this.scene, this.camera, size.x, size.y));
+      this.#composer.addPass(new OutputPass());
+      this.#composer.setSize(size.x, size.y);
+    } else {
+      this.#composer.dispose();
+      this.#composer = null;
+    }
+    this.requestRender();
+  }
+
+  /**
+   * @param {string|null} url The scene's background image, or null for none.
+   */
+  setBackground(url) {
+    this.#background?.dispose();
+    this.#background = null;
+    this.scene.background = null;
+    if (url) {
+      new THREE.TextureLoader().loadAsync(url).then((texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        this.#background = texture;
+        this.scene.background = texture;
+        this.requestRender();
+      });
+    }
+    this.requestRender();
+  }
+
+  /**
    * Fit the renderer and camera to the container.
    */
   #resize() {
     const width = Math.max(this.#container.clientWidth, 1);
     const height = Math.max(this.#container.clientHeight, 1);
     this.renderer.setSize(width, height, false);
+    this.#composer?.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.requestRender();
@@ -260,6 +322,8 @@ export class SceneView {
    */
   dispose() {
     cancelAnimationFrame(this.#animationFrame);
+    this.setAmbientOcclusion(false);
+    this.#background?.dispose();
     this.#resizeObserver.disconnect();
     this.controls.dispose();
     this.renderer.dispose();

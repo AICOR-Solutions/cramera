@@ -2,7 +2,7 @@
  * What the shown scene is: its names, models, frames and anything that failed to load.
  */
 
-import { ModelKey, RobotKey, SceneKey } from '../protocol.js';
+import { ModelKey, RobotKey, SceneKey, SelectionKey, SelectionKind } from '../protocol.js';
 import { SidePanel } from './panel-host.js';
 
 // %% panel
@@ -15,10 +15,39 @@ export class DetailsPanel {
   panel;
 
   /**
+   * The facts about the scene.
+   * @type {HTMLElement}
+   */
+  #sceneFacts;
+
+  /**
+   * The facts about the selection.
+   * @type {HTMLElement}
+   */
+  #selectionFacts;
+
+  /**
    * @param {Document} document The page.
    */
   constructor(document) {
     this.panel = new SidePanel('details', 'Details', document.createElement('section'));
+    this.#sceneFacts = document.createElement('div');
+    this.#selectionFacts = document.createElement('div');
+    this.panel.element.append(this.#selectionFacts, this.#sceneFacts);
+  }
+
+  /**
+   * @param {Object|null} selection The selected link or object, or null.
+   */
+  showSelection(selection) {
+    if (!selection) {
+      this.#selectionFacts.replaceChildren();
+      return;
+    }
+    const facts = selection[SelectionKey.KIND] === SelectionKind.LINK
+      ? [['Link', selection[SelectionKey.NAME]], ['Model', selection[SelectionKey.MODEL]]]
+      : [['Object', selection[SelectionKey.NAME]]];
+    this.#selectionFacts.replaceChildren(this.#heading('Selected'), this.#list(facts));
   }
 
   /**
@@ -37,6 +66,24 @@ export class DetailsPanel {
       ['Format', description[SceneKey.FORMAT_VERSION] ?? 'unversioned'],
       ['Missing files', [...(description[SceneKey.MISSING_ASSETS] ?? []), ...scene.missingFiles()].join(', ')],
     ].filter(([, value]) => value);
+    this.#sceneFacts.replaceChildren(this.#heading('Scene'), this.#list(facts));
+  }
+
+  /**
+   * @param {string} text A section title.
+   * @returns {HTMLElement} The heading.
+   */
+  #heading(text) {
+    const heading = this.panel.element.ownerDocument.createElement('h2');
+    heading.textContent = text;
+    return heading;
+  }
+
+  /**
+   * @param {Array<Array<string>>} facts Terms and their values.
+   * @returns {HTMLElement} The facts as a description list.
+   */
+  #list(facts) {
     const document = this.panel.element.ownerDocument;
     const list = document.createElement('dl');
     list.className = 'facts';
@@ -47,6 +94,6 @@ export class DetailsPanel {
       content.textContent = value;
       list.append(name, content);
     }
-    this.panel.element.replaceChildren(list);
+    return list;
   }
 }

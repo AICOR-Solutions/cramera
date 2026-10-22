@@ -260,3 +260,8 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 }
 
 .step.current { border-color: var(--accent); background: var(--accent-soft); }
+
+/* %% view switches */
+
+.switch { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
+.switch input { accent-color: var(--accent); width: 16px; height: 16px; }
