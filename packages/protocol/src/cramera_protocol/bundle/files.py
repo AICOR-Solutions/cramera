@@ -79,3 +79,42 @@ class ScenesDirectoryFile(StrEnum):
     """
     The list of bundles the viewer's pickers offer.
     """
+
+
+# %% meshes
+
+
+class MeshFormat(StrEnum):
+    """
+    The mesh file formats bundles hold, by the suffix their files carry.
+    """
+
+    STL = ".stl"
+    """
+    Stereolithography: geometry only; colour comes from the URDF material.
+    """
+
+    OBJ = ".obj"
+    """
+    Wavefront OBJ, which names its material library on an ``mtllib`` line.
+    """
+
+    MATERIAL_LIBRARY = ".mtl"
+    """
+    The material library of an OBJ mesh.
+    """
+
+    COLLADA = ".dae"
+    """
+    COLLADA, which references its textures from inside the document.
+    """
+
+    GLB = ".glb"
+    """
+    Binary glTF: geometry, materials and textures in one file.
+    """
+
+    GLTF = ".gltf"
+    """
+    GlTF with separate buffers and textures.
+    """

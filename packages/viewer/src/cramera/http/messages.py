@@ -14,6 +14,7 @@ from urllib.parse import parse_qs
 from typing_extensions import Any, Dict, List, Optional, Self
 
 from cramera_protocol.document import JsonValue
+from cramera_protocol.viewer import ErrorKey
 
 # %% vocabulary
 
@@ -363,14 +364,3 @@ class Response:
         :return: The error as a JSON response ``{"error": message}``.
         """
         return cls.of_json({ErrorKey.ERROR: message}, status)
-
-
-class ErrorKey(StrEnum):
-    """
-    The keys of an error answer.
-    """
-
-    ERROR = "error"
-    """
-    The reason the request failed.
-    """

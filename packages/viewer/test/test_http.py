@@ -13,7 +13,6 @@ import pytest
 
 from cramera.exceptions import UnknownScene
 from cramera.http.messages import (
-    ErrorKey,
     Header,
     HttpMethod,
     MediaType,
@@ -24,7 +23,7 @@ from cramera.http.origin import OriginPolicy
 from cramera.http.routing import ExactRoute, PrefixRoute, Router
 from cramera.http.server import HttpServer, RequestAnswerer
 from cramera_protocol.exceptions import MissingDocumentField
-from cramera_protocol.viewer import ViewerRoute
+from cramera_protocol.viewer import ErrorKey, ViewerRoute
 
 LOCAL_HOST = {Header.HOST: "127.0.0.1:8711"}
 """

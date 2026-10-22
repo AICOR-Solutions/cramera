@@ -52,6 +52,20 @@ class ViewerRoute(StrEnum):
     """
 
 
+# %% answers
+
+
+class ErrorKey(StrEnum):
+    """
+    The keys of an error answer of the viewer or a live publisher.
+    """
+
+    ERROR = "error"
+    """
+    The reason the request failed.
+    """
+
+
 # %% environment
 
 
@@ -140,6 +154,39 @@ class PluginInfo(JsonDocument):
     """
 
 
+class BuildKey(StrEnum):
+    """
+    The keys of a build stamp.
+    """
+
+    COMMIT = "commit"
+    """
+    The commit the build was made from.
+    """
+
+    BUILT_AT = "builtAt"
+    """
+    When the build was made.
+    """
+
+
+@dataclass(kw_only=True)
+class BuildStamp(JsonDocument):
+    """
+    Which commit a published build of the viewer shows, and when it was made.
+    """
+
+    commit: str = document_field(BuildKey.COMMIT)
+    """
+    The full hash of the commit the build was made from.
+    """
+
+    built_at: str = document_field(BuildKey.BUILT_AT)
+    """
+    When the build was made, as an ISO 8601 date and time in UTC.
+    """
+
+
 class ViewerInfoKey(StrEnum):
     """
     The keys of the answer to :attr:`ViewerRoute.INFO`.
@@ -158,6 +205,11 @@ class ViewerInfoKey(StrEnum):
     PLUGINS = "plugins"
     """
     The loaded plugins.
+    """
+
+    BUILD = "build"
+    """
+    The build stamp of a published build.
     """
 
 
@@ -184,4 +236,10 @@ class ViewerInfo(JsonDocument):
     )
     """
     The loaded plugins.
+    """
+
+    build: Optional[BuildStamp] = document_field(ViewerInfoKey.BUILD, default=None)
+    """
+    The build stamp of a published build, or None for a viewer served from an
+    installation.
     """

@@ -11,7 +11,7 @@ from enum import StrEnum
 
 from typing_extensions import List, Tuple, Type
 
-from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
+from cramera_protocol.bundle.files import BundleFile, MeshFormat, ScenesDirectoryFile
 from cramera_protocol.bundle.index import IndexEntryKey, IndexKey, ReservedSceneName
 from cramera_protocol.bundle.lighting import LightingKey, LightKey
 from cramera_protocol.bundle.scene import (
@@ -41,7 +41,13 @@ from cramera_protocol.events import PageState, PageStateAttribute, ViewerEvent
 from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
 from cramera_protocol.version import CURRENT_VERSION
-from cramera_protocol.viewer import PluginKey, ViewerInfoKey, ViewerRoute
+from cramera_protocol.viewer import (
+    BuildKey,
+    ErrorKey,
+    PluginKey,
+    ViewerInfoKey,
+    ViewerRoute,
+)
 
 # %% module
 
@@ -49,6 +55,7 @@ from cramera_protocol.viewer import PluginKey, ViewerInfoKey, ViewerRoute
 BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     BundleFile,
     ScenesDirectoryFile,
+    MeshFormat,
     ReservedSceneName,
     IndexKey,
     IndexEntryKey,
@@ -79,6 +86,8 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     Capability,
     ViewerRoute,
     ViewerInfoKey,
+    BuildKey,
+    ErrorKey,
     PluginKey,
     ViewerEvent,
     PageStateAttribute,

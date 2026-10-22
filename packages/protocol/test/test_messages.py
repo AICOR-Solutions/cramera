@@ -15,7 +15,13 @@ from cramera_protocol.browser import BROWSER_ENUMERATIONS, BrowserModule
 from cramera_protocol.exceptions import UnsupportedProtocolVersion
 from cramera_protocol.live import Capability, LiveInfo, LiveInfoKey
 from cramera_protocol.version import CURRENT_VERSION
-from cramera_protocol.viewer import PluginInfo, ViewerInfo, ViewerInfoKey
+from cramera_protocol.viewer import (
+    BuildKey,
+    BuildStamp,
+    PluginInfo,
+    ViewerInfo,
+    ViewerInfoKey,
+)
 
 # %% information documents
 
@@ -83,3 +89,14 @@ def test_the_browser_module_imports_in_node(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == CURRENT_VERSION.to_json()
+
+
+def test_a_published_build_names_its_commit_and_time():
+    info = ViewerInfo(
+        version="1.0.0",
+        build=BuildStamp(commit="0" * 40, built_at="2026-10-22T13:00:00Z"),
+    )
+    written = info.to_json()
+    assert written[ViewerInfoKey.BUILD][BuildKey.COMMIT] == "0" * 40
+    assert ViewerInfo.from_json(written) == info
+    assert ViewerInfoKey.BUILD not in ViewerInfo(version="1.0.0").to_json()
