@@ -36,8 +36,9 @@ export class ObjectsView {
 
   /**
    * @param {Document} document The page's document.
-   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)` and
-   *   `select(selection)`.
+   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)`,
+   *   `placeObject(identifier, pose)` (moves an object in the plan and, while live, in
+   *   the live world) and `select(selection)`.
    */
   constructor(document, editor) {
     this.#editor = editor;
@@ -93,12 +94,10 @@ export class ObjectsView {
         elements.number(axis, position[index], PlanAction.POSE, (value) => {
           const moved = [...position];
           moved[index] = value;
-          this.#editor.edit(() => state.setObjectPose(identifier, PlanPose.moved(pose, moved)));
+          this.#editor.placeObject(identifier, PlanPose.moved(pose, moved));
         }),
       ),
-      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) =>
-        this.#editor.edit(() => state.setObjectPose(identifier, PlanPose.turned(pose, PlanPose.radians(value)))),
-      ),
+      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => this.#editor.placeObject(identifier, PlanPose.turned(pose, PlanPose.radians(value)))),
     );
     entry.append(head, row);
     return entry;

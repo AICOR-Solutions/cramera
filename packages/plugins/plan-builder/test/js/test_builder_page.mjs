@@ -405,6 +405,22 @@ test('a dragged object moves in the plan and, while live, in the live world', as
   assert.equal(api.runs[0].mode, RunMode.STAGE);
 });
 
+test('an object edited in the list moves in the live world too', async () => {
+  const { root, page, live, timer } = await openPage();
+  addMilk(root);
+  byAction(root, PlanAction.STAGE)[0].click();
+  await settled();
+  await timer.tick();
+  const entry = root.findAll((element) => element.dataset.object !== undefined)[0];
+  const x = byAction(entry, PlanAction.POSE).find((input) => input.dataset.field === 'x');
+  x.value = '3';
+  x.dispatch(DomEvent.CHANGE);
+  await settled();
+  const pose = page.state.objects()[0][PlannedObjectKey.POSE];
+  assert.equal(PlanPose.position(pose)[0], 3);
+  assert.deepEqual(live.moves, [{ key: 'key-milk', pose, final: true }]);
+});
+
 test('a dragged robot or navigation target stays on the floor', async () => {
   const { root, page, scene } = await openPage();
   block(root, StepKind.NAVIGATE).click();

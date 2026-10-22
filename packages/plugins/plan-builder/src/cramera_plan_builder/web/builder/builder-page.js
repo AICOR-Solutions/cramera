@@ -568,8 +568,17 @@ export class BuilderPage {
       this.edit(() => this.state.updateStep(selection.identifier, { [PlanStepKey.TARGET]: target }));
       return;
     }
-    this.edit(() => this.state.setObjectPose(selection.identifier, pose));
-    const key = this.#world.keys.get(selection.identifier);
+    this.placeObject(selection.identifier, pose);
+  }
+
+  /**
+   * Move an object in the plan and, while its world is published, in the live world.
+   * @param {string} identifier The object's identity.
+   * @param {Array<number>} pose Where it starts.
+   */
+  placeObject(identifier, pose) {
+    this.edit(() => this.state.setObjectPose(identifier, pose));
+    const key = this.#world.keys.get(identifier);
     if (key) this.#live.move(key, pose, true).catch((error) => this.report(error.message));
   }
 
