@@ -166,7 +166,7 @@ test('registering adds the Questions panel and follows the shown scene', async (
   const { client } = fakeClient();
   const fetch = async () => ({ ok: true, headers: new Map(), json: async () => CATALOG });
   const panel = register({ bus, panels, api: new ViewerApi(fetch, BASE), view: { renderer: { domElement: { ownerDocument: document } } } });
-  assert.deepEqual(panels.identifiers(), [PluginName.QUESTIONS]);
+  assert.deepEqual(panels.identifiers(), [PluginName.QUESTIONS, `${PluginName.QUESTIONS}-graph`]);
   assert.equal(document.head.children.length, 1);
   bus.publish(ViewerEvent.SCENE_LOADED, { name: 'cell' });
   await new Promise((resolve) => setTimeout(resolve, 0));

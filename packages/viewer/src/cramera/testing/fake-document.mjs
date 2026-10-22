@@ -129,4 +129,11 @@ export class FakeDocument {
   createElement(tagName) {
     return new FakeElement(tagName, this);
   }
+
+  createElementNS(namespace, tagName) {
+    const element = new FakeElement(tagName, this);
+    element.namespaceURI = namespace;
+    element.tagName = tagName;
+    return element;
+  }
 }

@@ -20,3 +20,27 @@
 .answer th, .answer td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .answer th { color: var(--text-muted); font-weight: 600; }
 .answer td button { padding: 2px 8px; font-size: 12px; }
+
+/* %% graph */
+
+.graph-panel { display: grid; gap: 8px; align-content: start; }
+.graph svg { width: 100%; height: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; touch-action: none; }
+.graph-edge { stroke: var(--border); stroke-width: 1.2; }
+.graph-edge.type { stroke-dasharray: 4 3; }
+.graph-node { cursor: pointer; }
+.graph-node circle { stroke: var(--surface-raised); stroke-width: 2; }
+.graph-node text { font: 10px var(--font); fill: var(--text); text-anchor: middle; pointer-events: none; }
+.graph .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--text-muted); }
+.graph .legend li::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; background: var(--series-color); }
+.graph-details h2 { margin: 4px 0; }
+.graph-details p { margin: 2px 0; font: 12px var(--mono); overflow-wrap: anywhere; }
+
+.questions-root, .graph { --series-0: #0f766e; --series-1: #c2410c; --series-2: #6d28d9; --series-3: #b91c1c; --series-4: #0369a1; --series-5: #a16207; --series-6: #be185d; --series-7: #4d7c0f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .graph { --series-0: #2dd4bf; --series-1: #fb923c; --series-2: #a78bfa; --series-3: #f87171; --series-4: #38bdf8; --series-5: #facc15; --series-6: #f472b6; --series-7: #a3e635; }
+}
+.series-0 { --series-color: var(--series-0); } .series-1 { --series-color: var(--series-1); }
+.series-2 { --series-color: var(--series-2); } .series-3 { --series-color: var(--series-3); }
+.series-4 { --series-color: var(--series-4); } .series-5 { --series-color: var(--series-5); }
+.series-6 { --series-color: var(--series-6); } .series-7 { --series-color: var(--series-7); }
+.graph-node circle { fill: var(--series-color); }

@@ -38,6 +38,16 @@ export class QuestionsClient {
 
   /**
    * @param {string} scene A bundle name.
+   * @param {string} view A `GraphViewName` value.
+   * @param {AbortSignal=} signal Cancels the request when another view is chosen.
+   * @returns {Promise<Object>} The graph view.
+   */
+  graph(scene, view, signal) {
+    return this.#api.json(this.#url(QuestionsRoute.GRAPH, { [QuestionsParameter.SCENE]: scene, [QuestionsParameter.VIEW]: view }), signal);
+  }
+
+  /**
+   * @param {string} scene A bundle name.
    * @param {string} code A query in the entity query language.
    * @param {string} scope The `QueryScope` the query ranges over.
    * @returns {Promise<Object>} The answer.
