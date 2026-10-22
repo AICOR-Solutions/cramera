@@ -17,7 +17,7 @@ The CRAM packages every test of this package imports.
 """
 
 if any(importlib.util.find_spec(package) is None for package in CRAM_PACKAGES):
-    collect_ignore_glob = ["test_*.py"]
+    collect_ignore_glob = ["*"]
 else:
     from .dataset.worlds import KitchenWorld, RobotWorld
 
