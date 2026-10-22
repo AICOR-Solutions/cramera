@@ -10,12 +10,16 @@ from pathlib import Path
 
 import pytest
 
-from cramera.application import WEB_DIRECTORY
 from cramera_protocol.browser import BrowserModule
 
 TESTS = Path(__file__).parent / "js"
 """
 The directory of the browser tests.
+"""
+
+SOURCE_WEB_DIRECTORY = Path(__file__).parent.parent / "src" / "cramera" / "web"
+"""
+The browser modules the tests import, in the source tree.
 """
 
 
@@ -25,7 +29,7 @@ def protocol_module() -> Path:
     :return: ``protocol.js`` written next to the browser modules, as the server
         serves it.
     """
-    module = WEB_DIRECTORY / "protocol.js"
+    module = SOURCE_WEB_DIRECTORY / "protocol.js"
     module.write_text(BrowserModule().source(), encoding="utf-8")
     return module
 
