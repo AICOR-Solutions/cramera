@@ -4,12 +4,15 @@ Scene directories and the catalog that merges them.
 
 from __future__ import annotations
 
+import shutil
+
 import pytest
 
 from cramera.exceptions import FileNotInDirectory, UnknownScene
 from cramera.locations import DataLocations
 from cramera.scenes import SceneDirectory, SceneSource
 from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
+from cramera_protocol.bundle.index import ReservedSceneName
 from cramera_protocol.viewer import EnvironmentVariable
 
 
@@ -100,3 +103,25 @@ def test_locations_default_to_the_home_directory(tmp_path):
     locations = DataLocations.from_environment({}, tmp_path)
     assert locations.data == tmp_path / ".cramera"
     assert locations.shared_scenes is None
+
+
+# %% reserved bundles
+
+
+@pytest.mark.parametrize("name", list(ReservedSceneName))
+def test_a_reserved_bundle_is_served_from_the_local_directory_only(
+    catalog, scenes, name
+):
+    for source in ("local_scenes", "shared_scenes"):
+        shutil.copytree(scenes / "local_scenes" / "cell", scenes / source / name)
+    assert catalog.directory_of(name).source is SceneSource.LOCAL
+    assert catalog.index().entry(name) is None
+
+
+def test_a_reserved_bundle_only_a_shared_directory_holds_is_not_served(catalog, scenes):
+    shutil.copytree(
+        scenes / "local_scenes" / "cell",
+        scenes / "shared_scenes" / ReservedSceneName.LIVE,
+    )
+    with pytest.raises(UnknownScene):
+        catalog.directory_of(ReservedSceneName.LIVE)

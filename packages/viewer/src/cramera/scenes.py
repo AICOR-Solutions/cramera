@@ -16,6 +16,7 @@ from cramera.exceptions import UnknownScene
 from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
 from cramera_protocol.bundle.index import (
     InvalidSceneName,
+    ReservedSceneName,
     SceneIndex,
     SceneIndexEntry,
     SceneName,
@@ -245,14 +246,19 @@ class SceneCatalog:
 
     def directory_of(self, name: str) -> SceneDirectory:
         """
+        A reserved bundle, the live world or a recording before it is saved, is served
+        only from a local directory, where this machine's publisher writes it.
+
         :param name: A bundle name.
         :return: The directory whose bundle of that name is shown.
         :raises UnknownScene: When no directory holds a valid bundle of that name.
         """
-        if not SceneName.is_valid(name):
+        reserved = name in {member.value for member in ReservedSceneName}
+        if not reserved and not SceneName.is_valid(name):
             raise UnknownScene(name)
+        sources = [SceneSource.LOCAL] if reserved else list(SceneSource)
         for directory in self.ordered_directories():
-            if directory.holds(name):
+            if directory.source in sources and directory.holds(name):
                 return directory
         raise UnknownScene(name)
 
