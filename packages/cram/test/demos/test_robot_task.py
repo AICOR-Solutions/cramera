@@ -15,6 +15,7 @@ from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
 from cramera_protocol.bundle.index import InvalidSceneName, SceneIndex
 from cramera_protocol.bundle.scene import Camera, SceneDescription
 from cramera_protocol.geometry import Vector3
+from cramera_protocol.viewer import EnvironmentVariable
 from semantic_digital_twin.api import RobotSpecification
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.pr2 import PR2
@@ -131,6 +132,17 @@ def test_publishing_twice_replaces_the_shared_copy(saved_run, tmp_path):
     assert sorted(path.name for path in shared.iterdir()) == sorted(
         [saved.scene, ScenesDirectoryFile.INDEX.value]
     )
+
+
+def test_a_demo_saves_where_the_environment_configures(monkeypatch, tmp_path):
+    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "configured"))
+    fields = dict(
+        environment=BarrierEnvironment(distance=BARRIER_DISTANCE),
+        robot=RobotSpecification(semantic_annotation_type=PR2),
+        name=SCENE_NAME,
+        task=TASK,
+    )
+    assert TorsoDemo(**fields).locations.data == tmp_path / "configured"
 
 
 # %% refusals

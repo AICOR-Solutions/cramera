@@ -9,6 +9,7 @@ demo.
 
 from __future__ import annotations
 
+import os
 import shutil
 import tempfile
 from abc import ABC, abstractmethod
@@ -99,10 +100,13 @@ class RobotTaskDemo(ABC):
     """
 
     locations: DataLocations = field(
-        default_factory=lambda: DataLocations.from_environment({}, Path.home())
+        default_factory=lambda: DataLocations.from_environment(
+            dict(os.environ), Path.home()
+        )
     )
     """
-    Where the recording is saved: its local scenes directory.
+    Where the recording is saved: its local scenes directory, as the process's
+    environment configures it.
     """
 
     port: int = LIVE_PORT
