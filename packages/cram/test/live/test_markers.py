@@ -84,6 +84,19 @@ def test_a_marker_in_the_world_frame_keeps_its_pose(kitchen):
     assert board.current().markers[0].pose.x == 0.5
 
 
+UNKNOWN_FRAME = "no_such_frame"
+"""
+A frame no body of the test world is named.
+"""
+
+
+def test_a_marker_in_an_unknown_frame_is_left_out(kitchen):
+    board = MarkerBoard()
+    board.observe(TOPIC, [MarkerMessage(header=Header(frame_id=UNKNOWN_FRAME))])
+    board.refresh(kitchen.world)
+    assert board.current().markers == []
+
+
 def test_markers_drawing_world_bodies_are_left_out(kitchen):
     board = MarkerBoard()
     board.observe(TOPIC, [MarkerMessage(ns=str(kitchen.milk.name))])

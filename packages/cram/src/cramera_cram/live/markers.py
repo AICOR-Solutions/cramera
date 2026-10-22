@@ -379,7 +379,7 @@ class MarkerBoard:
         """
         Pose the markers in the world if any topic changed; markers whose namespace
         names a body or region of the world draw what the scene already shows and are
-        left out.
+        left out, as are markers in a frame the world cannot resolve.
 
         :param world: The world marker frames are resolved in.
         :return: Whether the overlay changed.
@@ -395,11 +395,12 @@ class MarkerBoard:
             ]
         frames = MarkerFrames(world)
         world_entities = frames.entity_names()
-        markers = [
+        described = [
             frames.description(topic, entry)
             for topic, entry in entries
             if entry.namespace not in world_entities
         ]
+        markers = [marker for marker in described if marker is not None]
         with self.lock:
             self.overlay = MarkerOverlay(
                 version=self.overlay.version + 1, markers=markers
@@ -441,35 +442,41 @@ class MarkerFrames:
             str(region.name) for region in self.world.regions
         )
 
-    def frame_matrix(self, frame: str) -> numpy.ndarray:
+    def frame_matrix(self, frame: str) -> Optional[numpy.ndarray]:
         """
         :param frame: A marker's frame.
-        :return: The frame's pose in the world; the world itself for the root, for
-            unknown frames and for names several bodies share.
+        :return: The frame's pose in the world, the world itself for the root, or None
+            for a frame no body or several bodies are named, where the marker cannot be
+            posed.
         """
-        identity = numpy.eye(4)
         root = self.world.root
         if frame in WORLD_FRAME_NAMES or frame in (str(root.name), root.name.name):
-            return identity
+            return numpy.eye(4)
         candidates = [
             body
             for body in self.world.bodies
             if frame in (str(body.name), body.name.name)
         ]
         if len(candidates) != 1:
-            return identity
+            return None
         return self.world.compute_forward_kinematics_np(root, candidates[0])
 
-    def description(self, topic: str, entry: MarkerEntry) -> MarkerDescription:
+    def description(
+        self, topic: str, entry: MarkerEntry
+    ) -> Optional[MarkerDescription]:
         """
         :param topic: The topic the marker arrived on.
         :param entry: The marker.
-        :return: The marker posed in the world.
+        :return: The marker posed in the world, or None when its frame cannot be
+            resolved.
         """
+        frame_matrix = self.frame_matrix(entry.frame)
+        if frame_matrix is None:
+            return None
         local = numpy.eye(4)
         local[:3, :3] = Rotation.from_quat(entry.pose[3:]).as_matrix()
         local[:3, 3] = entry.pose[:3]
-        pose = NumericPose.of_matrix(self.frame_matrix(entry.frame) @ local)
+        pose = NumericPose.of_matrix(frame_matrix @ local)
         return MarkerDescription(
             topic=topic,
             namespace=entry.namespace,
