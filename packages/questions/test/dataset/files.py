@@ -101,3 +101,8 @@ EVENT_TYPES_WITH_QUERY_CODE = DATASET / "events" / "event_types_with_query_code.
 Detected event types as a crafted bundle could list them: one real type and one that
 would close the query's quotes and run code of its own.
 """
+
+TWO_ROBOTS_SCENE = DATASET / "documents" / "two_robots_scene.json"
+"""
+The scene description of a recording of two robots, the second one selected.
+"""

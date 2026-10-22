@@ -87,9 +87,16 @@ class RecordedBundle:
     def robot_model(scene: SceneDescription) -> Optional[ModelDescription]:
         """
         :param scene: A scene description.
-        :return: The model of the scene's robot: the first robot model.
+        :return: The model of the scene's robot: the robot model whose identity is the
+            described robot's, else the first robot model, as a recording of one robot
+            names none.
         """
-        return next((model for model in scene.models if model.robot), None)
+        robots = [model for model in scene.models if model.robot]
+        identifier = None if scene.robot is None else scene.robot.identifier
+        selected = [model for model in robots if model.identifier == identifier]
+        if identifier is not None and selected:
+            return selected[0]
+        return next(iter(robots), None)
 
 
 @dataclass(frozen=True)
