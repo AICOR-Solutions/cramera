@@ -34,7 +34,7 @@ import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_bui
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { STEP_LABELS } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
-import { FakeDocument, FakeStorage } from './support/fake-document.mjs';
+import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
 const read = (name) => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const RULES = read('../../src/cramera_plan_builder/rules/constraints.json').rules;
