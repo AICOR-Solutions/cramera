@@ -242,6 +242,160 @@ class UnsupportedShape(CramPublisherError):
         return f"Shapes of type {self.shape_type} cannot be published."
 
 
+# %% live
+
+
+@dataclass
+class TeleoperationUnavailable(Conflict):
+    """
+    Hand control requested while no robot is selected or a plan moves the robot.
+    """
+
+    reason: str
+    """
+    Why hand control is unavailable.
+    """
+
+    def message(self) -> str:
+        return f"Hand control is unavailable: {self.reason}"
+
+
+@dataclass
+class TeleoperationStillRunning(Conflict):
+    """
+    A hand-control driver that did not stop within its time budget.
+    """
+
+    def message(self) -> str:
+        return "The previous hand control has not stopped yet."
+
+
+@dataclass
+class InvalidConstraint(CramPublisherError):
+    """
+    A constraint whose monitor parameters cannot be read.
+    """
+
+    parameter: str
+    """
+    The parameter that cannot be read.
+    """
+
+    expected: str
+    """
+    What the parameter must be.
+    """
+
+    def message(self) -> str:
+        return f"The constraint parameter {self.parameter!r} must be {self.expected}."
+
+
+@dataclass
+class UnknownPlanNode(CramPublisherError):
+    """
+    A plan node identity the executing plan does not hold.
+    """
+
+    identifier: str
+    """
+    The identity that was given.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"The plan has no node {self.identifier!r}."
+
+
+@dataclass
+class MarkersUnavailable(Conflict):
+    """
+    A marker topic change in a process that reads no markers from ROS.
+    """
+
+    def message(self) -> str:
+        return "This process reads no markers from ROS."
+
+
+@dataclass
+class NoRecording(Conflict):
+    """
+    A recording action while no recording is in the state the action needs.
+    """
+
+    needed: str
+    """
+    The recording state the action needs.
+    """
+
+    def message(self) -> str:
+        return f"There is no {self.needed} recording."
+
+
+@dataclass
+class EmptyRecording(Conflict):
+    """
+    A recording without frames that was to be written as a bundle.
+    """
+
+    def message(self) -> str:
+        return "The recording has no frames."
+
+
+@dataclass
+class InvalidFrameRange(CramPublisherError):
+    """
+    A frame range that runs backwards or past the recorded frames.
+    """
+
+    first: int
+    """
+    The first frame asked for.
+    """
+
+    last: int
+    """
+    The last frame asked for.
+    """
+
+    frame_count: int
+    """
+    How many frames the recording holds.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The frames {self.first} to {self.last} are not within the "
+            f"{self.frame_count} recorded frames."
+        )
+
+
+@dataclass
+class SceneNameTaken(Conflict):
+    """
+    A save under a name a scenes directory already holds.
+    """
+
+    name: str
+    """
+    The name asked for.
+    """
+
+    def message(self) -> str:
+        return f"A scene named {self.name!r} already exists."
+
+
+@dataclass
+class SharedScenesUnavailable(Conflict):
+    """
+    A save to the shared scenes directory while none is configured.
+    """
+
+    def message(self) -> str:
+        return "No shared scenes directory is configured."
+
+
 # %% export
 
 
