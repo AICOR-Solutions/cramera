@@ -289,15 +289,19 @@ src/cramera/
 
 ## Tests
 
-The test suite still lives in the CRAM fork under `test/cramera_test`, because the
-Python tests need the CRAM workspace. From the fork's root:
+The browser-side tests live in `test/js` and need only Node.js 18 or newer; CI runs
+them on every push and pull request (`.github/workflows/tests.yml`):
+
+```bash
+node --test test/js/*.js
+```
+
+The Python tests still live in the CRAM fork under `test/cramera_test`, because they
+import the CRAM workspace packages. From the fork's root:
 
 ```bash
 pytest test/cramera_test
 ```
-
-The JS core is covered by node-based tests invoked from pytest (skipped when node is
-unavailable).
 
 ## About this repository
 

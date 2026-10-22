@@ -10,6 +10,10 @@ which this repository was mirrored until 22 Oct 2026.
 - **This repository is now the home of cramera.** The six-hourly sync from the CRAM
   fork is retired and its workflow removed; development, issues and pull requests
   happen here. Packaging metadata points at this repository.
+- **The browser-side tests run here.** The 87 Node.js test files moved from the fork's
+  `test/cramera_test/js` to `test/js` with the fixtures they read, and a `Tests`
+  workflow runs them on every push and pull request. Five tests that had been failing
+  on the fork are fixed.
 
 ### Isaac Sim import
 - **Convert an Isaac Sim / USD stage into a scene bundle** with `cramera-import` (the
