@@ -32,7 +32,7 @@ from cramera_laboratory.physics.centrifuge import (
     CentrifugeModelPart,
     LaboratoryCentrifuge,
 )
-from cramera_laboratory.physics.contacts import ContactReader
+from cramera_laboratory.physics.contacts import SPATIAL_VELOCITY_SIZE, ContactReader
 from cramera_laboratory.physics.drawer import DrawerModelPart, LaboratoryDrawer
 from cramera_laboratory.physics.instruments import (
     InstrumentDrives,
@@ -563,7 +563,7 @@ class LaboratoryPhysics(ContactSimulation):
             return
         parameters = self.parameters.pull
         body = self.pull.body
-        velocity = np.zeros(6)
+        velocity = np.zeros(SPATIAL_VELOCITY_SIZE)
         mujoco.mj_objectVelocity(
             self.model, self.data, mujoco.mjtObj.mjOBJ_BODY, body, velocity, 0
         )

@@ -65,6 +65,13 @@ import {
 export const MOVE_STEP = 0.01;
 
 /**
+ * The initial value and step of the panel's number fields: the fill in millilitres, the
+ * rotor speed in revolutions per minute, the cycle length in seconds and the dose in
+ * millilitres.
+ */
+const FieldStep = Object.freeze({ FILL: 0.5, FILL_DEFAULT: 1, SPEED: 10, DURATION: 1, DOSE: 0.1 });
+
+/**
  * Where the camera stands relative to an object it looks at closely, in metres.
  */
 export const LOOK_OFFSET = Object.freeze([0.25, -0.35, 0.2]);
@@ -651,7 +658,7 @@ export class LaboratoryPanel {
     const elements = this.#elements;
     this.objectChoice = elements.select(controls[ContactPhysicsKey.OBJECTS]);
     const step = MOVE_STEP;
-    const volume = elements.number(1, 0.5);
+    const volume = elements.number(FieldStep.FILL_DEFAULT, FieldStep.FILL);
     const moves = elements.row(
       elements.button(Text.LEFT, () => this.move([-step, 0, 0])),
       elements.button(Text.RIGHT, () => this.move([step, 0, 0])),
@@ -704,8 +711,8 @@ export class LaboratoryPanel {
     const elements = this.#elements;
     const cycles = controls[ContactPhysicsKey.CYCLES];
     const holder = elements.select([]);
-    const speed = elements.number(cycles[CycleLimitsKey.DEFAULT_SPEED], 10);
-    const duration = elements.number(cycles[CycleLimitsKey.DEFAULT_DURATION], 1);
+    const speed = elements.number(cycles[CycleLimitsKey.DEFAULT_SPEED], FieldStep.SPEED);
+    const duration = elements.number(cycles[CycleLimitsKey.DEFAULT_DURATION], FieldStep.DURATION);
     const edition = elements.select(Object.values(ManualEdition));
     const send = (body) => this.command(LaboratoryRoute.CENTRIFUGE, body);
     const action = (name) => ({ [CentrifugeRequestKey.ACTION]: name });
@@ -812,7 +819,7 @@ export class LaboratoryPanel {
     const elements = this.#elements;
     const doses = controls[ContactPhysicsKey.DOSES];
     const channel = elements.select(doses[DoseLimitsKey.REAGENTS].map((reagent) => reagent[ReagentKey.IDENTIFIER]));
-    const dose = elements.number(doses[DoseLimitsKey.DEFAULT], 0.1);
+    const dose = elements.number(doses[DoseLimitsKey.DEFAULT], FieldStep.DOSE);
     const send = (body) => this.command(LaboratoryRoute.DISPENSER, body);
     const state = this.#fact((snapshot) => {
       const dispenser = snapshot[SnapshotKey.DISPENSER];

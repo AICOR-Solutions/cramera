@@ -32,7 +32,7 @@ from cramera_laboratory.knowledge import (
     CentrifugeObservation,
     ManualKnowledge,
 )
-from cramera_laboratory.physics.contacts import ContactReader
+from cramera_laboratory.physics.contacts import SPATIAL_VELOCITY_SIZE, ContactReader
 from cramera_laboratory.physics.model import (
     MjcfAttribute,
     MjcfTag,
@@ -766,7 +766,7 @@ class LaboratoryCentrifuge:
         :return: Whether the vessel rests upright and still on the holder's floor,
             carried by it.
         """
-        velocity = np.zeros(6)
+        velocity = np.zeros(SPATIAL_VELOCITY_SIZE)
         mujoco.mj_objectVelocity(
             self.model, self.data, mujoco.mjtObj.mjOBJ_BODY, body, velocity, 0
         )

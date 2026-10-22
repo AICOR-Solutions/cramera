@@ -446,6 +446,11 @@ UNIT_SCALE = "1 1 1"
 A mesh scale that keeps the mesh's size.
 """
 
+CRITICAL_DAMPING = 1
+"""
+The damping ratio of every contact's spring: critically damped.
+"""
+
 FRAME_SITE_SIZE = 0.001
 """
 The radius of the invisible sites that mark frames, in metres.
@@ -820,7 +825,7 @@ class CollisionModel:
             {
                 MjcfAttribute.FRICTION: self.parameters.friction,
                 MjcfAttribute.CONTACT_DIMENSION: str(self.parameters.contact_dimension),
-                MjcfAttribute.SOLVER_REFERENCE: f"{self.parameters.contact_time_constant} 1",
+                MjcfAttribute.SOLVER_REFERENCE: f"{self.parameters.contact_time_constant} {CRITICAL_DAMPING}",
                 MjcfAttribute.SOLVER_IMPEDANCE: self.parameters.contact_impedance,
             },
         )
@@ -933,7 +938,7 @@ class CollisionModel:
             if any(name.startswith(prefix) for prefix in self.scale_geometries):
                 attributes[MjcfAttribute.PRIORITY] = str(self.parameters.scale_priority)
                 attributes[MjcfAttribute.SOLVER_REFERENCE] = (
-                    f"{self.parameters.scale_time_constant} 1"
+                    f"{self.parameters.scale_time_constant} {CRITICAL_DAMPING}"
                 )
             attributes.update(self.shape(name, shape, description))
             attributes[MjcfAttribute.NAME] = name

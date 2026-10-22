@@ -19,6 +19,11 @@ WRENCH_SIZE = 6
 The components of a contact wrench: three force and three torque components.
 """
 
+SPATIAL_VELOCITY_SIZE = 6
+"""
+The components of a body's velocity: three angular and three linear components.
+"""
+
 # %% contacts
 
 
