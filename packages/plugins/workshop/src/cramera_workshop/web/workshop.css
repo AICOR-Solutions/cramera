@@ -1,0 +1,16 @@
+/* The Workshop panel; colours come from the viewer's theme variables. */
+
+.workshop-module, .workshop-panel { display: flex; flex-direction: column; gap: var(--gap); }
+.workshop-note { margin: 0; color: var(--text-muted); }
+.workshop-status { margin: 0; padding: 6px 8px; border-radius: var(--radius); background: var(--surface-sunken); }
+.workshop-status[data-error="true"] { color: var(--danger); }
+.workshop-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.workshop-drawer > span { flex: 1; }
+.workshop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.workshop-section { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.workshop-section legend, .workshop-section summary, .workshop-rights summary { font-weight: 600; }
+.workshop-chooser { display: flex; gap: 6px; align-items: center; }
+.workshop-chooser select { flex: 1; min-width: 0; }
+.workshop-primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.workshop-panel button[hidden] { display: none; }
+.workshop-rights p { margin: 4px 0; font-size: 12px; color: var(--text-muted); }
