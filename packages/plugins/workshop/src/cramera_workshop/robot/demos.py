@@ -28,6 +28,7 @@ from cramera_cram.scenes.presentation import ScenePresentation
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import SceneDescription
+from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import SavedScene
 from cramera_protocol.workshop import WorkshopSceneKey
 from cramera_workshop.acceptance import (
@@ -57,6 +58,7 @@ from cramera_workshop.robot.transport import (
     RetrieveScrewBoxAction,
 )
 from cramera_workshop.robot.world import RobotStart, WorkshopBody, WorkshopEnvironment
+from cramera_workshop.timeline import StagePeriod, StageTimeline
 from giskardpy.motion_statechart.motion_statechart import MotionStatechart
 from semantic_digital_twin.collision_checking.collision_rules import (
     AllowCollisionBetweenGroups,
@@ -323,6 +325,12 @@ class WorkshopTaskDemo(RobotTaskDemo):
         """
         return [self.retrieval(context)]
 
+    def stages(self) -> Sequence[AssemblyStage]:
+        """
+        :return: The stage each top-level action performs, in the same order.
+        """
+        return (AssemblyStage.RETRIEVE,)
+
     def retrieval(self, context: Context) -> RetrieveScrewBoxAction:
         """
         :param context: The world and robot.
@@ -455,9 +463,26 @@ class WorkshopTaskDemo(RobotTaskDemo):
         scene = scene_file.read(SceneDescription)
         rights = self.bundle.asset_rights
         scene.extensions[WorkshopSceneKey.ASSET_RIGHTS] = rights.to_json()
+        trajectory = DocumentFile(bundle / scene.trajectory).read(Trajectory)
+        scene.segments = StageTimeline(
+            trajectory.frame_times, self.stage_periods()
+        ).segments()
         scene_file.write(scene)
         for name in (rights.license_file, rights.notice_file, WorkshopFile.RIGHTS):
             shutil.copyfile(self.bundle.file(name), bundle / name)
+
+    def stage_periods(self) -> List[StagePeriod]:
+        """
+        :return: When each stage ran, from its top-level action's plan node.
+        """
+        return [
+            StagePeriod(
+                stage=stage,
+                start=action.plan_node.start_time.timestamp(),
+                end=action.plan_node.end_time.timestamp(),
+            )
+            for stage, action in zip(self.stages(), self.actions, strict=True)
+        ]
 
 
 @dataclass(frozen=True)
@@ -511,6 +536,14 @@ class ScrewInsertionDemo(WorkshopTaskDemo):
                 screw, self.environment.pilot_mouth(world), keep_shaft_roll=True
             ),
         ]
+
+    def stages(self) -> Sequence[AssemblyStage]:
+        return (
+            AssemblyStage.RETRIEVE,
+            AssemblyStage.PICK_SCREW,
+            AssemblyStage.APPROACH,
+            AssemblyStage.STABILIZE,
+        )
 
     def measure(self, context: Context) -> AcceptanceMetrics:
         world = context.world
@@ -580,6 +613,9 @@ class ScrewAssemblyDemo(WorkshopTaskDemo):
                 placing_linear_velocity=0.025,
             ),
         ]
+
+    def stages(self) -> Sequence[AssemblyStage]:
+        return tuple(AssemblyStage)
 
     def measure(self, context: Context) -> AcceptanceMetrics:
         world = context.world

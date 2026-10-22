@@ -9,13 +9,16 @@ insertion`` and ``assembly`` perform them.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
 from cramera_cram.exceptions import TaskFailed
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.files import BundleFile
-from cramera_protocol.bundle.scene import SceneDescription
+from cramera_protocol.bundle.scene import SceneDescription, Segment
+from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.workshop import AssetRights
 from cramera_workshop.acceptance import (
     AssemblyStage,
@@ -28,6 +31,7 @@ from cramera_workshop.robot.contents import ContentsMeasurements
 from cramera_workshop.robot.demos import (
     ContentsDocument,
     ExecutionObservation,
+    ScrewInsertionDemo,
     WorkshopDemoName,
 )
 from cramera_workshop.robot.gaze import AnchoredToolCenterPointMotion
@@ -36,6 +40,11 @@ from cramera_workshop.robot.transport import (
     RetrieveScrewBoxAction,
 )
 from semantic_digital_twin.datastructures.definitions import StaticJointState
+
+STAGE_SECONDS = 0.5
+"""
+How long each stage of a stand-in recording ran; one frame is recorded per second.
+"""
 
 # %% names and context
 
@@ -66,7 +75,7 @@ def test_the_arms_start_parked(assembly_context):
 
 def test_the_assembly_has_every_stage(assembly_demo, assembly_context):
     actions = assembly_demo.plan_actions(assembly_context)
-    assert len(actions) == len(AssemblyStage)
+    assert len(actions) == len(AssemblyStage) == len(assembly_demo.stages())
     assert isinstance(actions[0], RetrieveScrewBoxAction)
 
 
@@ -75,6 +84,7 @@ def test_the_insertion_ends_with_the_screw_at_the_pilot_hole(insertion_demo):
     plan = insertion_demo.build_plan(context)
     actions = insertion_demo.actions
     assert isinstance(actions[-1], MoveHeldObjectAction)
+    assert len(insertion_demo.stages()) == len(actions)
     assert actions[-1].keep_shaft_roll
     assert insertion_demo.contents.active
     assert insertion_demo.contents in plan.node_callbacks
@@ -121,15 +131,8 @@ def test_a_demo_that_missed_requirements_names_them(assembly_demo):
 # %% saving
 
 
-def test_a_saved_recording_carries_the_rights_and_notices(
-    assembly_demo, bundle, tmp_path
-):
-    saved = tmp_path / assembly_demo.scene_name()
-    saved.mkdir()
-    scene = SceneDescription(name=saved.name)
-    (saved / BundleFile.SCENE).write_text(json.dumps(scene.to_json()), encoding="utf-8")
-    metrics = AcceptanceMetrics(measurements={DemoMeasurement.CONTROL_TICKS: 1})
-    assembly_demo.complete(saved, metrics)
+def test_a_saved_recording_carries_the_rights_and_notices(insertion_demo, bundle):
+    saved = saved_insertion(insertion_demo)
     written = SceneDescription.from_json(
         json.loads((saved / BundleFile.SCENE).read_text(encoding="utf-8"))
     )
@@ -137,9 +140,44 @@ def test_a_saved_recording_carries_the_rights_and_notices(
     rights = bundle.asset_rights
     for name in (rights.license_file, rights.notice_file, WorkshopFile.RIGHTS):
         assert (saved / name).read_bytes() == bundle.file(name).read_bytes()
-    assert (
-        AcceptanceMetrics.from_json(
-            json.loads((saved / BundleFile.ACCEPTANCE_METRICS).read_text())
-        )
-        == metrics
+    assert AcceptanceMetrics.from_json(
+        json.loads((saved / BundleFile.ACCEPTANCE_METRICS).read_text())
+    ) == AcceptanceMetrics(measurements={DemoMeasurement.CONTROL_TICKS: 1})
+
+
+def test_a_saved_recording_has_one_step_per_stage(insertion_demo):
+    saved = saved_insertion(insertion_demo)
+    written = SceneDescription.from_json(
+        json.loads((saved / BundleFile.SCENE).read_text(encoding="utf-8"))
     )
+    assert written.segments == [
+        Segment(step=stage, start=index, end=index)
+        for index, stage in enumerate(insertion_demo.stages())
+    ]
+
+
+def saved_insertion(demo: ScrewInsertionDemo) -> Path:
+    """
+    Complete a stand-in recording of the insertion whose stages each ran while one frame
+    was recorded.
+
+    :param demo: The insertion demo.
+    :return: The completed recording's directory.
+    """
+    demo.build_plan(demo.build_context(demo.build_world()))
+    began = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    frame_times = []
+    for index, action in enumerate(demo.actions):
+        action.plan_node.start_time = began + timedelta(seconds=index)
+        action.plan_node.end_time = began + timedelta(seconds=index + STAGE_SECONDS)
+        frame_times.append((began + timedelta(seconds=index)).timestamp())
+    saved = demo.locations.local_scenes / demo.scene_name()
+    saved.mkdir(parents=True)
+    trajectory = Trajectory(frames=[{} for _ in frame_times], frame_times=frame_times)
+    (saved / BundleFile.TRAJECTORY).write_text(json.dumps(trajectory.to_json()))
+    scene = SceneDescription(name=saved.name, trajectory=BundleFile.TRAJECTORY)
+    (saved / BundleFile.SCENE).write_text(json.dumps(scene.to_json()), encoding="utf-8")
+    demo.complete(
+        saved, AcceptanceMetrics(measurements={DemoMeasurement.CONTROL_TICKS: 1})
+    )
+    return saved
