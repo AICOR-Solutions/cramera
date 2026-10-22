@@ -11,7 +11,7 @@ import importlib.util
 
 import pytest
 
-CRAM_PACKAGES = ("semantic_digital_twin", "coraplex", "giskardpy", "krrood")
+CRAM_PACKAGES = ("semantic_digital_twin", "coraplex", "giskardpy", "krrood", "segmind")
 """
 The CRAM packages every test of this package imports.
 """

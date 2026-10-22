@@ -5,6 +5,7 @@ The commands of cramera-cram.
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import sys
 from argparse import ArgumentParser
@@ -14,8 +15,11 @@ from pathlib import Path
 
 from typing_extensions import List, Optional, Sequence
 
+from cramera.locations import DataLocations
 from cramera_cram.coraplex_backend import CoraplexBackendRegistration
 from cramera_cram.demo_script import DemoScript
+from cramera_cram.onboarding import DemoOnboarding
+from cramera_protocol.live_messages import SceneDestination
 
 DEMO_ARGUMENTS_SEPARATOR = "--"
 """
@@ -136,3 +140,118 @@ def live(arguments: Optional[Sequence[str]] = None) -> None:
     )
     signal.sigwait(stop_signals)
     signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+
+
+# %% onboard
+
+
+class OnboardArgument(StrEnum):
+    """
+    The arguments of ``cramera-onboard``.
+    """
+
+    DEMO = "demo"
+    """
+    The demo file to run.
+    """
+
+    NAME = "--name"
+    """
+    The bundle name the recording is saved under.
+    """
+
+    SHARED = "--shared"
+    """
+    Save into the shared scenes directory instead of the local one.
+    """
+
+    TASK = "--task"
+    """
+    What the demo does.
+    """
+
+    DETECT_EVENTS = "--detect-events"
+    """
+    Let segmind's detectors watch the run.
+    """
+
+    DEMO_ARGUMENTS = "arguments"
+    """
+    The arguments handed to the demo.
+    """
+
+
+@dataclass(frozen=True)
+class OnboardCommand:
+    """
+    Runs a demo file with the cramera backend and saves its recording as a bundle.
+    """
+
+    onboarding: DemoOnboarding
+    """
+    The onboarding the arguments describe.
+    """
+
+    @classmethod
+    def parse(
+        cls, arguments: Sequence[str], locations: DataLocations
+    ) -> OnboardCommand:
+        """
+        :param arguments: The command's arguments.
+        :param locations: Where cramera keeps its scenes.
+        :return: The command.
+        """
+        parser = ArgumentParser(
+            prog="cramera-onboard",
+            description="Run a CRAM demo and save its run as a cramera scene bundle.",
+        )
+        parser.add_argument(OnboardArgument.DEMO, type=Path, help="the demo file")
+        parser.add_argument(OnboardArgument.NAME, required=True, help="the bundle name")
+        parser.add_argument(
+            OnboardArgument.SHARED,
+            action="store_true",
+            help="save into the shared scenes directory",
+        )
+        parser.add_argument(OnboardArgument.TASK, help="what the demo does")
+        parser.add_argument(
+            OnboardArgument.DETECT_EVENTS,
+            action="store_true",
+            help="let segmind's detectors watch the run",
+        )
+        parser.add_argument(
+            OnboardArgument.DEMO_ARGUMENTS, nargs="*", help="arguments for the demo"
+        )
+        command_line = CommandLine.split(arguments)
+        options = parser.parse_args(command_line.own)
+        return cls(
+            DemoOnboarding(
+                demo=DemoScript(
+                    options.demo.resolve(), options.arguments + command_line.demo
+                ),
+                name=options.name,
+                locations=locations,
+                destination=(
+                    SceneDestination.SHARED
+                    if options.shared
+                    else SceneDestination.LOCAL
+                ),
+                task=options.task,
+                detect_events=options.detect_events,
+            )
+        )
+
+
+def onboard(arguments: Optional[Sequence[str]] = None) -> None:
+    """
+    ``cramera-onboard demo.py --name NAME [--shared] [--task TEXT] [--detect-events]
+    [arguments] [-- demo options]``: run a demo and save its run as a scene bundle.
+
+    :param arguments: The arguments, or None for the process's.
+    """
+    logging.basicConfig(level=logging.INFO)
+    command = OnboardCommand.parse(
+        sys.argv[1:] if arguments is None else arguments,
+        DataLocations.from_environment(dict(os.environ), Path.home()),
+    )
+    saved = command.onboarding.run()
+    logging.getLogger(__name__).info("Saved the run as %s.", saved.scene)
