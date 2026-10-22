@@ -702,11 +702,6 @@ class CableLabKey(StrEnum):
     The pinch.
     """
 
-    PHYSICAL = "physical"
-    """
-    Whether the physical cable exists.
-    """
-
     WARNINGS = "warnings"
     """
     Diagnostics.
@@ -981,7 +976,7 @@ class CableLabState(JsonDocument):
         CableLabKey.SEGMENTS, default_factory=list
     )
     """
-    The physical capsules, empty while the physical cable is missing.
+    The physical capsules.
     """
 
     points: List[CablePoint] = document_field(CableLabKey.POINTS, default_factory=list)
@@ -1015,15 +1010,9 @@ class CableLabState(JsonDocument):
     The pinch.
     """
 
-    physical: Optional[bool] = document_field(CableLabKey.PHYSICAL, default=None)
-    """
-    Whether the physical cable was built; False when only the semantic points exist,
-    None without a cable.
-    """
-
     warnings: List[str] = document_field(CableLabKey.WARNINGS, default_factory=list)
     """
-    Why the physical cable is missing, and MuJoCo's numerical warnings.
+    MuJoCo's numerical warnings.
     """
 
     support: Optional[OrientedBox] = document_field(CableLabKey.SUPPORT, default=None)
@@ -1033,6 +1022,6 @@ class CableLabState(JsonDocument):
 
     def is_commandable(self) -> bool:
         """
-        :return: Whether the gripper takes commands: the physical cable is simulated.
+        :return: Whether the gripper takes commands: a cable is simulated.
         """
-        return self.lifecycle is SimulationLifecycle.RUNNING and self.physical is True
+        return self.lifecycle is SimulationLifecycle.RUNNING

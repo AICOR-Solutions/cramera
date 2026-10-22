@@ -158,12 +158,6 @@ def test_an_idle_lab_without_a_cable_takes_no_commands(read_json):
     assert not state.is_commandable()
 
 
-def test_a_running_lab_without_the_physical_cable_takes_no_commands(read_json):
-    data = read_json("cable_lab/running_state.json")
-    data[CableLabKey.PHYSICAL] = False
-    assert not CableLabState.from_json(data).is_commandable()
-
-
 # %% names
 
 

@@ -8,7 +8,6 @@
   "contacts": [{"position": [0.03, 0, 0.345], "normalForce": 0.01, "frictionForce": 0.0, "bodyA": "cable_support", "bodyB": "cable_segment_B1"}],
   "anchor": {"position": [0, 0, 0.35], "enabled": true},
   "grasp": {"state": "open", "normalForce": 0, "frictionForce": 0, "contactCount": 0},
-  "physical": true,
   "warnings": [],
   "support": {"pose": [0.03, 0, 0.335, 0, 0, 0, 1], "size": [0.16, 0.005, 0.02]}
 }
