@@ -1,0 +1,324 @@
+/**
+ * The viewer application: coordinates the scene picker, the 3D view, the timeline,
+ * the side panels and the plugins. Each part owns its own elements and cleanup.
+ */
+
+import { EventBus } from '../core/event-bus.js';
+import { PageStatus } from '../core/page-status.js';
+import { BuildKey, SceneKey, ViewerEvent, ViewerInfoKey } from '../protocol.js';
+import { PlaybackClock } from '../playback/playback-clock.js';
+import { TimelineView } from '../playback/timeline-view.js';
+import { DetailsPanel } from '../panels/details-panel.js';
+import { PanelHost } from '../panels/panel-host.js';
+import { PlanPanel } from '../panels/plan-panel.js';
+import { SceneChoice } from '../panels/scene-choice.js';
+import { ScenePickerView } from '../panels/scene-picker-view.js';
+import { StepsPanel } from '../panels/steps-panel.js';
+import { SceneLighting } from '../scene/scene-lighting.js';
+import { SceneLoader } from '../scene/scene-loader.js';
+import { SceneView } from '../scene/scene-view.js';
+import { PluginContext, PluginModules } from './plugin-modules.js';
+
+/**
+ * The query parameter naming the shown bundle.
+ */
+export const SCENE_PARAMETER = 'scene';
+
+/**
+ * How many characters of a commit hash the version badge shows.
+ */
+const SHORT_COMMIT = 7;
+
+// %% elements
+
+/**
+ * The page elements the application fills.
+ */
+export class PageElements {
+  /**
+   * @param {Document} document The page.
+   */
+  constructor(document) {
+    /**
+     * The page.
+     * @type {Document}
+     */
+    this.document = document;
+    /**
+     * The 3D view's container.
+     * @type {HTMLElement}
+     */
+    this.stage = document.getElementById('stage');
+    /**
+     * The message shown over the 3D view.
+     * @type {HTMLElement}
+     */
+    this.stageMessage = document.getElementById('stage-message');
+    /**
+     * The scene picker.
+     * @type {HTMLElement}
+     */
+    this.picker = document.getElementById('scene-picker');
+    /**
+     * The side panels.
+     * @type {HTMLElement}
+     */
+    this.side = document.getElementById('side-panels');
+    /**
+     * The timeline.
+     * @type {HTMLElement}
+     */
+    this.timeline = document.getElementById('timeline');
+    /**
+     * The version badge.
+     * @type {HTMLElement}
+     */
+    this.version = document.getElementById('viewer-version');
+    /**
+     * The status line.
+     * @type {HTMLElement}
+     */
+    this.statusLine = document.getElementById('status-line');
+  }
+}
+
+// %% application
+
+export class Application {
+  /**
+   * The page elements.
+   * @type {PageElements}
+   */
+  #elements;
+
+  /**
+   * The viewer's routes.
+   * @type {import('../core/viewer-api.js').ViewerApi}
+   */
+  #api;
+
+  /**
+   * The page's location, read for the requested scene and updated with the shown one.
+   * @type {Location}
+   */
+  #location;
+
+  /**
+   * The browser's history, updated with the shown scene.
+   * @type {History}
+   */
+  #history;
+
+  /**
+   * The event bus the parts and plugins talk through.
+   * @type {EventBus}
+   */
+  bus = new EventBus();
+
+  /**
+   * How far the page is.
+   * @type {PageStatus}
+   */
+  #status;
+
+  /**
+   * The 3D view, once created.
+   * @type {SceneView|null}
+   */
+  #view = null;
+
+  /**
+   * The view's lights.
+   * @type {SceneLighting}
+   */
+  #lighting = new SceneLighting();
+
+  /**
+   * The shown scene, once loaded.
+   * @type {import('../scene/scene-loader.js').LoadedScene|null}
+   */
+  #scene = null;
+
+  /**
+   * The shown scene's clock.
+   * @type {PlaybackClock|null}
+   */
+  #clock = null;
+
+  /**
+   * Cancels the scene being loaded when another is chosen.
+   * @type {AbortController|null}
+   */
+  #loading = null;
+
+  /**
+   * The timeline.
+   * @type {TimelineView}
+   */
+  #timeline;
+
+  /**
+   * The side panels.
+   * @type {PanelHost}
+   */
+  #panels;
+
+  /**
+   * The steps panel.
+   * @type {StepsPanel}
+   */
+  #steps;
+
+  /**
+   * The plan panel.
+   * @type {PlanPanel}
+   */
+  #plan;
+
+  /**
+   * The details panel.
+   * @type {DetailsPanel}
+   */
+  #details;
+
+  /**
+   * @param {PageElements} elements The page elements.
+   * @param {import('../core/viewer-api.js').ViewerApi} api The viewer's routes.
+   * @param {Location} location The page's location.
+   * @param {History} history The browser's history.
+   */
+  constructor(elements, api, location, history) {
+    this.#elements = elements;
+    this.#api = api;
+    this.#location = location;
+    this.#history = history;
+    this.#status = new PageStatus(elements.document.documentElement, elements.statusLine);
+    this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame));
+    this.#panels = new PanelHost(elements.side);
+    this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));
+    this.#plan = new PlanPanel(elements.document);
+    this.#details = new DetailsPanel(elements.document);
+    for (const part of [this.#steps, this.#plan, this.#details]) this.#panels.add(part.panel);
+  }
+
+  /**
+   * Load the viewer's information and scenes, then show the requested or default scene.
+   * @param {function(string): Promise<Object>} importModule Imports a plugin module by URL.
+   * @returns {Promise<void>} Settles once the first scene is shown or has failed.
+   */
+  async start(importModule) {
+    this.#status.loading('Loading scenes…');
+    const [info, index] = await Promise.all([this.#api.info(), this.#api.scenes()]);
+    this.#showVersion(info);
+    const choice = new SceneChoice(index);
+    const requested = new URL(this.#location.href).searchParams.get(SCENE_PARAMETER);
+    if (requested) choice.chooseScene(requested);
+    if (!choice.scene) {
+      this.#fail('No scenes found. Record a run or add a scenes directory.');
+      return;
+    }
+    new ScenePickerView(this.#elements.picker, choice, (name) => this.show(name));
+    this.#view = new SceneView(this.#elements.stage);
+    this.#view.scene.add(this.#lighting.group);
+    this.#view.start((seconds) => this.#tick(seconds));
+    const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view);
+    await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
+    await this.show(choice.scene);
+  }
+
+  /**
+   * Show a bundle; a scene still loading is cancelled.
+   * @param {string} name The bundle's name.
+   * @returns {Promise<void>} Settles once the scene is shown, has failed or was replaced.
+   */
+  async show(name) {
+    this.#loading?.abort();
+    const loading = new AbortController();
+    this.#loading = loading;
+    this.#status.loading(`Loading ${name}…`);
+    this.bus.publish(ViewerEvent.SCENE_LOADING, name);
+    const loader = new SceneLoader(this.#api);
+    const progress = (loaded, total) => this.#status.loading(`Loading ${name}: ${loaded} of ${total} files`);
+    const loaded = await loader.load(name, this.#view, this.#lighting, loading.signal, progress).catch((error) => {
+      if (!loading.signal.aborted) this.#fail(`Could not show ${name}: ${error.message}`);
+      return null;
+    });
+    if (!loaded) return;
+    this.#scene?.dispose();
+    this.#scene = loaded;
+    this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
+    const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
+    this.#timeline.show(this.#clock, segments);
+    this.#steps.show(segments);
+    this.#plan.show(loaded.description[SceneKey.PLAN_TREES] ?? []);
+    this.#details.show(loaded);
+    this.#rememberScene(name);
+    this.#elements.stageMessage.hidden = true;
+    const missing = loaded.missingFiles().length;
+    this.#status.ready(missing ? `Showing ${name}; ${missing} files could not be loaded (see Details)` : `Showing ${name}`);
+    this.bus.publish(ViewerEvent.SCENE_LOADED, loaded);
+  }
+
+  /**
+   * Show a frame of the current recording.
+   * @param {number} frame The frame.
+   */
+  seek(frame) {
+    if (!this.#clock) return;
+    this.#clock.seek(frame);
+    this.#showFrame();
+  }
+
+  /**
+   * Let playback time pass.
+   * @param {number} seconds Wall-clock seconds since the previous call.
+   * @returns {boolean} Whether the shown frame changed.
+   */
+  #tick(seconds) {
+    if (!this.#clock || !this.#clock.advance(seconds)) return false;
+    this.#showFrame();
+    return true;
+  }
+
+  /**
+   * Pose the scene for the clock's frame and update the parts that show it.
+   */
+  #showFrame() {
+    const frame = this.#clock.frame;
+    this.#scene.showFrame(frame);
+    const segment = this.#scene.frames.segmentAt(frame);
+    this.#timeline.update(segment);
+    this.#steps.mark(segment);
+    this.#view.requestRender();
+    this.bus.publish(ViewerEvent.FRAME_CHANGED, frame);
+  }
+
+  /**
+   * @param {Object} info The viewer's information.
+   */
+  #showVersion(info) {
+    const build = info[ViewerInfoKey.BUILD];
+    const stamp = build ? ` · ${build[BuildKey.COMMIT].slice(0, SHORT_COMMIT)} · ${build[BuildKey.BUILT_AT]}` : '';
+    this.#elements.version.textContent = `v${info[ViewerInfoKey.VERSION]}${stamp}`;
+  }
+
+  /**
+   * Put the shown scene into the page's address, so it can be shared and reloaded.
+   * @param {string} name The bundle's name.
+   */
+  #rememberScene(name) {
+    const url = new URL(this.#location.href);
+    url.searchParams.set(SCENE_PARAMETER, name);
+    this.#history.replaceState(null, '', url);
+  }
+
+  /**
+   * @param {string} message Why the page cannot show its scene.
+   */
+  #fail(message) {
+    this.#status.failed(message);
+    this.#elements.stageMessage.textContent = message;
+    this.#elements.stageMessage.hidden = false;
+    this.bus.publish(ViewerEvent.SCENE_FAILED, message);
+  }
+}
