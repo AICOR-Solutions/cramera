@@ -6,13 +6,16 @@ friction, the background thread, and what is measured.
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
 import mujoco
 import numpy as np
 import pytest
 from typing_extensions import Iterator
 
+from cramera_cable_lab import physics as physics_module
 from cramera_cable_lab.exceptions import (
+    CableNotBuilt,
     GripperTargetOutsideWorkspace,
     SteppingWhileRunning,
     StoppedSimulation,
@@ -209,3 +212,24 @@ def test_a_session_runs_the_real_simulation():
     session.command(GripperCommand(action=GripperAction.PINCH))
     assert session.stop().lifecycle is SimulationLifecycle.IDLE
     session.close()
+
+
+# %% failed construction
+
+
+def test_a_cable_that_cannot_be_built_releases_what_it_took(monkeypatch):
+    directories = []
+
+    class RecordedDirectory(physics_module.TemporaryDirectory):
+        def __init__(self, *arguments, **keywords):
+            super().__init__(*arguments, **keywords)
+            directories.append(Path(self.name))
+
+    def refuse(builder, specification):
+        raise CableNotBuilt("the rig is refused")
+
+    monkeypatch.setattr(physics_module, "TemporaryDirectory", RecordedDirectory)
+    monkeypatch.setattr(physics_module.RigBuilder, "build", refuse)
+    with pytest.raises(CableNotBuilt):
+        CablePhysics()
+    assert [directory.exists() for directory in directories] == [False]
