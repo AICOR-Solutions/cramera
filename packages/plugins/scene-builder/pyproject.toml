@@ -16,7 +16,7 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 scene-builder = "cramera_scene_builder.plugin:SceneBuilderPlugin"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

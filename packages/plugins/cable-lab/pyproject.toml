@@ -21,7 +21,7 @@ physics = ["mujoco>=3.2", "numpy", "scipy"]
 cable-lab = "cramera_cable_lab.plugin:CableLabPlugin"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

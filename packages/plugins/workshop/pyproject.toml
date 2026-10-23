@@ -23,7 +23,7 @@ workshop = "cramera_workshop.plugin:WorkshopPlugin"
 cramera-workshop = "cramera_workshop.command_line:main"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

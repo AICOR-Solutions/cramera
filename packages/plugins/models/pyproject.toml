@@ -19,7 +19,7 @@ circuits = ["probabilistic-model>=26.7", "random-events>=26.7", "krrood>=26.7", 
 models = "cramera_models.plugin:ModelsPlugin"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

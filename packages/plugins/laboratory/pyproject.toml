@@ -32,7 +32,7 @@ cramera-laboratory-transfer = "cramera_laboratory.transfer:main"
 laboratory = "cramera_laboratory.plugin:LaboratoryPlugin"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

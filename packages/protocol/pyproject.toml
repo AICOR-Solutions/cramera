@@ -13,7 +13,7 @@ dependencies = ["typing_extensions>=4.8"]
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]
