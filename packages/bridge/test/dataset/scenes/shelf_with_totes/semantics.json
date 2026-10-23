@@ -1,0 +1,22 @@
+{
+ "units": "metres",
+ "upAxis": "Z",
+ "source": "shelf_with_totes.usda",
+ "prims": {
+  "/World/Shelf": {
+   "model": "environment",
+   "link": "Shelf",
+   "sdt": {"class": "Shelf"}
+  },
+  "/World/Totes/A08": {
+   "model": "A08",
+   "link": "A08",
+   "sdt": {"class": "Tote"}
+  },
+  "/World/Totes/A08/Goods0": {
+   "model": "A08",
+   "link": "A08",
+   "sdt": {"class": "Can"}
+  }
+ }
+}

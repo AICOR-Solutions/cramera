@@ -1,6 +1,6 @@
 """
 The URDF of a model of a converted stage: one link per converted link with its GLB as
-visual, and one joint per non-root link.
+visual and its collision boxes, and one joint per non-root link.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import numpy
 from typing_extensions import Dict, List, Sequence, Union
 
 from cramera_usd.geometry.transforms import NEGATIVE_ZERO_REMOVAL, RigidTransform
-from cramera_usd.scene.kinematics import Joint, JointKind, Link
+from cramera_usd.scene.kinematics import CollisionBox, Joint, JointKind, Link
 
 # %% URDF vocabulary
 
@@ -39,14 +39,24 @@ class UrdfTag(StrEnum):
     A link's visual geometry.
     """
 
+    COLLISION = "collision"
+    """
+    A link's collision geometry.
+    """
+
     GEOMETRY = "geometry"
     """
-    The shape of a visual.
+    The shape of a visual or a collision.
     """
 
     MESH = "mesh"
     """
     A mesh file shape.
+    """
+
+    BOX = "box"
+    """
+    A box shape, centred on its origin.
     """
 
     JOINT = "joint"
@@ -98,6 +108,11 @@ class UrdfAttribute(StrEnum):
     FILENAME = "filename"
     """
     A mesh file, relative to the URDF.
+    """
+
+    SIZE = "size"
+    """
+    A box's edge lengths.
     """
 
     LINK = "link"
@@ -216,7 +231,8 @@ class UrdfDocument:
 
     def add_link(self, robot: ElementTree.Element, link: Link) -> None:
         """
-        Add one link element, with its GLB as visual when it has geometry.
+        Add one link element, with its GLB as visual when it has geometry, and its
+        collision boxes.
 
         :param robot: The document root.
         :param link: The link.
@@ -224,13 +240,33 @@ class UrdfDocument:
         element = ElementTree.SubElement(
             robot, UrdfTag.LINK, {UrdfAttribute.NAME: link.name}
         )
-        if not link.meshes:
-            return
-        geometry = ElementTree.SubElement(
-            ElementTree.SubElement(element, UrdfTag.VISUAL), UrdfTag.GEOMETRY
+        if link.meshes:
+            geometry = ElementTree.SubElement(
+                ElementTree.SubElement(element, UrdfTag.VISUAL), UrdfTag.GEOMETRY
+            )
+            ElementTree.SubElement(
+                geometry,
+                UrdfTag.MESH,
+                {UrdfAttribute.FILENAME: self.mesh_files[link.name]},
+            )
+        for box in link.collisions:
+            self.add_collision(element, box)
+
+    def add_collision(self, link: ElementTree.Element, box: CollisionBox) -> None:
+        """
+        Add one collision box to a link element.
+
+        :param link: The link element.
+        :param box: The collision box, in the link frame.
+        """
+        collision = ElementTree.SubElement(link, UrdfTag.COLLISION)
+        ElementTree.SubElement(
+            collision, UrdfTag.ORIGIN, self.origin_attributes(box.pose)
         )
         ElementTree.SubElement(
-            geometry, UrdfTag.MESH, {UrdfAttribute.FILENAME: self.mesh_files[link.name]}
+            ElementTree.SubElement(collision, UrdfTag.GEOMETRY),
+            UrdfTag.BOX,
+            {UrdfAttribute.SIZE: self.numbers(box.size)},
         )
 
     def add_joint(self, robot: ElementTree.Element, joint: Joint) -> None:

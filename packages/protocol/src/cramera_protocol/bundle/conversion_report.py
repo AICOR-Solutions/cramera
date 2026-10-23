@@ -143,6 +143,11 @@ class ReportCount(StrEnum):
     Joints written although disabled for the simulation.
     """
 
+    COLLISIONS = "collisions"
+    """
+    Collision boxes written, of the models and the free objects together.
+    """
+
     def of_type(self, joint_type: str) -> str:
         """
         :param joint_type: A URDF joint type, such as ``revolute``.

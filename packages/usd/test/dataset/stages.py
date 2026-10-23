@@ -115,6 +115,12 @@ class Stage(StrEnum):
     A lab with ontology and twin attributes.
     """
 
+    SHELF_WITH_TOTES = "shelf_with_totes.usda"
+    """
+    A turned shelf with a guide collider, a simulated tote holding a colliding can, a
+    tote whose rigid body is switched off and a kinematic lift.
+    """
+
     @property
     def path(self) -> Path:
         """

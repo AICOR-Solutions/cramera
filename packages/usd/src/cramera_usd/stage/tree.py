@@ -8,13 +8,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from pxr import Sdf
-from typing_extensions import Dict, List, Optional
+from typing_extensions import Dict, List, Optional, Set
 
 from cramera_protocol.bundle.conversion_report import SkipReason
 from cramera_usd.geometry.transforms import RigidTransform
 from cramera_usd.names import GeneratedName, PrimNames, PrimPath
 from cramera_usd.scene.kinematics import (
     AllowedMotion,
+    CollisionBox,
     Joint,
     JointKind,
     Link,
@@ -78,6 +79,11 @@ class LinkRecord:
     The visual geometry in the link frame.
     """
 
+    collisions: List[CollisionBox] = field(default_factory=list)
+    """
+    The collision boxes in the link frame.
+    """
+
 
 # %% tree
 
@@ -114,9 +120,19 @@ class KinematicTree:
     The log collecting skipped joints.
     """
 
+    simulated_bodies: Set[str] = field(default_factory=set)
+    """
+    The paths of the rigid bodies the physics engine moves: enabled and not kinematic.
+    """
+
     links: Dict[str, LinkRecord] = field(default_factory=dict)
     """
     The links by prim path.
+    """
+
+    jointed_bodies: Set[str] = field(default_factory=set)
+    """
+    The paths of the bodies an authored joint connects.
     """
 
     @property
@@ -133,8 +149,12 @@ class KinematicTree:
         and place each joint.
 
         :param joints: The joints read from the stage.
-        :param geometry_links: The link path of every renderable geometry prim.
+        :param geometry_links: The link path of every renderable or colliding geometry
+            prim.
         """
+        self.jointed_bodies = {joint.child_body for joint in joints} | {
+            joint.parent_body for joint in joints if joint.parent_body is not None
+        }
         self.add_link(self.root_path, False)
         for path in sorted(self.partition.bodies):
             self.add_link(path, True)
@@ -318,10 +338,38 @@ class KinematicTree:
                 prim_to_link=self.links[path].prim_pose.inverse()
                 @ self.links[path].pose,
                 meshes=self.links[path].meshes,
+                collisions=self.links[path].collisions,
                 free=self.free(path),
+                standalone=self.standalone(path),
             )
             for path in self.order()
         ]
+
+    def standalone(self, path: str) -> bool:
+        """
+        :param path: A link path.
+        :return: Whether the link is an object of its own: a loose body that no
+            authored joint connects, nor a body nested in it, below no other loose body.
+        """
+        if not self.loose_body(path):
+            return False
+        if any(PrimPath(path).holds(body) for body in self.jointed_bodies):
+            return False
+        return not any(self.loose_body(above) for above in self.ancestors(path))
+
+    def loose_body(self, path: str) -> bool:
+        """
+        :param path: A link path.
+        :return: Whether the link is a simulated body that only a generated joint
+            attaches.
+        """
+        record = self.links[path]
+        return (
+            record.is_body
+            and path in self.simulated_bodies
+            and record.joint is not None
+            and record.joint.generated
+        )
 
     def free(self, path: str) -> bool:
         """

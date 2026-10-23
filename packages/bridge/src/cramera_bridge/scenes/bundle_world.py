@@ -264,9 +264,11 @@ class BundleEnvironment(SceneEnvironment):
         links: Dict[str, Body] = {}
         for model in self.contents.environment_models():
             links.update(self.add_model(world, model))
-        for description in self.contents.scene.objects:
-            self.add_object(world, description)
-        self.annotate(world, links)
+        objects = {
+            description.key: self.add_object(world, description)
+            for description in self.contents.scene.objects
+        }
+        self.annotate(world, links, objects)
         if not self.contents.semantics.prims:
             InferredAnnotations(world).add(links.values())
 
@@ -298,13 +300,20 @@ class BundleEnvironment(SceneEnvironment):
 
     def add_object(self, world: World, description: ObjectDescription) -> Body:
         """
-        Add a free object at its spawn pose, drawn from its mesh or box; an object
-        without either has no shapes.
+        Add a free object at its spawn pose: from its URDF when it has one, else drawn
+        from its mesh or box; an object without any of them has no shapes.
 
         :param world: The world receiving the object.
         :param description: The object's description.
         :return: The object's body.
         """
+        if description.urdf is not None:
+            return self.merge_free_model(
+                world,
+                self.directory / description.urdf,
+                FullName(description.identifier).native().prefix or "",
+                PoseText(description.spawn).native(world.root),
+            )
         shapes: List[Shape] = []
         if description.mesh is not None:
             shapes.append(Mesh(filename=str(self.directory / description.mesh)))
@@ -332,22 +341,33 @@ class BundleEnvironment(SceneEnvironment):
         connection.origin = PoseText(description.spawn).native(world.root)
         return body
 
-    def annotate(self, world: World, links: Dict[str, Body]) -> None:
+    def annotate(
+        self, world: World, links: Dict[str, Body], objects: Dict[str, Body]
+    ) -> None:
         """
-        Annotate every prim on its link's body, together with the annotation its class
-        stands for.
+        Annotate every prim on its link's body, or on the body of the free object
+        carrying it, together with the annotation its class stands for.
 
         :param world: The world holding the bodies.
         :param links: The environment's bodies by link name.
+        :param objects: The free objects' bodies by key.
         :raises UnknownPrimLink: When a prim names a link the environment lacks.
         """
         prims = self.contents.semantics.prims
+        bodies = {
+            path: (
+                objects[entry.model]
+                if entry.model in objects
+                else links.get(entry.link)
+            )
+            for path, entry in prims.items()
+        }
         for path, entry in prims.items():
-            if entry.link not in links:
+            if bodies[path] is None:
                 raise UnknownPrimLink(path, entry.link)
         with world.modify_world():
             for path, entry in prims.items():
-                body = links[entry.link]
+                body = bodies[path]
                 world.add_semantic_annotation(
                     UsdPrimAnnotation.of_prim(path, entry, body)
                 )

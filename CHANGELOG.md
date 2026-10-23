@@ -26,6 +26,14 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Collision boxes and free objects from USD stages.** `cramera-import` writes every
+  enabled USD collider as a `<collision>` box of its link (`ReportCount.COLLISIONS`),
+  and with `--free-objects` the standalone rigid bodies of a static scene become free
+  objects carrying the bodies nested in them, each with a URDF of its own in
+  `BundleFile.OBJECT_MODELS` (`ObjectDescription.urdf`). `BundleEnvironment` builds an
+  object with a URDF from it, free on the world's root, and annotates the prims the
+  object carries (`PrimEntry.model`) on its body, so a CRAM plan can pick up an
+  imported Isaac twin's totes.
 
 - **E57 laser scans in the scene builder.** **Load a point cloud** also takes `.e57`
   files, the exchange format of terrestrial scanners, of up to 64 GiB

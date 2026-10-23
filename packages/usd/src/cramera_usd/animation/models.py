@@ -4,6 +4,7 @@ The URDF models and free objects a playback puts into a bundle.
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 import numpy
@@ -120,6 +121,20 @@ class LinkPlacement:
     """
     The link's name in that model.
     """
+
+
+class LinkPlacements(ABC):
+    """
+    Where the converted links of a bundle that splits them into models and objects ended
+    up.
+    """
+
+    @abstractmethod
+    def placement_of(self, link: str) -> LinkPlacement:
+        """
+        :param link: The converted name of a link.
+        :return: Where the link ended up.
+        """
 
 
 @dataclass(eq=False)

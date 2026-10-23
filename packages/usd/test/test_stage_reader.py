@@ -14,6 +14,7 @@ from cramera_protocol.bundle.conversion_report import (
     EnvironmentArticulation,
     ExcludedPrim,
     ExclusionReason,
+    ReportCount,
     SkipReason,
 )
 from cramera_protocol.bundle.semantics import SemanticNamespace
@@ -26,7 +27,7 @@ from cramera_usd.exceptions import (
     VariantNotFound,
 )
 from cramera_usd.names import GeneratedName
-from cramera_usd.scene.kinematics import JointKind
+from cramera_usd.scene.kinematics import CollisionBox, JointKind, Link
 from cramera_usd.scene.lights import LightKind
 from cramera_usd.scene.materials import MaterialSource
 from cramera_usd.scene.stage import ConvertedStage
@@ -784,3 +785,77 @@ def test_ontology_and_twin_attributes_are_both_read():
         namespace for item in converted.semantics for namespace in item.attributes
     }
     assert namespaces == set(SemanticNamespace)
+
+
+# %% colliders and standalone bodies
+
+
+def collision_box_corners(link: Link, box: CollisionBox) -> numpy.ndarray:
+    """
+    :param link: A link holding a collision box.
+    :param box: The box.
+    :return: The box's eight corners in the world.
+    """
+    signs = numpy.array([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)])
+    to_world = (link.pose @ box.pose).matrix
+    return (signs * box.size / 2) @ to_world[:3, :3].T + to_world[:3, 3]
+
+
+class TestShelfWithTotes:
+    """
+    The colliders and rigid bodies of a shelf holding totes.
+    """
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def links(cls) -> dict:
+        return {link.path: link for link in read(Stage.SHELF_WITH_TOTES).links}
+
+    def test_a_guide_collider_is_a_box_of_its_link_where_the_stage_puts_it(self, links):
+        shelf = links["/World/Shelf"]
+        [box] = shelf.collisions
+        stage = open_stage(Stage.SHELF_WITH_TOTES)
+        bounds = (
+            UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.guide])
+            .ComputeWorldBound(stage.GetPrimAtPath(box.path))
+            .ComputeAlignedRange()
+        )
+        corners = collision_box_corners(shelf, box)
+        assert box.path == "/World/Shelf/Collision/DeckCollider"
+        assert corners.min(axis=0) == pytest.approx(numpy.array(bounds.GetMin()))
+        assert corners.max(axis=0) == pytest.approx(numpy.array(bounds.GetMax()))
+
+    def test_a_guide_collider_stays_out_of_the_visual_geometry(self, links):
+        assert [mesh.path for mesh in links["/World/Shelf"].meshes] == [
+            "/World/Shelf/Deck"
+        ]
+
+    def test_a_visible_collider_is_geometry_and_collision_of_its_link(self, links):
+        goods = links["/World/Totes/A08/Goods0"]
+        assert [mesh.path for mesh in goods.meshes] == ["/World/Totes/A08/Goods0/Can"]
+        assert [box.path for box in goods.collisions] == ["/World/Totes/A08/Goods0/Can"]
+
+    def test_a_simulated_rigid_body_no_joint_touches_stands_alone(self, links):
+        assert links["/World/Totes/A08"].standalone
+
+    def test_a_body_nested_in_a_standalone_body_does_not_stand_alone(self, links):
+        assert not links["/World/Totes/A08/Goods0"].standalone
+
+    @pytest.mark.parametrize("path", ["/World/Totes/Stock", "/World/Lift"])
+    def test_a_rigid_body_switched_off_or_kinematic_does_not_stand_alone(
+        self, links, path
+    ):
+        assert not links[path].standalone
+
+
+def test_a_rigid_body_holding_a_jointed_part_does_not_stand_alone():
+    links = {link.path: link for link in read(Stage.JOINTED_CABINET).links}
+    assert not links["/World/Cabinet/Body"].standalone
+    assert links["/World/Cabinet/Bin"].standalone
+
+
+def test_every_collider_is_counted():
+    converted = read(Stage.SHELF_WITH_TOTES)
+    assert converted.log.counts[ReportCount.COLLISIONS] == sum(
+        len(link.collisions) for link in converted.links
+    )

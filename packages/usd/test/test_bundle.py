@@ -16,6 +16,7 @@ from pxr import UsdGeom
 from cramera_protocol.bundle.conversion_report import (
     ConversionReport,
     ExclusionReason,
+    ReportCount,
     SkipReason,
 )
 from cramera_protocol.bundle.files import (
@@ -36,11 +37,11 @@ from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.version import CURRENT_VERSION
 from cramera_usd.animation.animator import ENVIRONMENT_MODEL
 from cramera_usd.bundle.camera import SceneCamera
-from cramera_usd.bundle.layout import Decimals
+from cramera_usd.bundle.layout import Decimals, FileSuffix
 from cramera_usd.bundle.scene import DEFAULT_EXPOSURE
 from cramera_usd.commands.import_scene import ImportOption, main
 from cramera_usd.distribution import Distribution
-from cramera_usd.exceptions import SelectedPrimLeftOut
+from cramera_usd.exceptions import FreeObjectsOfPlayback, SelectedPrimLeftOut
 from cramera_usd.gltf.format import AttributeName, GltfKey, MaterialKey
 from cramera_usd.materials.mapper import MaterialMapper
 from cramera_usd.materials.omni_pbr import OmniPhysicallyBasedInput
@@ -51,7 +52,7 @@ from cramera_usd.stage.robots import PrimExclusion
 from cramera_usd.urdf import UrdfAttribute, UrdfTag
 
 from .dataset.glb import GlbContent
-from .dataset.runs import convert, load
+from .dataset.runs import TRACE, convert, convert_arm, load
 from .dataset.stages import TEXTURES, Stage, open_stage, read
 
 # %% helpers
@@ -502,3 +503,147 @@ def test_missing_textures_are_reported_not_replaced(tmp_path):
         authored
     )
     assert scene_of(scenes / "quad").missing_assets == report.missing_textures
+
+
+# %% colliders and free objects
+
+
+def urdf_link_names(urdf: Path) -> set:
+    """
+    :param urdf: A URDF file.
+    :return: The names of its links.
+    """
+    root = ElementTree.parse(urdf).getroot()
+    return {element.get(UrdfAttribute.NAME) for element in root.iter(UrdfTag.LINK)}
+
+
+def collision_sizes(urdf: Path) -> list:
+    """
+    :param urdf: A URDF file.
+    :return: The edge lengths of its collision boxes, sorted.
+    """
+    root = ElementTree.parse(urdf).getroot()
+    return sorted(
+        tuple(float(value) for value in box.get(UrdfAttribute.SIZE).split())
+        for box in root.iter(UrdfTag.BOX)
+    )
+
+
+class TestShelfWithTotesBundle:
+    """
+    The bundle of a shelf holding totes, its standalone bodies written as free objects.
+    """
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def bundle(cls, tmp_path_factory) -> Path:
+        return convert(
+            Stage.SHELF_WITH_TOTES,
+            tmp_path_factory.mktemp("scenes"),
+            "shelf",
+            ImportOption.FREE_OBJECTS,
+        )
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def links(cls) -> dict:
+        return {link.path: link for link in read(Stage.SHELF_WITH_TOTES).links}
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def tote(cls, bundle):
+        (description,) = scene_of(bundle).objects
+        return description
+
+    def test_the_standalone_tote_is_a_free_object_not_an_environment_link(
+        self, bundle, links, tote
+    ):
+        names = urdf_link_names(bundle / BundleFile.ENVIRONMENT)
+        assert tote.key == tote.identifier == "A08"
+        assert links["/World/Totes/A08"].name not in names
+        assert links["/World/Totes/A08/Goods0"].name not in names
+        assert {links["/World/Totes/Stock"].name, links["/World/Lift"].name} <= names
+
+    def test_a_free_object_spawns_at_its_body_pose(self, links, tote):
+        assert tote.spawn.to_json() == pytest.approx(
+            links["/World/Totes/A08"].pose.to_protocol().to_json()
+        )
+
+    def test_the_static_trajectory_holds_a_free_object_at_its_spawn(self, bundle, tote):
+        trajectory = Trajectory.from_json(load(bundle / BundleFile.TRAJECTORY))
+        assert trajectory.objects == [{tote.key: tote.spawn}]
+
+    def test_a_free_object_carries_the_geometry_of_the_bodies_nested_in_it(
+        self, bundle, links, tote
+    ):
+        content = GlbContent.of_bytes((bundle / tote.mesh).read_bytes())
+        vertices = sum(
+            len(content.accessor(primitive[GltfKey.ATTRIBUTES][AttributeName.POSITION]))
+            for mesh in content.document[GltfKey.MESHES]
+            for primitive in mesh[GltfKey.PRIMITIVES]
+        )
+        carried = [links["/World/Totes/A08"], links["/World/Totes/A08/Goods0"]]
+        assert vertices == sum(
+            len(mesh.geometry.points) for link in carried for mesh in link.meshes
+        )
+
+    def test_a_free_object_has_a_urdf_of_its_mesh_and_collision_boxes(
+        self, bundle, links, tote
+    ):
+        urdf = bundle / tote.urdf
+        [mesh] = ElementTree.parse(urdf).getroot().iter(UrdfTag.MESH)
+        carried = [links["/World/Totes/A08"], links["/World/Totes/A08/Goods0"]]
+        assert urdf_link_names(urdf) == {tote.key}
+        assert (urdf.parent / mesh.get(UrdfAttribute.FILENAME)).resolve() == (
+            bundle / tote.mesh
+        ).resolve()
+        assert numpy.array(collision_sizes(urdf)) == pytest.approx(
+            numpy.array(
+                sorted(tuple(box.size) for link in carried for box in link.collisions)
+            )
+        )
+
+    def test_every_collider_is_a_box_of_the_environment_or_of_an_object(
+        self, bundle, links, tote
+    ):
+        boxes = len(collision_sizes(bundle / BundleFile.ENVIRONMENT)) + len(
+            collision_sizes(bundle / tote.urdf)
+        )
+        assert boxes == sum(len(link.collisions) for link in links.values())
+        assert report_of(bundle).counts[ReportCount.COLLISIONS] == boxes
+
+    @pytest.mark.parametrize("path", ["/World/Totes/A08", "/World/Totes/A08/Goods0"])
+    def test_the_prims_a_free_object_carries_are_placed_on_it(self, bundle, tote, path):
+        prim = Semantics.from_json(load(bundle / BundleFile.SEMANTICS)).prims[path]
+        assert (prim.model, prim.link) == (tote.key, tote.key)
+
+
+def test_without_free_objects_standalone_bodies_stay_environment_links(tmp_path):
+    bundle = convert(Stage.SHELF_WITH_TOTES, tmp_path, "shelf")
+    tote = next(
+        link
+        for link in read(Stage.SHELF_WITH_TOTES).links
+        if link.path == "/World/Totes/A08"
+    )
+    assert scene_of(bundle).objects == []
+    assert tote.name in urdf_link_names(bundle / BundleFile.ENVIRONMENT)
+
+
+def test_reconversion_removes_the_urdfs_of_vanished_objects(tmp_path):
+    stale = tmp_path / "shelf" / BundleFile.OBJECT_MODELS / f"Gone{FileSuffix.URDF}"
+    stale.parent.mkdir(parents=True)
+    stale.write_text("")
+    convert(Stage.SHELF_WITH_TOTES, tmp_path, "shelf", ImportOption.FREE_OBJECTS)
+    assert not stale.exists()
+
+
+def test_free_objects_of_a_playback_are_refused(tmp_path):
+    with pytest.raises(FreeObjectsOfPlayback):
+        convert_arm(
+            tmp_path,
+            "arm",
+            ImportOption.TRACE,
+            str(TRACE),
+            ImportOption.FREE_OBJECTS,
+        )
+    assert list(tmp_path.iterdir()) == []

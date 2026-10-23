@@ -48,6 +48,11 @@ class PrimEntryKey(StrEnum):
     The keys of one prim entry.
     """
 
+    MODEL = "model"
+    """
+    The model or free object holding the prim's link.
+    """
+
     LINK = "link"
     """
     The link holding the prim's geometry.
@@ -105,6 +110,11 @@ class OntologyAttributeName(StrEnum):
 class PrimEntry(JsonDocument):
     """
     One prim of ``semantics.json``.
+    """
+
+    model: Optional[str] = document_field(PrimEntryKey.MODEL, default=None)
+    """
+    The model or free object holding the prim's link, when the bundle has several.
     """
 
     link: str = document_field(PrimEntryKey.LINK)

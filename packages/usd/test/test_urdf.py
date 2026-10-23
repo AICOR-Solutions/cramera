@@ -11,7 +11,14 @@ import pytest
 
 from cramera_usd.geometry.meshes import TriangleMesh
 from cramera_usd.geometry.transforms import RigidTransform
-from cramera_usd.scene.kinematics import AllowedMotion, Joint, JointKind, Link, LinkMesh
+from cramera_usd.scene.kinematics import (
+    AllowedMotion,
+    CollisionBox,
+    Joint,
+    JointKind,
+    Link,
+    LinkMesh,
+)
 from cramera_usd.urdf import UrdfAttribute, UrdfDocument, UrdfTag, XmlEncoding
 
 # %% fixtures
@@ -123,6 +130,28 @@ def test_links_with_geometry_reference_their_glb(document):
         item.name: [document.mesh_files[item.name]] if item.meshes else []
         for item in document.links
     }
+
+
+def test_collision_boxes_are_written_at_their_pose_with_their_size():
+    box = CollisionBox(
+        "/World/Shelf/Collider", HINGE_ORIGIN, numpy.array([1.0, 0.3, 0.02])
+    )
+    shelf = Link("Shelf", "/World/Shelf", RigidTransform(), collisions=[box])
+    document = UrdfDocument("lab", [shelf], [], {})
+    [collision] = document.to_element().iter(UrdfTag.COLLISION)
+    assert collision.find(UrdfTag.ORIGIN).attrib == document.origin_attributes(
+        HINGE_ORIGIN
+    )
+    assert collision.find(f"{UrdfTag.GEOMETRY}/{UrdfTag.BOX}").get(
+        UrdfAttribute.SIZE
+    ) == document.numbers(box.size)
+
+
+def test_a_link_with_collisions_only_has_no_visual():
+    box = CollisionBox("/World/Wall/Collider", RigidTransform(), numpy.ones(3))
+    wall = Link("Wall", "/World/Wall", RigidTransform(), collisions=[box])
+    [element] = UrdfDocument("lab", [wall], [], {}).to_element().iter(UrdfTag.LINK)
+    assert [child.tag for child in element] == [UrdfTag.COLLISION]
 
 
 # %% joints

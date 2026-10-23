@@ -115,6 +115,12 @@ class ImportOption(StrEnum):
     Keep the robots the stage marks in the environment instead of leaving them out.
     """
 
+    FREE_OBJECTS = "--free-objects"
+    """
+    Write the standalone rigid bodies of a static scene as free objects a CRAM world can
+    pick up, instead of links fixed to the environment.
+    """
+
     VARIANT = "--variant"
     """
     A variant selected in the stage's session layer; repeatable.
@@ -271,6 +277,13 @@ class ImportParser:
             "left out",
         )
         parser.add_argument(
+            ImportOption.FREE_OBJECTS,
+            action="store_true",
+            help="write the standalone rigid bodies (simulated, touched by no joint) "
+            "of a scene without playback as free objects, each with the bodies nested "
+            "in it, instead of links fixed to the environment",
+        )
+        parser.add_argument(
             ImportOption.VARIANT,
             nargs=len(VARIANT_PARTS),
             action="append",
@@ -345,6 +358,11 @@ class ImportCommand:
     The run record whose steps label the playback, or None.
     """
 
+    free_objects: bool = False
+    """
+    Whether the standalone rigid bodies of a static scene become free objects.
+    """
+
     @classmethod
     def from_options(
         cls,
@@ -380,6 +398,7 @@ class ImportCommand:
                 VariantSelection(*selection) for selection in options.variant
             ],
             record=options.record,
+            free_objects=options.free_objects,
         )
 
     @staticmethod
@@ -434,6 +453,7 @@ class ImportCommand:
             presentation=self.presentation,
             animation=self.animation(reader, stage),
             read_seconds=time.perf_counter() - started,
+            free_objects=self.free_objects,
         )
         bundle.write()
         return bundle

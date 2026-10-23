@@ -16,6 +16,12 @@ ANNOTATED_BUNDLE = DATASET / "scenes" / "annotated_bundle"
 A bundle converted from a USD stage, with semantic attributes on its prims.
 """
 
+SHELF_WITH_TOTES_BUNDLE = DATASET / "scenes" / "shelf_with_totes"
+"""
+A bundle converted with free objects: a shelf with a collision box and a tote whose own
+URDF holds its shape and collision boxes, with the prims it carries placed on it.
+"""
+
 SEMANTICS_WITH_MISSING_LINK = (
     DATASET / "scenes" / "semantics" / "semantics_with_missing_link.json"
 )

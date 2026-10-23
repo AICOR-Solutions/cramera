@@ -14,10 +14,10 @@ from typing_extensions import List, Optional, Set
 
 from cramera_protocol.bundle.conversion_report import ReportCount, SkipReason
 from cramera_usd.geometry.bounds import PointBounds
-from cramera_usd.geometry.transforms import SPACE_DIMENSIONS
+from cramera_usd.geometry.transforms import SPACE_DIMENSIONS, RigidTransform
 from cramera_usd.names import PrimNames
 from cramera_usd.scene.joint_graph import JointGraph
-from cramera_usd.scene.kinematics import Joint, LinkMesh
+from cramera_usd.scene.kinematics import CollisionBox, Joint, LinkMesh
 from cramera_usd.scene.log import ConversionLog
 from cramera_usd.scene.stage import ConvertedStage
 from cramera_usd.stage.frame import StageFrame
@@ -33,6 +33,11 @@ from cramera_usd.stage.traversal import StageTraversal
 from cramera_usd.stage.tree import KinematicTree
 
 # %% constants
+
+EXTENT_CORNERS = 2
+"""
+The corners of an extent: its lowest and its highest.
+"""
 
 CENTRAL_FRACTION = 0.98
 """
@@ -126,6 +131,61 @@ class GeometryCollection:
         return PointBounds.central(points, CENTRAL_FRACTION)
 
 
+# %% collisions
+
+
+@dataclass
+class CollisionCollection:
+    """
+    Reads collider prims into the links of a kinematic tree as collision boxes.
+    """
+
+    frame: StageFrame
+    """
+    The stage frame.
+    """
+
+    tree: KinematicTree
+    """
+    The kinematic tree holding the links.
+    """
+
+    log: ConversionLog
+    """
+    The log collecting skipped colliders.
+    """
+
+    def add(self, prim: Usd.Prim) -> None:
+        """
+        Read one collider prim into its link as the box that bounds it in its own frame.
+
+        :param prim: A collider prim.
+        """
+        path = prim.GetPath().pathString
+        extent = UsdGeom.Boundable.ComputeExtentFromPlugins(
+            UsdGeom.Boundable(prim), self.frame.time
+        )
+        if extent is None or len(extent) != EXTENT_CORNERS:
+            self.log.skip(SkipReason.UNSUPPORTED_GEOMETRY, path)
+            return
+        low, high = (numpy.array(corner, dtype=float) for corner in extent)
+        link = self.tree.links[self.tree.partition.link_path_of(path)]
+        to_link = link.pose.inverse().matrix @ self.frame.world_matrix(prim)
+        centre = to_link @ numpy.append((low + high) / 2, 1.0)
+        box_frame = RigidTransform.rigid_part(to_link).matrix.copy()
+        box_frame[:SPACE_DIMENSIONS, SPACE_DIMENSIONS] = centre[:SPACE_DIMENSIONS]
+        link.collisions.append(
+            CollisionBox(
+                path=path,
+                pose=RigidTransform(box_frame),
+                size=(high - low)
+                * numpy.linalg.norm(
+                    to_link[:SPACE_DIMENSIONS, :SPACE_DIMENSIONS], axis=0
+                ),
+            )
+        )
+
+
 # %% conversion
 
 
@@ -185,22 +245,34 @@ class StageConversion:
             LinkPartition.asset_roots(prims, root_path),
         )
         geometry = [prim for prim in prims if traversal.renderable(prim)]
+        colliders = [prim for prim in prims if traversal.collides(prim)]
         tree = KinematicTree(
             self.frame,
             partition,
             PrimNames(named_prefix),
             joint_names,
             self.log,
+            simulated_bodies={
+                path
+                for path in partition.bodies
+                if self.simulated(self.frame.stage.GetPrimAtPath(path))
+            },
         )
         tree.build(
             joints,
-            [partition.link_path_of(prim.GetPath().pathString) for prim in geometry],
+            [
+                partition.link_path_of(prim.GetPath().pathString)
+                for prim in geometry + colliders
+            ],
         )
         collection = GeometryCollection(
             self.frame, GeometryReader(self.frame, materials), tree, self.log
         )
         for prim in geometry:
             collection.add(prim)
+        collisions = CollisionCollection(self.frame, tree, self.log)
+        for prim in colliders:
+            collisions.add(prim)
         converted = ConvertedStage(
             source=self.source,
             root_link=tree.links[tree.root_path].name,
@@ -253,6 +325,21 @@ class StageConversion:
             joint.parent_body for joint in joints if joint.parent_body is not None
         }
         return bodies
+
+    @staticmethod
+    def simulated(prim: Usd.Prim) -> bool:
+        """
+        :param prim: A prim.
+        :return: Whether the prim is a rigid body the physics engine moves: its rigid
+            body API is enabled and not kinematic.
+        """
+        if not prim.HasAPI(UsdPhysics.RigidBodyAPI):
+            return False
+        body = UsdPhysics.RigidBodyAPI(prim)
+        return (
+            body.GetRigidBodyEnabledAttr().Get() is not False
+            and body.GetKinematicEnabledAttr().Get() is not True
+        )
 
     def used_files(self, materials: MaterialReader) -> List[Path]:
         """
@@ -307,6 +394,9 @@ class ConversionCounts:
         counts[ReportCount.MATERIALS] = len(converted.materials)
         counts[ReportCount.LIGHTS] = len(converted.lights)
         counts[ReportCount.SEMANTIC_PRIMS] = len(converted.semantics)
+        counts[ReportCount.COLLISIONS] = sum(
+            len(link.collisions) for link in converted.links
+        )
         for joint in converted.joints:
             counts[ReportCount.JOINTS.of_type(joint.motion.kind)] += 1
             counts[ReportCount.DISABLED_JOINTS] += not joint.enabled

@@ -16,6 +16,7 @@ from cramera_usd.animation.models import (
     NO_MODEL,
     KinematicModel,
     LinkPlacement,
+    LinkPlacements,
     RobotModel,
 )
 from cramera_usd.animation.residuals import Residual
@@ -26,7 +27,7 @@ from cramera_usd.geometry.transforms import TransformTrack
 
 
 @dataclass(eq=False)
-class SceneAnimation:
+class SceneAnimation(LinkPlacements):
     """
     Everything a bundle needs to play a recording back, and how well it does.
     """
