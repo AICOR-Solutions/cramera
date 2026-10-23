@@ -34,6 +34,8 @@ from cramera_protocol.viewer import ErrorKey, PluginGroup, ViewerInfo, ViewerRou
 
 from .dataset.recording_workbench import RecordingWorkbench
 from .dataset.requests import LOCAL_HOST, answer_json, local_get, local_post
+from cramera_models.plugin import NAVIGATION_TITLE
+from cramera_protocol.viewer import NavigationGroup, ViewerRoute
 
 # %% plugin
 
@@ -179,3 +181,10 @@ def test_the_plugin_chooses_its_workbench_from_the_installed_libraries(tmp_path)
     expected = CircuitLibrariesMissing(nothing_installed.missing())
     assert response.status == expected.status()
     assert answer_json(response)[ErrorKey.ERROR] == expected.message()
+
+
+def test_the_plugin_has_an_entry_in_the_viewers_navigation():
+    navigation = ModelsPlugin().info().navigation
+    assert navigation.title == NAVIGATION_TITLE
+    assert navigation.group == NavigationGroup.ANALYSIS
+    assert navigation.page is None

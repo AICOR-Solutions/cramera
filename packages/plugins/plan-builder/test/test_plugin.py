@@ -46,6 +46,9 @@ from cramera_protocol.viewer import ErrorKey
 from .conftest import DEMO_PORT, send
 from .dataset.demo_source import demo_document
 from .dataset.given_workspace import DATASET
+from cramera_plan_builder.plugin import NAVIGATION_TITLE
+from cramera_protocol.viewer import NavigationGroup, ViewerRoute
+from cramera_protocol.plan_builder import PlanBuilderFile
 
 # %% configuration
 
@@ -289,3 +292,13 @@ def test_a_demo_document_names_no_environment_for_an_empty_floor(post, plan):
     answer = post(PlanBuilderRoute.DEMO, plan.to_json())
     source = DemoSource.from_json(json.loads(answer.body))
     assert demo_document(source.source) == DemoDocument(plan=plan)
+
+
+def test_the_plugin_has_an_entry_in_the_viewers_navigation():
+    navigation = PlanBuilderPlugin(environment={}).info().navigation
+    assert navigation.title == NAVIGATION_TITLE
+    assert navigation.group == NavigationGroup.BUILDER
+    assert (
+        navigation.page
+        == f"{ViewerRoute.PLUGIN_FILES}{PlanBuilderPlugin(environment={}).name()}/{PlanBuilderFile.PAGE}"
+    )

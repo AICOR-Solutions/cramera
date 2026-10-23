@@ -14,7 +14,13 @@ from pathlib import Path
 from typing_extensions import List, Mapping, Optional
 
 from cramera.locations import DataLocations
-from cramera.plugins import PluginContext, RouteDeclaration, ViewerPlugin
+from cramera.plugins import (
+    NavigationEntry,
+    PageEntry,
+    PluginContext,
+    RouteDeclaration,
+    ViewerPlugin,
+)
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.plans import PlanStore
@@ -28,6 +34,7 @@ from cramera_protocol.plan_builder import (
     PlanBuilderName,
     PlanBuilderVariable,
 )
+from cramera_protocol.viewer import NavigationGroup
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
@@ -37,6 +44,11 @@ The plan builder's browser files.
 LIVE_SCHEME = "http"
 """
 The scheme of the live publisher's URL.
+"""
+
+NAVIGATION_TITLE = "Plan Builder"
+"""
+The text of the plugin's entry in the viewer's navigation.
 """
 
 # %% storage
@@ -191,3 +203,8 @@ class PlanBuilderPlugin(ViewerPlugin):
 
     def module(self) -> Optional[str]:
         return PlanBuilderFile.MODULE
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return PageEntry(
+            NAVIGATION_TITLE, NavigationGroup.BUILDER, PlanBuilderFile.PAGE.value
+        )

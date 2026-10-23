@@ -14,7 +14,13 @@ from pathlib import Path
 from typing_extensions import Dict, List, Mapping, Optional
 
 from cramera.locations import DataLocations
-from cramera.plugins import PluginContext, RouteDeclaration, ViewerPlugin
+from cramera.plugins import (
+    NavigationEntry,
+    PageEntry,
+    PluginContext,
+    RouteDeclaration,
+    ViewerPlugin,
+)
 from cramera.scenes import SceneCatalog
 from cramera_protocol.bundle.index import SceneName
 from cramera_protocol.scene_builder import (
@@ -24,6 +30,7 @@ from cramera_protocol.scene_builder import (
     SceneBuilderName,
     SceneBuilderVariable,
 )
+from cramera_protocol.viewer import NavigationGroup
 from cramera_scene_builder.drafts import DraftCheck, DraftStore
 from cramera_scene_builder.exceptions import InvalidRootName
 from cramera_scene_builder.resources import ResourceLibrary
@@ -33,6 +40,11 @@ from cramera_scene_builder.uploads import PointCloudStore
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
 The scene builder's browser files.
+"""
+
+NAVIGATION_TITLE = "Scene Builder"
+"""
+The text of the plugin's entry in the viewer's navigation.
 """
 
 # %% storage
@@ -210,3 +222,8 @@ class SceneBuilderPlugin(ViewerPlugin):
 
     def module(self) -> Optional[str]:
         return SceneBuilderFile.MODULE
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return PageEntry(
+            NAVIGATION_TITLE, NavigationGroup.BUILDER, SceneBuilderFile.PAGE.value
+        )

@@ -36,6 +36,9 @@ from cramera_scene_builder.plugin import (
 from cramera_scene_builder.point_clouds import SAMPLE_HEADER
 
 from .conftest import DATASET, HEADERS, LIBRARY_ROOT, send
+from cramera_scene_builder.plugin import NAVIGATION_TITLE
+from cramera_protocol.viewer import NavigationGroup, ViewerRoute
+from cramera_protocol.scene_builder import SceneBuilderFile
 
 CLOUD = DATASET / "point_clouds" / "colored_binary.pcd"
 """
@@ -242,3 +245,13 @@ def test_the_sample_of_a_file_larger_than_an_upload_is_refused(
         f"{SceneBuilderRoute.POINT_CLOUD_SAMPLES}{LIBRARY_ROOT}/scan.pcd",
     )
     assert answer.status is HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+
+
+def test_the_plugin_has_an_entry_in_the_viewers_navigation():
+    navigation = SceneBuilderPlugin(environment={}).info().navigation
+    assert navigation.title == NAVIGATION_TITLE
+    assert navigation.group == NavigationGroup.BUILDER
+    assert (
+        navigation.page
+        == f"{ViewerRoute.PLUGIN_FILES}{SceneBuilderPlugin(environment={}).name()}/{SceneBuilderFile.PAGE}"
+    )

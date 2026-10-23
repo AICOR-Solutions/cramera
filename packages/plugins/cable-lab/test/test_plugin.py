@@ -39,6 +39,9 @@ from cramera_protocol.plugins import PluginName
 from cramera_protocol.viewer import ErrorKey, ViewerRoute
 
 from .dataset.simulations import RecordingFactory
+from cramera_cable_lab.plugin import NAVIGATION_TITLE
+from cramera_protocol.viewer import NavigationGroup, ViewerRoute
+from cramera_protocol.cable_lab import CableLabFile
 
 HEADERS = {Header.HOST: "localhost"}
 """
@@ -184,3 +187,13 @@ def test_the_plugin_names_its_module():
     assert plugin.name() == PluginName.CABLE_LAB
     assert plugin.module() == WebFile.MODULE
     assert plugin.version()
+
+
+def test_the_plugin_has_an_entry_in_the_viewers_navigation():
+    navigation = CableLabPlugin().info().navigation
+    assert navigation.title == NAVIGATION_TITLE
+    assert navigation.group == NavigationGroup.LABORATORY
+    assert (
+        navigation.page
+        == f"{ViewerRoute.PLUGIN_FILES}{CableLabPlugin().name()}/{CableLabFile.PAGE}"
+    )
