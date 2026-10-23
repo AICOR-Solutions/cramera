@@ -1,0 +1,100 @@
+{
+ "formatVersion": "2.0",
+ "scene": "pr2_warehouse_transport",
+ "recordedAt": "2026-10-23T10:00:00Z",
+ "presets": {
+  "ok": true,
+  "title": "Live world",
+  "presets": [
+   {
+    "text": "which robot is this?",
+    "code": "the(entity(robot))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "the robot",
+     "html": "the robot"
+    }
+   },
+   {
+    "text": "what was detected, and when?",
+    "code": "set_of(event.name, event.timestamp)",
+    "scope": "detected_events"
+   }
+  ],
+  "scopes": [
+   {
+    "name": "current_state",
+    "label": "Current State Queries",
+    "variables": [
+     "robot",
+     "arm"
+    ]
+   }
+  ]
+ },
+ "answers": [
+  {
+   "code": "the(entity(robot))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "entities",
+    "rows": [
+     {
+      "__entity__": "pr2",
+      "__type__": "PR2",
+      "arms": 2
+     }
+    ],
+    "count": 1,
+    "more": false,
+    "highlight": [
+     "pr2"
+    ],
+    "replay": [
+     null
+    ],
+    "verbalization": {
+     "text": "a robot",
+     "html": "<span class=\"entity\">a robot</span>"
+    }
+   }
+  }
+ ],
+ "graphs": [
+  {
+   "ok": true,
+   "key": "plan",
+   "layout": "hier",
+   "nodes": [
+    {
+     "id": "plan_node_1",
+     "label": "PickUpAction",
+     "group": "action",
+     "title": "PickUpAction",
+     "status": "SUCCEEDED",
+     "kind": "ActionNode",
+     "parent": null,
+     "target": "milk"
+    }
+   ],
+   "edges": [],
+   "details": {
+    "plan_node_1": {
+     "label": "PickUpAction",
+     "group": "action",
+     "lines": [
+      "an ActionNode"
+     ]
+    }
+   },
+   "legend": [
+    {
+     "group": "action",
+     "label": "Action"
+    }
+   ]
+  }
+ ]
+}
