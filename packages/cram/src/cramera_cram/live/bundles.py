@@ -11,7 +11,7 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from typing_extensions import Dict, List, Optional
+from typing_extensions import TYPE_CHECKING, Dict, List, Optional
 
 from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import EmptyRecording
@@ -29,6 +29,9 @@ from cramera_protocol.live_messages import LivePlan
 from cramera_protocol.version import CURRENT_VERSION
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 from semantic_digital_twin.world_description.world_entity import Body
+
+if TYPE_CHECKING:
+    from cramera_cram.live.plan import PerformedPlan
 
 SIGNATURE_LENGTH = 16
 """
@@ -209,6 +212,11 @@ class PlanTrees:
     The plan.
     """
 
+    robot: Optional[str]
+    """
+    The display name of the robot that performed the plan, named on its roots.
+    """
+
     frames: Dict[str, FrameRange] = field(default_factory=dict)
     """
     The frames each node ran in, by its identity; a node without an entry never ran.
@@ -218,6 +226,7 @@ class PlanTrees:
         """
         :return: The plan's roots with their children nested.
         """
+        identifiers = {node.identifier for node in self.plan.nodes}
         nodes: Dict[str, PlanNode] = {}
         for node in self.plan.nodes:
             frames = self.frames.get(node.identifier)
@@ -231,6 +240,7 @@ class PlanTrees:
                 parent=node.parent,
                 start=None if frames is None else frames.first,
                 end=None if frames is None else frames.last,
+                robot=None if node.parent in identifiers else self.robot,
             )
         roots = []
         for node in self.plan.nodes:
@@ -301,7 +311,7 @@ class LiveBundleWriter:
         model: WorldModelView,
         selected_robot: Optional[AbstractRobot],
         frames: List[RecordedFrame],
-        plan: LivePlan,
+        plans: List[PerformedPlan],
     ) -> str:
         """
         Write a recorded run as the ``__recording__`` bundle.
@@ -309,7 +319,7 @@ class LiveBundleWriter:
         :param model: The world's current model.
         :param selected_robot: The selected robot.
         :param frames: The recorded frames.
-        :param plan: The plan the run performed.
+        :param plans: The plans the run performed, in the order each began.
         :return: The bundle's name.
         :raises EmptyRecording: When there are no frames.
         """
@@ -337,9 +347,7 @@ class LiveBundleWriter:
                 robot=models.robot,
                 objects=self.objects(model, frames, staging),
                 segments=RecordedRun(frames).segments(),
-                plan_trees=PlanTrees(
-                    plan, PlanNodeFrames(plan, frames).ranges()
-                ).roots(),
+                plan_trees=self.plan_trees(plans, frames),
                 missing_assets=models.missing_assets,
                 bundle_signature=WorldSignature(model, selected_robot).digest(),
                 world_bound=True,
@@ -354,6 +362,26 @@ class LiveBundleWriter:
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
         return ReservedSceneName.RECORDING
+
+    @staticmethod
+    def plan_trees(
+        plans: List[PerformedPlan], frames: List[RecordedFrame]
+    ) -> List[PlanNode]:
+        """
+        :param plans: The plans the run performed, in the order each began.
+        :param frames: The recorded frames.
+        :return: The roots of every plan, each naming its robot, with the frames each
+            node ran in.
+        """
+        return [
+            root
+            for plan in plans
+            for root in PlanTrees(
+                plan.latest,
+                plan.robot,
+                PlanNodeFrames(plan.latest, frames).ranges(),
+            ).roots()
+        ]
 
     @staticmethod
     def objects(

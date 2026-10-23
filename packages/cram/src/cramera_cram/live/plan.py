@@ -12,6 +12,7 @@ from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Set
 from cramera_cram.exceptions import UnknownPlanNode
 from cramera_cram.live.recording import RunningAction
 from cramera_cram.live.world_model import ObjectKey
+from cramera_cram.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.datastructures.enums import Arms, TaskStatus
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
@@ -22,7 +23,19 @@ if TYPE_CHECKING:
 
 PLAN_NODE_PREFIX = "plan_node_"
 """
-The start of every plan node identity; the rest is the node's index in the plan graph.
+The start of the identity of every node of the first plan performed; the rest is the
+node's index in the plan graph.
+"""
+
+LATER_PLAN_NODE_PREFIX = "plan_{number}_node_"
+"""
+The start of the identity of every node of a later plan, naming the plan's number; the
+rest is the node's index in the plan graph.
+"""
+
+FIRST_PLAN_NUMBER = 1
+"""
+The number of the first plan performed.
 """
 
 SIGNATURE_SEPARATOR = "|"
@@ -91,78 +104,89 @@ class DesignatorSummary:
 
 
 @dataclass
-class PlanPublisher:
+class PerformedPlan:
     """
-    Publishes the plan being performed, reading each node's status where coraplex keeps
-    it.
+    A plan performed while the publisher ran, with the robot that performed it and its
+    newest snapshot.
     """
 
-    plan: Optional[Plan] = None
+    plan: Plan
     """
-    The plan being performed, once one started.
+    The plan.
+    """
+
+    number: int
+    """
+    The plan's position among the plans performed, counted from one.
+    """
+
+    robot: Optional[str]
+    """
+    The display name of the robot that performed the plan, or None for a plan without a
+    context.
     """
 
     latest: LivePlan = field(default_factory=LivePlan)
     """
-    The newest snapshot.
+    The plan's newest snapshot.
     """
 
-    lock: threading.RLock = field(default_factory=threading.RLock)
-    """
-    Guards :attr:`plan` and :attr:`latest`.
-    """
+    @classmethod
+    def of_plan(cls, plan: Plan, number: int) -> PerformedPlan:
+        """
+        :param plan: A plan that starts performing.
+        :param number: Its position among the plans performed, counted from one.
+        :return: The plan with the robot its context names.
+        """
+        robot = None if plan.context is None else plan.context.robot
+        return cls(
+            plan=plan,
+            number=number,
+            robot=None if robot is None else RobotRoster.label(robot),
+        )
 
-    @staticmethod
-    def identifier(node: PlanNode) -> str:
+    def identifier(self, node: PlanNode) -> str:
         """
         :param node: A node of the plan.
-        :return: The node's identity, its index in the plan graph.
+        :return: The node's identity, which no node of another plan performed shares;
+            the first plan's nodes keep the identity a recording of one plan gives them.
         """
-        return f"{PLAN_NODE_PREFIX}{node.index}"
-
-    def begin(self, plan: Plan) -> None:
-        """
-        :param plan: The plan that starts performing.
-        """
-        with self.lock:
-            self.plan = plan
+        prefix = (
+            PLAN_NODE_PREFIX
+            if self.number == FIRST_PLAN_NUMBER
+            else LATER_PLAN_NODE_PREFIX.format(number=self.number)
+        )
+        return f"{prefix}{node.index}"
 
     def root(self) -> Optional[PlanNode]:
         """
-        :return: The plan's root, or None without a plan or while its graph is no tree.
+        :return: The plan's root, or None while its graph is no tree.
         """
-        with self.lock:
-            plan = self.plan
-        if plan is None:
-            return None
-        roots = [node for node in plan.all_nodes if node.parent is None]
+        roots = [node for node in self.plan.all_nodes if node.parent is None]
         if len(roots) != 1:
             return None
         return roots[0]
 
-    def refresh(self, object_keys: Set[str], constraints: ConstraintLookup) -> LivePlan:
+    def describe(
+        self, object_keys: Set[str], constraints: ConstraintLookup
+    ) -> Optional[LivePlan]:
         """
-        Read every node's native status into a new snapshot; a plan whose graph is being
-        rebuilt keeps its last snapshot.
-
         :param object_keys: The keys of the published objects.
         :param constraints: The constraint monitors attached to each node.
-        :return: The newest snapshot.
+        :return: A snapshot of every node with its native status, or None while the
+            plan's graph is being rebuilt.
         """
         root = self.root()
         if root is None:
-            return self.current()
+            return None
         nodes = [
             self.node_description(node, object_keys, constraints)
             for node in [root] + root.descendants
         ]
-        snapshot = LivePlan(
+        return LivePlan(
             signature=SIGNATURE_SEPARATOR.join(node.identifier for node in nodes),
             nodes=nodes,
         )
-        with self.lock:
-            self.latest = snapshot
-        return snapshot
 
     def node_description(
         self,
@@ -190,12 +214,98 @@ class PlanPublisher:
             constraints=constraints(identifier),
         )
 
-    def current(self) -> LivePlan:
+    def running(self) -> Optional[RunningAction]:
         """
+        :return: The plan's deepest running action, or None between actions.
+        """
+        root = self.root()
+        if root is None:
+            return None
+        running = [
+            node
+            for node in [root] + root.descendants
+            if isinstance(node, ActionNode) and node.status is TaskStatus.RUNNING
+        ]
+        if not running:
+            return None
+        deepest = max(running, key=lambda node: len(node.path))
+        return RunningAction(
+            identifier=self.identifier(deepest),
+            label=DesignatorSummary(deepest).label(),
+        )
+
+
+@dataclass
+class PlanPublisher:
+    """
+    Publishes the plan being performed, reading each node's status where coraplex keeps
+    it, and keeps every plan performed before it.
+    """
+
+    performed: List[PerformedPlan] = field(default_factory=list)
+    """
+    Every plan performed, in the order each first began.
+    """
+
+    active_plan: Optional[PerformedPlan] = None
+    """
+    The plan being performed, the one that began last; None before any began.
+    """
+
+    lock: threading.RLock = field(default_factory=threading.RLock)
+    """
+    Guards :attr:`performed`, :attr:`active_plan` and the snapshots of the plans.
+    """
+
+    def begin(self, plan: Plan) -> None:
+        """
+        :param plan: The plan that starts performing; a plan performed before keeps its
+            number and snapshot.
+        """
+        with self.lock:
+            performed = next(
+                (entry for entry in self.performed if entry.plan is plan), None
+            )
+            if performed is None:
+                performed = PerformedPlan.of_plan(plan, len(self.performed) + 1)
+                self.performed.append(performed)
+            self.active_plan = performed
+
+    def performed_plans(self) -> List[PerformedPlan]:
+        """
+        :return: Every plan performed, in the order each first began.
+        """
+        with self.lock:
+            return list(self.performed)
+
+    def refresh(self, object_keys: Set[str], constraints: ConstraintLookup) -> LivePlan:
+        """
+        Read every node's native status into a new snapshot; a plan whose graph is being
+        rebuilt keeps its last snapshot.
+
+        :param object_keys: The keys of the published objects.
+        :param constraints: The constraint monitors attached to each node.
         :return: The newest snapshot.
         """
         with self.lock:
-            return self.latest
+            active_plan = self.active_plan
+        if active_plan is None:
+            return self.current()
+        snapshot = active_plan.describe(object_keys, constraints)
+        if snapshot is None:
+            return self.current()
+        with self.lock:
+            active_plan.latest = snapshot
+        return snapshot
+
+    def current(self) -> LivePlan:
+        """
+        :return: The newest snapshot of the plan being performed.
+        """
+        with self.lock:
+            if self.active_plan is None:
+                return LivePlan()
+            return self.active_plan.latest
 
     def published_node(self, identifier: str) -> LivePlanNode:
         """
@@ -227,14 +337,16 @@ class PlanPublisher:
         :return: The newest snapshot.
         """
         with self.lock:
-            self.latest = replace(
-                self.latest,
+            if self.active_plan is None:
+                return LivePlan()
+            self.active_plan.latest = replace(
+                self.active_plan.latest,
                 nodes=[
                     replace(node, constraints=constraints(node.identifier))
-                    for node in self.latest.nodes
+                    for node in self.active_plan.latest.nodes
                 ],
             )
-            return self.latest
+            return self.active_plan.latest
 
     def running_action(self) -> Optional[str]:
         """
@@ -245,20 +357,9 @@ class PlanPublisher:
 
     def running(self) -> Optional[RunningAction]:
         """
-        :return: The deepest running action, or None between actions.
+        :return: The deepest running action of the plan being performed, or None between
+            actions.
         """
-        root = self.root()
-        if root is None:
-            return None
-        running = [
-            node
-            for node in [root] + root.descendants
-            if isinstance(node, ActionNode) and node.status is TaskStatus.RUNNING
-        ]
-        if not running:
-            return None
-        deepest = max(running, key=lambda node: len(node.path))
-        return RunningAction(
-            identifier=self.identifier(deepest),
-            label=DesignatorSummary(deepest).label(),
-        )
+        with self.lock:
+            active_plan = self.active_plan
+        return None if active_plan is None else active_plan.running()

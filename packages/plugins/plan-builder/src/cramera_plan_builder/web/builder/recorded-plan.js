@@ -135,6 +135,12 @@ export class RecordedPlan {
   root;
 
   /**
+   * The plan's position in the recording, counted from one.
+   * @type {number}
+   */
+  number;
+
+  /**
    * The plan's steps, in execution order.
    * @type {Array<RecordedStep>}
    */
@@ -142,10 +148,27 @@ export class RecordedPlan {
 
   /**
    * @param {Object} root A recorded plan's root node.
+   * @param {number} number The plan's position in the recording, counted from one.
    */
-  constructor(root) {
+  constructor(root, number) {
     this.root = root;
+    this.number = number;
     this.steps = RecordedPlan.actionsOf(root).map((node, index) => new RecordedStep(node, index + 1));
+  }
+
+  /**
+   * @returns {string|null} The display name of the robot that performed the plan, or
+   *   null when the recording does not name it.
+   */
+  get robot() {
+    return this.root[PlanNodeKey.ROBOT] ?? null;
+  }
+
+  /**
+   * @returns {string} The robot that performed the plan, else the plan's number.
+   */
+  title() {
+    return this.robot ?? `Plan ${this.number}`;
   }
 
   /**
@@ -188,7 +211,7 @@ export class RecordedPlans {
    * @returns {RecordedPlans} One plan per root.
    */
   static of(roots) {
-    return new RecordedPlans(roots.map((root) => new RecordedPlan(root)));
+    return new RecordedPlans(roots.map((root, index) => new RecordedPlan(root, index + 1)));
   }
 
   /**

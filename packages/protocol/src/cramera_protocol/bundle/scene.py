@@ -602,6 +602,11 @@ class PlanNodeKey(StrEnum):
     The last frame the node ran in.
     """
 
+    ROBOT = "robot"
+    """
+    The robot that performed the plan, on the plan's root.
+    """
+
 
 class PlanNodeKind(StrEnum):
     """
@@ -672,6 +677,12 @@ class PlanNode(JsonDocument):
     """
     The last frame the node or one of its descendants was the deepest running action in,
     or None when it never ran within the recorded frames.
+    """
+
+    robot: Optional[str] = document_field(PlanNodeKey.ROBOT, default=None)
+    """
+    The display name of the robot that performed the plan, on the plan's root; None on
+    every other node and for a plan recorded without its robot.
     """
 
     extensions: Dict[str, Any] = extension_field()

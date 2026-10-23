@@ -15,6 +15,7 @@ import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
 const ViewClass = Object.freeze({
   VIEW: 'recorded-plan',
   LIST: 'steps',
+  TITLE: 'plan-title',
   PARAMETERS: 'step-parameters',
   EMPTY: 'empty',
 });
@@ -75,7 +76,8 @@ export class RecordedPlanView {
   }
 
   /**
-   * Show a recording's plans, each step with the state it ended in.
+   * Show a recording's plans, each titled with the robot that performed it, and each
+   * step with the state it ended in.
    * @param {Array<Object>} roots The roots of the recording's plan trees.
    */
   show(roots) {
@@ -92,12 +94,12 @@ export class RecordedPlanView {
     if (!this.#plans.hasFrames()) parts.push(elements.create('p', ViewClass.EMPTY, 'This recording does not say when each step ran, so the steps do not follow the playhead.'));
     const palette = new Map();
     const several = this.#plans.plans.length > 1;
-    this.#plans.plans.forEach((plan, index) => {
-      if (several) parts.push(elements.create('h4', '', `Plan ${index + 1}`));
+    for (const plan of this.#plans.plans) {
+      if (several || plan.robot !== null) parts.push(elements.create('h4', ViewClass.TITLE, plan.title()));
       const list = elements.create('ol', ViewClass.LIST);
       list.append(...plan.steps.map((step) => this.#card(step, palette)));
       parts.push(list);
-    });
+    }
     this.element.replaceChildren(...parts);
   }
 

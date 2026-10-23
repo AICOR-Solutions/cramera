@@ -28,9 +28,17 @@ const withoutFrames = (nodes) =>
     [PlanNodeKey.CHILDREN]: withoutFrames(node[PlanNodeKey.CHILDREN] ?? []),
   }));
 
+/**
+ * @param {Array<Object>} roots Plan roots.
+ * @returns {Array<Object>} Copies of them without the robot that performed them, as
+ *   recordings written before plan roots named it.
+ */
+const withoutRobots = (roots) => roots.map(({ [PlanNodeKey.ROBOT]: robot, ...root }) => root);
+
 const cards = (element) => element.findAll((child) => child.className === 'step');
 const cardOf = (element, node) => cards(element).find((card) => card.dataset.node === node[PlanNodeKey.IDENTIFIER]);
 const running = (element) => cards(element).filter((card) => card.dataset.phase === StepPhase.RUNNING);
+const titles = (element) => element.findAll((child) => child.className === 'plan-title').map((title) => title.textContent);
 
 // %% steps of a recorded plan
 
@@ -49,6 +57,20 @@ test('a step is named in words and shows the arm and target it was recorded with
     { name: PlanNodeKey.TARGET, value: PICK_UP[PlanNodeKey.TARGET] },
   ]);
   assert.deepEqual(navigate.parameters(), []);
+});
+
+test('a plan is titled with the robot that performed it', () => {
+  assert.deepEqual(
+    RecordedPlans.of(ROOTS).plans.map((plan) => plan.title()),
+    ROOTS.map((root) => root[PlanNodeKey.ROBOT]),
+  );
+});
+
+test('a plan whose root names no robot is titled with its number', () => {
+  assert.deepEqual(
+    RecordedPlans.of(withoutRobots(ROOTS)).plans.map((plan) => plan.title()),
+    ['Plan 1', 'Plan 2'],
+  );
 });
 
 // %% steps at the playhead
@@ -98,6 +120,23 @@ test('the view shows one list of step cards per plan', () => {
   const name = cardOf(view.element, PICK_UP).findAll((element) => element.className === 'step-name')[0];
   assert.equal(name.textContent, RecordedStep.words(PICK_UP[PlanNodeKey.LABEL]));
   assert.match(cardOf(view.element, PICK_UP).innerText, new RegExp(PICK_UP[PlanNodeKey.TARGET]));
+});
+
+test('the view titles each plan\'s list with the robot that performed it', () => {
+  const view = new RecordedPlanView(new FakeDocument(), () => {});
+  view.show(ROOTS);
+  assert.deepEqual(titles(view.element), ROOTS.map((root) => root[PlanNodeKey.ROBOT]));
+  view.show([TIAGO_PLAN]);
+  assert.deepEqual(titles(view.element), [TIAGO_PLAN[PlanNodeKey.ROBOT]]);
+});
+
+test('the view titles plans without a robot by number, and a single one not at all', () => {
+  const view = new RecordedPlanView(new FakeDocument(), () => {});
+  const unnamed = withoutRobots(ROOTS);
+  view.show(unnamed);
+  assert.deepEqual(titles(view.element), RecordedPlans.of(unnamed).plans.map((plan) => plan.title()));
+  view.show(withoutRobots([TIAGO_PLAN]));
+  assert.deepEqual(titles(view.element), []);
 });
 
 test('the card of the step at the playhead is marked running and the others waiting or done', () => {

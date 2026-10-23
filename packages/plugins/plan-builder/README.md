@@ -58,8 +58,9 @@ cramera
 - **Replays.** When the viewer shows a recording with a plan, the panel comes to the
   front and lists the plan's steps as the builder's cards (`web/steps.css`, shared
   with the builder page): a plan's steps are its outermost actions, one list per
-  recorded plan. The step whose recorded frames hold the playhead is marked running
-  and scrolled into sight; a click on a step asks the viewer for its first frame.
+  recorded plan, titled with the robot that performed it. The step whose recorded
+  frames hold the playhead is marked running and scrolled into sight; a click on a
+  step asks the viewer for its first frame.
 - **Runs.** The builder starts one demo at a time as a child process of the viewer, in
   its own process group, keeps the newest 64 KiB of its output, and stops it with its
   group. The demo ends by itself when the viewer goes away, since it watches the pipe

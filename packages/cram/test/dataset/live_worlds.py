@@ -7,8 +7,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from typing_extensions import List
+from typing_extensions import List, Optional
 
+from coraplex.datastructures.dataclasses import Context
 from coraplex.plans.plan import Plan
 from coraplex.datastructures.enums import Arms
 from coraplex.plans.plan_node import ActionNode, MotionNode, PlanNode
@@ -54,12 +55,14 @@ class SmallPlan:
     """
 
     @classmethod
-    def build(cls, opened: Body) -> SmallPlan:
+    def build(cls, opened: Body, context: Optional[Context] = None) -> SmallPlan:
         """
         :param opened: The body the motion opens.
+        :param context: The context naming the robot that performs the plan, or None
+            for a plan without one.
         :return: A new plan; no node has run.
         """
-        plan = Plan()
+        plan = Plan(context)
         root = PlanNode()
         plan.add_node(root)
         action = ActionNode(designator=MoveTorsoAction(TorsoState.HIGH))

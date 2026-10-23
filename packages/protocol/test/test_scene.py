@@ -77,6 +77,25 @@ def test_a_plan_node_that_never_ran_has_no_frames(read_json):
     assert PlanNodeKey.START not in place.to_json()
 
 
+def test_each_plan_root_names_the_robot_that_performed_it(read_json):
+    data = read_json("recorded_robot_plans_scene.json")
+    roots = SceneDescription.from_json(data).plan_trees
+    assert [root.robot for root in roots] == [
+        written[PlanNodeKey.ROBOT] for written in data[SceneKey.PLAN_TREES]
+    ]
+    assert roots[0].extensions == {}
+
+
+def test_a_plan_node_without_a_robot_writes_none(read_json):
+    step = (
+        SceneDescription.from_json(read_json("recorded_robot_plans_scene.json"))
+        .plan_trees[0]
+        .children[0]
+    )
+    assert step.robot is None
+    assert PlanNodeKey.ROBOT not in step.to_json()
+
+
 def test_writing_an_early_recording_uses_current_keys(read_json):
     written = SceneDescription.from_json(
         read_json("recorded_cell/scene.json")

@@ -54,6 +54,14 @@ which this repository was mirrored until 22 Oct 2026.
   is scrubbed, finished steps show the state they ended in, and a click on a step
   jumps to its first frame. Recordings written before name no step frames; their
   steps are shown with the state they ended in.
+- **Every robot's plan in one recording.** A run that performs several plans, such as
+  one robot carrying totes and then another refilling them, keeps every plan instead
+  of only the last: the recording holds one plan tree per plan, in the order they
+  began, and each root names the robot that performed it (`robot`, the robot's display
+  name). The first plan's nodes keep their identities (`plan_node_<index>`), a later
+  plan's nodes are `plan_<number>_node_<index>`, so every frame's running step and
+  every live constraint names exactly one node. The replay titles each plan's list
+  with its robot, and plans recorded without one by their number.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),

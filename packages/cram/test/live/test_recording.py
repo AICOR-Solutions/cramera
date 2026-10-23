@@ -5,6 +5,7 @@ Recording a run, writing it as a bundle, and saving, trimming or discarding it.
 from __future__ import annotations
 
 import pytest
+from typing_extensions import List
 
 from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import (
@@ -16,6 +17,7 @@ from cramera_cram.exceptions import (
 )
 from cramera_cram.live.recording import FrameRange
 from cramera_cram.live.recording_storage import RecordingStorage
+from cramera_cram.robots import RobotRoster
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import (
     InvalidSceneName,
@@ -277,3 +279,66 @@ def test_a_step_outside_the_saved_stretch_has_no_frames(
     kept = FrameRange(running.last + 1, running.last + 2)
     action = saved_plan_root(publisher, locations, kept).children[0]
     assert (action.start, action.end) == (None, None)
+
+
+# %% plans of several robots
+
+
+def all_nodes(nodes: List[PlanNode]) -> List[PlanNode]:
+    """
+    :return: The nodes and their descendants, parents before their children.
+    """
+    return [each for node in nodes for each in [node] + all_nodes(node.children)]
+
+
+def test_a_recording_keeps_every_plan_with_the_robot_that_performed_it(
+    publisher, kitchen, robot_plans, two_robots, locations
+):
+    for plan in robot_plans:
+        run_the_small_plan(kitchen, publisher, plan)
+    publisher.finish_recording()
+    roots = bundle_files(locations)[1].plan_trees
+    assert [root.robot for root in roots] == [
+        RobotRoster.label(robot) for robot in two_robots.robots
+    ]
+    assert [root.children[0].robot for root in roots] == [None, None]
+
+
+def test_each_plan_names_the_frames_its_own_steps_ran_in(
+    publisher, kitchen, robot_plans, locations
+):
+    running = [run_the_small_plan(kitchen, publisher, plan) for plan in robot_plans]
+    publisher.finish_recording()
+    actions = [root.children[0] for root in bundle_files(locations)[1].plan_trees]
+    assert [(action.start, action.end) for action in actions] == [
+        (frames.first, frames.last) for frames in running
+    ]
+
+
+def test_the_nodes_of_two_plans_have_distinct_identities(
+    publisher, kitchen, robot_plans, locations
+):
+    for plan in robot_plans:
+        run_the_small_plan(kitchen, publisher, plan)
+    publisher.finish_recording()
+    identities = [
+        node.identifier for node in all_nodes(bundle_files(locations)[1].plan_trees)
+    ]
+    assert len(set(identities)) == len(identities)
+    assert len(identities) == sum(len(plan.plan.all_nodes) for plan in robot_plans)
+
+
+def test_a_plan_begun_again_is_recorded_once(publisher, kitchen, small_plan, locations):
+    run_the_small_plan(kitchen, publisher, small_plan)
+    running = run_the_small_plan(kitchen, publisher, small_plan)
+    publisher.finish_recording()
+    [root] = bundle_files(locations)[1].plan_trees
+    assert root.children[0].end == running.last
+
+
+def test_a_plan_without_a_context_names_no_robot(
+    publisher, kitchen, small_plan, locations
+):
+    run_the_small_plan(kitchen, publisher, small_plan)
+    publisher.finish_recording()
+    assert bundle_files(locations)[1].plan_trees[0].robot is None

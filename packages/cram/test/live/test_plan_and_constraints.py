@@ -15,7 +15,7 @@ from cramera_cram.exceptions import (
     UnknownBody,
     UnknownPlanNode,
 )
-from cramera_cram.live.plan import PLAN_NODE_PREFIX, PlanPublisher
+from cramera_cram.live.plan import PLAN_NODE_PREFIX
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
     ConstraintActivation,
@@ -65,7 +65,7 @@ def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen):
 
 def test_a_node_is_found_by_its_identity(publisher, small_plan):
     publisher.begin_plan(small_plan.plan)
-    identifier = PlanPublisher.identifier(small_plan.action)
+    identifier = publisher.plan.active_plan.identifier(small_plan.action)
     assert identifier.startswith(PLAN_NODE_PREFIX)
     assert publisher.plan.published_node(identifier).identifier == identifier
     with pytest.raises(UnknownPlanNode):
@@ -85,6 +85,29 @@ def test_the_running_action_names_the_step(publisher, small_plan):
     )
 
 
+def test_a_later_plan_keeps_its_node_identities_apart_from_the_first(
+    publisher, robot_plans
+):
+    first, second = robot_plans
+    publisher.begin_plan(first.plan)
+    first_identities = {node.identifier for node in publisher.current_plan().nodes}
+    publisher.begin_plan(second.plan)
+    second_identities = {node.identifier for node in publisher.current_plan().nodes}
+    assert len(second_identities) == len(second.plan.all_nodes)
+    assert first_identities.isdisjoint(second_identities)
+
+
+def test_a_plan_begun_again_is_published_with_its_first_identities(
+    publisher, robot_plans
+):
+    first, second = robot_plans
+    publisher.begin_plan(first.plan)
+    identities = [node.identifier for node in publisher.current_plan().nodes]
+    publisher.begin_plan(second.plan)
+    publisher.begin_plan(first.plan)
+    assert [node.identifier for node in publisher.current_plan().nodes] == identities
+
+
 def test_a_robot_cannot_be_selected_while_the_plan_runs(publisher, small_plan):
     small_plan.root.status = TaskStatus.RUNNING
     publisher.begin_plan(small_plan.plan)
@@ -95,13 +118,14 @@ def test_a_robot_cannot_be_selected_while_the_plan_runs(publisher, small_plan):
 # %% constraints
 
 
-def height_constraint(kitchen, small_plan, activation) -> ConstraintRequest:
+def height_constraint(publisher, kitchen, small_plan, activation) -> ConstraintRequest:
     """
-    :return: A height constraint on the milk attached to the plan's root.
+    :return: A height constraint on the milk attached to the root of the plan being
+        performed.
     """
     return ConstraintRequest(
         target_plan_node=PlanNodeReference(
-            identifier=PlanPublisher.identifier(small_plan.root)
+            identifier=publisher.plan.active_plan.identifier(small_plan.root)
         ),
         monitor=MonitorSpecification(
             monitor_type=ConstraintMonitorType.HEIGHT,
@@ -117,7 +141,9 @@ def test_an_attached_constraint_is_observed_on_the_next_tick(
 ):
     publisher.begin_plan(small_plan.plan)
     publisher.attach_constraint(
-        height_constraint(kitchen, small_plan, ConstraintActivation.IMMEDIATE)
+        height_constraint(
+            publisher, kitchen, small_plan, ConstraintActivation.IMMEDIATE
+        )
     )
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     publisher.observe_motion_tick(chart.chart)
@@ -128,7 +154,9 @@ def test_an_attached_constraint_is_observed_on_the_next_tick(
 def test_a_constraint_waits_for_the_next_motion(publisher, kitchen, small_plan):
     publisher.begin_plan(small_plan.plan)
     publisher.attach_constraint(
-        height_constraint(kitchen, small_plan, ConstraintActivation.NEXT_ACTIVATION)
+        height_constraint(
+            publisher, kitchen, small_plan, ConstraintActivation.NEXT_ACTIVATION
+        )
     )
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     publisher.observe_motion_tick(chart.chart)
@@ -142,7 +170,9 @@ def test_a_constraint_waits_for_the_next_motion(publisher, kitchen, small_plan):
 def test_a_constraint_sees_the_world_change(publisher, kitchen, small_plan):
     publisher.begin_plan(small_plan.plan)
     publisher.attach_constraint(
-        height_constraint(kitchen, small_plan, ConstraintActivation.IMMEDIATE)
+        height_constraint(
+            publisher, kitchen, small_plan, ConstraintActivation.IMMEDIATE
+        )
     )
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     publisher.observe_motion_tick(chart.chart)
@@ -152,6 +182,16 @@ def test_a_constraint_sees_the_world_change(publisher, kitchen, small_plan):
     publisher.observe_motion_tick(chart.chart)
     observed = publisher.refresh_plan().nodes[0].constraints[0]
     assert observed.observation == ObservationStateValues.FALSE.name
+
+
+def test_a_constraint_reaches_a_node_of_a_later_plan(publisher, kitchen, robot_plans):
+    first, second = robot_plans
+    publisher.begin_plan(first.plan)
+    publisher.begin_plan(second.plan)
+    plan = publisher.attach_constraint(
+        height_constraint(publisher, kitchen, second, ConstraintActivation.IMMEDIATE)
+    )
+    assert [node.constraints != [] for node in plan.nodes] == [True, False, False]
 
 
 @pytest.mark.parametrize(
@@ -175,7 +215,7 @@ def test_every_monitor_type_is_built_and_observed(
     publisher.begin_plan(small_plan.plan)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
-            identifier=PlanPublisher.identifier(small_plan.action)
+            identifier=publisher.plan.active_plan.identifier(small_plan.action)
         ),
         monitor=MonitorSpecification(monitor_type=monitor_type, parameters=parameters),
         apply=ConstraintActivation.IMMEDIATE,
@@ -199,7 +239,7 @@ def test_an_unreadable_constraint_is_refused(publisher, small_plan, parameters, 
     publisher.begin_plan(small_plan.plan)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
-            identifier=PlanPublisher.identifier(small_plan.root)
+            identifier=publisher.plan.active_plan.identifier(small_plan.root)
         ),
         monitor=MonitorSpecification(
             monitor_type=ConstraintMonitorType.VECTORS_ALIGNED, parameters=parameters
@@ -213,7 +253,7 @@ def test_a_limit_must_be_a_number(publisher, small_plan):
     publisher.begin_plan(small_plan.plan)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
-            identifier=PlanPublisher.identifier(small_plan.root)
+            identifier=publisher.plan.active_plan.identifier(small_plan.root)
         ),
         monitor=MonitorSpecification(
             monitor_type=ConstraintMonitorType.HEIGHT,
@@ -228,7 +268,7 @@ def test_pointing_needs_a_goal(publisher, small_plan):
     publisher.begin_plan(small_plan.plan)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
-            identifier=PlanPublisher.identifier(small_plan.root)
+            identifier=publisher.plan.active_plan.identifier(small_plan.root)
         ),
         monitor=MonitorSpecification(
             monitor_type=ConstraintMonitorType.POINTING_AT,

@@ -185,7 +185,7 @@ class WorldModels:
             parts={part.name: list(part.links) for part in parts},
             part_annotations=parts,
             identifier=RobotRoster.identifier(robot),
-            label=str(robot.name),
+            label=RobotRoster.label(robot),
         )
 
 
