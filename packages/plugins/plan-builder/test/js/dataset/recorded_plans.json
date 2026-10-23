@@ -1,0 +1,119 @@
+{
+  "planTrees": [
+    {
+      "id": "plan_node_0",
+      "kind": "SequentialNode",
+      "label": "SequentialNode",
+      "status": "SUCCEEDED",
+      "robot": "tiago",
+      "start": 0,
+      "end": 79,
+      "children": [
+        {
+          "id": "plan_node_1",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "ParkArmsAction",
+          "status": "SUCCEEDED",
+          "arm": "BOTH",
+          "start": 0,
+          "end": 9,
+          "children": [
+            {
+              "id": "plan_node_2",
+              "parent": "plan_node_1",
+              "kind": "MotionNode",
+              "label": "MoveJointsMotion",
+              "status": "SUCCEEDED"
+            }
+          ]
+        },
+        {
+          "id": "plan_node_3",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "NavigateAction",
+          "status": "SUCCEEDED",
+          "start": 12,
+          "end": 29
+        },
+        {
+          "id": "plan_node_4",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "RailPickUpAction",
+          "status": "SUCCEEDED",
+          "arm": "LEFT",
+          "target": "A08",
+          "start": 30,
+          "end": 44,
+          "children": [
+            {
+              "id": "plan_node_5",
+              "parent": "plan_node_4",
+              "kind": "SequentialNode",
+              "label": "SequentialNode",
+              "status": "SUCCEEDED",
+              "start": 30,
+              "end": 44,
+              "children": [
+                {
+                  "id": "plan_node_6",
+                  "parent": "plan_node_5",
+                  "kind": "ActionNode",
+                  "label": "ReachAction",
+                  "status": "SUCCEEDED",
+                  "arm": "LEFT",
+                  "target": "A08",
+                  "start": 30,
+                  "end": 38
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "plan_node_7",
+          "parent": "plan_node_0",
+          "kind": "ParallelNode",
+          "label": "ParallelNode",
+          "status": "SUCCEEDED",
+          "start": 45,
+          "end": 64,
+          "children": [
+            {
+              "id": "plan_node_8",
+              "parent": "plan_node_7",
+              "kind": "ActionNode",
+              "label": "PlaceAction",
+              "status": "SUCCEEDED",
+              "arm": "LEFT",
+              "target": "A08",
+              "start": 45,
+              "end": 64
+            }
+          ]
+        },
+        {
+          "id": "plan_node_9",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "ParkArmsAction",
+          "status": "SUCCEEDED",
+          "arm": "BOTH",
+          "start": 65,
+          "end": 79
+        }
+      ]
+    },
+    {
+      "id": "plan_2_node_0",
+      "kind": "ActionNode",
+      "label": "NavigateAction",
+      "status": "FAILED",
+      "robot": "stretch",
+      "start": 80,
+      "end": 99
+    }
+  ]
+}

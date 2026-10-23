@@ -1,0 +1,48 @@
+{
+  "name": "recorded_robot_plans",
+  "formatVersion": "1.0",
+  "framesPerSecond": 50,
+  "trajectory": "trajectory.json",
+  "planTrees": [
+    {
+      "id": "plan_node_0",
+      "kind": "SequentialNode",
+      "label": "SequentialNode",
+      "status": "SUCCEEDED",
+      "robot": "tiago",
+      "start": 0,
+      "end": 20,
+      "children": [
+        {
+          "id": "plan_node_1",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "NavigateAction",
+          "status": "SUCCEEDED",
+          "start": 0,
+          "end": 20
+        }
+      ]
+    },
+    {
+      "id": "plan_2_node_0",
+      "kind": "SequentialNode",
+      "label": "SequentialNode",
+      "status": "SUCCEEDED",
+      "robot": "stretch",
+      "start": 21,
+      "end": 35,
+      "children": [
+        {
+          "id": "plan_2_node_1",
+          "parent": "plan_2_node_0",
+          "kind": "ActionNode",
+          "label": "NavigateAction",
+          "status": "SUCCEEDED",
+          "start": 21,
+          "end": 35
+        }
+      ]
+    }
+  ]
+}

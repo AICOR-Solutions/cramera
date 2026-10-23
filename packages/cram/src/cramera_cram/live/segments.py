@@ -12,7 +12,7 @@ from enum import StrEnum
 from typing_extensions import List, Optional
 
 from cramera_cram.live.recording import FrameRange, RecordedFrame
-from cramera_protocol.bundle.scene import Segment
+from cramera_protocol.bundle.scene import PlanNode, Segment
 from cramera_protocol.geometry import Pose
 
 TRANSPORT_TOLERANCE_METRES = 0.02
@@ -265,3 +265,45 @@ class SegmentClipping:
             if segment.end >= self.frame_range.first
             and segment.start <= self.frame_range.last
         ]
+
+
+@dataclass(frozen=True)
+class PlanNodeClipping:
+    """
+    Narrows the frames the nodes of a recorded plan ran in to a kept stretch of the run
+    and counts them from its start.
+    """
+
+    frame_range: FrameRange
+    """
+    The stretch kept.
+    """
+
+    def clip(self, nodes: List[PlanNode]) -> List[PlanNode]:
+        """
+        :param nodes: Plan nodes with their frames in the whole run.
+        :return: The same nodes and their descendants; a node that ran within the stretch
+            keeps its frames clamped and rebased, any other loses them.
+        """
+        return [self.clip_node(node) for node in nodes]
+
+    def clip_node(self, node: PlanNode) -> PlanNode:
+        """
+        :param node: A plan node with its frames in the whole run.
+        :return: The node and its descendants with their frames within the stretch.
+        """
+        children = self.clip(node.children)
+        if (
+            node.start is None
+            or node.end is None
+            or node.end < self.frame_range.first
+            or node.start > self.frame_range.last
+        ):
+            return replace(node, start=None, end=None, children=children)
+        frames = SegmentClipping(self.frame_range)
+        return replace(
+            node,
+            start=frames.frame(node.start),
+            end=frames.frame(node.end),
+            children=children,
+        )

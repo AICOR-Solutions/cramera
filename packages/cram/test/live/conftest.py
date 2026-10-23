@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from typing_extensions import Iterator
+from typing_extensions import Iterator, List
 
 from cramera.http.messages import Header, HttpMethod, Request
 from cramera.http.server import RequestAnswerer
@@ -18,6 +18,7 @@ from cramera_cram.visualization import PublishedModelChange, PublishedStateChang
 from cramera_questions.workspace_classes import WorkspaceClassIndex
 
 from ..dataset.live_worlds import SmallPlan
+from ..dataset.worlds import TwoRobots
 
 LIVE_DATASET = Path(__file__).parent.parent / "dataset" / "live"
 """
@@ -60,6 +61,25 @@ def small_plan(kitchen) -> SmallPlan:
     :return: A plan of a root, an action and a motion opening the milk.
     """
     return SmallPlan.build(kitchen.milk)
+
+
+@pytest.fixture
+def two_robots() -> TwoRobots:
+    """
+    :return: Two robots in a world of their own, to perform a plan each.
+    """
+    return TwoRobots.build()
+
+
+@pytest.fixture
+def robot_plans(kitchen, two_robots) -> List[SmallPlan]:
+    """
+    :return: A small plan for each of the two robots, each opening the milk.
+    """
+    return [
+        SmallPlan.build(kitchen.milk, two_robots.context(robot))
+        for robot in two_robots.robots
+    ]
 
 
 @pytest.fixture

@@ -303,13 +303,14 @@ class LivePublisher:
             self.transforms.observe(self.model.world, self.clock())
             self.recording.append(
                 snapshot,
-                self.plan.running_action(),
+                self.plan.running(),
                 self.statechart.current() if self.motion_running else None,
             )
 
     def begin_plan(self, plan: Plan) -> None:
         """
-        Publish a plan that is about to perform; its robot becomes the selected one.
+        Publish a plan that is about to perform, keeping the plans performed before for
+        the recording; its robot becomes the selected one.
 
         :param plan: The plan.
         """
@@ -725,7 +726,10 @@ class LivePublisher:
             raise EmptyRecording()
         with self.world_lock:
             scene = self.bundle_writer.recording(
-                self.require_model(), self.selected_robot, frames, self.plan.current()
+                self.require_model(),
+                self.selected_robot,
+                frames,
+                self.plan.performed_plans(),
             )
         self.recording.written(scene)
         return self.recording.status()

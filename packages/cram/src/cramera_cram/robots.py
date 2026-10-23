@@ -136,6 +136,14 @@ class RobotRoster:
         """
         return str(robot.id)
 
+    @staticmethod
+    def label(robot: AbstractRobot) -> str:
+        """
+        :param robot: A robot annotation.
+        :return: Its display name.
+        """
+        return str(robot.name)
+
     def named(self, identifier: str) -> AbstractRobot:
         """
         :param identifier: The identity of a robot.
@@ -167,7 +175,7 @@ class RobotRoster:
         """
         return RobotInstance(
             identifier=self.identifier(robot),
-            label=str(robot.name),
+            label=self.label(robot),
             model=type(robot).__name__,
             pose=NumericPose.of_entity(self.world, robot.root).published(),
             joint_positions=self.joint_positions(robot),
