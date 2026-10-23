@@ -5,7 +5,9 @@ plan's robots, objects and targets in the 3D view of an environment, attaches
 constraints written in plain language to its steps and runs the demo generated from it.
 
 Install it next to the viewer; the viewer finds it through the `cramera.plugins` entry
-point and shows a **Plan builder** panel that opens the builder page.
+point and shows a **Plan View** panel: the plan of a replayed recording as the builder's
+step cards, each with every parameter and constraint it was recorded with, following the
+playhead. The builder page itself is served at `/plugins/plan-builder/builder.html`.
 
 ```bash
 pip install -e packages/plugins/plan-builder

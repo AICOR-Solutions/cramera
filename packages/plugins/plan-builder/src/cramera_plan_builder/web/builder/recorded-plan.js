@@ -25,9 +25,15 @@ const ACTION_SUFFIX = 'Action';
 const WORD_BOUNDARY = /(?<=[a-z0-9])(?=[A-Z])/;
 
 /**
- * The recorded fields a step's card shows, in order.
+ * The recorded fields a step's card shows, in order, when the recording was written
+ * before plan nodes carried every parameter.
  */
 const SHOWN_FIELDS = Object.freeze([PlanNodeKey.ARM, PlanNodeKey.TARGET]);
+
+/**
+ * Separates the words of a parameter's name, which its label replaces with spaces.
+ */
+const NAME_SEPARATOR = '_';
 
 // %% step
 
@@ -117,11 +123,30 @@ export class RecordedStep {
   }
 
   /**
-   * @returns {Array<{name: string, value: string}>} The arm and target the step was
-   *   recorded with, those it has.
+   * @param {string} name A parameter's name, as the action declares it.
+   * @returns {string} The name in words, as the builder labels the field.
+   */
+  static fieldLabel(name) {
+    return name.split(NAME_SEPARATOR).join(' ');
+  }
+
+  /**
+   * @returns {Array<{name: string, value: string}>} Every parameter the step was
+   *   recorded with, labelled as the builder labels the field; for a recording
+   *   written before plan nodes carried them, the arm and target it has.
    */
   parameters() {
+    const recorded = Object.entries(this.node[PlanNodeKey.PARAMETERS] ?? {});
+    if (recorded.length > 0) return recorded.map(([name, value]) => ({ name: RecordedStep.fieldLabel(name), value }));
     return SHOWN_FIELDS.filter((key) => this.node[key]).map((key) => ({ name: key, value: this.node[key] }));
+  }
+
+  /**
+   * @returns {Array<Object>} The constraints attached to the step while it ran, as
+   *   the recording stores them.
+   */
+  constraints() {
+    return this.node[PlanNodeKey.CONSTRAINTS] ?? [];
   }
 }
 

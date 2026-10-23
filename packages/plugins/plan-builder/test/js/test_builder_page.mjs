@@ -643,16 +643,16 @@ test('disposing the page stops polling and releases the view', async () => {
 
 // %% panel
 
-test('the panel links to the builder page and to planning in the shown scene', () => {
+test('the panel is the plan view: its heading and the recorded plan, nothing else', () => {
   const document = new FakeDocument();
   const bus = new EventBus();
   const panels = new PanelHost(document.createElement('nav'), document.createElement('div'));
-  const panel = register({ bus, panels }, document, 'http://localhost/plugins/plan-builder/builder.html');
+  const panel = register({ bus, panels }, document);
   bus.publish(ViewerEvent.SCENE_LOADING, 'lab');
-  const [, , , line] = panel.element.children;
-  assert.equal(line.hidden, false);
-  assert.match(line.children[0].href, new RegExp(`${PlanBuilderPageParameter.ENVIRONMENT}=lab`));
+  assert.equal(PANEL_TITLE, 'Plan View');
   assert.equal(panel.element.children[0].textContent, PANEL_TITLE);
+  assert.equal(panel.element.children.length, 2);
+  assert.equal(panel.element.findAll((element) => element.tagName === 'A').length, 0);
   panel.dispose();
 });
 

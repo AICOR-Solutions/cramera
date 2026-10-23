@@ -5,9 +5,10 @@ The executing plan as the viewer shows it: every node with its native status.
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, is_dataclass, replace
+from enum import Enum
 
-from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Set
+from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 from cramera_cram.exceptions import UnknownPlanNode
 from cramera_cram.live.recording import RunningAction
@@ -16,7 +17,11 @@ from cramera_cram.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.datastructures.enums import Arms, TaskStatus
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
-from semantic_digital_twin.world_description.world_entity import Body
+from semantic_digital_twin.spatial_types.spatial_types import Pose
+from semantic_digital_twin.world_description.world_entity import (
+    Body,
+    SemanticAnnotation,
+)
 
 if TYPE_CHECKING:
     from coraplex.plans.plan import Plan
@@ -48,13 +53,36 @@ ConstraintLookup = Callable[[str], List[ConstraintObservation]]
 Answers the constraint monitors attached to a plan node, by the node's identity.
 """
 
+PARAMETER_SEPARATOR = ", "
+"""
+Joins the parts of a rendered parameter that has several, such as a pose's coordinates
+or the fields of a nested description.
+"""
+
+COORDINATE_FORMAT = "{:.3f}"
+"""
+How a coordinate of a pose is rendered: to the millimetre.
+"""
+
+NUMBER_FORMAT = "{:g}"
+"""
+How a number is rendered: as short as it reads back exactly enough.
+"""
+
+SWITCH_VALUES = {True: "on", False: "off"}
+"""
+How a boolean is rendered.
+"""
+
+
 # %% designators
 
 
 @dataclass(frozen=True)
 class DesignatorSummary:
     """
-    The arm and the body a node's designator names.
+    The arm and the body a node's designator names, and every field it holds rendered
+    for reading.
     """
 
     node: PlanNode
@@ -98,6 +126,75 @@ class DesignatorSummary:
         if isinstance(self.node, DesignatorNode):
             return type(self.node.designator).__name__
         return type(self.node).__name__
+
+    def parameters(self, object_keys: Set[str]) -> Dict[str, str]:
+        """
+        :param object_keys: The keys of the published objects.
+        :return: Every field of the designator that holds a value, by name, rendered
+            as the viewer shows it; empty for a node without a designator.
+        """
+        if not isinstance(self.node, DesignatorNode):
+            return {}
+        return {
+            name: self.render(value, object_keys)
+            for name, value in self.fields_of(self.node.designator)
+            if value is not None
+        }
+
+    @staticmethod
+    def fields_of(value: object) -> List[Tuple[str, object]]:
+        """
+        :param value: A designator or a description nested in one.
+        :return: Its fields by name: those a dataclass declares, else its attributes.
+        """
+        attributes = vars(value)
+        if is_dataclass(value):
+            return [
+                (each.name, attributes[each.name])
+                for each in fields(value)
+                if each.init and each.name in attributes
+            ]
+        return list(attributes.items())
+
+    @classmethod
+    def render(cls, value: object, object_keys: Set[str], nested: bool = False) -> str:
+        """
+        :param value: A field's value.
+        :param object_keys: The keys of the published objects.
+        :param nested: Whether the value sits in a description nested in the
+            designator; a description nested deeper is named by its class.
+        :return: The value as the viewer shows it: an enumeration member by its name,
+            a body by its published key else its name, an annotation by its name, a
+            pose by its position, a boolean as on or off, a nested description by its
+            fields, and anything else by its text.
+        """
+        if isinstance(value, Enum):
+            return value.name
+        if isinstance(value, Body):
+            key = ObjectKey.of(value)
+            return key if key in object_keys else str(value.name)
+        if isinstance(value, SemanticAnnotation):
+            return str(value.name)
+        if isinstance(value, Pose):
+            return PARAMETER_SEPARATOR.join(
+                COORDINATE_FORMAT.format(float(coordinate))
+                for coordinate in value.to_position_quaternion_list()[:3]
+            )
+        if isinstance(value, bool):
+            return SWITCH_VALUES[value]
+        if isinstance(value, (int, float)):
+            return NUMBER_FORMAT.format(value)
+        if isinstance(value, str):
+            return value
+        if is_dataclass(value) and not nested:
+            return PARAMETER_SEPARATOR.join(
+                f"{name} {cls.render(inner, object_keys, nested=True)}"
+                for name, inner in cls.fields_of(value)
+                if inner is not None
+            )
+        if is_dataclass(value):
+            return type(value).__name__
+        return str(value)
 
 
 # %% plan
@@ -212,6 +309,7 @@ class PerformedPlan:
             arm=summary.arm(),
             target=summary.target(object_keys),
             constraints=constraints(identifier),
+            parameters=summary.parameters(object_keys),
         )
 
     def running(self) -> Optional[RunningAction]:

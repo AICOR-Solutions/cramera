@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { PlanBuilderName, PlanNodeKey, SceneKey, ViewerEvent } from 'cramera-viewer/protocol.js';
+import { PlanBuilderName, PlanConstraintKey, PlanNodeKey, SceneKey, ViewerEvent } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost, SidePanel } from 'cramera-viewer/panels/panel-host.js';
 import { RecordedPlans, RecordedStep, StepPhase } from '../../src/cramera_plan_builder/web/builder/recorded-plan.js';
@@ -15,7 +15,6 @@ const [TIAGO_PLAN, STRETCH_PLAN] = ROOTS;
 const [PARK, NAVIGATE, PICK_UP, PARALLEL, LAST_PARK] = TIAGO_PLAN[PlanNodeKey.CHILDREN];
 const PLACE = PARALLEL[PlanNodeKey.CHILDREN][0];
 const TIAGO_STEPS = [PARK, NAVIGATE, PICK_UP, PLACE, LAST_PARK];
-const PAGE_URL = 'http://localhost/plugins/plan-builder/builder.html';
 
 /**
  * @param {Array<Object>} nodes Plan nodes.
@@ -49,14 +48,25 @@ test('the steps of a plan are its outermost actions, in order', () => {
   assert.deepEqual(stretch.steps.map((step) => step.node), [STRETCH_PLAN]);
 });
 
-test('a step is named in words and shows the arm and target it was recorded with', () => {
+test('a step is named in words and shows every parameter it was recorded with, labelled as the builder labels the field', () => {
   assert.equal(RecordedStep.words(PICK_UP[PlanNodeKey.LABEL]), 'Rail Pick Up');
   const [, navigate, pickUp] = RecordedPlans.of(ROOTS).plans[0].steps;
-  assert.deepEqual(pickUp.parameters(), [
-    { name: PlanNodeKey.ARM, value: PICK_UP[PlanNodeKey.ARM] },
-    { name: PlanNodeKey.TARGET, value: PICK_UP[PlanNodeKey.TARGET] },
-  ]);
+  assert.deepEqual(
+    pickUp.parameters(),
+    Object.entries(PICK_UP[PlanNodeKey.PARAMETERS]).map(([name, value]) => ({ name: name.replaceAll('_', ' '), value })),
+  );
+  assert.equal(pickUp.parameters().find((parameter) => parameter.name === 'grasp detection threshold').value, '0.9');
+  assert.deepEqual(pickUp.constraints(), PICK_UP[PlanNodeKey.CONSTRAINTS]);
   assert.deepEqual(navigate.parameters(), []);
+  assert.deepEqual(navigate.constraints(), []);
+});
+
+test('a step recorded before plan nodes carried parameters shows its arm and target', () => {
+  const place = RecordedPlans.of(ROOTS).plans[0].steps[3];
+  assert.deepEqual(place.parameters(), [
+    { name: PlanNodeKey.ARM, value: PLACE[PlanNodeKey.ARM] },
+    { name: PlanNodeKey.TARGET, value: PLACE[PlanNodeKey.TARGET] },
+  ]);
 });
 
 test('a plan is titled with the robot that performed it', () => {
@@ -120,6 +130,21 @@ test('the view shows one list of step cards per plan', () => {
   const name = cardOf(view.element, PICK_UP).findAll((element) => element.className === 'step-name')[0];
   assert.equal(name.textContent, RecordedStep.words(PICK_UP[PlanNodeKey.LABEL]));
   assert.match(cardOf(view.element, PICK_UP).innerText, new RegExp(PICK_UP[PlanNodeKey.TARGET]));
+});
+
+test('a card shows every recorded parameter and each constraint with its monitor and observation', () => {
+  const view = new RecordedPlanView(new FakeDocument(), () => {});
+  view.show(ROOTS);
+  const card = cardOf(view.element, PICK_UP);
+  const outputs = card.findAll((element) => element.tagName === 'OUTPUT').map((output) => output.textContent);
+  assert.deepEqual(outputs, Object.values(PICK_UP[PlanNodeKey.PARAMETERS]));
+  assert.match(card.innerText, /grasp detection threshold/);
+  const [chip] = card.findAll((element) => element.className === 'chip');
+  const [constraint] = PICK_UP[PlanNodeKey.CONSTRAINTS];
+  assert.match(chip.innerText, new RegExp(constraint[PlanConstraintKey.TEXT]));
+  assert.equal(chip.findAll((element) => element.className === 'badge')[0].textContent, constraint[PlanConstraintKey.MONITOR]);
+  assert.equal(chip.findAll((element) => element.className === 'observation')[0].dataset.observation, constraint[PlanConstraintKey.OBSERVATION]);
+  assert.equal(cardOf(view.element, NAVIGATE).findAll((element) => element.className === 'chip').length, 0);
 });
 
 test('the view titles each plan\'s list with the robot that performed it', () => {
@@ -196,11 +221,11 @@ const registered = () => {
   const bus = new EventBus();
   const panels = new PanelHost(document.createElement('aside'));
   panels.add(new SidePanel('steps', 'Steps', document.createElement('section')));
-  const panel = register({ bus, panels }, document, PAGE_URL);
+  const panel = register({ bus, panels }, document);
   return { bus, panels, panel };
 };
 
-test('a replayed recording shows its plan in the plan builder panel, following the playhead', () => {
+test('a replayed recording shows its plan in the plan view panel, following the playhead', () => {
   const { bus, panels, panel } = registered();
   bus.publish(ViewerEvent.SCENE_LOADED, { description: { [SceneKey.PLAN_TREES]: ROOTS } });
   assert.equal(panels.shown, PlanBuilderName.PLUGIN);

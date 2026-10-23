@@ -27,6 +27,7 @@ from cramera_protocol.live_messages import (
     RobotSelection,
 )
 from coraplex.datastructures.enums import Arms, TaskStatus
+from semantic_digital_twin.datastructures.definitions import TorsoState
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
 
@@ -61,6 +62,15 @@ def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen):
     motion = publisher.current_plan().nodes[2]
     assert motion.arm == Arms.LEFT.name
     assert motion.target == str(kitchen.milk.id)
+
+
+def test_a_node_renders_every_field_of_its_designator(publisher, small_plan, kitchen):
+    publisher.begin_plan(small_plan.plan)
+    root, action, motion = publisher.current_plan().nodes
+    assert root.parameters == {}
+    assert action.parameters == {"torso_state": TorsoState.HIGH.name}
+    assert motion.parameters["arm"] == Arms.LEFT.name
+    assert motion.parameters["object_part"] == str(kitchen.milk.id)
 
 
 def test_a_node_is_found_by_its_identity(publisher, small_plan):

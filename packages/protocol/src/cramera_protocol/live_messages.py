@@ -269,6 +269,11 @@ class LivePlanNodeKey(StrEnum):
     The constraint monitors attached to the node.
     """
 
+    PARAMETERS = "parameters"
+    """
+    Every field of the node's designator by name.
+    """
+
 
 @dataclass(kw_only=True)
 class LivePlanNode(JsonDocument):
@@ -316,6 +321,15 @@ class LivePlanNode(JsonDocument):
     )
     """
     The constraint monitors attached to the node.
+    """
+
+    parameters: Dict[str, str] = document_field(
+        LivePlanNodeKey.PARAMETERS, default_factory=dict
+    )
+    """
+    Every field of the node's designator by name, rendered for reading: an enumeration
+    member by its name, an object by its key, a pose by its position; empty for a node
+    without a designator.
     """
 
 

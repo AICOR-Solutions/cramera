@@ -23,7 +23,12 @@ from cramera_cram.live.world_model import ObjectKey, WorldModelView
 from cramera_cram.robots import RobotRoster
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import ReservedSceneName
-from cramera_protocol.bundle.scene import ObjectDescription, PlanNode, SceneDescription
+from cramera_protocol.bundle.scene import (
+    ObjectDescription,
+    PlanConstraint,
+    PlanNode,
+    SceneDescription,
+)
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import LivePlan
 from cramera_protocol.version import CURRENT_VERSION
@@ -241,6 +246,15 @@ class PlanTrees:
                 start=None if frames is None else frames.first,
                 end=None if frames is None else frames.last,
                 robot=None if node.parent in identifiers else self.robot,
+                parameters=dict(node.parameters),
+                constraints=[
+                    PlanConstraint(
+                        text=constraint.text,
+                        monitor=constraint.monitor,
+                        observation=constraint.observation,
+                    )
+                    for constraint in node.constraints
+                ],
             )
         roots = []
         for node in self.plan.nodes:

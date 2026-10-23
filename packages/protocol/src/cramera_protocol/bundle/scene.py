@@ -607,6 +607,61 @@ class PlanNodeKey(StrEnum):
     The robot that performed the plan, on the plan's root.
     """
 
+    PARAMETERS = "parameters"
+    """
+    Every field of the node's designator by name, each as the recorder wrote it.
+    """
+
+    CONSTRAINTS = "constraints"
+    """
+    The constraints attached to the node while it ran.
+    """
+
+
+class PlanConstraintKey(StrEnum):
+    """
+    The keys of one constraint attached to a node of an executed plan.
+    """
+
+    TEXT = "text"
+    """
+    The constraint as it was written.
+    """
+
+    MONITOR = "monitor"
+    """
+    The monitor class the constraint became.
+    """
+
+    OBSERVATION = "observation"
+    """
+    What the monitor observed last.
+    """
+
+
+@dataclass(kw_only=True)
+class PlanConstraint(JsonDocument):
+    """
+    A constraint attached to a node of an executed plan, with its last observation.
+    """
+
+    text: str = document_field(PlanConstraintKey.TEXT)
+    """
+    The constraint as it was written.
+    """
+
+    monitor: str = document_field(PlanConstraintKey.MONITOR)
+    """
+    The class name of the monitor the constraint became.
+    """
+
+    observation: Optional[str] = document_field(
+        PlanConstraintKey.OBSERVATION, default=None
+    )
+    """
+    The name of the monitor's last observation value, or None when it never ticked.
+    """
+
 
 class PlanNodeKind(StrEnum):
     """
@@ -683,6 +738,23 @@ class PlanNode(JsonDocument):
     """
     The display name of the robot that performed the plan, on the plan's root; None on
     every other node and for a plan recorded without its robot.
+    """
+
+    parameters: Dict[str, str] = document_field(
+        PlanNodeKey.PARAMETERS, default_factory=dict
+    )
+    """
+    Every field of the node's designator by name, rendered as the recorder wrote it:
+
+    an enumeration member by its name, an object by its key, a pose by its position;
+    empty for a node without a designator and in recordings written before.
+    """
+
+    constraints: List[PlanConstraint] = document_field(
+        PlanNodeKey.CONSTRAINTS, default_factory=list
+    )
+    """
+    The constraints attached to the node while it ran, with their last observations.
     """
 
     extensions: Dict[str, Any] = extension_field()

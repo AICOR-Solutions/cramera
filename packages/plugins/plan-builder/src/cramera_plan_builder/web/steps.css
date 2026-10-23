@@ -51,6 +51,10 @@
 .recorded-plan .step[title] { cursor: pointer; }
 .recorded-plan .step-head .node-status { margin-left: auto; text-transform: lowercase; }
 .recorded-plan .step-parameters output { font-size: 12px; color: var(--text); }
+.recorded-plan .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.recorded-plan .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--surface-sunken); border-radius: 999px; padding: 2px 10px; }
+.recorded-plan .badge { font: 11px var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.recorded-plan .observation { font: 11px var(--mono); border-radius: 999px; padding: 1px 7px; background: var(--surface); }
 .recorded-plan .step[data-phase="done"] { opacity: 0.6; }
 .recorded-plan .step[data-phase="running"] {
   background: var(--accent-soft);
