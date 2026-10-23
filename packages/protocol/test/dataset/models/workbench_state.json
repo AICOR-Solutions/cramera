@@ -1,8 +1,0 @@
-{
-  "loaded": true,
-  "name": "uniform_color.json",
-  "variables": [
-    {"name": "color", "kind": "symbolic", "values": ["blue", "red"]},
-    {"name": "x", "kind": "continuous", "low": 0.0, "high": 1.0}
-  ]
-}

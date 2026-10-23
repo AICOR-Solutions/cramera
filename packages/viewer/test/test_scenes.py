@@ -10,7 +10,7 @@ import pytest
 
 from cramera.exceptions import FileNotInDirectory, UnknownScene
 from cramera.locations import DataLocations
-from cramera.scenes import SceneDirectory, SceneSource
+from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
 from cramera_protocol.bundle.index import ReservedSceneName
 from cramera_protocol.viewer import EnvironmentVariable
@@ -125,3 +125,31 @@ def test_a_reserved_bundle_only_a_shared_directory_holds_is_not_served(catalog, 
     )
     with pytest.raises(UnknownScene):
         catalog.directory_of(ReservedSceneName.LIVE)
+
+
+def test_scenes_directories_nested_in_a_directory_are_found(scenes):
+    # A scenes repository cloned into the demo directory, with an index of its own,
+    demo = scenes / "demo_scenes"
+    nested = demo / "cloned_scenes"
+    shutil.copytree(scenes / "shared_scenes", nested)
+    # and one without an index, two levels down, next to a file.
+    shutil.copytree(scenes / "local_scenes", nested / "more" / "local_copy")
+    (nested / "more" / "notes.txt").write_text("not a bundle", encoding="utf-8")
+
+    alone = SceneCatalog([SceneDirectory(demo, SceneSource.DEMO)]).index()
+    shutil.rmtree(nested)
+    own = [entry.name for entry in alone.scenes]
+    shutil.copytree(scenes / "shared_scenes", nested)
+    shutil.copytree(scenes / "local_scenes", nested / "more" / "local_copy")
+    catalog = SceneCatalog([SceneDirectory(demo, SceneSource.DEMO)])
+
+    names = [entry.name for entry in catalog.index().scenes]
+    assert names[: len(own)] == own
+    assert "warehouse" in names and "cell" in names
+    assert catalog.directory_of("warehouse").path == nested
+    assert catalog.bundle_file("cell", "scene.json").is_file()
+
+
+def test_a_bundle_is_not_searched_for_nested_directories(scenes):
+    directory = SceneDirectory(scenes / "shared_scenes", SceneSource.SHARED)
+    assert directory.with_nested() == [directory]

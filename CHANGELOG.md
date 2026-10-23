@@ -8,10 +8,12 @@ which this repository was mirrored until 22 Oct 2026.
 ## 1.0.0 · in progress since 22 Oct 2026
 
 ### Removed
-- **The laboratory, the workshop and the cable lab.** `cramera-laboratory`,
-  `cramera-workshop` and `cramera-cable-lab` are gone with their panels and pages,
-  their protocol modules `cramera_protocol.laboratory`, `cramera_protocol.workshop`
-  and `cramera_protocol.cable_lab`, and `PluginName.WORKSHOP`. The navigation group
+- **The models panel, the laboratory, the workshop and the cable lab.**
+  `cramera-models`, `cramera-laboratory`, `cramera-workshop` and `cramera-cable-lab`
+  are gone with their panels and pages, their protocol modules
+  `cramera_protocol.models`, `cramera_protocol.laboratory`,
+  `cramera_protocol.workshop` and `cramera_protocol.cable_lab`, `PluginName.MODELS`
+  and `PluginName.WORKSHOP`, and the vendored Plotly. The navigation group
   `laboratory` stays for plugins outside this repository; `cramera_protocol.rights`
   stays for the scene builder.
 
@@ -23,6 +25,12 @@ which this repository was mirrored until 22 Oct 2026.
   heading so the panels take the column. All three are remembered in the browser
   under `PageStorageKey.SPLIT`, `PageStorageKey.QUERY_SPLIT` and
   `PageStorageKey.QUERY_FOLDED`.
+- **Scenes directories inside scenes directories.** A child of a scenes directory
+  that is not a bundle but holds an `index.json` or bundles is a further scenes
+  directory of the same source, and so on below it. The repository's own demo bundles
+  moved to `demo/standard_scenes`; `cramera --demo-scenes demo` shows them with every
+  scenes repository cloned next to them, which git ignores. The scene builder names
+  such a nested library root `<source>-<directory>`.
 - **A new viewer replaces the old one.** `cramera` started on a port another cramera
   viewer holds stops that viewer and takes the port; `--keep-running` keeps the
   earlier behaviour of failing with *address already in use*.

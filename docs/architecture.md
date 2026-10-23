@@ -18,7 +18,7 @@ through a plugin.
             cramera     cramera-usd    cramera-cram ──── CRAM workspace
            (viewer)    (USD import)   (live publisher, recording, questions, demos)
                |
-     plugins: cramera-offline, cramera-models, cramera-plan-builder, ...
+     plugins: cramera-offline, cramera-plan-builder, ...
 ```
 
 | Package | Import name | Depends on | Responsibility |
@@ -28,7 +28,6 @@ through a plugin.
 | `cramera-usd` | `cramera_usd` | `cramera-protocol`, `usd-core`, `numpy` | Converting a USD stage into a scene bundle, the export gate, the robot separation audit. |
 | `cramera-cram` | `cramera_cram` | `cramera`, CRAM packages | Live publishing from a running plan, recording into bundles, questions in the entity query language, demo onboarding, task demos. |
 | `cramera-offline` | `cramera_offline` | `cramera` | The Tour panel over a storyboard, `cramera-check-bundle`, and `cramera-offline`, which prepares, checks, serves (optionally from a network namespace without routes) and exports a presentation of recorded bundles. |
-| `cramera-models` | `cramera_models` | `cramera`; `probabilistic_model`, `random_events`, `krrood` and `plotly` optionally | The Models panel: probability, posterior and mode questions about a probabilistic circuit. Without the circuit libraries its routes answer which are missing. |
 | `cramera-plan-builder` | `cramera_plan_builder` | `cramera`; `cramera-cram` and the CRAM workspace optionally | The Plan builder panel and page: composes a robot plan by drag and drop from the native actions it discovers in the CRAM workspace, each step's form built from its action's fields, places its robots, objects and targets over an environment bundle, compiles constraints written in plain language into live monitors, and generates, writes and runs the plan's `RobotTaskDemo` as an owned child process. Without the CRAM workspace its catalog names the missing modules. |
 | The other plugins | ... | `cramera`, and what the plugin itself needs | One self-contained feature each: its Python routes, its browser module, its assets. |
 
@@ -60,7 +59,8 @@ outside the class: dataclasses with a `from_json` classmethod.
 - Every request passes an `OriginPolicy`. The server binds to `127.0.0.1` by default
   and answers only requests whose origin is the local machine.
 - A `SceneCatalog` merges several `SceneDirectory` instances: the shared folder, the
-  local recordings and the demo scenes. Every file request is confined to its bundle
+  local recordings and the demo scenes, each with the scenes directories nested in
+  it, so a scenes repository cloned into one of them is found without being named. Every file request is confined to its bundle
   directory, including symbolic links and `..`.
 - Plugins are found through the entry-point group `cramera.plugins`. Each one is a
   `ViewerPlugin` with a name, routes, a directory of browser modules, the
@@ -84,7 +84,7 @@ outside the class: dataclasses with a `from_json` classmethod.
 ## Demo site
 
 `https://aicor-solutions.github.io/cramera/` is rebuilt on every push to `main`. It serves the
-viewer with the demo scenes under `demo/scenes` and the questions plugin's browser
+viewer with the demo scenes under `demo/standard_scenes` and the questions plugin's browser
 module, a status page with the version, commit and build time, a screenshot of the
 viewer taken in that build, and the ontology page, which embeds cram_owlviz
 (`https://sorynaryon.github.io/cram_owlviz/`). The site has no Python and no krrood, so the

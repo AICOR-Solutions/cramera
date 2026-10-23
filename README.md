@@ -35,7 +35,6 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-questions`](packages/questions) | Questions in the entity query language over worlds and recordings. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
-| [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
@@ -55,14 +54,26 @@ one hides a bundle of the same name in a later one:
 | --- | --- |
 | local recordings | `$CRAMERA_DATA/scenes`, by default `~/.cramera/scenes` |
 | shared scenes | `$CRAMERA_SCENES`, and every `--scenes DIR` |
-| demo scenes | `--demo-scenes DIR`, for example `demo/scenes` of this repository |
+| demo scenes | `--demo-scenes DIR`, for example `demo` of this repository |
 
 ```bash
-cramera --demo-scenes demo/scenes --port 8711 --no-browser
+cramera --demo-scenes demo --port 8711 --no-browser
 ```
 
 A viewer started on a port another cramera viewer still holds stops that viewer and
 takes the port over; pass `--keep-running` to fail instead.
+
+A scenes directory may hold other scenes directories: every child that is not a
+bundle but holds an `index.json` or bundles counts as a further directory of the same
+source, and so on below it. So `demo` holds `demo/standard_scenes`, the bundles of
+this repository, and any scenes repository cloned next to it, such as
+`AICOR-Solutions/solutions-cramera-scenes`, is shown without being named. Clones under
+`demo` other than `standard_scenes` are ignored by git.
+
+```bash
+git clone git@github.com:AICOR-Solutions/solutions-cramera-scenes.git demo/solutions-cramera-scenes
+cramera --demo-scenes demo
+```
 
 The demo scenes are part of this repository, not of the installed package, so a
 freshly installed viewer without `--demo-scenes` or `$CRAMERA_SCENES` shows "No
@@ -71,13 +82,13 @@ absolute path, or set `CRAMERA_SCENES`, when the viewer is not started from this
 repository's root:
 
 ```bash
-export CRAMERA_SCENES=/path/to/cramera/demo/scenes
+export CRAMERA_SCENES=/path/to/cramera/demo
 cramera
 ```
 
 ### Install the pages and panels
 
-Everything beyond the scene page is a plugin: Models, Plan Builder, Scene Builder,
+Everything beyond the scene page is a plugin: Plan Builder, Scene Builder,
 the Tour of `cramera-offline` and the questions column. Each is a pip package of its
 own under `packages/plugins` (and `packages/questions`) that the viewer discovers through the entry-point group
 `cramera.plugins`. `pip install ./packages/viewer` installs none of them, so the top
@@ -95,17 +106,16 @@ behaviour as an optional extra:
 | Plugin | Extra | Without it |
 | --- | --- | --- |
 | `cramera-plan-builder` | `[cram]`, that is `cramera-cram` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
-| `cramera-models` | `[circuits]`: probabilistic-model, random-events, krrood, plotly | The panel shows and its routes answer which libraries are missing. |
 
 ```bash
-pip install './packages/plugins/models[circuits]'
+pip install './packages/plugins/plan-builder[cram]'
 ```
 
 See [docs/plugins.md](docs/plugins.md) for writing a plugin.
 
 The page has the look of the original AICOR viewer: dark, with the AICOR logo and a
-link to every page the installed plugins offer (Models, Plan Builder, Scene Builder)
-in the top bar, the 3D view with its **Layers**
+link to every page the installed plugins offer (Plan Builder, Scene Builder) in the
+top bar, the 3D view with its **Layers**
 overlay and the playback controls on the left, questions and graphs on the right. The
 **View** menu switches to a light theme. **Pop out** opens the scene alone in a window
 of its own.
@@ -161,8 +171,8 @@ presets answer as they did when they were recorded, the graphs are drawn, and th
 query boxes say why they are disabled. Record them in the CRAM environment with
 
 ```bash
-cramera-record-answers demo/scenes            # every bundle of the directory
-cramera-record-answers demo/scenes --scene pr2_warehouse_transport
+cramera-record-answers demo/standard_scenes            # every bundle of the directory
+cramera-record-answers demo/standard_scenes --scene pr2_warehouse_transport
 ```
 
 which writes `recorded_answers.json` into each bundle; record again after a bundle

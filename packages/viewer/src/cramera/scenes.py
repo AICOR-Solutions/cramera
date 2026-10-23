@@ -109,6 +109,38 @@ class SceneDirectory:
             derived.add(BundleEntryReader(bundle).read())
         return derived
 
+    def is_collection(self) -> bool:
+        """
+        :return: Whether this directory is a scenes directory: not a bundle itself,
+            and holding an ``index.json`` or at least one bundle.
+        """
+        if not self.path.is_dir() or (self.path / BundleFile.SCENE).is_file():
+            return False
+        if (self.path / ScenesDirectoryFile.INDEX).is_file():
+            return True
+        return any(
+            (child / BundleFile.SCENE).is_file() for child in self.path.iterdir()
+        )
+
+    def with_nested(self) -> List[SceneDirectory]:
+        """
+        A scenes repository cloned into a scenes directory, or several of them, are
+        found without being named: every child that is itself a scenes directory
+        counts as a further directory of the same source, and so on below it. Bundles
+        are not descended into.
+
+        :return: This directory followed by the scenes directories nested in it, in
+            name order.
+        """
+        found = [self]
+        if not self.path.is_dir():
+            return found
+        for child in sorted(self.path.iterdir()):
+            nested = SceneDirectory(child, self.source)
+            if nested.is_collection():
+                found += nested.with_nested()
+        return found
+
     def holds(self, name: str) -> bool:
         """
         :param name: A bundle name.
@@ -219,12 +251,17 @@ class SceneCatalog:
 
     def ordered_directories(self) -> List[SceneDirectory]:
         """
-        :return: The directories in the order their bundles are preferred.
+        :return: The directories and the scenes directories nested in them, in the
+            order their bundles are preferred; within one source a directory comes
+            before the directories nested in it.
         """
         order = list(SceneSource)
-        return sorted(
-            self.directories, key=lambda directory: order.index(directory.source)
-        )
+        expanded = [
+            nested
+            for directory in self.directories
+            for nested in directory.with_nested()
+        ]
+        return sorted(expanded, key=lambda directory: order.index(directory.source))
 
     def index(self) -> SceneIndex:
         """
