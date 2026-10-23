@@ -89,7 +89,9 @@ export class PluginModules {
   }
 
   /**
-   * Import and register every plugin module, in the order the viewer lists them.
+   * Import and register every plugin module: first those of plugins without a
+   * navigation entry, which add to the scene page only, then those the header links
+   * to; each group in the order the viewer lists them. Panels appear in that order.
    * @param {Object} info The viewer's information.
    * @param {PluginContext} context What each module receives.
    * @param {function(string): string} resolve The absolute URL of a module path.
@@ -98,7 +100,9 @@ export class PluginModules {
    */
   async register(info, context, resolve) {
     const registered = [];
-    for (const plugin of info[ViewerInfoKey.PLUGINS] ?? []) {
+    const plugins = info[ViewerInfoKey.PLUGINS] ?? [];
+    const ordered = [...plugins.filter((plugin) => !plugin[PluginKey.NAVIGATION]), ...plugins.filter((plugin) => plugin[PluginKey.NAVIGATION])];
+    for (const plugin of ordered) {
       const module = plugin[PluginKey.MODULE];
       if (!module) continue;
       const imported = await this.#importModule(resolve(module));

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 import { PluginContext, PluginModules, PluginWithoutRegistration } from '../../src/cramera/web/app/plugin-modules.js';
 import { MeshLoading, meshFormatOf, UnsupportedMeshFormat } from '../../src/cramera/web/scene/mesh-loading.js';
-import { MeshFormat, PluginKey, ViewerInfoKey } from '../../src/cramera/web/protocol.js';
+import { MeshFormat, NavigationGroup, NavigationKey, PluginKey, ViewerInfoKey } from '../../src/cramera/web/protocol.js';
 
 // %% plugins
 
@@ -27,6 +27,24 @@ test('plugin modules are imported in order and registered with the context', asy
   assert.deepEqual(names, ['a', 'b']);
   assert.deepEqual(registered.map(([name]) => name), ['a', 'b']);
   assert.equal(registered[0][1].bus, 'bus');
+});
+
+test('plugins the header links to register after those that only add to the scene page', async () => {
+  const registered = [];
+  const module = (name) => ({ register: () => registered.push(name) });
+  const modules = { '/workshop.js': module('workshop'), '/questions.js': module('questions'), '/tour.js': module('tour') };
+  const info = {
+    [ViewerInfoKey.PLUGINS]: [
+      { [PluginKey.NAME]: 'workshop', [PluginKey.MODULE]: '/workshop.js', [PluginKey.NAVIGATION]: { [NavigationKey.TITLE]: 'Workshop', [NavigationKey.GROUP]: NavigationGroup.LABORATORY } },
+      { [PluginKey.NAME]: 'questions', [PluginKey.MODULE]: '/questions.js' },
+      { [PluginKey.NAME]: 'tour', [PluginKey.MODULE]: '/tour.js' },
+    ],
+  };
+  const context = new PluginContext('bus', 'panels', 'api', 'view', 'query', info);
+  assert.deepEqual(await new PluginModules(async (url) => modules[url]).register(info, context, (path) => path), ['questions', 'tour', 'workshop']);
+  assert.deepEqual(registered, ['questions', 'tour', 'workshop']);
+  assert.equal(context.query, 'query');
+  assert.equal(context.info, info);
 });
 
 test('a plugin module without register is refused', async () => {
