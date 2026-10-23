@@ -549,3 +549,26 @@ class DemoNotStarted(PlanBuilderError):
 
     def message(self) -> str:
         return f"The demo {str(self.path)!r} could not be started: {self.reason}"
+
+
+@dataclass
+class UnknownAction(PlanBuilderError):
+    """
+    An action class name the CRAM workspace does not define.
+    """
+
+    name: str
+    """
+    The class name.
+    """
+
+    offered: List[str]
+    """
+    The class names of the actions the workspace defines.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The CRAM workspace defines no action {self.name!r}."

@@ -82,6 +82,17 @@ def test_the_catalog_lists_the_workspace_and_the_environments(get, given_workspa
     assert catalog.limits == PlanBuilderLimits()
 
 
+def test_the_catalog_lists_the_actions_and_the_modules_that_failed(
+    get, given_workspace
+):
+    catalog = PlanBuilderCatalog.from_json(
+        json.loads(get(PlanBuilderRoute.CATALOG).body)
+    )
+    discovered = given_workspace.action_catalog()
+    assert catalog.actions == discovered.actions
+    assert catalog.failed_action_modules == discovered.failed_modules
+
+
 def test_without_cram_the_catalog_names_what_is_missing(serve, output):
     plugin = PlanBuilderPlugin(
         environment={PlanBuilderVariable.OUTPUT: str(output)},
@@ -91,6 +102,7 @@ def test_without_cram_the_catalog_names_what_is_missing(serve, output):
     catalog = PlanBuilderCatalog.from_json(json.loads(answer.body))
     assert catalog.missing == [module.value for module in CramModule]
     assert catalog.robots == [] and catalog.objects == []
+    assert catalog.actions == [] and catalog.failed_action_modules == []
     assert [entry.name for entry in catalog.environments] == ["lab"]
 
 

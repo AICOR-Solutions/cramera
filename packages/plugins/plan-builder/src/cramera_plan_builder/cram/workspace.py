@@ -1,7 +1,7 @@
 """
 The installed CRAM workspace as the plan builder's catalog reads it: robot annotations
-and what their parts allow, object meshes, torso states and surface annotations, all
-read from the workspace's own classes and files.
+and what their parts allow, object meshes, torso states, surface annotations and native
+actions, all read from the workspace's own classes and files.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ import importlib
 import inspect
 import pkgutil
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 from types import ModuleType
 
@@ -21,10 +22,16 @@ import semantic_digital_twin.robots
 # defines the concrete surface annotations the catalog lists
 import semantic_digital_twin.semantic_annotations.semantic_annotations  # noqa: F401
 from coraplex.datastructures.enums import Arms
+from cramera_plan_builder.cram.actions import ActionDiscovery, DiscoveredActions
 from cramera_plan_builder.exceptions import UnknownWorkspaceClass
 from cramera_plan_builder.workspace import CramWorkspace
 from cramera_protocol.bundle.files import MeshFormat
-from cramera_protocol.plan_builder import ObjectModel, RobotModel, StepKind
+from cramera_protocol.plan_builder import (
+    ActionCatalog,
+    ObjectModel,
+    RobotModel,
+    StepKind,
+)
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
 from krrood.utils import recursive_subclasses
 from semantic_digital_twin.datastructures.definitions import TorsoState
@@ -258,6 +265,18 @@ class InstalledWorkspace(CramWorkspace):
     The directory of the object meshes.
     """
 
+    discovery: ActionDiscovery = field(default_factory=ActionDiscovery)
+    """
+    Finds the native actions.
+    """
+
+    @cached_property
+    def discovered_actions(self) -> DiscoveredActions:
+        """
+        The native actions, discovered once: discovery imports every action module.
+        """
+        return self.discovery.discover()
+
     def robots(self) -> List[RobotModel]:
         return [
             RobotAnnotation(annotation).model()
@@ -286,3 +305,6 @@ class InstalledWorkspace(CramWorkspace):
         return [
             annotation.__name__ for annotation in SurfaceAnnotations().annotations()
         ]
+
+    def action_catalog(self) -> ActionCatalog:
+        return self.discovered_actions.catalog()

@@ -148,10 +148,11 @@ class PlanBuilderRoutes:
 
     def catalog(self) -> PlanBuilderCatalog:
         """
-        :return: What the builder offers: the workspace's robots and objects, the
-            viewer's bundles without a robot, the rules and the saved plans.
+        :return: What the builder offers: the workspace's robots, objects and actions,
+            the viewer's bundles without a robot, the rules and the saved plans.
         """
         workspace = self.workspace.workspace()
+        actions = workspace.action_catalog()
         return PlanBuilderCatalog(
             live_url=self.live_url,
             robots=workspace.robots(),
@@ -159,6 +160,8 @@ class PlanBuilderRoutes:
             objects=workspace.objects(),
             torso_states=workspace.torso_states(),
             surface_types=workspace.surface_types(),
+            actions=actions.actions,
+            failed_action_modules=actions.failed_modules,
             constraint_rules=list(self.compiler.book.rules),
             plans=self.plans.summaries(),
             limits=self.limits,
