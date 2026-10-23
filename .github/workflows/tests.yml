@@ -33,6 +33,7 @@ jobs:
             install: -e ./packages/questions
             coverage: >-
               --cov=cramera_questions.matching
+              --cov=cramera_questions.plugin
               --cov=cramera_questions.presets
               --cov=cramera_questions.recorded.bundle
           - package: cram
