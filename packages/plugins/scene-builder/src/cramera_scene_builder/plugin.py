@@ -124,9 +124,9 @@ class SceneBuilderStorage:
 class LibraryRoots:
     """
     The named directories of the resource library: the uploaded point clouds, the
-    viewer's scenes directories named after their source, the scenes directories
-    nested in them named after their source and themselves, and the directories the
-    environment adds, named after themselves.
+    viewer's scenes directories named after their source, the scenes directories nested
+    in them named after their source and themselves, and the directories the environment
+    adds, named after themselves.
     """
 
     roots: Dict[str, Path] = field(default_factory=dict)
