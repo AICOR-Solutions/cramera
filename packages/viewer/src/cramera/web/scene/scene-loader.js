@@ -96,6 +96,15 @@ export class LoadedScene {
   }
 
   /**
+   * @returns {THREE.Vector3|null} Where the first robot stands, or null for a scene
+   *   without robots.
+   */
+  robotPosition() {
+    const [robot] = this.models.robotModels();
+    return robot ? robot.getWorldPosition(new THREE.Vector3()) : null;
+  }
+
+  /**
    * @returns {Array<string>} Every file that could not be loaded, each once.
    */
   missingFiles() {

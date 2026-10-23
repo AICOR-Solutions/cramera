@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { KeyboardShortcuts, PlaybackActions, ShortcutKey } from '../../src/cramera/web/app/keyboard-shortcuts.js';
 import { DetailsPanel } from '../../src/cramera/web/panels/details-panel.js';
-import { ViewPanel, ViewSwitch } from '../../src/cramera/web/panels/view-panel.js';
+import { LayerObject, LayersPanel, ViewSwitch } from '../../src/cramera/web/panels/layers-panel.js';
 import { SelectionKey, SelectionKind } from '../../src/cramera/web/protocol.js';
 import { selectionOf } from '../../src/cramera/web/scene/scene-picking.js';
 import { FakeDocument } from './support/fake-document.mjs';
@@ -50,12 +50,16 @@ test('details show the selection above the scene facts and clear it again', () =
   assert.doesNotMatch(details.panel.element.innerText, /Selected/);
 });
 
-// %% view panel
+// %% layers
 
-test('view switches show and change their state', () => {
+test('layer switches show and change their state', () => {
   let occlusion = false;
-  const panel = new ViewPanel(new FakeDocument(), [new ViewSwitch('Ambient occlusion', () => occlusion, (enabled) => { occlusion = enabled; })]);
-  const input = panel.panel.element.children[0].children[0];
+  const document = new FakeDocument();
+  const panel = new LayersPanel(document.createElement('div'), [new ViewSwitch('Ambient occlusion', () => occlusion, (enabled) => { occlusion = enabled; })], () => {});
+  const [title, row] = panel.element.children;
+  assert.equal(title.children[0].textContent, 'Layers');
+  const input = row.children[0];
+  assert.equal(row.children[1].textContent, 'Ambient occlusion');
   assert.equal(input.checked, false);
   input.checked = true;
   input.dispatch('change');
@@ -63,6 +67,28 @@ test('view switches show and change their state', () => {
   occlusion = false;
   panel.refresh();
   assert.equal(input.checked, false);
+});
+
+test('the layers fold down to their title and open again', () => {
+  const panel = new LayersPanel(new FakeDocument().createElement('div'), [], () => {});
+  const fold = panel.element.children[0].children[1];
+  assert.equal(fold.getAttribute('aria-expanded'), 'true');
+  fold.dispatch('click');
+  assert.equal(panel.element.classList.contains('folded'), true);
+  assert.equal(fold.getAttribute('aria-expanded'), 'false');
+  fold.dispatch('click');
+  assert.equal(panel.element.classList.contains('folded'), false);
+});
+
+test('the scene\'s objects are listed and light up when picked', () => {
+  const picked = [];
+  const panel = new LayersPanel(new FakeDocument().createElement('div'), [], (key) => picked.push(key));
+  panel.showObjects([new LayerObject('milk_1', 'milk'), new LayerObject('cup_2', 'cup')]);
+  const list = panel.element.children.at(-1);
+  const buttons = list.children.map((item) => item.children[0]);
+  assert.deepEqual(buttons.map((button) => button.textContent), ['milk', 'cup']);
+  buttons[1].dispatch('click');
+  assert.deepEqual(picked, ['cup_2']);
 });
 
 // %% keyboard

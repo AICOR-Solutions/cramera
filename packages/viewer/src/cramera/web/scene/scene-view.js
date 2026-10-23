@@ -134,6 +134,12 @@ export class SceneView {
   #composer = null;
 
   /**
+   * Called after each rendered frame, such as labels that follow the camera.
+   * @type {Set<function(): void>}
+   */
+  #renderListeners = new Set();
+
+  /**
    * The scene's background image, or null.
    * @type {THREE.Texture|null}
    */
@@ -186,10 +192,27 @@ export class SceneView {
         this.#needsRender = false;
         if (this.#composer) this.#composer.render();
         else this.renderer.render(this.scene, this.camera);
+        for (const listener of this.#renderListeners) listener();
       }
       this.#animationFrame = requestAnimationFrame(loop);
     };
     this.#animationFrame = requestAnimationFrame(loop);
+  }
+
+  /**
+   * @param {function(): void} listener Called after each rendered frame.
+   * @returns {function(): void} Stops calling the listener.
+   */
+  onRender(listener) {
+    this.#renderListeners.add(listener);
+    return () => this.#renderListeners.delete(listener);
+  }
+
+  /**
+   * @returns {{width: number, height: number}} The size of the drawing, in CSS pixels.
+   */
+  get size() {
+    return { width: this.#container.clientWidth, height: this.#container.clientHeight };
   }
 
   /**

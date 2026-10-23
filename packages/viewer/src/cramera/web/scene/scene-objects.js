@@ -115,6 +115,24 @@ export class SceneObjects {
   }
 
   /**
+   * @param {string} key An object's key.
+   * @returns {THREE.Object3D|null} The object's frame, or null for an unknown key.
+   */
+  holderOf(key) {
+    return this.#objects.get(key) ?? null;
+  }
+
+  /**
+   * @returns {Array<{key: string, name: string}>} Each object's key and name, sorted by
+   *   name.
+   */
+  named() {
+    return [...this.#objects.entries()]
+      .map(([key, holder]) => ({ key, name: holder.name || key }))
+      .sort((first, second) => first.name.localeCompare(second.name));
+  }
+
+  /**
    * @returns {Array<string>} The trajectory keys of the objects.
    */
   keys() {
