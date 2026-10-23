@@ -1,7 +1,8 @@
 """
 A plan's steps as the native coraplex actions they name: each value converted by the
-kind of its field, the grasp derived from the arm and the object, the constraints'
-switches turned on, and the action constructed with keyword arguments.
+kind and type of its field, an arm into the robot's part, an object into its body, its
+annotation or the grasp of it closest to the robot, the constraints' switches turned on,
+and the action constructed with keyword arguments.
 """
 
 from __future__ import annotations
@@ -11,12 +12,13 @@ from dataclasses import dataclass
 from typing_extensions import Any, Callable, Dict, Iterable, Optional
 
 from coraplex.datastructures.dataclasses import Context
-from coraplex.datastructures.grasp import GraspDescription
+from coraplex.querying.predicates import IsAmongTheClosestGraspsTo
 from coraplex.robot_plans.actions.base import ActionDescription
-from coraplex.view_manager import ViewManager
 from cramera_plan_builder.cram.actions import DiscoveredAction, DiscoveredActions
+from cramera_plan_builder.cram.arms import ArmField, Arms, RobotArms
 from cramera_plan_builder.cram.surfaces import SurfaceTargets
-from cramera_plan_builder.exceptions import AnnotationNotInWorld
+from cramera_plan_builder.cram.world import PlannedGraspable
+from cramera_plan_builder.exceptions import AnnotationNotInWorld, ObjectNotGraspable
 from cramera_protocol.geometry import Pose as PlannedPose
 from cramera_protocol.plan_builder import (
     ActionField,
@@ -25,6 +27,8 @@ from cramera_protocol.plan_builder import (
     PlacementMode,
     PlanStep,
 )
+from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
+from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
 from semantic_digital_twin.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -62,9 +66,8 @@ class StepArguments:
 
     def arguments(self) -> Dict[str, Any]:
         """
-        :return: A value for every field the step gives, a derived grasp for every
-            required grasp, and True for every switch its constraints turn on; fields
-            the step leaves out keep the action's defaults.
+        :return: A value for every field the step gives and True for every switch its
+            constraints turn on; fields the step leaves out keep the action's defaults.
         """
         converters: Dict[ActionFieldKind, Callable[[ActionField, Any], Any]] = {
             ActionFieldKind.BODY: self.body,
@@ -85,10 +88,6 @@ class StepArguments:
             for offered in schema.fields
             if offered.name in self.step.values
         }
-        for offered in schema.fields:
-            if offered.kind is ActionFieldKind.GRASP and offered.required:
-                arm, body = offered.derived_from
-                arguments[offered.name] = self.grasp(arguments[arm], arguments[body])
         for constraint in self.step.constraints:
             if constraint.switch is not None and self.is_switch(constraint.switch):
                 arguments[constraint.switch] = True
@@ -102,13 +101,22 @@ class StepArguments:
         offered = self.action.schema.field_named(name)
         return offered is not None and offered.kind is ActionFieldKind.BOOLEAN
 
-    def body(self, offered: ActionField, value: str) -> Body:
+    def body(
+        self, offered: ActionField, value: str
+    ) -> Body | HasGraspCandidates | GraspCandidate:
         """
-        :param offered: A body field.
+        :param offered: A field taking an object of the plan.
         :param value: An object's identity.
-        :return: The object's body.
+        :return: The object as the field's type takes it: its body, its annotation, or
+            the grasp of it closest to the robot.
         """
-        return self.bodies[value]
+        body = self.bodies[value]
+        field_type = self.action.field_types[offered.name]
+        if field_type is GraspCandidate:
+            return self.grasp(value, PlannedGraspable.of(body))
+        if field_type is HasGraspCandidates:
+            return PlannedGraspable.of(body)
+        return body
 
     def annotation(self, offered: ActionField, value: str) -> SemanticAnnotation:
         """
@@ -127,11 +135,14 @@ class StepArguments:
 
     def member(self, offered: ActionField, value: str) -> Any:
         """
-        :param offered: An enumeration field.
+        :param offered: An enumeration field, or one taking the robot's arms.
         :param value: A member's name.
-        :return: The member.
+        :return: The member, or the robot's parts the arms it names stand for.
         """
-        return self.action.field_types[offered.name][value]
+        field_type = self.action.field_types[offered.name]
+        if ArmField(field_type).part() is not None:
+            return RobotArms(self.context.robot).value(Arms[value], field_type)
+        return field_type[value]
 
     def pose(self, offered: ActionField, value: Any) -> Pose:
         """
@@ -188,18 +199,24 @@ class StepArguments:
                 return self.step.values.get(offered.name)
         return None
 
-    def grasp(self, arm: Any, body: Body) -> GraspDescription:
+    def grasp(self, identifier: str, graspable: HasGraspCandidates) -> GraspCandidate:
         """
-        :param arm: The arm the step uses.
-        :param body: The object it acts on.
-        :return: The default grasp for the object as it lies, the approach side
-            following the robot's reach.
+        :param identifier: The object's identity.
+        :param graspable: Its annotation.
+        :return: The grasp of the object closest to where the robot stands, approached
+            from the robot's side.
+        :raises ObjectNotGraspable: When the object offers no grasp.
         """
-        return GraspDescription.robot_relative_default(
-            ViewManager.get_end_effector_view(arm, self.context.robot),
-            body.global_pose,
-            body,
-        )
+        grasps = graspable.grasp_candidates()
+        standing = self.context.robot.root.global_pose
+        closest = [
+            grasp
+            for grasp in grasps
+            if IsAmongTheClosestGraspsTo(grasp, standing, grasps, number_of_grasps=1)()
+        ]
+        if not closest:
+            raise ObjectNotGraspable(identifier)
+        return closest[0]
 
     def native(self, planned: PlannedPose) -> Pose:
         """

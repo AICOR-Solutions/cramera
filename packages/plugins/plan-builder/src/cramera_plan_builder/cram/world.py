@@ -14,7 +14,13 @@ from cramera_cram.scenes.bundle_world import ColorText, PoseText
 from cramera_cram.scenes.environment import SceneEnvironment
 from cramera_plan_builder.cram.workspace import OBJECT_DIRECTORY
 from cramera_protocol.plan_builder import PlannedObject
-from semantic_digital_twin.api import BodySpecification, Connection6DoFSpecification
+from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.specifications.connections import (
+    Connection6DoFSpecification,
+)
+from semantic_digital_twin.specifications.kinematic_structure_entities import (
+    BodySpecification,
+)
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -38,6 +44,27 @@ class EmptyFloor(SceneEnvironment):
 # %% objects
 
 
+@dataclass(eq=False)
+class PlannedGraspable(HasGraspCandidates):
+    """
+    A free object of a plan, which coraplex's actions take hold of and put down: grasped
+    around its own origin, as nothing more is known of its shape.
+    """
+
+    @classmethod
+    def of(cls, body: Body) -> PlannedGraspable:
+        """
+        :param body: The body of an object the plan placed.
+        :return: The object's annotation.
+        """
+        (annotation,) = [
+            annotation
+            for annotation in body._world.get_semantic_annotations_by_type(cls)
+            if annotation.root is body
+        ]
+        return annotation
+
+
 @dataclass(frozen=True)
 class PlannedObjects:
     """
@@ -57,10 +84,10 @@ class PlannedObjects:
     def spawn(self, world: World) -> Dict[str, Body]:
         """
         :param world: The world receiving the objects at their start poses, below its
-            root.
+            root, each annotated as graspable.
         :return: Each object's body by its identity.
         """
-        return {
+        bodies = {
             planned.identifier: BodySpecification.mesh(
                 planned.identifier,
                 str(self.directory / planned.model),
@@ -73,3 +100,7 @@ class PlannedObjects:
             ).spawn(world, parent_T_self=PoseText(planned.pose).native(world.root))
             for planned in self.objects
         }
+        with world.modify_world():
+            for body in bodies.values():
+                world.add_semantic_annotation(PlannedGraspable(root=body))
+        return bodies

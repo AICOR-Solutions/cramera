@@ -35,9 +35,8 @@ from typing_extensions import (
 )
 
 import coraplex.robot_plans.actions
-from coraplex.datastructures.enums import Arms
-from coraplex.datastructures.grasp import GraspDescription
 from coraplex.robot_plans.actions.base import ActionDescription
+from cramera_plan_builder.cram.arms import ArmField, Arms
 from cramera_plan_builder.exceptions import UnknownAction
 from cramera_protocol.plan_builder import (
     ActionCatalog,
@@ -49,7 +48,9 @@ from cramera_protocol.plan_builder import (
     HiddenActionField,
 )
 from krrood.utils import recursive_subclasses
+from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.robot_parts import AbstractRobotPart
+from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
 from semantic_digital_twin.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -83,7 +84,13 @@ The module path in front of a class name in a type's text.
 
 ARM_ENUMERATION = Arms
 """
-The enumeration naming a robot's arms, which a derived grasp is computed with.
+The enumeration a field taking a robot's arms offers its choices from.
+"""
+
+PLAN_OBJECT_TYPES = (GraspCandidate, HasGraspCandidates)
+"""
+The field types an object the plan places is given as: the object itself, which is
+graspable, or the grasp of it closest to the robot.
 """
 
 
@@ -221,8 +228,35 @@ class SurfaceSampleRule(FieldKindRule):
         return None
 
 
+@dataclass(frozen=True)
+class ArmRule(FieldKindRule):
+    """
+    An arm, several arms or an arm's end effector, which a step names by
+    :data:`ARM_ENUMERATION`.
+    """
+
+    def kind_of(self, annotation: Any) -> Optional[ActionFieldKind]:
+        if ArmField(annotation).part() is not None:
+            return ActionFieldKind.ENUM
+        return None
+
+
+@dataclass(frozen=True)
+class PlanObjectRule(FieldKindRule):
+    """
+    An object the plan places, which a step names by its identity.
+    """
+
+    def kind_of(self, annotation: Any) -> Optional[ActionFieldKind]:
+        if annotation in PLAN_OBJECT_TYPES:
+            return ActionFieldKind.BODY
+        return None
+
+
 FIELD_KIND_RULES: Tuple[FieldKindRule, ...] = (
     SurfaceSampleRule(),
+    ArmRule(),
+    PlanObjectRule(),
     SubclassRule(Enum, ActionFieldKind.ENUM),
     SubclassRule(
         SemanticAnnotation,
@@ -231,7 +265,6 @@ FIELD_KIND_RULES: Tuple[FieldKindRule, ...] = (
     ),
     SubclassRule(Body, ActionFieldKind.BODY),
     SubclassRule(Pose, ActionFieldKind.POSE),
-    SubclassRule(GraspDescription, ActionFieldKind.GRASP),
     SubclassRule(bool, ActionFieldKind.BOOLEAN),
     SubclassRule(int, ActionFieldKind.INTEGER),
     SubclassRule(float, ActionFieldKind.NUMBER),
@@ -241,7 +274,8 @@ FIELD_KIND_RULES: Tuple[FieldKindRule, ...] = (
 The rules mapping field types to kinds, tried in order; enumerations come before the
 numbers some of them derive from, and booleans before integers.
 
-A robot's own parts are no entities a person picks, so they are no annotation fields.
+A robot's own parts are no entities a person picks, so they are no annotation fields;
+its arms are picked by side.
 """
 
 
@@ -567,7 +601,7 @@ class ActionSchemaBuilder:
         for declaration in dataclasses.fields(self.action_class):
             if declaration.init:
                 self.read(DeclaredField(self.action_class, declaration))
-        self.connect_derived_fields()
+        self.mark_surface_fields()
         schema = ActionSchema(
             name=self.action_class.__name__,
             module=self.action_class.__module__,
@@ -641,24 +675,24 @@ class ActionSchemaBuilder:
             ),
         )
         if classified.kind is ActionFieldKind.ENUM:
-            offered.enum_type = classified.python_type.__name__
-            offered.members = [member.name for member in classified.python_type]
+            enumeration = (
+                ARM_ENUMERATION
+                if ArmField(classified.python_type).part() is not None
+                else classified.python_type
+            )
+            offered.enum_type = enumeration.__name__
+            offered.members = [member.name for member in enumeration]
         if classified.kind is ActionFieldKind.ANNOTATION:
             offered.annotation = classified.python_type.__name__
         return offered
 
-    def connect_derived_fields(self) -> None:
+    def mark_surface_fields(self) -> None:
         """
-        Let a grasp name the arm and object it is derived from, which a required grasp
-        makes required; mark the pose and surface fields that take a surface.
+        Mark the pose and surface fields that take a surface: those sampling a
+        surface's spots, and the destination of an action acting on an object.
         """
         bodies = [
             offered for offered in self.fields if offered.kind is ActionFieldKind.BODY
-        ]
-        arms = [
-            offered
-            for offered in self.fields
-            if self.field_types.get(offered.name) is ARM_ENUMERATION
         ]
         for offered in self.fields:
             offered.accepts_surface = (
@@ -669,16 +703,6 @@ class ActionSchemaBuilder:
                     and bool(bodies)
                 )
             )
-            if offered.kind is not ActionFieldKind.GRASP:
-                continue
-            if bodies and arms:
-                offered.derived_from = [arms[0].name, bodies[0].name]
-                bodies[0].required = bodies[0].required or offered.required
-            elif offered.required:
-                self.reasons.append(
-                    f"field {offered.name!r} is a grasp derived from an arm and an "
-                    f"object, which the action does not both have"
-                )
 
     def label(self) -> str:
         """

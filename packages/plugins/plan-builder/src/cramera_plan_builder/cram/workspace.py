@@ -20,8 +20,8 @@ import semantic_digital_twin.robots
 
 # defines the concrete surface annotations the catalog lists
 import semantic_digital_twin.semantic_annotations.semantic_annotations  # noqa: F401
-from coraplex.datastructures.enums import Arms
 from cramera_plan_builder.cram.actions import ActionDiscovery, DiscoveredActions
+from cramera_plan_builder.cram.arms import Arms
 from cramera_plan_builder.exceptions import UnknownWorkspaceClass
 from cramera_plan_builder.workspace import CramWorkspace
 from cramera_protocol.bundle.files import MeshFormat

@@ -1,6 +1,7 @@
 """
 Actions whose fields cover what the action discovery reads: every kind of field, a field
-typed only while type checking, a derived grasp and abstract classes.
+typed only while type checking, arms in every form a field takes them, a grasp and
+abstract classes.
 """
 
 from __future__ import annotations
@@ -10,12 +11,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
 
-from typing_extensions import TYPE_CHECKING, Optional
+from typing_extensions import TYPE_CHECKING, List, Optional
 
-from coraplex.datastructures.enums import Arms
-from coraplex.datastructures.grasp import GraspDescription
 from coraplex.robot_plans.actions.base import ActionDescription
-from semantic_digital_twin.robots.robot_parts import EndEffector
+from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
+from semantic_digital_twin.robots.robot_parts import Arm, EndEffector, Torso
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
 from semantic_digital_twin.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import Body
@@ -79,7 +79,7 @@ class WaveAction(Gesture):
     The second paragraph is not part of the documentation.
     """
 
-    arm: Arms
+    arm: Arm
     """
     The arm that waves.
     """
@@ -119,9 +119,9 @@ class WaveAction(Gesture):
     Where it waves to.
     """
 
-    effector: Optional[EndEffector] = None
+    effector: Optional[Torso] = None
     """
-    A robot part, which a person does not pick.
+    A robot part other than an arm, which a person does not pick.
     """
 
     rhythm: list = field(default_factory=list)
@@ -146,12 +146,12 @@ class HandOverAction(ActionDescription):
     The object handed over.
     """
 
-    arm: Arms
+    arms: List[Arm]
     """
-    The arm handing it over.
+    The arms handing it over.
     """
 
-    grasp_description: GraspDescription
+    grasp: GraspCandidate
     """
     How the object is held.
     """
@@ -168,7 +168,7 @@ class HandOverAction(ActionDescription):
 @dataclass
 class PointAction(ActionDescription):
     """
-    Point somewhere with a held grasp but without an object.
+    Point somewhere with a hand, acting on no object.
     """
 
     target_location: Pose
@@ -176,9 +176,9 @@ class PointAction(ActionDescription):
     Where to point.
     """
 
-    grasp_description: GraspDescription
+    hand: EndEffector
     """
-    A grasp that cannot be derived without an object.
+    The hand that points, picked by its arm.
     """
 
     def _action_plan(self) -> None:

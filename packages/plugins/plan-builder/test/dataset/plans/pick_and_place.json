@@ -10,11 +10,11 @@
       "label": "PR2 1",
       "pose": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
       "steps": [
-        {"id": "step_1", "action": "ParkArmsAction", "values": {"arm": "BOTH"}},
+        {"id": "step_1", "action": "ParkArmsAction", "values": {"arms": "BOTH"}},
         {"id": "step_2", "action": "MoveTorsoAction", "values": {"torso_state": "HIGH"}},
-        {"id": "step_3", "action": "PickUpAction", "values": {"object_designator": "milk", "arm": "LEFT"}},
+        {"id": "step_3", "action": "PickUpAction", "values": {"grasp": "milk", "arm": "LEFT"}},
         {"id": "step_4", "action": "PlaceAction",
-         "values": {"object_designator": "milk", "arm": "LEFT", "target_location": {"placement": "pose", "pose": [0.7, 0.3, 0.85, 0.0, 0.0, 0.0, 1.0]}}},
+         "values": {"object_designator": "milk", "target_location": {"placement": "pose", "pose": [0.7, 0.3, 0.85, 0.0, 0.0, 0.0, 1.0]}}},
         {"id": "step_5", "action": "SetGripperAction", "values": {"gripper": "LEFT", "motion": "CLOSE"}},
         {"id": "step_6", "action": "SetGripperAction", "values": {"gripper": "LEFT", "motion": "OPEN"}}
       ]
@@ -25,9 +25,7 @@
       "label": "PR2 2",
       "pose": [3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
       "steps": [
-        {"id": "step_1", "action": "TransportAction",
-         "values": {"object_designator": "milk", "arm": "RIGHT", "target_location": {"placement": "surface", "surfaceType": "Table"}}},
-        {"id": "step_2", "action": "NavigateAction", "values": {"target_location": [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}}
+        {"id": "step_1", "action": "NavigateAction", "values": {"target_location": [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}}
       ]
     }
   ],

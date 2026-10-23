@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import pytest
 
-from coraplex.datastructures.enums import Arms
 from coraplex.datastructures.trajectory import PoseTrajectory
 from coraplex.robot_plans.actions.core.navigation import LookAtAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
@@ -24,6 +23,7 @@ from cramera_plan_builder.cram.actions import (
     ActionModules,
     DiscoveredActions,
 )
+from cramera_plan_builder.cram.arms import Arms
 from cramera_plan_builder.exceptions import UnknownAction
 from cramera_protocol.plan_builder import ActionFieldKind, ActionGroup
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
@@ -85,6 +85,11 @@ def test_each_field_type_maps_to_its_kind(mimics):
         "words": ActionFieldKind.TEXT,
         "toward": ActionFieldKind.POSE,
     }
+    arm = wave.field_named("arm")
+    assert (arm.enum_type, arm.members) == (
+        Arms.__name__,
+        [member.name for member in Arms],
+    )
     speed = wave.field_named("speed")
     assert speed.members == [member.name for member in waving.Speed]
     assert speed.default == waving.Speed.SLOW.name
@@ -106,11 +111,10 @@ def test_the_schema_reads_the_label_group_and_docstrings(mimics):
     assert wave.field_named("arm").documentation == "The arm that waves."
 
 
-def test_a_grasp_is_derived_from_the_arm_and_the_object(mimics):
+def test_a_grasp_is_picked_as_the_object_it_is_on(mimics):
     hand_over = mimics.named(waving.HandOverAction.__name__).schema
-    grasp = hand_over.field_named("grasp_description")
-    assert grasp.kind is ActionFieldKind.GRASP
-    assert grasp.derived_from == ["arm", "object_designator"]
+    assert hand_over.field_named("grasp").kind is ActionFieldKind.BODY
+    assert hand_over.field_named("arms").enum_type == Arms.__name__
     assert hand_over.field_named("tool").annotation == Tool.__name__
     assert hand_over.field_named(ActionConvention.DESTINATION).kind is (
         ActionFieldKind.POSE_OR_SURFACE
@@ -118,10 +122,10 @@ def test_a_grasp_is_derived_from_the_arm_and_the_object(mimics):
     assert hand_over.field_named(ActionConvention.DESTINATION).accepts_surface
 
 
-def test_a_grasp_without_an_object_makes_the_action_unavailable(mimics):
+def test_a_hand_is_picked_by_its_arm(mimics):
     point = mimics.named(waving.PointAction.__name__).schema
-    assert point.available is False
-    assert "grasp_description" in point.unavailable_reason
+    assert point.available is True
+    assert point.field_named("hand").enum_type == Arms.__name__
     assert point.field_named(ActionConvention.DESTINATION).accepts_surface is False
 
 

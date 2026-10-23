@@ -73,7 +73,7 @@ class SurfaceTargets:
             their spots, keeping the object's current orientation.
         """
         lift = self.bottom_offset()
-        orientation = self.body.global_pose.to_quaternion().to_np()
+        orientation = self.body.global_pose.orientation.to_np()
         for surface in self.surfaces():
             for point in surface.sample_points_from_surface(amount=SAMPLES_PER_SURFACE):
                 position = self.world.transform(point, self.world.root).to_np()

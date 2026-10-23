@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from coraplex.datastructures.enums import Arms
+from cramera_plan_builder.cram.arms import Arms
 from cramera_plan_builder.cram.workspace import (
     InstalledWorkspace,
     RobotAnnotation,
@@ -20,7 +20,6 @@ from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.robots.stretch import Stretch
-from semantic_digital_twin.robots.tiago import TiagoMujoco
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.semantic_annotations.mixins import HasCaseAsRootBody
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
@@ -57,7 +56,6 @@ def test_robots_without_a_model_description_are_not_offered():
     names = [annotation.__name__ for annotation in RobotAnnotations().annotations()]
     assert PR2.__name__ in names
     assert MinimalRobot.__name__ not in names
-    assert TiagoMujoco.__name__ not in names
     assert names == sorted(names)
 
 

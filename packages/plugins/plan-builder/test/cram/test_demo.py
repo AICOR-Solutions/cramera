@@ -15,8 +15,6 @@ import time
 
 import pytest
 
-from coraplex.datastructures.enums import Arms
-from coraplex.robot_plans.actions.composite.transporting import TransportAction
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
@@ -25,7 +23,6 @@ from coraplex.robot_plans.actions.core.robot_body import (
     ParkArmsAction,
     SetGripperAction,
 )
-from coraplex.datastructures.grasp import GraspDescription
 from cramera.locations import DataLocations
 from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import TaskFailed
@@ -40,6 +37,7 @@ from cramera_plan_builder.cram.demo import (
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.cram.steps import StepActions
 from cramera_plan_builder.cram.surfaces import SurfaceTargets
+from cramera_plan_builder.cram.world import PlannedGraspable
 from cramera_plan_builder.demos import DemoDirectory, DemoOption, DemoTemplate
 from cramera_plan_builder.exceptions import AnnotationNotInWorld, SurfaceNotInWorld
 from cramera_plan_builder.runs import DemoRunner
@@ -55,11 +53,14 @@ from cramera_protocol.plan_builder import (
     StepConstraint,
 )
 from cramera_protocol.viewer import EnvironmentVariable
-from semantic_digital_twin.api import BodySpecification
 from semantic_digital_twin.datastructures.definitions import GripperState
+from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from semantic_digital_twin.specifications.kinematic_structure_entities import (
+    BodySpecification,
+)
 from semantic_digital_twin.world_description.geometry import Scale
 
 from ..dataset.given_workspace import DATASET
@@ -179,7 +180,7 @@ def actions(demo, built) -> StepActions:
     return StepActions(context, demo.bodies, demo.discovered_actions)
 
 
-def test_the_steps_become_their_native_actions(demo, actions):
+def test_the_steps_become_their_native_actions(demo, built, actions):
     assert [type(actions.action(step)) for step in demo.steps()] == [
         ParkArmsAction,
         MoveTorsoAction,
@@ -188,37 +189,42 @@ def test_the_steps_become_their_native_actions(demo, actions):
         SetGripperAction,
         SetGripperAction,
     ]
-    park = demo.steps()[0]
-    assert actions.action(park).arm is Arms[park.values["arm"]]
+    _, context = built
+    assert actions.action(demo.steps()[0]).arms == context.robot.all_arms
 
 
-def test_a_pick_up_derives_its_grasp(demo, actions):
+def test_a_pick_up_takes_the_grasp_of_its_object(demo, built, actions):
+    _, context = built
     pick_up = actions.action(demo.steps()[2])
-    assert isinstance(pick_up.grasp_description, GraspDescription)
-    assert pick_up.object_designator is demo.bodies["milk"]
+    assert isinstance(pick_up.grasp, GraspCandidate)
+    assert pick_up.grasp.graspable is PlannedGraspable.of(demo.bodies["milk"])
+    assert pick_up.arm is context.robot.left_arm
 
 
-def test_a_gripper_step_opens_and_closes_the_gripper(demo, actions):
+def test_a_place_puts_down_the_object_it_names(demo, actions):
+    place = actions.action(demo.steps()[3])
+    assert place.object_designator is PlannedGraspable.of(demo.bodies["milk"])
+
+
+def test_a_gripper_step_opens_and_closes_the_gripper(demo, built, actions):
+    _, context = built
     close, open_ = (actions.action(step) for step in demo.steps()[4:])
     assert (close.motion, open_.motion) == (GripperState.CLOSE, GripperState.OPEN)
-    assert close.gripper is Arms.LEFT
+    assert close.gripper is context.robot.left_arm.end_effector
 
 
-def test_a_transports_constraint_switch_reaches_the_action(document, actions):
-    transport = document.plan.robots[1].steps[0]
+def test_a_switch_the_action_lacks_is_left_out(demo, actions):
+    pick_up = demo.steps()[2]
     switch = ConstraintCompiler.of_file().rule_for("look where it operates").switch
-    transport.constraints = [StepConstraint(text="Look", switch=switch)]
-    action = actions.action(transport)
-    assert isinstance(action, TransportAction)
-    assert action.look_at_operation_site is True
-    assert isinstance(action.target_location, SurfaceTargets)
+    pick_up.constraints = [StepConstraint(text="Look", switch=switch)]
+    assert not hasattr(actions.action(pick_up), switch)
 
 
 def test_a_navigation_drives_to_its_target(document, actions):
-    navigate = document.plan.robots[1].steps[1]
+    navigate = document.plan.robots[1].steps[0]
     action = actions.action(navigate)
     assert isinstance(action, NavigateAction)
-    assert action.target_location.to_position().to_np()[:3] == pytest.approx(
+    assert action.target_location.position.to_np()[:3] == pytest.approx(
         navigate.values["target_location"][:3]
     )
 
@@ -239,7 +245,6 @@ def test_a_place_on_a_surface_the_world_lacks_offers_no_spot(actions):
         action="PlaceAction",
         values={
             "object_designator": "milk",
-            "arm": "LEFT",
             "target_location": {"placement": "surface", "surfaceType": "Table"},
         },
     )
@@ -269,7 +274,7 @@ def test_a_spot_on_a_surface_rests_the_object_on_it(demo, built):
     targets = SurfaceTargets(
         world=world, body=demo.bodies["milk"], surface_type="Table"
     )
-    position = targets.first().to_position().to_np()
+    position = targets.first().position.to_np()
     assert position[2] > TABLE_SIZE.z + targets.bottom_offset() - PLACEMENT_TOLERANCE
     assert abs(position[0] - TABLE_POSITION[0]) <= TABLE_SIZE.x / 2
 

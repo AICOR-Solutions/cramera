@@ -639,6 +639,47 @@ class AnnotationNotInWorld(PlanBuilderError):
 
 
 @dataclass
+class ArmNotOnRobot(PlanBuilderError):
+    """
+    A step naming arms the robot performing it does not have as the field asks for them.
+    """
+
+    arms: str
+    """
+    The name of the arms the step gives.
+    """
+
+    robot: str
+    """
+    The class name of the robot.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"A {self.robot} has no single arm named {self.arms}."
+
+
+@dataclass
+class ObjectNotGraspable(PlanBuilderError):
+    """
+    A step naming an object to grasp that offers no grasp.
+    """
+
+    identifier: str
+    """
+    The object's identity.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The object {self.identifier!r} offers no grasp."
+
+
+@dataclass
 class UnknownWorkspaceClass(PlanBuilderError):
     """
     A robot or surface annotation class the CRAM workspace does not define.
