@@ -64,7 +64,15 @@ one hides a bundle of the same name in a later one:
 cramera --demo-scenes demo/scenes --port 8711 --no-browser
 ```
 
-The page address names the shown bundle, `?scene=<name>`, so a view can be shared.
+The page has the look of the original AICOR viewer: dark, with the AICOR logo and a
+link to every page the installed plugins offer (Models, Plan Builder, Scene Builder,
+Cable Lab, Laboratory, Workshop) in the top bar, the 3D view with its **Layers**
+overlay and the playback controls on the left, questions and graphs on the right. The
+**View** menu switches to a light theme. **Pop out** opens the scene alone in a window
+of its own.
+
+The page address names the shown bundle, `?scene=<name>`, so a view can be shared;
+`?panel=<name>` opens a panel first.
 The server listens on `127.0.0.1` and answers only pages served from the same
 machine.
 
@@ -74,7 +82,7 @@ machine.
 | --- | --- |
 | `cramera` | Serve the viewer. |
 | `cramera-shot URL OUT.png` | Take a screenshot in headless Chrome (`--browser chrome`, needs `chromedriver`) or Firefox (`--browser firefox`, needs `geckodriver`) once the page reports its scene as shown; exits 1 when it fails. |
-| `cramera-export-site OUT --scenes DIR` | Write the viewer and the bundles of a directory as a static site, for any web server. |
+| `cramera-export-site OUT --scenes DIR [--plugin NAME]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins. |
 | `cramera-upgrade-bundle SRC DST` | Copy a bundle and rewrite its documents in the current format, optionally with new labels for the scene picker. |
 
 ## Follow a running plan
@@ -97,15 +105,29 @@ without keeping a publisher up.
 
 ## Ask the scene
 
-With `cramera-questions` installed, the viewer gets two tabs:
+With `cramera-questions` installed, the viewer's right column gets:
 
-- **Questions** offers the presets of the shown scene and takes questions in
-  plain English or in CRAM's entity query language. An answer is a sentence and a
-  table; the entities it names light up in the 3D view, and **Replay** jumps to
-  the moment an answer is about.
-- **Graph** draws the scene's knowledge, plan, statechart and robot kinematics as a
-  graph. Clicking a node shows its details and lights it up in the 3D view; drag to
-  pan, scroll to zoom.
+- **EQL · entity query language**, which offers the presets of the shown scene and
+  takes questions in plain English or in CRAM's entity query language. The question
+  is read back in English; an answer is a table whose entities light up in the 3D
+  view, and **Replay** jumps to the moment an answer is about.
+- **Knowledge**, **Plan**, **Statechart** and **Kinematics** tabs, which draw the
+  scene's knowledge, plan, statechart and robot kinematics as graphs. Clicking a node
+  shows its details and lights it up in the 3D view; drag to pan, scroll or use the
+  buttons to zoom, and fill the window with the graph.
+
+Answering needs krrood from the CRAM workspace. Where it is missing, and on the
+static demo site, the plugin shows the answers recorded in the bundle instead: the
+presets answer as they did when they were recorded, the graphs are drawn, and the
+query boxes say why they are disabled. Record them in the CRAM environment with
+
+```bash
+cramera-record-answers demo/scenes            # every bundle of the directory
+cramera-record-answers demo/scenes --scene pr2_warehouse_transport
+```
+
+which writes `recorded_answers.json` into each bundle; record again after a bundle
+or the presets change.
 
 ## Import a USD stage
 

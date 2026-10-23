@@ -2,6 +2,9 @@
 # the demo scenes under demo/scenes, and a status page that shows the version, the
 # commit, the build time and a screenshot of the viewer taken in this build. A build
 # whose viewer does not show its scene fails, so the site keeps the last working build.
+# The questions plugin's browser module is included without krrood: on the static site
+# it shows the answers recorded in each bundle's recorded_answers.json, which
+# cramera-record-answers writes in a CRAM workspace.
 name: Publish the demo site
 
 on:
@@ -31,14 +34,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install the viewer
-        run: pip install ./packages/protocol ./packages/viewer
+      - name: Install the viewer and the questions plugin
+        run: pip install ./packages/protocol ./packages/viewer ./packages/questions
 
       - name: Export the site with the demo scenes
         run: >
           cramera-export-site site
           --scenes demo/scenes
           --default-scene "$DEFAULT_SCENE"
+          --plugin questions
           --commit "$GITHUB_SHA"
           --source "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
 
