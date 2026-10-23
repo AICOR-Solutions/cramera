@@ -24,7 +24,13 @@ from cramera.http.routing import (
 from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog
 from cramera_protocol.live import Capability
-from cramera_protocol.viewer import PluginGroup, PluginInfo, ViewerRoute
+from cramera_protocol.viewer import (
+    NavigationGroup,
+    PluginGroup,
+    PluginInfo,
+    PluginNavigation,
+    ViewerRoute,
+)
 
 # %% plugin interface
 
@@ -107,6 +113,60 @@ class PluginPrefixRoute(RouteDeclaration):
         return PrefixRoute(self.method, f"{plugin_prefix}{self.prefix}", self.handler)
 
 
+@dataclass(frozen=True)
+class NavigationEntry(ABC):
+    """
+    A plugin's entry in the viewer's navigation.
+    """
+
+    title: str
+    """
+    The entry's text.
+    """
+
+    group: NavigationGroup
+    """
+    The group the entry is shown in.
+    """
+
+    @abstractmethod
+    def info(self, plugin_name: str) -> PluginNavigation:
+        """
+        :param plugin_name: The name of the plugin the entry belongs to.
+        :return: The entry as the browser learns about it.
+        """
+
+
+@dataclass(frozen=True)
+class PageEntry(NavigationEntry):
+    """
+    An entry that opens a page of the plugin's own, which needs the whole window.
+    """
+
+    page: str
+    """
+    The page's file, relative to the plugin's web directory.
+    """
+
+    def info(self, plugin_name: str) -> PluginNavigation:
+        return PluginNavigation(
+            title=self.title,
+            group=self.group,
+            page=f"{ViewerRoute.PLUGIN_FILES}{plugin_name}/{self.page}",
+        )
+
+
+@dataclass(frozen=True)
+class PanelEntry(NavigationEntry):
+    """
+    An entry that shows the plugin's panel on the scene page; the panel's identity is
+    the plugin's name.
+    """
+
+    def info(self, plugin_name: str) -> PluginNavigation:
+        return PluginNavigation(title=self.title, group=self.group)
+
+
 class ViewerPlugin(ABC):
     """
     A package that extends the viewer.
@@ -152,6 +212,13 @@ class ViewerPlugin(ABC):
         """
         return None
 
+    def navigation(self) -> Optional[NavigationEntry]:
+        """
+        :return: The plugin's entry in the viewer's navigation, or None for a plugin
+            that only adds to the scene page; none by default.
+        """
+        return None
+
     def close(self) -> None:
         """
         Release what the plugin owns, such as a simulation its routes started; the
@@ -165,6 +232,7 @@ class ViewerPlugin(ABC):
         :return: The plugin as the browser learns about it.
         """
         module = self.module()
+        navigation = self.navigation()
         return PluginInfo(
             name=self.name(),
             version=self.version(),
@@ -174,6 +242,7 @@ class ViewerPlugin(ABC):
                 else f"{ViewerRoute.PLUGIN_FILES}{self.name()}/{module}"
             ),
             capabilities=self.capabilities(),
+            navigation=None if navigation is None else navigation.info(self.name()),
         )
 
 

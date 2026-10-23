@@ -27,10 +27,22 @@ which this repository was mirrored until 22 Oct 2026.
 - **Live mode.** `cramera-live` runs a CRAM demo and publishes its world; the viewer
   opened with `?live=` follows its joint states, plan and statecharts without a
   recorded scene, and the Live tab stops, saves and replays the recording.
-- **Questions and graphs.** The `questions` plugin adds a Questions tab, which
-  answers presets, plain English and entity queries with a sentence and a table
-  whose entities light up in 3D, and a Graph tab, which draws the scene's knowledge,
-  plan, statechart and kinematic tree as SVG with pan, zoom and node details.
+- **Questions and graphs.** The `questions` plugin fills the query slot with the EQL
+  card, which answers presets, plain English and entity queries with the question
+  read back and a table whose entities light up in 3D, and adds Knowledge, Plan,
+  Statechart and Kinematics tabs, which draw the scene's graphs as SVG with pan, zoom,
+  fit, fullscreen and node details. The plugin loads without krrood and then answers
+  that it is missing.
+- **The original look.** The page is laid out as the original AICOR viewer was:
+  dark, the AICOR logo and the plugins' pages in the top bar, the scene card with the
+  Layers overlay and the playback controls with coloured step, pick and release marks
+  on the left, the question card and the graph tabs on the right; a light theme is
+  in the View menu. Plugins declare their top-bar entry (`ViewerPlugin.navigation()`),
+  and the builder and cable lab pages carry the same bar.
+- **Recorded answers on the demo site.** `cramera-record-answers` writes a bundle's
+  preset answers and graph views into `recorded_answers.json` in a CRAM workspace;
+  the static site includes the questions plugin (`cramera-export-site --plugin`) and
+  shows them read-only.
 - **Plan builder.** `cramera-plan-builder` composes a plan from the robots, objects
   and environments the CRAM workspace offers, turns sentences such as "keep the milk
   upright" into constraint monitors, writes the plan as a CRAM demo and runs it live,

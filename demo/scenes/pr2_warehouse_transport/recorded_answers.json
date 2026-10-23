@@ -1,0 +1,8722 @@
+{
+ "formatVersion": "1.0",
+ "scene": "pr2_warehouse_transport",
+ "recordedAt": "2026-10-23T09:22:53Z",
+ "presets": {
+  "ok": true,
+  "title": "pr2_warehouse_transport",
+  "presets": [
+   {
+    "text": "which robot is this?",
+    "code": "the(entity(robot))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "Find the unique RecordedRobot",
+     "html": "<span style=\"color:#eded18\">Find</span> the unique <span style=\"color:cornflowerblue\">RecordedRobot</span>"
+    }
+   },
+   {
+    "text": "which arm does it have?",
+    "code": "an(entity(arm))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "Find a RecordedArm",
+     "html": "<span style=\"color:#eded18\">Find</span> a <span style=\"color:cornflowerblue\">RecordedArm</span>"
+    }
+   }
+  ],
+  "scopes": [
+   {
+    "name": "current_state",
+    "label": "Current State Queries",
+    "variables": [
+     "robot",
+     "arm",
+     "gripper",
+     "scene_object",
+     "episode",
+     "joint",
+     "plan_node"
+    ]
+   }
+  ]
+ },
+ "answers": [
+  {
+   "code": "the(entity(robot))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "entities",
+    "rows": [
+     {
+      "__entity__": "pr2",
+      "__type__": "RecordedRobot",
+      "arm_count": 2
+     }
+    ],
+    "count": 1,
+    "more": false,
+    "highlight": [
+     "pr2"
+    ],
+    "replay": [
+     null
+    ],
+    "verbalization": {
+     "text": "Find the unique RecordedRobot",
+     "html": "<span style=\"color:#eded18\">Find</span> the unique <span style=\"color:cornflowerblue\">RecordedRobot</span>"
+    }
+   }
+  },
+  {
+   "code": "an(entity(arm))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "entities",
+    "rows": [
+     {
+      "__entity__": "PR2LeftArm",
+      "__type__": "RecordedArm",
+      "side": "left",
+      "robot": "pr2",
+      "gripper": "PR2LeftGripper"
+     },
+     {
+      "__entity__": "PR2RightArm",
+      "__type__": "RecordedArm",
+      "side": "right",
+      "robot": "pr2",
+      "gripper": "PR2RightGripper"
+     }
+    ],
+    "count": 2,
+    "more": false,
+    "highlight": [
+     "PR2LeftArm",
+     "PR2LeftGripper",
+     "PR2RightArm",
+     "PR2RightGripper"
+    ],
+    "replay": [
+     null,
+     null
+    ],
+    "verbalization": {
+     "text": "Find a RecordedArm",
+     "html": "<span style=\"color:#eded18\">Find</span> a <span style=\"color:cornflowerblue\">RecordedArm</span>"
+    }
+   }
+  }
+ ],
+ "graphs": [
+  {
+   "key": "knowledge",
+   "ok": true,
+   "nodes": [
+    {
+     "id": "pr2",
+     "label": "pr2",
+     "group": "robot",
+     "title": "pr2\n2 arms"
+    },
+    {
+     "id": "PR2LeftArm",
+     "label": "PR2LeftArm",
+     "group": "arm",
+     "title": "PR2LeftArm\nleft"
+    },
+    {
+     "id": "PR2LeftGripper",
+     "label": "PR2LeftGripper",
+     "group": "gripper",
+     "title": "PR2LeftGripper"
+    },
+    {
+     "id": "PR2RightArm",
+     "label": "PR2RightArm",
+     "group": "arm",
+     "title": "PR2RightArm\nright"
+    },
+    {
+     "id": "PR2RightGripper",
+     "label": "PR2RightGripper",
+     "group": "gripper",
+     "title": "PR2RightGripper"
+    },
+    {
+     "id": "milk.stl",
+     "label": "milk",
+     "group": "object",
+     "title": "milk\nmilk.stl"
+    },
+    {
+     "id": "step/0",
+     "label": "run",
+     "group": "step",
+     "title": "run"
+    },
+    {
+     "id": "step/1",
+     "label": "ReachAction",
+     "group": "step",
+     "title": "ReachAction"
+    }
+   ],
+   "edges": [
+    {
+     "from": "pr2",
+     "to": "PR2LeftArm",
+     "kind": "property",
+     "label": "has arm"
+    },
+    {
+     "from": "PR2LeftArm",
+     "to": "PR2LeftGripper",
+     "kind": "property",
+     "label": "carries"
+    },
+    {
+     "from": "pr2",
+     "to": "PR2RightArm",
+     "kind": "property",
+     "label": "has arm"
+    },
+    {
+     "from": "PR2RightArm",
+     "to": "PR2RightGripper",
+     "kind": "property",
+     "label": "carries"
+    },
+    {
+     "from": "step/1",
+     "to": "milk.stl",
+     "kind": "property",
+     "label": "picks"
+    }
+   ],
+   "details": {
+    "pr2": {
+     "label": "pr2",
+     "group": "robot",
+     "lines": [
+      "2 arms"
+     ]
+    },
+    "PR2LeftArm": {
+     "label": "PR2LeftArm",
+     "group": "arm",
+     "lines": [
+      "left"
+     ]
+    },
+    "PR2LeftGripper": {
+     "label": "PR2LeftGripper",
+     "group": "gripper",
+     "lines": []
+    },
+    "PR2RightArm": {
+     "label": "PR2RightArm",
+     "group": "arm",
+     "lines": [
+      "right"
+     ]
+    },
+    "PR2RightGripper": {
+     "label": "PR2RightGripper",
+     "group": "gripper",
+     "lines": []
+    },
+    "milk.stl": {
+     "label": "milk",
+     "group": "object",
+     "lines": [
+      "milk.stl"
+     ]
+    },
+    "step/0": {
+     "label": "run",
+     "group": "step",
+     "lines": []
+    },
+    "step/1": {
+     "label": "ReachAction",
+     "group": "step",
+     "lines": []
+    }
+   },
+   "legend": [
+    {
+     "group": "robot",
+     "label": "Robot"
+    },
+    {
+     "group": "arm",
+     "label": "Arm"
+    },
+    {
+     "group": "gripper",
+     "label": "Gripper"
+    },
+    {
+     "group": "object",
+     "label": "Object"
+    },
+    {
+     "group": "step",
+     "label": "Step"
+    },
+    {
+     "group": "event",
+     "label": "Event"
+    }
+   ],
+   "layout": "free"
+  },
+  {
+   "key": "plan",
+   "ok": true,
+   "nodes": [],
+   "edges": [],
+   "details": {},
+   "legend": [
+    {
+     "group": "action",
+     "label": "Action"
+    },
+    {
+     "group": "motion",
+     "label": "Motion"
+    },
+    {
+     "group": "condition",
+     "label": "Condition"
+    },
+    {
+     "group": "attachment",
+     "label": "Attachment"
+    },
+    {
+     "group": "other_plan_node",
+     "label": "Other plan node"
+    }
+   ],
+   "layout": "hier",
+   "empty": "No plan was recorded with this scene."
+  },
+  {
+   "key": "chart",
+   "ok": true,
+   "nodes": [],
+   "edges": [],
+   "details": {},
+   "legend": [],
+   "layout": "hier",
+   "empty": "No motion statechart was recorded with this scene.",
+   "recorded": {
+    "charts": [
+     {
+      "signature": "chart_node_0:JointPositionList|chart_node_1:JointPositionList|chart_node_2:SetOdometry|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion",
+      "title": "ParkArmsAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "SetOdometry",
+        "class_name": "SetOdometry"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_7",
+        "name": "paused#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_8",
+        "name": "interrupted#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_9",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_3",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_5",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_8",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_7",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_2",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_8",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:JointPositionList|chart_node_1:JointPositionList|chart_node_2:SetOdometry|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion",
+      "title": "MoveTorsoAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "SetOdometry",
+        "class_name": "SetOdometry"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_7",
+        "name": "paused#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_8",
+        "name": "interrupted#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_9",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_3",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_5",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_8",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_7",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_2",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_8",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:JointPositionList|chart_node_1:JointPositionList|chart_node_2:SetOdometry|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion",
+      "title": "NavigateAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "SetOdometry",
+        "class_name": "SetOdometry"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_7",
+        "name": "paused#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_8",
+        "name": "interrupted#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_9",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_3",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_5",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_8",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_7",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_2",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_8",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:MoveTCP|chart_node_1:OpenGripper|chart_node_2:MoveTCP|chart_node_3:CloseGripper|chart_node_4:paused#0|chart_node_5:interrupted#0|chart_node_6:paused#1|chart_node_7:interrupted#1|chart_node_8:paused#2|chart_node_9:interrupted#2|chart_node_10:paused#3|chart_node_11:interrupted#3|chart_node_12:EndMotion|chart_node_13:MoveTCP/position|chart_node_14:MoveTCP/orientation|chart_node_15:MoveTCP/position|chart_node_16:MoveTCP/orientation",
+      "title": "ReachAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "OpenGripper",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "CloseGripper",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_7",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_8",
+        "name": "paused#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_9",
+        "name": "interrupted#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_10",
+        "name": "paused#3",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_11",
+        "name": "interrupted#3",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_12",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       },
+       {
+        "id": "chart_node_13",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_14",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_15",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_2"
+       },
+       {
+        "id": "chart_node_16",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_2"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_4",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_7",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_6",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_9",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_8",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_2",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_11",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_10",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_3",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_3",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_7",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_9",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_11",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:MoveTCP|chart_node_1:OpenGripper|chart_node_2:MoveTCP|chart_node_3:CloseGripper|chart_node_4:paused#0|chart_node_5:interrupted#0|chart_node_6:paused#1|chart_node_7:interrupted#1|chart_node_8:paused#2|chart_node_9:interrupted#2|chart_node_10:paused#3|chart_node_11:interrupted#3|chart_node_12:EndMotion|chart_node_13:MoveTCP/position|chart_node_14:MoveTCP/orientation|chart_node_15:MoveTCP/position|chart_node_16:MoveTCP/orientation",
+      "title": "PickUpAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "OpenGripper",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "CloseGripper",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_7",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_8",
+        "name": "paused#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_9",
+        "name": "interrupted#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_10",
+        "name": "paused#3",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_11",
+        "name": "interrupted#3",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_12",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       },
+       {
+        "id": "chart_node_13",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_14",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_15",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_2"
+       },
+       {
+        "id": "chart_node_16",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_2"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_4",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_7",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_6",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_9",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_8",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_2",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_11",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_10",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_3",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_3",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_7",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_9",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_12",
+        "to": "chart_node_11",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:MoveTCP|chart_node_1:paused#0|chart_node_2:interrupted#0|chart_node_3:EndMotion",
+      "title": "PickUpAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "MoveTCP",
+        "class_name": "CartesianPosition"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_1",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_0",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:JointPositionList|chart_node_1:SetOdometry|chart_node_2:paused#0|chart_node_3:interrupted#0|chart_node_4:paused#1|chart_node_5:interrupted#1|chart_node_6:EndMotion",
+      "title": "ParkArmsAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "SetOdometry",
+        "class_name": "SetOdometry"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_2",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_5",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_4",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_6",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_6",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_6",
+        "to": "chart_node_5",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:JointPositionList|chart_node_1:SetOdometry|chart_node_2:paused#0|chart_node_3:interrupted#0|chart_node_4:paused#1|chart_node_5:interrupted#1|chart_node_6:EndMotion",
+      "title": "NavigateAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "SetOdometry",
+        "class_name": "SetOdometry"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_2",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_5",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_4",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_6",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_6",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_6",
+        "to": "chart_node_5",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:MoveTCP|chart_node_1:MoveTCP|chart_node_2:OpenGripper|chart_node_3:paused#0|chart_node_4:interrupted#0|chart_node_5:paused#1|chart_node_6:interrupted#1|chart_node_7:paused#2|chart_node_8:interrupted#2|chart_node_9:EndMotion|chart_node_10:MoveTCP/position|chart_node_11:MoveTCP/orientation|chart_node_12:MoveTCP/position|chart_node_13:MoveTCP/orientation",
+      "title": "PlaceAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "OpenGripper",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "paused#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_6",
+        "name": "interrupted#1",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_7",
+        "name": "paused#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_8",
+        "name": "interrupted#2",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_9",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       },
+       {
+        "id": "chart_node_10",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_11",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_12",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_1"
+       },
+       {
+        "id": "chart_node_13",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_1"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_3",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_5",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_1",
+        "to": "chart_node_1",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_8",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_7",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_2",
+        "to": "chart_node_2",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_2",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_0",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_6",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_1",
+        "kind": "START"
+       },
+       {
+        "from": "chart_node_9",
+        "to": "chart_node_8",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:MoveTCP|chart_node_1:paused#0|chart_node_2:interrupted#0|chart_node_3:EndMotion|chart_node_4:MoveTCP/position|chart_node_5:MoveTCP/orientation",
+      "title": "PlaceAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "MoveTCP",
+        "class_name": "CartesianPose"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       },
+       {
+        "id": "chart_node_4",
+        "name": "MoveTCP/position",
+        "class_name": "CartesianPosition",
+        "parent": "chart_node_0"
+       },
+       {
+        "id": "chart_node_5",
+        "name": "MoveTCP/orientation",
+        "class_name": "CartesianOrientation",
+        "parent": "chart_node_0"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_1",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_0",
+        "kind": "START"
+       }
+      ]
+     },
+     {
+      "signature": "chart_node_0:JointPositionList|chart_node_1:paused#0|chart_node_2:interrupted#0|chart_node_3:EndMotion",
+      "title": "ParkArmsAction",
+      "nodes": [
+       {
+        "id": "chart_node_0",
+        "name": "JointPositionList",
+        "class_name": "JointPositionList"
+       },
+       {
+        "id": "chart_node_1",
+        "name": "paused#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_2",
+        "name": "interrupted#0",
+        "class_name": "PlanNodeStatusMonitor"
+       },
+       {
+        "id": "chart_node_3",
+        "name": "EndMotion",
+        "class_name": "EndMotion"
+       }
+      ],
+      "edges": [
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_1",
+        "kind": "PAUSE"
+       },
+       {
+        "from": "chart_node_0",
+        "to": "chart_node_0",
+        "kind": "END"
+       },
+       {
+        "from": "chart_node_3",
+        "to": "chart_node_0",
+        "kind": "START"
+       }
+      ]
+     }
+    ],
+    "moments": [
+     {
+      "chart": 0,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 1,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 1,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 2,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 2,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 2,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 3,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 4,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 4,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 4,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 4,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 5,
+      "lifeCycles": [
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 5,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 5,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE"
+      ]
+     },
+     {
+      "chart": 5,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 6,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 7,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "TRUE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 7,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 7,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE"
+      ]
+     },
+     {
+      "chart": 7,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "UNKNOWN",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 8,
+      "lifeCycles": [
+       "DONE",
+       "DONE",
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 9,
+      "lifeCycles": [
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "FALSE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 9,
+      "lifeCycles": [
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 9,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 9,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 9,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "DONE",
+       "DONE"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "TRUE",
+       "TRUE",
+       "TRUE"
+      ]
+     },
+     {
+      "chart": 10,
+      "lifeCycles": [
+       "RUNNING",
+       "RUNNING",
+       "RUNNING",
+       "NOT_STARTED"
+      ],
+      "observations": [
+       "FALSE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 10,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "UNKNOWN"
+      ]
+     },
+     {
+      "chart": 10,
+      "lifeCycles": [
+       "DONE",
+       "RUNNING",
+       "RUNNING",
+       "RUNNING"
+      ],
+      "observations": [
+       "TRUE",
+       "FALSE",
+       "FALSE",
+       "FALSE"
+      ]
+     }
+    ],
+    "frames": [
+     -1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     3,
+     4,
+     5,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     6,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     7,
+     8,
+     9,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     11,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     12,
+     13,
+     14,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     15,
+     16,
+     17,
+     17,
+     18,
+     18,
+     18,
+     18,
+     18,
+     18,
+     18,
+     19,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     21,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     22,
+     23,
+     24,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     26,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     27,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     28,
+     29,
+     30,
+     31,
+     31,
+     31,
+     31,
+     31,
+     31,
+     31,
+     32,
+     33,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     34,
+     35,
+     36,
+     36,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     37,
+     38,
+     39,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     41,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     42,
+     43,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44,
+     44
+    ]
+   }
+  },
+  {
+   "key": "kinematics",
+   "ok": true,
+   "nodes": [
+    {
+     "id": "world_root",
+     "label": "world_root",
+     "group": "base",
+     "title": "world_root"
+    },
+    {
+     "id": "pr2/base_footprint",
+     "label": "pr2/base_footprint",
+     "group": "base",
+     "title": "pr2/base_footprint\nworld_root_to_pr2/base_footprint (fixed)"
+    },
+    {
+     "id": "pr2/base_link",
+     "label": "pr2/base_link",
+     "group": "base",
+     "title": "pr2/base_link\npr2/base_footprint_joint (fixed)"
+    },
+    {
+     "id": "pr2/torso_lift_motor_screw_link",
+     "label": "pr2/torso_lift_motor_screw_link",
+     "group": "base",
+     "title": "pr2/torso_lift_motor_screw_link\npr2/torso_lift_motor_screw_joint (continuous)"
+    },
+    {
+     "id": "pr2/torso_lift_link",
+     "label": "pr2/torso_lift_link",
+     "group": "left_arm",
+     "title": "pr2/torso_lift_link\npr2/torso_lift_joint (prismatic)"
+    },
+    {
+     "id": "pr2/l_shoulder_pan_link",
+     "label": "pr2/l_shoulder_pan_link",
+     "group": "left_arm",
+     "title": "pr2/l_shoulder_pan_link\npr2/l_shoulder_pan_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_shoulder_lift_link",
+     "label": "pr2/l_shoulder_lift_link",
+     "group": "left_arm",
+     "title": "pr2/l_shoulder_lift_link\npr2/l_shoulder_lift_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_upper_arm_roll_link",
+     "label": "pr2/l_upper_arm_roll_link",
+     "group": "left_arm",
+     "title": "pr2/l_upper_arm_roll_link\npr2/l_upper_arm_roll_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_upper_arm_link",
+     "label": "pr2/l_upper_arm_link",
+     "group": "left_arm",
+     "title": "pr2/l_upper_arm_link\npr2/l_upper_arm_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_elbow_flex_link",
+     "label": "pr2/l_elbow_flex_link",
+     "group": "left_arm",
+     "title": "pr2/l_elbow_flex_link\npr2/l_elbow_flex_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_forearm_roll_link",
+     "label": "pr2/l_forearm_roll_link",
+     "group": "left_arm",
+     "title": "pr2/l_forearm_roll_link\npr2/l_forearm_roll_joint (continuous)"
+    },
+    {
+     "id": "pr2/l_forearm_cam_frame",
+     "label": "pr2/l_forearm_cam_frame",
+     "group": "base",
+     "title": "pr2/l_forearm_cam_frame\npr2/l_forearm_cam_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_forearm_cam_optical_frame",
+     "label": "pr2/l_forearm_cam_optical_frame",
+     "group": "base",
+     "title": "pr2/l_forearm_cam_optical_frame\npr2/l_forearm_cam_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_forearm_link",
+     "label": "pr2/l_forearm_link",
+     "group": "left_arm",
+     "title": "pr2/l_forearm_link\npr2/l_forearm_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_wrist_flex_link",
+     "label": "pr2/l_wrist_flex_link",
+     "group": "left_arm",
+     "title": "pr2/l_wrist_flex_link\npr2/l_wrist_flex_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_wrist_roll_link",
+     "label": "pr2/l_wrist_roll_link",
+     "group": "left_arm",
+     "title": "pr2/l_wrist_roll_link\npr2/l_wrist_roll_joint (continuous)"
+    },
+    {
+     "id": "pr2/l_force_torque_adapter_link",
+     "label": "pr2/l_force_torque_adapter_link",
+     "group": "base",
+     "title": "pr2/l_force_torque_adapter_link\npr2/l_force_torque_adapter_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_force_torque_link",
+     "label": "pr2/l_force_torque_link",
+     "group": "base",
+     "title": "pr2/l_force_torque_link\npr2/l_force_torque_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_gripper_palm_link",
+     "label": "pr2/l_gripper_palm_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_palm_link\npr2/l_gripper_palm_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_gripper_r_finger_link",
+     "label": "pr2/l_gripper_r_finger_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_r_finger_link\npr2/l_gripper_r_finger_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_gripper_r_finger_tip_link",
+     "label": "pr2/l_gripper_r_finger_tip_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_r_finger_tip_link\npr2/l_gripper_r_finger_tip_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_gripper_l_finger_tip_frame",
+     "label": "pr2/l_gripper_l_finger_tip_frame",
+     "group": "gripper",
+     "title": "pr2/l_gripper_l_finger_tip_frame\npr2/l_gripper_joint (prismatic)"
+    },
+    {
+     "id": "pr2/l_gripper_l_finger_link",
+     "label": "pr2/l_gripper_l_finger_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_l_finger_link\npr2/l_gripper_l_finger_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_gripper_l_finger_tip_link",
+     "label": "pr2/l_gripper_l_finger_tip_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_l_finger_tip_link\npr2/l_gripper_l_finger_tip_joint (revolute)"
+    },
+    {
+     "id": "pr2/l_gripper_motor_slider_link",
+     "label": "pr2/l_gripper_motor_slider_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_motor_slider_link\npr2/l_gripper_motor_slider_joint (prismatic)"
+    },
+    {
+     "id": "pr2/l_gripper_motor_screw_link",
+     "label": "pr2/l_gripper_motor_screw_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_motor_screw_link\npr2/l_gripper_motor_screw_joint (continuous)"
+    },
+    {
+     "id": "pr2/l_gripper_tool_frame",
+     "label": "pr2/l_gripper_tool_frame",
+     "group": "gripper",
+     "title": "pr2/l_gripper_tool_frame\npr2/l_gripper_tool_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_gripper_motor_accelerometer_link",
+     "label": "pr2/l_gripper_motor_accelerometer_link",
+     "group": "gripper",
+     "title": "pr2/l_gripper_motor_accelerometer_link\npr2/l_gripper_motor_accelerometer_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_gripper_led_frame",
+     "label": "pr2/l_gripper_led_frame",
+     "group": "gripper",
+     "title": "pr2/l_gripper_led_frame\npr2/l_gripper_led_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_shoulder_pan_link",
+     "label": "pr2/r_shoulder_pan_link",
+     "group": "right_arm",
+     "title": "pr2/r_shoulder_pan_link\npr2/r_shoulder_pan_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_shoulder_lift_link",
+     "label": "pr2/r_shoulder_lift_link",
+     "group": "right_arm",
+     "title": "pr2/r_shoulder_lift_link\npr2/r_shoulder_lift_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_upper_arm_roll_link",
+     "label": "pr2/r_upper_arm_roll_link",
+     "group": "right_arm",
+     "title": "pr2/r_upper_arm_roll_link\npr2/r_upper_arm_roll_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_upper_arm_link",
+     "label": "pr2/r_upper_arm_link",
+     "group": "right_arm",
+     "title": "pr2/r_upper_arm_link\npr2/r_upper_arm_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_elbow_flex_link",
+     "label": "pr2/r_elbow_flex_link",
+     "group": "right_arm",
+     "title": "pr2/r_elbow_flex_link\npr2/r_elbow_flex_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_forearm_roll_link",
+     "label": "pr2/r_forearm_roll_link",
+     "group": "right_arm",
+     "title": "pr2/r_forearm_roll_link\npr2/r_forearm_roll_joint (continuous)"
+    },
+    {
+     "id": "pr2/r_forearm_cam_frame",
+     "label": "pr2/r_forearm_cam_frame",
+     "group": "base",
+     "title": "pr2/r_forearm_cam_frame\npr2/r_forearm_cam_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_forearm_cam_optical_frame",
+     "label": "pr2/r_forearm_cam_optical_frame",
+     "group": "base",
+     "title": "pr2/r_forearm_cam_optical_frame\npr2/r_forearm_cam_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_forearm_link",
+     "label": "pr2/r_forearm_link",
+     "group": "right_arm",
+     "title": "pr2/r_forearm_link\npr2/r_forearm_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_wrist_flex_link",
+     "label": "pr2/r_wrist_flex_link",
+     "group": "right_arm",
+     "title": "pr2/r_wrist_flex_link\npr2/r_wrist_flex_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_wrist_roll_link",
+     "label": "pr2/r_wrist_roll_link",
+     "group": "right_arm",
+     "title": "pr2/r_wrist_roll_link\npr2/r_wrist_roll_joint (continuous)"
+    },
+    {
+     "id": "pr2/r_gripper_palm_link",
+     "label": "pr2/r_gripper_palm_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_palm_link\npr2/r_gripper_palm_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_gripper_r_finger_link",
+     "label": "pr2/r_gripper_r_finger_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_r_finger_link\npr2/r_gripper_r_finger_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_gripper_r_finger_tip_link",
+     "label": "pr2/r_gripper_r_finger_tip_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_r_finger_tip_link\npr2/r_gripper_r_finger_tip_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_gripper_l_finger_tip_frame",
+     "label": "pr2/r_gripper_l_finger_tip_frame",
+     "group": "gripper",
+     "title": "pr2/r_gripper_l_finger_tip_frame\npr2/r_gripper_joint (prismatic)"
+    },
+    {
+     "id": "pr2/r_gripper_l_finger_link",
+     "label": "pr2/r_gripper_l_finger_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_l_finger_link\npr2/r_gripper_l_finger_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_gripper_l_finger_tip_link",
+     "label": "pr2/r_gripper_l_finger_tip_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_l_finger_tip_link\npr2/r_gripper_l_finger_tip_joint (revolute)"
+    },
+    {
+     "id": "pr2/r_gripper_motor_slider_link",
+     "label": "pr2/r_gripper_motor_slider_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_motor_slider_link\npr2/r_gripper_motor_slider_joint (prismatic)"
+    },
+    {
+     "id": "pr2/r_gripper_motor_screw_link",
+     "label": "pr2/r_gripper_motor_screw_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_motor_screw_link\npr2/r_gripper_motor_screw_joint (continuous)"
+    },
+    {
+     "id": "pr2/r_gripper_tool_frame",
+     "label": "pr2/r_gripper_tool_frame",
+     "group": "gripper",
+     "title": "pr2/r_gripper_tool_frame\npr2/r_gripper_tool_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_gripper_motor_accelerometer_link",
+     "label": "pr2/r_gripper_motor_accelerometer_link",
+     "group": "gripper",
+     "title": "pr2/r_gripper_motor_accelerometer_link\npr2/r_gripper_motor_accelerometer_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_gripper_led_frame",
+     "label": "pr2/r_gripper_led_frame",
+     "group": "gripper",
+     "title": "pr2/r_gripper_led_frame\npr2/r_gripper_led_joint (fixed)"
+    },
+    {
+     "id": "pr2/laser_tilt_mount_link",
+     "label": "pr2/laser_tilt_mount_link",
+     "group": "base",
+     "title": "pr2/laser_tilt_mount_link\npr2/laser_tilt_mount_joint (revolute)"
+    },
+    {
+     "id": "pr2/laser_tilt_link",
+     "label": "pr2/laser_tilt_link",
+     "group": "base",
+     "title": "pr2/laser_tilt_link\npr2/laser_tilt_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_pan_link",
+     "label": "pr2/head_pan_link",
+     "group": "base",
+     "title": "pr2/head_pan_link\npr2/head_pan_joint (revolute)"
+    },
+    {
+     "id": "pr2/head_tilt_link",
+     "label": "pr2/head_tilt_link",
+     "group": "base",
+     "title": "pr2/head_tilt_link\npr2/head_tilt_joint (revolute)"
+    },
+    {
+     "id": "pr2/head_plate_frame",
+     "label": "pr2/head_plate_frame",
+     "group": "base",
+     "title": "pr2/head_plate_frame\npr2/head_plate_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect2_link",
+     "label": "pr2/head_mount_kinect2_link",
+     "group": "base",
+     "title": "pr2/head_mount_kinect2_link\npr2/head_mount_kinect2_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_link",
+     "label": "pr2/head_mount_link",
+     "group": "base",
+     "title": "pr2/head_mount_link\npr2/head_mount_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_prosilica_link",
+     "label": "pr2/head_mount_prosilica_link",
+     "group": "base",
+     "title": "pr2/head_mount_prosilica_link\npr2/head_mount_prosilica_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_prosilica_optical_frame",
+     "label": "pr2/head_mount_prosilica_optical_frame",
+     "group": "base",
+     "title": "pr2/head_mount_prosilica_optical_frame\npr2/head_mount_prosilica_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect_ir_link",
+     "label": "pr2/head_mount_kinect_ir_link",
+     "group": "base",
+     "title": "pr2/head_mount_kinect_ir_link\npr2/head_mount_kinect_ir_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect_rgb_link",
+     "label": "pr2/head_mount_kinect_rgb_link",
+     "group": "base",
+     "title": "pr2/head_mount_kinect_rgb_link\npr2/head_mount_kinect_rgb_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect_rgb_optical_frame",
+     "label": "pr2/head_mount_kinect_rgb_optical_frame",
+     "group": "base",
+     "title": "pr2/head_mount_kinect_rgb_optical_frame\npr2/head_mount_kinect_rgb_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect_ir_optical_frame",
+     "label": "pr2/head_mount_kinect_ir_optical_frame",
+     "group": "base",
+     "title": "pr2/head_mount_kinect_ir_optical_frame\npr2/head_mount_kinect_ir_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/projector_wg6802418_frame",
+     "label": "pr2/projector_wg6802418_frame",
+     "group": "base",
+     "title": "pr2/projector_wg6802418_frame\npr2/projector_wg6802418_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/projector_wg6802418_child_frame",
+     "label": "pr2/projector_wg6802418_child_frame",
+     "group": "base",
+     "title": "pr2/projector_wg6802418_child_frame\npr2/projector_wg6802418_child_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/sensor_mount_link",
+     "label": "pr2/sensor_mount_link",
+     "group": "base",
+     "title": "pr2/sensor_mount_link\npr2/sensor_mount_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/double_stereo_link",
+     "label": "pr2/double_stereo_link",
+     "group": "base",
+     "title": "pr2/double_stereo_link\npr2/double_stereo_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/narrow_stereo_link",
+     "label": "pr2/narrow_stereo_link",
+     "group": "base",
+     "title": "pr2/narrow_stereo_link\npr2/narrow_stereo_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/narrow_stereo_l_stereo_camera_frame",
+     "label": "pr2/narrow_stereo_l_stereo_camera_frame",
+     "group": "base",
+     "title": "pr2/narrow_stereo_l_stereo_camera_frame\npr2/narrow_stereo_l_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/narrow_stereo_r_stereo_camera_frame",
+     "label": "pr2/narrow_stereo_r_stereo_camera_frame",
+     "group": "base",
+     "title": "pr2/narrow_stereo_r_stereo_camera_frame\npr2/narrow_stereo_r_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+     "label": "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+     "group": "base",
+     "title": "pr2/narrow_stereo_r_stereo_camera_optical_frame\npr2/narrow_stereo_r_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+     "label": "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+     "group": "base",
+     "title": "pr2/narrow_stereo_l_stereo_camera_optical_frame\npr2/narrow_stereo_l_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/narrow_stereo_optical_frame",
+     "label": "pr2/narrow_stereo_optical_frame",
+     "group": "base",
+     "title": "pr2/narrow_stereo_optical_frame\npr2/narrow_stereo_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/wide_stereo_link",
+     "label": "pr2/wide_stereo_link",
+     "group": "base",
+     "title": "pr2/wide_stereo_link\npr2/wide_stereo_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/wide_stereo_l_stereo_camera_frame",
+     "label": "pr2/wide_stereo_l_stereo_camera_frame",
+     "group": "base",
+     "title": "pr2/wide_stereo_l_stereo_camera_frame\npr2/wide_stereo_l_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/wide_stereo_r_stereo_camera_frame",
+     "label": "pr2/wide_stereo_r_stereo_camera_frame",
+     "group": "base",
+     "title": "pr2/wide_stereo_r_stereo_camera_frame\npr2/wide_stereo_r_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/wide_stereo_r_stereo_camera_optical_frame",
+     "label": "pr2/wide_stereo_r_stereo_camera_optical_frame",
+     "group": "base",
+     "title": "pr2/wide_stereo_r_stereo_camera_optical_frame\npr2/wide_stereo_r_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/wide_stereo_l_stereo_camera_optical_frame",
+     "label": "pr2/wide_stereo_l_stereo_camera_optical_frame",
+     "group": "base",
+     "title": "pr2/wide_stereo_l_stereo_camera_optical_frame\npr2/wide_stereo_l_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/wide_stereo_optical_frame",
+     "label": "pr2/wide_stereo_optical_frame",
+     "group": "base",
+     "title": "pr2/wide_stereo_optical_frame\npr2/wide_stereo_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/high_def_frame",
+     "label": "pr2/high_def_frame",
+     "group": "base",
+     "title": "pr2/high_def_frame\npr2/high_def_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/high_def_optical_frame",
+     "label": "pr2/high_def_optical_frame",
+     "group": "base",
+     "title": "pr2/high_def_optical_frame\npr2/high_def_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect2_rgb_optical_frame",
+     "label": "pr2/head_mount_kinect2_rgb_optical_frame",
+     "group": "base",
+     "title": "pr2/head_mount_kinect2_rgb_optical_frame\npr2/head_mount_kinect2_rgb_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/head_mount_kinect2_ir_optical_frame",
+     "label": "pr2/head_mount_kinect2_ir_optical_frame",
+     "group": "base",
+     "title": "pr2/head_mount_kinect2_ir_optical_frame\npr2/head_mount_kinect2_ir_optical_frame_joint (fixed)"
+    },
+    {
+     "id": "pr2/imu_link",
+     "label": "pr2/imu_link",
+     "group": "base",
+     "title": "pr2/imu_link\npr2/imu_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_torso_lift_side_plate_link",
+     "label": "pr2/r_torso_lift_side_plate_link",
+     "group": "base",
+     "title": "pr2/r_torso_lift_side_plate_link\npr2/r_torso_lift_side_plate_joint (fixed)"
+    },
+    {
+     "id": "pr2/r_torso_lift_side_item_profile_link",
+     "label": "pr2/r_torso_lift_side_item_profile_link",
+     "group": "base",
+     "title": "pr2/r_torso_lift_side_item_profile_link\npr2/r_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "id": "pr2/m_torso_lift_side_item_profile_link",
+     "label": "pr2/m_torso_lift_side_item_profile_link",
+     "group": "base",
+     "title": "pr2/m_torso_lift_side_item_profile_link\npr2/m_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "id": "pr2/t_torso_lift_side_item_profile_link",
+     "label": "pr2/t_torso_lift_side_item_profile_link",
+     "group": "base",
+     "title": "pr2/t_torso_lift_side_item_profile_link\npr2/t_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_torso_lift_side_plate_link",
+     "label": "pr2/l_torso_lift_side_plate_link",
+     "group": "base",
+     "title": "pr2/l_torso_lift_side_plate_link\npr2/l_torso_lift_side_plate_joint (fixed)"
+    },
+    {
+     "id": "pr2/l_torso_lift_side_item_profile_link",
+     "label": "pr2/l_torso_lift_side_item_profile_link",
+     "group": "base",
+     "title": "pr2/l_torso_lift_side_item_profile_link\npr2/l_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "id": "pr2/br_caster_rotation_link",
+     "label": "pr2/br_caster_rotation_link",
+     "group": "base",
+     "title": "pr2/br_caster_rotation_link\npr2/br_caster_rotation_joint (continuous)"
+    },
+    {
+     "id": "pr2/br_caster_r_wheel_link",
+     "label": "pr2/br_caster_r_wheel_link",
+     "group": "base",
+     "title": "pr2/br_caster_r_wheel_link\npr2/br_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/br_caster_l_wheel_link",
+     "label": "pr2/br_caster_l_wheel_link",
+     "group": "base",
+     "title": "pr2/br_caster_l_wheel_link\npr2/br_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/bl_caster_rotation_link",
+     "label": "pr2/bl_caster_rotation_link",
+     "group": "base",
+     "title": "pr2/bl_caster_rotation_link\npr2/bl_caster_rotation_joint (continuous)"
+    },
+    {
+     "id": "pr2/bl_caster_r_wheel_link",
+     "label": "pr2/bl_caster_r_wheel_link",
+     "group": "base",
+     "title": "pr2/bl_caster_r_wheel_link\npr2/bl_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/bl_caster_l_wheel_link",
+     "label": "pr2/bl_caster_l_wheel_link",
+     "group": "base",
+     "title": "pr2/bl_caster_l_wheel_link\npr2/bl_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/fr_caster_rotation_link",
+     "label": "pr2/fr_caster_rotation_link",
+     "group": "base",
+     "title": "pr2/fr_caster_rotation_link\npr2/fr_caster_rotation_joint (continuous)"
+    },
+    {
+     "id": "pr2/fr_caster_r_wheel_link",
+     "label": "pr2/fr_caster_r_wheel_link",
+     "group": "base",
+     "title": "pr2/fr_caster_r_wheel_link\npr2/fr_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/fr_caster_l_wheel_link",
+     "label": "pr2/fr_caster_l_wheel_link",
+     "group": "base",
+     "title": "pr2/fr_caster_l_wheel_link\npr2/fr_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/fl_caster_rotation_link",
+     "label": "pr2/fl_caster_rotation_link",
+     "group": "base",
+     "title": "pr2/fl_caster_rotation_link\npr2/fl_caster_rotation_joint (continuous)"
+    },
+    {
+     "id": "pr2/fl_caster_r_wheel_link",
+     "label": "pr2/fl_caster_r_wheel_link",
+     "group": "base",
+     "title": "pr2/fl_caster_r_wheel_link\npr2/fl_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/fl_caster_l_wheel_link",
+     "label": "pr2/fl_caster_l_wheel_link",
+     "group": "base",
+     "title": "pr2/fl_caster_l_wheel_link\npr2/fl_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "id": "pr2/base_laser_link",
+     "label": "pr2/base_laser_link",
+     "group": "base",
+     "title": "pr2/base_laser_link\npr2/base_laser_joint (fixed)"
+    },
+    {
+     "id": "pr2/base_bellow_link",
+     "label": "pr2/base_bellow_link",
+     "group": "base",
+     "title": "pr2/base_bellow_link\npr2/base_bellow_joint (fixed)"
+    }
+   ],
+   "edges": [
+    {
+     "from": "world_root",
+     "to": "pr2/base_footprint",
+     "kind": "type",
+     "label": "world_root_to_pr2/base_footprint (fixed)"
+    },
+    {
+     "from": "pr2/base_footprint",
+     "to": "pr2/base_link",
+     "kind": "type",
+     "label": "pr2/base_footprint_joint (fixed)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/torso_lift_motor_screw_link",
+     "kind": "property",
+     "label": "pr2/torso_lift_motor_screw_joint (continuous)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/torso_lift_link",
+     "kind": "property",
+     "label": "pr2/torso_lift_joint (prismatic)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/l_shoulder_pan_link",
+     "kind": "property",
+     "label": "pr2/l_shoulder_pan_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_shoulder_pan_link",
+     "to": "pr2/l_shoulder_lift_link",
+     "kind": "property",
+     "label": "pr2/l_shoulder_lift_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_shoulder_lift_link",
+     "to": "pr2/l_upper_arm_roll_link",
+     "kind": "property",
+     "label": "pr2/l_upper_arm_roll_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_upper_arm_roll_link",
+     "to": "pr2/l_upper_arm_link",
+     "kind": "type",
+     "label": "pr2/l_upper_arm_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_upper_arm_link",
+     "to": "pr2/l_elbow_flex_link",
+     "kind": "property",
+     "label": "pr2/l_elbow_flex_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_elbow_flex_link",
+     "to": "pr2/l_forearm_roll_link",
+     "kind": "property",
+     "label": "pr2/l_forearm_roll_joint (continuous)"
+    },
+    {
+     "from": "pr2/l_forearm_roll_link",
+     "to": "pr2/l_forearm_cam_frame",
+     "kind": "type",
+     "label": "pr2/l_forearm_cam_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_forearm_cam_frame",
+     "to": "pr2/l_forearm_cam_optical_frame",
+     "kind": "type",
+     "label": "pr2/l_forearm_cam_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_forearm_roll_link",
+     "to": "pr2/l_forearm_link",
+     "kind": "type",
+     "label": "pr2/l_forearm_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_forearm_link",
+     "to": "pr2/l_wrist_flex_link",
+     "kind": "property",
+     "label": "pr2/l_wrist_flex_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_wrist_flex_link",
+     "to": "pr2/l_wrist_roll_link",
+     "kind": "property",
+     "label": "pr2/l_wrist_roll_joint (continuous)"
+    },
+    {
+     "from": "pr2/l_wrist_roll_link",
+     "to": "pr2/l_force_torque_adapter_link",
+     "kind": "type",
+     "label": "pr2/l_force_torque_adapter_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_force_torque_adapter_link",
+     "to": "pr2/l_force_torque_link",
+     "kind": "type",
+     "label": "pr2/l_force_torque_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_force_torque_link",
+     "to": "pr2/l_gripper_palm_link",
+     "kind": "type",
+     "label": "pr2/l_gripper_palm_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_gripper_palm_link",
+     "to": "pr2/l_gripper_r_finger_link",
+     "kind": "property",
+     "label": "pr2/l_gripper_r_finger_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_gripper_r_finger_link",
+     "to": "pr2/l_gripper_r_finger_tip_link",
+     "kind": "property",
+     "label": "pr2/l_gripper_r_finger_tip_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_gripper_r_finger_tip_link",
+     "to": "pr2/l_gripper_l_finger_tip_frame",
+     "kind": "property",
+     "label": "pr2/l_gripper_joint (prismatic)"
+    },
+    {
+     "from": "pr2/l_gripper_palm_link",
+     "to": "pr2/l_gripper_l_finger_link",
+     "kind": "property",
+     "label": "pr2/l_gripper_l_finger_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_gripper_l_finger_link",
+     "to": "pr2/l_gripper_l_finger_tip_link",
+     "kind": "property",
+     "label": "pr2/l_gripper_l_finger_tip_joint (revolute)"
+    },
+    {
+     "from": "pr2/l_gripper_palm_link",
+     "to": "pr2/l_gripper_motor_slider_link",
+     "kind": "property",
+     "label": "pr2/l_gripper_motor_slider_joint (prismatic)"
+    },
+    {
+     "from": "pr2/l_gripper_motor_slider_link",
+     "to": "pr2/l_gripper_motor_screw_link",
+     "kind": "property",
+     "label": "pr2/l_gripper_motor_screw_joint (continuous)"
+    },
+    {
+     "from": "pr2/l_gripper_palm_link",
+     "to": "pr2/l_gripper_tool_frame",
+     "kind": "type",
+     "label": "pr2/l_gripper_tool_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_gripper_palm_link",
+     "to": "pr2/l_gripper_motor_accelerometer_link",
+     "kind": "type",
+     "label": "pr2/l_gripper_motor_accelerometer_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_gripper_palm_link",
+     "to": "pr2/l_gripper_led_frame",
+     "kind": "type",
+     "label": "pr2/l_gripper_led_joint (fixed)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/r_shoulder_pan_link",
+     "kind": "property",
+     "label": "pr2/r_shoulder_pan_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_shoulder_pan_link",
+     "to": "pr2/r_shoulder_lift_link",
+     "kind": "property",
+     "label": "pr2/r_shoulder_lift_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_shoulder_lift_link",
+     "to": "pr2/r_upper_arm_roll_link",
+     "kind": "property",
+     "label": "pr2/r_upper_arm_roll_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_upper_arm_roll_link",
+     "to": "pr2/r_upper_arm_link",
+     "kind": "type",
+     "label": "pr2/r_upper_arm_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_upper_arm_link",
+     "to": "pr2/r_elbow_flex_link",
+     "kind": "property",
+     "label": "pr2/r_elbow_flex_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_elbow_flex_link",
+     "to": "pr2/r_forearm_roll_link",
+     "kind": "property",
+     "label": "pr2/r_forearm_roll_joint (continuous)"
+    },
+    {
+     "from": "pr2/r_forearm_roll_link",
+     "to": "pr2/r_forearm_cam_frame",
+     "kind": "type",
+     "label": "pr2/r_forearm_cam_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_forearm_cam_frame",
+     "to": "pr2/r_forearm_cam_optical_frame",
+     "kind": "type",
+     "label": "pr2/r_forearm_cam_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_forearm_roll_link",
+     "to": "pr2/r_forearm_link",
+     "kind": "type",
+     "label": "pr2/r_forearm_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_forearm_link",
+     "to": "pr2/r_wrist_flex_link",
+     "kind": "property",
+     "label": "pr2/r_wrist_flex_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_wrist_flex_link",
+     "to": "pr2/r_wrist_roll_link",
+     "kind": "property",
+     "label": "pr2/r_wrist_roll_joint (continuous)"
+    },
+    {
+     "from": "pr2/r_wrist_roll_link",
+     "to": "pr2/r_gripper_palm_link",
+     "kind": "type",
+     "label": "pr2/r_gripper_palm_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_gripper_palm_link",
+     "to": "pr2/r_gripper_r_finger_link",
+     "kind": "property",
+     "label": "pr2/r_gripper_r_finger_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_gripper_r_finger_link",
+     "to": "pr2/r_gripper_r_finger_tip_link",
+     "kind": "property",
+     "label": "pr2/r_gripper_r_finger_tip_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_gripper_r_finger_tip_link",
+     "to": "pr2/r_gripper_l_finger_tip_frame",
+     "kind": "property",
+     "label": "pr2/r_gripper_joint (prismatic)"
+    },
+    {
+     "from": "pr2/r_gripper_palm_link",
+     "to": "pr2/r_gripper_l_finger_link",
+     "kind": "property",
+     "label": "pr2/r_gripper_l_finger_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_gripper_l_finger_link",
+     "to": "pr2/r_gripper_l_finger_tip_link",
+     "kind": "property",
+     "label": "pr2/r_gripper_l_finger_tip_joint (revolute)"
+    },
+    {
+     "from": "pr2/r_gripper_palm_link",
+     "to": "pr2/r_gripper_motor_slider_link",
+     "kind": "property",
+     "label": "pr2/r_gripper_motor_slider_joint (prismatic)"
+    },
+    {
+     "from": "pr2/r_gripper_motor_slider_link",
+     "to": "pr2/r_gripper_motor_screw_link",
+     "kind": "property",
+     "label": "pr2/r_gripper_motor_screw_joint (continuous)"
+    },
+    {
+     "from": "pr2/r_gripper_palm_link",
+     "to": "pr2/r_gripper_tool_frame",
+     "kind": "type",
+     "label": "pr2/r_gripper_tool_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_gripper_palm_link",
+     "to": "pr2/r_gripper_motor_accelerometer_link",
+     "kind": "type",
+     "label": "pr2/r_gripper_motor_accelerometer_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_gripper_palm_link",
+     "to": "pr2/r_gripper_led_frame",
+     "kind": "type",
+     "label": "pr2/r_gripper_led_joint (fixed)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/laser_tilt_mount_link",
+     "kind": "property",
+     "label": "pr2/laser_tilt_mount_joint (revolute)"
+    },
+    {
+     "from": "pr2/laser_tilt_mount_link",
+     "to": "pr2/laser_tilt_link",
+     "kind": "type",
+     "label": "pr2/laser_tilt_joint (fixed)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/head_pan_link",
+     "kind": "property",
+     "label": "pr2/head_pan_joint (revolute)"
+    },
+    {
+     "from": "pr2/head_pan_link",
+     "to": "pr2/head_tilt_link",
+     "kind": "property",
+     "label": "pr2/head_tilt_joint (revolute)"
+    },
+    {
+     "from": "pr2/head_tilt_link",
+     "to": "pr2/head_plate_frame",
+     "kind": "type",
+     "label": "pr2/head_plate_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_plate_frame",
+     "to": "pr2/head_mount_kinect2_link",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect2_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_plate_frame",
+     "to": "pr2/head_mount_link",
+     "kind": "type",
+     "label": "pr2/head_mount_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_link",
+     "to": "pr2/head_mount_prosilica_link",
+     "kind": "type",
+     "label": "pr2/head_mount_prosilica_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_prosilica_link",
+     "to": "pr2/head_mount_prosilica_optical_frame",
+     "kind": "type",
+     "label": "pr2/head_mount_prosilica_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_link",
+     "to": "pr2/head_mount_kinect_ir_link",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect_ir_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_kinect_ir_link",
+     "to": "pr2/head_mount_kinect_rgb_link",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect_rgb_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_kinect_rgb_link",
+     "to": "pr2/head_mount_kinect_rgb_optical_frame",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect_rgb_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_kinect_ir_link",
+     "to": "pr2/head_mount_kinect_ir_optical_frame",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect_ir_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_plate_frame",
+     "to": "pr2/projector_wg6802418_frame",
+     "kind": "type",
+     "label": "pr2/projector_wg6802418_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/projector_wg6802418_frame",
+     "to": "pr2/projector_wg6802418_child_frame",
+     "kind": "type",
+     "label": "pr2/projector_wg6802418_child_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_plate_frame",
+     "to": "pr2/sensor_mount_link",
+     "kind": "type",
+     "label": "pr2/sensor_mount_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/sensor_mount_link",
+     "to": "pr2/double_stereo_link",
+     "kind": "type",
+     "label": "pr2/double_stereo_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/double_stereo_link",
+     "to": "pr2/narrow_stereo_link",
+     "kind": "type",
+     "label": "pr2/narrow_stereo_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/narrow_stereo_link",
+     "to": "pr2/narrow_stereo_l_stereo_camera_frame",
+     "kind": "type",
+     "label": "pr2/narrow_stereo_l_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/narrow_stereo_l_stereo_camera_frame",
+     "to": "pr2/narrow_stereo_r_stereo_camera_frame",
+     "kind": "type",
+     "label": "pr2/narrow_stereo_r_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/narrow_stereo_r_stereo_camera_frame",
+     "to": "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+     "kind": "type",
+     "label": "pr2/narrow_stereo_r_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/narrow_stereo_l_stereo_camera_frame",
+     "to": "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+     "kind": "type",
+     "label": "pr2/narrow_stereo_l_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/narrow_stereo_link",
+     "to": "pr2/narrow_stereo_optical_frame",
+     "kind": "type",
+     "label": "pr2/narrow_stereo_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/double_stereo_link",
+     "to": "pr2/wide_stereo_link",
+     "kind": "type",
+     "label": "pr2/wide_stereo_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/wide_stereo_link",
+     "to": "pr2/wide_stereo_l_stereo_camera_frame",
+     "kind": "type",
+     "label": "pr2/wide_stereo_l_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/wide_stereo_l_stereo_camera_frame",
+     "to": "pr2/wide_stereo_r_stereo_camera_frame",
+     "kind": "type",
+     "label": "pr2/wide_stereo_r_stereo_camera_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/wide_stereo_r_stereo_camera_frame",
+     "to": "pr2/wide_stereo_r_stereo_camera_optical_frame",
+     "kind": "type",
+     "label": "pr2/wide_stereo_r_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/wide_stereo_l_stereo_camera_frame",
+     "to": "pr2/wide_stereo_l_stereo_camera_optical_frame",
+     "kind": "type",
+     "label": "pr2/wide_stereo_l_stereo_camera_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/wide_stereo_link",
+     "to": "pr2/wide_stereo_optical_frame",
+     "kind": "type",
+     "label": "pr2/wide_stereo_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/sensor_mount_link",
+     "to": "pr2/high_def_frame",
+     "kind": "type",
+     "label": "pr2/high_def_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/high_def_frame",
+     "to": "pr2/high_def_optical_frame",
+     "kind": "type",
+     "label": "pr2/high_def_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/high_def_optical_frame",
+     "to": "pr2/head_mount_kinect2_rgb_optical_frame",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect2_rgb_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/head_mount_kinect2_rgb_optical_frame",
+     "to": "pr2/head_mount_kinect2_ir_optical_frame",
+     "kind": "type",
+     "label": "pr2/head_mount_kinect2_ir_optical_frame_joint (fixed)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/imu_link",
+     "kind": "type",
+     "label": "pr2/imu_joint (fixed)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/r_torso_lift_side_plate_link",
+     "kind": "type",
+     "label": "pr2/r_torso_lift_side_plate_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_torso_lift_side_plate_link",
+     "to": "pr2/r_torso_lift_side_item_profile_link",
+     "kind": "type",
+     "label": "pr2/r_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "from": "pr2/r_torso_lift_side_item_profile_link",
+     "to": "pr2/m_torso_lift_side_item_profile_link",
+     "kind": "type",
+     "label": "pr2/m_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "from": "pr2/m_torso_lift_side_item_profile_link",
+     "to": "pr2/t_torso_lift_side_item_profile_link",
+     "kind": "type",
+     "label": "pr2/t_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "from": "pr2/torso_lift_link",
+     "to": "pr2/l_torso_lift_side_plate_link",
+     "kind": "type",
+     "label": "pr2/l_torso_lift_side_plate_joint (fixed)"
+    },
+    {
+     "from": "pr2/l_torso_lift_side_plate_link",
+     "to": "pr2/l_torso_lift_side_item_profile_link",
+     "kind": "type",
+     "label": "pr2/l_torso_lift_side_item_profile_joint (fixed)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/br_caster_rotation_link",
+     "kind": "property",
+     "label": "pr2/br_caster_rotation_joint (continuous)"
+    },
+    {
+     "from": "pr2/br_caster_rotation_link",
+     "to": "pr2/br_caster_r_wheel_link",
+     "kind": "property",
+     "label": "pr2/br_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/br_caster_rotation_link",
+     "to": "pr2/br_caster_l_wheel_link",
+     "kind": "property",
+     "label": "pr2/br_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/bl_caster_rotation_link",
+     "kind": "property",
+     "label": "pr2/bl_caster_rotation_joint (continuous)"
+    },
+    {
+     "from": "pr2/bl_caster_rotation_link",
+     "to": "pr2/bl_caster_r_wheel_link",
+     "kind": "property",
+     "label": "pr2/bl_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/bl_caster_rotation_link",
+     "to": "pr2/bl_caster_l_wheel_link",
+     "kind": "property",
+     "label": "pr2/bl_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/fr_caster_rotation_link",
+     "kind": "property",
+     "label": "pr2/fr_caster_rotation_joint (continuous)"
+    },
+    {
+     "from": "pr2/fr_caster_rotation_link",
+     "to": "pr2/fr_caster_r_wheel_link",
+     "kind": "property",
+     "label": "pr2/fr_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/fr_caster_rotation_link",
+     "to": "pr2/fr_caster_l_wheel_link",
+     "kind": "property",
+     "label": "pr2/fr_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/fl_caster_rotation_link",
+     "kind": "property",
+     "label": "pr2/fl_caster_rotation_joint (continuous)"
+    },
+    {
+     "from": "pr2/fl_caster_rotation_link",
+     "to": "pr2/fl_caster_r_wheel_link",
+     "kind": "property",
+     "label": "pr2/fl_caster_r_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/fl_caster_rotation_link",
+     "to": "pr2/fl_caster_l_wheel_link",
+     "kind": "property",
+     "label": "pr2/fl_caster_l_wheel_joint (continuous)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/base_laser_link",
+     "kind": "type",
+     "label": "pr2/base_laser_joint (fixed)"
+    },
+    {
+     "from": "pr2/base_link",
+     "to": "pr2/base_bellow_link",
+     "kind": "type",
+     "label": "pr2/base_bellow_joint (fixed)"
+    }
+   ],
+   "details": {
+    "world_root": {
+     "label": "world_root",
+     "group": "base",
+     "lines": []
+    },
+    "pr2/base_footprint": {
+     "label": "pr2/base_footprint",
+     "group": "base",
+     "lines": [
+      "world_root_to_pr2/base_footprint (fixed)"
+     ]
+    },
+    "pr2/base_link": {
+     "label": "pr2/base_link",
+     "group": "base",
+     "lines": [
+      "pr2/base_footprint_joint (fixed)"
+     ]
+    },
+    "pr2/torso_lift_motor_screw_link": {
+     "label": "pr2/torso_lift_motor_screw_link",
+     "group": "base",
+     "lines": [
+      "pr2/torso_lift_motor_screw_joint (continuous)"
+     ]
+    },
+    "pr2/torso_lift_link": {
+     "label": "pr2/torso_lift_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/torso_lift_joint (prismatic)"
+     ]
+    },
+    "pr2/l_shoulder_pan_link": {
+     "label": "pr2/l_shoulder_pan_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_shoulder_pan_joint (revolute)"
+     ]
+    },
+    "pr2/l_shoulder_lift_link": {
+     "label": "pr2/l_shoulder_lift_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_shoulder_lift_joint (revolute)"
+     ]
+    },
+    "pr2/l_upper_arm_roll_link": {
+     "label": "pr2/l_upper_arm_roll_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_upper_arm_roll_joint (revolute)"
+     ]
+    },
+    "pr2/l_upper_arm_link": {
+     "label": "pr2/l_upper_arm_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_upper_arm_joint (fixed)"
+     ]
+    },
+    "pr2/l_elbow_flex_link": {
+     "label": "pr2/l_elbow_flex_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_elbow_flex_joint (revolute)"
+     ]
+    },
+    "pr2/l_forearm_roll_link": {
+     "label": "pr2/l_forearm_roll_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_forearm_roll_joint (continuous)"
+     ]
+    },
+    "pr2/l_forearm_cam_frame": {
+     "label": "pr2/l_forearm_cam_frame",
+     "group": "base",
+     "lines": [
+      "pr2/l_forearm_cam_frame_joint (fixed)"
+     ]
+    },
+    "pr2/l_forearm_cam_optical_frame": {
+     "label": "pr2/l_forearm_cam_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/l_forearm_cam_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/l_forearm_link": {
+     "label": "pr2/l_forearm_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_forearm_joint (fixed)"
+     ]
+    },
+    "pr2/l_wrist_flex_link": {
+     "label": "pr2/l_wrist_flex_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_wrist_flex_joint (revolute)"
+     ]
+    },
+    "pr2/l_wrist_roll_link": {
+     "label": "pr2/l_wrist_roll_link",
+     "group": "left_arm",
+     "lines": [
+      "pr2/l_wrist_roll_joint (continuous)"
+     ]
+    },
+    "pr2/l_force_torque_adapter_link": {
+     "label": "pr2/l_force_torque_adapter_link",
+     "group": "base",
+     "lines": [
+      "pr2/l_force_torque_adapter_joint (fixed)"
+     ]
+    },
+    "pr2/l_force_torque_link": {
+     "label": "pr2/l_force_torque_link",
+     "group": "base",
+     "lines": [
+      "pr2/l_force_torque_joint (fixed)"
+     ]
+    },
+    "pr2/l_gripper_palm_link": {
+     "label": "pr2/l_gripper_palm_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_palm_joint (fixed)"
+     ]
+    },
+    "pr2/l_gripper_r_finger_link": {
+     "label": "pr2/l_gripper_r_finger_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_r_finger_joint (revolute)"
+     ]
+    },
+    "pr2/l_gripper_r_finger_tip_link": {
+     "label": "pr2/l_gripper_r_finger_tip_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_r_finger_tip_joint (revolute)"
+     ]
+    },
+    "pr2/l_gripper_l_finger_tip_frame": {
+     "label": "pr2/l_gripper_l_finger_tip_frame",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_joint (prismatic)"
+     ]
+    },
+    "pr2/l_gripper_l_finger_link": {
+     "label": "pr2/l_gripper_l_finger_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_l_finger_joint (revolute)"
+     ]
+    },
+    "pr2/l_gripper_l_finger_tip_link": {
+     "label": "pr2/l_gripper_l_finger_tip_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_l_finger_tip_joint (revolute)"
+     ]
+    },
+    "pr2/l_gripper_motor_slider_link": {
+     "label": "pr2/l_gripper_motor_slider_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_motor_slider_joint (prismatic)"
+     ]
+    },
+    "pr2/l_gripper_motor_screw_link": {
+     "label": "pr2/l_gripper_motor_screw_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_motor_screw_joint (continuous)"
+     ]
+    },
+    "pr2/l_gripper_tool_frame": {
+     "label": "pr2/l_gripper_tool_frame",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_tool_joint (fixed)"
+     ]
+    },
+    "pr2/l_gripper_motor_accelerometer_link": {
+     "label": "pr2/l_gripper_motor_accelerometer_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_motor_accelerometer_joint (fixed)"
+     ]
+    },
+    "pr2/l_gripper_led_frame": {
+     "label": "pr2/l_gripper_led_frame",
+     "group": "gripper",
+     "lines": [
+      "pr2/l_gripper_led_joint (fixed)"
+     ]
+    },
+    "pr2/r_shoulder_pan_link": {
+     "label": "pr2/r_shoulder_pan_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_shoulder_pan_joint (revolute)"
+     ]
+    },
+    "pr2/r_shoulder_lift_link": {
+     "label": "pr2/r_shoulder_lift_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_shoulder_lift_joint (revolute)"
+     ]
+    },
+    "pr2/r_upper_arm_roll_link": {
+     "label": "pr2/r_upper_arm_roll_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_upper_arm_roll_joint (revolute)"
+     ]
+    },
+    "pr2/r_upper_arm_link": {
+     "label": "pr2/r_upper_arm_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_upper_arm_joint (fixed)"
+     ]
+    },
+    "pr2/r_elbow_flex_link": {
+     "label": "pr2/r_elbow_flex_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_elbow_flex_joint (revolute)"
+     ]
+    },
+    "pr2/r_forearm_roll_link": {
+     "label": "pr2/r_forearm_roll_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_forearm_roll_joint (continuous)"
+     ]
+    },
+    "pr2/r_forearm_cam_frame": {
+     "label": "pr2/r_forearm_cam_frame",
+     "group": "base",
+     "lines": [
+      "pr2/r_forearm_cam_frame_joint (fixed)"
+     ]
+    },
+    "pr2/r_forearm_cam_optical_frame": {
+     "label": "pr2/r_forearm_cam_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/r_forearm_cam_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/r_forearm_link": {
+     "label": "pr2/r_forearm_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_forearm_joint (fixed)"
+     ]
+    },
+    "pr2/r_wrist_flex_link": {
+     "label": "pr2/r_wrist_flex_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_wrist_flex_joint (revolute)"
+     ]
+    },
+    "pr2/r_wrist_roll_link": {
+     "label": "pr2/r_wrist_roll_link",
+     "group": "right_arm",
+     "lines": [
+      "pr2/r_wrist_roll_joint (continuous)"
+     ]
+    },
+    "pr2/r_gripper_palm_link": {
+     "label": "pr2/r_gripper_palm_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_palm_joint (fixed)"
+     ]
+    },
+    "pr2/r_gripper_r_finger_link": {
+     "label": "pr2/r_gripper_r_finger_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_r_finger_joint (revolute)"
+     ]
+    },
+    "pr2/r_gripper_r_finger_tip_link": {
+     "label": "pr2/r_gripper_r_finger_tip_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_r_finger_tip_joint (revolute)"
+     ]
+    },
+    "pr2/r_gripper_l_finger_tip_frame": {
+     "label": "pr2/r_gripper_l_finger_tip_frame",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_joint (prismatic)"
+     ]
+    },
+    "pr2/r_gripper_l_finger_link": {
+     "label": "pr2/r_gripper_l_finger_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_l_finger_joint (revolute)"
+     ]
+    },
+    "pr2/r_gripper_l_finger_tip_link": {
+     "label": "pr2/r_gripper_l_finger_tip_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_l_finger_tip_joint (revolute)"
+     ]
+    },
+    "pr2/r_gripper_motor_slider_link": {
+     "label": "pr2/r_gripper_motor_slider_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_motor_slider_joint (prismatic)"
+     ]
+    },
+    "pr2/r_gripper_motor_screw_link": {
+     "label": "pr2/r_gripper_motor_screw_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_motor_screw_joint (continuous)"
+     ]
+    },
+    "pr2/r_gripper_tool_frame": {
+     "label": "pr2/r_gripper_tool_frame",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_tool_joint (fixed)"
+     ]
+    },
+    "pr2/r_gripper_motor_accelerometer_link": {
+     "label": "pr2/r_gripper_motor_accelerometer_link",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_motor_accelerometer_joint (fixed)"
+     ]
+    },
+    "pr2/r_gripper_led_frame": {
+     "label": "pr2/r_gripper_led_frame",
+     "group": "gripper",
+     "lines": [
+      "pr2/r_gripper_led_joint (fixed)"
+     ]
+    },
+    "pr2/laser_tilt_mount_link": {
+     "label": "pr2/laser_tilt_mount_link",
+     "group": "base",
+     "lines": [
+      "pr2/laser_tilt_mount_joint (revolute)"
+     ]
+    },
+    "pr2/laser_tilt_link": {
+     "label": "pr2/laser_tilt_link",
+     "group": "base",
+     "lines": [
+      "pr2/laser_tilt_joint (fixed)"
+     ]
+    },
+    "pr2/head_pan_link": {
+     "label": "pr2/head_pan_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_pan_joint (revolute)"
+     ]
+    },
+    "pr2/head_tilt_link": {
+     "label": "pr2/head_tilt_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_tilt_joint (revolute)"
+     ]
+    },
+    "pr2/head_plate_frame": {
+     "label": "pr2/head_plate_frame",
+     "group": "base",
+     "lines": [
+      "pr2/head_plate_frame_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect2_link": {
+     "label": "pr2/head_mount_kinect2_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect2_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_link": {
+     "label": "pr2/head_mount_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_prosilica_link": {
+     "label": "pr2/head_mount_prosilica_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_prosilica_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_prosilica_optical_frame": {
+     "label": "pr2/head_mount_prosilica_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_prosilica_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect_ir_link": {
+     "label": "pr2/head_mount_kinect_ir_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect_ir_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect_rgb_link": {
+     "label": "pr2/head_mount_kinect_rgb_link",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect_rgb_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect_rgb_optical_frame": {
+     "label": "pr2/head_mount_kinect_rgb_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect_rgb_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect_ir_optical_frame": {
+     "label": "pr2/head_mount_kinect_ir_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect_ir_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/projector_wg6802418_frame": {
+     "label": "pr2/projector_wg6802418_frame",
+     "group": "base",
+     "lines": [
+      "pr2/projector_wg6802418_frame_joint (fixed)"
+     ]
+    },
+    "pr2/projector_wg6802418_child_frame": {
+     "label": "pr2/projector_wg6802418_child_frame",
+     "group": "base",
+     "lines": [
+      "pr2/projector_wg6802418_child_frame_joint (fixed)"
+     ]
+    },
+    "pr2/sensor_mount_link": {
+     "label": "pr2/sensor_mount_link",
+     "group": "base",
+     "lines": [
+      "pr2/sensor_mount_frame_joint (fixed)"
+     ]
+    },
+    "pr2/double_stereo_link": {
+     "label": "pr2/double_stereo_link",
+     "group": "base",
+     "lines": [
+      "pr2/double_stereo_frame_joint (fixed)"
+     ]
+    },
+    "pr2/narrow_stereo_link": {
+     "label": "pr2/narrow_stereo_link",
+     "group": "base",
+     "lines": [
+      "pr2/narrow_stereo_frame_joint (fixed)"
+     ]
+    },
+    "pr2/narrow_stereo_l_stereo_camera_frame": {
+     "label": "pr2/narrow_stereo_l_stereo_camera_frame",
+     "group": "base",
+     "lines": [
+      "pr2/narrow_stereo_l_stereo_camera_frame_joint (fixed)"
+     ]
+    },
+    "pr2/narrow_stereo_r_stereo_camera_frame": {
+     "label": "pr2/narrow_stereo_r_stereo_camera_frame",
+     "group": "base",
+     "lines": [
+      "pr2/narrow_stereo_r_stereo_camera_frame_joint (fixed)"
+     ]
+    },
+    "pr2/narrow_stereo_r_stereo_camera_optical_frame": {
+     "label": "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/narrow_stereo_r_stereo_camera_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/narrow_stereo_l_stereo_camera_optical_frame": {
+     "label": "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/narrow_stereo_l_stereo_camera_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/narrow_stereo_optical_frame": {
+     "label": "pr2/narrow_stereo_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/narrow_stereo_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/wide_stereo_link": {
+     "label": "pr2/wide_stereo_link",
+     "group": "base",
+     "lines": [
+      "pr2/wide_stereo_frame_joint (fixed)"
+     ]
+    },
+    "pr2/wide_stereo_l_stereo_camera_frame": {
+     "label": "pr2/wide_stereo_l_stereo_camera_frame",
+     "group": "base",
+     "lines": [
+      "pr2/wide_stereo_l_stereo_camera_frame_joint (fixed)"
+     ]
+    },
+    "pr2/wide_stereo_r_stereo_camera_frame": {
+     "label": "pr2/wide_stereo_r_stereo_camera_frame",
+     "group": "base",
+     "lines": [
+      "pr2/wide_stereo_r_stereo_camera_frame_joint (fixed)"
+     ]
+    },
+    "pr2/wide_stereo_r_stereo_camera_optical_frame": {
+     "label": "pr2/wide_stereo_r_stereo_camera_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/wide_stereo_r_stereo_camera_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/wide_stereo_l_stereo_camera_optical_frame": {
+     "label": "pr2/wide_stereo_l_stereo_camera_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/wide_stereo_l_stereo_camera_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/wide_stereo_optical_frame": {
+     "label": "pr2/wide_stereo_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/wide_stereo_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/high_def_frame": {
+     "label": "pr2/high_def_frame",
+     "group": "base",
+     "lines": [
+      "pr2/high_def_frame_joint (fixed)"
+     ]
+    },
+    "pr2/high_def_optical_frame": {
+     "label": "pr2/high_def_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/high_def_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect2_rgb_optical_frame": {
+     "label": "pr2/head_mount_kinect2_rgb_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect2_rgb_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/head_mount_kinect2_ir_optical_frame": {
+     "label": "pr2/head_mount_kinect2_ir_optical_frame",
+     "group": "base",
+     "lines": [
+      "pr2/head_mount_kinect2_ir_optical_frame_joint (fixed)"
+     ]
+    },
+    "pr2/imu_link": {
+     "label": "pr2/imu_link",
+     "group": "base",
+     "lines": [
+      "pr2/imu_joint (fixed)"
+     ]
+    },
+    "pr2/r_torso_lift_side_plate_link": {
+     "label": "pr2/r_torso_lift_side_plate_link",
+     "group": "base",
+     "lines": [
+      "pr2/r_torso_lift_side_plate_joint (fixed)"
+     ]
+    },
+    "pr2/r_torso_lift_side_item_profile_link": {
+     "label": "pr2/r_torso_lift_side_item_profile_link",
+     "group": "base",
+     "lines": [
+      "pr2/r_torso_lift_side_item_profile_joint (fixed)"
+     ]
+    },
+    "pr2/m_torso_lift_side_item_profile_link": {
+     "label": "pr2/m_torso_lift_side_item_profile_link",
+     "group": "base",
+     "lines": [
+      "pr2/m_torso_lift_side_item_profile_joint (fixed)"
+     ]
+    },
+    "pr2/t_torso_lift_side_item_profile_link": {
+     "label": "pr2/t_torso_lift_side_item_profile_link",
+     "group": "base",
+     "lines": [
+      "pr2/t_torso_lift_side_item_profile_joint (fixed)"
+     ]
+    },
+    "pr2/l_torso_lift_side_plate_link": {
+     "label": "pr2/l_torso_lift_side_plate_link",
+     "group": "base",
+     "lines": [
+      "pr2/l_torso_lift_side_plate_joint (fixed)"
+     ]
+    },
+    "pr2/l_torso_lift_side_item_profile_link": {
+     "label": "pr2/l_torso_lift_side_item_profile_link",
+     "group": "base",
+     "lines": [
+      "pr2/l_torso_lift_side_item_profile_joint (fixed)"
+     ]
+    },
+    "pr2/br_caster_rotation_link": {
+     "label": "pr2/br_caster_rotation_link",
+     "group": "base",
+     "lines": [
+      "pr2/br_caster_rotation_joint (continuous)"
+     ]
+    },
+    "pr2/br_caster_r_wheel_link": {
+     "label": "pr2/br_caster_r_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/br_caster_r_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/br_caster_l_wheel_link": {
+     "label": "pr2/br_caster_l_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/br_caster_l_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/bl_caster_rotation_link": {
+     "label": "pr2/bl_caster_rotation_link",
+     "group": "base",
+     "lines": [
+      "pr2/bl_caster_rotation_joint (continuous)"
+     ]
+    },
+    "pr2/bl_caster_r_wheel_link": {
+     "label": "pr2/bl_caster_r_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/bl_caster_r_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/bl_caster_l_wheel_link": {
+     "label": "pr2/bl_caster_l_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/bl_caster_l_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/fr_caster_rotation_link": {
+     "label": "pr2/fr_caster_rotation_link",
+     "group": "base",
+     "lines": [
+      "pr2/fr_caster_rotation_joint (continuous)"
+     ]
+    },
+    "pr2/fr_caster_r_wheel_link": {
+     "label": "pr2/fr_caster_r_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/fr_caster_r_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/fr_caster_l_wheel_link": {
+     "label": "pr2/fr_caster_l_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/fr_caster_l_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/fl_caster_rotation_link": {
+     "label": "pr2/fl_caster_rotation_link",
+     "group": "base",
+     "lines": [
+      "pr2/fl_caster_rotation_joint (continuous)"
+     ]
+    },
+    "pr2/fl_caster_r_wheel_link": {
+     "label": "pr2/fl_caster_r_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/fl_caster_r_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/fl_caster_l_wheel_link": {
+     "label": "pr2/fl_caster_l_wheel_link",
+     "group": "base",
+     "lines": [
+      "pr2/fl_caster_l_wheel_joint (continuous)"
+     ]
+    },
+    "pr2/base_laser_link": {
+     "label": "pr2/base_laser_link",
+     "group": "base",
+     "lines": [
+      "pr2/base_laser_joint (fixed)"
+     ]
+    },
+    "pr2/base_bellow_link": {
+     "label": "pr2/base_bellow_link",
+     "group": "base",
+     "lines": [
+      "pr2/base_bellow_joint (fixed)"
+     ]
+    }
+   },
+   "legend": [
+    {
+     "group": "base",
+     "label": "Base"
+    },
+    {
+     "group": "left_arm",
+     "label": "Left arm"
+    },
+    {
+     "group": "right_arm",
+     "label": "Right arm"
+    },
+    {
+     "group": "arm",
+     "label": "Arm"
+    },
+    {
+     "group": "gripper",
+     "label": "Gripper"
+    }
+   ],
+   "layout": "hier"
+  }
+ ]
+}

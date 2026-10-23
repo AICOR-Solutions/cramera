@@ -34,6 +34,8 @@ from cramera_workshop.plugin import (
 from cramera_workshop.session import WorkshopSession
 
 from .dataset.dynamics import RecordingDynamics
+from cramera_workshop.plugin import NAVIGATION_TITLE
+from cramera_protocol.viewer import NavigationGroup, ViewerRoute
 
 HEADERS = {Header.HOST: "localhost"}
 """
@@ -209,3 +211,10 @@ def test_closing_the_plugin_closes_its_sessions(tmp_path, dataset):
     application.router()
     application.close()
     assert [session.closed for session in plugin.sessions] == [True]
+
+
+def test_the_plugin_has_an_entry_in_the_viewers_navigation():
+    navigation = WorkshopPlugin().info().navigation
+    assert navigation.title == NAVIGATION_TITLE
+    assert navigation.group == NavigationGroup.LABORATORY
+    assert navigation.page is None

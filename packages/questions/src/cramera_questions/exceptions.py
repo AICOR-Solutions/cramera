@@ -133,3 +133,29 @@ class DuplicateGraphNode(QuestionError):
 
     def message(self) -> str:
         return f"The graph already holds a node {self.identifier!r}."
+
+
+# %% installation
+
+
+@dataclass
+class QueryLanguageMissing(QuestionError):
+    """
+    A question asked of a viewer whose Python environment has no krrood, which evaluates
+    the entity query language.
+    """
+
+    module: str
+    """
+    The module that cannot be found.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.SERVICE_UNAVAILABLE
+
+    def message(self) -> str:
+        return (
+            f"Answering questions needs {self.module}, which this Python environment "
+            f"does not have. Run the viewer from a CRAM workspace, or open a scene "
+            f"whose answers were recorded with cramera-record-answers."
+        )

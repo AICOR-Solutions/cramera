@@ -1,0 +1,353 @@
+{
+ "formatVersion": "1.0",
+ "scene": "aicor_cell",
+ "recordedAt": "2026-10-23T09:22:52Z",
+ "presets": {
+  "ok": true,
+  "title": "aicor_cell",
+  "presets": [
+   {
+    "text": "which robot is this?",
+    "code": "the(entity(robot))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "Find the unique RecordedRobot",
+     "html": "<span style=\"color:#eded18\">Find</span> the unique <span style=\"color:cornflowerblue\">RecordedRobot</span>"
+    }
+   },
+   {
+    "text": "which arm does it have?",
+    "code": "an(entity(arm))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "Find a RecordedArm",
+     "html": "<span style=\"color:#eded18\">Find</span> a <span style=\"color:cornflowerblue\">RecordedArm</span>"
+    }
+   }
+  ],
+  "scopes": [
+   {
+    "name": "current_state",
+    "label": "Current State Queries",
+    "variables": [
+     "robot",
+     "arm",
+     "gripper",
+     "scene_object",
+     "episode",
+     "joint",
+     "plan_node"
+    ]
+   }
+  ]
+ },
+ "answers": [
+  {
+   "code": "the(entity(robot))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "entities",
+    "rows": [
+     {
+      "__entity__": "aicor_cell_arm",
+      "__type__": "RecordedRobot",
+      "arm_count": 0
+     }
+    ],
+    "count": 1,
+    "more": false,
+    "highlight": [
+     "aicor_cell_arm"
+    ],
+    "replay": [
+     null
+    ],
+    "verbalization": {
+     "text": "Find the unique RecordedRobot",
+     "html": "<span style=\"color:#eded18\">Find</span> the unique <span style=\"color:cornflowerblue\">RecordedRobot</span>"
+    }
+   }
+  },
+  {
+   "code": "an(entity(arm))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "rows",
+    "rows": [],
+    "count": 0,
+    "more": false,
+    "highlight": [],
+    "replay": [],
+    "verbalization": {
+     "text": "Find a RecordedArm",
+     "html": "<span style=\"color:#eded18\">Find</span> a <span style=\"color:cornflowerblue\">RecordedArm</span>"
+    }
+   }
+  }
+ ],
+ "graphs": [
+  {
+   "key": "knowledge",
+   "ok": true,
+   "nodes": [
+    {
+     "id": "aicor_cell_arm",
+     "label": "aicor_cell_arm",
+     "group": "robot",
+     "title": "aicor_cell_arm\n0 arms"
+    },
+    {
+     "id": "step/0",
+     "label": "plan",
+     "group": "step",
+     "title": "plan"
+    }
+   ],
+   "edges": [],
+   "details": {
+    "aicor_cell_arm": {
+     "label": "aicor_cell_arm",
+     "group": "robot",
+     "lines": [
+      "0 arms"
+     ]
+    },
+    "step/0": {
+     "label": "plan",
+     "group": "step",
+     "lines": []
+    }
+   },
+   "legend": [
+    {
+     "group": "robot",
+     "label": "Robot"
+    },
+    {
+     "group": "arm",
+     "label": "Arm"
+    },
+    {
+     "group": "gripper",
+     "label": "Gripper"
+    },
+    {
+     "group": "object",
+     "label": "Object"
+    },
+    {
+     "group": "step",
+     "label": "Step"
+    },
+    {
+     "group": "event",
+     "label": "Event"
+    }
+   ],
+   "layout": "free"
+  },
+  {
+   "key": "plan",
+   "ok": true,
+   "nodes": [],
+   "edges": [],
+   "details": {},
+   "legend": [
+    {
+     "group": "action",
+     "label": "Action"
+    },
+    {
+     "group": "motion",
+     "label": "Motion"
+    },
+    {
+     "group": "condition",
+     "label": "Condition"
+    },
+    {
+     "group": "attachment",
+     "label": "Attachment"
+    },
+    {
+     "group": "other_plan_node",
+     "label": "Other plan node"
+    }
+   ],
+   "layout": "hier",
+   "empty": "No plan was recorded with this scene."
+  },
+  {
+   "key": "chart",
+   "ok": true,
+   "nodes": [],
+   "edges": [],
+   "details": {},
+   "legend": [],
+   "layout": "hier",
+   "empty": "No motion statechart was recorded with this scene."
+  },
+  {
+   "key": "kinematics",
+   "ok": true,
+   "nodes": [
+    {
+     "id": "arm_root",
+     "label": "arm_root",
+     "group": "base",
+     "title": "arm_root"
+    },
+    {
+     "id": "arm_basis",
+     "label": "arm_basis",
+     "group": "base",
+     "title": "arm_basis\narm_basis_fix (fixed)"
+    },
+    {
+     "id": "arm_karussell",
+     "label": "arm_karussell",
+     "group": "base",
+     "title": "arm_karussell\narm_j1 (revolute)"
+    },
+    {
+     "id": "arm_oberarm",
+     "label": "arm_oberarm",
+     "group": "base",
+     "title": "arm_oberarm\narm_j2 (revolute)"
+    },
+    {
+     "id": "arm_unterarm",
+     "label": "arm_unterarm",
+     "group": "base",
+     "title": "arm_unterarm\narm_j3 (revolute)"
+    },
+    {
+     "id": "arm_hand_pitch",
+     "label": "arm_hand_pitch",
+     "group": "base",
+     "title": "arm_hand_pitch\narm_j4 (revolute)"
+    },
+    {
+     "id": "arm_hand",
+     "label": "arm_hand",
+     "group": "base",
+     "title": "arm_hand\narm_j5 (revolute)"
+    }
+   ],
+   "edges": [
+    {
+     "from": "arm_root",
+     "to": "arm_basis",
+     "kind": "type",
+     "label": "arm_basis_fix (fixed)"
+    },
+    {
+     "from": "arm_basis",
+     "to": "arm_karussell",
+     "kind": "property",
+     "label": "arm_j1 (revolute)"
+    },
+    {
+     "from": "arm_karussell",
+     "to": "arm_oberarm",
+     "kind": "property",
+     "label": "arm_j2 (revolute)"
+    },
+    {
+     "from": "arm_oberarm",
+     "to": "arm_unterarm",
+     "kind": "property",
+     "label": "arm_j3 (revolute)"
+    },
+    {
+     "from": "arm_unterarm",
+     "to": "arm_hand_pitch",
+     "kind": "property",
+     "label": "arm_j4 (revolute)"
+    },
+    {
+     "from": "arm_hand_pitch",
+     "to": "arm_hand",
+     "kind": "property",
+     "label": "arm_j5 (revolute)"
+    }
+   ],
+   "details": {
+    "arm_root": {
+     "label": "arm_root",
+     "group": "base",
+     "lines": []
+    },
+    "arm_basis": {
+     "label": "arm_basis",
+     "group": "base",
+     "lines": [
+      "arm_basis_fix (fixed)"
+     ]
+    },
+    "arm_karussell": {
+     "label": "arm_karussell",
+     "group": "base",
+     "lines": [
+      "arm_j1 (revolute)"
+     ]
+    },
+    "arm_oberarm": {
+     "label": "arm_oberarm",
+     "group": "base",
+     "lines": [
+      "arm_j2 (revolute)"
+     ]
+    },
+    "arm_unterarm": {
+     "label": "arm_unterarm",
+     "group": "base",
+     "lines": [
+      "arm_j3 (revolute)"
+     ]
+    },
+    "arm_hand_pitch": {
+     "label": "arm_hand_pitch",
+     "group": "base",
+     "lines": [
+      "arm_j4 (revolute)"
+     ]
+    },
+    "arm_hand": {
+     "label": "arm_hand",
+     "group": "base",
+     "lines": [
+      "arm_j5 (revolute)"
+     ]
+    }
+   },
+   "legend": [
+    {
+     "group": "base",
+     "label": "Base"
+    },
+    {
+     "group": "left_arm",
+     "label": "Left arm"
+    },
+    {
+     "group": "right_arm",
+     "label": "Right arm"
+    },
+    {
+     "group": "arm",
+     "label": "Arm"
+    },
+    {
+     "group": "gripper",
+     "label": "Gripper"
+    }
+   ],
+   "layout": "hier"
+  }
+ ]
+}

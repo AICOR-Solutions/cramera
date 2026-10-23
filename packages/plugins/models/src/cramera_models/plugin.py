@@ -13,7 +13,13 @@ from pathlib import Path
 from typing_extensions import Any, List, Optional
 
 from cramera.http.messages import HttpMethod, Request, Response
-from cramera.plugins import PluginContext, PluginRoute, ViewerPlugin
+from cramera.plugins import (
+    NavigationEntry,
+    PanelEntry,
+    PluginContext,
+    PluginRoute,
+    ViewerPlugin,
+)
 from cramera_models.json_text import JsonText
 from cramera_models.workbench import Workbench, WorkbenchChoice
 from cramera_protocol.models import (
@@ -24,6 +30,7 @@ from cramera_protocol.models import (
     ProbabilityRequest,
 )
 from cramera_protocol.plugins import PluginName
+from cramera_protocol.viewer import NavigationGroup
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
@@ -45,6 +52,11 @@ class WebFile(StrEnum):
 REQUEST_BODY = "The request body"
 """
 How errors name the body of a request.
+"""
+
+NAVIGATION_TITLE = "Models"
+"""
+The text of the plugin's entry in the viewer's navigation.
 """
 
 # %% routes
@@ -159,3 +171,6 @@ class ModelsPlugin(ViewerPlugin):
 
     def module(self) -> Optional[str]:
         return WebFile.MODULE.value
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return PanelEntry(NAVIGATION_TITLE, NavigationGroup.ANALYSIS)

@@ -17,12 +17,15 @@ from cramera.confinement import ConfinedDirectory
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.locations import DataLocations
 from cramera.plugins import (
+    NavigationEntry,
+    PanelEntry,
     PluginContext,
     PluginPrefixRoute,
     PluginRoute,
     RouteDeclaration,
     ViewerPlugin,
 )
+
 from cramera_laboratory.devices import DeviceShelf
 from cramera_laboratory.exceptions import InvalidRequestBody
 from cramera_laboratory.resources import LaboratoryInstallation, LaboratoryShelf
@@ -51,6 +54,7 @@ from cramera_protocol.laboratory.physics import (
     OpeningRequest,
     TargetRequest,
 )
+from cramera_protocol.viewer import NavigationGroup
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
@@ -65,6 +69,11 @@ The body of a request that gives nothing.
 DocumentType = TypeVar("DocumentType", bound=JsonDocument)
 """
 A request document class.
+"""
+
+NAVIGATION_TITLE = "Laboratory"
+"""
+The text of the plugin's entry in the viewer's navigation.
 """
 
 # %% routes
@@ -406,3 +415,6 @@ class LaboratoryPlugin(ViewerPlugin):
 
     def module(self) -> Optional[str]:
         return LaboratoryFile.MODULE.value
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return PanelEntry(NAVIGATION_TITLE, NavigationGroup.LABORATORY)

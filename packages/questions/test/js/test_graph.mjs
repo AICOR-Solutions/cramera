@@ -114,45 +114,71 @@ test('clicking a node shows its details and reports its identity', () => {
   assert.match(graph.element.innerText, /mass: 1/);
 });
 
+// %% controls
+
+test('the buttons zoom around the middle, fit the graph again and fill the window', () => {
+  const graph = new GraphView(new FakeDocument(), () => {});
+  graph.show(treeView(GraphLayout.HIERARCHY));
+  const drawing = graph.element.children[0];
+  const fitted = drawing.getAttribute('viewBox').split(' ').map(Number);
+  const [fullscreen, zoomIn, zoomOut, fit] = graph.element.children[1].children;
+  zoomIn.dispatch('click');
+  const zoomed = drawing.getAttribute('viewBox').split(' ').map(Number);
+  assert.ok(zoomed[2] < fitted[2]);
+  assert.ok(Math.abs(zoomed[0] + zoomed[2] / 2 - (fitted[0] + fitted[2] / 2)) < 1e-9);
+  zoomOut.dispatch('click');
+  zoomOut.dispatch('click');
+  assert.ok(Number(drawing.getAttribute('viewBox').split(' ')[2]) > fitted[2]);
+  fit.dispatch('click');
+  assert.deepEqual(drawing.getAttribute('viewBox').split(' ').map(Number), fitted);
+  fullscreen.dispatch('click');
+  assert.equal(graph.element.classList.contains('graph-fullscreen'), true);
+});
+
 // %% panel
 
-test('the panel offers every view and loads the chosen one for the shown scene', async () => {
+test('a tab draws its own view of the shown scene from the scene\'s client', async () => {
   const document = new FakeDocument();
   const requested = [];
   const api = new ViewerApi(fakeFetch([treeView(GraphLayout.HIERARCHY)], requested), BASE);
   const bus = new EventBus();
   const highlighted = [];
   bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (identities) => highlighted.push(identities));
-  const panel = new GraphPanel(document, new QuestionsClient(api), bus);
-  const options = panel.element.findAll((element) => element.tagName === 'OPTION');
-  assert.deepEqual(options.map((option) => option.value), Object.keys(VIEW_TITLES));
-  await panel.showScene('pr2-kitchen');
+  const panel = new GraphPanel(document, GraphViewName.KINEMATICS, bus);
+  assert.deepEqual(Object.keys(VIEW_TITLES), [GraphViewName.KNOWLEDGE, GraphViewName.PLAN, GraphViewName.STATECHART, GraphViewName.KINEMATICS]);
+  await panel.showScene('pr2-kitchen', new QuestionsClient(api));
   const url = new URL(requested[0]);
   assert.ok(url.pathname.endsWith(QuestionsRoute.GRAPH));
   assert.equal(url.searchParams.get(QuestionsParameter.SCENE), 'pr2-kitchen');
-  assert.equal(url.searchParams.get(QuestionsParameter.VIEW), GraphViewName.KNOWLEDGE);
+  assert.equal(url.searchParams.get(QuestionsParameter.VIEW), GraphViewName.KINEMATICS);
   const [base] = panel.element.findAll((element) => element.getAttribute('class')?.startsWith('graph-node'));
   base.dispatch('click');
   assert.deepEqual(highlighted, [['base']]);
 });
 
-test('the panel says why a view cannot be drawn', async () => {
+test('a tab says why its view cannot be drawn, or that it is empty', async () => {
   const document = new FakeDocument();
   const answers = [
     { [GraphViewKey.OK]: false, [GraphViewKey.ERROR]: 'krrood is not installed' },
     { [GraphViewKey.OK]: true, [GraphViewKey.NODES]: [], [GraphViewKey.EMPTY]: 'This scene has no plan.' },
   ];
-  const panel = new GraphPanel(document, new QuestionsClient(new ViewerApi(fakeFetch(answers, []), BASE)), new EventBus());
-  await panel.showScene('pr2-kitchen');
+  const client = new QuestionsClient(new ViewerApi(fakeFetch(answers, []), BASE));
+  const panel = new GraphPanel(document, GraphViewName.PLAN, new EventBus());
+  await panel.showScene('pr2-kitchen', client);
   assert.match(panel.element.innerText, /krrood is not installed/);
-  await panel.showView(GraphViewName.PLAN);
+  await panel.showScene('pr2-kitchen', client);
   assert.match(panel.element.innerText, /This scene has no plan\./);
   assert.equal(panel.element.findAll((element) => element.tagName === 'circle').length, 0);
 });
 
-test('the panel does nothing before a scene is shown', async () => {
-  const requested = [];
-  const panel = new GraphPanel(new FakeDocument(), new QuestionsClient(new ViewerApi(fakeFetch([], requested), BASE)), new EventBus());
-  await panel.showView(GraphViewName.PLAN);
-  assert.equal(requested.length, 0);
+test('a scene shown while another loads replaces it', async () => {
+  let release;
+  const slow = { graph: () => new Promise((resolve) => { release = resolve; }) };
+  const fast = { graph: async () => ({ [GraphViewKey.NODES]: [], [GraphViewKey.EMPTY]: 'second' }) };
+  const panel = new GraphPanel(new FakeDocument(), GraphViewName.PLAN, new EventBus());
+  const first = panel.showScene('first', slow);
+  await panel.showScene('second', fast);
+  release({ [GraphViewKey.NODES]: [], [GraphViewKey.EMPTY]: 'first' });
+  await first;
+  assert.match(panel.element.innerText, /second/);
 });

@@ -65,16 +65,20 @@ outside the class: dataclasses with a `from_json` classmethod.
   local recordings and the demo scenes. Every file request is confined to its bundle
   directory, including symbolic links and `..`.
 - Plugins are found through the entry-point group `cramera.plugins`. Each one is a
-  `ViewerPlugin` with a name, routes, a directory of browser modules and the
-  capabilities it adds.
+  `ViewerPlugin` with a name, routes, a directory of browser modules, the
+  capabilities it adds and, optionally, an entry in the top bar's navigation.
 
 ## Browser application
 
 - Native ES modules, loaded through an import map. No build step and no network
   access at run time: three.js and the URDF loader are vendored with their licences.
 - A small `Application` coordinates independent parts. Each part owns its DOM, its
-  listeners and its cleanup: scene renderer, timeline, scene picker, question panel,
-  graph panel, layout.
+  listeners and its cleanup: top bar, scene renderer, Layers overlay, timeline, scene
+  picker, query slot, tabbed panels.
+- The page keeps the original AICOR viewer's look: the AICOR logo and the plugins'
+  pages in the top bar, the scene card with the 3D view and the playback controls on
+  the left, the query slot and the tabs on the right; dark by default, light on
+  request, both from one set of CSS variables.
 - Parts talk through one typed `EventBus`. Event names come from `protocol.js`.
 - Plugin modules are imported from the plugin list the server reports and receive the
   same registry the built-in parts use.
@@ -82,8 +86,11 @@ outside the class: dataclasses with a `from_json` classmethod.
 ## Demo site
 
 `https://sunava.github.io/cramera/` is rebuilt on every push to `main`. It serves the
-viewer with the demo scenes under `demo/scenes`, a status page with the version,
-commit and build time, and a screenshot of the viewer taken in that build.
+viewer with the demo scenes under `demo/scenes` and the questions plugin's browser
+module, a status page with the version, commit and build time, and a screenshot of
+the viewer taken in that build. The site has no Python and no krrood, so the
+questions plugin shows the answers and graph views each demo bundle carries in
+`recorded_answers.json`, written by `cramera-record-answers` in a CRAM workspace.
 
 ## Rules
 

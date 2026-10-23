@@ -281,6 +281,8 @@ from cramera_protocol.questions import (
     GraphLayout,
     GraphNodeKey,
     GraphViewKey,
+    RecordedAnswerKey,
+    RecordedAnswersKey,
     GraphViewName,
     LegendEntryKey,
     PresetCatalogKey,
@@ -320,10 +322,14 @@ from cramera_protocol.workshop import (
 from cramera_protocol.viewer import (
     BuildKey,
     ErrorKey,
+    NavigationGroup,
+    NavigationKey,
     PluginKey,
+    Serving,
     ViewerInfoKey,
     ViewerRoute,
 )
+from cramera_protocol.page import PageLayout, PageParameter, PageStorageKey, Theme
 from cramera_protocol.rights import AssetRightsKey
 
 # %% module
@@ -431,11 +437,20 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     GraphDetailKey,
     LegendEntryKey,
     GraphViewKey,
+    RecordedAnswersKey,
+    RecordedAnswerKey,
     ViewerRoute,
     ViewerInfoKey,
     BuildKey,
     ErrorKey,
     PluginKey,
+    NavigationKey,
+    NavigationGroup,
+    Serving,
+    PageParameter,
+    PageLayout,
+    Theme,
+    PageStorageKey,
     ViewerEvent,
     PageStateAttribute,
     PageState,

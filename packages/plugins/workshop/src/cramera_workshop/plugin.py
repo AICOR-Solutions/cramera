@@ -16,10 +16,17 @@ from pathlib import Path
 from typing_extensions import Callable, List, Optional, Tuple
 
 from cramera.http.messages import HttpMethod, Request, Response
-from cramera.plugins import PluginContext, PluginRoute, ViewerPlugin
+from cramera.plugins import (
+    NavigationEntry,
+    PanelEntry,
+    PluginContext,
+    PluginRoute,
+    ViewerPlugin,
+)
 from cramera.scenes import SceneCatalog
 from cramera_protocol.plugins import PluginName
 from cramera_protocol.workshop import WorkshopCommand, WorkshopRoute, WorkshopState
+from cramera_protocol.viewer import NavigationGroup
 from cramera_workshop.bundle import WorkshopBundle
 from cramera_workshop.exceptions import WorkshopPhysicsMissing
 from cramera_workshop.session import WorkshopDynamics, WorkshopSession
@@ -51,6 +58,11 @@ class Distribution(StrEnum):
     The distribution's name, under which its version is recorded.
     """
 
+
+NAVIGATION_TITLE = "Workshop"
+"""
+The text of the plugin's entry in the viewer's navigation.
+"""
 
 # %% physics libraries
 
@@ -244,6 +256,9 @@ class WorkshopPlugin(ViewerPlugin):
 
     def module(self) -> Optional[str]:
         return WebFile.MODULE.value
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return PanelEntry(NAVIGATION_TITLE, NavigationGroup.LABORATORY)
 
     def close(self) -> None:
         for session in self.sessions:

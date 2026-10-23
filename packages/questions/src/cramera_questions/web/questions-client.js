@@ -15,6 +15,12 @@ import {
 
 export class QuestionsClient {
   /**
+   * Whether new queries can be answered: always, by the plugin's routes.
+   * @type {boolean}
+   */
+  readOnly = false;
+
+  /**
    * The viewer's routes.
    * @type {import('../../core/viewer-api.js').ViewerApi}
    */
