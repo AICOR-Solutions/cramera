@@ -10,7 +10,6 @@ import importlib
 import inspect
 import pkgutil
 from dataclasses import dataclass, field
-from functools import cached_property
 from pathlib import Path
 from types import ModuleType
 
@@ -250,17 +249,13 @@ class InstalledWorkspace(CramWorkspace):
     The directory of the object meshes.
     """
 
-    discovery: ActionDiscovery = field(default_factory=ActionDiscovery)
+    discovered_actions: DiscoveredActions = field(
+        default_factory=lambda: ActionDiscovery().discover()
+    )
     """
-    Finds the native actions.
+    The native actions, discovered once when the workspace is read: discovery imports
+    every action module.
     """
-
-    @cached_property
-    def discovered_actions(self) -> DiscoveredActions:
-        """
-        The native actions, discovered once: discovery imports every action module.
-        """
-        return self.discovery.discover()
 
     def robots(self) -> List[RobotModel]:
         return [

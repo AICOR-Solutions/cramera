@@ -198,7 +198,7 @@ def test_a_rule_without_a_switch_turns_on_nothing(compiler, actions):
 def test_a_switch_naming_a_field_that_is_no_boolean_turns_on_nothing(compiler, actions):
     transport = schema_of(actions, "TransportAction")
     rule = compiler.rule_for("look where it operates")
-    assert compiler.switches(replace(rule, switch="arm"), transport) is False
+    assert compiler.has_switch(replace(rule, switch="arm"), transport) is False
 
 
 def test_objects_are_ordered_by_where_the_sentence_names_them():

@@ -144,7 +144,7 @@ class ConstraintCompiler:
                 parameters=self.parameters(rule, sentence, request),
             )
         switch = None
-        if attached and action is not None and self.switches(rule, action):
+        if attached and action is not None and self.has_switch(rule, action):
             switch = rule.switch
         return StepConstraint(
             text=request.text,
@@ -154,7 +154,7 @@ class ConstraintCompiler:
         )
 
     @staticmethod
-    def switches(rule: ConstraintRule, action: ActionSchema) -> bool:
+    def has_switch(rule: ConstraintRule, action: ActionSchema) -> bool:
         """
         :param rule: The rule a sentence matched.
         :param action: The schema of the step's action.

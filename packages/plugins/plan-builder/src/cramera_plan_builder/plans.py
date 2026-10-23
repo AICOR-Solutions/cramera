@@ -378,9 +378,9 @@ class StepValueCheck:
     The identities of the plan's objects.
     """
 
-    limits: PlanCheck
+    plan_check: PlanCheck
     """
-    Checks texts and numbers against the limits.
+    Checks texts and numbers against the builder's limits.
     """
 
     def check(self, location: str, step: PlanStep) -> None:
@@ -466,7 +466,7 @@ class StepValueCheck:
         """
         if not isinstance(value, str):
             raise InvalidStepValue(location, value, ExpectedValue.NAME)
-        self.limits.text(location, value)
+        self.plan_check.text(location, value)
 
     def member(self, location: str, offered: ActionField, value: Any) -> None:
         """
@@ -490,7 +490,9 @@ class StepValueCheck:
         if offered.accepts_surface:
             self.destination(location, offered, value)
             return
-        self.limits.pose(location, self.read(location, Pose, value, ExpectedValue.POSE))
+        self.plan_check.pose(
+            location, self.read(location, Pose, value, ExpectedValue.POSE)
+        )
 
     def destination(self, location: str, offered: ActionField, value: Any) -> None:
         """
@@ -502,7 +504,7 @@ class StepValueCheck:
         if destination.placement is PlacementMode.POSE:
             if destination.pose is None:
                 raise MissingStepParameter(location, DestinationKey.POSE)
-            self.limits.pose(
+            self.plan_check.pose(
                 PlanCheck.location(location, DestinationKey.POSE), destination.pose
             )
             return
@@ -580,7 +582,7 @@ class StepValueCheck:
         """
         if not isinstance(value, str):
             raise InvalidStepValue(location, value, ExpectedValue.TEXT)
-        self.limits.text(location, value)
+        self.plan_check.text(location, value)
 
     @staticmethod
     def derived(location: str, offered: ActionField, value: Any) -> None:
@@ -647,7 +649,7 @@ class CatalogCheck:
                 catalog=self.catalog,
                 robot=models[robot.model],
                 objects=planned,
-                limits=PlanCheck(self.limits),
+                plan_check=PlanCheck(self.limits),
             )
             for step in robot.steps:
                 values.check(

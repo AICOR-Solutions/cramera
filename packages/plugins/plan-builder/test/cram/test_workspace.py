@@ -84,9 +84,8 @@ def test_the_catalog_robots_name_their_choices(workspace):
     assert pr2.choices == RobotAnnotation(PR2).choices()
 
 
-def test_the_actions_are_discovered_once(workspace):
+def test_the_catalog_lists_the_discovered_actions(workspace):
     assert workspace.action_catalog() == workspace.discovered_actions.catalog()
-    assert workspace.discovered_actions is workspace.discovered_actions
 
 
 def test_the_surfaces_are_concrete_annotations_without_the_mixins(workspace):
