@@ -2,12 +2,12 @@
 
 **Watch a CRAM robot run, recorded or live, in the browser, and ask the scene what happened.**
 
-**[Open the demo](https://sunava.github.io/cramera/)** · [What is published right now](https://sunava.github.io/cramera/status.html) · [Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/sunava/cramera/issues)
+**[Open the demo](https://aicor-solutions.github.io/cramera/)** · [What is published right now](https://aicor-solutions.github.io/cramera/status.html) · [Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/AICOR-Solutions/cramera/issues)
 
-[![The viewer as the latest build shows it](https://sunava.github.io/cramera/status/viewer.png)](https://sunava.github.io/cramera/)
+[![The viewer as the latest build shows it](https://aicor-solutions.github.io/cramera/status/viewer.png)](https://aicor-solutions.github.io/cramera/)
 
 The picture above is taken by every build of `main`: it always shows the newest
-published viewer. The [status page](https://sunava.github.io/cramera/status.html)
+published viewer. The [status page](https://aicor-solutions.github.io/cramera/status.html)
 names the version, the commit and the build time.
 
 cramera is the viewer of the [CRAM](https://github.com/cram2/cognitive_robot_abstract_machine)
@@ -24,7 +24,7 @@ cognitive architecture. CRAM publishes what a robot does; cramera shows it:
 
 Version 1.0 is a rewrite into independent packages that talk through one
 versioned protocol, the way ROS and RViz do. The earlier single package is kept on
-the branch [`archive/pre-v1`](https://github.com/sunava/cramera/tree/archive/pre-v1).
+the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/archive/pre-v1).
 
 | Package | What it does | State |
 | --- | --- | --- |

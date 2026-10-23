@@ -20,7 +20,7 @@ cramera-check-bundle = "cramera_offline.check_command:main"
 cramera-offline = "cramera_offline.presentation_command:main"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

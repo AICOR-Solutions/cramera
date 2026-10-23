@@ -26,7 +26,7 @@ cramera-live = "cramera_cram.command_line:live"
 cramera-onboard = "cramera_cram.command_line:onboard"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]
