@@ -145,7 +145,7 @@ test('a tab draws its own view of the shown scene from the scene\'s client', asy
   const highlighted = [];
   bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (identities) => highlighted.push(identities));
   const panel = new GraphPanel(document, GraphViewName.KINEMATICS, bus);
-  assert.deepEqual(Object.keys(VIEW_TITLES), [GraphViewName.KNOWLEDGE, GraphViewName.PLAN, GraphViewName.STATECHART, GraphViewName.KINEMATICS]);
+  assert.deepEqual(Object.keys(VIEW_TITLES), [GraphViewName.PLAN, GraphViewName.STATECHART, GraphViewName.KINEMATICS]);
   await panel.showScene('pr2-kitchen', new QuestionsClient(api));
   const url = new URL(requested[0]);
   assert.ok(url.pathname.endsWith(QuestionsRoute.GRAPH));

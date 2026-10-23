@@ -160,8 +160,8 @@ With `cramera-questions` installed, the viewer's right column gets:
   takes questions in plain English or in CRAM's entity query language. The question
   is read back in English; an answer is a table whose entities light up in the 3D
   view, and **Replay** jumps to the moment an answer is about.
-- **Knowledge**, **Plan**, **Statechart** and **Kinematics** tabs, which draw the
-  scene's knowledge, plan, statechart and robot kinematics as graphs. Clicking a node
+- **Plan**, **Statechart** and **Kinematics** tabs, which draw the scene's plan,
+  statechart and robot kinematics as graphs. Clicking a node
   shows its details and lights it up in the 3D view; drag to pan, scroll or use the
   buttons to zoom, and fill the window with the graph.
 

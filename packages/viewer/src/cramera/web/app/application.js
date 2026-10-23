@@ -22,7 +22,6 @@ import { PanelHost } from '../panels/panel-host.js';
 import { PlanPanel } from '../panels/plan-panel.js';
 import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
-import { StatechartPanel } from '../panels/statechart-panel.js';
 import { StepsPanel } from '../panels/steps-panel.js';
 import { LayerObject, LayersPanel, ViewSwitch } from '../panels/layers-panel.js';
 import { QuerySlot } from '../panels/query-slot.js';
@@ -241,12 +240,6 @@ export class Application {
   #details;
 
   /**
-   * The statechart panel.
-   * @type {StatechartPanel}
-   */
-  #statechart;
-
-  /**
    * The top bar.
    * @type {SiteHeader}
    */
@@ -373,7 +366,6 @@ export class Application {
     this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));
     this.#plan = new PlanPanel(elements.document);
     this.#details = new DetailsPanel(elements.document);
-    this.#statechart = new StatechartPanel(elements.document);
     this.#livePanel = new LivePanel(
       elements.document,
       new LiveActions(
@@ -436,7 +428,7 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#steps, this.#plan, this.#statechart, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    for (const part of [this.#steps, this.#plan, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
@@ -476,7 +468,6 @@ export class Application {
     this.#timeline.show(this.#clock, segments);
     this.#steps.show(segments);
     this.#plan.show(loaded.description[SceneKey.PLAN_TREES] ?? []);
-    this.#statechart.show(loaded.statecharts);
     this.#details.show(loaded);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
@@ -513,7 +504,7 @@ export class Application {
         (scene) => this.show(scene).then(() => this.#live?.sceneShown()),
         (state) => this.#showLiveState(state),
         (plan) => this.#plan.showLive(plan),
-        (chart) => this.#statechart.showLive(chart),
+        () => {}, // The motion statechart has no panel of its own; the questions plugin graphs it.
         (status) => {
           this.#recordingState = status[RecordingStatusKey.STATE];
           this.#livePanel.showRecording(status);
@@ -601,7 +592,6 @@ export class Application {
     const segment = this.#scene.frames.segmentAt(frame);
     this.#timeline.update(segment);
     this.#steps.mark(segment);
-    this.#statechart.showFrame(frame);
     this.#follow.follow(this.#scene.robotPosition());
     this.#picking.update();
     this.#highlights.update();
