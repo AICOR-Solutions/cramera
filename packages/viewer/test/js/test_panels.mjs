@@ -8,7 +8,7 @@ import { SceneChoice } from '../../src/cramera/web/panels/scene-choice.js';
 import { ScenePickerView } from '../../src/cramera/web/panels/scene-picker-view.js';
 import { StepsPanel } from '../../src/cramera/web/panels/steps-panel.js';
 import { PlaybackClock } from '../../src/cramera/web/playback/playback-clock.js';
-import { formatSeconds, SPEEDS, TimelineView } from '../../src/cramera/web/playback/timeline-view.js';
+import { formatSeconds, MarkKind, marksOf, SPEEDS, TimelineView } from '../../src/cramera/web/playback/timeline-view.js';
 import { IndexEntryKey, IndexKey, PlanNodeKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
@@ -101,48 +101,91 @@ test('the scene picker offers the recorded combinations and reports the chosen b
 
 // %% timeline
 
-test('the timeline hides for a still scene and follows its clock', () => {
+test('the controls stay disabled for a still scene and follow a recording\'s clock', () => {
   const document = new FakeDocument();
   const root = document.createElement('footer');
   const sought = [];
-  const timeline = new TimelineView(root, (frame) => sought.push(frame));
-  assert.equal(root.hidden, true);
+  const timeline = new TimelineView(root, (frame) => sought.push(frame), () => {});
+  const [buttons, scrub] = root.children;
+  const [play, , speed] = buttons.children;
+  const [track, text] = scrub.children;
+  const [slider, marks] = track.children;
+  assert.equal(play.disabled, true);
+  assert.equal(slider.disabled, true);
   const clock = new PlaybackClock(10, 31);
   timeline.show(clock, SEGMENTS);
-  assert.equal(root.hidden, false);
-  const [play, speed, track, text] = root.children;
+  assert.equal(play.disabled, false);
   assert.equal(speed.children.length, SPEEDS.length);
-  assert.equal(track.children[1].children[1].style.left, `${(100 * 20) / 31}%`);
+  assert.equal(marks.children[1].style.left, `${(100 * 20) / 30}%`);
   play.dispatch('click');
   assert.equal(clock.playing, true);
-  assert.equal(play.textContent, 'Pause');
+  assert.equal(play.getAttribute('aria-pressed'), 'true');
   speed.value = '4';
   speed.dispatch('change');
   assert.equal(clock.speed, 4);
-  track.children[0].value = '12';
-  track.children[0].dispatch('input');
+  slider.value = '12';
+  slider.dispatch('input');
   assert.deepEqual(sought, [12]);
   clock.seek(25);
   timeline.update(1);
-  assert.equal(track.children[1].children[1].classList.contains('current'), true);
-  assert.match(text.textContent, /frame 25/);
+  assert.equal(marks.children[1].classList.contains('current'), true);
+  assert.equal(marks.children[0].classList.contains('current'), false);
+  assert.equal(text.textContent, `${formatSeconds(2.5)} / ${formatSeconds(clock.duration)}`);
+  assert.equal(text.title, 'frame 25');
+  marks.children[0].dispatch('click');
+  assert.deepEqual(sought, [12, 0]);
   timeline.show(new PlaybackClock(10, 1), []);
-  assert.equal(root.hidden, true);
+  assert.equal(play.disabled, true);
+  assert.equal(marks.children.length, 0);
+});
+
+test('the marks show where steps start, pick up and let go, by kind', () => {
+  const segments = [
+    { [SegmentKey.STEP]: 'reach', [SegmentKey.START]: 0, [SegmentKey.END]: 40, [SegmentKey.PICKS]: 'milk', [SegmentKey.ATTACH]: 10, [SegmentKey.DETACH]: 30 },
+    { [SegmentKey.STEP]: 'park', [SegmentKey.START]: 41, [SegmentKey.END]: 50 },
+  ];
+  const marks = marksOf(segments);
+  assert.deepEqual(marks.map((mark) => [mark.kind, mark.frame, mark.segment]), [
+    [MarkKind.STEP, 0, 0],
+    [MarkKind.PICK, 10, 0],
+    [MarkKind.RELEASE, 30, 0],
+    [MarkKind.STEP, 41, 1],
+  ]);
+  assert.match(marks[1].text, /milk/);
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  new TimelineView(root, () => {}, () => {}).show(new PlaybackClock(10, 51), segments);
+  const drawn = root.children[1].children[0].children[1].children;
+  assert.deepEqual(drawn.map((mark) => mark.className), marks.map((mark) => `mark mark-${mark.kind}`));
+});
+
+test('the save button is offered only while a live episode can be saved', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  let saves = 0;
+  const timeline = new TimelineView(root, () => {}, () => { saves += 1; });
+  const save = root.children[0].children[1];
+  assert.equal(save.hidden, true);
+  timeline.setSaveOffered(true);
+  assert.equal(save.hidden, false);
+  save.dispatch('click');
+  assert.equal(saves, 1);
 });
 
 test('playback can be started and paused without a click', () => {
   const document = new FakeDocument();
   const root = document.createElement('footer');
-  const timeline = new TimelineView(root, () => {});
+  const timeline = new TimelineView(root, () => {}, () => {});
   timeline.setPlaying(true);
   const clock = new PlaybackClock(10, 31);
   timeline.show(clock, SEGMENTS);
   timeline.setPlaying(true);
+  const play = root.children[0].children[0];
   assert.equal(clock.playing, true);
-  assert.equal(root.children[0].textContent, 'Pause');
+  assert.equal(play.getAttribute('aria-pressed'), 'true');
   timeline.setPlaying(false);
   assert.equal(clock.playing, false);
-  assert.equal(root.children[0].textContent, 'Play');
+  assert.equal(play.getAttribute('aria-pressed'), 'false');
 });
 
 test('durations read as minutes and seconds with tenths', () => {
