@@ -40,6 +40,32 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 Recordings made with earlier versions open unchanged: a document without a
 `formatVersion` is read as version 0.
 
+## Install the whole stack
+
+One command installs the viewer, every plugin, `cramera-cram` and the CRAM workspace
+into one virtual environment, all editable:
+
+```bash
+python3 scripts/install_stack.py
+source ~/.virtualenvs/cramera/bin/activate
+cramera --demo-scenes demo
+```
+
+It needs only Python 3 and [uv](https://github.com/astral-sh/uv) (`curl -LsSf
+https://astral.sh/uv/install.sh | sh`). The CRAM workspace is taken from
+`cognitive_robot_abstract_machine` next to this repository's checkout, or cloned there
+with its submodules when it is missing; `--cram DIR` names another checkout and `--venv
+DIR` another environment. The environment sees the system's site packages, so ROS 2's
+`rclpy` works in it. `--viewer-only` installs the viewer and its plugins without CRAM,
+`--with-usd` adds the USD converter, `--dev` the formatters and test tools (with pytest
+below 8 next to CRAM, since ROS 2's `launch_testing` plugin does not load into pytest 8),
+and `--dry-run` prints the commands without running them. Running it again updates the
+environment in place.
+
+Robot demos and `cramera-cram`'s tests also need ROS 2 Jazzy and the robot
+descriptions: source `/opt/ros/jazzy/setup.bash` and the ROS workspace that CRAM's
+README sets up ("Setup your ROS Workspace") before running one.
+
 ## Use the viewer
 
 ```bash

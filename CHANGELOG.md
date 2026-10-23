@@ -24,6 +24,11 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **One command installs the whole stack.** `python3 scripts/install_stack.py` puts the
+  viewer, every plugin, `cramera-cram` and the CRAM workspace (cloned next to the
+  checkout when missing) editable into one uv environment that sees ROS 2's Python
+  packages, leaving out CRAM's own earlier `cramera` so this repository's viewer is
+  installed. `--viewer-only`, `--with-usd`, `--dev` and `--dry-run` choose less or more.
 - **Recorded plans keep every step parameter and constraint.** Every plan node the
   live publisher describes renders each field of its designator by name
   (`LivePlanNodeKey.PARAMETERS`): an enumeration member by its name, an object by its
