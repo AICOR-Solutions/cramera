@@ -26,6 +26,11 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Task demos of several plans.** `RobotTaskDemo.build_plans` returns the plans a task
+  performs one after another, the task's plan alone by default; `run` publishes and
+  records them all, so one robot carrying totes and another refilling them make one
+  recording with a plan tree each.
+
 - **Collision boxes and free objects from USD stages.** `cramera-import` writes every
   enabled USD collider as a `<collision>` box of its link (`ReportCount.COLLISIONS`),
   and with `--free-objects` the standalone rigid bodies of a static scene become free

@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, Optional, Self, Sequence
+from typing_extensions import Any, List, Optional, Self, Sequence
 
 from coraplex.datastructures.dataclasses import Context
 from coraplex.execution_environment import ExecutionEnvironment
@@ -74,9 +74,10 @@ class RobotTaskDemo(ABC):
     One robot task in one scene environment, recorded into a bundle named after the
     scene, the robot and the task.
 
-    Subclasses build the plan and measure the outcome from the world; :meth:`run` does
-    the rest: it builds the world, publishes it while the plan runs, records the run,
-    checks the outcome and saves the recording into the local scenes directory.
+    Subclasses build the plan, or several plans run one after another, and measure the
+    outcome from the world; :meth:`run` does the rest: it builds the world, publishes it
+    while the plans run, records the run, checks the outcome and saves the recording
+    into the local scenes directory.
     """
 
     environment: SceneEnvironment
@@ -145,6 +146,14 @@ class RobotTaskDemo(ABC):
         :param context: The world and the robot the task is performed with.
         :return: The task's plan.
         """
+
+    def build_plans(self, context: Context) -> List[Plan]:
+        """
+        :param context: The world and the robot the task is performed with.
+        :return: The plans performed one after another and recorded together: the
+            task's plan alone, unless the task needs several, such as one per robot.
+        """
+        return [self.build_plan(context)]
 
     @abstractmethod
     def measure(self, context: Context) -> AcceptanceMetrics:
@@ -224,7 +233,7 @@ class RobotTaskDemo(ABC):
 
     def on_live_started(self, visualization: LiveVisualization) -> None:
         """
-        Called after the live server starts and before the plan performs any motion.
+        Called after the live server starts and before any plan performs a motion.
 
         :param visualization: The started visualization publishing this run.
         """
@@ -245,18 +254,19 @@ class RobotTaskDemo(ABC):
             raise SceneNameTaken(name)
         world = self.build_world()
         context = self.build_context(world)
-        plan = self.build_plan(context)
+        plans = self.build_plans(context)
         visualization = LiveVisualization(
             world=world, port=self.port, locations=self.locations
         ).start()
         try:
             self.on_live_started(visualization)
-            plan.node_callbacks.append(visualization.plan_callback(plan))
             with ExecutionEnvironment(
                 execution_type=self.execution_type,
                 collision_avoidance=self.collision_avoidance,
             ):
-                plan.perform()
+                for plan in plans:
+                    plan.node_callbacks.append(visualization.plan_callback(plan))
+                    plan.perform()
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
             saved = visualization.publisher.save_recording(
