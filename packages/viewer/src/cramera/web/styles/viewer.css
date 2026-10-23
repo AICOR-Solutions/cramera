@@ -205,15 +205,31 @@ body.ontology-page { display: flex; flex-direction: column; overflow: hidden; ba
 body.scene-page { display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(1200px 700px at 15% -10%, var(--page-glow) 0%, transparent 55%), var(--page); }
 
 .split {
+  --side-share: 50%;
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--gap);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, var(--side-share));
+  gap: calc(var(--gap) / 2 - 4px);
   padding: var(--gap);
   min-height: 0;
 }
 
-.column { display: flex; flex-direction: column; gap: var(--gap); min-height: 0; min-width: 0; }
+/* %% the divider between the columns */
+
+.split-divider { width: 8px; cursor: col-resize; position: relative; z-index: 6; border-radius: 4px; align-self: stretch; transition: background .15s; touch-action: none; }
+.split-divider::after { content: ""; position: absolute; left: 3px; top: 50%; width: 2px; height: 44px; transform: translateY(-50%); background: var(--border-strong); border-radius: 2px; }
+.split-divider:hover, .split-divider.dragging { background: var(--accent-soft); }
+.split-divider:hover::after, .split-divider.dragging::after { background: var(--accent); }
+.split-divider.dragging { user-select: none; }
+
+.row-divider { height: 8px; cursor: row-resize; position: relative; z-index: 6; border-radius: 4px; transition: background .15s; touch-action: none; }
+.row-divider::after { content: ""; position: absolute; top: 3px; left: 50%; height: 2px; width: 44px; transform: translateX(-50%); background: var(--border-strong); border-radius: 2px; }
+.row-divider:hover, .row-divider.dragging { background: var(--accent-soft); }
+.row-divider:hover::after, .row-divider.dragging::after { background: var(--accent); }
+.row-divider.dragging { user-select: none; }
+.query-slot[hidden] + .row-divider, .query-slot.folded + .row-divider { display: none; }
+
+.column { --query-share: 45%; display: flex; flex-direction: column; gap: calc(var(--gap) / 2 - 4px); min-height: 0; min-width: 0; }
 
 .card {
   display: flex;
@@ -444,8 +460,13 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .panel h2 { font-size: 13px; margin: 0 0 8px; color: var(--text-muted); font-weight: 600; }
 
 .tabs-slot { flex: 1 1 0; }
-.query-slot { flex: 0 1 auto; max-height: 55%; }
+.query-slot { flex: 0 0 var(--query-share); }
+.query-slot.folded { flex: 0 0 auto; }
 .query-slot > .slot-body { flex: 1; min-height: 0; overflow: auto; }
+.query-slot.folded > .slot-body { display: none; }
+.query-slot.folded > .card-head { border-bottom: none; }
+.query-slot .fold-button { margin-left: auto; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font: inherit; font-size: 14px; line-height: 1; padding: 4px 8px; cursor: pointer; }
+.query-slot .fold-button:hover { color: var(--text); border-color: var(--accent); }
 
 /* %% plan tree */
 
@@ -484,6 +505,7 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 
 :root[data-layout="scene"] .topbar,
 :root[data-layout="scene"] .column,
+:root[data-layout="scene"] .split-divider,
 :root[data-layout="scene"] .pop-out { display: none; }
 :root[data-layout="scene"] .split { grid-template-columns: minmax(0, 1fr); padding: 0; }
 :root[data-layout="scene"] .scene-card { border: none; border-radius: 0; }
@@ -499,10 +521,12 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
   .topbar-actions { margin-left: auto; }
   .version { display: none; }
   .split { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
+  .split-divider { display: none; }
   .stage { flex: none; height: 56vh; min-height: 300px; }
   .layers { width: min(200px, calc(100% - 28px)); max-height: calc(100% - 50px); }
   .tabs-slot { min-height: 420px; }
-  .query-slot { max-height: none; }
+  .query-slot { flex: 0 0 auto; }
+  .row-divider { display: none; }
   .workflow-buttons { flex-wrap: wrap; }
   .play-button, .save-button { padding: 9px 16px; }
   .stage-hint { display: none; }
