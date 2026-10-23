@@ -59,7 +59,8 @@ outside the class: dataclasses with a `from_json` classmethod.
 - Every request passes an `OriginPolicy`. The server binds to `127.0.0.1` by default
   and answers only requests whose origin is the local machine.
 - A `SceneCatalog` merges several `SceneDirectory` instances: the shared folder, the
-  local recordings and the demo scenes. Every file request is confined to its bundle
+  local recordings and the demo scenes, each with the scenes directories nested in
+  it, so a scenes repository cloned into one of them is found without being named. Every file request is confined to its bundle
   directory, including symbolic links and `..`.
 - Plugins are found through the entry-point group `cramera.plugins`. Each one is a
   `ViewerPlugin` with a name, routes, a directory of browser modules, the
@@ -83,7 +84,7 @@ outside the class: dataclasses with a `from_json` classmethod.
 ## Demo site
 
 `https://aicor-solutions.github.io/cramera/` is rebuilt on every push to `main`. It serves the
-viewer with the demo scenes under `demo/scenes` and the questions plugin's browser
+viewer with the demo scenes under `demo/standard_scenes` and the questions plugin's browser
 module, a status page with the version, commit and build time, a screenshot of the
 viewer taken in that build, and the ontology page, which embeds cram_owlviz
 (`https://sorynaryon.github.io/cram_owlviz/`). The site has no Python and no krrood, so the

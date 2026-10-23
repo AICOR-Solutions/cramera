@@ -18,6 +18,19 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Resizable panes and a foldable query slot.** A divider between the scene and
+  the side column drags to give either side more width (a quarter to three quarters,
+  double-click for halves), a divider below the query slot drags to give it more or
+  less of the column, and the query slot's head has a button that folds it to its
+  heading so the panels take the column. All three are remembered in the browser
+  under `PageStorageKey.SPLIT`, `PageStorageKey.QUERY_SPLIT` and
+  `PageStorageKey.QUERY_FOLDED`.
+- **Scenes directories inside scenes directories.** A child of a scenes directory
+  that is not a bundle but holds an `index.json` or bundles is a further scenes
+  directory of the same source, and so on below it. The repository's own demo bundles
+  moved to `demo/standard_scenes`; `cramera --demo-scenes demo` shows them with every
+  scenes repository cloned next to them, which git ignores. The scene builder names
+  such a nested library root `<source>-<directory>`.
 - **A new viewer replaces the old one.** `cramera` started on a port another cramera
   viewer holds stops that viewer and takes the port; `--keep-running` keeps the
   earlier behaviour of failing with *address already in use*.

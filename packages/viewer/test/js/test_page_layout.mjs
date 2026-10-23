@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { ONTOLOGY_PAGE, ONTOLOGY_ROUTE, ONTOLOGY_TITLE, SCENE_PAGE, SiteHeader, ThemeSetting, localStorageOf, pageLinksOf, versionOf } from '../../src/cramera/web/app/site-header.js';
 import { layoutOf, panelOf, sceneAlone, withPanel } from '../../src/cramera/web/core/scene-address.js';
 import { QuerySlot, SlotPanel, SlotTaken } from '../../src/cramera/web/panels/query-slot.js';
+import { COLUMNS, PaneSplit, ROWS } from '../../src/cramera/web/app/pane-split.js';
 import {
   BuildKey,
   NavigationGroup,
@@ -173,8 +174,100 @@ test('one plugin fills the query slot, which is hidden until then', () => {
   assert.equal(root.hidden, false);
   assert.equal(slot.occupant, 'questions');
   const [head, body] = root.children;
-  assert.deepEqual(head.children.map((child) => child.textContent || child), ['EQL', aside]);
+  assert.deepEqual(head.children.slice(0, 2).map((child) => child.textContent || child), ['EQL', aside]);
   assert.equal(body, content);
   assert.equal(content.classList.contains('slot-body'), true);
   assert.throws(() => slot.fill(new SlotPanel('other', 'Other', document.createElement('div'))), SlotTaken);
+});
+
+test('the query slot folds to its heading and remembers it', () => {
+  const document = new FakeDocument();
+  const storage = new FakeStorage();
+  const root = document.createElement('section');
+  const slot = new QuerySlot(root, storage);
+  slot.fill(new SlotPanel('questions', 'EQL', document.createElement('div')));
+  const fold = root.children[0].children.at(-1);
+  assert.equal(slot.folded, false);
+  assert.equal(fold.textContent, '▾');
+  fold.dispatch('click');
+  assert.equal(slot.folded, true);
+  assert.equal(root.classList.contains('folded'), true);
+  assert.equal(fold.getAttribute('aria-expanded'), 'false');
+  assert.equal(fold.title, 'Hide EQL'.replace('Hide', 'Show'));
+  assert.equal(storage.getItem(PageStorageKey.QUERY_FOLDED), 'true');
+  const again = new QuerySlot(document.createElement('section'), storage);
+  again.fill(new SlotPanel('questions', 'EQL', document.createElement('div')));
+  assert.equal(again.folded, true);
+  again.setFolded(false);
+  assert.equal(storage.getItem(PageStorageKey.QUERY_FOLDED), 'false');
+});
+
+// %% pane splits
+
+/**
+ * @param {FakeDocument} document The page.
+ * @returns {{split: FakeElement, divider: FakeElement}} A split spanning 1000 pixels from the left and top edges.
+ */
+function splitElements(document) {
+  const split = document.createElement('main');
+  split.style.setProperty = (name, value) => { split.style[name] = value; };
+  split.getBoundingClientRect = () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 1000, height: 1000 });
+  const divider = document.createElement('div');
+  divider.setPointerCapture = () => {};
+  return { split, divider };
+}
+
+test('the columns start as halves, or as remembered', () => {
+  const document = new FakeDocument();
+  const storage = new FakeStorage();
+  const { split, divider } = splitElements(document);
+  assert.equal(new PaneSplit(split, divider, COLUMNS, storage).share, 50);
+  assert.equal(split.style['--side-share'], '50%');
+  storage.setItem(PageStorageKey.SPLIT, '30');
+  assert.equal(new PaneSplit(split, divider, COLUMNS, storage).share, 30);
+  storage.setItem(PageStorageKey.SPLIT, 'wide');
+  assert.equal(new PaneSplit(split, divider, COLUMNS, storage).share, 50);
+  assert.equal(new PaneSplit(split, divider, COLUMNS, null).share, 50);
+});
+
+test('dragging the divider resizes the side column within bounds and is remembered', () => {
+  const document = new FakeDocument();
+  const storage = new FakeStorage();
+  const { split, divider } = splitElements(document);
+  const columns = new PaneSplit(split, divider, COLUMNS, storage);
+  divider.dispatch('pointerdown', { pointerId: 1 });
+  assert.equal(divider.classList.contains('dragging'), true);
+  divider.dispatch('pointermove', { clientX: 700 });
+  assert.equal(columns.share, 30);
+  assert.equal(split.style['--side-share'], '30%');
+  divider.dispatch('pointermove', { clientX: 950 });
+  assert.equal(columns.share, COLUMNS.least);
+  divider.dispatch('pointermove', { clientX: 50 });
+  assert.equal(columns.share, COLUMNS.most);
+  assert.equal(storage.getItem(PageStorageKey.SPLIT), null);
+  divider.dispatch('pointerup');
+  assert.equal(divider.classList.contains('dragging'), false);
+  assert.equal(storage.getItem(PageStorageKey.SPLIT), '75');
+  divider.dispatch('pointermove', { clientX: 500 });
+  assert.equal(columns.share, COLUMNS.most);
+  divider.dispatch('dblclick');
+  assert.equal(columns.share, 50);
+  assert.equal(storage.getItem(PageStorageKey.SPLIT), '50');
+});
+
+test('dragging the divider below the query slot gives it more or less of the column', () => {
+  const document = new FakeDocument();
+  const storage = new FakeStorage();
+  const { split, divider } = splitElements(document);
+  const rows = new PaneSplit(split, divider, ROWS, storage);
+  assert.equal(rows.share, ROWS.initial);
+  assert.equal(split.style['--query-share'], `${ROWS.initial}%`);
+  divider.dispatch('pointerdown', { pointerId: 1 });
+  divider.dispatch('pointermove', { clientY: 200 });
+  assert.equal(rows.share, 20);
+  divider.dispatch('pointermove', { clientY: 990 });
+  assert.equal(rows.share, ROWS.most);
+  divider.dispatch('pointerup');
+  assert.equal(storage.getItem(PageStorageKey.QUERY_SPLIT), '85');
+  assert.equal(new PaneSplit(split, divider, ROWS, storage).share, 85);
 });

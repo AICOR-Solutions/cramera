@@ -1,5 +1,5 @@
 # Publishes https://aicor-solutions.github.io/cramera/ from every push to main: the viewer with
-# the demo scenes under demo/scenes, and a status page that shows the version, the
+# the demo scenes under demo/standard_scenes, and a status page that shows the version, the
 # commit, the build time and a screenshot of the viewer taken in this build. A build
 # whose viewer does not show its scene fails, so the site keeps the last working build.
 # The questions plugin's browser module is included without krrood: on the static site
@@ -40,7 +40,7 @@ jobs:
       - name: Export the site with the demo scenes
         run: >
           cramera-export-site site
-          --scenes demo/scenes
+          --scenes demo/standard_scenes
           --default-scene "$DEFAULT_SCENE"
           --plugin questions
           --commit "$GITHUB_SHA"
