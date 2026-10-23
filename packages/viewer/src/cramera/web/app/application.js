@@ -26,7 +26,7 @@ import { StatechartPanel } from '../panels/statechart-panel.js';
 import { StepsPanel } from '../panels/steps-panel.js';
 import { LayerObject, LayersPanel, ViewSwitch } from '../panels/layers-panel.js';
 import { QuerySlot } from '../panels/query-slot.js';
-import { ColumnSplit } from './column-split.js';
+import { COLUMNS, PaneSplit, ROWS } from './pane-split.js';
 import { CameraFollow } from '../scene/camera-follow.js';
 import { FrameAxes, framesOf } from '../scene/frame-axes.js';
 import { ObjectLabels } from '../scene/object-labels.js';
@@ -113,6 +113,16 @@ export class PageElements {
      * @type {HTMLElement}
      */
     this.divider = document.getElementById('split-divider');
+    /**
+     * The side column, holding the query slot, a divider and the side panels.
+     * @type {HTMLElement}
+     */
+    this.column = document.getElementById('column');
+    /**
+     * The divider between the query slot and the side panels.
+     * @type {HTMLElement}
+     */
+    this.rowDivider = document.getElementById('row-divider');
     /**
      * The side panels.
      * @type {HTMLElement}
@@ -356,7 +366,8 @@ export class Application {
     this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame), () => this.saveEpisode());
     this.#panels = new PanelHost(elements.side);
     this.#querySlot = new QuerySlot(elements.querySlot, storage);
-    new ColumnSplit(elements.split, elements.divider, storage);
+    new PaneSplit(elements.split, elements.divider, COLUMNS, storage);
+    new PaneSplit(elements.column, elements.rowDivider, ROWS, storage);
     this.#panels.onShow((panel) => this.#header.markCurrent(panel && !this.#panels.tabbed(panel) ? panel : SCENE_PAGE));
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));

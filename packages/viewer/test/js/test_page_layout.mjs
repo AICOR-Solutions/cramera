@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { ONTOLOGY_PAGE, ONTOLOGY_ROUTE, ONTOLOGY_TITLE, SCENE_PAGE, SiteHeader, ThemeSetting, localStorageOf, pageLinksOf, versionOf } from '../../src/cramera/web/app/site-header.js';
 import { layoutOf, panelOf, sceneAlone, withPanel } from '../../src/cramera/web/core/scene-address.js';
 import { QuerySlot, SlotPanel, SlotTaken } from '../../src/cramera/web/panels/query-slot.js';
-import { ColumnSplit, SIDE_SHARE } from '../../src/cramera/web/app/column-split.js';
+import { COLUMNS, PaneSplit, ROWS } from '../../src/cramera/web/app/pane-split.js';
 import {
   BuildKey,
   NavigationGroup,
@@ -202,16 +202,16 @@ test('the query slot folds to its heading and remembers it', () => {
   assert.equal(storage.getItem(PageStorageKey.QUERY_FOLDED), 'false');
 });
 
-// %% column split
+// %% pane splits
 
 /**
  * @param {FakeDocument} document The page.
- * @returns {{split: FakeElement, divider: FakeElement}} A split spanning 1000 pixels from the left edge.
+ * @returns {{split: FakeElement, divider: FakeElement}} A split spanning 1000 pixels from the left and top edges.
  */
 function splitElements(document) {
   const split = document.createElement('main');
   split.style.setProperty = (name, value) => { split.style[name] = value; };
-  split.getBoundingClientRect = () => ({ left: 0, right: 1000, width: 1000 });
+  split.getBoundingClientRect = () => ({ left: 0, right: 1000, width: 1000, top: 0, bottom: 1000, height: 1000 });
   const divider = document.createElement('div');
   divider.setPointerCapture = () => {};
   return { split, divider };
@@ -221,36 +221,53 @@ test('the columns start as halves, or as remembered', () => {
   const document = new FakeDocument();
   const storage = new FakeStorage();
   const { split, divider } = splitElements(document);
-  assert.equal(new ColumnSplit(split, divider, storage).share, SIDE_SHARE.HALF);
+  assert.equal(new PaneSplit(split, divider, COLUMNS, storage).share, 50);
   assert.equal(split.style['--side-share'], '50%');
   storage.setItem(PageStorageKey.SPLIT, '30');
-  assert.equal(new ColumnSplit(split, divider, storage).share, 30);
+  assert.equal(new PaneSplit(split, divider, COLUMNS, storage).share, 30);
   storage.setItem(PageStorageKey.SPLIT, 'wide');
-  assert.equal(new ColumnSplit(split, divider, storage).share, SIDE_SHARE.HALF);
-  assert.equal(new ColumnSplit(split, divider, null).share, SIDE_SHARE.HALF);
+  assert.equal(new PaneSplit(split, divider, COLUMNS, storage).share, 50);
+  assert.equal(new PaneSplit(split, divider, COLUMNS, null).share, 50);
 });
 
 test('dragging the divider resizes the side column within bounds and is remembered', () => {
   const document = new FakeDocument();
   const storage = new FakeStorage();
   const { split, divider } = splitElements(document);
-  const columns = new ColumnSplit(split, divider, storage);
+  const columns = new PaneSplit(split, divider, COLUMNS, storage);
   divider.dispatch('pointerdown', { pointerId: 1 });
   assert.equal(divider.classList.contains('dragging'), true);
   divider.dispatch('pointermove', { clientX: 700 });
   assert.equal(columns.share, 30);
   assert.equal(split.style['--side-share'], '30%');
   divider.dispatch('pointermove', { clientX: 950 });
-  assert.equal(columns.share, SIDE_SHARE.LEAST);
+  assert.equal(columns.share, COLUMNS.least);
   divider.dispatch('pointermove', { clientX: 50 });
-  assert.equal(columns.share, SIDE_SHARE.MOST);
+  assert.equal(columns.share, COLUMNS.most);
   assert.equal(storage.getItem(PageStorageKey.SPLIT), null);
   divider.dispatch('pointerup');
   assert.equal(divider.classList.contains('dragging'), false);
   assert.equal(storage.getItem(PageStorageKey.SPLIT), '75');
   divider.dispatch('pointermove', { clientX: 500 });
-  assert.equal(columns.share, SIDE_SHARE.MOST);
+  assert.equal(columns.share, COLUMNS.most);
   divider.dispatch('dblclick');
-  assert.equal(columns.share, SIDE_SHARE.HALF);
+  assert.equal(columns.share, 50);
   assert.equal(storage.getItem(PageStorageKey.SPLIT), '50');
+});
+
+test('dragging the divider below the query slot gives it more or less of the column', () => {
+  const document = new FakeDocument();
+  const storage = new FakeStorage();
+  const { split, divider } = splitElements(document);
+  const rows = new PaneSplit(split, divider, ROWS, storage);
+  assert.equal(rows.share, ROWS.initial);
+  assert.equal(split.style['--query-share'], `${ROWS.initial}%`);
+  divider.dispatch('pointerdown', { pointerId: 1 });
+  divider.dispatch('pointermove', { clientY: 200 });
+  assert.equal(rows.share, 20);
+  divider.dispatch('pointermove', { clientY: 990 });
+  assert.equal(rows.share, ROWS.most);
+  divider.dispatch('pointerup');
+  assert.equal(storage.getItem(PageStorageKey.QUERY_SPLIT), '85');
+  assert.equal(new PaneSplit(split, divider, ROWS, storage).share, 85);
 });
