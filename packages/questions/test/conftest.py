@@ -20,6 +20,7 @@ from .dataset.files import SCENES
 
 TESTS_WITHOUT_KRROOD = (
     "test_browser_modules.py",
+    "test_plugin_without_krrood.py",
     "test_presets_and_matching.py",
     "test_recorded_bundle.py",
     "test_urdf_structure.py",

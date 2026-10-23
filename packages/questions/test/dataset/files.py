@@ -112,3 +112,8 @@ PREFIXED_LINKS_URDF = DATASET / "urdf" / "prefixed_links.urdf"
 The annotated recording's robot model with every link named below the robot's prefix, as
 CRAM writes models while the part annotations name bare links.
 """
+
+IMPORT_PLUGIN_WITHOUT_KRROOD = DATASET / "scripts" / "import_plugin_without_krrood.py"
+"""
+A script importing the questions plugin while krrood cannot be imported.
+"""
