@@ -655,3 +655,18 @@ test('the panel links to the builder page and to planning in the shown scene', (
   assert.equal(panel.element.children[0].textContent, PANEL_TITLE);
   panel.dispose();
 });
+
+test('unfolded options stay unfolded while the plan changes', async () => {
+  const { root } = await openPage();
+  block(root, 'ParkArmsAction').click();
+  const more = root.findAll((element) => element.className === 'more-options')[0];
+  more.open = true;
+  more.dispatch(DomEvent.TOGGLE);
+  block(root, 'MoveTorsoAction').click();
+  assert.equal(root.findAll((element) => element.className === 'more-options')[0].open, true);
+  const unfolded = root.findAll((element) => element.className === 'more-options')[0];
+  unfolded.open = false;
+  unfolded.dispatch(DomEvent.TOGGLE);
+  block(root, 'MoveTorsoAction').click();
+  assert.equal(root.findAll((element) => element.className === 'more-options')[0].open, false);
+});

@@ -17,7 +17,7 @@ import {
   PlanStepKey,
   StepConstraintKey,
 } from '../../../protocol.js';
-import { DragKind, DragText, Elements, PlanAction } from './elements.js';
+import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
 import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
 
@@ -101,6 +101,14 @@ export class StepsView {
    * @type {Elements}
    */
   #shown;
+
+  /**
+   * The folded parts the person unfolded, kept unfolded across renders: the steps
+   * whose optional fields are shown, by identity, and the list of actions the robot
+   * cannot take.
+   * @type {Set<string>}
+   */
+  #unfolded = new Set();
 
   /**
    * @param {Document} document The page's document.
@@ -197,7 +205,7 @@ export class StepsView {
    */
   #refused(refused) {
     const elements = this.#shown;
-    const details = elements.create('details', ViewClass.UNAVAILABLE);
+    const details = this.#foldable(ViewClass.UNAVAILABLE, ViewClass.UNAVAILABLE);
     details.append(elements.create('summary', '', `Not available (${refused.length})`));
     const list = elements.create('ul');
     for (const [schema, refusal] of refused) {
@@ -276,9 +284,24 @@ export class StepsView {
       box.append(...this.#control(step, field));
     }
     if (optional.children.length === 0) return [required];
-    const more = elements.create('details', ViewClass.MORE);
+    const more = this.#foldable(ViewClass.MORE, step[PlanStepKey.IDENTIFIER]);
     more.append(elements.create('summary', '', 'More options'), optional);
     return [required, more];
+  }
+
+  /**
+   * @param {string} className The folded part's class.
+   * @param {string} key What the part is remembered by across renders.
+   * @returns {HTMLDetailsElement} A folded part, unfolded when the person left it so.
+   */
+  #foldable(className, key) {
+    const details = this.#shown.create('details', className);
+    details.open = this.#unfolded.has(key);
+    this.#shown.listen(details, DomEvent.TOGGLE, () => {
+      if (details.open) this.#unfolded.add(key);
+      else this.#unfolded.delete(key);
+    });
+    return details;
   }
 
   /**
