@@ -1,0 +1,268 @@
+"""
+The fields of a plan's actions as the short texts a replayed step shows.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import math
+from dataclasses import dataclass
+from enum import Enum, StrEnum
+
+from typing_extensions import Any, Dict, Optional, Tuple
+
+from semantic_digital_twin.spatial_types import Point3, Pose
+from semantic_digital_twin.world_description.world_entity import (
+    KinematicStructureEntity,
+    SemanticAnnotation,
+)
+
+PARAMETER_PRECISION = 3
+"""
+Decimal places of a number a parameter shows.
+"""
+
+MAXIMUM_TEXT_LENGTH = 120
+"""
+The most characters a parameter's text has; a longer one is cut and ends in
+:data:`ELLIPSIS`.
+"""
+
+ELLIPSIS = "…"
+"""
+Ends a parameter's text that was cut.
+"""
+
+LIST_SEPARATOR = ", "
+"""
+Separates the items of a list, and the fields of a dataclass value.
+"""
+
+NAME_SEPARATOR = "_"
+"""
+Separates the words of a field's name.
+"""
+
+DEGREE_SIGN = "°"
+"""
+Follows an angle in degrees.
+"""
+
+MAXIMUM_NESTING = 1
+"""
+How many dataclass values deep a parameter's text shows fields; a deeper dataclass value
+is named by its class.
+"""
+
+PLAIN_DEFAULTS = (bool, int, float, str, Enum)
+"""
+The default values a field's value is compared with; a default of another type never
+counts as left unchanged.
+"""
+
+
+class BooleanText(StrEnum):
+    """
+    How a switch reads.
+    """
+
+    YES = "yes"
+    """
+    A switch that is on.
+    """
+
+    NO = "no"
+    """
+    A switch that is off.
+    """
+
+
+# %% values
+
+
+@dataclass(frozen=True)
+class NumberText:
+    """
+    A number rounded to :data:`PARAMETER_PRECISION` decimal places.
+    """
+
+    value: float
+    """
+    The number.
+    """
+
+    def text(self) -> str:
+        """
+        :return: The rounded number without trailing zeros.
+        """
+        return f"{round(float(self.value), PARAMETER_PRECISION) + 0.0:g}"
+
+
+@dataclass(frozen=True)
+class PositionText:
+    """
+    A point or a pose of the world: its position, a pose's heading, and the frame it is
+    given in.
+    """
+
+    coordinates: Tuple[float, ...]
+    """
+    The position in metres.
+    """
+
+    yaw: Optional[float]
+    """
+    A pose's heading about the vertical axis in radians, or None for a point.
+    """
+
+    frame: Optional[KinematicStructureEntity]
+    """
+    The frame the position is given in, or None when it names none.
+    """
+
+    @classmethod
+    def of_pose(cls, pose: Pose) -> PositionText:
+        """
+        :param pose: A pose.
+        :return: Its position, heading and frame.
+        """
+        matrix = pose.to_np()
+        return cls(
+            coordinates=tuple(matrix[:3, 3]),
+            yaw=math.atan2(matrix[1, 0], matrix[0, 0]),
+            frame=pose.reference_frame,
+        )
+
+    @classmethod
+    def of_point(cls, point: Point3) -> PositionText:
+        """
+        :param point: A point.
+        :return: Its position and frame.
+        """
+        return cls(
+            coordinates=tuple(point.to_np()[:3]), yaw=None, frame=point.reference_frame
+        )
+
+    def text(self) -> str:
+        """
+        :return: The coordinates, then a pose's heading in whole degrees, then the
+            frame.
+        """
+        numbers = LIST_SEPARATOR.join(
+            NumberText(value).text() for value in self.coordinates
+        )
+        text = f"({numbers})"
+        if self.yaw is not None:
+            text = f"{text} yaw {round(math.degrees(self.yaw))}{DEGREE_SIGN}"
+        if self.frame is None:
+            return text
+        return f"{text} in {self.frame.name.name}"
+
+
+@dataclass(frozen=True)
+class ParameterText:
+    """
+    Turns the value of an action's field into a short text.
+    """
+
+    nesting: int = 0
+    """
+    How many dataclass values the value is a field of, below the action.
+    """
+
+    def text(self, value: Any) -> Optional[str]:
+        """
+        :param value: The value of a field.
+        :return: The value's text, at most :data:`MAXIMUM_TEXT_LENGTH` characters long,
+            or None for a field that is not set.
+        """
+        if value is None:
+            return None
+        text = self.full_text(value)
+        if len(text) <= MAXIMUM_TEXT_LENGTH:
+            return text
+        return text[: MAXIMUM_TEXT_LENGTH - len(ELLIPSIS)] + ELLIPSIS
+
+    def full_text(self, value: Any) -> str:
+        """
+        :param value: A value that is set.
+        :return: A switch as yes or no, an enumeration member by its name, a number
+            rounded, a pose or point by its position, an entity of the world or a class
+            by its name, a list by its items, a dataclass value by the fields it was
+            given, and any other value by its class.
+        """
+        if isinstance(value, bool):
+            return BooleanText.YES if value else BooleanText.NO
+        if isinstance(value, Enum):
+            return value.name
+        if isinstance(value, float):
+            return NumberText(value).text()
+        if isinstance(value, (int, str)):
+            return str(value)
+        if isinstance(value, Pose):
+            return PositionText.of_pose(value).text()
+        if isinstance(value, Point3):
+            return PositionText.of_point(value).text()
+        if isinstance(value, (KinematicStructureEntity, SemanticAnnotation)):
+            return value.name.name
+        if isinstance(value, type):
+            return value.__name__
+        if isinstance(value, (list, tuple)):
+            texts = (self.text(item) for item in value)
+            return LIST_SEPARATOR.join(text for text in texts if text is not None)
+        if dataclasses.is_dataclass(value) and self.nesting < MAXIMUM_NESTING:
+            texts = FieldTexts(value, self.nesting + 1).texts()
+            return LIST_SEPARATOR.join(
+                f"{name.replace(NAME_SEPARATOR, ' ')} {text}"
+                for name, text in texts.items()
+            )
+        return type(value).__name__
+
+
+# %% fields
+
+
+@dataclass(frozen=True)
+class FieldTexts:
+    """
+    The fields a dataclass value was given, as texts by field name.
+    """
+
+    value: Any
+    """
+    A dataclass value, such as an action.
+    """
+
+    nesting: int = 0
+    """
+    How many dataclass values the value is a field of, below the action.
+    """
+
+    def texts(self) -> Dict[str, str]:
+        """
+        :return: The text of every init field that is set and differs from its default,
+            in the order the dataclass declares them.
+        """
+        values = vars(self.value)
+        texts: Dict[str, str] = {}
+        for declared in dataclasses.fields(self.value):
+            if not declared.init or self.is_default(declared, values[declared.name]):
+                continue
+            text = ParameterText(self.nesting).text(values[declared.name])
+            if text is not None:
+                texts[declared.name] = text
+        return texts
+
+    @staticmethod
+    def is_default(declared: dataclasses.Field, value: Any) -> bool:
+        """
+        :param declared: A field of the dataclass.
+        :param value: Its value.
+        :return: Whether the value is the field's plain default.
+        """
+        default = declared.default
+        return (
+            isinstance(default, PLAIN_DEFAULTS)
+            and type(value) is type(default)
+            and value == default
+        )

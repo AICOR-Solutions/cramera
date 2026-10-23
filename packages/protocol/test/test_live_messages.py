@@ -85,6 +85,13 @@ def test_plan_nodes_keep_the_native_status_names(read_json):
     assert plan.nodes[1].constraints[0].monitor == ConstraintMonitorType.VECTORS_ALIGNED
 
 
+def test_an_action_node_names_the_parameters_of_its_action(read_json):
+    data = read_json("live/plan.json")
+    root, action = LivePlan.from_json(data).nodes
+    assert action.parameters == data["nodes"][1][LivePlanNodeKey.PARAMETERS]
+    assert root.parameters == {}
+
+
 def test_statechart_edges_are_the_bundle_edges(read_json):
     chart = LiveStatechart.from_json(read_json("live/statechart.json"))
     assert isinstance(chart.edges[0], ChartEdge)

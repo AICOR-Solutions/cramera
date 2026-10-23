@@ -252,6 +252,16 @@ def test_a_recorded_step_names_the_frames_its_action_ran_in(
     assert (root.start, root.end) == (running.first, running.last)
 
 
+def test_a_recorded_step_keeps_the_fields_its_action_was_given(
+    publisher, kitchen, small_plan, locations
+):
+    run_the_small_plan(kitchen, publisher, small_plan)
+    published = publisher.current_plan().nodes[1]
+    publisher.finish_recording()
+    action = bundle_files(locations)[1].plan_trees[0].children[0]
+    assert action.parameters == published.parameters != {}
+
+
 def test_a_node_that_never_was_the_running_action_has_no_frames(
     publisher, kitchen, small_plan, locations
 ):

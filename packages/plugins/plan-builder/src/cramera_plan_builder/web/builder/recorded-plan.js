@@ -25,9 +25,15 @@ const ACTION_SUFFIX = 'Action';
 const WORD_BOUNDARY = /(?<=[a-z0-9])(?=[A-Z])/;
 
 /**
- * The recorded fields a step's card shows, in order.
+ * The recorded fields a step's card shows when the recording does not name the fields
+ * of the step's action, in order.
  */
 const SHOWN_FIELDS = Object.freeze([PlanNodeKey.ARM, PlanNodeKey.TARGET]);
+
+/**
+ * Separates the words of an action field's name.
+ */
+const FIELD_NAME_SEPARATOR = '_';
 
 // %% step
 
@@ -61,6 +67,14 @@ export class RecordedStep {
   static words(className) {
     const name = className.endsWith(ACTION_SUFFIX) && className !== ACTION_SUFFIX ? className.slice(0, -ACTION_SUFFIX.length) : className;
     return name.split(WORD_BOUNDARY).join(' ');
+  }
+
+  /**
+   * @param {string} name The name of an action's field.
+   * @returns {string} The name in words, as the builder labels the field.
+   */
+  static fieldWords(name) {
+    return name.split(FIELD_NAME_SEPARATOR).join(' ');
   }
 
   /**
@@ -117,11 +131,14 @@ export class RecordedStep {
   }
 
   /**
-   * @returns {Array<{name: string, value: string}>} The arm and target the step was
-   *   recorded with, those it has.
+   * @returns {Array<{name: string, value: string}>} The fields the step's action was
+   *   given, named in words; for a recording that does not name them, the arm and
+   *   target the step was recorded with, those it has.
    */
   parameters() {
-    return SHOWN_FIELDS.filter((key) => this.node[key]).map((key) => ({ name: key, value: this.node[key] }));
+    const fields = Object.entries(this.node[PlanNodeKey.PARAMETERS] ?? {});
+    if (fields.length === 0) return SHOWN_FIELDS.filter((key) => this.node[key]).map((key) => ({ name: key, value: this.node[key] }));
+    return fields.map(([name, value]) => ({ name: RecordedStep.fieldWords(name), value }));
   }
 }
 

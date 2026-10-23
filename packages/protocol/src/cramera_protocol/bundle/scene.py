@@ -607,6 +607,11 @@ class PlanNodeKey(StrEnum):
     The robot that performed the plan, on the plan's root.
     """
 
+    PARAMETERS = "parameters"
+    """
+    The fields the node's action was given.
+    """
+
 
 class PlanNodeKind(StrEnum):
     """
@@ -683,6 +688,15 @@ class PlanNode(JsonDocument):
     """
     The display name of the robot that performed the plan, on the plan's root; None on
     every other node and for a plan recorded without its robot.
+    """
+
+    parameters: Dict[str, str] = document_field(
+        PlanNodeKey.PARAMETERS, default_factory=dict
+    )
+    """
+    The fields the node's action was given, as texts by field name; a field left at its
+    default is left out, and a node without an action, or one recorded before actions'
+    fields were, has none.
     """
 
     extensions: Dict[str, Any] = extension_field()

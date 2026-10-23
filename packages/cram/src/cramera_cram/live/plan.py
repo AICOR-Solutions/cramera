@@ -7,9 +7,10 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field, replace
 
-from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Set
+from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set
 
 from cramera_cram.exceptions import UnknownPlanNode
+from cramera_cram.live.parameters import FieldTexts
 from cramera_cram.live.recording import RunningAction
 from cramera_cram.live.world_model import ObjectKey
 from cramera_cram.robots import RobotRoster
@@ -90,6 +91,15 @@ class DesignatorSummary:
             if ObjectKey.of(body) in object_keys:
                 return ObjectKey.of(body)
         return next((str(body.name) for body in bodies), None)
+
+    def parameters(self) -> Dict[str, str]:
+        """
+        :return: The fields the node's action was given, as texts by field name; none
+            for a node without an action.
+        """
+        if not isinstance(self.node, ActionNode):
+            return {}
+        return FieldTexts(self.node.designator).texts()
 
     def label(self) -> str:
         """
@@ -212,6 +222,7 @@ class PerformedPlan:
             arm=summary.arm(),
             target=summary.target(object_keys),
             constraints=constraints(identifier),
+            parameters=summary.parameters(),
         )
 
     def running(self) -> Optional[RunningAction]:

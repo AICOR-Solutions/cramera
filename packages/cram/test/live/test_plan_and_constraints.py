@@ -4,6 +4,7 @@ The plan with native statuses, and the constraints attached to its nodes.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from http import HTTPStatus
 
@@ -27,6 +28,8 @@ from cramera_protocol.live_messages import (
     RobotSelection,
 )
 from coraplex.datastructures.enums import Arms, TaskStatus
+from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
+from semantic_digital_twin.datastructures.definitions import TorsoState
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
 
@@ -61,6 +64,16 @@ def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen):
     motion = publisher.current_plan().nodes[2]
     assert motion.arm == Arms.LEFT.name
     assert motion.target == str(kitchen.milk.id)
+
+
+def test_an_action_publishes_the_fields_it_was_given(publisher, small_plan):
+    publisher.begin_plan(small_plan.plan)
+    root, action, motion = publisher.current_plan().nodes
+    [torso_state] = [
+        declared for declared in dataclasses.fields(MoveTorsoAction) if declared.init
+    ]
+    assert action.parameters == {torso_state.name: TorsoState.HIGH.name}
+    assert (root.parameters, motion.parameters) == ({}, {})
 
 
 def test_a_node_is_found_by_its_identity(publisher, small_plan):

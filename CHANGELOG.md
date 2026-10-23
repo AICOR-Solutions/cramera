@@ -62,6 +62,12 @@ which this repository was mirrored until 22 Oct 2026.
   plan's nodes are `plan_<number>_node_<index>`, so every frame's running step and
   every live constraint names exactly one node. The replay titles each plan's list
   with its robot, and plans recorded without one by their number.
+- **A step's parameters in the replay.** The live plan and a recording name the fields
+  each action was given, as short texts by field name (`parameters`): an object by its
+  name, a pose by its position, heading and frame, a grasp by the fields it was given,
+  a switch as yes or no. Fields left at their default and fields not set are left out.
+  The replay's step cards show them, named in words; recordings written before show
+  the arm and target as until now.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),

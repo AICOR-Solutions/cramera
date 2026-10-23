@@ -96,6 +96,14 @@ def test_a_plan_node_without_a_robot_writes_none(read_json):
     assert PlanNodeKey.ROBOT not in step.to_json()
 
 
+def test_a_recorded_step_names_the_parameters_of_its_action(read_json):
+    data = read_json("recorded_robot_plans_scene.json")
+    root = SceneDescription.from_json(data).plan_trees[0]
+    written_step = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN][0]
+    assert root.children[0].parameters == written_step[PlanNodeKey.PARAMETERS]
+    assert root.parameters == {}
+
+
 def test_writing_an_early_recording_uses_current_keys(read_json):
     written = SceneDescription.from_json(
         read_json("recorded_cell/scene.json")

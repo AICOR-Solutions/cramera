@@ -6,6 +6,7 @@ CRAM classes and plain message stand-ins.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 
 from typing_extensions import List, Optional
 
@@ -70,6 +71,48 @@ class SmallPlan:
         motion = MotionNode(designator=OpeningMotion(object_part=opened, arm=Arms.LEFT))
         action.add_child(motion)
         return cls(plan=plan, root=root, action=action, motion=motion)
+
+
+# %% action fields
+
+
+class Side(Enum):
+    """
+    The sides a hand may approach from.
+    """
+
+    FRONT = "front"
+    """
+    From the front.
+    """
+
+    TOP = "top"
+    """
+    From above.
+    """
+
+
+@dataclass
+class Approach:
+    """
+    A dataclass value an action's field may hold: one field without a default and two
+    with one, like a grasp description.
+    """
+
+    side: Side
+    """
+    The side the hand approaches from.
+    """
+
+    offset: float = 0.05
+    """
+    How far before the object the hand stops, in metres.
+    """
+
+    rotated: bool = False
+    """
+    Whether the hand is turned by a quarter.
+    """
 
 
 # %% statecharts

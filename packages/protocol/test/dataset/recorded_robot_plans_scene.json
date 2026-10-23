@@ -19,6 +19,10 @@
           "kind": "ActionNode",
           "label": "NavigateAction",
           "status": "SUCCEEDED",
+          "parameters": {
+            "target_location": "(1.2, 0.4, 0) yaw 90° in map",
+            "face_travel_direction": "yes"
+          },
           "start": 0,
           "end": 20
         }

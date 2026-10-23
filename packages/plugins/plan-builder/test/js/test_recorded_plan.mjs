@@ -59,6 +59,16 @@ test('a step is named in words and shows the arm and target it was recorded with
   assert.deepEqual(navigate.parameters(), []);
 });
 
+test('a step shows every field its action was given, named in words', () => {
+  const place = RecordedPlans.of(ROOTS).plans[0].steps[3];
+  assert.equal(place.node, PLACE);
+  assert.deepEqual(
+    place.parameters(),
+    Object.entries(PLACE[PlanNodeKey.PARAMETERS]).map(([name, value]) => ({ name: RecordedStep.fieldWords(name), value })),
+  );
+  assert.equal(RecordedStep.fieldWords('target_location'), 'target location');
+});
+
 test('a plan is titled with the robot that performed it', () => {
   assert.deepEqual(
     RecordedPlans.of(ROOTS).plans.map((plan) => plan.title()),
@@ -137,6 +147,13 @@ test('the view titles plans without a robot by number, and a single one not at a
   assert.deepEqual(titles(view.element), RecordedPlans.of(unnamed).plans.map((plan) => plan.title()));
   view.show(withoutRobots([TIAGO_PLAN]));
   assert.deepEqual(titles(view.element), []);
+});
+
+test('a card shows the fields its step\'s action was given', () => {
+  const view = new RecordedPlanView(new FakeDocument(), () => {});
+  view.show(ROOTS);
+  const shown = cardOf(view.element, PLACE).findAll((element) => element.tagName === 'OUTPUT').map((output) => output.textContent);
+  assert.deepEqual(shown, Object.values(PLACE[PlanNodeKey.PARAMETERS]));
 });
 
 test('the card of the step at the playhead is marked running and the others waiting or done', () => {

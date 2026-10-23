@@ -89,6 +89,11 @@
               "status": "SUCCEEDED",
               "arm": "LEFT",
               "target": "A08",
+              "parameters": {
+                "object_designator": "A08_tote",
+                "target_location": "(4.35, 1.2, 0.82) yaw 90° in map",
+                "arm": "LEFT"
+              },
               "start": 45,
               "end": 64
             }
