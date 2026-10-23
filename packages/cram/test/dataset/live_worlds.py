@@ -11,7 +11,6 @@ from typing_extensions import List, Optional
 
 from coraplex.datastructures.dataclasses import Context
 from coraplex.plans.plan import Plan
-from coraplex.datastructures.enums import Arms
 from coraplex.plans.plan_node import ActionNode, MotionNode, PlanNode
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from coraplex.robot_plans.motions.container import OpeningMotion
@@ -20,6 +19,7 @@ from giskardpy.motion_statechart.context import MotionStatechartContext
 from giskardpy.motion_statechart.monitors.feature_monitors import HeightMonitor
 from giskardpy.motion_statechart.motion_statechart import MotionStatechart
 from semantic_digital_twin.datastructures.definitions import TorsoState
+from semantic_digital_twin.robots.robot_parts import Arm
 from semantic_digital_twin.spatial_types import Point3
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
@@ -55,9 +55,12 @@ class SmallPlan:
     """
 
     @classmethod
-    def build(cls, opened: Body, context: Optional[Context] = None) -> SmallPlan:
+    def build(
+        cls, opened: Body, arm: Arm, context: Optional[Context] = None
+    ) -> SmallPlan:
         """
         :param opened: The body the motion opens.
+        :param arm: The arm the motion opens it with.
         :param context: The context naming the robot that performs the plan, or None
             for a plan without one.
         :return: A new plan; no node has run.
@@ -67,7 +70,7 @@ class SmallPlan:
         plan.add_node(root)
         action = ActionNode(designator=MoveTorsoAction(TorsoState.HIGH))
         root.add_child(action)
-        motion = MotionNode(designator=OpeningMotion(object_part=opened, arm=Arms.LEFT))
+        motion = MotionNode(designator=OpeningMotion(object_part=opened, arm=arm))
         action.add_child(motion)
         return cls(plan=plan, root=root, action=action, motion=motion)
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field, fields, is_dataclass, replace
-from enum import Enum
+from enum import Enum, StrEnum
 
 from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
@@ -15,8 +15,9 @@ from cramera_cram.live.recording import RunningAction
 from cramera_cram.live.world_model import ObjectKey
 from cramera_cram.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
-from coraplex.datastructures.enums import Arms, TaskStatus
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
+from giskardpy.motion_statechart.data_types import LifeCycleValues
+from semantic_digital_twin.robots.robot_parts import Arm
 from semantic_digital_twin.spatial_types.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -75,6 +76,59 @@ How a boolean is rendered.
 """
 
 
+class PlanNodeStatus(StrEnum):
+    """
+    The status of a plan node as the viewer and the recorded bundles name it, which
+    keeps the names coraplex used before its nodes took the motion statechart's life
+    cycle values.
+    """
+
+    CREATED = "CREATED"
+    """
+    The node has not run yet.
+    """
+
+    RUNNING = "RUNNING"
+    """
+    The node is running.
+    """
+
+    PAUSE = "PAUSE"
+    """
+    The node was running and is paused.
+    """
+
+    SUCCEEDED = "SUCCEEDED"
+    """
+    The node ended having reached its goal.
+    """
+
+    FAILED = "FAILED"
+    """
+    The node ended without reaching its goal.
+    """
+
+    INTERRUPTED = "INTERRUPTED"
+    """
+    The node was stopped before it ended.
+    """
+
+    @classmethod
+    def of(cls, value: LifeCycleValues) -> PlanNodeStatus:
+        """
+        :param value: A node's native life cycle value.
+        :return: The status it stands for.
+        """
+        return {
+            LifeCycleValues.NOT_STARTED: cls.CREATED,
+            LifeCycleValues.RUNNING: cls.RUNNING,
+            LifeCycleValues.PAUSED: cls.PAUSE,
+            LifeCycleValues.SUCCEEDED: cls.SUCCEEDED,
+            LifeCycleValues.FAILED: cls.FAILED,
+            LifeCycleValues.INTERRUPTED: cls.INTERRUPTED,
+        }[value]
+
+
 # %% designators
 
 
@@ -101,11 +155,14 @@ class DesignatorSummary:
 
     def arm(self) -> Optional[str]:
         """
-        :return: The name of the first arm the designator names.
+        :return: The name of the first arm the designator names, on its own or among
+            several arms.
         """
-        return next(
-            (value.name for value in self.values() if isinstance(value, Arms)), None
-        )
+        for value in self.values():
+            for candidate in value if isinstance(value, (list, tuple)) else [value]:
+                if isinstance(candidate, Arm):
+                    return str(candidate.name)
+        return None
 
     def target(self, object_keys: Set[str]) -> Optional[str]:
         """
@@ -165,8 +222,8 @@ class DesignatorSummary:
             designator; a description nested deeper is named by its class.
         :return: The value as the viewer shows it: an enumeration member by its name,
             a body by its published key else its name, an annotation by its name, a
-            pose by its position, a boolean as on or off, a nested description by its
-            fields, and anything else by its text.
+            pose by its position, a boolean as on or off, a list by its items, a nested
+            description by its fields, and anything else by its text.
         """
         if isinstance(value, Enum):
             return value.name
@@ -178,7 +235,7 @@ class DesignatorSummary:
         if isinstance(value, Pose):
             return PARAMETER_SEPARATOR.join(
                 COORDINATE_FORMAT.format(float(coordinate))
-                for coordinate in value.to_position_quaternion_list()[:3]
+                for coordinate in value.position.to_np()[:3]
             )
         if isinstance(value, bool):
             return SWITCH_VALUES[value]
@@ -186,6 +243,10 @@ class DesignatorSummary:
             return NUMBER_FORMAT.format(value)
         if isinstance(value, str):
             return value
+        if isinstance(value, (list, tuple)):
+            return PARAMETER_SEPARATOR.join(
+                cls.render(each, object_keys, nested) for each in value
+            )
         if is_dataclass(value) and not nested:
             return PARAMETER_SEPARATOR.join(
                 f"{name} {cls.render(inner, object_keys, nested=True)}"
@@ -305,7 +366,7 @@ class PerformedPlan:
             parent=None if parent is None else self.identifier(parent),
             kind=type(node).__name__,
             label=summary.label(),
-            status=node.status.name,
+            status=PlanNodeStatus.of(node.status),
             arm=summary.arm(),
             target=summary.target(object_keys),
             constraints=constraints(identifier),
@@ -322,7 +383,7 @@ class PerformedPlan:
         running = [
             node
             for node in [root] + root.descendants
-            if isinstance(node, ActionNode) and node.status is TaskStatus.RUNNING
+            if isinstance(node, ActionNode) and node.status is LifeCycleValues.RUNNING
         ]
         if not running:
             return None
@@ -422,8 +483,8 @@ class PlanPublisher:
         """
         roots = [node for node in self.current().nodes if node.parent is None]
         return bool(roots) and roots[0].status in (
-            TaskStatus.RUNNING.name,
-            TaskStatus.PAUSE.name,
+            PlanNodeStatus.RUNNING,
+            PlanNodeStatus.PAUSE,
         )
 
     def with_constraints(self, constraints: ConstraintLookup) -> LivePlan:

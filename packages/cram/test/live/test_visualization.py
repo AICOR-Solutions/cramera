@@ -17,6 +17,7 @@ import pytest
 from cramera_cram.command_line import DEMO_ARGUMENTS_SEPARATOR, LiveCommand, live
 from cramera_cram.coraplex_backend import CoraplexBackend
 from cramera_cram.documents import DocumentFile
+from cramera_cram.live.plan import PlanNodeStatus
 from cramera_cram.visualization import (
     LiveVisualization,
     PublishedModelChange,
@@ -28,7 +29,7 @@ from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.live import LiveInfo, LiveRoute
 from cramera_protocol.live_messages import LivePlan
 from cramera_questions.workspace_classes import WorkspaceClassIndex
-from coraplex.datastructures.enums import TaskStatus
+from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 
 from ..dataset.live_worlds import HeightChart
@@ -72,7 +73,7 @@ def test_a_started_visualization_serves_and_records(kitchen, locations, small_pl
         info = LiveInfo.from_json(json.loads(answer.read()))
     progress = started.plan_callback(small_plan.plan)
     small_plan.plan.node_callbacks.append(progress)
-    small_plan.root.status = TaskStatus.RUNNING
+    small_plan.root.status = LifeCycleValues.RUNNING
     progress.on_start(small_plan.motion)
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     for step in range(3):
@@ -88,7 +89,7 @@ def test_a_started_visualization_serves_and_records(kitchen, locations, small_pl
         locations.local_scenes / ReservedSceneName.RECORDING / BundleFile.SCENE
     ).read(SceneDescription)
     assert info.running is True
-    assert plan.nodes[0].status == TaskStatus.RUNNING.name
+    assert plan.nodes[0].status == PlanNodeStatus.RUNNING
     assert scene.name == ReservedSceneName.RECORDING
     assert state_callbacks(kitchen) == []
     assert started.publisher is None

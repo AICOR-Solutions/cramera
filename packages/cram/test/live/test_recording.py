@@ -39,7 +39,7 @@ from cramera_protocol.live_messages import (
     SceneDestination,
 )
 from cramera.locations import DataLocations
-from coraplex.datastructures.enums import TaskStatus
+from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 
@@ -222,11 +222,11 @@ def run_the_small_plan(kitchen, publisher, small_plan) -> FrameRange:
     """
     publisher.begin_plan(small_plan.plan)
     carry_milk(kitchen, publisher)
-    small_plan.action.status = TaskStatus.RUNNING
+    small_plan.action.status = LifeCycleValues.RUNNING
     first = publisher.recording.frame_count()
     carry_milk(kitchen, publisher)
     running = FrameRange(first, publisher.recording.frame_count() - 1)
-    small_plan.action.status = TaskStatus.SUCCEEDED
+    small_plan.action.status = LifeCycleValues.SUCCEEDED
     carry_milk(kitchen, publisher)
     return running
 
@@ -276,9 +276,9 @@ def test_a_recorded_step_keeps_its_parameters_and_constraints(
         )
     )
     live = publisher.refresh_plan().nodes[1].constraints[0]
-    small_plan.action.status = TaskStatus.RUNNING
+    small_plan.action.status = LifeCycleValues.RUNNING
     carry_milk(kitchen, publisher)
-    small_plan.action.status = TaskStatus.SUCCEEDED
+    small_plan.action.status = LifeCycleValues.SUCCEEDED
     carry_milk(kitchen, publisher)
     publisher.finish_recording()
     root = bundle_files(locations)[1].plan_trees[0]

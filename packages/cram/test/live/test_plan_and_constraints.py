@@ -15,7 +15,7 @@ from cramera_cram.exceptions import (
     UnknownBody,
     UnknownPlanNode,
 )
-from cramera_cram.live.plan import PLAN_NODE_PREFIX
+from cramera_cram.live.plan import PLAN_NODE_PREFIX, PlanNodeStatus
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
     ConstraintActivation,
@@ -26,7 +26,7 @@ from cramera_protocol.live_messages import (
     PlanNodeReference,
     RobotSelection,
 )
-from coraplex.datastructures.enums import Arms, TaskStatus
+from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
@@ -38,38 +38,40 @@ from .conftest import dataset_body, live_request
 
 
 def test_every_node_shows_its_own_native_status(publisher, small_plan):
-    small_plan.root.status = TaskStatus.RUNNING
+    small_plan.root.status = LifeCycleValues.RUNNING
     publisher.begin_plan(small_plan.plan)
     plan = publisher.current_plan()
     assert [node.status for node in plan.nodes] == [
-        TaskStatus.RUNNING.name,
-        TaskStatus.CREATED.name,
-        TaskStatus.CREATED.name,
+        PlanNodeStatus.RUNNING,
+        PlanNodeStatus.CREATED,
+        PlanNodeStatus.CREATED,
     ]
     assert plan.nodes[1].parent == plan.nodes[0].identifier
     assert plan.nodes[1].label == type(small_plan.action.designator).__name__
 
 
 def test_a_parent_status_is_never_derived_from_its_children(publisher, small_plan):
-    small_plan.action.status = TaskStatus.SUCCEEDED
+    small_plan.action.status = LifeCycleValues.SUCCEEDED
     publisher.begin_plan(small_plan.plan)
     root = publisher.current_plan().nodes[0]
-    assert root.status == TaskStatus.CREATED.name
+    assert root.status == PlanNodeStatus.CREATED
 
 
-def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen):
+def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen, robot_world):
     publisher.begin_plan(small_plan.plan)
     motion = publisher.current_plan().nodes[2]
-    assert motion.arm == Arms.LEFT.name
+    assert motion.arm == str(robot_world.robot.left_arm.name)
     assert motion.target == str(kitchen.milk.id)
 
 
-def test_a_node_renders_every_field_of_its_designator(publisher, small_plan, kitchen):
+def test_a_node_renders_every_field_of_its_designator(
+    publisher, small_plan, kitchen, robot_world
+):
     publisher.begin_plan(small_plan.plan)
     root, action, motion = publisher.current_plan().nodes
     assert root.parameters == {}
     assert action.parameters == {"torso_state": TorsoState.HIGH.name}
-    assert motion.parameters["arm"] == Arms.LEFT.name
+    assert motion.parameters["arm"] == str(robot_world.robot.left_arm.name)
     assert motion.parameters["object_part"] == str(kitchen.milk.id)
 
 
@@ -88,7 +90,7 @@ def test_no_plan_has_no_nodes(publisher):
 
 
 def test_the_running_action_names_the_step(publisher, small_plan):
-    small_plan.action.status = TaskStatus.RUNNING
+    small_plan.action.status = LifeCycleValues.RUNNING
     publisher.begin_plan(small_plan.plan)
     assert (
         publisher.plan.running_action() == type(small_plan.action.designator).__name__
@@ -119,7 +121,7 @@ def test_a_plan_begun_again_is_published_with_its_first_identities(
 
 
 def test_a_robot_cannot_be_selected_while_the_plan_runs(publisher, small_plan):
-    small_plan.root.status = TaskStatus.RUNNING
+    small_plan.root.status = LifeCycleValues.RUNNING
     publisher.begin_plan(small_plan.plan)
     with pytest.raises(RobotSelectionBusy):
         publisher.select_robot(RobotSelection(identifier="any"))

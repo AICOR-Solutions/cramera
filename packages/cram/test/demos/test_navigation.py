@@ -19,7 +19,7 @@ from cramera_cram.demos.navigation import (
     NavigationMeasurement,
 )
 from cramera_cram.exceptions import TaskFailed
-from semantic_digital_twin.api import RobotSpecification
+from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.robots.pr2 import PR2
 
 # %% fixtures
@@ -52,7 +52,7 @@ def context(demo) -> Context:
 
 def test_the_barrier_stands_halfway(demo, context):
     barrier = context.world.get_body_by_name(NavigationBody.BARRIER)
-    position = barrier.global_pose.to_position().to_np()
+    position = barrier.global_pose.position.to_np()
     assert position[0] == pytest.approx(demo.environment.distance / 2)
 
 
@@ -60,9 +60,7 @@ def test_the_plan_navigates_to_the_target(demo, context):
     plan = demo.build_plan(context)
     action = plan.root.designator
     assert isinstance(action, NavigateAction)
-    assert action.target_location.to_position().to_np()[0] == pytest.approx(
-        demo.target_x
-    )
+    assert action.target_location.position.to_np()[0] == pytest.approx(demo.target_x)
 
 
 # %% measurement

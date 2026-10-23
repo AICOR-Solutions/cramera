@@ -56,11 +56,12 @@ def publisher(kitchen, locations) -> Iterator[LivePublisher]:
 
 
 @pytest.fixture
-def small_plan(kitchen) -> SmallPlan:
+def small_plan(kitchen, robot_world) -> SmallPlan:
     """
-    :return: A plan of a root, an action and a motion opening the milk.
+    :return: A plan of a root, an action and a motion opening the milk with the PR2's
+        left arm.
     """
-    return SmallPlan.build(kitchen.milk)
+    return SmallPlan.build(kitchen.milk, robot_world.robot.left_arm)
 
 
 @pytest.fixture
@@ -72,12 +73,14 @@ def two_robots() -> TwoRobots:
 
 
 @pytest.fixture
-def robot_plans(kitchen, two_robots) -> List[SmallPlan]:
+def robot_plans(kitchen, robot_world, two_robots) -> List[SmallPlan]:
     """
     :return: A small plan for each of the two robots, each opening the milk.
     """
     return [
-        SmallPlan.build(kitchen.milk, two_robots.context(robot))
+        SmallPlan.build(
+            kitchen.milk, robot_world.robot.left_arm, two_robots.context(robot)
+        )
         for robot in two_robots.robots
     ]
 

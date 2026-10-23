@@ -4,8 +4,8 @@ Segmind's detectors ticked along a run.
 
 from __future__ import annotations
 
+from cramera_cram.attachment import AttachmentDetector
 from segmind.datastructures.events import SupportEvent, TranslationEvent
-from segmind.detectors.attachment_detector_nodes import AttachmentDetector
 from segmind.detectors.coarse_event_detector_nodes import (
     PickUpDetector,
     PlacingDetector,
