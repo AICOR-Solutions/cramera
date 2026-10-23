@@ -202,8 +202,8 @@ test('recorded answers disable the query boxes and say why', () => {
   assert.equal(code.placeholder, Hint.QUERY_DISABLED);
   const [note] = panel.element.findAll((element) => element.className === 'recorded-note');
   assert.equal(note.hidden, false);
-  assert.match(note.textContent, /2026-10-23T10:00:00Z/);
-  assert.match(panel.status.textContent, /recorded answers/);
+  assert.equal(note.textContent, Hint.RECORDED);
+  assert.equal(panel.status.textContent, 'recorded answers · 2026-10-23T10:00:00Z');
 });
 
 // %% recorded answers

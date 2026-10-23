@@ -23,7 +23,7 @@ import { AnswerView } from './answer-view.js';
 export const Hint = Object.freeze({
   QUESTION: 'The question you ask appears here in English — run a query, or pick one below.',
   ANSWER: 'Choose a question, ask one, or write a query.',
-  RECORDED: 'Recorded answers: this page cannot evaluate queries, so it shows the answers the ready-made questions received when they were recorded with cramera-record-answers. Run the viewer in a CRAM workspace to ask your own.',
+  RECORDED: 'Recorded answers: this page cannot evaluate queries, so the ready-made questions show the answers recorded with cramera-record-answers. Run the viewer in a CRAM workspace to ask your own.',
   QUERY_DISABLED: 'Queries need the viewer running in a CRAM workspace; pick a recorded question below.',
 });
 
@@ -185,7 +185,7 @@ export class QuestionsPanel {
     this.#showReading(null);
     this.#answer.message(Hint.ANSWER);
     const readOnly = source.client.readOnly;
-    this.#setReadOnly(readOnly, source.recordedAt);
+    this.#setReadOnly(readOnly);
     const catalog = source.catalog;
     if (catalog[PresetCatalogKey.OK] === false) {
       this.#presets.replaceChildren();
@@ -245,14 +245,13 @@ export class QuestionsPanel {
 
   /**
    * @param {boolean} readOnly Whether only the recorded questions can be asked.
-   * @param {string|null} recordedAt When the answers were recorded.
    */
-  #setReadOnly(readOnly, recordedAt) {
+  #setReadOnly(readOnly) {
     for (const control of [this.#code.input, this.#code.button, this.#question.input, this.#question.button, this.#scope]) control.disabled = readOnly;
     this.#code.input.placeholder = readOnly ? Hint.QUERY_DISABLED : 'the(entity(robot))';
     this.#code.input.title = readOnly ? Hint.QUERY_DISABLED : '';
     this.#note.hidden = !readOnly;
-    this.#note.textContent = recordedAt ? `${Hint.RECORDED} Recorded ${recordedAt}.` : Hint.RECORDED;
+    this.#note.textContent = Hint.RECORDED;
   }
 
   /**

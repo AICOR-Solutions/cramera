@@ -68,7 +68,7 @@
 .graph-controls button { width: 31px; padding: 6px 0; font-size: 14px; line-height: 1; text-align: center; background: var(--overlay); }
 .graph-controls button:first-child { margin-bottom: 10px; }
 .graph.graph-fullscreen { position: fixed; inset: 0; z-index: 1000; background: var(--page); }
-.graph-edge { stroke: var(--border-strong); stroke-width: 1.2; }
+.graph-edge { stroke: var(--border-strong); }
 .graph-edge.type { stroke-dasharray: 4 3; }
 .graph-node { cursor: pointer; }
 .graph-node circle { stroke: var(--surface-raised); stroke-width: 2; }

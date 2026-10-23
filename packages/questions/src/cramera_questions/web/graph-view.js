@@ -19,7 +19,13 @@ export const PALETTE_SIZE = 8;
 /**
  * The radius of a node and the margin around the drawing, in drawing units.
  */
-const Size = Object.freeze({ NODE: 9, MARGIN: 40 });
+const Size = Object.freeze({ NODE: 9, MARGIN: 40, EDGE: 1.2 });
+
+/**
+ * The width a hidden drawing is assumed to have, in CSS pixels, so its nodes are sized
+ * before its tab is shown.
+ */
+const ASSUMED_WIDTH = 700;
 
 /**
  * How much one wheel step zooms.
@@ -87,6 +93,19 @@ export class GraphView {
   #places = [];
 
   /**
+   * The drawn nodes with where they are, so they keep their size on screen at every
+   * zoom.
+   * @type {Array<{mark: SVGGElement, place: {x: number, y: number}}>}
+   */
+  #marks = [];
+
+  /**
+   * The drawn edges.
+   * @type {SVGGElement|null}
+   */
+  #edges = null;
+
+  /**
    * @param {Document} document The page.
    * @param {function(string): void} onSelect Called with a clicked node's identity.
    */
@@ -127,6 +146,8 @@ export class GraphView {
       edges.append(line);
     }
     const marks = document.createElementNS(SVG, 'g');
+    this.#marks = [];
+    this.#edges = edges;
     for (const node of nodes) {
       const place = placements.get(node[GraphNodeKey.IDENTIFIER]);
       const mark = document.createElementNS(SVG, 'g');
@@ -145,6 +166,7 @@ export class GraphView {
         this.#onSelect(node[GraphNodeKey.IDENTIFIER]);
       });
       marks.append(mark);
+      this.#marks.push({ mark, place });
     }
     this.#drawing.replaceChildren(edges, marks);
     this.#places = [...placements.values()];
@@ -158,6 +180,8 @@ export class GraphView {
    */
   clear() {
     this.#drawing.replaceChildren();
+    this.#marks = [];
+    this.#edges = null;
     this.#legend.replaceChildren();
     this.#details.replaceChildren();
   }
@@ -214,6 +238,9 @@ export class GraphView {
    */
   #applyBox() {
     this.#drawing.setAttribute('viewBox', this.#box.join(' '));
+    const scale = Math.max(1, this.#box[2] / (this.#drawing.clientWidth || ASSUMED_WIDTH));
+    for (const { mark, place } of this.#marks) mark.setAttribute('transform', `translate(${place.x} ${place.y}) scale(${scale})`);
+    this.#edges?.setAttribute('stroke-width', String(Size.EDGE * scale));
   }
 
   /**

@@ -81,6 +81,8 @@
 
 html, body { height: 100%; margin: 0; }
 
+html { scrollbar-color: var(--border-strong) transparent; }
+
 body {
   background: var(--page);
   color: var(--text);
