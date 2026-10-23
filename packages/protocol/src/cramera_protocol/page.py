@@ -83,8 +83,8 @@ class PageStorageKey(StrEnum):
 
     QUERY_SPLIT = "cramera.query-split"
     """
-    The share of the side column's height the query slot takes, in percent, as a
-    person dragged the divider below it.
+    The share of the side column's height the query slot takes, in percent, as a person
+    dragged the divider below it.
     """
 
     QUERY_FOLDED = "cramera.query-folded"
