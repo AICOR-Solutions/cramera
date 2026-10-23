@@ -1,0 +1,61 @@
+/* cramera plan builder: plan step cards, on the builder page and in the viewer's panel. */
+
+/* %% colours */
+
+/* Steps take one of eight colours by their action's place in the catalog. */
+:root {
+  --step-palette-0: #a78bfa;
+  --step-palette-1: #f472b6;
+  --step-palette-2: #2dd4bf;
+  --step-palette-3: #60a5fa;
+  --step-palette-4: #38bdf8;
+  --step-palette-5: #fbbf24;
+  --step-palette-6: #fb923c;
+  --step-palette-7: #4ade80;
+}
+
+[data-palette="0"] { --step-color: var(--step-palette-0); }
+[data-palette="1"] { --step-color: var(--step-palette-1); }
+[data-palette="2"] { --step-color: var(--step-palette-2); }
+[data-palette="3"] { --step-color: var(--step-palette-3); }
+[data-palette="4"] { --step-color: var(--step-palette-4); }
+[data-palette="5"] { --step-color: var(--step-palette-5); }
+[data-palette="6"] { --step-color: var(--step-palette-6); }
+[data-palette="7"] { --step-color: var(--step-palette-7); }
+
+/* %% cards */
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; border-radius: var(--radius); }
+
+.step {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--step-color, var(--accent));
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  box-shadow: var(--shadow);
+}
+
+.step-head { display: flex; align-items: center; gap: 8px; }
+.step-number { font: 12px var(--mono); color: var(--text-muted); }
+.step-name { font-weight: 600; }
+.step-parameters { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; align-items: flex-end; }
+.step-parameters label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-muted); }
+.node-status { font: 11px var(--mono); border-radius: 999px; padding: 1px 7px; background: var(--surface-sunken); color: var(--text-muted); }
+
+/* %% a replayed recording's plan */
+
+.recorded-plan { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.recorded-plan h3, .recorded-plan h4 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.recorded-plan h4 { font-size: 12px; margin-top: 4px; }
+.recorded-plan .step[title] { cursor: pointer; }
+.recorded-plan .step-head .node-status { margin-left: auto; text-transform: lowercase; }
+.recorded-plan .step-parameters output { font-size: 12px; color: var(--text); }
+.recorded-plan .step[data-phase="done"] { opacity: 0.6; }
+.recorded-plan .step[data-phase="running"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-left-color: var(--step-color, var(--accent));
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow);
+}
+.recorded-plan .step[data-phase="running"] .node-status { background: var(--accent); color: var(--surface); }

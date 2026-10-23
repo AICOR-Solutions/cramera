@@ -1,7 +1,7 @@
 /**
  * Just enough of the DOM for the viewer's and the plugins' parts to build and update
  * their elements in Node: elements with children, attributes, data attributes, text,
- * classes, form state and listeners, and a stand-in for local storage.
+ * classes, form state, listeners and scroll requests, and a stand-in for local storage.
  */
 
 // %% elements
@@ -28,6 +28,7 @@ export class FakeElement {
     this.classList = new FakeClassList();
     this.files = [];
     this.clicks = 0;
+    this.scrollRequests = [];
   }
 
   append(...children) {
@@ -75,6 +76,10 @@ export class FakeElement {
   click() {
     this.clicks += 1;
     this.dispatch('click');
+  }
+
+  scrollIntoView(options) {
+    this.scrollRequests.push(options);
   }
 
   dispatch(type, event = {}) {

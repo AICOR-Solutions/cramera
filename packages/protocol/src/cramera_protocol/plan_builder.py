@@ -58,6 +58,11 @@ class PlanBuilderFile(StrEnum):
     The builder page, which needs the whole window.
     """
 
+    STEPS_STYLESHEET = "steps.css"
+    """
+    The look of plan step cards, shared by the builder page and the viewer's panel.
+    """
+
 
 class PlanBuilderRoute(StrEnum):
     """

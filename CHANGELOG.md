@@ -45,6 +45,15 @@ which this repository was mirrored until 22 Oct 2026.
   store the action and its values; plans saved with the earlier six step kinds load
   as the actions those kinds stood for, and a step that no longer fits its action is
   refused, with the step and field named, before its demo is written or run.
+- **The plan beside the replay.** A recording names the frames each node of its plan
+  ran in (`start` and `end`, from the deepest running action of every frame), and a
+  saved stretch of a run keeps them counted from its first frame. When a recording is
+  replayed, the plan builder's panel comes to the front and shows its plan as the
+  builder's step cards, one list per plan, with each step's arm and target: the step
+  at the playhead is marked running and kept in sight while the recording plays or
+  is scrubbed, finished steps show the state they ended in, and a click on a step
+  jumps to its first frame. Recordings written before name no step frames; their
+  steps are shown with the state they ended in.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),

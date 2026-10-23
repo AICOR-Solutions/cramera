@@ -20,12 +20,9 @@ import {
 import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
 import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
+import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
 
-/**
- * How many step colours the stylesheet defines; an action takes the colour of its
- * position in the catalog.
- */
-export const STEP_PALETTE_SIZE = 8;
+export { STEP_PALETTE_SIZE };
 
 /**
  * How people read each way of putting an object down.
@@ -55,8 +52,6 @@ const ViewClass = Object.freeze({
   UNAVAILABLE: 'unavailable',
   NOTICE: 'notice',
   LIST: 'steps',
-  STEP: 'step',
-  STEP_HEAD: 'step-head',
   PARAMETERS: 'step-parameters',
   MORE: 'more-options',
   PROBLEM: 'step-problem',
@@ -65,7 +60,6 @@ const ViewClass = Object.freeze({
   CHIP: 'chip',
   DROP: 'drop-hint',
   DRAG_OVER: 'drag-over',
-  STATUS: 'node-status',
   EMPTY: 'empty',
 });
 
@@ -242,26 +236,17 @@ export class StepsView {
     const identifier = step[PlanStepKey.IDENTIFIER];
     const action = step[PlanStepKey.ACTION];
     const schema = this.#editor.state.schema(action);
-    const card = elements.create('li', ViewClass.STEP);
+    const view = new StepCard(elements, index + 1, schema?.[ActionSchemaKey.LABEL] ?? action, schema?.[ActionSchemaKey.DOCUMENTATION] || action, this.#paletteIndex(action));
+    const card = view.card;
     card.dataset.step = identifier;
-    card.dataset.palette = String(this.#paletteIndex(action));
-    const head = elements.create('div', ViewClass.STEP_HEAD);
-    const name = elements.create('span', 'step-name', schema?.[ActionSchemaKey.LABEL] ?? action);
-    name.title = schema?.[ActionSchemaKey.DOCUMENTATION] || action;
-    head.append(elements.create('span', 'step-number', String(index + 1)), name);
-    if (status) {
-      const chip = elements.create('span', ViewClass.STATUS, status);
-      chip.dataset.status = status;
-      head.append(chip);
-    }
+    if (status) view.showStatus(status);
     const controls = elements.create('span', 'step-controls');
     controls.append(
       elements.button('↑', PlanAction.MOVE_STEP_UP, () => this.#edit(() => this.#editor.state.moveStep(identifier, -1))),
       elements.button('↓', PlanAction.MOVE_STEP_DOWN, () => this.#edit(() => this.#editor.state.moveStep(identifier, 1))),
       elements.button('×', PlanAction.REMOVE_STEP, () => this.#edit(() => this.#editor.state.removeStep(identifier))),
     );
-    head.append(controls);
-    card.append(head);
+    view.head.append(controls);
     for (const problem of this.#editor.state.problems(step)) card.append(elements.create('p', ViewClass.PROBLEM, problem));
     if (schema) card.append(...this.#form(step, schema));
     card.append(this.#chips(step, observations));
