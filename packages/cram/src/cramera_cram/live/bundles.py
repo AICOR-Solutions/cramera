@@ -17,7 +17,7 @@ from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import EmptyRecording
 from cramera_cram.export.world_models import ObjectFiles, WorldModels
 from cramera_cram.live.recorded_statecharts import RecordedStatecharts
-from cramera_cram.live.recording import FrameTiming, RecordedFrame
+from cramera_cram.live.recording import FrameRange, FrameTiming, RecordedFrame
 from cramera_cram.live.segments import RecordedRun
 from cramera_cram.live.world_model import ObjectKey, WorldModelView
 from cramera_cram.robots import RobotRoster
@@ -163,6 +163,42 @@ class BundleDirectory:
 
 
 @dataclass(frozen=True)
+class PlanNodeFrames:
+    """
+    The frames each node of a plan ran in, read from the recorded frames: a node runs in
+    every frame in which it, or one of its descendants, is the deepest running action.
+    """
+
+    plan: LivePlan
+    """
+    The plan.
+    """
+
+    frames: List[RecordedFrame]
+    """
+    The recorded frames.
+    """
+
+    def ranges(self) -> Dict[str, FrameRange]:
+        """
+        :return: The first and the last frame of every node that ran, by its identity.
+        """
+        parents = {node.identifier: node.parent for node in self.plan.nodes}
+        first: Dict[str, int] = {}
+        last: Dict[str, int] = {}
+        for index, frame in enumerate(self.frames):
+            identifier = frame.action_node
+            while identifier in parents:
+                first.setdefault(identifier, index)
+                last[identifier] = index
+                identifier = parents[identifier]
+        return {
+            identifier: FrameRange(first[identifier], last[identifier])
+            for identifier in first
+        }
+
+
+@dataclass(frozen=True)
 class PlanTrees:
     """
     Turns the flat live plan into the nested plan trees a bundle stores.
@@ -173,12 +209,19 @@ class PlanTrees:
     The plan.
     """
 
+    frames: Dict[str, FrameRange] = field(default_factory=dict)
+    """
+    The frames each node ran in, by its identity; a node without an entry never ran.
+    """
+
     def roots(self) -> List[PlanNode]:
         """
         :return: The plan's roots with their children nested.
         """
-        nodes: Dict[str, PlanNode] = {
-            node.identifier: PlanNode(
+        nodes: Dict[str, PlanNode] = {}
+        for node in self.plan.nodes:
+            frames = self.frames.get(node.identifier)
+            nodes[node.identifier] = PlanNode(
                 kind=node.kind,
                 label=node.label,
                 status=node.status,
@@ -186,9 +229,9 @@ class PlanTrees:
                 arm=node.arm,
                 identifier=node.identifier,
                 parent=node.parent,
+                start=None if frames is None else frames.first,
+                end=None if frames is None else frames.last,
             )
-            for node in self.plan.nodes
-        }
         roots = []
         for node in self.plan.nodes:
             if node.parent in nodes:
@@ -294,7 +337,9 @@ class LiveBundleWriter:
                 robot=models.robot,
                 objects=self.objects(model, frames, staging),
                 segments=RecordedRun(frames).segments(),
-                plan_trees=PlanTrees(plan).roots(),
+                plan_trees=PlanTrees(
+                    plan, PlanNodeFrames(plan, frames).ranges()
+                ).roots(),
                 missing_assets=models.missing_assets,
                 bundle_signature=WorldSignature(model, selected_robot).digest(),
                 world_bound=True,

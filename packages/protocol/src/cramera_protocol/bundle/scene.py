@@ -592,6 +592,27 @@ class PlanNodeKey(StrEnum):
     The identity of the node's parent.
     """
 
+    START = "start"
+    """
+    The first frame the node ran in.
+    """
+
+    END = "end"
+    """
+    The last frame the node ran in.
+    """
+
+
+class PlanNodeKind(StrEnum):
+    """
+    The kinds of plan node a reader of a recorded plan tells apart.
+    """
+
+    ACTION = "ActionNode"
+    """
+    A node performing an action designator: one step of the plan.
+    """
+
 
 @dataclass(kw_only=True)
 class PlanNode(JsonDocument):
@@ -639,6 +660,18 @@ class PlanNode(JsonDocument):
     parent: Optional[str] = document_field(PlanNodeKey.PARENT, default=None)
     """
     The identity of the node's parent, or None for a root.
+    """
+
+    start: Optional[int] = document_field(PlanNodeKey.START, default=None)
+    """
+    The first frame the node or one of its descendants was the deepest running action
+    in, or None when it never ran within the recorded frames.
+    """
+
+    end: Optional[int] = document_field(PlanNodeKey.END, default=None)
+    """
+    The last frame the node or one of its descendants was the deepest running action in,
+    or None when it never ran within the recorded frames.
     """
 
     extensions: Dict[str, Any] = extension_field()

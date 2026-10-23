@@ -10,6 +10,7 @@ from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     PartRole,
     PartSide,
+    PlanNodeKey,
     SceneDescription,
     SceneKey,
 )
@@ -52,6 +53,28 @@ def test_a_robot_recording_carries_parts_objects_steps_and_plans(read_json):
 def test_a_recording_round_trips(read_json):
     scene = SceneDescription.from_json(read_json("recorded_warehouse_scene.json"))
     assert SceneDescription.from_json(scene.to_json()) == scene
+
+
+def test_a_plan_node_names_the_frames_it_ran_in(read_json):
+    data = read_json("recorded_plan_steps_scene.json")
+    root = SceneDescription.from_json(data).plan_trees[0]
+    written_steps = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN]
+    navigate = root.children[1]
+    assert (navigate.start, navigate.end) == (
+        written_steps[1][PlanNodeKey.START],
+        written_steps[1][PlanNodeKey.END],
+    )
+    assert navigate.extensions == {}
+
+
+def test_a_plan_node_that_never_ran_has_no_frames(read_json):
+    place = (
+        SceneDescription.from_json(read_json("recorded_plan_steps_scene.json"))
+        .plan_trees[0]
+        .children[2]
+    )
+    assert (place.start, place.end) == (None, None)
+    assert PlanNodeKey.START not in place.to_json()
 
 
 def test_writing_an_early_recording_uses_current_keys(read_json):

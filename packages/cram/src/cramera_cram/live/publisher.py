@@ -303,7 +303,7 @@ class LivePublisher:
             self.transforms.observe(self.model.world, self.clock())
             self.recording.append(
                 snapshot,
-                self.plan.running_action(),
+                self.plan.running(),
                 self.statechart.current() if self.motion_running else None,
             )
 

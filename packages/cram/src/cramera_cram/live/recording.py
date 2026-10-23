@@ -64,6 +64,23 @@ class FrameRange:
 
 
 @dataclass(frozen=True)
+class RunningAction:
+    """
+    The action a plan performs at one moment: its deepest running action node.
+    """
+
+    identifier: str
+    """
+    The identity of the action's node in the published plan.
+    """
+
+    label: str
+    """
+    The class name of the action's designator.
+    """
+
+
+@dataclass(frozen=True)
 class RecordedFrame:
     """
     One recorded moment of the run; its poses are copies the world cannot change.
@@ -104,18 +121,24 @@ class RecordedFrame:
     The statechart being ticked, or None while no motion ran.
     """
 
+    action_node: Optional[str] = None
+    """
+    The identity of the plan node of the action the plan performed, or None between
+    actions.
+    """
+
     @classmethod
     def of_state(
         cls,
         state: LiveState,
         time: float,
-        step: Optional[str],
+        action: Optional[RunningAction],
         statechart: Optional[LiveStatechart],
     ) -> RecordedFrame:
         """
         :param state: A state snapshot.
         :param time: When it was taken.
-        :param step: The action being performed.
+        :param action: The action being performed.
         :param statechart: The statechart being ticked.
         :return: The frame, with copies of the snapshot's mappings.
         """
@@ -125,8 +148,9 @@ class RecordedFrame:
             base=state.base,
             objects=dict(state.objects),
             model_bases=dict(state.model_bases),
-            step=step,
+            step=None if action is None else action.label,
             statechart=statechart,
+            action_node=None if action is None else action.identifier,
         )
 
 
@@ -176,17 +200,17 @@ class Recording:
     def append(
         self,
         state: LiveState,
-        step: Optional[str],
+        action: Optional[RunningAction],
         statechart: Optional[LiveStatechart],
     ) -> None:
         """
         Record one moment, or nothing while not recording.
 
         :param state: The state snapshot.
-        :param step: The action being performed.
+        :param action: The action being performed.
         :param statechart: The statechart being ticked.
         """
-        frame = RecordedFrame.of_state(state, self.clock(), step, statechart)
+        frame = RecordedFrame.of_state(state, self.clock(), action, statechart)
         with self.lock:
             if self.state is RecordingState.RECORDING:
                 self.frames.append(frame)

@@ -10,6 +10,7 @@ from dataclasses import dataclass, field, replace
 from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Set
 
 from cramera_cram.exceptions import UnknownPlanNode
+from cramera_cram.live.recording import RunningAction
 from cramera_cram.live.world_model import ObjectKey
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.datastructures.enums import Arms, TaskStatus
@@ -239,6 +240,13 @@ class PlanPublisher:
         """
         :return: The label of the deepest running action, or None between actions.
         """
+        running = self.running()
+        return None if running is None else running.label
+
+    def running(self) -> Optional[RunningAction]:
+        """
+        :return: The deepest running action, or None between actions.
+        """
         root = self.root()
         if root is None:
             return None
@@ -250,4 +258,7 @@ class PlanPublisher:
         if not running:
             return None
         deepest = max(running, key=lambda node: len(node.path))
-        return DesignatorSummary(deepest).label()
+        return RunningAction(
+            identifier=self.identifier(deepest),
+            label=DesignatorSummary(deepest).label(),
+        )
