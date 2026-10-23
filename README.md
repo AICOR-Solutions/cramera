@@ -64,6 +64,48 @@ one hides a bundle of the same name in a later one:
 cramera --demo-scenes demo/scenes --port 8711 --no-browser
 ```
 
+The demo scenes are part of this repository, not of the installed package, so a
+freshly installed viewer without `--demo-scenes` or `$CRAMERA_SCENES` shows "No
+scenes found". A scenes directory that does not exist is skipped silently; give an
+absolute path, or set `CRAMERA_SCENES`, when the viewer is not started from this
+repository's root:
+
+```bash
+export CRAMERA_SCENES=/path/to/cramera/demo/scenes
+cramera
+```
+
+### Install the pages and panels
+
+Everything beyond the scene page is a plugin: Models, Plan Builder, Scene Builder,
+Cable Lab, Laboratory, Workshop, the Tour of `cramera-offline` and the questions
+column. Each is a pip package of its own under `packages/plugins` (and
+`packages/questions`) that the viewer discovers through the entry-point group
+`cramera.plugins`. `pip install ./packages/viewer` installs none of them, so the top
+bar of a bare viewer shows no pages; an uninstalled plugin simply has no link. Install
+the ones you want, or all of them:
+
+```bash
+pip install ./packages/questions ./packages/plugins/*
+```
+
+Restart `cramera` afterwards; its `/api/info` answer lists the plugins it found. Every
+plugin installs with the viewer alone and declares what it needs for its full
+behaviour as an optional extra:
+
+| Plugin | Extra | Without it |
+| --- | --- | --- |
+| `cramera-plan-builder` | `[cram]`, that is `cramera-cram` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
+| `cramera-workshop`, `cramera-cable-lab` | `[physics]`: MuJoCo, numpy, scipy | The recorded demos show; the contact simulations do not start. |
+| `cramera-laboratory` | `[physics]`: MuJoCo; `[cram]`: `cramera-cram` for the CRAM world and the transfer demo | The bundles and the Laboratory panel show; devices are not simulated. |
+| `cramera-models` | `[circuits]`: probabilistic-model, random-events, krrood, plotly | The panel shows and its routes answer which libraries are missing. |
+
+```bash
+pip install './packages/plugins/workshop[physics]' './packages/plugins/models[circuits]'
+```
+
+See [docs/plugins.md](docs/plugins.md) for writing a plugin.
+
 The page has the look of the original AICOR viewer: dark, with the AICOR logo and a
 link to every page the installed plugins offer (Models, Plan Builder, Scene Builder,
 Cable Lab, Laboratory, Workshop) in the top bar, the 3D view with its **Layers**
