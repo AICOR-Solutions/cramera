@@ -498,4 +498,5 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
   .query-slot { max-height: none; }
   .workflow-buttons { flex-wrap: wrap; }
   .play-button, .save-button { padding: 9px 16px; }
+  .stage-hint { display: none; }
 }
