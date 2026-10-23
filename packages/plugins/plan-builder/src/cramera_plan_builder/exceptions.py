@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
 
-from typing_extensions import List, Optional
+from typing_extensions import Any, List, Optional
 
 from cramera.exceptions import ViewerError
 
@@ -252,17 +252,17 @@ class UnknownReference(PlanBuilderError):
 @dataclass
 class MissingStepParameter(PlanBuilderError):
     """
-    A step without a parameter its kind needs.
+    A step without a value its action needs.
     """
 
     location: str
     """
-    The step's location in the plan.
+    Where the value is missing in the plan.
     """
 
     parameter: str
     """
-    The key of the missing parameter.
+    The name of the missing field or key.
     """
 
     def status(self) -> HTTPStatus:
@@ -270,6 +270,121 @@ class MissingStepParameter(PlanBuilderError):
 
     def message(self) -> str:
         return f"{self.location} needs {self.parameter!r}."
+
+
+@dataclass
+class UnknownStepAction(PlanBuilderError):
+    """
+    A step naming an action the installed CRAM workspace does not offer.
+    """
+
+    location: str
+    """
+    Where the step's action sits in the plan.
+    """
+
+    action: str
+    """
+    The action's class name.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"{self.location} is {self.action!r}, an action the installed CRAM "
+            f"workspace does not offer."
+        )
+
+
+@dataclass
+class UnavailableStepAction(PlanBuilderError):
+    """
+    A step naming an action the builder cannot fill in, since a required field has no
+    form control.
+    """
+
+    location: str
+    """
+    Where the step's action sits in the plan.
+    """
+
+    action: str
+    """
+    The action's class name.
+    """
+
+    reason: str
+    """
+    Why the action is unavailable.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"{self.location} is {self.action!r}, which is unavailable: {self.reason}."
+        )
+
+
+@dataclass
+class UnknownStepField(PlanBuilderError):
+    """
+    A step giving a value of a field its action does not have.
+    """
+
+    location: str
+    """
+    Where the value sits in the plan.
+    """
+
+    name: str
+    """
+    The field's name.
+    """
+
+    action: str
+    """
+    The action's class name.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"{self.location} names {self.name!r}, a field {self.action} does not have."
+        )
+
+
+@dataclass
+class InvalidStepValue(PlanBuilderError):
+    """
+    A step's value that does not fit the kind of its field.
+    """
+
+    location: str
+    """
+    Where the value sits in the plan.
+    """
+
+    value: Any
+    """
+    The value.
+    """
+
+    expected: str
+    """
+    What the value must be.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"{self.location} is {self.value!r}; it must be {self.expected}."
 
 
 @dataclass
@@ -293,8 +408,8 @@ class PlanWithoutRobot(PlanBuilderError):
 @dataclass
 class UnsupportedByCatalog(PlanBuilderError):
     """
-    A plan entry the catalog does not offer: an unknown robot, object model or
-    environment, or a step, arm or torso state the robot does not have.
+    A plan entry the catalog does not offer: an unknown robot, object model, environment
+    or surface type, or an enumeration member the robot does not have.
     """
 
     location: str
@@ -498,6 +613,29 @@ class SurfaceNotInWorld(PlanBuilderError):
             f" {self.surface_name!r}" if self.surface_name is not None else ""
         )
         return f"The world offers no free spot on a {surface}."
+
+
+@dataclass
+class AnnotationNotInWorld(PlanBuilderError):
+    """
+    A step naming an annotated entity the world does not hold.
+    """
+
+    annotation: str
+    """
+    The class name of the annotation.
+    """
+
+    name: str
+    """
+    The name the step gives.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The world holds no {self.annotation} named {self.name!r}."
 
 
 @dataclass

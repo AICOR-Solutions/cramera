@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 
 from typing_extensions import Dict, Iterator, List
@@ -18,19 +19,22 @@ from cramera_cram.exceptions import TaskFailed
 from cramera_cram.geometry import NumericPose
 from cramera_cram.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_cram.scenes.multi_robot import RobotPlacement, RobotScene
+from cramera_plan_builder.cram.actions import ActionDiscovery, DiscoveredActions
 from cramera_plan_builder.cram.steps import StepActions
 from cramera_plan_builder.cram.workspace import RobotAnnotations
 from cramera_plan_builder.cram.world import EmptyFloor, PlannedObjects
 from cramera_cram.scenes.bundle_world import PoseText
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.index import SceneName
+from cramera_protocol.geometry import Pose as PlannedPose
 from cramera_protocol.plan_builder import (
+    ActionFieldKind,
     DemoDocument,
+    Destination,
     PlacementMode,
     PlanDocument,
     PlannedRobot,
     PlanStep,
-    StepKind,
 )
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
@@ -60,6 +64,31 @@ MEASUREMENT_SEPARATOR = "."
 """
 Joins a measurement's name and the step it measures.
 """
+
+# %% placements
+
+
+@dataclass(frozen=True)
+class Placement:
+    """
+    An object a step puts down at a pose, which the run's end is measured against.
+    """
+
+    step: PlanStep
+    """
+    The step.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object put down.
+    """
+
+    pose: PlannedPose
+    """
+    Where the step puts it.
+    """
+
 
 # %% robots
 
@@ -138,6 +167,18 @@ class PlannedTaskDemo(RobotTaskDemo):
     The plan's objects by identity, once the world is built.
     """
 
+    discovery: ActionDiscovery = field(default_factory=ActionDiscovery, kw_only=True)
+    """
+    Finds the native actions the steps name.
+    """
+
+    @cached_property
+    def discovered_actions(self) -> DiscoveredActions:
+        """
+        The workspace's actions, discovered once per run.
+        """
+        return self.discovery.discover()
+
     @classmethod
     def of_document(cls, document: DemoDocument, port: int) -> PlannedTaskDemo:
         """
@@ -193,7 +234,7 @@ class PlannedTaskDemo(RobotTaskDemo):
         return Context(world=world, robot=self.robot_scene.selected_robot(world))
 
     def build_plan(self, context: Context) -> Plan:
-        actions = StepActions(context, self.bodies)
+        actions = StepActions(context, self.bodies, self.discovered_actions)
         return sequential(
             [actions.action(step) for step in self.steps()], context=context
         ).plan
@@ -208,31 +249,43 @@ class PlannedTaskDemo(RobotTaskDemo):
             :data:`PLACEMENT_TOLERANCE` from its pose.
         """
         measurements = {}
-        for step in self.placements():
+        for placement in self.placements():
             position = NumericPose.of_entity(
-                context.world, self.bodies[step.object_identifier]
+                context.world, self.bodies[placement.object_identifier]
             ).position
-            error = math.dist(position, step.target.to_json()[:3])
+            error = math.dist(position, placement.pose.to_json()[:3])
             if error > PLACEMENT_TOLERANCE:
                 raise TaskFailed(
-                    f"{step.object_identifier} ended {error:.3f} m from the pose of "
-                    f"{step.identifier}"
+                    f"{placement.object_identifier} ended {error:.3f} m from the pose "
+                    f"of {placement.step.identifier}"
                 )
             measurements[
-                MEASUREMENT_SEPARATOR.join((PLACEMENT_ERROR, step.identifier))
+                MEASUREMENT_SEPARATOR.join((PLACEMENT_ERROR, placement.step.identifier))
             ] = error
         return AcceptanceMetrics(measurements=measurements)
 
-    def placements(self) -> Iterator[PlanStep]:
+    def placements(self) -> Iterator[Placement]:
         """
-        :return: The performing robot's steps that put an object down at a pose.
+        :return: The objects the performing robot's steps put down at a pose: the
+            first body of a step whose field accepting a surface names a pose.
         """
         for step in self.steps():
-            if (
-                step.kind in (StepKind.TRANSPORT, StepKind.PLACE)
-                and step.placement is PlacementMode.POSE
-            ):
-                yield step
+            schema = self.discovered_actions.named(step.action).schema
+            objects = [
+                step.values[offered.name]
+                for offered in schema.fields
+                if offered.kind is ActionFieldKind.BODY and offered.name in step.values
+            ]
+            if not objects:
+                continue
+            for offered in schema.fields:
+                if not offered.accepts_surface or offered.name not in step.values:
+                    continue
+                destination = Destination.from_json(step.values[offered.name])
+                if destination.placement is PlacementMode.POSE:
+                    yield Placement(
+                        step=step, object_identifier=objects[0], pose=destination.pose
+                    )
 
     def scene_name(self) -> str:
         """

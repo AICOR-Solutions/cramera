@@ -1,0 +1,8 @@
+{
+  "name": "unfinished_place",
+  "robots": [
+    {"id": "robot_1", "model": "PR2", "label": "PR2 1", "pose": [0, 0, 0, 0, 0, 0, 1],
+     "steps": [{"id": "step_1", "kind": "place", "object": "cup", "arm": "RIGHT"}, {"id": "step_2", "kind": "pick_up", "object": "cup", "arm": "RIGHT"}]}
+  ],
+  "objects": [{"id": "cup", "model": "jeroen_cup.stl", "pose": [1, 0, 0.8, 0, 0, 0, 1]}]
+}

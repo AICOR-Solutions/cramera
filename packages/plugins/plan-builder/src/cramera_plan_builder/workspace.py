@@ -1,6 +1,6 @@
 """
-What the CRAM workspace offers a plan: its robot annotations, object meshes, torso
-states, surface annotations and native actions.
+What the CRAM workspace offers a plan: its robot annotations, object meshes, surface
+annotations and native actions.
 
 Whether the workspace is importable is decided by asking the import system before
 anything imports it, so an absent workspace is a value the plugin reads rather than an
@@ -42,7 +42,7 @@ class CramModule(StrEnum):
 
     SEMANTIC_DIGITAL_TWIN = "semantic_digital_twin"
     """
-    The robot annotations, surfaces and torso states.
+    The robot annotations, surfaces and enumerations.
     """
 
     CORAPLEX = "coraplex"
@@ -130,12 +130,6 @@ class CramWorkspace(ABC):
         """
 
     @abstractmethod
-    def torso_states(self) -> List[str]:
-        """
-        :return: The names of the native torso states.
-        """
-
-    @abstractmethod
     def surface_types(self) -> List[str]:
         """
         :return: The class names of the annotations objects can be put on or in, sorted.
@@ -198,9 +192,6 @@ class MissingWorkspace(CramWorkspace):
 
     def object_directory(self) -> Path:
         raise CramUnavailable(self.missing_modules)
-
-    def torso_states(self) -> List[str]:
-        return []
 
     def surface_types(self) -> List[str]:
         return []

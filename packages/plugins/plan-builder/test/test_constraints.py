@@ -4,6 +4,8 @@ Compiling constraints written in plain language with the rule book.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from cramera_plan_builder.constraints import ConstraintCompiler, NamedObjects
@@ -13,11 +15,13 @@ from cramera_plan_builder.exceptions import (
 )
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorParameterKey
 from cramera_protocol.plan_builder import (
+    ActionCatalog,
+    ActionSchema,
     ConstraintText,
     RuleValue,
-    StepKind,
-    StepSwitch,
 )
+
+from .dataset.given_workspace import GivenWorkspace
 
 EXAMPLE_SEPARATOR = ", "
 """
@@ -33,14 +37,31 @@ def compiler() -> ConstraintCompiler:
     return ConstraintCompiler.of_file()
 
 
-def attached(text: str, step_kind: StepKind = StepKind.PICK_UP, **fields):
+@pytest.fixture(scope="module")
+def actions() -> ActionCatalog:
+    """
+    :return: The test workspace's action schemas.
+    """
+    return GivenWorkspace().action_catalog()
+
+
+def schema_of(actions: ActionCatalog, name: str) -> ActionSchema:
+    """
+    :param actions: Action schemas.
+    :param name: An action's class name.
+    :return: The schema of that name.
+    """
+    return next(schema for schema in actions.actions if schema.name == name)
+
+
+def attached(text: str, step_action: str = "PickUpAction", **fields):
     """
     :param text: A constraint.
-    :param step_kind: The kind of step it is attached to.
+    :param step_action: The action of the step it is attached to.
     :param fields: The other fields of the request.
     :return: The request compiling the constraint on such a step.
     """
-    return ConstraintText(text=text, step_kind=step_kind, **fields)
+    return ConstraintText(text=text, step_action=step_action, **fields)
 
 
 # %% the rule book
@@ -143,23 +164,41 @@ def test_a_distance_from_nothing_named_is_refused(compiler):
 
 def test_an_attached_constraint_about_no_object_is_refused(compiler):
     with pytest.raises(ConstraintSubjectMissing):
-        compiler.compile(attached("Stay upright", step_kind=StepKind.NAVIGATE))
+        compiler.compile(attached("Stay upright", step_action="NavigateAction"))
 
 
-def test_looking_turns_on_the_transports_own_switch(compiler):
+def test_looking_turns_on_the_boolean_field_the_rule_names(compiler, actions):
+    transport = schema_of(actions, "TransportAction")
     compiled = compiler.compile(
-        attached("Look where it operates", step_kind=StepKind.TRANSPORT)
+        attached("Look where it operates", step_action=transport.name), transport
     )
-    assert compiled.switch is StepSwitch.LOOK_AT_OPERATION_SITE
+    rule = compiler.rule_for("look where it operates")
+    assert compiled.switch == rule.switch
+    assert transport.field_named(rule.switch) is not None
     assert compiled.monitor is None
 
 
-def test_looking_on_a_step_without_the_switch_changes_nothing(compiler):
+def test_looking_on_an_action_without_the_field_changes_nothing(compiler, actions):
+    navigate = schema_of(actions, "NavigateAction")
     compiled = compiler.compile(
-        attached("Look where it operates", step_kind=StepKind.NAVIGATE)
+        attached("Look where it operates", step_action=navigate.name), navigate
     )
     assert compiled.monitor_type is ConstraintMonitorType.POINTING_AT
     assert compiled.switch is None and compiled.monitor is None
+
+
+def test_a_rule_without_a_switch_turns_on_nothing(compiler, actions):
+    transport = schema_of(actions, "TransportAction")
+    compiled = compiler.compile(
+        attached("Keep the milk upright", objects=["milk"]), transport
+    )
+    assert compiled.switch is None and compiled.monitor is not None
+
+
+def test_a_switch_naming_a_field_that_is_no_boolean_turns_on_nothing(compiler, actions):
+    transport = schema_of(actions, "TransportAction")
+    rule = compiler.rule_for("look where it operates")
+    assert compiler.switches(replace(rule, switch="arm"), transport) is False
 
 
 def test_objects_are_ordered_by_where_the_sentence_names_them():

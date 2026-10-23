@@ -1,6 +1,6 @@
 """
 The installed CRAM workspace as the plan builder's catalog reads it: robot annotations
-and what their parts allow, object meshes, torso states, surface annotations and native
+and the choices their parts allow, object meshes, surface annotations and native
 actions, all read from the workspace's own classes and files.
 """
 
@@ -14,7 +14,7 @@ from functools import cached_property
 from pathlib import Path
 from types import ModuleType
 
-from typing_extensions import List, Set, Type, get_args
+from typing_extensions import Dict, List, Set, Type, get_args
 
 import coraplex
 import semantic_digital_twin.robots
@@ -26,19 +26,11 @@ from cramera_plan_builder.cram.actions import ActionDiscovery, DiscoveredActions
 from cramera_plan_builder.exceptions import UnknownWorkspaceClass
 from cramera_plan_builder.workspace import CramWorkspace
 from cramera_protocol.bundle.files import MeshFormat
-from cramera_protocol.plan_builder import (
-    ActionCatalog,
-    ObjectModel,
-    RobotModel,
-    StepKind,
-)
+from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
 from krrood.utils import recursive_subclasses
 from semantic_digital_twin.datastructures.definitions import TorsoState
-from semantic_digital_twin.robots.robot_part_mixins import (
-    HasLeftRightArm,
-    HasMobileBase,
-)
+from semantic_digital_twin.robots.robot_part_mixins import HasLeftRightArm
 from semantic_digital_twin.robots.robot_parts import (
     AbstractRobot,
     AbstractRobotPart,
@@ -53,11 +45,6 @@ OBJECT_DIRECTORY = (
 )
 """
 The object meshes coraplex's own demos and tests place, beside its sources.
-"""
-
-ARM_STEPS = (StepKind.PARK_ARMS, StepKind.PICK_UP, StepKind.PLACE)
-"""
-The steps any robot with an arm can take.
 """
 
 # %% classes by name
@@ -129,22 +116,6 @@ class RobotAnnotation:
             )
         return found
 
-    def steps(self) -> List[StepKind]:
-        """
-        :return: The steps the robot's parts allow, in the order :class:`StepKind`
-            lists them: arms park, pick and place; a torso moves; a mobile base drives
-            and transports.
-        """
-        parts = self.part_types()
-        allowed = set()
-        if any(issubclass(part, Arm) for part in parts):
-            allowed.update(ARM_STEPS)
-        if any(issubclass(part, Torso) for part in parts):
-            allowed.add(StepKind.MOVE_TORSO)
-        if issubclass(self.annotation, HasMobileBase):
-            allowed.update({StepKind.NAVIGATE, StepKind.TRANSPORT})
-        return [kind for kind in StepKind if kind in allowed]
-
     def arms(self) -> List[str]:
         """
         :return: The native arm choices: every choice for a robot that names a left and
@@ -156,6 +127,21 @@ class RobotAnnotation:
         if any(issubclass(part, Arm) for part in parts):
             return [Arms.BOTH.name]
         return []
+
+    def torso_states(self) -> List[str]:
+        """
+        :return: The native torso states for a robot with a torso, else none.
+        """
+        if any(issubclass(part, Torso) for part in self.part_types()):
+            return [state.name for state in TorsoState]
+        return []
+
+    def choices(self) -> Dict[str, List[str]]:
+        """
+        :return: The members of the enumerations whose choices depend on the robot's
+            parts, by the enumeration's class name.
+        """
+        return {Arms.__name__: self.arms(), TorsoState.__name__: self.torso_states()}
 
     def has_model_description(self) -> bool:
         """
@@ -175,8 +161,7 @@ class RobotAnnotation:
         return RobotModel(
             name=self.annotation.__name__,
             module=self.annotation.__module__,
-            steps=self.steps(),
-            arms=self.arms(),
+            choices=self.choices(),
         )
 
 
@@ -297,9 +282,6 @@ class InstalledWorkspace(CramWorkspace):
 
     def object_directory(self) -> Path:
         return self.directory
-
-    def torso_states(self) -> List[str]:
-        return [state.name for state in TorsoState]
 
     def surface_types(self) -> List[str]:
         return [

@@ -1,4 +1,5 @@
 {
+  "formatVersion": "1.1",
   "name": "pr2_pick_and_place",
   "task": "Pick the milk up and put it down beside",
   "selectedRobot": "robot_1",
@@ -9,10 +10,13 @@
       "label": "PR2 1",
       "pose": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
       "steps": [
-        {"id": "step_1", "kind": "park_arms", "arm": "BOTH"},
-        {"id": "step_2", "kind": "move_torso", "torsoState": "HIGH"},
-        {"id": "step_3", "kind": "pick_up", "object": "milk", "arm": "LEFT"},
-        {"id": "step_4", "kind": "place", "object": "milk", "arm": "LEFT", "target": [0.7, 0.3, 0.85, 0.0, 0.0, 0.0, 1.0]}
+        {"id": "step_1", "action": "ParkArmsAction", "values": {"arm": "BOTH"}},
+        {"id": "step_2", "action": "MoveTorsoAction", "values": {"torso_state": "HIGH"}},
+        {"id": "step_3", "action": "PickUpAction", "values": {"object_designator": "milk", "arm": "LEFT"}},
+        {"id": "step_4", "action": "PlaceAction",
+         "values": {"object_designator": "milk", "arm": "LEFT", "target_location": {"placement": "pose", "pose": [0.7, 0.3, 0.85, 0.0, 0.0, 0.0, 1.0]}}},
+        {"id": "step_5", "action": "SetGripperAction", "values": {"gripper": "LEFT", "motion": "CLOSE"}},
+        {"id": "step_6", "action": "SetGripperAction", "values": {"gripper": "LEFT", "motion": "OPEN"}}
       ]
     },
     {
@@ -21,8 +25,9 @@
       "label": "PR2 2",
       "pose": [3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
       "steps": [
-        {"id": "step_1", "kind": "transport", "object": "milk", "arm": "RIGHT", "placement": "surface", "surfaceType": "Table"},
-        {"id": "step_2", "kind": "navigate", "target": [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}
+        {"id": "step_1", "action": "TransportAction",
+         "values": {"object_designator": "milk", "arm": "RIGHT", "target_location": {"placement": "surface", "surfaceType": "Table"}}},
+        {"id": "step_2", "action": "NavigateAction", "values": {"target_location": [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}}
       ]
     }
   ],

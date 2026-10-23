@@ -10,6 +10,7 @@ from http import HTTPStatus
 
 from cramera.http.messages import HttpMethod, MediaType
 from cramera.locations import DataLocations
+from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
 from cramera_plan_builder.plugin import (
     PlanBuilderPlugin,
@@ -39,7 +40,6 @@ from cramera_protocol.plan_builder import (
     RunStatus,
     SavedDemo,
     StepConstraint,
-    StepKind,
 )
 from cramera_protocol.viewer import ErrorKey
 
@@ -173,12 +173,33 @@ def test_a_constraint_is_compiled_for_its_step(post):
         PlanBuilderRoute.CONSTRAINT,
         ConstraintText(
             text="Keep the milk upright",
-            step_kind=StepKind.TRANSPORT,
+            step_action="TransportAction",
             objects=["milk"],
         ).to_json(),
     )
     compiled = StepConstraint.from_json(json.loads(answer.body))
     assert compiled.monitor is not None and compiled.monitor_type is not None
+
+
+def test_a_constraint_turns_on_a_switch_of_the_steps_action(post):
+    answer = post(
+        PlanBuilderRoute.CONSTRAINT,
+        ConstraintText(
+            text="Look where it operates", step_action="TransportAction"
+        ).to_json(),
+    )
+    compiled = StepConstraint.from_json(json.loads(answer.body))
+    assert compiled.switch == ConstraintCompiler.of_file().rule_for("look at").switch
+
+
+def test_a_constraint_on_an_action_the_workspace_lacks_turns_on_nothing(post):
+    answer = post(
+        PlanBuilderRoute.CONSTRAINT,
+        ConstraintText(
+            text="Look where it operates", step_action="SearchAction"
+        ).to_json(),
+    )
+    assert StepConstraint.from_json(json.loads(answer.body)).switch is None
 
 
 def test_a_blank_constraint_is_refused(post):
