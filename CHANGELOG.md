@@ -35,6 +35,16 @@ which this repository was mirrored until 22 Oct 2026.
   and environments the CRAM workspace offers, turns sentences such as "keep the milk
   upright" into constraint monitors, writes the plan as a CRAM demo and runs it live,
   with its constraints shown on the steps.
+- **Every CRAM action in the plan builder.** The builder discovers the action
+  dataclasses of coraplex's actions package (26 in the development checkout, 23 of
+  them available) and builds each step's form from the action's typed fields:
+  objects, annotated entities, the robot's enumeration choices, poses, a pose or a
+  surface, numbers, switches and texts, with a derived grasp and optional fields
+  under "More options". An action whose required field has no form control yet is
+  listed with the reason, and an action module that fails to import is named. Steps
+  store the action and its values; plans saved with the earlier six step kinds load
+  as the actions those kinds stood for, and a step that no longer fits its action is
+  refused, with the step and field named, before its demo is written or run.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),

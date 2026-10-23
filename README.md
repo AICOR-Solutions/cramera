@@ -37,7 +37,7 @@ the branch [`archive/pre-v1`](https://github.com/sunava/cramera/tree/archive/pre
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
 | [`cramera-laboratory`](packages/plugins/laboratory) | The AICOR laboratory: its bundles and devices, a MuJoCo contact simulation with liquid, scale, centrifuge, refrigerator, drawer and dispensing station operated from a Laboratory panel, the laboratory as a CRAM world and a PR2 vessel transfer demo. | done |
-| [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan of robot steps, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
+| [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 | [`cramera-workshop`](packages/plugins/workshop) | The AICOR wood workshop: a MuJoCo contact world with an ideal screw thread in a Workshop panel, a recorded PR2 screw insertion demo, and a two-handed assembly demo that runs but does not yet pass its collision check. | done |
 | [`cramera-cable-lab`](packages/plugins/cable-lab) | A MuJoCo composite cable with semantic points and a friction gripper, on a page of its own. | done |
 
