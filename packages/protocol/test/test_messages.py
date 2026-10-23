@@ -14,6 +14,7 @@ import pytest
 from cramera_protocol.browser import BROWSER_ENUMERATIONS, BrowserModule
 from cramera_protocol.exceptions import UnsupportedProtocolVersion
 from cramera_protocol.live import Capability, LiveInfo, LiveInfoKey
+from cramera_protocol.page import PageLayout, PageParameter, PageStorageKey, Theme
 from cramera_protocol.version import CURRENT_VERSION
 from cramera_protocol.viewer import (
     BuildKey,
@@ -130,3 +131,8 @@ def test_a_published_build_names_its_commit_and_time():
     assert written[ViewerInfoKey.BUILD][BuildKey.COMMIT] == "0" * 40
     assert ViewerInfo.from_json(written) == info
     assert ViewerInfoKey.BUILD not in ViewerInfo(version="1.0.0").to_json()
+
+
+def test_the_page_names_are_offered_to_the_browser():
+    for enumeration in (PageParameter, PageLayout, Theme, PageStorageKey):
+        assert enumeration in BROWSER_ENUMERATIONS

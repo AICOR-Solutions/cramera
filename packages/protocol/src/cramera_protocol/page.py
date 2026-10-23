@@ -18,3 +18,59 @@ class PageParameter(StrEnum):
     """
     The bundle the page opens.
     """
+
+    LIVE = "live"
+    """
+    The address of a live publisher the page follows instead of a bundle.
+    """
+
+    LAYOUT = "layout"
+    """
+    A :class:`PageLayout` other than the full page.
+    """
+
+    PANEL = "panel"
+    """
+    The identity of the panel the page shows first.
+    """
+
+
+class PageLayout(StrEnum):
+    """
+    How much of the viewer's page is shown.
+    """
+
+    SCENE = "scene"
+    """
+    The scene alone, as in a window it was popped out into.
+    """
+
+
+# %% appearance
+
+
+class Theme(StrEnum):
+    """
+    The colour themes of the viewer's pages.
+    """
+
+    DARK = "dark"
+    """
+    Light text on dark surfaces; the default.
+    """
+
+    LIGHT = "light"
+    """
+    Dark text on light surfaces.
+    """
+
+
+class PageStorageKey(StrEnum):
+    """
+    What the viewer's pages remember in the browser's local storage.
+    """
+
+    THEME = "cramera.theme"
+    """
+    The :class:`Theme` a person chose.
+    """

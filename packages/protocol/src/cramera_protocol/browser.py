@@ -328,6 +328,7 @@ from cramera_protocol.viewer import (
     ViewerInfoKey,
     ViewerRoute,
 )
+from cramera_protocol.page import PageLayout, PageParameter, PageStorageKey, Theme
 from cramera_protocol.rights import AssetRightsKey
 
 # %% module
@@ -444,6 +445,10 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     NavigationKey,
     NavigationGroup,
     Serving,
+    PageParameter,
+    PageLayout,
+    Theme,
+    PageStorageKey,
     ViewerEvent,
     PageStateAttribute,
     PageState,
