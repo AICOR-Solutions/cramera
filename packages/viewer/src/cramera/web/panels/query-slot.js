@@ -1,8 +1,11 @@
 /**
  * The slot above the side panels that one plugin may fill with its question panel,
  * shown as a card with a heading; empty, the slot is hidden and the side panels take
- * the whole column.
+ * the whole column. A button in the head folds the card to its heading, which is
+ * remembered.
  */
+
+import { PageStorageKey } from '../protocol.js';
 
 // %% slot
 
@@ -78,10 +81,24 @@ export class QuerySlot {
   #panel = null;
 
   /**
-   * @param {HTMLElement} root The slot's card; hidden while the slot is empty.
+   * The browser's local storage, or null where the page has none.
+   * @type {Storage|null}
    */
-  constructor(root) {
+  #storage;
+
+  /**
+   * The button folding the card, once the slot is filled.
+   * @type {HTMLButtonElement|null}
+   */
+  #fold = null;
+
+  /**
+   * @param {HTMLElement} root The slot's card; hidden while the slot is empty.
+   * @param {Storage|null} storage The browser's local storage, or null.
+   */
+  constructor(root, storage = null) {
     this.#root = root;
+    this.#storage = storage;
     root.hidden = true;
   }
 
@@ -99,10 +116,60 @@ export class QuerySlot {
     heading.textContent = panel.title;
     head.append(heading);
     if (panel.aside) head.append(panel.aside);
+    const fold = document.createElement('button');
+    fold.type = 'button';
+    fold.className = 'fold-button';
+    fold.addEventListener('click', () => this.setFolded(!this.folded));
+    head.append(fold);
+    this.#fold = fold;
     panel.element.classList.add('slot-body');
     this.#root.replaceChildren(head, panel.element);
     this.#root.hidden = false;
     this.#panel = panel;
+    this.#showFolded(this.#stored());
+  }
+
+  /**
+   * @returns {boolean} Whether the card shows only its heading.
+   */
+  get folded() {
+    return this.#root.classList.contains('folded');
+  }
+
+  /**
+   * Fold the card to its heading or unfold it, and remember the choice.
+   * @param {boolean} folded Whether the card shows only its heading.
+   */
+  setFolded(folded) {
+    this.#showFolded(folded);
+    try {
+      this.#storage?.setItem(PageStorageKey.QUERY_FOLDED, String(folded));
+    } catch {
+      // Storage refused (private window, blocked site data): the choice lasts this page.
+    }
+  }
+
+  /**
+   * @param {boolean} folded Whether the card shows only its heading.
+   */
+  #showFolded(folded) {
+    this.#root.classList.toggle('folded', folded);
+    if (!this.#fold) return;
+    this.#fold.textContent = folded ? '▸' : '▾';
+    this.#fold.title = folded ? `Show ${this.#panel.title}` : `Hide ${this.#panel.title}`;
+    this.#fold.setAttribute('aria-label', this.#fold.title);
+    this.#fold.setAttribute('aria-expanded', String(!folded));
+  }
+
+  /**
+   * @returns {boolean} Whether the card was folded when last remembered.
+   */
+  #stored() {
+    try {
+      return this.#storage?.getItem(PageStorageKey.QUERY_FOLDED) === 'true';
+    } catch {
+      return false;
+    }
   }
 
   /**
