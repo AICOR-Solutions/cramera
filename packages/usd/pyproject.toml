@@ -29,7 +29,7 @@ cramera-export = "cramera_usd.commands.export_scene:main"
 cramera-audit-robots = "cramera_usd.commands.audit_robots:main"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

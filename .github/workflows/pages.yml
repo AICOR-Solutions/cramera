@@ -1,4 +1,4 @@
-# Publishes https://sunava.github.io/cramera/ from every push to main: the viewer with
+# Publishes https://aicor-solutions.github.io/cramera/ from every push to main: the viewer with
 # the demo scenes under demo/scenes, and a status page that shows the version, the
 # commit, the build time and a screenshot of the viewer taken in this build. A build
 # whose viewer does not show its scene fails, so the site keeps the last working build.

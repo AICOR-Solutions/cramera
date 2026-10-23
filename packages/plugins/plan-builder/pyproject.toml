@@ -21,7 +21,7 @@ cram = ["cramera-cram==1.0.0"]
 plan-builder = "cramera_plan_builder.plugin:PlanBuilderPlugin"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

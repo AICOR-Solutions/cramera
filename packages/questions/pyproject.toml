@@ -21,7 +21,7 @@ cramera-record-answers = "cramera_questions.answer_recording:main"
 questions = "cramera_questions.plugin:QuestionsPlugin"
 
 [project.urls]
-Source = "https://github.com/sunava/cramera"
+Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]

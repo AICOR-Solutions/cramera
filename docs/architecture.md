@@ -85,7 +85,7 @@ outside the class: dataclasses with a `from_json` classmethod.
 
 ## Demo site
 
-`https://sunava.github.io/cramera/` is rebuilt on every push to `main`. It serves the
+`https://aicor-solutions.github.io/cramera/` is rebuilt on every push to `main`. It serves the
 viewer with the demo scenes under `demo/scenes` and the questions plugin's browser
 module, a status page with the version, commit and build time, a screenshot of the
 viewer taken in that build, and the ontology page, which embeds cram_owlviz
