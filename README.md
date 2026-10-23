@@ -35,7 +35,6 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-questions`](packages/questions) | Questions in the entity query language over worlds and recordings. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
-| [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
@@ -77,7 +76,7 @@ cramera
 
 ### Install the pages and panels
 
-Everything beyond the scene page is a plugin: Models, Plan Builder, Scene Builder,
+Everything beyond the scene page is a plugin: Plan Builder, Scene Builder,
 the Tour of `cramera-offline` and the questions column. Each is a pip package of its
 own under `packages/plugins` (and `packages/questions`) that the viewer discovers through the entry-point group
 `cramera.plugins`. `pip install ./packages/viewer` installs none of them, so the top
@@ -95,17 +94,16 @@ behaviour as an optional extra:
 | Plugin | Extra | Without it |
 | --- | --- | --- |
 | `cramera-plan-builder` | `[cram]`, that is `cramera-cram` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
-| `cramera-models` | `[circuits]`: probabilistic-model, random-events, krrood, plotly | The panel shows and its routes answer which libraries are missing. |
 
 ```bash
-pip install './packages/plugins/models[circuits]'
+pip install './packages/plugins/plan-builder[cram]'
 ```
 
 See [docs/plugins.md](docs/plugins.md) for writing a plugin.
 
 The page has the look of the original AICOR viewer: dark, with the AICOR logo and a
-link to every page the installed plugins offer (Models, Plan Builder, Scene Builder)
-in the top bar, the 3D view with its **Layers**
+link to every page the installed plugins offer (Plan Builder, Scene Builder) in the
+top bar, the 3D view with its **Layers**
 overlay and the playback controls on the left, questions and graphs on the right. The
 **View** menu switches to a light theme. **Pop out** opens the scene alone in a window
 of its own.

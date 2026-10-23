@@ -18,7 +18,7 @@ through a plugin.
             cramera     cramera-usd    cramera-cram ──── CRAM workspace
            (viewer)    (USD import)   (live publisher, recording, questions, demos)
                |
-     plugins: cramera-offline, cramera-models, cramera-plan-builder, ...
+     plugins: cramera-offline, cramera-plan-builder, ...
 ```
 
 | Package | Import name | Depends on | Responsibility |
@@ -28,7 +28,6 @@ through a plugin.
 | `cramera-usd` | `cramera_usd` | `cramera-protocol`, `usd-core`, `numpy` | Converting a USD stage into a scene bundle, the export gate, the robot separation audit. |
 | `cramera-cram` | `cramera_cram` | `cramera`, CRAM packages | Live publishing from a running plan, recording into bundles, questions in the entity query language, demo onboarding, task demos. |
 | `cramera-offline` | `cramera_offline` | `cramera` | The Tour panel over a storyboard, `cramera-check-bundle`, and `cramera-offline`, which prepares, checks, serves (optionally from a network namespace without routes) and exports a presentation of recorded bundles. |
-| `cramera-models` | `cramera_models` | `cramera`; `probabilistic_model`, `random_events`, `krrood` and `plotly` optionally | The Models panel: probability, posterior and mode questions about a probabilistic circuit. Without the circuit libraries its routes answer which are missing. |
 | `cramera-plan-builder` | `cramera_plan_builder` | `cramera`; `cramera-cram` and the CRAM workspace optionally | The Plan builder panel and page: composes a robot plan by drag and drop from the native actions it discovers in the CRAM workspace, each step's form built from its action's fields, places its robots, objects and targets over an environment bundle, compiles constraints written in plain language into live monitors, and generates, writes and runs the plan's `RobotTaskDemo` as an owned child process. Without the CRAM workspace its catalog names the missing modules. |
 | The other plugins | ... | `cramera`, and what the plugin itself needs | One self-contained feature each: its Python routes, its browser module, its assets. |
 

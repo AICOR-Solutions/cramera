@@ -74,3 +74,14 @@ class PageStorageKey(StrEnum):
     """
     The :class:`Theme` a person chose.
     """
+
+    SPLIT = "cramera.split"
+    """
+    The share of the scene page's width the side column takes, in percent, as a person
+    dragged the divider.
+    """
+
+    QUERY_FOLDED = "cramera.query-folded"
+    """
+    Whether a person folded the query slot to its heading.
+    """

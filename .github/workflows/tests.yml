@@ -1,9 +1,7 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
 # of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
 # cramera-questions, cramera-cram and the plan builder run only their tests without
-# CRAM, measured over the modules those tests reach. The models plugin is tested
-# without the circuit libraries: its tests against them are skipped and their
-# counterparts against stand-ins run.
+# CRAM, measured over the modules those tests reach.
 name: Tests
 
 on:
@@ -53,9 +51,6 @@ jobs:
           - package: plugins/offline
             module: cramera_offline
             install: -e ./packages/plugins/offline
-          - package: plugins/models
-            module: cramera_models
-            install: -e ./packages/plugins/models
           - package: plugins/scene-builder
             module: cramera_scene_builder
             install: -e ./packages/plugins/scene-builder

@@ -48,18 +48,6 @@ from cramera_protocol.events import (
 )
 from cramera_protocol.geometry import RectangleKey
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
-from cramera_protocol.models import (
-    ConstraintKey,
-    FigureKey,
-    IntervalKey,
-    ModelAnswerKey,
-    ModelRequestKey,
-    ModelsRoute,
-    ModelUploadKey,
-    ModelVariableKey,
-    VariableKind,
-    WorkbenchStateKey,
-)
 from cramera_protocol.offline import (
     AssetProblemKey,
     AssetProblemKind,
@@ -351,16 +339,6 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     BundleCheckKey,
     AssetProblemKey,
     AssetProblemKind,
-    ModelsRoute,
-    VariableKind,
-    ModelVariableKey,
-    WorkbenchStateKey,
-    ModelUploadKey,
-    IntervalKey,
-    ConstraintKey,
-    ModelRequestKey,
-    ModelAnswerKey,
-    FigureKey,
     SceneBuilderName,
     SceneBuilderFile,
     SceneBuilderRoute,

@@ -31,13 +31,6 @@ VENDOR_DIRECTORY = REPOSITORY_ROOT / "packages/viewer/src/cramera/web/vendor"
 Where the viewer's vendored libraries go.
 """
 
-MODELS_VENDOR_DIRECTORY = (
-    REPOSITORY_ROOT / "packages/plugins/models/src/cramera_models/web/vendor"
-)
-"""
-Where the models plugin's vendored libraries go.
-"""
-
 MANIFEST_FILE = "manifest.json"
 """
 The file listing the vendored releases and their files, in each vendor directory.
@@ -224,13 +217,6 @@ PACKAGES: Tuple[VendoredPackage, ...] = (
         version="0.13.1",
         entry_modules=("src/URDFLoader.js",),
         licence_url="https://raw.githubusercontent.com/gkjohnson/urdf-loaders/v0.13.1/LICENSE",
-    ),
-    VendoredPackage(
-        name="plotly.js-basic-dist-min",
-        version="3.7.0",
-        entry_modules=("plotly-basic.min.js",),
-        vendor_directory=MODELS_VENDOR_DIRECTORY,
-        self_contained=True,
     ),
 )
 """
