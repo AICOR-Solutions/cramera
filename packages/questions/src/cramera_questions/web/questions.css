@@ -1,44 +1,88 @@
-/* The Questions panel. */
+/* The question panel and the graph tabs, in the shapes of the original AICOR viewer. */
 
-.questions { display: grid; gap: 12px; align-content: start; }
+.questions { display: flex; flex-direction: column; min-height: 0; }
 
-.questions .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.knowledge-status { font-size: 12px; color: var(--text-faint); }
 
-.questions .preset { text-align: left; background: var(--surface); }
+.query-box { display: grid; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface-sunken); }
+.query-bar { display: flex; align-items: stretch; gap: 6px; padding: 4px; background: var(--page); border: 1px solid var(--border-strong); border-radius: var(--radius); }
+.query-bar:focus-within { border-color: var(--accent); }
+.query-bar textarea {
+  flex: 1;
+  min-height: 36px;
+  padding: 7px 9px;
+  font: 13px/1.45 var(--mono);
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: vertical;
+}
+.query-bar textarea:disabled { color: var(--text-faint); cursor: not-allowed; }
+.query-bar .run { padding: 0 20px; font-size: 13px; font-weight: 700; color: var(--accent-text); background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: 0; }
+.ask { display: flex; gap: 6px; }
+.ask input { flex: 1; min-width: 0; padding: 5px 10px; font-size: 12.5px; color: var(--text); background: var(--control); border: 1px solid var(--control-border); border-radius: var(--radius); }
+.ask select { max-width: 40%; font-size: 12px; }
+.ask input:disabled { cursor: not-allowed; }
 
-.questions .ask { display: flex; gap: 6px; }
-.questions .ask input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+.console-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; }
+.question {
+  margin: 0;
+  min-height: 24px;
+  padding: 13px 15px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--page);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+.question.hint { font-size: 14px; font-style: italic; color: var(--text-faint); }
+.recorded-note { margin: 10px 0 0; padding: 8px 11px; font-size: 12px; line-height: 1.5; color: var(--warning); background: rgb(255 182 72 / 0.08); border: 1px solid rgb(255 182 72 / 0.35); border-radius: var(--radius); }
+.recorded-note[hidden] { display: none; }
 
-.questions details { display: grid; gap: 6px; }
-.questions summary { cursor: pointer; color: var(--text-muted); }
-.questions textarea { width: 100%; font: 12px var(--mono); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; resize: vertical; }
+.presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+.preset { padding: 6px 11px; font-size: 12px; color: var(--text-muted); text-align: left; background: var(--surface); border-color: var(--border-strong); }
+.preset:hover { color: var(--text); border-color: var(--accent); }
 
-.answer .reading { margin: 0; font-style: italic; }
+.answer { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.answer .empty { margin: 0; font-size: 13px; font-style: italic; color: var(--text-faint); }
+.answer .reading { margin: 0 0 6px; font-style: italic; }
 .answer .count { margin: 4px 0; color: var(--text-muted); font-size: 12px; }
-.answer .error { color: var(--danger); }
-.answer table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.answer th, .answer td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
-.answer th { color: var(--text-muted); font-weight: 600; }
-.answer td button { padding: 2px 8px; font-size: 12px; }
+.answer .error { margin: 0; color: var(--danger); font: 12px var(--mono); white-space: pre-wrap; }
+.answer table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); }
+.answer th { padding: 7px 12px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-faint); text-align: left; border-bottom: 1px solid var(--border-strong); }
+.answer td { padding: 7px 12px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.answer td button { padding: 4px 10px; font-size: 11.5px; font-weight: 700; color: #8fdcff; background: rgb(53 167 255 / 0.14); border-color: #35a7ff; }
 
 /* %% graph */
 
-.graph-panel { display: grid; gap: 8px; align-content: start; }
-.graph svg { width: 100%; height: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; touch-action: none; }
-.graph-edge { stroke: var(--border); stroke-width: 1.2; }
+.graph-panel { position: relative; display: flex; flex-direction: column; min-height: 300px; height: 100%; padding: 0; }
+.panel.graph-panel { padding: 0; }
+.graph { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.graph svg { flex: 1; width: 100%; min-height: 260px; cursor: grab; touch-action: none; }
+.graph-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 16%; text-align: center; font-size: 12.5px; line-height: 1.65; color: var(--text-muted); pointer-events: none; }
+.graph-empty[hidden] { display: none; }
+.graph-controls { position: absolute; left: 12px; top: 12px; z-index: 6; display: flex; flex-direction: column; gap: 4px; }
+.graph-controls button { width: 31px; padding: 6px 0; font-size: 14px; line-height: 1; text-align: center; background: var(--overlay); }
+.graph-controls button:first-child { margin-bottom: 10px; }
+.graph.graph-fullscreen { position: fixed; inset: 0; z-index: 1000; background: var(--page); }
+.graph-edge { stroke: var(--border-strong); stroke-width: 1.2; }
 .graph-edge.type { stroke-dasharray: 4 3; }
 .graph-node { cursor: pointer; }
 .graph-node circle { stroke: var(--surface-raised); stroke-width: 2; }
 .graph-node text { font: 10px var(--font); fill: var(--text); text-anchor: middle; pointer-events: none; }
-.graph .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--text-muted); }
-.graph .legend li::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; background: var(--series-color); }
-.graph-details h2 { margin: 4px 0; }
+.graph .legend { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 9px 11px; list-style: none; font-size: 11px; color: var(--text-muted); background: var(--overlay); border: 1px solid var(--border-strong); border-radius: var(--radius); }
+.graph .legend:empty { display: none; }
+.graph .legend li::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; background: var(--series-color); }
+.graph-details { padding: 0 14px; }
+.graph-details:empty { display: none; }
+.graph-details h2 { margin: 8px 0 4px; }
 .graph-details p { margin: 2px 0; font: 12px var(--mono); overflow-wrap: anywhere; }
 
-.questions-root, .graph { --series-0: #0f766e; --series-1: #c2410c; --series-2: #6d28d9; --series-3: #b91c1c; --series-4: #0369a1; --series-5: #a16207; --series-6: #be185d; --series-7: #4d7c0f; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .graph { --series-0: #2dd4bf; --series-1: #fb923c; --series-2: #a78bfa; --series-3: #f87171; --series-4: #38bdf8; --series-5: #facc15; --series-6: #f472b6; --series-7: #a3e635; }
-}
+.graph { --series-0: #39d5c8; --series-1: #ffb648; --series-2: #b98cff; --series-3: #ff6b8b; --series-4: #5b8cff; --series-5: #facc15; --series-6: #f472b6; --series-7: #4bd38a; }
+:root[data-theme="light"] .graph { --series-0: #0f766e; --series-1: #c2410c; --series-2: #6d28d9; --series-3: #b91c1c; --series-4: #0369a1; --series-5: #a16207; --series-6: #be185d; --series-7: #4d7c0f; }
 .series-0 { --series-color: var(--series-0); } .series-1 { --series-color: var(--series-1); }
 .series-2 { --series-color: var(--series-2); } .series-3 { --series-color: var(--series-3); }
 .series-4 { --series-color: var(--series-4); } .series-5 { --series-color: var(--series-5); }
