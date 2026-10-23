@@ -32,7 +32,7 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera`](packages/viewer) | The viewer: HTTP server, scene catalog, plugins, the browser application, screenshots, the static site export. Runs without CRAM. | done |
 | [`cramera-usd`](packages/usd) | Converting an Isaac Sim or USD stage into a scene bundle, with the export gate and the robot separation audit. | done |
 | [`cramera-cram`](packages/cram) | Live publishing from a running plan, recording, onboarding demos, task demos. | done |
-| [`cramera-questions`](packages/questions) | Questions in the entity query language over worlds and recordings. | done |
+| [`cramera-questions`](packages/questions) | The viewer plugin asking recorded scenes questions in the entity query language; `cramera-cram`'s question engine answers them. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
@@ -165,7 +165,8 @@ With `cramera-questions` installed, the viewer's right column gets:
   shows its details and lights it up in the 3D view; drag to pan, scroll or use the
   buttons to zoom, and fill the window with the graph.
 
-Answering needs krrood from the CRAM workspace. Where it is missing, and on the
+Answering needs `cramera-cram`'s question engine and krrood from the CRAM workspace
+(`pip install -e 'packages/questions[cram]'`). Where they are missing, and on the
 static demo site, the plugin shows the answers recorded in the bundle instead: the
 presets answer as they did when they were recorded, the graphs are drawn, and the
 query boxes say why they are disabled. Record them in the CRAM environment with

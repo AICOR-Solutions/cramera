@@ -23,21 +23,11 @@ through the protocol (`cramera_protocol`):
   as the protocol's own name, translated inside `cramera-cram` (as `PlanNodeStatus`
   translates coraplex's life cycle values), so a CRAM rename stays inside the package.
 
-One package does not follow this yet and is to be moved behind `cramera-cram`; add no
-new CRAM imports to it:
-
-- `packages/questions`: its use of `krrood` for the entity query language (`entity.py`,
-  `knowledge.py`, `runner.py`, `verbalization.py`, `vocabulary.py` and the tests
-  `test_verbalization.py` and `test_workspace_classes.py`). `cramera-cram` depends on
-  `cramera-questions` for the question desk, so moving the query engine means turning
-  that dependency around.
-
 Check a change with:
 
 ```bash
 grep -rnE --exclude-dir=build "^\s*(from|import) (coraplex|semantic_digital_twin|giskardpy|krrood|segmind|robokudo|physics_simulators|probabilistic_model|random_events)\b" packages --include=*.py | grep -v "^packages/cram/"
 ```
 
-which lists nothing but the files named above. `packages/cram/test/test_cram_boundary.py`
-runs the same check in the test suite and fails on any other file; take a file off its
-list once it imports no CRAM package.
+which lists nothing. `packages/cram/test/test_cram_boundary.py` runs the same check in
+the test suite and fails on any such import.

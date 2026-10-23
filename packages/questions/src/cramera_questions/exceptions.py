@@ -24,60 +24,6 @@ class QuestionError(ViewerError):
     """
 
 
-# %% queries
-
-
-@dataclass
-class EmptyQuery(QuestionError):
-    """
-    A query whose source holds no statement.
-    """
-
-    def message(self) -> str:
-        return "The query is empty."
-
-
-@dataclass
-class UnknownScope(QuestionError):
-    """
-    A body of knowledge that is not on offer.
-    """
-
-    scope: str
-    """
-    The scope that was asked.
-    """
-
-    offered: List[str]
-    """
-    The scopes on offer.
-    """
-
-    def status(self) -> HTTPStatus:
-        return HTTPStatus.NOT_FOUND
-
-    def message(self) -> str:
-        return f"No knowledge of the scope {self.scope!r} is offered; ask one of {self.offered}."
-
-
-@dataclass
-class UnknownVocabularyName(QuestionError):
-    """
-    A name whose members were asked for although no type of that name is in reach.
-    """
-
-    name: str
-    """
-    The name that was asked for.
-    """
-
-    def status(self) -> HTTPStatus:
-        return HTTPStatus.NOT_FOUND
-
-    def message(self) -> str:
-        return f"No type named {self.name!r} is in reach of a query."
-
-
 # %% requests
 
 
@@ -96,45 +42,6 @@ class MissingParameter(QuestionError):
         return f"The request needs the parameter {self.parameter!r}."
 
 
-@dataclass
-class UnknownGraphView(QuestionError):
-    """
-    A graph view no builder knows.
-    """
-
-    view: str
-    """
-    The view that was asked for.
-    """
-
-    def status(self) -> HTTPStatus:
-        return HTTPStatus.NOT_FOUND
-
-    def message(self) -> str:
-        return f"There is no graph view named {self.view!r}."
-
-
-# %% graphs
-
-
-@dataclass
-class DuplicateGraphNode(QuestionError):
-    """
-    A graph view that would hold two nodes of the same identity.
-    """
-
-    identifier: str
-    """
-    The identity both nodes carry.
-    """
-
-    def status(self) -> HTTPStatus:
-        return HTTPStatus.INTERNAL_SERVER_ERROR
-
-    def message(self) -> str:
-        return f"The graph already holds a node {self.identifier!r}."
-
-
 # %% installation
 
 
@@ -142,12 +49,12 @@ class DuplicateGraphNode(QuestionError):
 class QueryLanguageMissing(QuestionError):
     """
     A question asked of a viewer whose Python environment has no krrood, which evaluates
-    the entity query language.
+    the entity query language, or no cramera-cram, whose question engine uses it.
     """
 
-    module: str
+    missing: List[str]
     """
-    The module that cannot be found.
+    The modules that cannot be found.
     """
 
     def status(self) -> HTTPStatus:
@@ -155,7 +62,7 @@ class QueryLanguageMissing(QuestionError):
 
     def message(self) -> str:
         return (
-            f"Answering questions needs {self.module}, which this Python environment "
-            f"does not have. Run the viewer from a CRAM workspace, or open a scene "
-            f"whose answers were recorded with cramera-record-answers."
+            f"Answering questions needs {', '.join(self.missing)}, which this Python "
+            f"environment does not have. Run the viewer from a CRAM workspace, or open "
+            f"a scene whose answers were recorded with cramera-record-answers."
         )

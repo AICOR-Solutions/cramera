@@ -10,7 +10,7 @@ from http import HTTPStatus
 from cramera.http.messages import HttpMethod
 from cramera_cram.documents import DocumentFile
 from cramera_cram.live.bundles import WorldSignature
-from cramera_cram.questions import (
+from cramera_cram.questions.live import (
     LIVE_TITLE,
     SpatialValueFormat,
     WorldHighlightKeys,
@@ -30,7 +30,7 @@ from cramera_protocol.questions import (
     QuestionsParameter,
     Vocabulary,
 )
-from cramera_questions.presets import RobotQuestion
+from cramera_cram.questions.presets import RobotQuestion
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Point3
 

@@ -43,22 +43,6 @@ CRAM_PACKAGES = frozenset(
 The top-level packages of the CRAM workspace.
 """
 
-NOT_MOVED_YET: Dict[str, FrozenSet[str]] = {
-    "questions/src/cramera_questions/entity.py": frozenset({"krrood"}),
-    "questions/src/cramera_questions/knowledge.py": frozenset({"krrood"}),
-    "questions/src/cramera_questions/runner.py": frozenset({"krrood"}),
-    "questions/src/cramera_questions/verbalization.py": frozenset({"krrood"}),
-    "questions/src/cramera_questions/vocabulary.py": frozenset({"krrood"}),
-    "questions/test/test_verbalization.py": frozenset({"krrood"}),
-    "questions/test/test_workspace_classes.py": frozenset({"krrood"}),
-}
-"""
-The files that still import CRAM packages, relative to :data:`PACKAGES`, with what they
-import; ``AGENTS.md`` lists them as the packages to move into cramera-cram.
-
-A file is taken off once it imports none of them.
-"""
-
 
 def python_files() -> Iterator[Path]:
     """
@@ -103,7 +87,7 @@ def cram_imports() -> Dict[str, FrozenSet[str]]:
 
 
 def test_only_cramera_cram_imports_cram():
-    assert cram_imports() == NOT_MOVED_YET
+    assert cram_imports() == {}
 
 
 def test_an_import_of_cram_is_found_wherever_it_stands(tmp_path):

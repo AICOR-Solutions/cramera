@@ -45,7 +45,7 @@ from cramera_cram.live.teleoperation import TeleoperationDriver
 from cramera_cram.live.transforms import TransformTracker
 from cramera_cram.live.world_model import WorldModelView
 from cramera_cram.live.world_state import WorldStatePublisher
-from cramera_cram.questions import WorldKnowledge, WorldQuestionDesk
+from cramera_cram.questions.live import WorldKnowledge, WorldQuestionDesk
 from cramera_cram.robots import RobotParts, RobotRoster
 from cramera_protocol.live import Capability, LiveInfo
 from cramera_protocol.live_messages import (
@@ -82,8 +82,8 @@ from cramera_protocol.questions import (
     QuestionRequest,
     Vocabulary,
 )
-from cramera_questions.desk import QuestionDesk
-from cramera_questions.workspace_classes import WorkspaceClassIndex
+from cramera_cram.questions.desk import QuestionDesk
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 from coraplex.plans.plan_node import MotionNode, PlanNode
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 

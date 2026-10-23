@@ -2,9 +2,9 @@
 # the demo scenes under demo/standard_scenes, and a status page that shows the version, the
 # commit, the build time and a screenshot of the viewer taken in this build. A build
 # whose viewer does not show its scene fails, so the site keeps the last working build.
-# The questions plugin's browser module is included without krrood: on the static site
-# it shows the answers recorded in each bundle's recorded_answers.json, which
-# cramera-record-answers writes in a CRAM workspace.
+# The questions plugin's browser module is included without krrood and cramera-cram: on
+# the static site it shows the answers recorded in each bundle's recorded_answers.json,
+# which cramera-cram's cramera-record-answers writes in a CRAM workspace.
 name: Publish the demo site
 
 on:

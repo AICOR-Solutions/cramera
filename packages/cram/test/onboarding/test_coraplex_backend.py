@@ -13,7 +13,7 @@ from cramera_cram.coraplex_backend import (
     CoraplexProvider,
 )
 from cramera_cram.visualization import LiveVisualization
-from cramera_questions.workspace_classes import WorkspaceClassIndex
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 
 PREVIOUS_SELECTION = "rviz"
 """

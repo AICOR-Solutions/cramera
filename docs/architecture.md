@@ -26,8 +26,8 @@ through a plugin.
 | `cramera-protocol` | `cramera_protocol` | standard library, `typing_extensions` | Scene bundle files, scene index, live messages, HTTP routes, capabilities, protocol version. The single definition both Python and the browser read. |
 | `cramera` | `cramera` | `cramera-protocol` | The viewer: HTTP server, scene catalog, plugin loading, the browser application, screenshots. Installs and runs without CRAM. |
 | `cramera-usd` | `cramera_usd` | `cramera-protocol`, `usd-core`, `numpy` | Converting a USD stage into a scene bundle, the export gate, the robot separation audit. |
-| `cramera-cram` | `cramera_cram` | `cramera`, `cramera-questions`, CRAM packages | The only package that imports the CRAM workspace: live publishing from a running plan, recording into bundles, questions about a live world in the entity query language, demo onboarding, task demos, and the plan builder's CRAM side (`cramera_cram.plans`: the catalog of robots, objects, surfaces and native actions, and the demo a generated plan runs). |
-| `cramera-questions` | `cramera_questions` | `cramera`; krrood optionally | Questions in the entity query language about recorded bundles and, through `cramera-cram`, live worlds. Still imports krrood itself for evaluating and wording queries, the one exception to the CRAM boundary below. |
+| `cramera-cram` | `cramera_cram` | `cramera`, CRAM packages | The only package that imports the CRAM workspace: live publishing from a running plan, recording into bundles, demo onboarding, task demos, the question engine (`cramera_cram.questions`: queries in the entity query language about a live world or a recorded scene, presets, plain-language matching, graph views, `cramera-record-answers`), and the plan builder's CRAM side (`cramera_cram.plans`: the catalog of robots, objects, surfaces and native actions, and the demo a generated plan runs). |
+| `cramera-questions` | `cramera_questions` | `cramera`; `cramera-cram` optionally | The questions plugin of the viewer: its browser module and its routes over recorded scenes, which hand each request to `cramera_cram.questions.scenes` and answer with the protocol documents it returns. Without `cramera-cram` and krrood the routes answer what is missing and the browser module shows the bundles' recorded answers. |
 | `cramera-offline` | `cramera_offline` | `cramera` | The storyboard and bundle check routes, `cramera-check-bundle`, and `cramera-offline`, which prepares, checks, serves (optionally from a network namespace without routes) and exports a presentation of recorded bundles. |
 | `cramera-plan-builder` | `cramera_plan_builder` | `cramera`; `cramera-cram` optionally | The Plan View panel and the builder page: the panel shows a replayed recording's plan as step cards with every recorded parameter and constraint; the page composes a robot plan by drag and drop from the native actions `cramera-cram` discovers in the CRAM workspace, each step's form built from its action's fields, places its robots, objects and targets over an environment bundle, compiles constraints written in plain language into live monitors, and generates, writes and runs the plan's demo, which `cramera-cram` performs, as an owned child process. It imports nothing of the CRAM workspace: the catalog arrives as protocol documents and the demo carries its plan as a `DemoDocument`. Without the CRAM workspace its catalog names the missing modules. |
 | The other plugins | ... | `cramera`, and what the plugin itself needs | One self-contained feature each: its Python routes, its browser module, its assets. |
@@ -44,7 +44,10 @@ process: the plan builder reads its catalog from `cramera_cram.plans.workspace` 
 their `DemoDocument` to `cramera_cram.plans.command`, started with the `DemoOption`s of
 the protocol. Errors raised on the CRAM side are `ViewerError`s of
 `cramera_cram.exceptions`, so they reach the HTTP routes with their own status and
-message. `cramera-questions` still imports krrood for the entity query language.
+message. The questions plugin works the same way: its routes parse the request and hand
+the scene name and the protocol request to `cramera_cram.questions.scenes`, which
+evaluates the query with krrood and returns `PresetCatalog`, `Vocabulary`, `Members`,
+`GraphView`, `QueryAnswer` or `QuestionMatch` documents.
 
 ## Protocol
 
