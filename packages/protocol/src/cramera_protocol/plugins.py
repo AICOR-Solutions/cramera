@@ -34,4 +34,3 @@ class PluginName(StrEnum):
     """
     Runs the woodworking workshop's contact simulation.
     """
-
