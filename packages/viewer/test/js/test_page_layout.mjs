@@ -28,7 +28,6 @@ const INFO = {
   [ViewerInfoKey.VERSION]: '1.0.0',
   [ViewerInfoKey.BUILD]: { [BuildKey.COMMIT]: 'abcdef0123456789', [BuildKey.BUILT_AT]: '2026-10-23T10:00:00Z' },
   [ViewerInfoKey.PLUGINS]: [
-    { [PluginKey.NAME]: 'cable-lab', [PluginKey.NAVIGATION]: { [NavigationKey.TITLE]: 'Cable Lab', [NavigationKey.GROUP]: NavigationGroup.LABORATORY, [NavigationKey.PAGE]: '/plugins/cable-lab/cable-lab.html' } },
     { [PluginKey.NAME]: 'questions' },
     { [PluginKey.NAME]: 'scene-builder', [PluginKey.NAVIGATION]: { [NavigationKey.TITLE]: 'Scene Builder', [NavigationKey.GROUP]: NavigationGroup.BUILDER, [NavigationKey.PAGE]: '/plugins/scene-builder/builder.html' } },
     { [PluginKey.NAME]: 'models', [PluginKey.NAVIGATION]: { [NavigationKey.TITLE]: 'Models', [NavigationKey.GROUP]: NavigationGroup.ANALYSIS } },
@@ -40,7 +39,7 @@ const INFO = {
 
 test('the pages are the scene page, then the plugins\' entries by group and title, then the ontology', () => {
   const links = pageLinksOf(INFO, url);
-  assert.deepEqual(links.map((link) => link.title), ['Scene', 'Models', 'Plan Builder', 'Scene Builder', 'Cable Lab', ONTOLOGY_TITLE]);
+  assert.deepEqual(links.map((link) => link.title), ['Scene', 'Models', 'Plan Builder', 'Scene Builder', ONTOLOGY_TITLE]);
   assert.equal(links[0].href, BASE);
   assert.equal(links[2].href, `${BASE}plugins/plan-builder/builder.html`);
   assert.equal(links[1].panel, 'models');

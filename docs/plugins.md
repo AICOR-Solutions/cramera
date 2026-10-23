@@ -50,7 +50,7 @@ with a navigation entry; nothing in the viewer names a plugin, so an uninstalled
 plugin simply has no link. The viewer's information reports each entry as the
 plugin's `navigation`: a `title`, a `group` and, for a page, its `page` route. The
 `NavigationGroup` orders the links: `analysis` (such as Models), `builder` (Plan
-Builder, Scene Builder), `laboratory` (Cable Lab, Laboratory, Workshop); within a
+Builder, Scene Builder), `laboratory` (Laboratory, Workshop); within a
 group they are ordered by title.
 
 ```python
