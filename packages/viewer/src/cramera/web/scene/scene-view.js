@@ -223,6 +223,17 @@ export class SceneView {
   }
 
   /**
+   * Clear every frame to a solid colour instead of leaving the page behind the canvas
+   * showing through, as a video of the canvas needs, or back to see-through.
+   * @param {string|null} color A CSS colour, or null for see-through.
+   */
+  setSolidBackground(color) {
+    if (color) this.renderer.setClearColor(new THREE.Color(color), 1);
+    else this.renderer.setClearColor(0x000000, 0);
+    this.requestRender();
+  }
+
+  /**
    * @returns {Bounds|null} The box around the shown content, or null when it is empty.
    */
   contentBounds() {
