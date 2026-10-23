@@ -36,9 +36,7 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-models`](packages/plugins/models) | Ask probabilistic circuits in a Models panel. | done |
-| [`cramera-laboratory`](packages/plugins/laboratory) | The AICOR laboratory: its bundles and devices, a MuJoCo contact simulation with liquid, scale, centrifuge, refrigerator, drawer and dispensing station operated from a Laboratory panel, the laboratory as a CRAM world and a PR2 vessel transfer demo. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
-| [`cramera-workshop`](packages/plugins/workshop) | The AICOR wood workshop: a MuJoCo contact world with an ideal screw thread in a Workshop panel, a recorded PR2 screw insertion demo, and a two-handed assembly demo that runs but does not yet pass its collision check. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
 `formatVersion` is read as version 0.
@@ -77,9 +75,8 @@ cramera
 ### Install the pages and panels
 
 Everything beyond the scene page is a plugin: Models, Plan Builder, Scene Builder,
-Laboratory, Workshop, the Tour of `cramera-offline` and the questions
-column. Each is a pip package of its own under `packages/plugins` (and
-`packages/questions`) that the viewer discovers through the entry-point group
+the Tour of `cramera-offline` and the questions column. Each is a pip package of its
+own under `packages/plugins` (and `packages/questions`) that the viewer discovers through the entry-point group
 `cramera.plugins`. `pip install ./packages/viewer` installs none of them, so the top
 bar of a bare viewer shows no pages; an uninstalled plugin simply has no link. Install
 the ones you want, or all of them:
@@ -95,19 +92,17 @@ behaviour as an optional extra:
 | Plugin | Extra | Without it |
 | --- | --- | --- |
 | `cramera-plan-builder` | `[cram]`, that is `cramera-cram` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
-| `cramera-workshop` | `[physics]`: MuJoCo, numpy, scipy | The recorded demos show; the contact simulation does not start. |
-| `cramera-laboratory` | `[physics]`: MuJoCo; `[cram]`: `cramera-cram` for the CRAM world and the transfer demo | The bundles and the Laboratory panel show; devices are not simulated. |
 | `cramera-models` | `[circuits]`: probabilistic-model, random-events, krrood, plotly | The panel shows and its routes answer which libraries are missing. |
 
 ```bash
-pip install './packages/plugins/workshop[physics]' './packages/plugins/models[circuits]'
+pip install './packages/plugins/models[circuits]'
 ```
 
 See [docs/plugins.md](docs/plugins.md) for writing a plugin.
 
 The page has the look of the original AICOR viewer: dark, with the AICOR logo and a
-link to every page the installed plugins offer (Models, Plan Builder, Scene Builder,
-Laboratory, Workshop) in the top bar, the 3D view with its **Layers**
+link to every page the installed plugins offer (Models, Plan Builder, Scene Builder)
+in the top bar, the 3D view with its **Layers**
 overlay and the playback controls on the left, questions and graphs on the right. The
 **View** menu switches to a light theme. **Pop out** opens the scene alone in a window
 of its own.
