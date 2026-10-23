@@ -408,12 +408,11 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
   flex: none;
   padding: 0 10px;
-  overflow-x: auto;
-  scrollbar-width: thin;
   background: var(--surface);
   border-bottom: 1px solid var(--border-strong);
 }

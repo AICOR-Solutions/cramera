@@ -53,6 +53,14 @@ export class PluginContext {
      */
     this.info = info;
   }
+
+  /**
+   * @returns {PluginContext} The context of a plugin the top bar links to: its panels
+   *   have no tab, as the top bar shows them.
+   */
+  withoutTabs() {
+    return new PluginContext(this.bus, this.panels.withoutTabs(), this.api, this.view, this.query, this.info);
+  }
 }
 
 // %% loading
@@ -91,7 +99,7 @@ export class PluginModules {
   /**
    * Import and register every plugin module: first those of plugins without a
    * navigation entry, which add to the scene page only, then those the header links
-   * to; each group in the order the viewer lists them. Panels appear in that order.
+   * to, whose panels get no tab; each group in the order the viewer lists them.
    * @param {Object} info The viewer's information.
    * @param {PluginContext} context What each module receives.
    * @param {function(string): string} resolve The absolute URL of a module path.
@@ -107,7 +115,7 @@ export class PluginModules {
       if (!module) continue;
       const imported = await this.#importModule(resolve(module));
       if (typeof imported.register !== 'function') throw new PluginWithoutRegistration(plugin[PluginKey.NAME]);
-      await imported.register(context);
+      await imported.register(plugin[PluginKey.NAVIGATION] ? context.withoutTabs() : context);
       registered.push(plugin[PluginKey.NAME]);
     }
     return registered;

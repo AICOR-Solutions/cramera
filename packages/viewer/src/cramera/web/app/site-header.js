@@ -304,6 +304,19 @@ export class SiteHeader {
   }
 
   /**
+   * Mark which page the header's link points at as the current one, such as a
+   * plugin's panel shown on the scene page.
+   * @param {string} identity A page's identity: `SCENE_PAGE` or a plugin's name.
+   */
+  markCurrent(identity) {
+    this.#current = identity;
+    for (const anchor of this.#navigation.children) {
+      if (anchor.dataset.page === identity) anchor.setAttribute('aria-current', 'page');
+      else anchor.setAttribute('aria-current', 'false');
+    }
+  }
+
+  /**
    * @param {ThemeSetting} theme The page's theme.
    * @returns {HTMLElement} The View button and its menu.
    */

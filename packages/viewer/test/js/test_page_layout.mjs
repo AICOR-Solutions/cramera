@@ -72,6 +72,19 @@ test('the header marks its own page and shows panels on the scene page', () => {
   assert.equal(actions.children[0].href, `${BASE}status.html`);
 });
 
+test('a plugin panel shown on the scene page is marked as the current page', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('header');
+  const header = new SiteHeader(root, url, new ThemeSetting(document.documentElement, null), SCENE_PAGE, () => {});
+  header.show(INFO);
+  header.markCurrent('models');
+  const current = root.children[1].children.filter((anchor) => anchor.getAttribute('aria-current') === 'page');
+  assert.deepEqual(current.map((anchor) => anchor.dataset.page), ['models']);
+  header.markCurrent(SCENE_PAGE);
+  assert.equal(root.children[1].children[0].getAttribute('aria-current'), 'page');
+  assert.equal(root.children[1].children[1].getAttribute('aria-current'), 'false');
+});
+
 test('on a plugin page the header follows the panel links instead', () => {
   const document = new FakeDocument();
   const root = document.createElement('header');

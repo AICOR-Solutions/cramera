@@ -42,7 +42,7 @@ test('plugins the header links to register after those that only add to the scen
       { [PluginKey.NAME]: 'tour', [PluginKey.MODULE]: '/tour.js' },
     ],
   };
-  const context = new PluginContext('bus', 'panels', 'api', 'view', 'query', info);
+  const context = new PluginContext('bus', new PanelHost(new FakeDocument().createElement('section')), 'api', 'view', 'query', info);
   assert.deepEqual(await new PluginModules(async (url) => modules[url]).register(info, context, (path) => path), ['questions', 'tour', 'workshop']);
   assert.deepEqual(registered, ['questions', 'tour', 'workshop']);
   assert.equal(context.query, 'query');
@@ -69,7 +69,7 @@ test('a plugin the header links to adds its panel without a tab, shown only on r
   panels.add(section('steps'));
   const tabs = root.children[0].children;
   assert.deepEqual(tabs.map((tab) => tab.textContent), ['knowledge', 'steps']);
-  assert.deepEqual(panels.identifiers(), ['workshop', 'knowledge', 'steps']);
+  assert.deepEqual(panels.identifiers(), ['knowledge', 'workshop', 'steps']);
   assert.equal(panels.shown, 'knowledge');
   assert.equal(workshop.element.hidden, true);
   panels.show('workshop');

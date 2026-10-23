@@ -345,6 +345,7 @@ export class Application {
     this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame), () => this.saveEpisode());
     this.#panels = new PanelHost(elements.side);
     this.#querySlot = new QuerySlot(elements.querySlot);
+    this.#panels.onShow((panel) => this.#header.markCurrent(panel && !this.#panels.tabbed(panel) ? panel : SCENE_PAGE));
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));
     this.#plan = new PlanPanel(elements.document);
