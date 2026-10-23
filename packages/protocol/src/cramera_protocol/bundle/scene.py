@@ -547,6 +547,96 @@ class Segment(JsonDocument):
     """
 
 
+class DeclaredFieldKey(StrEnum):
+    """
+    The keys of one field an action declares.
+    """
+
+    NAME = "name"
+    """
+    The field's name.
+    """
+
+    REQUIRED = "required"
+    """
+    Whether the action must be given the field.
+    """
+
+    DEFAULT = "default"
+    """
+    The field's default value.
+    """
+
+
+@dataclass(kw_only=True)
+class DeclaredField(JsonDocument):
+    """
+    One field an action declares: its name, whether it must be given, and the value it
+    takes when it is not.
+    """
+
+    name: str = document_field(DeclaredFieldKey.NAME)
+    """
+    The field's name.
+    """
+
+    required: bool = document_field(DeclaredFieldKey.REQUIRED, default=False)
+    """
+    Whether the action has no default for the field.
+    """
+
+    default: Optional[str] = document_field(DeclaredFieldKey.DEFAULT, default=None)
+    """
+    The text of the field's default value, or None when it has none or one that is not a
+    plain value.
+    """
+
+
+class ConstraintObservationKey(StrEnum):
+    """
+    The keys of one constraint monitor attached to a plan node.
+    """
+
+    TEXT = "text"
+    """
+    The constraint as it was written.
+    """
+
+    MONITOR = "monitor"
+    """
+    The monitor class the constraint became.
+    """
+
+    OBSERVATION = "observation"
+    """
+    The monitor's current observation.
+    """
+
+
+@dataclass(kw_only=True)
+class ConstraintObservation(JsonDocument):
+    """
+    A constraint monitor attached to a plan node and what it observes.
+    """
+
+    text: str = document_field(ConstraintObservationKey.TEXT)
+    """
+    The constraint as it was written.
+    """
+
+    monitor: str = document_field(ConstraintObservationKey.MONITOR)
+    """
+    The class name of the monitor the constraint became.
+    """
+
+    observation: Optional[str] = document_field(
+        ConstraintObservationKey.OBSERVATION, default=None
+    )
+    """
+    The name of the monitor's native observation value, or None before its first tick.
+    """
+
+
 class PlanNodeKey(StrEnum):
     """
     The keys of one node of an executed plan.
@@ -610,6 +700,16 @@ class PlanNodeKey(StrEnum):
     PARAMETERS = "parameters"
     """
     The fields the node's action was given.
+    """
+
+    FIELDS = "fields"
+    """
+    Every field the node's action declares.
+    """
+
+    CONSTRAINTS = "constraints"
+    """
+    The constraint monitors attached to the node.
     """
 
 
@@ -697,6 +797,22 @@ class PlanNode(JsonDocument):
     The fields the node's action was given, as texts by field name; a field left at its
     default is left out, and a node without an action, or one recorded before actions'
     fields were, has none.
+    """
+
+    fields: List[DeclaredField] = document_field(
+        PlanNodeKey.FIELDS, default_factory=list
+    )
+    """
+    Every field the node's action declares, in the order the action declares them; a
+    node without an action, or one recorded before actions declared their fields, has
+    none.
+    """
+
+    constraints: List[ConstraintObservation] = document_field(
+        PlanNodeKey.CONSTRAINTS, default_factory=list
+    )
+    """
+    The constraint monitors attached to the node, with what each observed last.
     """
 
     extensions: Dict[str, Any] = extension_field()

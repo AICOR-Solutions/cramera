@@ -9,6 +9,7 @@ import pytest
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     PartRole,
+    DeclaredFieldKey,
     PartSide,
     PlanNodeKey,
     SceneDescription,
@@ -22,6 +23,10 @@ from cramera_protocol.exceptions import (
     UnsupportedProtocolVersion,
 )
 from cramera_protocol.geometry import Bounds, Pose, Vector3
+from cramera_protocol.live_messages import (
+    ConstraintMonitorType,
+    ConstraintObservation,
+)
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED, ProtocolVersion
 
 # %% recordings
@@ -102,6 +107,32 @@ def test_a_recorded_step_names_the_parameters_of_its_action(read_json):
     written_step = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN][0]
     assert root.children[0].parameters == written_step[PlanNodeKey.PARAMETERS]
     assert root.parameters == {}
+
+
+def test_a_recorded_step_declares_every_field_of_its_action(read_json):
+    data = read_json("recorded_step_details_scene.json")
+    step = SceneDescription.from_json(data).plan_trees[0].children[0]
+    written = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN][0][PlanNodeKey.FIELDS]
+    assert [(field.name, field.required, field.default) for field in step.fields] == [
+        (
+            entry[DeclaredFieldKey.NAME],
+            entry[DeclaredFieldKey.REQUIRED],
+            entry.get(DeclaredFieldKey.DEFAULT),
+        )
+        for entry in written
+    ]
+    assert step.extensions == {}
+
+
+def test_a_recorded_step_keeps_the_constraints_attached_to_it(read_json):
+    data = read_json("recorded_step_details_scene.json")
+    step = SceneDescription.from_json(data).plan_trees[0].children[0]
+    written = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN][0]
+    assert step.constraints == [
+        ConstraintObservation.from_json(entry)
+        for entry in written[PlanNodeKey.CONSTRAINTS]
+    ]
+    assert step.constraints[0].monitor == ConstraintMonitorType.VECTORS_ALIGNED
 
 
 def test_writing_an_early_recording_uses_current_keys(read_json):

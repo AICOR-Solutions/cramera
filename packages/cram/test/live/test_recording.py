@@ -29,6 +29,7 @@ from cramera_protocol.bundle.scene import PlanNode, PlanNodeKind, SceneDescripti
 from cramera_protocol.bundle.statecharts import Statecharts
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import (
+    ConstraintActivation,
     RecordingSaveRequest,
     RecordingState,
     SceneDestination,
@@ -38,6 +39,7 @@ from coraplex.datastructures.enums import TaskStatus
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 
 from ..dataset.live_worlds import HeightChart
+from .test_plan_and_constraints import height_constraint
 
 FRAME_COUNT = 6
 """
@@ -352,3 +354,28 @@ def test_a_plan_without_a_context_names_no_robot(
     run_the_small_plan(kitchen, publisher, small_plan)
     publisher.finish_recording()
     assert bundle_files(locations)[1].plan_trees[0].robot is None
+
+
+def test_a_recorded_step_keeps_every_field_its_action_declares(
+    publisher, kitchen, small_plan, locations
+):
+    run_the_small_plan(kitchen, publisher, small_plan)
+    published = publisher.current_plan().nodes[1]
+    publisher.finish_recording()
+    action = bundle_files(locations)[1].plan_trees[0].children[0]
+    assert action.fields == published.fields != []
+
+
+def test_a_recorded_node_keeps_the_constraints_attached_to_it(
+    publisher, kitchen, small_plan, locations
+):
+    run_the_small_plan(kitchen, publisher, small_plan)
+    publisher.attach_constraint(
+        height_constraint(
+            publisher, kitchen, small_plan, ConstraintActivation.IMMEDIATE
+        )
+    )
+    published = publisher.refresh_plan().nodes[0]
+    publisher.finish_recording()
+    root = bundle_files(locations)[1].plan_trees[0]
+    assert root.constraints == published.constraints != []

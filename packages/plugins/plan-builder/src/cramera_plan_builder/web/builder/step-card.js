@@ -18,6 +18,12 @@ export const StepCardClass = Object.freeze({
   NUMBER: 'step-number',
   NAME: 'step-name',
   STATUS: 'node-status',
+  PARAMETERS: 'step-parameters',
+  MORE: 'more-options',
+  CHIPS: 'chips',
+  CHIP: 'chip',
+  BADGE: 'badge',
+  OBSERVATION: 'observation',
 });
 
 // %% card

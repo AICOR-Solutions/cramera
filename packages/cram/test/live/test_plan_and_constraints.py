@@ -76,6 +76,17 @@ def test_an_action_publishes_the_fields_it_was_given(publisher, small_plan):
     assert (root.parameters, motion.parameters) == ({}, {})
 
 
+def test_an_action_publishes_every_field_it_declares(publisher, small_plan):
+    publisher.begin_plan(small_plan.plan)
+    root, action, motion = publisher.current_plan().nodes
+    assert [field.name for field in action.fields] == [
+        declared.name
+        for declared in dataclasses.fields(MoveTorsoAction)
+        if declared.init
+    ]
+    assert (root.fields, motion.fields) == ([], [])
+
+
 def test_a_node_is_found_by_its_identity(publisher, small_plan):
     publisher.begin_plan(small_plan.plan)
     identifier = publisher.plan.active_plan.identifier(small_plan.action)

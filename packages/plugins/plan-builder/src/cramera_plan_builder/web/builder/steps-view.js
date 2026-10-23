@@ -20,7 +20,7 @@ import {
 import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
 import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
-import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
+import { STEP_PALETTE_SIZE, StepCard, StepCardClass } from './step-card.js';
 
 export { STEP_PALETTE_SIZE };
 
@@ -52,12 +52,12 @@ const ViewClass = Object.freeze({
   UNAVAILABLE: 'unavailable',
   NOTICE: 'notice',
   LIST: 'steps',
-  PARAMETERS: 'step-parameters',
-  MORE: 'more-options',
+  PARAMETERS: StepCardClass.PARAMETERS,
+  MORE: StepCardClass.MORE,
   PROBLEM: 'step-problem',
   DERIVED: 'derived',
-  CHIPS: 'chips',
-  CHIP: 'chip',
+  CHIPS: StepCardClass.CHIPS,
+  CHIP: StepCardClass.CHIP,
   DROP: 'drop-hint',
   DRAG_OVER: 'drag-over',
   EMPTY: 'empty',
@@ -527,10 +527,10 @@ export class StepsView {
       const monitor = constraint[StepConstraintKey.MONITOR_TYPE] ?? '';
       chip.title = constraint[StepConstraintKey.SWITCH] ?? monitor;
       chip.append(elements.create('span', '', constraint[StepConstraintKey.TEXT]));
-      if (monitor) chip.append(elements.create('span', 'badge', monitor));
+      if (monitor) chip.append(elements.create('span', StepCardClass.BADGE, monitor));
       const observed = observations.get(constraint[StepConstraintKey.TEXT]);
       if (observed) {
-        const badge = elements.create('span', 'observation', observed);
+        const badge = elements.create('span', StepCardClass.OBSERVATION, observed);
         badge.dataset.observation = observed;
         chip.append(badge);
       }

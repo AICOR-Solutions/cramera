@@ -1,13 +1,14 @@
 /**
- * The plans of a replayed recording as the builder's step cards: the step at the
- * playhead is marked running and kept in sight, and a click on a step jumps to its first
- * frame.
+ * The plans of a replayed recording as the builder's step cards: each step with the
+ * fields its action was given, the others folded under "More options", and the
+ * constraints attached to it; the step at the playhead is marked running and kept in
+ * sight, and a click on a step jumps to its first frame.
  */
 
-import { PlanNodeKey } from '../../../protocol.js';
+import { ConstraintObservationKey, PlanNodeKey } from '../../../protocol.js';
 import { DomEvent, Elements } from './elements.js';
 import { RecordedPlans, StepPhase } from './recorded-plan.js';
-import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
+import { STEP_PALETTE_SIZE, StepCard, StepCardClass } from './step-card.js';
 
 /**
  * The classes the view's elements carry.
@@ -16,9 +17,14 @@ const ViewClass = Object.freeze({
   VIEW: 'recorded-plan',
   LIST: 'steps',
   TITLE: 'plan-title',
-  PARAMETERS: 'step-parameters',
   EMPTY: 'empty',
+  DEFAULT: 'default',
 });
+
+/**
+ * The text that unfolds the fields an action may be left without, as in the builder.
+ */
+const MORE_OPTIONS = 'More options';
 
 /**
  * How a running step is scrolled into sight: only as far as needed.
@@ -137,18 +143,91 @@ export class RecordedPlanView {
     const view = new StepCard(elements, step.number, step.label, step.action, palette.get(step.action));
     view.card.dataset.node = step.node[PlanNodeKey.IDENTIFIER];
     view.showStatus(step.status);
-    const parameters = step.parameters();
-    if (parameters.length > 0) {
-      const box = elements.create('div', ViewClass.PARAMETERS);
-      box.append(...parameters.map((parameter) => elements.label(parameter.name, elements.create('output', '', parameter.value))));
-      view.card.append(box);
-    }
+    const fields = step.fields();
+    view.card.append(...(fields.length > 0 ? this.#fieldParts(fields) : this.#parameterParts(step)));
+    const constraints = step.constraints();
+    if (constraints.length > 0) view.card.append(this.#chips(constraints));
     if (step.hasFrames()) {
       view.card.title = 'Jump to this step';
       elements.listen(view.card, DomEvent.CLICK, () => this.#onSeek(step.start));
     }
     this.#cards.set(step, view);
     return view.card;
+  }
+
+  /**
+   * @param {Array<import('./recorded-plan.js').RecordedField>} fields Every field of a
+   *   step's action.
+   * @returns {Array<HTMLElement>} The required fields, and the others folded under
+   *   "More options"; a part without fields is left out.
+   */
+  #fieldParts(fields) {
+    const elements = this.#shown;
+    const required = fields.filter((field) => field.required);
+    const optional = fields.filter((field) => !field.required);
+    const parts = [];
+    if (required.length > 0) parts.push(this.#fieldBox(required));
+    if (optional.length === 0) return parts;
+    const more = elements.create('details', StepCardClass.MORE);
+    more.open = false;
+    more.append(elements.create('summary', '', MORE_OPTIONS), this.#fieldBox(optional));
+    elements.listen(more, DomEvent.CLICK, (event) => event.stopPropagation());
+    parts.push(more);
+    return parts;
+  }
+
+  /**
+   * @param {Array<import('./recorded-plan.js').RecordedField>} fields Fields of a step's
+   *   action.
+   * @returns {HTMLElement} Each field labelled with its value, or with its default when
+   *   the action kept it.
+   */
+  #fieldBox(fields) {
+    const elements = this.#shown;
+    const box = elements.create('div', StepCardClass.PARAMETERS);
+    box.append(...fields.map((field) => elements.label(field.label, elements.create('output', field.isDefault() ? ViewClass.DEFAULT : '', field.text()))));
+    return box;
+  }
+
+  /**
+   * @param {import('./recorded-plan.js').RecordedStep} step A step recorded before
+   *   actions declared their fields.
+   * @returns {Array<HTMLElement>} The fields it was given, or its arm and target; none
+   *   when it was recorded with neither.
+   */
+  #parameterParts(step) {
+    const elements = this.#shown;
+    const parameters = step.parameters();
+    if (parameters.length === 0) return [];
+    const box = elements.create('div', StepCardClass.PARAMETERS);
+    box.append(...parameters.map((parameter) => elements.label(parameter.name, elements.create('output', '', parameter.value))));
+    return [box];
+  }
+
+  /**
+   * @param {Array<Object>} constraints The constraint monitors attached to a step.
+   * @returns {HTMLElement} Each constraint as the builder shows it: its text, its
+   *   monitor and what it observed last.
+   */
+  #chips(constraints) {
+    const elements = this.#shown;
+    const chips = elements.create('div', StepCardClass.CHIPS);
+    chips.append(
+      ...constraints.map((constraint) => {
+        const chip = elements.create('span', StepCardClass.CHIP);
+        chip.append(elements.create('span', '', constraint[ConstraintObservationKey.TEXT]));
+        const monitor = constraint[ConstraintObservationKey.MONITOR];
+        if (monitor) chip.append(elements.create('span', StepCardClass.BADGE, monitor));
+        const observed = constraint[ConstraintObservationKey.OBSERVATION];
+        if (observed) {
+          const observation = elements.create('span', StepCardClass.OBSERVATION, observed);
+          observation.dataset.observation = observed;
+          chip.append(observation);
+        }
+        return chip;
+      }),
+    );
+    return chips;
   }
 
   /**

@@ -3,7 +3,7 @@
  * frames each ran in, so the step at any frame of the replay is known.
  */
 
-import { PlanNodeKey, PlanNodeKind } from '../../../protocol.js';
+import { DeclaredFieldKey, PlanNodeKey, PlanNodeKind } from '../../../protocol.js';
 
 /**
  * Where a step is at a frame of the replay.
@@ -34,6 +34,68 @@ const SHOWN_FIELDS = Object.freeze([PlanNodeKey.ARM, PlanNodeKey.TARGET]);
  * Separates the words of an action field's name.
  */
 const FIELD_NAME_SEPARATOR = '_';
+
+/**
+ * How a field left at its default reads, as the builder's placeholder reads.
+ */
+const DEFAULT_TEXT = 'default';
+
+// %% field
+
+export class RecordedField {
+  /**
+   * The field's name in words.
+   * @type {string}
+   */
+  label;
+
+  /**
+   * Whether the action has no default for the field.
+   * @type {boolean}
+   */
+  required;
+
+  /**
+   * The text of the value the action was given, or null when it kept its default.
+   * @type {string|null}
+   */
+  value;
+
+  /**
+   * The text of the field's default, or null when the recording names none.
+   * @type {string|null}
+   */
+  default;
+
+  /**
+   * @param {string} label The field's name in words.
+   * @param {boolean} required Whether the action has no default for the field.
+   * @param {string|null} value The text of the value the action was given, or null.
+   * @param {string|null} defaultValue The text of the field's default, or null.
+   */
+  constructor(label, required, value, defaultValue) {
+    this.label = label;
+    this.required = required;
+    this.value = value;
+    this.default = defaultValue;
+  }
+
+  /**
+   * @returns {boolean} Whether the action kept the field's default.
+   */
+  isDefault() {
+    return this.value === null;
+  }
+
+  /**
+   * @returns {string} The value the action was given, else the default named as the
+   *   builder names it.
+   */
+  text() {
+    if (!this.isDefault()) return this.value;
+    return this.default === null ? DEFAULT_TEXT : `${DEFAULT_TEXT} (${this.default})`;
+  }
+}
 
 // %% step
 
@@ -139,6 +201,27 @@ export class RecordedStep {
     const fields = Object.entries(this.node[PlanNodeKey.PARAMETERS] ?? {});
     if (fields.length === 0) return SHOWN_FIELDS.filter((key) => this.node[key]).map((key) => ({ name: key, value: this.node[key] }));
     return fields.map(([name, value]) => ({ name: RecordedStep.fieldWords(name), value }));
+  }
+
+  /**
+   * @returns {Array<RecordedField>} Every field the step's action declares, in the
+   *   order it declares them, with the value it was given; none for a recording that
+   *   does not name them.
+   */
+  fields() {
+    const given = this.node[PlanNodeKey.PARAMETERS] ?? {};
+    return (this.node[PlanNodeKey.FIELDS] ?? []).map((field) => {
+      const name = field[DeclaredFieldKey.NAME];
+      return new RecordedField(RecordedStep.fieldWords(name), Boolean(field[DeclaredFieldKey.REQUIRED]), given[name] ?? null, field[DeclaredFieldKey.DEFAULT] ?? null);
+    });
+  }
+
+  /**
+   * @returns {Array<Object>} The constraint monitors attached to the step, with what
+   *   each observed last.
+   */
+  constraints() {
+    return this.node[PlanNodeKey.CONSTRAINTS] ?? [];
   }
 }
 

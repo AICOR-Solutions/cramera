@@ -10,10 +10,11 @@ from dataclasses import dataclass, field, replace
 from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set
 
 from cramera_cram.exceptions import UnknownPlanNode
-from cramera_cram.live.parameters import FieldTexts
+from cramera_cram.live.parameters import FieldDeclarations, FieldTexts
 from cramera_cram.live.recording import RunningAction
 from cramera_cram.live.world_model import ObjectKey
 from cramera_cram.robots import RobotRoster
+from cramera_protocol.bundle.scene import DeclaredField
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.datastructures.enums import Arms, TaskStatus
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
@@ -100,6 +101,15 @@ class DesignatorSummary:
         if not isinstance(self.node, ActionNode):
             return {}
         return FieldTexts(self.node.designator).texts()
+
+    def fields(self) -> List[DeclaredField]:
+        """
+        :return: Every field the node's action declares; none for a node without an
+            action.
+        """
+        if not isinstance(self.node, ActionNode):
+            return []
+        return FieldDeclarations(self.node.designator).declarations()
 
     def label(self) -> str:
         """
@@ -223,6 +233,7 @@ class PerformedPlan:
             target=summary.target(object_keys),
             constraints=constraints(identifier),
             parameters=summary.parameters(),
+            fields=summary.fields(),
         )
 
     def running(self) -> Optional[RunningAction]:

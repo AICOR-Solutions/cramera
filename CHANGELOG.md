@@ -80,6 +80,14 @@ which this repository was mirrored until 22 Oct 2026.
   a switch as yes or no. Fields left at their default and fields not set are left out.
   The replay's step cards show them, named in words; recordings written before show
   the arm and target as until now.
+- **Every detail of a replayed step.** The live plan and a recording also name every
+  field each action declares (`fields`: its name, whether it must be given, and a
+  plain default), and a recording keeps the constraints attached to each node with
+  what they observed last. A replayed step's card is laid out like the builder's: the
+  required fields with their values, the others folded under "More options", a field
+  the action left at its default read as "default" with the default where it is
+  known, and the constraints as chips with their monitors. Unfolding the options
+  neither jumps to the step nor folds again while the playhead moves.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),

@@ -16,6 +16,7 @@ from cramera_protocol.bundle.index import IndexEntryKey, IndexKey, ReservedScene
 from cramera_protocol.bundle.lighting import LightingKey, LightKey
 from cramera_protocol.bundle.scene import (
     CameraKey,
+    DeclaredFieldKey,
     DetectedEventKey,
     ModelKey,
     ObjectKey,
@@ -352,6 +353,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     SegmentKey,
     PlanNodeKey,
     PlanNodeKind,
+    DeclaredFieldKey,
     DetectedEventKey,
     PlaceTargetKey,
     CameraKey,

@@ -1,0 +1,5 @@
+{"signature": "plan_node_1|plan_node_2", "nodes": [
+ {"id": "plan_node_1", "parent": null, "kind": "SequentialNode", "label": "SequentialNode", "status": "RUNNING"},
+ {"id": "plan_node_2", "parent": "plan_node_1", "kind": "ActionNode", "label": "MoveTorsoAction", "status": "CREATED",
+  "parameters": {"torso_state": "HIGH"},
+  "fields": [{"name": "torso_state", "required": true}, {"name": "max_joint_velocity", "required": false}]}]}

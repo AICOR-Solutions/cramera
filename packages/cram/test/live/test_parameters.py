@@ -4,6 +4,7 @@ The fields of a plan's actions as the texts a replayed step shows.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 
 import pytest
@@ -13,6 +14,7 @@ from cramera_cram.live.parameters import (
     MAXIMUM_TEXT_LENGTH,
     PARAMETER_PRECISION,
     BooleanText,
+    FieldDeclarations,
     FieldTexts,
     ParameterText,
 )
@@ -98,3 +100,24 @@ def test_a_field_left_at_its_default_is_not_shown():
 def test_a_field_given_another_value_than_its_default_is_shown():
     texts = FieldTexts(Approach(Side.FRONT, offset=0.1)).texts()
     assert texts == {"side": Side.FRONT.name, "offset": ParameterText().text(0.1)}
+
+
+# %% declared fields
+
+
+def test_every_field_of_an_action_is_declared_in_its_order():
+    declarations = FieldDeclarations(Approach(Side.FRONT)).declarations()
+    assert [field.name for field in declarations] == [
+        declared.name for declared in dataclasses.fields(Approach)
+    ]
+    assert [field.required for field in declarations] == [True, False, False]
+
+
+def test_a_declared_field_names_its_plain_default():
+    side, offset, rotated = FieldDeclarations(Approach(Side.TOP)).declarations()
+    defaults = {
+        declared.name: declared.default for declared in dataclasses.fields(Approach)
+    }
+    assert side.default is None
+    assert offset.default == ParameterText().text(defaults[offset.name])
+    assert rotated.default == BooleanText.NO

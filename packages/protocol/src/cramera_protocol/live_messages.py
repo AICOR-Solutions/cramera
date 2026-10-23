@@ -14,6 +14,11 @@ from enum import StrEnum
 
 from typing_extensions import Any, Dict, List, Optional
 
+from cramera_protocol.bundle.scene import (
+    ConstraintObservation,
+    ConstraintObservationKey,
+    DeclaredField,
+)
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.exceptions import InvalidDocumentValue
@@ -179,51 +184,6 @@ class LiveState(JsonDocument):
 # %% plan
 
 
-class ConstraintObservationKey(StrEnum):
-    """
-    The keys of one constraint monitor attached to a plan node.
-    """
-
-    TEXT = "text"
-    """
-    The constraint as it was written.
-    """
-
-    MONITOR = "monitor"
-    """
-    The monitor class the constraint became.
-    """
-
-    OBSERVATION = "observation"
-    """
-    The monitor's current observation.
-    """
-
-
-@dataclass(kw_only=True)
-class ConstraintObservation(JsonDocument):
-    """
-    A constraint monitor attached to a plan node and what it observes.
-    """
-
-    text: str = document_field(ConstraintObservationKey.TEXT)
-    """
-    The constraint as it was written.
-    """
-
-    monitor: str = document_field(ConstraintObservationKey.MONITOR)
-    """
-    The class name of the monitor the constraint became.
-    """
-
-    observation: Optional[str] = document_field(
-        ConstraintObservationKey.OBSERVATION, default=None
-    )
-    """
-    The name of the monitor's native observation value, or None before its first tick.
-    """
-
-
 class LivePlanNodeKey(StrEnum):
     """
     The keys of one node of the executing plan.
@@ -272,6 +232,11 @@ class LivePlanNodeKey(StrEnum):
     PARAMETERS = "parameters"
     """
     The fields the node's action was given.
+    """
+
+    FIELDS = "fields"
+    """
+    Every field the node's action declares.
     """
 
 
@@ -329,6 +294,14 @@ class LivePlanNode(JsonDocument):
     """
     The fields the node's action was given, as texts by field name; a field left at its
     default is left out, and a node without an action has none.
+    """
+
+    fields: List[DeclaredField] = document_field(
+        LivePlanNodeKey.FIELDS, default_factory=list
+    )
+    """
+    Every field the node's action declares, in the order the action declares them; a
+    node without an action has none.
     """
 
 

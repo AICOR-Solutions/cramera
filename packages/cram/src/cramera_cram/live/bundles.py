@@ -242,6 +242,8 @@ class PlanTrees:
                 end=None if frames is None else frames.last,
                 robot=None if node.parent in identifiers else self.robot,
                 parameters=node.parameters,
+                fields=node.fields,
+                constraints=node.constraints,
             )
         roots = []
         for node in self.plan.nodes:

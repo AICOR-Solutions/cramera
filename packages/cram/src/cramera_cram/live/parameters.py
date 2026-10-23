@@ -9,8 +9,9 @@ import math
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 
-from typing_extensions import Any, Dict, Optional, Tuple
+from typing_extensions import Any, Dict, List, Optional, Tuple
 
+from cramera_protocol.bundle.scene import DeclaredField
 from semantic_digital_twin.spatial_types import Point3, Pose
 from semantic_digital_twin.world_description.world_entity import (
     KinematicStructureEntity,
@@ -266,3 +267,37 @@ class FieldTexts:
             and type(value) is type(default)
             and value == default
         )
+
+
+@dataclass(frozen=True)
+class FieldDeclarations:
+    """
+    Every field a dataclass value declares, such as an action, with whether it must be
+    given and its default.
+    """
+
+    value: Any
+    """
+    A dataclass value, such as an action.
+    """
+
+    def declarations(self) -> List[DeclaredField]:
+        """
+        :return: Every init field in the order the dataclass declares them; a field
+            without a default or default factory must be given, and only a plain
+            default is named.
+        """
+        return [
+            DeclaredField(
+                name=declared.name,
+                required=declared.default is dataclasses.MISSING
+                and declared.default_factory is dataclasses.MISSING,
+                default=(
+                    ParameterText().text(declared.default)
+                    if isinstance(declared.default, PLAIN_DEFAULTS)
+                    else None
+                ),
+            )
+            for declared in dataclasses.fields(self.value)
+            if declared.init
+        ]

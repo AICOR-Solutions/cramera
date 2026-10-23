@@ -1,0 +1,52 @@
+{
+  "planTrees": [
+    {
+      "id": "plan_node_0",
+      "kind": "SequentialNode",
+      "label": "SequentialNode",
+      "status": "SUCCEEDED",
+      "robot": "pr2",
+      "start": 0,
+      "end": 59,
+      "children": [
+        {
+          "id": "plan_node_1",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "MoveTorsoAction",
+          "status": "SUCCEEDED",
+          "parameters": {"torso_state": "HIGH"},
+          "fields": [{"name": "torso_state", "required": true}],
+          "start": 0,
+          "end": 19
+        },
+        {
+          "id": "plan_node_2",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "PickUpAction",
+          "status": "SUCCEEDED",
+          "arm": "LEFT",
+          "target": "milk",
+          "parameters": {
+            "object_designator": "milk",
+            "arm": "LEFT",
+            "grasp_description": "approach direction FRONT, vertical alignment NoAlignment"
+          },
+          "fields": [
+            {"name": "object_designator", "required": true},
+            {"name": "arm", "required": true},
+            {"name": "grasp_description", "required": false},
+            {"name": "grasp_detection_threshold", "required": false, "default": "0.9"},
+            {"name": "lift_linear_velocity", "required": false}
+          ],
+          "constraints": [
+            {"text": "Keep the milk upright", "monitor": "VectorsAligned", "observation": "TRUE"}
+          ],
+          "start": 20,
+          "end": 59
+        }
+      ]
+    }
+  ]
+}

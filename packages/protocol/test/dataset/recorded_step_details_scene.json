@@ -1,0 +1,41 @@
+{
+  "name": "recorded_step_details",
+  "formatVersion": "1.0",
+  "framesPerSecond": 50,
+  "trajectory": "trajectory.json",
+  "planTrees": [
+    {
+      "id": "plan_node_0",
+      "kind": "SequentialNode",
+      "label": "SequentialNode",
+      "status": "SUCCEEDED",
+      "robot": "pr2",
+      "start": 0,
+      "end": 40,
+      "children": [
+        {
+          "id": "plan_node_1",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "PickUpAction",
+          "status": "SUCCEEDED",
+          "arm": "LEFT",
+          "target": "milk",
+          "parameters": {"object_designator": "milk", "arm": "LEFT"},
+          "fields": [
+            {"name": "object_designator", "required": true},
+            {"name": "arm", "required": true},
+            {"name": "grasp_description", "required": false},
+            {"name": "grasp_detection_threshold", "required": false, "default": "0.9"},
+            {"name": "tolerate_grasp_stall", "required": false, "default": "no"}
+          ],
+          "constraints": [
+            {"text": "keep the milk upright", "monitor": "VectorsAligned", "observation": "TRUE"}
+          ],
+          "start": 0,
+          "end": 40
+        }
+      ]
+    }
+  ]
+}
