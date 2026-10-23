@@ -11,7 +11,7 @@ import pytest
 from cramera.exceptions import UnknownScene
 from cramera.static_site import SiteDirectoryNotEmpty
 from cramera_offline.exceptions import IncompleteBundles, PresentationExists
-from cramera_offline.plugin import OfflinePlugin, WebFile
+from cramera_offline.plugin import OfflinePlugin
 from cramera_offline.presentation import (
     PresentationDirectory,
     PresentationPreparation,
@@ -108,9 +108,6 @@ def test_the_static_site_carries_the_plugin_and_its_storyboard(tmp_path, present
     index = PresentationSite(presentation, output).write()
     plugin = OfflinePlugin()
     assert index.default == presentation.storyboard().chapters[0].scene
-    assert (
-        output / ViewerRoute.PLUGIN_FILES.strip("/") / plugin.name() / WebFile.MODULE
-    ).is_file()
     storyboard = json.loads((output / plugin.storyboard_route().strip("/")).read_text())
     assert Storyboard.from_json(storyboard) == presentation.storyboard()
     info = ViewerInfo.from_json(

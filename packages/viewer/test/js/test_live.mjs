@@ -6,19 +6,12 @@ import { liveAddressOf, sceneOf, withLive } from '../../src/cramera/web/core/sce
 import { LiveClient } from '../../src/cramera/web/live/live-client.js';
 import { LiveListener, LiveSession, PollInterval } from '../../src/cramera/web/live/live-session.js';
 import { DEFAULT_LIVE_ADDRESS, LiveActions, LivePanel } from '../../src/cramera/web/panels/live-panel.js';
-import { planTreesOf, PlanPanel } from '../../src/cramera/web/panels/plan-panel.js';
-import { StatechartPanel } from '../../src/cramera/web/panels/statechart-panel.js';
 import {
   Capability,
-  LiveChartNodeKey,
   LiveInfoKey,
-  LivePlanKey,
-  LivePlanNodeKey,
   LiveRoute,
   LiveSceneKey,
   LiveStateKey,
-  LiveStatechartKey,
-  PlanNodeKey,
   RecordingSaveRequestKey,
   RecordingState,
   RecordingStatusKey,
@@ -185,31 +178,6 @@ test('the live client reads and posts relative to the publisher address', async 
 });
 
 // %% panels
-
-test('a live plan listed flat becomes trees under the parents it names', () => {
-  const node = (id, parent, label) => ({ [LivePlanNodeKey.IDENTIFIER]: id, [LivePlanNodeKey.PARENT]: parent, [LivePlanNodeKey.KIND]: 'ActionNode', [LivePlanNodeKey.LABEL]: label, [LivePlanNodeKey.STATUS]: 'RUNNING' });
-  const trees = planTreesOf([node('a', null, 'run'), node('b', 'a', 'park'), node('c', 'a', 'pick'), node('d', 'missing', 'orphan')]);
-  assert.deepEqual(trees.map((tree) => tree[PlanNodeKey.LABEL]), ['run', 'orphan']);
-  assert.deepEqual(trees[0][PlanNodeKey.CHILDREN].map((child) => child[PlanNodeKey.LABEL]), ['park', 'pick']);
-  const panel = new PlanPanel(new FakeDocument());
-  panel.showLive({ [LivePlanKey.NODES]: [node('a', null, 'run')] });
-  assert.match(panel.panel.element.innerText, /run/);
-});
-
-test('a live statechart shows each node\'s current states', () => {
-  const panel = new StatechartPanel(new FakeDocument());
-  panel.showLive({
-    [LiveStatechartKey.TITLE]: 'Reach',
-    [LiveStatechartKey.NODES]: [
-      { [LiveChartNodeKey.IDENTIFIER]: 'n1', [LiveChartNodeKey.NAME]: 'CartesianPose', [LiveChartNodeKey.LIFE_CYCLE]: 'RUNNING', [LiveChartNodeKey.OBSERVATION]: 'FALSE' },
-      { [LiveChartNodeKey.IDENTIFIER]: 'n2', [LiveChartNodeKey.NAME]: 'EndMotion', [LiveChartNodeKey.PARENT]: 'n1', [LiveChartNodeKey.LIFE_CYCLE]: 'NOT_STARTED', [LiveChartNodeKey.OBSERVATION]: 'UNKNOWN' },
-    ],
-  });
-  const rows = panel.panel.element.findAll((element) => element.className === 'chart-node');
-  assert.deepEqual(rows.map((row) => row.dataset.lifeCycle), ['RUNNING', 'NOT_STARTED']);
-  panel.showLive({ [LiveStatechartKey.NODES]: [] });
-  assert.match(panel.panel.element.innerText, /No motion statechart runs/);
-});
 
 test('the Live panel connects, reports what the publisher offers, and drives the recording', async () => {
   const actions = [];

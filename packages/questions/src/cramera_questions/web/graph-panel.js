@@ -1,5 +1,5 @@
 /**
- * One graph tab: the knowledge, plan, statechart or kinematics graph of the shown
+ * One graph tab: the plan, statechart or kinematics graph of the shown
  * scene; clicking a node lights it up in the 3D view.
  */
 
@@ -10,7 +10,6 @@ import { GraphView } from './graph-view.js';
  * The titles of the views, in the order their tabs are offered.
  */
 export const VIEW_TITLES = Object.freeze({
-  [GraphViewName.KNOWLEDGE]: 'Knowledge',
   [GraphViewName.PLAN]: 'Plan',
   [GraphViewName.STATECHART]: 'Statechart',
   [GraphViewName.KINEMATICS]: 'Kinematics',

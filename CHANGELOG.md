@@ -8,6 +8,12 @@ which this repository was mirrored until 22 Oct 2026.
 ## 1.0.0 · in progress since 22 Oct 2026
 
 ### Removed
+- **The Tour, Knowledge, Steps, Plan tree and Chart states tabs.** The knowledge
+  graph duplicated what EQL answers, the viewer's own plan tree and statechart tree
+  duplicated the questions plugin's Plan and Statechart graphs, the timeline already
+  marks the steps, and the Tour panel went with its browser module: `cramera-offline`
+  keeps the storyboard and bundle check routes and its commands.
+  `GraphViewName.KNOWLEDGE` stays in the protocol for the API.
 - **The models panel, the laboratory, the workshop and the cable lab.**
   `cramera-models`, `cramera-laboratory`, `cramera-workshop` and `cramera-cable-lab`
   are gone with their panels and pages, their protocol modules
@@ -18,6 +24,15 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Recorded plans keep every step parameter and constraint.** Every plan node the
+  live publisher describes renders each field of its designator by name
+  (`LivePlanNodeKey.PARAMETERS`): an enumeration member by its name, an object by its
+  key, a pose by its position, a switch as on or off, a nested description by its
+  fields. A recording's plan tree stores them (`PlanNodeKey.PARAMETERS`) together
+  with the constraints attached to each node and their last observation
+  (`PlanNodeKey.CONSTRAINTS`, `PlanConstraintKey`). Recordings written before keep
+  showing the arm and target they have.
+
 - **Resizable panes and a foldable query slot.** A divider between the scene and
   the side column drags to give either side more width (a quarter to three quarters,
   double-click for halves), a divider below the query slot drags to give it more or
@@ -34,6 +49,14 @@ which this repository was mirrored until 22 Oct 2026.
 - **A new viewer replaces the old one.** `cramera` started on a port another cramera
   viewer holds stops that viewer and takes the port; `--keep-running` keeps the
   earlier behaviour of failing with *address already in use*.
+
+### Changed
+- **The Plan builder panel is the Plan View.** The viewer's panel of
+  `cramera-plan-builder` is named Plan View and holds only the replayed recording's
+  plan: its step cards now show every parameter the step was recorded with,
+  labelled as the builder labels the field, and each constraint as a chip with its
+  monitor and last observation. The panel's description and its links to the
+  builder page are gone; the page stays at `/plugins/plan-builder/builder.html`.
 
 ### A rewrite into packages
 - **One protocol for everything.** `cramera-protocol` defines scene bundles, the

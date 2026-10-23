@@ -7,7 +7,7 @@ viewer names a plugin.
 
 This also means a plugin is only there once its package is installed into the same
 environment as `cramera`: `pip install ./packages/viewer` brings no page but the
-scene page. The pages of this repository (Plan Builder, Scene Builder, the Tour,
+scene page. The pages of this repository (Plan Builder, Scene Builder,
 the questions column) are installed with
 `pip install ./packages/questions ./packages/plugins/*`; optional extras such as
 `[cram]` add what a plugin needs beyond the viewer. The

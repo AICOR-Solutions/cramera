@@ -11,7 +11,7 @@ from importlib.metadata import entry_points
 
 from cramera.plugins import PluginLoader
 from cramera_offline.bundle_check import BundleCheck
-from cramera_offline.plugin import OfflinePlugin, WebFile
+from cramera_offline.plugin import OfflinePlugin
 from cramera_protocol.offline import (
     BundleCheckReport,
     OfflineParameter,
@@ -51,14 +51,11 @@ def test_the_plugin_is_installed_under_its_protocol_name():
     assert [plugin.name() for plugin in plugins] == [PluginName.OFFLINE]
 
 
-def test_the_plugin_names_its_browser_module():
+def test_the_plugin_has_no_browser_module():
     info = OfflinePlugin().info()
     assert info.name == PluginName.OFFLINE
-    assert (
-        info.module
-        == f"{ViewerRoute.PLUGIN_FILES}{PluginName.OFFLINE}/{WebFile.MODULE}"
-    )
-    assert (OfflinePlugin().web_directory() / WebFile.MODULE).is_file()
+    assert info.module is None
+    assert OfflinePlugin().web_directory() is None
 
 
 def test_the_storyboard_route_is_where_the_viewer_serves_it():
