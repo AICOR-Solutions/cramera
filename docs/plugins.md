@@ -7,10 +7,10 @@ viewer names a plugin.
 
 This also means a plugin is only there once its package is installed into the same
 environment as `cramera`: `pip install ./packages/viewer` brings no page but the
-scene page. The pages of this repository (Models, Plan Builder, Scene Builder, Cable
-Lab, Laboratory, Workshop, the Tour, the questions column) are installed with
+scene page. The pages of this repository (Models, Plan Builder, Scene Builder, the
+Tour, the questions column) are installed with
 `pip install ./packages/questions ./packages/plugins/*`; optional extras such as
-`[physics]`, `[circuits]` and `[cram]` add what a plugin needs beyond the viewer. The
+`[circuits]` and `[cram]` add what a plugin needs beyond the viewer. The
 README's section *Install the pages and panels* lists them. The viewer's `/api/info`
 answer names the plugins it has loaded, which is the first thing to check when a
 page is missing from the top bar.
@@ -50,7 +50,7 @@ with a navigation entry; nothing in the viewer names a plugin, so an uninstalled
 plugin simply has no link. The viewer's information reports each entry as the
 plugin's `navigation`: a `title`, a `group` and, for a page, its `page` route. The
 `NavigationGroup` orders the links: `analysis` (such as Models), `builder` (Plan
-Builder, Scene Builder), `laboratory` (Cable Lab, Laboratory, Workshop); within a
+Builder, Scene Builder), `laboratory` (simulated workplaces, none in this repository); within a
 group they are ordered by title.
 
 ```python

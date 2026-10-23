@@ -7,6 +7,14 @@ which this repository was mirrored until 22 Oct 2026.
 
 ## 1.0.0 · in progress since 22 Oct 2026
 
+### Removed
+- **The laboratory, the workshop and the cable lab.** `cramera-laboratory`,
+  `cramera-workshop` and `cramera-cable-lab` are gone with their panels and pages,
+  their protocol modules `cramera_protocol.laboratory`, `cramera_protocol.workshop`
+  and `cramera_protocol.cable_lab`, and `PluginName.WORKSHOP`. The navigation group
+  `laboratory` stays for plugins outside this repository; `cramera_protocol.rights`
+  stays for the scene builder.
+
 ### A rewrite into packages
 - **One protocol for everything.** `cramera-protocol` defines scene bundles, the
   scenes index, live messages, routes and versions once; the browser reads the same

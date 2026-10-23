@@ -239,7 +239,7 @@ def test_no_plugin_is_loaded_without_names():
 
 def test_a_plugin_that_is_not_installed_is_refused(loader):
     with pytest.raises(PluginNotInstalled) as raised:
-        installed_plugins(["cable-lab"], loader)
+        installed_plugins(["not-installed"], loader)
     assert raised.value.installed == ["questions", "silent"]
 
 

@@ -29,13 +29,3 @@ class PluginName(StrEnum):
     """
     The questions plugin: queries, plain-language questions and graph views.
     """
-
-    WORKSHOP = "workshop"
-    """
-    Runs the woodworking workshop's contact simulation.
-    """
-
-    CABLE_LAB = "cable-lab"
-    """
-    Simulates a composite cable and a friction gripper.
-    """
