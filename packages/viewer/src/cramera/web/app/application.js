@@ -41,6 +41,12 @@ import { KeyboardShortcuts, PlaybackActions } from './keyboard-shortcuts.js';
 import { PluginContext, PluginModules } from './plugin-modules.js';
 import { SCENE_PAGE, SiteHeader, ThemeSetting } from './site-header.js';
 
+/**
+ * The screens on which the columns stack, as `styles/viewer.css` declares them; there
+ * the Layers overlay starts folded so it does not cover the 3D view.
+ */
+const NARROW_SCREEN = '(max-width: 900px)';
+
 // %% elements
 
 /**
@@ -595,6 +601,7 @@ export class Application {
       ],
       (key) => this.bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, [key]),
     );
+    this.#layers.setFolded(this.#elements.document.defaultView.matchMedia(NARROW_SCREEN).matches);
   }
 
   /**
