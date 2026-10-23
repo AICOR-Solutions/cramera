@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 
 import { PluginContext, PluginModules, PluginWithoutRegistration } from '../../src/cramera/web/app/plugin-modules.js';
+import { PanelHost, SidePanel } from '../../src/cramera/web/panels/panel-host.js';
+import { FakeDocument } from './support/fake-document.mjs';
 import { MeshLoading, meshFormatOf, UnsupportedMeshFormat } from '../../src/cramera/web/scene/mesh-loading.js';
 import { MeshFormat, NavigationGroup, NavigationKey, PluginKey, ViewerInfoKey } from '../../src/cramera/web/protocol.js';
 
@@ -45,6 +47,34 @@ test('plugins the header links to register after those that only add to the scen
   assert.deepEqual(registered, ['questions', 'tour', 'workshop']);
   assert.equal(context.query, 'query');
   assert.equal(context.info, info);
+});
+
+test('a plugin the header links to adds its panel without a tab, shown only on request', async () => {
+  const document = new FakeDocument();
+  const root = document.createElement('section');
+  const panels = new PanelHost(root);
+  const section = (name) => new SidePanel(name, name, document.createElement('section'));
+  const workshop = section('workshop');
+  const modules = {
+    '/workshop.js': { register: (context) => context.panels.add(workshop) },
+    '/questions.js': { register: (context) => context.panels.add(section('knowledge')) },
+  };
+  const info = {
+    [ViewerInfoKey.PLUGINS]: [
+      { [PluginKey.NAME]: 'workshop', [PluginKey.MODULE]: '/workshop.js', [PluginKey.NAVIGATION]: { [NavigationKey.TITLE]: 'Workshop', [NavigationKey.GROUP]: NavigationGroup.LABORATORY } },
+      { [PluginKey.NAME]: 'questions', [PluginKey.MODULE]: '/questions.js' },
+    ],
+  };
+  await new PluginModules(async (url) => modules[url]).register(info, new PluginContext('bus', panels, 'api', 'view', 'query', info), (path) => path);
+  panels.add(section('steps'));
+  const tabs = root.children[0].children;
+  assert.deepEqual(tabs.map((tab) => tab.textContent), ['knowledge', 'steps']);
+  assert.deepEqual(panels.identifiers(), ['workshop', 'knowledge', 'steps']);
+  assert.equal(panels.shown, 'knowledge');
+  assert.equal(workshop.element.hidden, true);
+  panels.show('workshop');
+  assert.equal(workshop.element.hidden, false);
+  assert.deepEqual(tabs.map((tab) => tab.getAttribute('aria-selected')), ['false', 'false']);
 });
 
 test('a plugin module without register is refused', async () => {

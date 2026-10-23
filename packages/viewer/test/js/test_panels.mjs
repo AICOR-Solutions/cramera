@@ -34,6 +34,16 @@ test('the first panel is shown and tabs switch between panels', () => {
   assert.throws(() => host.add(new SidePanel('a', 'Again', document.createElement('section'))), DuplicatePanel);
 });
 
+test('the strip wraps instead of cutting tabs off, and untabbed panels are not chosen first', () => {
+  const document = new FakeDocument();
+  const host = new PanelHost(document.createElement('aside'));
+  host.add(new SidePanel('lab', 'Lab', document.createElement('section')), false);
+  host.add(new SidePanel('a', 'A', document.createElement('section')));
+  assert.equal(host.shown, 'a');
+  assert.equal(host.tabbed('lab'), false);
+  assert.equal(host.tabbed('a'), true);
+});
+
 // %% steps and plan
 
 test('steps are listed, marked and jump to their start', () => {
