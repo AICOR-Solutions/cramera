@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { SCENE_PAGE, SiteHeader, ThemeSetting, localStorageOf, pageLinksOf, versionOf } from '../../src/cramera/web/app/site-header.js';
+import { ONTOLOGY_PAGE, ONTOLOGY_ROUTE, ONTOLOGY_TITLE, SCENE_PAGE, SiteHeader, ThemeSetting, localStorageOf, pageLinksOf, versionOf } from '../../src/cramera/web/app/site-header.js';
 import { layoutOf, panelOf, sceneAlone, withPanel } from '../../src/cramera/web/core/scene-address.js';
 import { QuerySlot, SlotPanel, SlotTaken } from '../../src/cramera/web/panels/query-slot.js';
 import {
@@ -38,9 +38,9 @@ const INFO = {
 
 // %% navigation
 
-test('the pages are the scene page, then the plugins\' entries by group and title', () => {
+test('the pages are the scene page, then the plugins\' entries by group and title, then the ontology', () => {
   const links = pageLinksOf(INFO, url);
-  assert.deepEqual(links.map((link) => link.title), ['Scene', 'Models', 'Plan Builder', 'Scene Builder', 'Cable Lab']);
+  assert.deepEqual(links.map((link) => link.title), ['Scene', 'Models', 'Plan Builder', 'Scene Builder', 'Cable Lab', ONTOLOGY_TITLE]);
   assert.equal(links[0].href, BASE);
   assert.equal(links[2].href, `${BASE}plugins/plan-builder/builder.html`);
   assert.equal(links[1].panel, 'models');
@@ -48,8 +48,15 @@ test('the pages are the scene page, then the plugins\' entries by group and titl
   assert.equal(links[2].panel, null);
 });
 
-test('without plugin entries only the scene page is offered', () => {
-  assert.deepEqual(pageLinksOf({ [ViewerInfoKey.PLUGINS]: [{ [PluginKey.NAME]: 'questions' }] }, url).map((link) => link.identity), [SCENE_PAGE]);
+test('without plugin entries only the viewer\'s own pages are offered', () => {
+  assert.deepEqual(pageLinksOf({ [ViewerInfoKey.PLUGINS]: [{ [PluginKey.NAME]: 'questions' }] }, url).map((link) => link.identity), [SCENE_PAGE, ONTOLOGY_PAGE]);
+});
+
+test('the ontology is a page of the viewer\'s own', () => {
+  const ontology = pageLinksOf(INFO, url).at(-1);
+  assert.equal(ontology.identity, ONTOLOGY_PAGE);
+  assert.equal(ontology.href, url(ONTOLOGY_ROUTE));
+  assert.equal(ontology.panel, null);
 });
 
 test('the header marks its own page and shows panels on the scene page', () => {

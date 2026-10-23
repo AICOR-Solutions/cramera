@@ -1,7 +1,7 @@
 /**
  * The top bar every page of the viewer shares: the AICOR logo, one link per page (the
- * scene page and the navigation entries the plugins declare), the build stamp and the
- * View menu with the colour theme.
+ * scene page, the navigation entries the plugins declare and the ontology page), the
+ * build stamp and the View menu with the colour theme.
  */
 
 import {
@@ -39,6 +39,21 @@ export const SCENE_PAGE = 'scene';
  * The text of the scene page's entry.
  */
 const SCENE_TITLE = 'Scene';
+
+/**
+ * The identity of the ontology page's entry.
+ */
+export const ONTOLOGY_PAGE = 'ontology';
+
+/**
+ * The text of the ontology page's entry.
+ */
+export const ONTOLOGY_TITLE = 'Ontology';
+
+/**
+ * The ontology page below the viewer's root.
+ */
+export const ONTOLOGY_ROUTE = '/ontology.html';
 
 /**
  * The texts of the theme choice.
@@ -166,7 +181,7 @@ export class PageLink {
  * @param {Object} info The viewer's information.
  * @param {function(string): string} url The URL of a viewer route.
  * @returns {Array<PageLink>} The scene page's link, then one per plugin entry, ordered
- *   by group and title.
+ *   by group and title, then the ontology page's link.
  */
 export function pageLinksOf(info, url) {
   const groups = Object.values(NavigationGroup);
@@ -185,6 +200,7 @@ export function pageLinksOf(info, url) {
         ? new PageLink(name, entry[NavigationKey.TITLE], url(page), null)
         : new PageLink(name, entry[NavigationKey.TITLE], withPanel(viewer, name).href, name);
     }),
+    new PageLink(ONTOLOGY_PAGE, ONTOLOGY_TITLE, url(ONTOLOGY_ROUTE), null),
   ];
 }
 

@@ -39,6 +39,10 @@ which this repository was mirrored until 22 Oct 2026.
   on the left, the question card and the graph tabs on the right; a light theme is
   in the View menu. Plugins declare their top-bar entry (`ViewerPlugin.navigation()`),
   and the builder and cable lab pages carry the same bar.
+- **The CRAM ontology in the top bar.** The last entry of the top bar, Ontology, opens
+  a page of the viewer that embeds cram_owlviz, the browser of the CRAM workspace's
+  classes, below the same bar, with a link that opens it in a tab of its own. The page
+  is part of the demo site.
 - **Recorded answers on the demo site.** `cramera-record-answers` writes a bundle's
   preset answers and graph views into `recorded_answers.json` in a CRAM workspace;
   the static site includes the questions plugin (`cramera-export-site --plugin`) and
