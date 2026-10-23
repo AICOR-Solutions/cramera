@@ -16,7 +16,6 @@ from cramera_plan_builder.cram.workspace import (
 from cramera_plan_builder.exceptions import UnknownWorkspaceClass
 from cramera_plan_builder.workspace import WorkspaceLoader
 from cramera_protocol.bundle.files import MeshFormat
-from cramera_protocol.plan_builder import StepKind
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
 from semantic_digital_twin.robots.pr2 import PR2
@@ -39,16 +38,15 @@ def test_the_loader_reads_the_installed_workspace():
     assert isinstance(WorkspaceLoader().workspace(), InstalledWorkspace)
 
 
-def test_a_mobile_robot_with_two_arms_and_a_torso_takes_every_step():
-    pr2 = RobotAnnotation(PR2)
-    assert pr2.steps() == list(StepKind)
-    assert pr2.arms() == [arm.name for arm in Arms]
+def test_a_robot_with_two_arms_and_a_torso_offers_every_choice():
+    assert RobotAnnotation(PR2).choices() == {
+        Arms.__name__: [arm.name for arm in Arms],
+        TorsoState.__name__: [state.name for state in TorsoState],
+    }
 
 
-def test_a_robot_without_a_mobile_base_neither_drives_nor_transports():
-    steps = RobotAnnotation(Tracy).steps()
-    assert StepKind.NAVIGATE not in steps and StepKind.TRANSPORT not in steps
-    assert StepKind.PICK_UP in steps
+def test_a_robot_without_a_torso_offers_no_torso_state():
+    assert RobotAnnotation(Tracy).choices()[TorsoState.__name__] == []
 
 
 def test_a_robot_with_one_arm_offers_the_choice_coraplex_resolves_to_it():
@@ -81,8 +79,13 @@ def test_the_object_models_are_the_meshes_beside_coraplex(workspace):
     )
 
 
-def test_the_torso_states_are_the_native_ones(workspace):
-    assert workspace.torso_states() == [state.name for state in TorsoState]
+def test_the_catalog_robots_name_their_choices(workspace):
+    pr2 = next(robot for robot in workspace.robots() if robot.name == PR2.__name__)
+    assert pr2.choices == RobotAnnotation(PR2).choices()
+
+
+def test_the_catalog_lists_the_discovered_actions(workspace):
+    assert workspace.action_catalog() == workspace.discovered_actions.catalog()
 
 
 def test_the_surfaces_are_concrete_annotations_without_the_mixins(workspace):

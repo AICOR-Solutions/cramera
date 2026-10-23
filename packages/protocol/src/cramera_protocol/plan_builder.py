@@ -3,22 +3,31 @@ The plan builder's documents: the plans a person composes from robot actions, th
 catalog of robots, environments and objects a plan uses, the constraints written in
 plain language, and the demos generated from a plan and run as child processes.
 
-A plan names its robots, its objects and their poses, and each robot's steps; the
-generated demo builds the world and the native actions from it.
+A plan names its robots, its objects and their poses, and each robot's steps; a step
+names a native action by its class name and gives the action's fields as JSON values.
+The generated demo builds the world and the native actions from it.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from types import MappingProxyType
 
-from typing_extensions import Any, Dict, List, Optional
+from typing_extensions import Any, Dict, List, Optional, Self
 
 from cramera_protocol.bundle.index import SceneIndexEntry
-from cramera_protocol.document import JsonDocument, document_field
+from cramera_protocol.document import JsonDocument, ValueLocation, document_field
 from cramera_protocol.geometry import Pose
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorSpecification
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
+
+PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=1)
+"""
+The version plans are written with: steps name an action and its values.
+
+Plans of an earlier version name a step kind; they are migrated when they are read.
+"""
 
 # %% plugin
 
@@ -134,43 +143,7 @@ class PlanBuilderVariable(StrEnum):
     """
 
 
-# %% steps
-
-
-class StepKind(StrEnum):
-    """
-    The robot actions a plan step can be.
-    """
-
-    PARK_ARMS = "park_arms"
-    """
-    Moves arms into their park posture.
-    """
-
-    MOVE_TORSO = "move_torso"
-    """
-    Moves the torso to one of its named heights.
-    """
-
-    NAVIGATE = "navigate"
-    """
-    Drives the mobile base to a pose.
-    """
-
-    TRANSPORT = "transport"
-    """
-    Picks an object up and places it at a target, driving where needed.
-    """
-
-    PICK_UP = "pick_up"
-    """
-    Picks an object up from where the robot stands.
-    """
-
-    PLACE = "place"
-    """
-    Places a held object at a target from where the robot stands.
-    """
+# %% destinations
 
 
 class PlacementMode(StrEnum):
@@ -190,16 +163,63 @@ class PlacementMode(StrEnum):
     """
 
 
-class StepSwitch(StrEnum):
+class DestinationKey(StrEnum):
     """
-    The switches of a native action a constraint turns on; each value is the action's
-    keyword argument.
+    The keys of where a step puts an object down.
     """
 
-    LOOK_AT_OPERATION_SITE = "look_at_operation_site"
+    PLACEMENT = "placement"
     """
-    The transport looks at the object before picking it up and at the target before
-    placing it.
+    Whether the object goes to a pose or onto a surface.
+    """
+
+    POSE = "pose"
+    """
+    The pose.
+    """
+
+    SURFACE_TYPE = "surfaceType"
+    """
+    The class of the surface.
+    """
+
+    SURFACE_NAME = "surfaceName"
+    """
+    The surface.
+    """
+
+
+@dataclass(kw_only=True)
+class Destination(JsonDocument):
+    """
+    Where a step puts an object down: at a pose, or on or in a surface of the
+    environment; the value of a field that accepts a surface.
+    """
+
+    placement: PlacementMode = document_field(
+        DestinationKey.PLACEMENT, default=PlacementMode.POSE
+    )
+    """
+    Whether the object goes to :attr:`pose` or onto a surface.
+    """
+
+    pose: Optional[Pose] = document_field(DestinationKey.POSE, default=None)
+    """
+    The pose in world coordinates the object is put down at.
+    """
+
+    surface_type: Optional[str] = document_field(
+        DestinationKey.SURFACE_TYPE, default=None
+    )
+    """
+    The class name of the surface annotation the object is put on or in.
+    """
+
+    surface_name: Optional[str] = document_field(
+        DestinationKey.SURFACE_NAME, default=None
+    )
+    """
+    The name of one surface annotation, or None for any surface of the type.
     """
 
 
@@ -259,11 +279,9 @@ class StepConstraint(JsonDocument):
     sentence names nothing to observe.
     """
 
-    switch: Optional[StepSwitch] = document_field(
-        StepConstraintKey.SWITCH, default=None
-    )
+    switch: Optional[str] = document_field(StepConstraintKey.SWITCH, default=None)
     """
-    The switch of the step's action the constraint turns on, or None.
+    The boolean field of the step's action the constraint turns on, or None.
     """
 
 
@@ -277,9 +295,9 @@ class ConstraintTextKey(StrEnum):
     The constraint as it was written.
     """
 
-    STEP_KIND = "stepKind"
+    STEP_ACTION = "stepAction"
     """
-    The kind of the step the constraint is attached to.
+    The action of the step the constraint is attached to.
     """
 
     STEP_OBJECT = "stepObject"
@@ -304,11 +322,12 @@ class ConstraintText(JsonDocument):
     The constraint as it was written.
     """
 
-    step_kind: Optional[StepKind] = document_field(
-        ConstraintTextKey.STEP_KIND, default=None
+    step_action: Optional[str] = document_field(
+        ConstraintTextKey.STEP_ACTION, default=None
     )
     """
-    The kind of the step it is attached to, or None for a constraint not attached yet.
+    The class name of the action of the step it is attached to, or None for a constraint
+    not attached yet.
     """
 
     step_object: Optional[str] = document_field(
@@ -393,9 +412,9 @@ class ConstraintRuleKey(StrEnum):
     Whether the live publisher can observe the monitor.
     """
 
-    SWITCHES = "switches"
+    SWITCH = "switch"
     """
-    The switch the constraint turns on, by the kind of step it is attached to.
+    The boolean field of the step's action the constraint turns on.
     """
 
 
@@ -452,12 +471,10 @@ class ConstraintRule(JsonDocument):
     Whether the live publisher can observe the monitor from the parameters alone.
     """
 
-    switches: Dict[str, StepSwitch] = document_field(
-        ConstraintRuleKey.SWITCHES, default_factory=dict
-    )
+    switch: Optional[str] = document_field(ConstraintRuleKey.SWITCH, default=None)
     """
-    The switch the constraint turns on, by the :class:`StepKind` value of the step it is
-    attached to.
+    The name of the boolean field the constraint turns on; it applies to a step whose
+    action has a boolean field of that name.
     """
 
 
@@ -522,44 +539,14 @@ class PlanStepKey(StrEnum):
     The step's identity within the plan.
     """
 
-    KIND = "kind"
+    ACTION = "action"
     """
-    The action the step is.
-    """
-
-    ARM = "arm"
-    """
-    The arm the step uses.
+    The native action the step is.
     """
 
-    TORSO_STATE = "torsoState"
+    VALUES = "values"
     """
-    The torso height the step moves to.
-    """
-
-    OBJECT = "object"
-    """
-    The object the step acts on.
-    """
-
-    TARGET = "target"
-    """
-    Where the step drives to or puts the object down.
-    """
-
-    PLACEMENT = "placement"
-    """
-    How the step names where it puts the object down.
-    """
-
-    SURFACE_TYPE = "surfaceType"
-    """
-    The class of the surface the object is put on or in.
-    """
-
-    SURFACE_NAME = "surfaceName"
-    """
-    The surface the object is put on or in.
+    The values of the action's fields.
     """
 
     CONSTRAINTS = "constraints"
@@ -571,8 +558,9 @@ class PlanStepKey(StrEnum):
 @dataclass(kw_only=True)
 class PlanStep(JsonDocument):
     """
-    One action of a robot's plan with its parameters; which parameters apply depends on
-    :attr:`kind`.
+    One native action of a robot's plan with the values of its fields; a step written in
+    the format before :data:`PLAN_FORMAT_VERSION`, naming a step kind, is read as the
+    action that kind stood for.
     """
 
     identifier: str = document_field(PlanStepKey.IDENTIFIER)
@@ -580,46 +568,17 @@ class PlanStep(JsonDocument):
     The step's identity within the plan.
     """
 
-    kind: StepKind = document_field(PlanStepKey.KIND)
+    action: str = document_field(PlanStepKey.ACTION)
     """
-    The action the step is.
-    """
-
-    arm: Optional[str] = document_field(PlanStepKey.ARM, default=None)
-    """
-    The name of the native arm choice, as the catalog lists it for the robot.
+    The class name of the native action, as the catalog's action schemas name it.
     """
 
-    torso_state: Optional[str] = document_field(PlanStepKey.TORSO_STATE, default=None)
+    values: Dict[str, Any] = document_field(PlanStepKey.VALUES, default_factory=dict)
     """
-    The name of the native torso state, as the catalog lists it.
-    """
-
-    object_identifier: Optional[str] = document_field(PlanStepKey.OBJECT, default=None)
-    """
-    The identifier of the plan's object the step acts on.
-    """
-
-    target: Optional[Pose] = document_field(PlanStepKey.TARGET, default=None)
-    """
-    The pose in world coordinates the base drives to or the object is put down at.
-    """
-
-    placement: PlacementMode = document_field(
-        PlanStepKey.PLACEMENT, default=PlacementMode.POSE
-    )
-    """
-    How the step names where it puts the object down.
-    """
-
-    surface_type: Optional[str] = document_field(PlanStepKey.SURFACE_TYPE, default=None)
-    """
-    The class name of the surface annotation the object is put on or in.
-    """
-
-    surface_name: Optional[str] = document_field(PlanStepKey.SURFACE_NAME, default=None)
-    """
-    The name of one surface annotation, or None for any surface of the type.
+    The JSON values of the action's fields by field name: an object's identity, an
+    annotation's name, an enumeration member's name, a pose, a :class:`Destination`, a
+    number, a boolean or a text, as the field's :class:`ActionFieldKind` asks; fields
+    left out keep the action's default.
     """
 
     constraints: List[StepConstraint] = document_field(
@@ -628,6 +587,305 @@ class PlanStep(JsonDocument):
     """
     The constraints attached to the step.
     """
+
+    @classmethod
+    def read_at(cls, data: Any, location: ValueLocation) -> Self:
+        """
+        Read a step, migrating one that names a step kind; see
+        :meth:`JsonDocument.read_at`.
+        """
+        if isinstance(data, dict) and LegacyStepKey.KIND in data:
+            return LegacyPlanStep.read_at(data, location).migrated()
+        return super().read_at(data, location)
+
+
+# %% steps of earlier plans
+
+
+class LegacyStepKind(StrEnum):
+    """
+    The step kinds plans named before :data:`PLAN_FORMAT_VERSION`; read only to migrate
+    such plans.
+    """
+
+    PARK_ARMS = "park_arms"
+    """
+    Parked arms.
+    """
+
+    MOVE_TORSO = "move_torso"
+    """
+    Moved the torso to a named height.
+    """
+
+    NAVIGATE = "navigate"
+    """
+    Drove the base to a pose.
+    """
+
+    TRANSPORT = "transport"
+    """
+    Carried an object to a pose or a surface.
+    """
+
+    PICK_UP = "pick_up"
+    """
+    Picked an object up.
+    """
+
+    PLACE = "place"
+    """
+    Put a held object down at a pose or on a surface.
+    """
+
+
+class MigratedAction(StrEnum):
+    """
+    The class names of the native actions the step kinds of earlier plans stood for.
+    """
+
+    PARK_ARMS = "ParkArmsAction"
+    """
+    Parks arms.
+    """
+
+    MOVE_TORSO = "MoveTorsoAction"
+    """
+    Moves the torso.
+    """
+
+    NAVIGATE = "NavigateAction"
+    """
+    Drives the base.
+    """
+
+    TRANSPORT = "TransportAction"
+    """
+    Carries an object.
+    """
+
+    PICK_UP = "PickUpAction"
+    """
+    Picks an object up.
+    """
+
+    PLACE = "PlaceAction"
+    """
+    Puts a held object down.
+    """
+
+
+class MigratedActionField(StrEnum):
+    """
+    The fields of the migrated actions the parameters of earlier steps become.
+    """
+
+    ARM = "arm"
+    """
+    The arm.
+    """
+
+    TORSO_STATE = "torso_state"
+    """
+    The torso height.
+    """
+
+    OBJECT = "object_designator"
+    """
+    The object acted on.
+    """
+
+    TARGET = "target_location"
+    """
+    Where the base drives to or the object is put down.
+    """
+
+
+MIGRATED_ACTIONS = MappingProxyType(
+    {
+        LegacyStepKind.PARK_ARMS: MigratedAction.PARK_ARMS,
+        LegacyStepKind.MOVE_TORSO: MigratedAction.MOVE_TORSO,
+        LegacyStepKind.NAVIGATE: MigratedAction.NAVIGATE,
+        LegacyStepKind.TRANSPORT: MigratedAction.TRANSPORT,
+        LegacyStepKind.PICK_UP: MigratedAction.PICK_UP,
+        LegacyStepKind.PLACE: MigratedAction.PLACE,
+    }
+)
+"""
+The native action each step kind of earlier plans stood for.
+"""
+
+DESTINATION_KINDS = frozenset({LegacyStepKind.TRANSPORT, LegacyStepKind.PLACE})
+"""
+The step kinds of earlier plans whose target was a :class:`Destination`.
+"""
+
+
+class LegacyStepKey(StrEnum):
+    """
+    The keys of a step of a plan written before :data:`PLAN_FORMAT_VERSION`.
+    """
+
+    IDENTIFIER = "id"
+    """
+    The step's identity.
+    """
+
+    KIND = "kind"
+    """
+    The step kind, whose presence marks such a step.
+    """
+
+    ARM = "arm"
+    """
+    The arm.
+    """
+
+    TORSO_STATE = "torsoState"
+    """
+    The torso height.
+    """
+
+    OBJECT = "object"
+    """
+    The object acted on.
+    """
+
+    TARGET = "target"
+    """
+    The pose driven to or put down at.
+    """
+
+    PLACEMENT = "placement"
+    """
+    Whether the object went to the pose or onto a surface.
+    """
+
+    SURFACE_TYPE = "surfaceType"
+    """
+    The class of the surface.
+    """
+
+    SURFACE_NAME = "surfaceName"
+    """
+    The surface.
+    """
+
+    CONSTRAINTS = "constraints"
+    """
+    The constraints.
+    """
+
+
+@dataclass(kw_only=True)
+class LegacyPlanStep(JsonDocument):
+    """
+    A step of a plan written before :data:`PLAN_FORMAT_VERSION`: a step kind with kind-
+    specific parameters, read only to migrate it.
+    """
+
+    identifier: str = document_field(LegacyStepKey.IDENTIFIER)
+    """
+    The step's identity.
+    """
+
+    kind: LegacyStepKind = document_field(LegacyStepKey.KIND)
+    """
+    The step kind.
+    """
+
+    arm: Optional[str] = document_field(LegacyStepKey.ARM, default=None)
+    """
+    The name of the arm choice.
+    """
+
+    torso_state: Optional[str] = document_field(LegacyStepKey.TORSO_STATE, default=None)
+    """
+    The name of the torso state.
+    """
+
+    object_identifier: Optional[str] = document_field(
+        LegacyStepKey.OBJECT, default=None
+    )
+    """
+    The identity of the object acted on.
+    """
+
+    target: Optional[Pose] = document_field(LegacyStepKey.TARGET, default=None)
+    """
+    The pose driven to or put down at.
+    """
+
+    placement: PlacementMode = document_field(
+        LegacyStepKey.PLACEMENT, default=PlacementMode.POSE
+    )
+    """
+    Whether the object went to :attr:`target` or onto a surface.
+    """
+
+    surface_type: Optional[str] = document_field(
+        LegacyStepKey.SURFACE_TYPE, default=None
+    )
+    """
+    The class name of the surface annotation.
+    """
+
+    surface_name: Optional[str] = document_field(
+        LegacyStepKey.SURFACE_NAME, default=None
+    )
+    """
+    The name of one surface annotation.
+    """
+
+    constraints: List[StepConstraint] = document_field(
+        LegacyStepKey.CONSTRAINTS, default_factory=list
+    )
+    """
+    The constraints, whose switches already named the action's fields.
+    """
+
+    def migrated(self) -> PlanStep:
+        """
+        :return: The step as the native action its kind stood for, with the parameters
+            it gave as the action's values.
+        """
+        values: Dict[str, Any] = {}
+        given = {
+            MigratedActionField.ARM: self.arm,
+            MigratedActionField.TORSO_STATE: self.torso_state,
+            MigratedActionField.OBJECT: self.object_identifier,
+        }
+        for field_name, value in given.items():
+            if value is not None:
+                values[field_name.value] = value
+        target = self.target_value()
+        if target is not None:
+            values[MigratedActionField.TARGET.value] = target
+        return PlanStep(
+            identifier=self.identifier,
+            action=MIGRATED_ACTIONS[self.kind].value,
+            values=values,
+            constraints=self.constraints,
+        )
+
+    def target_value(self) -> Any:
+        """
+        :return: The JSON value of the migrated target: a :class:`Destination` for a
+            step putting an object down, a pose for a navigation, or None when the step
+            gave none.
+        """
+        if self.kind in DESTINATION_KINDS:
+            if self.target is None and self.surface_type is None:
+                return None
+            return Destination(
+                placement=self.placement,
+                pose=self.target,
+                surface_type=self.surface_type,
+                surface_name=self.surface_name,
+            ).to_json()
+        if self.target is None:
+            return None
+        return self.target.to_json()
 
 
 class PlannedRobotKey(StrEnum):
@@ -766,7 +1024,7 @@ class PlanKey(StrEnum):
 
     FORMAT_VERSION = "formatVersion"
     """
-    The protocol version the plan was written with.
+    The format version the plan is written in.
     """
 
     NAME = "name"
@@ -813,10 +1071,11 @@ class PlanDocument(JsonDocument):
     """
 
     format_version: ProtocolVersion = document_field(
-        PlanKey.FORMAT_VERSION, default=CURRENT_VERSION
+        PlanKey.FORMAT_VERSION, default=PLAN_FORMAT_VERSION
     )
     """
-    The protocol version the plan was written with.
+    The format version the plan is written in; a plan of an earlier minor version is
+    migrated when it is read and then carries :data:`PLAN_FORMAT_VERSION`.
     """
 
     task: str = document_field(PlanKey.TASK, default="")
@@ -846,6 +1105,17 @@ class PlanDocument(JsonDocument):
 
     def __post_init__(self) -> None:
         self.format_version.require_readable_by(CURRENT_VERSION)
+
+    @classmethod
+    def read_at(cls, data: Any, location: ValueLocation) -> Self:
+        """
+        Read a plan, migrating one of an earlier format version; see
+        :meth:`JsonDocument.read_at`.
+        """
+        plan = super().read_at(data, location)
+        if plan.format_version < PLAN_FORMAT_VERSION:
+            plan.format_version = PLAN_FORMAT_VERSION
+        return plan
 
 
 # %% saved plans
@@ -1066,6 +1336,441 @@ class PlanBuilderLimits(JsonDocument):
     """
 
 
+# %% actions
+
+
+class ActionFieldKind(StrEnum):
+    """
+    What a field of a native action holds, which decides how the builder asks for it and
+    how the demo converts it.
+    """
+
+    BODY = "body"
+    """
+    An object of the plan, named by its identity.
+    """
+
+    ANNOTATION = "annotation"
+    """
+    A world entity carrying a given semantic annotation class, named by the annotation's
+    name.
+    """
+
+    ENUM = "enum"
+    """
+    A member of an enumeration, named by the member's name.
+    """
+
+    POSE = "pose"
+    """
+    A pose in world coordinates.
+    """
+
+    POSE_OR_SURFACE = "poseOrSurface"
+    """
+    A pose, or the free spots of a surface sampled when the step runs.
+    """
+
+    NUMBER = "number"
+    """
+    A real number.
+    """
+
+    INTEGER = "integer"
+    """
+    A whole number.
+    """
+
+    BOOLEAN = "boolean"
+    """
+    A switch that is on or off.
+    """
+
+    TEXT = "text"
+    """
+    A text.
+    """
+
+    GRASP = "grasp"
+    """
+    A grasp, never entered: the demo derives it from the action's arm and object.
+    """
+
+
+class ActionGroup(StrEnum):
+    """
+    The packages of native actions the builder groups its palette by.
+    """
+
+    CORE = "core"
+    """
+    The actions the robot performs directly.
+    """
+
+    COMPOSITE = "composite"
+    """
+    The actions made of other actions.
+    """
+
+
+class ActionFieldKey(StrEnum):
+    """
+    The keys of one field of an action schema.
+    """
+
+    NAME = "name"
+    """
+    The field's keyword argument.
+    """
+
+    LABEL = "label"
+    """
+    The field's display name.
+    """
+
+    KIND = "kind"
+    """
+    What the field holds.
+    """
+
+    REQUIRED = "required"
+    """
+    Whether a step must give the field.
+    """
+
+    DEFAULT = "default"
+    """
+    The value the action takes when a step leaves the field out.
+    """
+
+    ENUM_TYPE = "enumType"
+    """
+    The enumeration of an enumeration field.
+    """
+
+    MEMBERS = "members"
+    """
+    The members of the enumeration.
+    """
+
+    ANNOTATION = "annotation"
+    """
+    The annotation class of an annotation field.
+    """
+
+    ACCEPTS_SURFACE = "acceptsSurface"
+    """
+    Whether a pose field also takes a surface.
+    """
+
+    DERIVED_FROM = "derivedFrom"
+    """
+    The fields a derived field is computed from.
+    """
+
+    DOCUMENTATION = "documentation"
+    """
+    What the field means.
+    """
+
+
+@dataclass(kw_only=True)
+class ActionField(JsonDocument):
+    """
+    One keyword argument of a native action the builder offers, with what it holds.
+    """
+
+    name: str = document_field(ActionFieldKey.NAME)
+    """
+    The keyword argument, which a step's values are keyed by.
+    """
+
+    label: str = document_field(ActionFieldKey.LABEL)
+    """
+    The display name.
+    """
+
+    kind: ActionFieldKind = document_field(ActionFieldKey.KIND)
+    """
+    What the field holds.
+    """
+
+    required: bool = document_field(ActionFieldKey.REQUIRED)
+    """
+    Whether a step must give the field before its demo runs.
+    """
+
+    default: Any = document_field(ActionFieldKey.DEFAULT, default=None)
+    """
+    The JSON form of the value the action takes when a step leaves the field out, or
+    None when it has none or none JSON can hold.
+    """
+
+    enum_type: Optional[str] = document_field(ActionFieldKey.ENUM_TYPE, default=None)
+    """
+    The class name of the enumeration of an :attr:`ActionFieldKind.ENUM` field.
+    """
+
+    members: List[str] = document_field(ActionFieldKey.MEMBERS, default_factory=list)
+    """
+    The names of the enumeration's members, in their order.
+    """
+
+    annotation: Optional[str] = document_field(ActionFieldKey.ANNOTATION, default=None)
+    """
+    The class name of the semantic annotation an :attr:`ActionFieldKind.ANNOTATION`
+    field names an entity of.
+    """
+
+    accepts_surface: bool = document_field(
+        ActionFieldKey.ACCEPTS_SURFACE, default=False
+    )
+    """
+    Whether the field takes a surface besides a pose; its value is then a
+    :class:`Destination`.
+    """
+
+    derived_from: List[str] = document_field(
+        ActionFieldKey.DERIVED_FROM, default_factory=list
+    )
+    """
+    The names of the fields an :attr:`ActionFieldKind.GRASP` field is derived from: the
+    arm and the object.
+    """
+
+    documentation: str = document_field(ActionFieldKey.DOCUMENTATION, default="")
+    """
+    What the field means, as its attribute docstring says, or the empty text.
+    """
+
+
+class HiddenActionFieldKey(StrEnum):
+    """
+    The keys of a field the builder leaves at its default.
+    """
+
+    NAME = "name"
+    """
+    The field's keyword argument.
+    """
+
+    TYPE = "type"
+    """
+    The field's type.
+    """
+
+
+@dataclass(kw_only=True)
+class HiddenActionField(JsonDocument):
+    """
+    A field with a default whose type the builder has no form control for; the action
+    keeps its default.
+    """
+
+    name: str = document_field(HiddenActionFieldKey.NAME)
+    """
+    The keyword argument.
+    """
+
+    type_name: str = document_field(HiddenActionFieldKey.TYPE)
+    """
+    The field's type as text, or why it cannot be resolved.
+    """
+
+
+class ActionSchemaKey(StrEnum):
+    """
+    The keys of one action schema.
+    """
+
+    NAME = "name"
+    """
+    The action's class name.
+    """
+
+    MODULE = "module"
+    """
+    The module defining the class.
+    """
+
+    LABEL = "label"
+    """
+    The action's display name.
+    """
+
+    GROUP = "group"
+    """
+    The package the action belongs to.
+    """
+
+    DOCUMENTATION = "documentation"
+    """
+    What the action does.
+    """
+
+    FIELDS = "fields"
+    """
+    The fields a step gives.
+    """
+
+    HIDDEN = "hidden"
+    """
+    The fields left at their default.
+    """
+
+    AVAILABLE = "available"
+    """
+    Whether a step can be this action.
+    """
+
+    UNAVAILABLE_REASON = "unavailableReason"
+    """
+    Why a step cannot be this action.
+    """
+
+
+@dataclass(kw_only=True)
+class ActionSchema(JsonDocument):
+    """
+    A native action of the CRAM workspace as the builder offers it: its fields, read
+    from the action's dataclass fields, and whether every required one has a form
+    control.
+    """
+
+    name: str = document_field(ActionSchemaKey.NAME)
+    """
+    The action's class name, which a step stores.
+    """
+
+    module: str = document_field(ActionSchemaKey.MODULE)
+    """
+    The module defining the class.
+    """
+
+    label: str = document_field(ActionSchemaKey.LABEL)
+    """
+    The display name: the words of the class name without the ``Action`` suffix.
+    """
+
+    group: str = document_field(ActionSchemaKey.GROUP)
+    """
+    The package below the actions package the module lies in, mostly an
+    :class:`ActionGroup` value.
+    """
+
+    documentation: str = document_field(ActionSchemaKey.DOCUMENTATION, default="")
+    """
+    The first paragraph of the class's docstring, or the empty text.
+    """
+
+    fields: List[ActionField] = document_field(
+        ActionSchemaKey.FIELDS, default_factory=list
+    )
+    """
+    The fields a step gives, required ones first, in the order the class declares them.
+    """
+
+    hidden: List[HiddenActionField] = document_field(
+        ActionSchemaKey.HIDDEN, default_factory=list
+    )
+    """
+    The fields with a default the builder has no form control for.
+    """
+
+    available: bool = document_field(ActionSchemaKey.AVAILABLE, default=True)
+    """
+    Whether a step can be this action.
+    """
+
+    unavailable_reason: Optional[str] = document_field(
+        ActionSchemaKey.UNAVAILABLE_REASON, default=None
+    )
+    """
+    Why a step cannot be this action, or None for an available one.
+    """
+
+    def field_named(self, name: str) -> Optional[ActionField]:
+        """
+        :param name: A keyword argument.
+        :return: The field of that name, or None.
+        """
+        for candidate in self.fields:
+            if candidate.name == name:
+                return candidate
+        return None
+
+
+class FailedActionModuleKey(StrEnum):
+    """
+    The keys of an action module that cannot be imported.
+    """
+
+    MODULE = "module"
+    """
+    The module's name.
+    """
+
+    ERROR = "error"
+    """
+    What importing it raised.
+    """
+
+
+@dataclass(kw_only=True)
+class FailedActionModule(JsonDocument):
+    """
+    A module of the actions package that cannot be imported, so its actions are not
+    offered.
+    """
+
+    module: str = document_field(FailedActionModuleKey.MODULE)
+    """
+    The module's name.
+    """
+
+    error: str = document_field(FailedActionModuleKey.ERROR)
+    """
+    The class and message of the error importing it raised.
+    """
+
+
+class ActionCatalogKey(StrEnum):
+    """
+    The keys of the discovered actions.
+    """
+
+    ACTIONS = "actions"
+    """
+    The action schemas.
+    """
+
+    FAILED_MODULES = "failedModules"
+    """
+    The action modules that cannot be imported.
+    """
+
+
+@dataclass(kw_only=True)
+class ActionCatalog(JsonDocument):
+    """
+    The native actions found in the CRAM workspace's actions package.
+    """
+
+    actions: List[ActionSchema] = document_field(
+        ActionCatalogKey.ACTIONS, default_factory=list
+    )
+    """
+    The action schemas, core actions first, then by label.
+    """
+
+    failed_modules: List[FailedActionModule] = document_field(
+        ActionCatalogKey.FAILED_MODULES, default_factory=list
+    )
+    """
+    The modules that cannot be imported, sorted by name.
+    """
+
+
 # %% catalog
 
 
@@ -1084,14 +1789,9 @@ class RobotModelKey(StrEnum):
     The module defining the class.
     """
 
-    STEPS = "steps"
+    CHOICES = "choices"
     """
-    The step kinds the robot's parts allow.
-    """
-
-    ARMS = "arms"
-    """
-    The arm choices the robot's parts allow.
+    The members of the enumerations whose choices depend on the robot.
     """
 
 
@@ -1111,14 +1811,13 @@ class RobotModel(JsonDocument):
     The module defining the annotation class.
     """
 
-    steps: List[StepKind] = document_field(RobotModelKey.STEPS, default_factory=list)
+    choices: Dict[str, List[str]] = document_field(
+        RobotModelKey.CHOICES, default_factory=dict
+    )
     """
-    The step kinds the robot's parts allow, in the order :class:`StepKind` lists them.
-    """
-
-    arms: List[str] = document_field(RobotModelKey.ARMS, default_factory=list)
-    """
-    The names of the native arm choices the robot's arms allow.
+    The names of the members the robot's parts allow, by the class name of their
+    enumeration: the arm choices of its arms, the torso states when it has a torso and
+    none otherwise. An enumeration not listed offers all its members.
     """
 
 
@@ -1175,14 +1874,19 @@ class PlanBuilderCatalogKey(StrEnum):
     The object models.
     """
 
-    TORSO_STATES = "torsoStates"
-    """
-    The torso heights.
-    """
-
     SURFACE_TYPES = "surfaceTypes"
     """
     The classes of surfaces objects can be put on or in.
+    """
+
+    ACTIONS = "actions"
+    """
+    The native actions a step can be.
+    """
+
+    FAILED_ACTION_MODULES = "failedActionModules"
+    """
+    The action modules that cannot be imported.
     """
 
     CONSTRAINT_RULES = "constraintRules"
@@ -1243,18 +1947,25 @@ class PlanBuilderCatalog(JsonDocument):
     The object meshes of the CRAM workspace, sorted by identifier.
     """
 
-    torso_states: List[str] = document_field(
-        PlanBuilderCatalogKey.TORSO_STATES, default_factory=list
-    )
-    """
-    The names of the native torso states.
-    """
-
     surface_types: List[str] = document_field(
         PlanBuilderCatalogKey.SURFACE_TYPES, default_factory=list
     )
     """
     The class names of the native annotations with a supporting surface, sorted.
+    """
+
+    actions: List[ActionSchema] = document_field(
+        PlanBuilderCatalogKey.ACTIONS, default_factory=list
+    )
+    """
+    The native actions of the CRAM workspace, available or not; empty without CRAM.
+    """
+
+    failed_action_modules: List[FailedActionModule] = document_field(
+        PlanBuilderCatalogKey.FAILED_ACTION_MODULES, default_factory=list
+    )
+    """
+    The modules of the actions package that cannot be imported.
     """
 
     constraint_rules: List[ConstraintRule] = document_field(
@@ -1282,8 +1993,8 @@ class PlanBuilderCatalog(JsonDocument):
         PlanBuilderCatalogKey.MISSING, default_factory=list
     )
     """
-    The CRAM modules that cannot be found; robots, objects, torso states and surfaces
-    stay empty while one is missing.
+    The CRAM modules that cannot be found; robots, objects, surfaces and actions stay
+    empty while one is missing.
     """
 
 

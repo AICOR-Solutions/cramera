@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-from typing_extensions import Any, List
+from typing_extensions import Any, List, Optional
 
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.plugins import PluginPrefixRoute, PluginRoute, RouteDeclaration
@@ -21,6 +21,7 @@ from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.workspace import WorkspaceLoader
 from cramera_protocol.plan_builder import (
+    ActionSchema,
     ConstraintText,
     DemoDocument,
     PlanBuilderCatalog,
@@ -148,17 +149,19 @@ class PlanBuilderRoutes:
 
     def catalog(self) -> PlanBuilderCatalog:
         """
-        :return: What the builder offers: the workspace's robots and objects, the
-            viewer's bundles without a robot, the rules and the saved plans.
+        :return: What the builder offers: the workspace's robots, objects and actions,
+            the viewer's bundles without a robot, the rules and the saved plans.
         """
         workspace = self.workspace.workspace()
+        actions = workspace.action_catalog()
         return PlanBuilderCatalog(
             live_url=self.live_url,
             robots=workspace.robots(),
             environments=EnvironmentBundles(self.scenes).entries(),
             objects=workspace.objects(),
-            torso_states=workspace.torso_states(),
             surface_types=workspace.surface_types(),
+            actions=actions.actions,
+            failed_action_modules=actions.failed_modules,
             constraint_rules=list(self.compiler.book.rules),
             plans=self.plans.summaries(),
             limits=self.limits,
@@ -218,7 +221,19 @@ class PlanBuilderRoutes:
         """
         text = ConstraintText.from_json(self.body(request))
         PlanCheck(self.limits).text(PlanBuilderRoute.CONSTRAINT, text.text)
-        return Response.of_json(self.compiler.compile(text))
+        return Response.of_json(
+            self.compiler.compile(text, self.action_schema(text.step_action))
+        )
+
+    def action_schema(self, name: Optional[str]) -> Optional[ActionSchema]:
+        """
+        :param name: An action's class name, or None.
+        :return: The schema of the workspace's action of that name, or None.
+        """
+        for schema in self.workspace.workspace().action_catalog().actions:
+            if schema.name == name:
+                return schema
+        return None
 
     # %% demos
 
@@ -232,7 +247,7 @@ class PlanBuilderRoutes:
         check = PlanCheck(self.limits)
         check.check(plan)
         check.complete(plan)
-        CatalogCheck(self.catalog()).check(plan)
+        CatalogCheck(self.catalog(), self.limits).check(plan)
         if plan.environment is None:
             return DemoDocument(plan=plan)
         directory = self.scenes.directory_of(plan.environment).path / plan.environment

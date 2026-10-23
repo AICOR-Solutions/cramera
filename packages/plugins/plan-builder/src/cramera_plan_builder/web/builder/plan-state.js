@@ -5,6 +5,10 @@
  */
 
 import {
+  ActionFieldKey,
+  ActionFieldKind,
+  ActionSchemaKey,
+  DestinationKey,
   ObjectModelKey,
   PlacementMode,
   PlanBuilderCatalogKey,
@@ -15,7 +19,6 @@ import {
   PlanStepKey,
   RobotModelKey,
   StepConstraintKey,
-  StepKind,
 } from '../../../protocol.js';
 import { PlanPose } from './poses.js';
 
@@ -48,8 +51,8 @@ const ROBOT_SPACING = 1.5;
  * Where the builder puts what it adds relative to the robot, in metres.
  */
 const Placement = Object.freeze({
-  NAVIGATION_AHEAD: 1.0,
-  NEXT_NAVIGATION_STEP: 0.4,
+  TARGET_AHEAD: 1.0,
+  NEXT_TARGET_STEP: 0.4,
   OBJECT_AHEAD: 0.7,
   OBJECT_HEIGHT: 0.8,
   OBJECT_SPREAD: 0.15,
@@ -57,19 +60,20 @@ const Placement = Object.freeze({
 });
 
 /**
- * The step kinds that act on an object.
+ * The field kinds whose values are poses, alone or inside a destination.
  */
-export const OBJECT_STEPS = Object.freeze([StepKind.TRANSPORT, StepKind.PICK_UP, StepKind.PLACE]);
+const POSE_KINDS = Object.freeze([ActionFieldKind.POSE, ActionFieldKind.POSE_OR_SURFACE]);
 
 /**
- * The step kinds that put an object down, at a pose or on a surface.
+ * The field kinds whose value is a plain JSON value of one type, with the type it has.
  */
-export const PUTTING_DOWN = Object.freeze([StepKind.TRANSPORT, StepKind.PLACE]);
-
-/**
- * The step kinds that use an arm.
- */
-const ARM_STEPS = Object.freeze([StepKind.PARK_ARMS, ...OBJECT_STEPS]);
+const PLAIN_TYPES = Object.freeze({
+  [ActionFieldKind.NUMBER]: 'number',
+  [ActionFieldKind.INTEGER]: 'number',
+  [ActionFieldKind.BOOLEAN]: 'boolean',
+  [ActionFieldKind.TEXT]: 'string',
+  [ActionFieldKind.ANNOTATION]: 'string',
+});
 
 // %% errors
 
@@ -108,7 +112,13 @@ export class PlanState {
     this.#plan = structuredClone(plan);
     this.#plan[PlanKey.ROBOTS] ??= [];
     this.#plan[PlanKey.OBJECTS] ??= [];
-    for (const robot of this.#plan[PlanKey.ROBOTS]) robot[PlannedRobotKey.STEPS] ??= [];
+    for (const robot of this.#plan[PlanKey.ROBOTS]) {
+      robot[PlannedRobotKey.STEPS] ??= [];
+      for (const step of robot[PlannedRobotKey.STEPS]) {
+        step[PlanStepKey.VALUES] ??= {};
+        step[PlanStepKey.CONSTRAINTS] ??= [];
+      }
+    }
     this.#activeRobot = plan[PlanKey.SELECTED_ROBOT] ?? this.robots()[0]?.[PlannedRobotKey.IDENTIFIER] ?? null;
   }
 
@@ -118,14 +128,15 @@ export class PlanState {
    * @param {string|null=} preferred The robot model to start with when the catalog has
    *   it.
    * @returns {PlanState} A new plan with one robot: of the preferred model, else of the
-   *   model offering the most steps.
+   *   model offering the most actions.
    */
   static empty(catalog, environment, preferred = null) {
     const plan = { [PlanKey.NAME]: NEW_PLAN_NAME };
     if (environment) plan[PlanKey.ENVIRONMENT] = environment;
     const state = new PlanState(catalog, plan);
+    const offered = (model) => state.offeredActions({ [PlannedRobotKey.MODEL]: model[RobotModelKey.NAME] }).length;
     const models = [...catalog[PlanBuilderCatalogKey.ROBOTS]];
-    models.sort((first, second) => second[RobotModelKey.STEPS].length - first[RobotModelKey.STEPS].length);
+    models.sort((first, second) => offered(second) - offered(first));
     const chosen = models.find((model) => model[RobotModelKey.NAME] === preferred) ?? models[0];
     if (chosen) state.addRobot(chosen[RobotModelKey.NAME]);
     return state;
@@ -172,6 +183,63 @@ export class PlanState {
    */
   field(key) {
     return this.#plan[key] ?? '';
+  }
+
+  // %% actions
+
+  /**
+   * @returns {Array<Object>} Every action schema of the catalog, available or not.
+   */
+  actions() {
+    return this.#catalog[PlanBuilderCatalogKey.ACTIONS] ?? [];
+  }
+
+  /**
+   * @param {string} name An action's class name.
+   * @returns {Object|null} Its schema, or null when the catalog has none.
+   */
+  schema(name) {
+    return this.actions().find((schema) => schema[ActionSchemaKey.NAME] === name) ?? null;
+  }
+
+  /**
+   * @param {Object} robot A robot of the plan.
+   * @param {Object} field An enumeration field of an action schema.
+   * @returns {Array<string>} The members the robot's model offers for it: its own
+   *   choices of the enumeration, else every member.
+   */
+  choices(robot, field) {
+    const choices = this.model(robot[PlannedRobotKey.MODEL])[RobotModelKey.CHOICES] ?? {};
+    return choices[field[ActionFieldKey.ENUM_TYPE]] ?? field[ActionFieldKey.MEMBERS] ?? [];
+  }
+
+  /**
+   * @param {Object} robot A robot of the plan.
+   * @param {Object} schema An action schema.
+   * @returns {string|null} Why the robot cannot take the action, or null when it can:
+   *   the action is available and every required enumeration offers a member.
+   */
+  refusal(robot, schema) {
+    if (!schema[ActionSchemaKey.AVAILABLE]) return schema[ActionSchemaKey.UNAVAILABLE_REASON] ?? 'unavailable';
+    const lacking = PlanState.fields(schema).find((field) => field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] === ActionFieldKind.ENUM && this.choices(robot, field).length === 0);
+    return lacking ? `${robot[PlannedRobotKey.MODEL]} offers no ${lacking[ActionFieldKey.ENUM_TYPE]} for field '${lacking[ActionFieldKey.NAME]}'` : null;
+  }
+
+  /**
+   * @param {Object} robot A robot of the plan.
+   * @returns {Array<Object>} The schemas of the actions the robot can take, in the
+   *   catalog's order.
+   */
+  offeredActions(robot) {
+    return this.actions().filter((schema) => this.refusal(robot, schema) === null);
+  }
+
+  /**
+   * @param {Object} schema An action schema.
+   * @returns {Array<Object>} Its fields, required ones first.
+   */
+  static fields(schema) {
+    return schema[ActionSchemaKey.FIELDS] ?? [];
   }
 
   // %% robots
@@ -221,23 +289,6 @@ export class PlanState {
   }
 
   /**
-   * @param {Object} robot A robot of the plan.
-   * @returns {Array<string>} The `StepKind` values its model offers.
-   */
-  offeredSteps(robot) {
-    return this.model(robot[PlannedRobotKey.MODEL])[RobotModelKey.STEPS];
-  }
-
-  /**
-   * @param {Object} robot A robot of the plan.
-   * @returns {Array<string>} The arm choices its model offers; the choice naming every
-   *   arm comes last.
-   */
-  offeredArms(robot) {
-    return this.model(robot[PlannedRobotKey.MODEL])[RobotModelKey.ARMS];
-  }
-
-  /**
    * @param {string} modelName The class name of a robot model.
    * @returns {string} The new robot's identity; it is edited from now on.
    * @throws {PlanRefused} When the plan holds as many robots as it may.
@@ -273,9 +324,10 @@ export class PlanState {
   }
 
   /**
-   * Change a robot's model, keeping the steps the new model offers with arms it has;
-   * its posture belongs to the old model and is dropped, and a name made from the old
-   * model's name takes the new one's.
+   * Change a robot's model, keeping the steps whose actions the new model can take and
+   * moving their enumeration values to members it offers; its posture belongs to the
+   * old model and is dropped, and a name made from the old model's name takes the new
+   * one's.
    * @param {string} identifier The robot's identity.
    * @param {string} modelName The class name of the new model.
    * @returns {number} How many steps were dropped.
@@ -287,11 +339,15 @@ export class PlanState {
     if (robot[PlannedRobotKey.LABEL].startsWith(`${previous} `)) robot[PlannedRobotKey.LABEL] = `${modelName}${robot[PlannedRobotKey.LABEL].slice(previous.length)}`;
     robot[PlannedRobotKey.MODEL] = modelName;
     robot[PlannedRobotKey.JOINT_POSITIONS] = {};
-    const offered = this.offeredSteps(robot);
-    const arms = this.offeredArms(robot);
-    const kept = robot[PlannedRobotKey.STEPS].filter((step) => offered.includes(step[PlanStepKey.KIND]));
+    const offered = new Set(this.offeredActions(robot).map((schema) => schema[ActionSchemaKey.NAME]));
+    const kept = robot[PlannedRobotKey.STEPS].filter((step) => offered.has(step[PlanStepKey.ACTION]));
     for (const step of kept) {
-      if (step[PlanStepKey.ARM] !== undefined && !arms.includes(step[PlanStepKey.ARM])) step[PlanStepKey.ARM] = this.#defaultArm(robot, step[PlanStepKey.KIND]);
+      const values = step[PlanStepKey.VALUES];
+      for (const field of PlanState.fields(this.schema(step[PlanStepKey.ACTION]))) {
+        const name = field[ActionFieldKey.NAME];
+        if (field[ActionFieldKey.KIND] !== ActionFieldKind.ENUM || values[name] === undefined) continue;
+        if (!this.choices(robot, field).includes(values[name])) values[name] = this.#defaultMember(robot, field);
+      }
     }
     const dropped = robot[PlannedRobotKey.STEPS].length - kept.length;
     robot[PlannedRobotKey.STEPS] = kept;
@@ -343,23 +399,31 @@ export class PlanState {
   }
 
   /**
-   * Add a step to the edited robot with parameters it can run with right away.
-   * @param {string} kind A `StepKind` value the robot's model offers.
+   * Add a step to the edited robot with the values it can run with right away: the
+   * first object, the robot's first choice or the field's default, a target ahead of
+   * the robot or beside the object it puts down.
+   * @param {string} action The class name of an action the robot can take.
    * @param {number=} index Where the step goes; at the end by default.
    * @returns {string} The step's identity.
-   * @throws {PlanRefused} When the model does not offer the kind or the plan is full.
+   * @throws {PlanRefused} When the robot cannot take the action or the plan is full.
    */
-  addStep(kind, index = this.steps().length) {
+  addStep(action, index = this.steps().length) {
     const robot = this.activeRobot();
-    if (!robot || !this.offeredSteps(robot).includes(kind)) throw new PlanRefused(`The robot cannot ${kind}.`);
+    const schema = this.schema(action);
+    const refusal = robot && schema ? this.refusal(robot, schema) : `the catalog has no action ${action}`;
+    if (refusal !== null) throw new PlanRefused(`The robot cannot take ${action}: ${refusal}.`);
     this.#within(this.steps(), PlanBuilderLimitsKey.MAXIMUM_STEPS);
     const identifier = this.#nextIdentity(IdentityPrefix.STEP, this.steps().map((step) => step[PlanStepKey.IDENTIFIER]));
-    const step = { [PlanStepKey.IDENTIFIER]: identifier, [PlanStepKey.KIND]: kind, [PlanStepKey.CONSTRAINTS]: [] };
-    if (ARM_STEPS.includes(kind)) step[PlanStepKey.ARM] = this.#defaultArm(robot, kind);
-    if (kind === StepKind.MOVE_TORSO) step[PlanStepKey.TORSO_STATE] = this.#catalog[PlanBuilderCatalogKey.TORSO_STATES][0];
-    if (kind === StepKind.NAVIGATE) step[PlanStepKey.TARGET] = this.#nextNavigationTarget(robot);
-    if (OBJECT_STEPS.includes(kind) && this.objects().length > 0) step[PlanStepKey.OBJECT] = this.objects()[0][PlannedObjectKey.IDENTIFIER];
-    if (PUTTING_DOWN.includes(kind)) this.#putDownBeside(step);
+    const step = { [PlanStepKey.IDENTIFIER]: identifier, [PlanStepKey.ACTION]: action, [PlanStepKey.VALUES]: {}, [PlanStepKey.CONSTRAINTS]: [] };
+    const values = step[PlanStepKey.VALUES];
+    for (const field of PlanState.fields(schema)) {
+      if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] === ActionFieldKind.BODY && this.objects().length > 0) values[field[ActionFieldKey.NAME]] = this.objects()[0][PlannedObjectKey.IDENTIFIER];
+    }
+    for (const field of PlanState.fields(schema)) {
+      if (!field[ActionFieldKey.REQUIRED]) continue;
+      const value = this.#defaultValue(robot, schema, field, step);
+      if (value !== undefined) values[field[ActionFieldKey.NAME]] = value;
+    }
     this.steps().splice(index, 0, step);
     return identifier;
   }
@@ -388,16 +452,94 @@ export class PlanState {
 
   /**
    * @param {string} identifier A step of the edited robot.
-   * @param {Object} changes Parameters by their `PlanStepKey`; null removes one.
+   * @param {string} name The name of a field of the step's action.
+   * @param {*} value Its JSON value; null leaves the field to the action's default.
    */
-  updateStep(identifier, changes) {
+  setValue(identifier, name, value) {
+    const values = this.step(identifier)[PlanStepKey.VALUES];
+    if (value === null) delete values[name];
+    else values[name] = value;
+  }
+
+  /**
+   * Choose whether a field accepting a surface names a pose or a surface; a pose starts
+   * beside the step's object, a surface as the catalog's first surface type.
+   * @param {string} identifier A step of the edited robot.
+   * @param {string} name The name of a field accepting a surface.
+   * @param {string} placement A `PlacementMode` value.
+   */
+  setPlacement(identifier, name, placement) {
     const step = this.step(identifier);
-    for (const [key, value] of Object.entries(changes)) {
-      if (value === null) delete step[key];
-      else step[key] = value;
+    const destination = { ...(step[PlanStepKey.VALUES][name] ?? {}), [DestinationKey.PLACEMENT]: placement };
+    if (placement === PlacementMode.POSE) destination[DestinationKey.POSE] ??= this.#besideObject(step);
+    if (placement === PlacementMode.SURFACE) destination[DestinationKey.SURFACE_TYPE] ??= this.#catalog[PlanBuilderCatalogKey.SURFACE_TYPES][0];
+    step[PlanStepKey.VALUES][name] = destination;
+  }
+
+  /**
+   * @param {Object} step A step of the plan.
+   * @returns {string|undefined} The identity of the object it acts on: the value of
+   *   its action's first body field.
+   */
+  stepObject(step) {
+    const body = PlanState.fields(this.schema(step[PlanStepKey.ACTION]) ?? {}).find((field) => field[ActionFieldKey.KIND] === ActionFieldKind.BODY);
+    return body ? step[PlanStepKey.VALUES][body[ActionFieldKey.NAME]] : undefined;
+  }
+
+  /**
+   * @param {Object} step A step of the plan.
+   * @returns {Array<{field: string, pose: Array<number>, object: string|undefined}>}
+   *   The poses the step names: each pose field's pose, and each destination at a pose
+   *   with the object put down there.
+   */
+  targets(step) {
+    const targets = [];
+    for (const field of PlanState.fields(this.schema(step[PlanStepKey.ACTION]) ?? {})) {
+      const name = field[ActionFieldKey.NAME];
+      const value = step[PlanStepKey.VALUES][name];
+      if (!POSE_KINDS.includes(field[ActionFieldKey.KIND]) || value === undefined) continue;
+      if (!field[ActionFieldKey.ACCEPTS_SURFACE]) targets.push({ field: name, pose: value, object: undefined });
+      else if (value[DestinationKey.PLACEMENT] !== PlacementMode.SURFACE && value[DestinationKey.POSE]) targets.push({ field: name, pose: value[DestinationKey.POSE], object: this.stepObject(step) });
     }
-    if (changes[PlanStepKey.PLACEMENT] === PlacementMode.POSE && step[PlanStepKey.TARGET] === undefined) this.#putDownBeside(step);
-    if (changes[PlanStepKey.PLACEMENT] === PlacementMode.SURFACE) step[PlanStepKey.SURFACE_TYPE] ??= this.#catalog[PlanBuilderCatalogKey.SURFACE_TYPES][0];
+    return targets;
+  }
+
+  /**
+   * @param {string} identifier A step of the edited robot.
+   * @param {string} name A pose field, or a field accepting a surface.
+   * @param {Array<number>} pose The field's new pose.
+   */
+  setTarget(identifier, name, pose) {
+    const step = this.step(identifier);
+    const field = PlanState.fields(this.schema(step[PlanStepKey.ACTION])).find((candidate) => candidate[ActionFieldKey.NAME] === name);
+    if (field?.[ActionFieldKey.ACCEPTS_SURFACE]) step[PlanStepKey.VALUES][name] = { [DestinationKey.PLACEMENT]: PlacementMode.POSE, [DestinationKey.POSE]: pose };
+    else step[PlanStepKey.VALUES][name] = pose;
+  }
+
+  /**
+   * @param {Object} step A step of the edited robot.
+   * @returns {Array<string>} What keeps the step from running as it stands, checked
+   *   against its action's schema and the robot's choices: the server refuses such a
+   *   step when a demo is written or run.
+   */
+  problems(step) {
+    const schema = this.schema(step[PlanStepKey.ACTION]);
+    if (!schema) return [`The installed CRAM offers no action ${step[PlanStepKey.ACTION]}.`];
+    const robot = this.activeRobot();
+    const refusal = this.refusal(robot, schema);
+    if (refusal !== null) return [`${schema[ActionSchemaKey.LABEL]} is not available: ${refusal}.`];
+    const problems = [];
+    const values = step[PlanStepKey.VALUES];
+    const fields = new Map(PlanState.fields(schema).map((field) => [field[ActionFieldKey.NAME], field]));
+    for (const [name, value] of Object.entries(values)) {
+      const field = fields.get(name);
+      if (!field) problems.push(`${schema[ActionSchemaKey.LABEL]} has no field '${name}'.`);
+      else if (!this.#fits(robot, field, value)) problems.push(`Field '${name}' cannot be ${JSON.stringify(value)}.`);
+    }
+    for (const field of fields.values()) {
+      if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] !== ActionFieldKind.GRASP && values[field[ActionFieldKey.NAME]] === undefined) problems.push(`Field '${field[ActionFieldKey.NAME]}' needs a value.`);
+    }
+    return problems;
   }
 
   /**
@@ -484,9 +626,13 @@ export class PlanState {
     const replacement = this.objects()[0]?.[PlannedObjectKey.IDENTIFIER];
     for (const robot of this.robots()) {
       for (const step of robot[PlannedRobotKey.STEPS]) {
-        if (step[PlanStepKey.OBJECT] !== identifier) continue;
-        if (replacement === undefined) delete step[PlanStepKey.OBJECT];
-        else step[PlanStepKey.OBJECT] = replacement;
+        const values = step[PlanStepKey.VALUES];
+        for (const field of PlanState.fields(this.schema(step[PlanStepKey.ACTION]) ?? {})) {
+          const name = field[ActionFieldKey.NAME];
+          if (field[ActionFieldKey.KIND] !== ActionFieldKind.BODY || values[name] !== identifier) continue;
+          if (replacement === undefined) delete values[name];
+          else values[name] = replacement;
+        }
       }
     }
   }
@@ -512,46 +658,81 @@ export class PlanState {
   // %% defaults
 
   /**
-   * @param {Object} robot A robot of the plan.
-   * @param {string} kind A `StepKind` value using an arm.
-   * @returns {string} Parking uses every arm, other steps the first choice.
+   * @param {Object} robot The robot taking the step.
+   * @param {Object} schema The step's action.
+   * @param {Object} field A required field of it.
+   * @param {Object} step The step being added, with its objects chosen.
+   * @returns {*} The field's starting value, or undefined to leave it for the person.
    */
-  #defaultArm(robot, kind) {
-    const arms = this.offeredArms(robot);
-    return kind === StepKind.PARK_ARMS ? arms[arms.length - 1] : arms[0];
+  #defaultValue(robot, schema, field, step) {
+    const kind = field[ActionFieldKey.KIND];
+    if (kind === ActionFieldKind.ENUM) return this.#defaultMember(robot, field);
+    if (POSE_KINDS.includes(kind) && field[ActionFieldKey.ACCEPTS_SURFACE]) return { [DestinationKey.PLACEMENT]: PlacementMode.POSE, [DestinationKey.POSE]: this.#besideObject(step) };
+    if (kind === ActionFieldKind.POSE) return this.#nextTarget(robot, schema, field);
+    if (kind in PLAIN_TYPES && kind !== ActionFieldKind.ANNOTATION) return field[ActionFieldKey.DEFAULT] ?? undefined;
+    return undefined;
   }
 
   /**
    * @param {Object} robot A robot of the plan.
-   * @returns {Array<number>} A little beyond its last navigation target, or ahead of it.
+   * @param {Object} field An enumeration field.
+   * @returns {string|undefined} The field's default when the robot offers it, else the
+   *   robot's first choice.
    */
-  #nextNavigationTarget(robot) {
-    const previous = robot[PlannedRobotKey.STEPS].filter((step) => step[PlanStepKey.KIND] === StepKind.NAVIGATE).pop();
+  #defaultMember(robot, field) {
+    const choices = this.choices(robot, field);
+    return choices.includes(field[ActionFieldKey.DEFAULT]) ? field[ActionFieldKey.DEFAULT] : choices[0];
+  }
+
+  /**
+   * @param {Object} robot A robot of the plan.
+   * @param {Object} schema An action.
+   * @param {Object} field One of its pose fields.
+   * @returns {Array<number>} A little beyond the same field's pose in the robot's last
+   *   step of the action, or ahead of the robot on the floor.
+   */
+  #nextTarget(robot, schema, field) {
+    const name = field[ActionFieldKey.NAME];
+    const previous = robot[PlannedRobotKey.STEPS].filter((step) => step[PlanStepKey.ACTION] === schema[ActionSchemaKey.NAME] && PlanPose.isPose(step[PlanStepKey.VALUES][name])).pop();
     if (previous) {
-      const [x, y, z] = PlanPose.position(previous[PlanStepKey.TARGET]);
-      return PlanPose.moved(previous[PlanStepKey.TARGET], [x + Placement.NEXT_NAVIGATION_STEP, y, z]);
+      const pose = previous[PlanStepKey.VALUES][name];
+      const [x, y, z] = PlanPose.position(pose);
+      return PlanPose.moved(pose, [x + Placement.NEXT_TARGET_STEP, y, z]);
     }
     const pose = robot[PlannedRobotKey.POSE];
     const [x, y] = PlanPose.position(pose);
     const yaw = PlanPose.yaw(pose);
-    return PlanPose.of(
-      PlanPose.rounded(x + Placement.NAVIGATION_AHEAD * Math.cos(yaw)),
-      PlanPose.rounded(y + Placement.NAVIGATION_AHEAD * Math.sin(yaw)),
-      0,
-      yaw,
-    );
+    return PlanPose.of(PlanPose.rounded(x + Placement.TARGET_AHEAD * Math.cos(yaw)), PlanPose.rounded(y + Placement.TARGET_AHEAD * Math.sin(yaw)), 0, yaw);
   }
 
   /**
-   * Put a step's object down beside where it starts.
    * @param {Object} step A step that puts an object down.
+   * @returns {Array<number>|undefined} A pose beside where the step's object starts,
+   *   or undefined without an object.
    */
-  #putDownBeside(step) {
-    const placed = this.objects().find((item) => item[PlannedObjectKey.IDENTIFIER] === step[PlanStepKey.OBJECT]);
-    step[PlanStepKey.PLACEMENT] ??= PlacementMode.POSE;
-    if (!placed) return;
+  #besideObject(step) {
+    const placed = this.objects().find((item) => item[PlannedObjectKey.IDENTIFIER] === this.stepObject(step));
+    if (!placed) return undefined;
     const [x, y, z] = PlanPose.position(placed[PlannedObjectKey.POSE]);
-    step[PlanStepKey.TARGET] = PlanPose.moved(placed[PlannedObjectKey.POSE], [x, y + Placement.PUT_DOWN_BESIDE, z]);
+    return PlanPose.moved(placed[PlannedObjectKey.POSE], [x, y + Placement.PUT_DOWN_BESIDE, z]);
+  }
+
+  /**
+   * @param {Object} robot The robot taking the step.
+   * @param {Object} field A field of the step's action.
+   * @param {*} value A value of the step.
+   * @returns {boolean} Whether the value fits the field's kind and the robot's choices.
+   */
+  #fits(robot, field, value) {
+    const kind = field[ActionFieldKey.KIND];
+    if (kind === ActionFieldKind.GRASP) return false;
+    if (kind === ActionFieldKind.BODY) return this.objects().some((item) => item[PlannedObjectKey.IDENTIFIER] === value);
+    if (kind === ActionFieldKind.ENUM) return this.choices(robot, field).includes(value);
+    if (kind === ActionFieldKind.INTEGER) return Number.isInteger(value);
+    if (kind in PLAIN_TYPES) return typeof value === PLAIN_TYPES[kind];
+    if (!field[ActionFieldKey.ACCEPTS_SURFACE]) return PlanPose.isPose(value);
+    if (value?.[DestinationKey.PLACEMENT] === PlacementMode.SURFACE) return typeof value[DestinationKey.SURFACE_TYPE] === 'string';
+    return PlanPose.isPose(value?.[DestinationKey.POSE]);
   }
 
   /**

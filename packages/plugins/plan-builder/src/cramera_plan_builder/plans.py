@@ -1,6 +1,6 @@
 """
-Checking plans against the builder's limits and its catalog, and keeping them in the
-plan directory.
+Checking plans against the builder's limits and its catalog, the steps' values against
+the schemas of their actions, and keeping plans in the plan directory.
 """
 
 from __future__ import annotations
@@ -15,30 +15,49 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
 from pathlib import Path
-from types import MappingProxyType
 
-from typing_extensions import Iterable, List, Sized, Union
+from typing_extensions import (
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Sized,
+    Type,
+    Union,
+)
 
 from cramera_plan_builder.exceptions import (
     DuplicateIdentifier,
     InvalidIdentifier,
     InvalidPlanName,
     InvalidPlanText,
+    InvalidStepValue,
     MissingStepParameter,
     PlanTooLarge,
     PlanWithoutRobot,
     TooManyEntries,
+    UnavailableStepAction,
     UnknownPlan,
     UnknownReference,
+    UnknownStepAction,
+    UnknownStepField,
     UnreadablePlan,
     UnsafeStoragePath,
     UnsupportedByCatalog,
     ValueOutOfRange,
 )
 from cramera_protocol.bundle.index import SceneName
+from cramera_protocol.document import JsonValue
 from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import (
+    ActionField,
+    ActionFieldKind,
+    ActionSchema,
+    Destination,
+    DestinationKey,
     PlacementMode,
     PlanBuilderCatalog,
     PlanBuilderLimits,
@@ -54,7 +73,6 @@ from cramera_protocol.plan_builder import (
     PlanSummary,
     RobotModel,
     StepConstraintKey,
-    StepKind,
 )
 
 NAME_IDENTITY = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
@@ -100,24 +118,61 @@ class PlanFile(StrEnum):
     """
 
 
-STEP_PARAMETERS = MappingProxyType(
-    {
-        StepKind.PARK_ARMS: (PlanStepKey.ARM,),
-        StepKind.MOVE_TORSO: (PlanStepKey.TORSO_STATE,),
-        StepKind.NAVIGATE: (PlanStepKey.TARGET,),
-        StepKind.TRANSPORT: (PlanStepKey.OBJECT, PlanStepKey.ARM),
-        StepKind.PICK_UP: (PlanStepKey.OBJECT, PlanStepKey.ARM),
-        StepKind.PLACE: (PlanStepKey.OBJECT, PlanStepKey.ARM),
-    }
-)
-"""
-The parameters each step kind needs, apart from where it puts an object down.
-"""
+class ExpectedValue(StrEnum):
+    """
+    What a step's value must be, by the kind of its field, for error messages.
+    """
 
-PUTTING_DOWN = frozenset({StepKind.TRANSPORT, StepKind.PLACE})
-"""
-The step kinds that put an object down and so need a target or a surface.
-"""
+    IDENTITY = "the identity of one of the plan's objects"
+    """
+    A body field's value.
+    """
+
+    NAME = "the name of an annotated entity"
+    """
+    An annotation field's value.
+    """
+
+    MEMBER = "the name of a member of the enumeration"
+    """
+    An enumeration field's value.
+    """
+
+    POSE = "a pose of seven numbers"
+    """
+    A pose field's value.
+    """
+
+    DESTINATION = "a pose or a surface to put the object down at"
+    """
+    The value of a field that accepts a surface.
+    """
+
+    NUMBER = "a finite number"
+    """
+    A number field's value.
+    """
+
+    INTEGER = "a whole number"
+    """
+    An integer field's value.
+    """
+
+    BOOLEAN = "true or false"
+    """
+    A boolean field's value.
+    """
+
+    TEXT = "a short text"
+    """
+    A text field's value.
+    """
+
+    NOTHING = "left out, since it is derived from the arm and the object"
+    """
+    The value of a derived field, which a step does not give.
+    """
+
 
 # %% limits
 
@@ -143,7 +198,7 @@ class PlanCheck:
         :raises DuplicateIdentifier: For two robots, objects or steps of one identity.
         :raises TooManyEntries: For more robots, objects, steps or constraints than fit.
         :raises ValueOutOfRange: For a number that is not finite or beyond its limit.
-        :raises UnknownReference: For a selected robot or step object the plan lacks.
+        :raises UnknownReference: For a selected robot the plan lacks.
         :raises PlanTooLarge: For a plan whose JSON is too large.
         """
         if not SceneName.is_valid(plan.name):
@@ -154,11 +209,10 @@ class PlanCheck:
         self.count(PlanKey.OBJECTS, plan.objects, self.limits.maximum_objects)
         self.unique(PlanKey.ROBOTS, (robot.identifier for robot in plan.robots))
         self.unique(PlanKey.OBJECTS, (item.identifier for item in plan.objects))
-        objects = {item.identifier for item in plan.objects}
         for planned_object in plan.objects:
             self.planned_object(planned_object)
         for robot in plan.robots:
-            self.robot(robot, objects)
+            self.robot(robot)
         robots = {robot.identifier for robot in plan.robots}
         if plan.selected_robot is not None and plan.selected_robot not in robots:
             raise UnknownReference(PlanKey.SELECTED_ROBOT, plan.selected_robot)
@@ -166,10 +220,9 @@ class PlanCheck:
         if size > self.limits.maximum_document_bytes:
             raise PlanTooLarge(size, self.limits.maximum_document_bytes)
 
-    def robot(self, robot: PlannedRobot, objects: Iterable[str]) -> None:
+    def robot(self, robot: PlannedRobot) -> None:
         """
         :param robot: One robot of a plan.
-        :param objects: The identities of the plan's objects.
         """
         location = self.location(PlanKey.ROBOTS, robot.identifier)
         self.identity(PlanKey.ROBOTS, robot.identifier)
@@ -185,24 +238,16 @@ class PlanCheck:
         self.count(steps_location, robot.steps, self.limits.maximum_steps)
         self.unique(steps_location, (step.identifier for step in robot.steps))
         for step in robot.steps:
-            self.step(self.location(steps_location, step.identifier), step, objects)
+            self.step(self.location(steps_location, step.identifier), step)
 
-    def step(self, location: str, step: PlanStep, objects: Iterable[str]) -> None:
+    def step(self, location: str, step: PlanStep) -> None:
         """
         :param location: Where the step sits.
-        :param step: One step of a robot's plan.
-        :param objects: The identities of the plan's objects.
-        :raises UnknownReference: For a step acting on an object the plan lacks.
+        :param step: One step of a robot's plan; its values are checked against its
+            action's schema by :class:`StepValueCheck`.
         """
         self.identity(location, step.identifier)
-        if step.object_identifier is not None and step.object_identifier not in set(
-            objects
-        ):
-            raise UnknownReference(
-                self.location(location, PlanStepKey.OBJECT), step.object_identifier
-            )
-        if step.target is not None:
-            self.pose(self.location(location, PlanStepKey.TARGET), step.target)
+        self.text(self.location(location, PlanStepKey.ACTION), step.action)
         constraints_location = self.location(location, PlanStepKey.CONSTRAINTS)
         self.count(
             constraints_location, step.constraints, self.limits.maximum_constraints
@@ -213,47 +258,15 @@ class PlanCheck:
                 constraint.text,
             )
 
-    def complete(self, plan: PlanDocument) -> None:
+    @staticmethod
+    def complete(plan: PlanDocument) -> None:
         """
         :param plan: A plan whose limits were checked.
-        :raises PlanWithoutRobot: For a plan without a robot.
-        :raises MissingStepParameter: For a step without a parameter its kind needs,
-            which a saved plan may still lack but a demo may not.
+        :raises PlanWithoutRobot: For a plan without a robot, which a saved plan may be
+            but a demo may not.
         """
         if not plan.robots:
             raise PlanWithoutRobot(plan.name)
-        for robot in plan.robots:
-            for step in robot.steps:
-                location = self.location(
-                    PlanKey.ROBOTS,
-                    robot.identifier,
-                    PlannedRobotKey.STEPS,
-                    step.identifier,
-                )
-                given = {
-                    PlanStepKey.ARM: step.arm,
-                    PlanStepKey.TORSO_STATE: step.torso_state,
-                    PlanStepKey.OBJECT: step.object_identifier,
-                    PlanStepKey.TARGET: step.target,
-                }
-                for parameter in STEP_PARAMETERS[step.kind]:
-                    if given[parameter] is None:
-                        raise MissingStepParameter(location, parameter)
-                if step.kind in PUTTING_DOWN:
-                    self.destination(location, step)
-
-    @staticmethod
-    def destination(location: str, step: PlanStep) -> None:
-        """
-        :param location: Where the step sits.
-        :param step: A step that puts an object down.
-        :raises MissingStepParameter: When it names neither a pose nor a surface type,
-            as its placement asks.
-        """
-        if step.placement is PlacementMode.POSE and step.target is None:
-            raise MissingStepParameter(location, PlanStepKey.TARGET)
-        if step.placement is PlacementMode.SURFACE and step.surface_type is None:
-            raise MissingStepParameter(location, PlanStepKey.SURFACE_TYPE)
 
     def planned_object(self, planned_object: PlannedObject) -> None:
         """
@@ -339,6 +352,248 @@ class PlanCheck:
         return LOCATION_SEPARATOR.join(steps)
 
 
+# %% step values
+
+
+@dataclass(frozen=True)
+class StepValueCheck:
+    """
+    Checks a step against the schema of its action: that the action is offered and
+    available, that each value fits its field and the robot's choices, and that every
+    required field is given.
+    """
+
+    catalog: PlanBuilderCatalog
+    """
+    The catalog, with the action schemas and the surface types.
+    """
+
+    robot: RobotModel
+    """
+    The model of the robot whose step it is.
+    """
+
+    objects: FrozenSet[str]
+    """
+    The identities of the plan's objects.
+    """
+
+    plan_check: PlanCheck
+    """
+    Checks texts and numbers against the builder's limits.
+    """
+
+    def check(self, location: str, step: PlanStep) -> None:
+        """
+        :param location: Where the step sits.
+        :param step: One step of the robot's plan.
+        :raises UnknownStepAction: For an action the installed workspace does not offer.
+        :raises UnavailableStepAction: For an action whose fields have no form control.
+        :raises UnknownStepField: For a value of a field the action does not have.
+        :raises InvalidStepValue: For a value that does not fit its field.
+        :raises UnsupportedByCatalog: For an enumeration member that does not exist or
+            the robot does not offer, or a surface type the catalog does not offer.
+        :raises UnknownReference: For a body that is none of the plan's objects.
+        :raises MissingStepParameter: For a required field without a value.
+        """
+        schema = self.schema(PlanCheck.location(location, PlanStepKey.ACTION), step)
+        values_location = PlanCheck.location(location, PlanStepKey.VALUES)
+        for name, value in step.values.items():
+            offered = schema.field_named(name)
+            field_location = PlanCheck.location(values_location, name)
+            if offered is None:
+                raise UnknownStepField(field_location, name, schema.name)
+            self.value(field_location, offered, value)
+        for offered in schema.fields:
+            if (
+                offered.required
+                and offered.kind is not ActionFieldKind.GRASP
+                and offered.name not in step.values
+            ):
+                raise MissingStepParameter(values_location, offered.name)
+
+    def schema(self, location: str, step: PlanStep) -> ActionSchema:
+        """
+        :param location: Where the step's action sits.
+        :param step: A step.
+        :return: The schema of its action.
+        """
+        for schema in self.catalog.actions:
+            if schema.name == step.action:
+                if not schema.available:
+                    raise UnavailableStepAction(
+                        location, step.action, schema.unavailable_reason
+                    )
+                return schema
+        raise UnknownStepAction(location, step.action)
+
+    def value(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: The field it is the value of.
+        :param value: A JSON value.
+        """
+        checks: Dict[ActionFieldKind, Callable[[str, ActionField, Any], None]] = {
+            ActionFieldKind.BODY: self.body,
+            ActionFieldKind.ANNOTATION: self.annotation,
+            ActionFieldKind.ENUM: self.member,
+            ActionFieldKind.POSE: self.pose,
+            ActionFieldKind.POSE_OR_SURFACE: self.destination,
+            ActionFieldKind.NUMBER: self.number,
+            ActionFieldKind.INTEGER: self.integer,
+            ActionFieldKind.BOOLEAN: self.boolean,
+            ActionFieldKind.TEXT: self.text,
+            ActionFieldKind.GRASP: self.derived,
+        }
+        checks[offered.kind](location, offered, value)
+
+    def body(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A body field.
+        :param value: Its value, an object's identity.
+        """
+        if not isinstance(value, str):
+            raise InvalidStepValue(location, value, ExpectedValue.IDENTITY)
+        if value not in self.objects:
+            raise UnknownReference(location, value)
+
+    def annotation(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: An annotation field.
+        :param value: Its value, an annotation's name.
+        """
+        if not isinstance(value, str):
+            raise InvalidStepValue(location, value, ExpectedValue.NAME)
+        self.plan_check.text(location, value)
+
+    def member(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: An enumeration field.
+        :param value: Its value, a member's name the robot offers.
+        """
+        if not isinstance(value, str):
+            raise InvalidStepValue(location, value, ExpectedValue.MEMBER)
+        choices = self.robot.choices.get(offered.enum_type, offered.members)
+        if value not in offered.members or value not in choices:
+            raise UnsupportedByCatalog(location, value, choices)
+
+    def pose(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A pose field.
+        :param value: Its value: a pose, or a destination when the field accepts a
+            surface.
+        """
+        if offered.accepts_surface:
+            self.destination(location, offered, value)
+            return
+        self.plan_check.pose(
+            location, self.read(location, Pose, value, ExpectedValue.POSE)
+        )
+
+    def destination(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A field accepting a surface.
+        :param value: Its value, a destination naming its pose or surface type.
+        """
+        destination = self.read(location, Destination, value, ExpectedValue.DESTINATION)
+        if destination.placement is PlacementMode.POSE:
+            if destination.pose is None:
+                raise MissingStepParameter(location, DestinationKey.POSE)
+            self.plan_check.pose(
+                PlanCheck.location(location, DestinationKey.POSE), destination.pose
+            )
+            return
+        if destination.surface_type is None:
+            raise MissingStepParameter(location, DestinationKey.SURFACE_TYPE)
+        if destination.surface_type not in self.catalog.surface_types:
+            raise UnsupportedByCatalog(
+                PlanCheck.location(location, DestinationKey.SURFACE_TYPE),
+                destination.surface_type,
+                self.catalog.surface_types,
+            )
+
+    @staticmethod
+    def read(
+        location: str,
+        document: Type[JsonValue],
+        value: Any,
+        expected: ExpectedValue,
+    ) -> Any:
+        """
+        A step's values are JSON the browser sent; this is the boundary where a value
+        that is no such document becomes the builder's refusal.
+
+        :param location: Where the value sits.
+        :param document: The protocol class the value describes.
+        :param value: A JSON value.
+        :param expected: What it must be.
+        :return: The value it describes.
+        :raises InvalidStepValue: When it describes none.
+        """
+        try:
+            return document.from_json(value)
+        except ProtocolError as error:
+            raise InvalidStepValue(location, value, expected) from error
+
+    @staticmethod
+    def number(location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A number field.
+        :param value: Its value, a finite number.
+        """
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
+            raise InvalidStepValue(location, value, ExpectedValue.NUMBER)
+
+    @staticmethod
+    def integer(location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: An integer field.
+        :param value: Its value, a whole number.
+        """
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise InvalidStepValue(location, value, ExpectedValue.INTEGER)
+
+    @staticmethod
+    def boolean(location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A boolean field.
+        :param value: Its value, true or false.
+        """
+        if not isinstance(value, bool):
+            raise InvalidStepValue(location, value, ExpectedValue.BOOLEAN)
+
+    def text(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A text field.
+        :param value: Its value, a short text.
+        """
+        if not isinstance(value, str):
+            raise InvalidStepValue(location, value, ExpectedValue.TEXT)
+        self.plan_check.text(location, value)
+
+    @staticmethod
+    def derived(location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A derived field.
+        :param value: A value, which a derived field never takes.
+        """
+        raise InvalidStepValue(location, value, ExpectedValue.NOTHING)
+
+
 # %% catalog
 
 
@@ -353,13 +608,19 @@ class CatalogCheck:
     The catalog.
     """
 
+    limits: PlanBuilderLimits
+    """
+    The limits texts and numbers of step values stay within.
+    """
+
     def check(self, plan: PlanDocument) -> None:
         """
         :param plan: A plan whose limits were checked.
-        :raises UnsupportedByCatalog: For an environment, robot model, object model,
-            step kind, arm, torso state or surface type the catalog does not offer;
-            without the CRAM workspace only the environment is checked, since the
-            catalog then offers no robots and objects.
+        :raises UnsupportedByCatalog: For an environment, robot model or object model
+            the catalog does not offer; without the CRAM workspace only the environment
+            is checked, since the catalog then offers no robots, objects and actions.
+        :raises PlanBuilderError: For a step that does not fit its action's schema, see
+            :meth:`StepValueCheck.check`.
         """
         environments = [entry.name for entry in self.catalog.environments]
         if plan.environment is not None:
@@ -376,6 +637,7 @@ class CatalogCheck:
                 objects,
             )
         models = {model.name: model for model in self.catalog.robots}
+        planned = frozenset(item.identifier for item in plan.objects)
         for robot in plan.robots:
             location = PlanCheck.location(PlanKey.ROBOTS, robot.identifier)
             self.offered(
@@ -383,42 +645,19 @@ class CatalogCheck:
                 robot.model,
                 list(models),
             )
+            values = StepValueCheck(
+                catalog=self.catalog,
+                robot=models[robot.model],
+                objects=planned,
+                plan_check=PlanCheck(self.limits),
+            )
             for step in robot.steps:
-                self.step(
+                values.check(
                     PlanCheck.location(
                         location, PlannedRobotKey.STEPS, step.identifier
                     ),
                     step,
-                    models[robot.model],
                 )
-
-    def step(self, location: str, step: PlanStep, model: RobotModel) -> None:
-        """
-        :param location: Where the step sits.
-        :param step: One step of the robot's plan.
-        :param model: The robot's model.
-        """
-        self.offered(
-            PlanCheck.location(location, PlanStepKey.KIND),
-            step.kind,
-            [kind.value for kind in model.steps],
-        )
-        if step.arm is not None:
-            self.offered(
-                PlanCheck.location(location, PlanStepKey.ARM), step.arm, model.arms
-            )
-        if step.torso_state is not None:
-            self.offered(
-                PlanCheck.location(location, PlanStepKey.TORSO_STATE),
-                step.torso_state,
-                self.catalog.torso_states,
-            )
-        if step.placement is PlacementMode.SURFACE and step.surface_type is not None:
-            self.offered(
-                PlanCheck.location(location, PlanStepKey.SURFACE_TYPE),
-                step.surface_type,
-                self.catalog.surface_types,
-            )
 
     @staticmethod
     def offered(location: str, value: str, offered: List[str]) -> None:

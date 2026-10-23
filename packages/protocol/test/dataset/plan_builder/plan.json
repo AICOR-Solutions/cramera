@@ -1,5 +1,5 @@
 {
-  "formatVersion": "1.0",
+  "formatVersion": "1.1",
   "name": "milk_to_table",
   "task": "Carry the milk to the table",
   "environment": "aicor_medical_lab",
@@ -12,15 +12,16 @@
       "pose": [1.0, 2.5, 0.0, 0.0, 0.0, 0.0, 1.0],
       "jointPositions": {"robot_1/torso_lift_joint": 0.2},
       "steps": [
-        {"id": "step_1", "kind": "park_arms", "arm": "BOTH"},
-        {"id": "step_2", "kind": "move_torso", "torsoState": "HIGH"},
+        {"id": "step_1", "action": "ParkArmsAction", "values": {"arm": "BOTH"}},
+        {"id": "step_2", "action": "MoveTorsoAction", "values": {"torso_state": "HIGH"}},
         {
           "id": "step_3",
-          "kind": "transport",
-          "object": "milk",
-          "arm": "LEFT",
-          "placement": "surface",
-          "surfaceType": "Table",
+          "action": "TransportAction",
+          "values": {
+            "object_designator": "milk",
+            "arm": "LEFT",
+            "target_location": {"placement": "surface", "surfaceType": "Table"}
+          },
           "constraints": [
             {
               "text": "Milk must always stay upright",
@@ -30,7 +31,7 @@
             {"text": "Look where it operates", "monitorType": "PointingAt", "switch": "look_at_operation_site"}
           ]
         },
-        {"id": "step_4", "kind": "navigate", "target": [2.6, 1.8, 0.0, 0.0, 0.0, 0.0, 1.0]}
+        {"id": "step_4", "action": "NavigateAction", "values": {"target_location": [2.6, 1.8, 0.0, 0.0, 0.0, 0.0, 1.0]}}
       ]
     },
     {

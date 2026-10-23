@@ -56,6 +56,7 @@ export const DomEvent = Object.freeze({
   DRAG_OVER: 'dragover',
   DRAG_LEAVE: 'dragleave',
   DROP: 'drop',
+  TOGGLE: 'toggle',
 });
 
 /**

@@ -16,6 +16,7 @@ from cramera_plan_builder.workspace import (
     MissingWorkspace,
     WorkspaceLoader,
 )
+from cramera_protocol.plan_builder import ActionCatalog
 
 from .dataset.given_workspace import DATASET
 
@@ -60,7 +61,8 @@ def test_without_a_module_the_loader_answers_the_missing_workspace():
 def test_the_missing_workspace_offers_nothing_and_names_what_is_missing():
     workspace = MissingWorkspace([CramModule.CORAPLEX.value])
     assert workspace.robots() == [] and workspace.objects() == []
-    assert workspace.torso_states() == [] and workspace.surface_types() == []
+    assert workspace.surface_types() == []
+    assert workspace.action_catalog() == ActionCatalog()
     assert workspace.missing() == [CramModule.CORAPLEX.value]
     with pytest.raises(CramUnavailable) as refusal:
         workspace.object_file("milk.stl")

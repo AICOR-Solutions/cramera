@@ -1,0 +1,742 @@
+{
+  "actions": [
+    {
+      "name": "FollowToolCenterPointPathAction",
+      "module": "coraplex.robot_plans.actions.core.robot_body",
+      "label": "Follow Tool Center Point Path",
+      "group": "core",
+      "documentation": "Represents an action to move a robotic arm's TCP (Tool Center Point) along a path of\nposes.",
+      "fields": [
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Entry from the enum for which arm should be parked."
+        }
+      ],
+      "hidden": [],
+      "available": false,
+      "unavailableReason": "field 'target_locations' has type PoseTrajectory, which has no form control yet"
+    },
+    {
+      "name": "LookAtAction",
+      "module": "coraplex.robot_plans.actions.core.navigation",
+      "label": "Look At",
+      "group": "core",
+      "documentation": "Lets the robot look at a position.",
+      "fields": [
+        {
+          "name": "target",
+          "label": "target",
+          "kind": "pose",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Position at which the robot should look, given as 6D pose."
+        }
+      ],
+      "hidden": [
+        {
+          "name": "camera",
+          "type": "Optional[Camera]"
+        }
+      ],
+      "available": true
+    },
+    {
+      "name": "MoveTorsoAction",
+      "module": "coraplex.robot_plans.actions.core.robot_body",
+      "label": "Move Torso",
+      "group": "core",
+      "documentation": "Move the torso of the robot up and down.",
+      "fields": [
+        {
+          "name": "torso_state",
+          "label": "torso state",
+          "kind": "enum",
+          "required": true,
+          "enumType": "TorsoState",
+          "members": [
+            "HIGH",
+            "MID",
+            "LOW"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The state of the torso that should be set"
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "NavigateAction",
+      "module": "coraplex.robot_plans.actions.core.navigation",
+      "label": "Navigate",
+      "group": "core",
+      "documentation": "Navigates the Robot to a position.",
+      "fields": [
+        {
+          "name": "target_location",
+          "label": "target location",
+          "kind": "pose",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Location to which the robot should be navigated"
+        },
+        {
+          "name": "keep_joint_states",
+          "label": "keep joint states",
+          "kind": "boolean",
+          "required": false,
+          "default": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Keep the joint states of the robot the same during the navigation."
+        },
+        {
+          "name": "face_travel_direction",
+          "label": "face travel direction",
+          "kind": "boolean",
+          "required": false,
+          "default": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Turn toward travel where space permits, retaining the requested final orientation."
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "ParkArmsAction",
+      "module": "coraplex.robot_plans.actions.core.robot_body",
+      "label": "Park Arms",
+      "group": "core",
+      "documentation": "Park the arms of the robot.",
+      "fields": [
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Entry from the enum for which arm should be parked."
+        },
+        {
+          "name": "max_joint_velocity",
+          "label": "max joint velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum joint velocity (in rad/s or m/s, per joint), enforced via"
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "PickUpAction",
+      "module": "coraplex.robot_plans.actions.core.pick_up",
+      "label": "Pick Up",
+      "group": "core",
+      "documentation": "Let the robot pick up an object.",
+      "fields": [
+        {
+          "name": "object_designator",
+          "label": "object designator",
+          "kind": "body",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Object designator_description describing the object that should be picked up."
+        },
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The arm that should be used for pick up."
+        },
+        {
+          "name": "grasp_description",
+          "label": "grasp description",
+          "kind": "grasp",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [
+            "arm",
+            "object_designator"
+          ],
+          "documentation": "The GraspDescription that should be used for picking up the object."
+        },
+        {
+          "name": "grasp_detection_threshold",
+          "label": "grasp detection threshold",
+          "kind": "number",
+          "required": false,
+          "default": 0.9,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Minimum fraction of sampled rays between the gripper's fingers that must hit the"
+        },
+        {
+          "name": "pre_approach_linear_velocity",
+          "label": "pre approach linear velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum linear speed (in m/s) for the initial pre-pose approach, enforced via"
+        },
+        {
+          "name": "final_approach_linear_velocity",
+          "label": "final approach linear velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum linear speed (in m/s) for the final approach onto the target pose, enforced"
+        },
+        {
+          "name": "grasp_closing_velocity",
+          "label": "grasp closing velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum finger joint velocity (in m/s) used while closing onto the object, enforced"
+        },
+        {
+          "name": "lift_linear_velocity",
+          "label": "lift linear velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum linear speed (in m/s) for lifting the object clear of the table after"
+        },
+        {
+          "name": "grasp_stall_minimum_time",
+          "label": "grasp stall minimum time",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Minimum stall dwell time (in seconds, see"
+        },
+        {
+          "name": "object_friction",
+          "label": "object friction",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Sliding friction coefficient to apply to the target object's geom before this pick,"
+        },
+        {
+          "name": "tolerate_grasp_stall",
+          "label": "tolerate grasp stall",
+          "kind": "boolean",
+          "required": false,
+          "default": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Whether the CLOSE motion's completion also tolerates a stalled grasp (see"
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "PlaceAction",
+      "module": "coraplex.robot_plans.actions.core.placing",
+      "label": "Place",
+      "group": "core",
+      "documentation": "Places an Object at a position using an arm.",
+      "fields": [
+        {
+          "name": "object_designator",
+          "label": "object designator",
+          "kind": "body",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Object designator_description describing the object that should be place"
+        },
+        {
+          "name": "target_location",
+          "label": "target location",
+          "kind": "pose",
+          "required": true,
+          "members": [],
+          "acceptsSurface": true,
+          "derivedFrom": [],
+          "documentation": "Pose in the world at which the object should be placed."
+        },
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Arm that is currently holding the object"
+        },
+        {
+          "name": "grasp_detection_threshold",
+          "label": "grasp detection threshold",
+          "kind": "number",
+          "required": false,
+          "default": 0.9,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Minimum fraction of sampled rays between the gripper's fingers that must hit the"
+        },
+        {
+          "name": "placing_linear_velocity",
+          "label": "placing linear velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum linear speed (in m/s) for the final descent onto the target location,"
+        },
+        {
+          "name": "transport_linear_velocity",
+          "label": "transport linear velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum linear speed (in m/s) for carrying the held object above the target"
+        },
+        {
+          "name": "release_opening_velocity",
+          "label": "release opening velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum finger joint velocity (in m/s) used while opening the gripper to release"
+        },
+        {
+          "name": "retract_linear_velocity",
+          "label": "retract linear velocity",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum linear speed (in m/s) for retracting the end effector away from the placed"
+        },
+        {
+          "name": "grasp_release_threshold",
+          "label": "grasp release threshold",
+          "kind": "number",
+          "required": false,
+          "default": 0.1,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Maximum fraction of sampled rays between the gripper's fingers that may still hit"
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "SetGripperAction",
+      "module": "coraplex.robot_plans.actions.core.robot_body",
+      "label": "Set Gripper",
+      "group": "core",
+      "documentation": "Set the gripper state of the robot.",
+      "fields": [
+        {
+          "name": "gripper",
+          "label": "gripper",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The gripper that should be set."
+        },
+        {
+          "name": "motion",
+          "label": "motion",
+          "kind": "enum",
+          "required": true,
+          "enumType": "GripperState",
+          "members": [
+            "OPEN",
+            "CLOSE",
+            "MEDIUM"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The motion that should be set on the gripper."
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "CuttingAction",
+      "module": "coraplex.robot_plans.actions.composite.tool_based",
+      "label": "Cutting",
+      "group": "composite",
+      "documentation": "Cut a food object with a tool.",
+      "fields": [
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The arm holding the tool."
+        },
+        {
+          "name": "tool",
+          "label": "tool",
+          "kind": "annotation",
+          "required": true,
+          "members": [],
+          "annotation": "Tool",
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The tool that performs the motion."
+        },
+        {
+          "name": "object_to_cut",
+          "label": "object to cut",
+          "kind": "body",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The object to cut."
+        },
+        {
+          "name": "pointer_stride",
+          "label": "pointer stride",
+          "kind": "integer",
+          "required": false,
+          "default": 1,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Keep every Nth sampled waypoint for execution."
+        },
+        {
+          "name": "technique",
+          "label": "technique",
+          "kind": "enum",
+          "required": false,
+          "default": "SAW",
+          "enumType": "CuttingTechnique",
+          "members": [
+            "SLICE",
+            "SAW",
+            "HALVING"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The cutting technique to use."
+        },
+        {
+          "name": "slice_thickness",
+          "label": "slice thickness",
+          "kind": "number",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Target slice thickness in meters, controlling the spacing between cut anchors."
+        },
+        {
+          "name": "number_of_cuts_on_local_x_axis",
+          "label": "number of cuts on local x axis",
+          "kind": "integer",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Number of cut passes along the object's local X axis."
+        },
+        {
+          "name": "slicing_priority",
+          "label": "slicing priority",
+          "kind": "enum",
+          "required": false,
+          "default": "THICKNESS",
+          "enumType": "SlicingPriority",
+          "members": [
+            "THICKNESS",
+            "CUT_COUNT"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Parameter that is kept when ``slice_thickness`` and"
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "MoveAndPickUpAction",
+      "module": "coraplex.robot_plans.actions.composite.transporting",
+      "label": "Move And Pick Up",
+      "group": "composite",
+      "documentation": "Navigate to `standing_position`, then turn towards the object and pick it\nup.",
+      "fields": [
+        {
+          "name": "standing_position",
+          "label": "standing position",
+          "kind": "pose",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The pose to stand before trying to pick up the object."
+        },
+        {
+          "name": "object_designator",
+          "label": "object designator",
+          "kind": "body",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The object to pick up."
+        },
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The arm to use."
+        },
+        {
+          "name": "grasp_description",
+          "label": "grasp description",
+          "kind": "grasp",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [
+            "arm",
+            "object_designator"
+          ],
+          "documentation": "The grasp to use."
+        },
+        {
+          "name": "keep_joint_states",
+          "label": "keep joint states",
+          "kind": "boolean",
+          "required": false,
+          "default": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Keep the joint states of the robot the same during the navigation."
+        }
+      ],
+      "hidden": [],
+      "available": true
+    },
+    {
+      "name": "SwirlingAction",
+      "module": "coraplex.robot_plans.actions.composite.swirling",
+      "label": "Swirling",
+      "group": "composite",
+      "documentation": "Mix a held container by orbiting its bottom while preserving the current grasp.",
+      "fields": [
+        {
+          "name": "container",
+          "label": "container",
+          "kind": "body",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Container already held by the selected arm."
+        },
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Arm whose existing grasp is preserved."
+        }
+      ],
+      "hidden": [
+        {
+          "name": "profile",
+          "type": "SwirlProfile"
+        },
+        {
+          "name": "pivot",
+          "type": "Point3 | None"
+        }
+      ],
+      "available": true
+    },
+    {
+      "name": "TransportAction",
+      "module": "coraplex.robot_plans.actions.composite.transporting",
+      "label": "Transport",
+      "group": "composite",
+      "documentation": "Transports an object to a position using an arm.",
+      "fields": [
+        {
+          "name": "object_designator",
+          "label": "object designator",
+          "kind": "body",
+          "required": true,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Object designator_description describing the object that should be"
+        },
+        {
+          "name": "target_location",
+          "label": "target location",
+          "kind": "poseOrSurface",
+          "required": true,
+          "members": [],
+          "acceptsSurface": true,
+          "derivedFrom": [],
+          "documentation": "Destination pose or lazy alternatives tried after acquiring the object."
+        },
+        {
+          "name": "arm",
+          "label": "arm",
+          "kind": "enum",
+          "required": true,
+          "enumType": "Arms",
+          "members": [
+            "LEFT",
+            "RIGHT",
+            "BOTH"
+          ],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Arm that should be used."
+        },
+        {
+          "name": "grasp_description",
+          "label": "grasp description",
+          "kind": "grasp",
+          "required": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [
+            "arm",
+            "object_designator"
+          ],
+          "documentation": "Grasp Description that should be used for picking up the object."
+        },
+        {
+          "name": "look_at_operation_site",
+          "label": "look at operation site",
+          "kind": "boolean",
+          "required": false,
+          "default": false,
+          "members": [],
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Whether the robot looks at the object before picking it up and at the target"
+        }
+      ],
+      "hidden": [],
+      "available": true
+    }
+  ],
+  "failedModules": [
+    {
+      "module": "coraplex.robot_plans.actions.composite.searching",
+      "error": "ImportError: cannot import name 'PerceptionObjectNotFound' from 'coraplex.plans.failures'"
+    }
+  ]
+}

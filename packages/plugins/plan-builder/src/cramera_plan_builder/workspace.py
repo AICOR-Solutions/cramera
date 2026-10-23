@@ -1,6 +1,6 @@
 """
-What the CRAM workspace offers a plan: its robot annotations, object meshes, torso
-states and surface annotations.
+What the CRAM workspace offers a plan: its robot annotations, object meshes, surface
+annotations and native actions.
 
 Whether the workspace is importable is decided by asking the import system before
 anything imports it, so an absent workspace is a value the plugin reads rather than an
@@ -25,7 +25,7 @@ from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
 from cramera_plan_builder.exceptions import CramUnavailable
 from cramera_protocol.bundle.files import MeshFormat
-from cramera_protocol.plan_builder import ObjectModel, RobotModel
+from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 
 TEXTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg"})
 """
@@ -42,7 +42,7 @@ class CramModule(StrEnum):
 
     SEMANTIC_DIGITAL_TWIN = "semantic_digital_twin"
     """
-    The robot annotations, surfaces and torso states.
+    The robot annotations, surfaces and enumerations.
     """
 
     CORAPLEX = "coraplex"
@@ -130,15 +130,16 @@ class CramWorkspace(ABC):
         """
 
     @abstractmethod
-    def torso_states(self) -> List[str]:
-        """
-        :return: The names of the native torso states.
-        """
-
-    @abstractmethod
     def surface_types(self) -> List[str]:
         """
         :return: The class names of the annotations objects can be put on or in, sorted.
+        """
+
+    @abstractmethod
+    def action_catalog(self) -> ActionCatalog:
+        """
+        :return: The schemas of the native actions and the action modules that failed
+            to import.
         """
 
     def missing(self) -> List[str]:
@@ -192,11 +193,11 @@ class MissingWorkspace(CramWorkspace):
     def object_directory(self) -> Path:
         raise CramUnavailable(self.missing_modules)
 
-    def torso_states(self) -> List[str]:
-        return []
-
     def surface_types(self) -> List[str]:
         return []
+
+    def action_catalog(self) -> ActionCatalog:
+        return ActionCatalog()
 
     def missing(self) -> List[str]:
         return list(self.missing_modules)

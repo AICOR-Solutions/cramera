@@ -1,6 +1,6 @@
 """
 Constraints written in plain language, compiled by the rule book into the monitor the
-live publisher observes and the switch of the step's own action.
+live publisher observes and the boolean field of the step's own action it turns on.
 """
 
 from __future__ import annotations
@@ -18,6 +18,8 @@ from cramera_plan_builder.exceptions import (
 )
 from cramera_protocol.live_messages import MonitorSpecification
 from cramera_protocol.plan_builder import (
+    ActionFieldKind,
+    ActionSchema,
     ConstraintRule,
     ConstraintRuleBook,
     ConstraintText,
@@ -115,11 +117,16 @@ class ConstraintCompiler:
             )
         )
 
-    def compile(self, request: ConstraintText) -> StepConstraint:
+    def compile(
+        self, request: ConstraintText, action: Optional[ActionSchema] = None
+    ) -> StepConstraint:
         """
         :param request: A sentence with what the plan tells about its subject.
+        :param action: The schema of the step's action, or None when the step is not
+            attached yet or the workspace does not offer its action.
         :return: The monitor type the sentence means, and once it is attached to a step,
-            the monitor the live publisher observes and the switch of the step's action.
+            the monitor the live publisher observes and the boolean field of the step's
+            action the rule turns on, when the action has it.
         :raises ConstraintSubjectMissing: When an attached constraint's monitor needs an
             object and neither the sentence nor the step names one.
         :raises ConstraintReferenceMissing: When an attached constraint's monitor needs
@@ -129,19 +136,34 @@ class ConstraintCompiler:
         rule = self.rule_for(sentence)
         if rule is None:
             return StepConstraint(text=request.text)
-        attached = request.step_kind is not None
+        attached = request.step_action is not None
         monitor = None
         if rule.observed and attached:
             monitor = MonitorSpecification(
                 monitor_type=rule.monitor_type,
                 parameters=self.parameters(rule, sentence, request),
             )
+        switch = None
+        if attached and action is not None and self.has_switch(rule, action):
+            switch = rule.switch
         return StepConstraint(
             text=request.text,
             monitor_type=rule.monitor_type,
             monitor=monitor,
-            switch=rule.switches.get(request.step_kind) if attached else None,
+            switch=switch,
         )
+
+    @staticmethod
+    def has_switch(rule: ConstraintRule, action: ActionSchema) -> bool:
+        """
+        :param rule: The rule a sentence matched.
+        :param action: The schema of the step's action.
+        :return: Whether the rule names a switch the action has as a boolean field.
+        """
+        if rule.switch is None:
+            return False
+        offered = action.field_named(rule.switch)
+        return offered is not None and offered.kind is ActionFieldKind.BOOLEAN
 
     def rule_for(self, sentence: str) -> Optional[ConstraintRule]:
         """

@@ -18,8 +18,22 @@ from cramera_protocol.live_messages import (
     MonitorSpecificationKey,
 )
 from cramera_protocol.plan_builder import (
+    ActionCatalog,
+    ActionCatalogKey,
+    ActionFieldKind,
+    ActionFieldKey,
+    ActionGroup,
+    ActionSchemaKey,
     DemoDocument,
     DemoDocumentKey,
+    Destination,
+    DestinationKey,
+    LegacyStepKey,
+    LegacyStepKind,
+    MIGRATED_ACTIONS,
+    MigratedAction,
+    MigratedActionField,
+    PLAN_FORMAT_VERSION,
     PlacementMode,
     PlanBuilderCatalog,
     PlanBuilderCatalogKey,
@@ -34,6 +48,7 @@ from cramera_protocol.plan_builder import (
     PlanRecord,
     PlanRecordKey,
     PlanStepKey,
+    RobotModelKey,
     RuleValue,
     RunMode,
     RunRequest,
@@ -41,10 +56,8 @@ from cramera_protocol.plan_builder import (
     RunStatus,
     RunStatusKey,
     StepConstraintKey,
-    StepKind,
-    StepSwitch,
 )
-from cramera_protocol.version import CURRENT_VERSION
+from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED
 
 # %% plans
 
@@ -53,26 +66,16 @@ def test_a_plan_reads_its_robots_steps_and_objects(read_json):
     data = read_json("plan_builder/plan.json")
     plan = PlanDocument.from_json(data)
     written_robot = data[PlanKey.ROBOTS][0]
+    written_steps = written_robot[PlannedRobotKey.STEPS]
     robot, standing = plan.robots
-    park, torso, transport, navigate = robot.steps
-    written_transport = written_robot[PlannedRobotKey.STEPS][2]
     assert robot.pose == Pose.from_json(written_robot[PlannedRobotKey.POSE])
     assert robot.joint_positions == written_robot[PlannedRobotKey.JOINT_POSITIONS]
-    assert [step.kind for step in robot.steps] == [
-        StepKind.PARK_ARMS,
-        StepKind.MOVE_TORSO,
-        StepKind.TRANSPORT,
-        StepKind.NAVIGATE,
+    assert [step.action for step in robot.steps] == [
+        written[PlanStepKey.ACTION] for written in written_steps
     ]
-    assert (
-        torso.torso_state
-        == written_robot[PlannedRobotKey.STEPS][1][PlanStepKey.TORSO_STATE]
-    )
-    assert transport.placement is PlacementMode.SURFACE
-    assert transport.object_identifier == written_transport[PlanStepKey.OBJECT]
-    assert navigate.target == Pose.from_json(
-        written_robot[PlannedRobotKey.STEPS][3][PlanStepKey.TARGET]
-    )
+    assert [step.values for step in robot.steps] == [
+        written[PlanStepKey.VALUES] for written in written_steps
+    ]
     assert standing.steps == []
     assert plan.selected_robot == data[PlanKey.SELECTED_ROBOT]
     assert plan.objects[0].pose == Pose.from_json(
@@ -98,7 +101,16 @@ def test_a_step_keeps_the_monitor_and_the_switch_its_constraints_compiled_to(
     )
     assert upright.switch is None
     assert looking.monitor is None
-    assert looking.switch is StepSwitch.LOOK_AT_OPERATION_SITE
+    assert looking.switch == written_looking_switch(data)
+
+
+def written_looking_switch(data):
+    """
+    :param data: The test plan's JSON.
+    :return: The switch its looking constraint names.
+    """
+    step = data[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS][2]
+    return step[PlanStepKey.CONSTRAINTS][1][StepConstraintKey.SWITCH]
 
 
 def test_a_plan_round_trips(read_json):
@@ -109,18 +121,75 @@ def test_a_plan_round_trips(read_json):
 def test_left_out_fields_take_their_defaults(read_json):
     plan = PlanDocument.from_json(read_json("plan_builder/plan_with_defaults.json"))
     step = plan.robots[0].steps[0]
-    assert plan.format_version == CURRENT_VERSION
+    assert plan.format_version == PLAN_FORMAT_VERSION
     assert plan.environment is None and plan.selected_robot is None
     assert plan.task == ""
-    assert step.placement is PlacementMode.POSE
-    assert step.target is None and step.constraints == []
+    assert step.values == {} and step.constraints == []
     assert plan.objects[0].color is None
 
 
-def test_a_written_plan_names_the_current_version():
+def test_a_written_plan_names_the_plan_format_version():
     written = PlanDocument(name="empty").to_json()
-    assert written[PlanKey.FORMAT_VERSION] == CURRENT_VERSION.to_json()
+    assert written[PlanKey.FORMAT_VERSION] == PLAN_FORMAT_VERSION.to_json()
+    assert PLAN_FORMAT_VERSION.major == CURRENT_VERSION.major
     assert PlanKey.ENVIRONMENT not in written
+
+
+# %% plans of earlier versions
+
+
+def test_a_plan_of_step_kinds_is_read_as_the_actions_they_stood_for(read_json):
+    legacy = PlanDocument.from_json(read_json("plan_builder/legacy/plan.json"))
+    current = PlanDocument.from_json(read_json("plan_builder/plan.json"))
+    assert legacy == current
+
+
+def test_every_step_kind_names_an_action():
+    assert set(MIGRATED_ACTIONS) == set(LegacyStepKind)
+    assert set(MIGRATED_ACTIONS.values()) == set(MigratedAction)
+
+
+def test_a_migrated_put_down_keeps_its_pose_as_a_destination(read_json):
+    data = read_json("plan_builder/legacy/unfinished_place.json")
+    place, pick_up = PlanDocument.from_json(data).robots[0].steps
+    written = data[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS][0]
+    assert place.action == MigratedAction.PLACE
+    assert place.values == {
+        MigratedActionField.OBJECT: written[LegacyStepKey.OBJECT],
+        MigratedActionField.ARM: written[LegacyStepKey.ARM],
+    }
+    assert pick_up.action == MigratedAction.PICK_UP
+
+
+def test_a_migrated_pose_destination_reads_as_a_destination(read_json):
+    data = read_json("plan_builder/legacy/plan.json")
+    transport = PlanDocument.from_json(data).robots[0].steps[2]
+    destination = Destination.from_json(transport.values[MigratedActionField.TARGET])
+    assert destination.placement is PlacementMode.SURFACE
+    assert destination.pose is None
+    assert (
+        destination.surface_type
+        == data[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS][2][LegacyStepKey.SURFACE_TYPE]
+    )
+
+
+def test_a_migrated_plan_carries_the_plan_format_version(read_json):
+    data = read_json("plan_builder/legacy/plan.json")
+    assert data[PlanKey.FORMAT_VERSION] == CURRENT_VERSION.to_json()
+    plan = PlanDocument.from_json(data)
+    assert plan.format_version == PLAN_FORMAT_VERSION
+    unversioned = PlanDocument.from_json(
+        {PlanKey.FORMAT_VERSION: UNVERSIONED.to_json(), PlanKey.NAME: "old"}
+    )
+    assert unversioned.format_version == PLAN_FORMAT_VERSION
+
+
+def test_a_destination_names_its_placement_pose_and_surface():
+    destination = Destination(surface_type="Table", placement=PlacementMode.SURFACE)
+    written = destination.to_json()
+    assert written[DestinationKey.PLACEMENT] == PlacementMode.SURFACE
+    assert DestinationKey.POSE not in written
+    assert Destination.from_json(written) == destination
 
 
 def test_a_plan_of_another_major_version_is_refused(read_json):
@@ -132,7 +201,11 @@ def test_a_plan_of_another_major_version_is_refused(read_json):
 
 @pytest.mark.parametrize(
     "file_name",
-    ["plan_with_unknown_step_kind.json", "plan_with_short_pose.json"],
+    [
+        "plan_with_unknown_step_kind.json",
+        "plan_with_short_pose.json",
+        "plan_with_values_that_are_no_object.json",
+    ],
 )
 def test_a_plan_with_a_malformed_value_is_refused(read_json, file_name):
     with pytest.raises(InvalidDocumentValue):
@@ -154,8 +227,9 @@ def test_the_catalog_reads_robots_environments_objects_and_rules(read_json):
     catalog = PlanBuilderCatalog.from_json(data)
     robot, arm_only = catalog.robots
     rule = catalog.constraint_rules[0]
-    assert robot.steps == list(StepKind)
-    assert StepKind.NAVIGATE not in arm_only.steps
+    written = data[PlanBuilderCatalogKey.ROBOTS]
+    assert robot.choices == written[0][RobotModelKey.CHOICES]
+    assert arm_only.choices == written[1][RobotModelKey.CHOICES]
     assert [entry.name for entry in catalog.environments] == [
         entry["name"] for entry in data[PlanBuilderCatalogKey.ENVIRONMENTS]
     ]
@@ -176,6 +250,64 @@ def test_a_catalog_without_cram_names_what_is_missing():
     assert written[PlanBuilderCatalogKey.MISSING] == catalog.missing
     assert written[PlanBuilderCatalogKey.ROBOTS] == []
     assert written[PlanBuilderCatalogKey.LIMITS] == PlanBuilderLimits().to_json()
+
+
+# %% actions
+
+
+def test_an_action_schema_reads_its_fields_and_enumerations(read_json):
+    data = read_json("plan_builder/actions.json")
+    gripper = ActionCatalog.from_json(data).actions[0]
+    written = data[ActionCatalogKey.ACTIONS][0][ActionSchemaKey.FIELDS][1]
+    motion = gripper.field_named(written[ActionFieldKey.NAME])
+    assert gripper.group == ActionGroup.CORE
+    assert gripper.available is True and gripper.unavailable_reason is None
+    assert motion.kind is ActionFieldKind.ENUM
+    assert motion.members == written[ActionFieldKey.MEMBERS]
+    assert motion.enum_type == written[ActionFieldKey.ENUM_TYPE]
+    assert gripper.field_named("nothing") is None
+
+
+def test_a_derived_grasp_names_the_fields_it_is_derived_from(read_json):
+    pick_up = ActionCatalog.from_json(read_json("plan_builder/actions.json")).actions[1]
+    grasp = [entry for entry in pick_up.fields if entry.kind is ActionFieldKind.GRASP]
+    assert [entry.derived_from for entry in grasp] == [["arm", "object_designator"]]
+    assert pick_up.field_named("tolerate_grasp_stall").default is False
+
+
+def test_an_unavailable_action_says_why_and_a_hidden_field_its_type(read_json):
+    data = read_json("plan_builder/actions.json")
+    catalog = ActionCatalog.from_json(data)
+    unavailable, swirling = catalog.actions[2], catalog.actions[3]
+    assert unavailable.available is False
+    assert (
+        unavailable.unavailable_reason
+        == data[ActionCatalogKey.ACTIONS][2][ActionSchemaKey.UNAVAILABLE_REASON]
+    )
+    assert [hidden.name for hidden in swirling.hidden] == ["pivot"]
+    assert swirling.group == ActionGroup.COMPOSITE
+
+
+def test_the_action_catalog_names_the_modules_that_failed_to_import(read_json):
+    data = read_json("plan_builder/actions.json")
+    catalog = ActionCatalog.from_json(data)
+    assert [failed.module for failed in catalog.failed_modules] == [
+        written["module"] for written in data[ActionCatalogKey.FAILED_MODULES]
+    ]
+    assert ActionCatalog.from_json(catalog.to_json()) == catalog
+
+
+def test_the_plan_builder_catalog_carries_the_actions(read_json):
+    actions = ActionCatalog.from_json(read_json("plan_builder/actions.json"))
+    catalog = PlanBuilderCatalog(
+        live_url="http://127.0.0.1:1",
+        actions=actions.actions,
+        failed_action_modules=actions.failed_modules,
+    )
+    assert PlanBuilderCatalog.from_json(catalog.to_json()) == catalog
+    assert catalog.to_json()[PlanBuilderCatalogKey.ACTIONS][0] == (
+        actions.actions[0].to_json()
+    )
 
 
 # %% runs
@@ -217,8 +349,11 @@ def test_an_idle_status_names_no_mode_and_no_exit():
     [
         PlanBuilderRoute,
         PlanBuilderPageParameter,
-        StepKind,
-        StepSwitch,
+        ActionFieldKind,
+        ActionFieldKey,
+        ActionSchemaKey,
+        ActionCatalogKey,
+        DestinationKey,
         RuleValue,
         RunMode,
         RunState,
