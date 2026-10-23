@@ -36,7 +36,7 @@ export class StatechartPanel {
    * @param {Document} document The page.
    */
   constructor(document) {
-    this.panel = new SidePanel('statechart', 'Statechart', document.createElement('section'));
+    this.panel = new SidePanel('statechart', 'Chart states', document.createElement('section'));
   }
 
   /**

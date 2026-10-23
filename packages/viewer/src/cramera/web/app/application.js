@@ -4,9 +4,17 @@
  */
 
 import { EventBus } from '../core/event-bus.js';
-import { liveAddressOf, sceneOf, withLive, withScene } from '../core/scene-address.js';
+import { layoutOf, liveAddressOf, panelOf, sceneAlone, sceneOf, withLive, withScene } from '../core/scene-address.js';
 import { PageStatus } from '../core/page-status.js';
-import { BuildKey, LiveRoute, SceneKey, ViewerEvent, ViewerInfoKey } from '../protocol.js';
+import {
+  Capability,
+  LiveInfoKey,
+  LiveRoute,
+  RecordingState,
+  RecordingStatusKey,
+  SceneKey,
+  ViewerEvent,
+} from '../protocol.js';
 import { PlaybackClock } from '../playback/playback-clock.js';
 import { TimelineView } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
@@ -16,7 +24,11 @@ import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
 import { StatechartPanel } from '../panels/statechart-panel.js';
 import { StepsPanel } from '../panels/steps-panel.js';
-import { ViewPanel, ViewSwitch } from '../panels/view-panel.js';
+import { LayerObject, LayersPanel, ViewSwitch } from '../panels/layers-panel.js';
+import { QuerySlot } from '../panels/query-slot.js';
+import { CameraFollow } from '../scene/camera-follow.js';
+import { FrameAxes, framesOf } from '../scene/frame-axes.js';
+import { ObjectLabels } from '../scene/object-labels.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
 import { LiveClient } from '../live/live-client.js';
@@ -27,11 +39,7 @@ import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
 import { KeyboardShortcuts, PlaybackActions } from './keyboard-shortcuts.js';
 import { PluginContext, PluginModules } from './plugin-modules.js';
-
-/**
- * How many characters of a commit hash the version badge shows.
- */
-const SHORT_COMMIT = 7;
+import { SCENE_PAGE, SiteHeader, ThemeSetting } from './site-header.js';
 
 // %% elements
 
@@ -59,25 +67,45 @@ export class PageElements {
      */
     this.stageMessage = document.getElementById('stage-message');
     /**
+     * The top bar.
+     * @type {HTMLElement}
+     */
+    this.header = document.getElementById('site-header');
+    /**
      * The scene picker.
      * @type {HTMLElement}
      */
     this.picker = document.getElementById('scene-picker');
+    /**
+     * The Layers overlay of the 3D view.
+     * @type {HTMLElement}
+     */
+    this.layers = document.getElementById('layers');
+    /**
+     * The badge saying the view follows a live publisher.
+     * @type {HTMLElement}
+     */
+    this.liveBadge = document.getElementById('live-badge');
+    /**
+     * The button opening the scene alone in a window of its own.
+     * @type {HTMLElement}
+     */
+    this.popOut = document.getElementById('pop-out');
+    /**
+     * The slot one plugin may fill with its question panel.
+     * @type {HTMLElement}
+     */
+    this.querySlot = document.getElementById('query-slot');
     /**
      * The side panels.
      * @type {HTMLElement}
      */
     this.side = document.getElementById('side-panels');
     /**
-     * The timeline.
+     * The playback controls.
      * @type {HTMLElement}
      */
     this.timeline = document.getElementById('timeline');
-    /**
-     * The version badge.
-     * @type {HTMLElement}
-     */
-    this.version = document.getElementById('viewer-version');
     /**
      * The status line.
      * @type {HTMLElement}
@@ -192,10 +220,52 @@ export class Application {
   #statechart;
 
   /**
-   * The view panel, once the 3D view exists.
-   * @type {ViewPanel|null}
+   * The top bar.
+   * @type {SiteHeader}
    */
-  #viewPanel = null;
+  #header;
+
+  /**
+   * The slot one plugin may fill with its question panel.
+   * @type {QuerySlot}
+   */
+  #querySlot;
+
+  /**
+   * The Layers overlay, once the 3D view exists.
+   * @type {LayersPanel|null}
+   */
+  #layers = null;
+
+  /**
+   * The labels of the free objects, once the 3D view exists.
+   * @type {ObjectLabels|null}
+   */
+  #labels = null;
+
+  /**
+   * The axis triads on the scene's frames, once the 3D view exists.
+   * @type {FrameAxes|null}
+   */
+  #axes = null;
+
+  /**
+   * Moves the camera with the robot, once the 3D view exists.
+   * @type {CameraFollow|null}
+   */
+  #follow = null;
+
+  /**
+   * Whether the free objects are drawn.
+   * @type {boolean}
+   */
+  #objectsShown = true;
+
+  /**
+   * The state of the live publisher's recording, or null when it reported none.
+   * @type {string|null}
+   */
+  #recordingState = null;
 
   /**
    * Selects links and objects in the 3D view, once it exists.
@@ -252,8 +322,9 @@ export class Application {
    * @param {History} history The browser's history.
    * @param {function(string, Object=): Promise<Response>} fetch Fetches a URL.
    * @param {{setInterval: Function, clearInterval: Function}} timers Starts and stops timers.
+   * @param {Storage|null} storage The browser's local storage, or null where it is refused.
    */
-  constructor(elements, api, location, history, fetch, timers) {
+  constructor(elements, api, location, history, fetch, timers, storage) {
     this.#elements = elements;
     this.#fetch = fetch;
     this.#timers = timers;
@@ -261,8 +332,14 @@ export class Application {
     this.#location = location;
     this.#history = history;
     this.#status = new PageStatus(elements.document.documentElement, elements.statusLine);
-    this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame));
+    const window = elements.document.defaultView;
+    const theme = new ThemeSetting(elements.document.documentElement, storage);
+    theme.apply();
+    this.#header = new SiteHeader(elements.header, (route) => api.url(route), theme, SCENE_PAGE, (panel) => this.#panels.show(panel));
+    this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame), () => this.saveEpisode());
     this.#panels = new PanelHost(elements.side);
+    this.#querySlot = new QuerySlot(elements.querySlot);
+    elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));
     this.#plan = new PlanPanel(elements.document);
     this.#details = new DetailsPanel(elements.document);
@@ -277,7 +354,6 @@ export class Application {
         () => this.#live.client.send(LiveRoute.RECORDING_DISCARD),
       ),
     );
-    for (const part of [this.#steps, this.#plan, this.#statechart, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     this.bus.subscribe(ViewerEvent.LIVE_CONNECTED, (info) => this.#showLiveConnection(info));
     this.bus.subscribe(ViewerEvent.LIVE_DISCONNECTED, () => this.#showLiveConnection(null));
   }
@@ -290,7 +366,9 @@ export class Application {
   async start(importModule) {
     this.#status.loading('Loading scenes…');
     const [info, index] = await Promise.all([this.#api.info(), this.#api.scenes()]);
-    this.#showVersion(info);
+    this.#header.show(info);
+    const layout = layoutOf(this.#location.href);
+    if (layout) this.#elements.document.documentElement.dataset.layout = layout;
     const choice = new SceneChoice(index);
     const requested = sceneOf(this.#location.href);
     if (requested) choice.chooseScene(requested);
@@ -306,7 +384,10 @@ export class Application {
     });
     this.#view = new SceneView(this.#elements.stage);
     this.#view.scene.add(this.#lighting.group);
-    this.#addViewPanel(this.#view);
+    this.#labels = new ObjectLabels(this.#elements.stage, this.#view);
+    this.#axes = new FrameAxes(this.#view);
+    this.#follow = new CameraFollow(this.#view);
+    this.#addLayers(this.#view);
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.#highlights = new SceneHighlights(this.#view);
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
@@ -323,8 +404,11 @@ export class Application {
       ),
     );
     this.#view.start((seconds) => this.#tick(seconds));
-    const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view);
+    const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
+    for (const part of [this.#steps, this.#plan, this.#statechart, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    const panel = panelOf(this.#location.href);
+    if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
     else await this.show(choice.scene);
   }
@@ -351,7 +435,12 @@ export class Application {
     this.#scene = loaded;
     this.#picking.select(null);
     this.#highlights.clear();
-    this.#viewPanel.refresh();
+    loaded.objects.group.visible = this.#objectsShown;
+    this.#layers.showObjects(loaded.objects.named().map(({ key, name }) => new LayerObject(key, name)));
+    this.#labels.show(loaded.objects.named().map(({ key, name }) => ({ name, frame: loaded.objects.holderOf(key) })));
+    this.#axes.show(framesOf(loaded));
+    this.#follow.reset(loaded.robotPosition());
+    this.#layers.refresh();
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
     this.#timeline.show(this.#clock, segments);
@@ -395,7 +484,10 @@ export class Application {
         (state) => this.#showLiveState(state),
         (plan) => this.#plan.showLive(plan),
         (chart) => this.#statechart.showLive(chart),
-        (status) => this.#livePanel.showRecording(status),
+        (status) => {
+          this.#recordingState = status[RecordingStatusKey.STATE];
+          this.#livePanel.showRecording(status);
+        },
       ),
     );
     this.#livePanel.showConnecting(true, null, address);
@@ -412,6 +504,16 @@ export class Application {
     this.#live = null;
     this.#livePanel.showConnecting(false, null);
     this.#elements.statusLine.dataset.live = 'false';
+    this.#showLiveConnection(null);
+  }
+
+  /**
+   * Stop capturing the live run, so the Live panel offers to name and keep it, and show
+   * that panel.
+   */
+  saveEpisode() {
+    if (this.#live && this.#recordingState === RecordingState.RECORDING) this.#live.client.send(LiveRoute.RECORDING_STOP);
+    this.#panels.show(this.#livePanel.panel.identifier);
   }
 
   /**
@@ -420,6 +522,7 @@ export class Application {
   #showLiveState(state) {
     if (!this.#scene) return;
     this.#scene.showState(state);
+    this.#follow.follow(this.#scene.robotPosition());
     this.#picking.update();
     this.#highlights.update();
     this.#view.requestRender();
@@ -429,6 +532,9 @@ export class Application {
    * @param {Object|null} info The publisher's information, or null when it stopped answering.
    */
   #showLiveConnection(info) {
+    const connected = Boolean(this.#live && info);
+    this.#elements.liveBadge.hidden = !connected;
+    this.#timeline.setSaveOffered(connected && (info[LiveInfoKey.CAPABILITIES] ?? []).includes(Capability.RECORDING));
     if (!this.#live) return;
     this.#livePanel.showConnecting(true, info);
     this.#elements.statusLine.dataset.live = String(Boolean(info));
@@ -466,6 +572,7 @@ export class Application {
     this.#timeline.update(segment);
     this.#steps.mark(segment);
     this.#statechart.showFrame(frame);
+    this.#follow.follow(this.#scene.robotPosition());
     this.#picking.update();
     this.#highlights.update();
     this.#view.requestRender();
@@ -473,23 +580,30 @@ export class Application {
   }
 
   /**
-   * @param {SceneView} view The 3D view the panel's switches change.
+   * @param {SceneView} view The 3D view the overlay's switches change.
    */
-  #addViewPanel(view) {
-    this.#viewPanel = new ViewPanel(this.#elements.document, [
-      new ViewSwitch('Ambient occlusion', () => view.ambientOcclusion, (enabled) => view.setAmbientOcclusion(enabled)),
-      new ViewSwitch('Shadows on the ground', () => view.ground.visible, (shown) => view.showGround(shown)),
-    ]);
-    this.#panels.add(this.#viewPanel.panel);
+  #addLayers(view) {
+    this.#layers = new LayersPanel(
+      this.#elements.layers,
+      [
+        new ViewSwitch('Objects', () => this.#objectsShown, (shown) => this.#showObjects(shown)),
+        new ViewSwitch('TF frames', () => this.#axes.shown, (shown) => this.#axes.setShown(shown)),
+        new ViewSwitch('Object labels', () => this.#labels.shown, (shown) => this.#labels.setShown(shown)),
+        new ViewSwitch('Floor shadow', () => view.ground.visible, (shown) => view.showGround(shown)),
+        new ViewSwitch('Ambient occlusion', () => view.ambientOcclusion, (enabled) => view.setAmbientOcclusion(enabled)),
+        new ViewSwitch('Follow robot', () => this.#follow.following, (following) => { this.#follow.following = following; }),
+      ],
+      (key) => this.bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, [key]),
+    );
   }
 
   /**
-   * @param {Object} info The viewer's information.
+   * @param {boolean} shown Whether the free objects are drawn.
    */
-  #showVersion(info) {
-    const build = info[ViewerInfoKey.BUILD];
-    const stamp = build ? ` · ${build[BuildKey.COMMIT].slice(0, SHORT_COMMIT)} · ${build[BuildKey.BUILT_AT]}` : '';
-    this.#elements.version.textContent = `v${info[ViewerInfoKey.VERSION]}${stamp}`;
+  #showObjects(shown) {
+    this.#objectsShown = shown;
+    if (this.#scene) this.#scene.objects.group.visible = shown;
+    this.#view.requestRender();
   }
 
   /**

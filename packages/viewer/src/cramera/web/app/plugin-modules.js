@@ -8,8 +8,8 @@ import { PluginKey, ViewerInfoKey } from '../protocol.js';
 // %% context
 
 /**
- * What a plugin module receives: the event bus, the side panels, the viewer's routes
- * and the 3D view.
+ * What a plugin module receives: the event bus, the side panels, the viewer's routes,
+ * the 3D view, the query slot and the viewer's information.
  */
 export class PluginContext {
   /**
@@ -17,8 +17,11 @@ export class PluginContext {
    * @param {import('../panels/panel-host.js').PanelHost} panels The side panels.
    * @param {import('../core/viewer-api.js').ViewerApi} api The viewer's routes.
    * @param {import('../scene/scene-view.js').SceneView} view The 3D view.
+   * @param {import('../panels/query-slot.js').QuerySlot} query The slot above the side
+   *   panels one plugin may fill with its question panel.
+   * @param {Object} info The viewer's information, which says how it is served.
    */
-  constructor(bus, panels, api, view) {
+  constructor(bus, panels, api, view, query, info) {
     /**
      * The application's event bus.
      * @type {import('../core/event-bus.js').EventBus}
@@ -39,6 +42,16 @@ export class PluginContext {
      * @type {import('../scene/scene-view.js').SceneView}
      */
     this.view = view;
+    /**
+     * The slot above the side panels one plugin may fill with its question panel.
+     * @type {import('../panels/query-slot.js').QuerySlot}
+     */
+    this.query = query;
+    /**
+     * The viewer's information.
+     * @type {Object}
+     */
+    this.info = info;
   }
 }
 

@@ -5,6 +5,7 @@
 import { PageStatus } from '../core/page-status.js';
 import { ViewerApi } from '../core/viewer-api.js';
 import { Application, PageElements } from './application.js';
+import { localStorageOf } from './site-header.js';
 
 const elements = new PageElements(document);
 const application = new Application(
@@ -14,7 +15,11 @@ const application = new Application(
   window.history,
   (url, options) => fetch(url, options),
   window,
+  localStorageOf(window),
 );
 application.start((url) => import(url)).catch((error) => {
-  new PageStatus(document.documentElement, elements.statusLine).failed(`The viewer could not start: ${error.message}`);
+  const message = `The viewer could not start: ${error.message}`;
+  new PageStatus(document.documentElement, elements.statusLine).failed(message);
+  elements.stageMessage.textContent = message;
+  elements.stageMessage.hidden = false;
 });
