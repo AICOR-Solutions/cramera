@@ -1066,6 +1066,441 @@ class PlanBuilderLimits(JsonDocument):
     """
 
 
+# %% actions
+
+
+class ActionFieldKind(StrEnum):
+    """
+    What a field of a native action holds, which decides how the builder asks for it and
+    how the demo converts it.
+    """
+
+    BODY = "body"
+    """
+    An object of the plan, named by its identity.
+    """
+
+    ANNOTATION = "annotation"
+    """
+    A world entity carrying a given semantic annotation class, named by the annotation's
+    name.
+    """
+
+    ENUM = "enum"
+    """
+    A member of an enumeration, named by the member's name.
+    """
+
+    POSE = "pose"
+    """
+    A pose in world coordinates.
+    """
+
+    POSE_OR_SURFACE = "poseOrSurface"
+    """
+    A pose, or the free spots of a surface sampled when the step runs.
+    """
+
+    NUMBER = "number"
+    """
+    A real number.
+    """
+
+    INTEGER = "integer"
+    """
+    A whole number.
+    """
+
+    BOOLEAN = "boolean"
+    """
+    A switch that is on or off.
+    """
+
+    TEXT = "text"
+    """
+    A text.
+    """
+
+    GRASP = "grasp"
+    """
+    A grasp, never entered: the demo derives it from the action's arm and object.
+    """
+
+
+class ActionGroup(StrEnum):
+    """
+    The packages of native actions the builder groups its palette by.
+    """
+
+    CORE = "core"
+    """
+    The actions the robot performs directly.
+    """
+
+    COMPOSITE = "composite"
+    """
+    The actions made of other actions.
+    """
+
+
+class ActionFieldKey(StrEnum):
+    """
+    The keys of one field of an action schema.
+    """
+
+    NAME = "name"
+    """
+    The field's keyword argument.
+    """
+
+    LABEL = "label"
+    """
+    The field's display name.
+    """
+
+    KIND = "kind"
+    """
+    What the field holds.
+    """
+
+    REQUIRED = "required"
+    """
+    Whether a step must give the field.
+    """
+
+    DEFAULT = "default"
+    """
+    The value the action takes when a step leaves the field out.
+    """
+
+    ENUM_TYPE = "enumType"
+    """
+    The enumeration of an enumeration field.
+    """
+
+    MEMBERS = "members"
+    """
+    The members of the enumeration.
+    """
+
+    ANNOTATION = "annotation"
+    """
+    The annotation class of an annotation field.
+    """
+
+    ACCEPTS_SURFACE = "acceptsSurface"
+    """
+    Whether a pose field also takes a surface.
+    """
+
+    DERIVED_FROM = "derivedFrom"
+    """
+    The fields a derived field is computed from.
+    """
+
+    DOCUMENTATION = "documentation"
+    """
+    What the field means.
+    """
+
+
+@dataclass(kw_only=True)
+class ActionField(JsonDocument):
+    """
+    One keyword argument of a native action the builder offers, with what it holds.
+    """
+
+    name: str = document_field(ActionFieldKey.NAME)
+    """
+    The keyword argument, which a step's values are keyed by.
+    """
+
+    label: str = document_field(ActionFieldKey.LABEL)
+    """
+    The display name.
+    """
+
+    kind: ActionFieldKind = document_field(ActionFieldKey.KIND)
+    """
+    What the field holds.
+    """
+
+    required: bool = document_field(ActionFieldKey.REQUIRED)
+    """
+    Whether a step must give the field before its demo runs.
+    """
+
+    default: Any = document_field(ActionFieldKey.DEFAULT, default=None)
+    """
+    The JSON form of the value the action takes when a step leaves the field out, or
+    None when it has none or none JSON can hold.
+    """
+
+    enum_type: Optional[str] = document_field(ActionFieldKey.ENUM_TYPE, default=None)
+    """
+    The class name of the enumeration of an :attr:`ActionFieldKind.ENUM` field.
+    """
+
+    members: List[str] = document_field(ActionFieldKey.MEMBERS, default_factory=list)
+    """
+    The names of the enumeration's members, in their order.
+    """
+
+    annotation: Optional[str] = document_field(ActionFieldKey.ANNOTATION, default=None)
+    """
+    The class name of the semantic annotation an :attr:`ActionFieldKind.ANNOTATION`
+    field names an entity of.
+    """
+
+    accepts_surface: bool = document_field(
+        ActionFieldKey.ACCEPTS_SURFACE, default=False
+    )
+    """
+    Whether the field takes a surface besides a pose; its value is then a
+    :class:`Destination`.
+    """
+
+    derived_from: List[str] = document_field(
+        ActionFieldKey.DERIVED_FROM, default_factory=list
+    )
+    """
+    The names of the fields an :attr:`ActionFieldKind.GRASP` field is derived from: the
+    arm and the object.
+    """
+
+    documentation: str = document_field(ActionFieldKey.DOCUMENTATION, default="")
+    """
+    What the field means, as its attribute docstring says, or the empty text.
+    """
+
+
+class HiddenActionFieldKey(StrEnum):
+    """
+    The keys of a field the builder leaves at its default.
+    """
+
+    NAME = "name"
+    """
+    The field's keyword argument.
+    """
+
+    TYPE = "type"
+    """
+    The field's type.
+    """
+
+
+@dataclass(kw_only=True)
+class HiddenActionField(JsonDocument):
+    """
+    A field with a default whose type the builder has no form control for; the action
+    keeps its default.
+    """
+
+    name: str = document_field(HiddenActionFieldKey.NAME)
+    """
+    The keyword argument.
+    """
+
+    type_name: str = document_field(HiddenActionFieldKey.TYPE)
+    """
+    The field's type as text, or why it cannot be resolved.
+    """
+
+
+class ActionSchemaKey(StrEnum):
+    """
+    The keys of one action schema.
+    """
+
+    NAME = "name"
+    """
+    The action's class name.
+    """
+
+    MODULE = "module"
+    """
+    The module defining the class.
+    """
+
+    LABEL = "label"
+    """
+    The action's display name.
+    """
+
+    GROUP = "group"
+    """
+    The package the action belongs to.
+    """
+
+    DOCUMENTATION = "documentation"
+    """
+    What the action does.
+    """
+
+    FIELDS = "fields"
+    """
+    The fields a step gives.
+    """
+
+    HIDDEN = "hidden"
+    """
+    The fields left at their default.
+    """
+
+    AVAILABLE = "available"
+    """
+    Whether a step can be this action.
+    """
+
+    UNAVAILABLE_REASON = "unavailableReason"
+    """
+    Why a step cannot be this action.
+    """
+
+
+@dataclass(kw_only=True)
+class ActionSchema(JsonDocument):
+    """
+    A native action of the CRAM workspace as the builder offers it: its fields, read
+    from the action's dataclass fields, and whether every required one has a form
+    control.
+    """
+
+    name: str = document_field(ActionSchemaKey.NAME)
+    """
+    The action's class name, which a step stores.
+    """
+
+    module: str = document_field(ActionSchemaKey.MODULE)
+    """
+    The module defining the class.
+    """
+
+    label: str = document_field(ActionSchemaKey.LABEL)
+    """
+    The display name: the words of the class name without the ``Action`` suffix.
+    """
+
+    group: str = document_field(ActionSchemaKey.GROUP)
+    """
+    The package below the actions package the module lies in, mostly an
+    :class:`ActionGroup` value.
+    """
+
+    documentation: str = document_field(ActionSchemaKey.DOCUMENTATION, default="")
+    """
+    The first paragraph of the class's docstring, or the empty text.
+    """
+
+    fields: List[ActionField] = document_field(
+        ActionSchemaKey.FIELDS, default_factory=list
+    )
+    """
+    The fields a step gives, required ones first, in the order the class declares them.
+    """
+
+    hidden: List[HiddenActionField] = document_field(
+        ActionSchemaKey.HIDDEN, default_factory=list
+    )
+    """
+    The fields with a default the builder has no form control for.
+    """
+
+    available: bool = document_field(ActionSchemaKey.AVAILABLE, default=True)
+    """
+    Whether a step can be this action.
+    """
+
+    unavailable_reason: Optional[str] = document_field(
+        ActionSchemaKey.UNAVAILABLE_REASON, default=None
+    )
+    """
+    Why a step cannot be this action, or None for an available one.
+    """
+
+    def field_named(self, name: str) -> Optional[ActionField]:
+        """
+        :param name: A keyword argument.
+        :return: The field of that name, or None.
+        """
+        for candidate in self.fields:
+            if candidate.name == name:
+                return candidate
+        return None
+
+
+class FailedActionModuleKey(StrEnum):
+    """
+    The keys of an action module that cannot be imported.
+    """
+
+    MODULE = "module"
+    """
+    The module's name.
+    """
+
+    ERROR = "error"
+    """
+    What importing it raised.
+    """
+
+
+@dataclass(kw_only=True)
+class FailedActionModule(JsonDocument):
+    """
+    A module of the actions package that cannot be imported, so its actions are not
+    offered.
+    """
+
+    module: str = document_field(FailedActionModuleKey.MODULE)
+    """
+    The module's name.
+    """
+
+    error: str = document_field(FailedActionModuleKey.ERROR)
+    """
+    The class and message of the error importing it raised.
+    """
+
+
+class ActionCatalogKey(StrEnum):
+    """
+    The keys of the discovered actions.
+    """
+
+    ACTIONS = "actions"
+    """
+    The action schemas.
+    """
+
+    FAILED_MODULES = "failedModules"
+    """
+    The action modules that cannot be imported.
+    """
+
+
+@dataclass(kw_only=True)
+class ActionCatalog(JsonDocument):
+    """
+    The native actions found in the CRAM workspace's actions package.
+    """
+
+    actions: List[ActionSchema] = document_field(
+        ActionCatalogKey.ACTIONS, default_factory=list
+    )
+    """
+    The action schemas, core actions first, then by label.
+    """
+
+    failed_modules: List[FailedActionModule] = document_field(
+        ActionCatalogKey.FAILED_MODULES, default_factory=list
+    )
+    """
+    The modules that cannot be imported, sorted by name.
+    """
+
+
 # %% catalog
 
 
@@ -1185,6 +1620,16 @@ class PlanBuilderCatalogKey(StrEnum):
     The classes of surfaces objects can be put on or in.
     """
 
+    ACTIONS = "actions"
+    """
+    The native actions a step can be.
+    """
+
+    FAILED_ACTION_MODULES = "failedActionModules"
+    """
+    The action modules that cannot be imported.
+    """
+
     CONSTRAINT_RULES = "constraintRules"
     """
     The wordings constraints understand.
@@ -1255,6 +1700,20 @@ class PlanBuilderCatalog(JsonDocument):
     )
     """
     The class names of the native annotations with a supporting surface, sorted.
+    """
+
+    actions: List[ActionSchema] = document_field(
+        PlanBuilderCatalogKey.ACTIONS, default_factory=list
+    )
+    """
+    The native actions of the CRAM workspace, available or not; empty without CRAM.
+    """
+
+    failed_action_modules: List[FailedActionModule] = document_field(
+        PlanBuilderCatalogKey.FAILED_ACTION_MODULES, default_factory=list
+    )
+    """
+    The modules of the actions package that cannot be imported.
     """
 
     constraint_rules: List[ConstraintRule] = document_field(

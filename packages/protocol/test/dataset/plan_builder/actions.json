@@ -1,0 +1,52 @@
+{
+  "actions": [
+    {
+      "name": "SetGripperAction",
+      "module": "coraplex.robot_plans.actions.core.robot_body",
+      "label": "Set Gripper",
+      "group": "core",
+      "documentation": "Set the gripper state of the robot.",
+      "fields": [
+        {"name": "gripper", "label": "gripper", "kind": "enum", "required": true, "enumType": "Arms", "members": ["LEFT", "RIGHT", "BOTH"], "documentation": "The gripper that should be set."},
+        {"name": "motion", "label": "motion", "kind": "enum", "required": true, "enumType": "GripperState", "members": ["OPEN", "CLOSE", "MEDIUM"], "documentation": "The motion that should be set on the gripper."}
+      ]
+    },
+    {
+      "name": "PickUpAction",
+      "module": "coraplex.robot_plans.actions.core.pick_up",
+      "label": "Pick Up",
+      "group": "core",
+      "fields": [
+        {"name": "object_designator", "label": "object designator", "kind": "body", "required": true},
+        {"name": "arm", "label": "arm", "kind": "enum", "required": true, "enumType": "Arms", "members": ["LEFT", "RIGHT", "BOTH"]},
+        {"name": "grasp_description", "label": "grasp description", "kind": "grasp", "required": true, "derivedFrom": ["arm", "object_designator"]},
+        {"name": "tolerate_grasp_stall", "label": "tolerate grasp stall", "kind": "boolean", "required": false, "default": false}
+      ]
+    },
+    {
+      "name": "FollowToolCenterPointPathAction",
+      "module": "coraplex.robot_plans.actions.core.robot_body",
+      "label": "Follow Tool Center Point Path",
+      "group": "core",
+      "fields": [
+        {"name": "arm", "label": "arm", "kind": "enum", "required": true, "enumType": "Arms", "members": ["LEFT", "RIGHT", "BOTH"]}
+      ],
+      "available": false,
+      "unavailableReason": "field 'target_locations' has type PoseTrajectory, which has no form control yet"
+    },
+    {
+      "name": "SwirlingAction",
+      "module": "coraplex.robot_plans.actions.composite.swirling",
+      "label": "Swirling",
+      "group": "composite",
+      "fields": [
+        {"name": "container", "label": "container", "kind": "body", "required": true},
+        {"name": "arm", "label": "arm", "kind": "enum", "required": true, "enumType": "Arms", "members": ["LEFT", "RIGHT", "BOTH"]}
+      ],
+      "hidden": [{"name": "pivot", "type": "Point3 | None"}]
+    }
+  ],
+  "failedModules": [
+    {"module": "coraplex.robot_plans.actions.composite.searching", "error": "ImportError: cannot import name 'PerceptionObjectNotFound' from 'coraplex.plans.failures'"}
+  ]
+}
