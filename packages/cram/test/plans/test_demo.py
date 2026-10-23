@@ -1,17 +1,13 @@
 """
-The generated demo against the CRAM workspace: importing it, building the plan's world
-and native actions, performing it, and staging its world for the viewer.
+A plan's demo against the CRAM workspace: building the plan's world and native actions,
+performing it, and staging its world for the viewer.
 """
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import math
 import signal
-import socket
-import sys
-import time
 
 import pytest
 
@@ -27,29 +23,24 @@ from cramera.locations import DataLocations
 from cramera_cram.documents import DocumentFile
 from cramera_cram.exceptions import TaskFailed
 from cramera_cram.geometry import NumericPose
-from cramera_plan_builder.cram.command import STOP_SIGNALS, PlanDemoCommand, StagedWorld
-from cramera_plan_builder.cram.demo import (
+from cramera_cram.plans.command import STOP_SIGNALS, PlanDemoCommand, StagedWorld
+from cramera_cram.plans.demo import (
     MEASUREMENT_SEPARATOR,
     PLACEMENT_ERROR,
     PLACEMENT_TOLERANCE,
     PlannedTaskDemo,
 )
-from cramera_plan_builder.constraints import ConstraintCompiler
-from cramera_plan_builder.cram.steps import StepActions
-from cramera_plan_builder.cram.surfaces import SurfaceTargets
-from cramera_plan_builder.cram.world import PlannedGraspable
-from cramera_plan_builder.demos import DemoDirectory, DemoOption, DemoTemplate
-from cramera_plan_builder.exceptions import AnnotationNotInWorld, SurfaceNotInWorld
-from cramera_plan_builder.runs import DemoRunner
+from cramera_cram.plans.steps import StepActions
+from cramera_cram.plans.surfaces import SurfaceTargets
+from cramera_cram.plans.world import PlannedGraspable
+from cramera_cram.exceptions import AnnotationNotInWorld, SurfaceNotInWorld
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.files import BundleFile
-from cramera_protocol.live import LIVE_HOST, LiveRoute
 from cramera_protocol.plan_builder import (
     DemoDocument,
+    DemoOption,
     PlanDocument,
     PlanStep,
-    RunMode,
-    RunState,
     StepConstraint,
 )
 from cramera_protocol.viewer import EnvironmentVariable
@@ -63,10 +54,14 @@ from semantic_digital_twin.specifications.kinematic_structure_entities import (
 )
 from semantic_digital_twin.world_description.geometry import Scale
 
-from ..dataset.given_workspace import DATASET
-from ..dataset.live_reader import ObjectCatalogReader
+from ..dataset.bundles import DATASET
 
-PLAN_FILE = DATASET / "plans" / "pick_and_place.json"
+PLANS = DATASET / "plans"
+"""
+The plans and the environment bundle of the plan tests.
+"""
+
+PLAN_FILE = PLANS / "pick_and_place.json"
 """
 The plan the tests run: one PR2 picks the milk up and puts it down, another stands.
 """
@@ -76,19 +71,15 @@ TABLE_SIZE = Scale(1.0, 0.6, 0.75)
 The extent of the table the surface tests put the milk on, in metres.
 """
 
+LOOK_SWITCH = "look_at_operation_site"
+"""
+The switch the plan builder's rule for "look where it operates" sets, which a pick-up
+lacks.
+"""
+
 TABLE_POSITION = (2.0, 0.0)
 """
 Where the table stands on the floor, in metres.
-"""
-
-STAGE_WAIT = 300.0
-"""
-How long the staging test waits for the staged world, in seconds.
-"""
-
-STAGE_POLL_INTERVAL = 0.5
-"""
-How often the staging test asks the staged world, in seconds.
 """
 
 
@@ -127,29 +118,6 @@ def built(demo):
     """
     world = demo.build_world()
     return world, demo.build_context(world)
-
-
-def free_port() -> int:
-    """
-    :return: A port no process listens on right now.
-    """
-    with socket.socket() as probe:
-        probe.bind((LIVE_HOST, 0))
-        return probe.getsockname()[1]
-
-
-# %% the generated file
-
-
-def test_the_generated_demo_imports_and_carries_its_plan(tmp_path, document):
-    saved = DemoDirectory(tmp_path).write(DemoTemplate().render(document))
-    specification = importlib.util.spec_from_file_location(
-        document.plan.name, saved.path
-    )
-    module = importlib.util.module_from_spec(specification)
-    specification.loader.exec_module(module)
-    assert module.PlanDemoCommand is PlanDemoCommand
-    assert PlanDemoCommand.of_text(module.DEMO).document == document
 
 
 # %% world and actions
@@ -215,7 +183,7 @@ def test_a_gripper_step_opens_and_closes_the_gripper(demo, built, actions):
 
 def test_a_switch_the_action_lacks_is_left_out(demo, actions):
     pick_up = demo.steps()[2]
-    switch = ConstraintCompiler.of_file().rule_for("look where it operates").switch
+    switch = LOOK_SWITCH
     pick_up.constraints = [StepConstraint(text="Look", switch=switch)]
     assert not hasattr(actions.action(pick_up), switch)
 
@@ -292,7 +260,7 @@ def test_a_taken_name_gets_the_next_number(demo, locations):
 
 
 def test_an_environment_bundle_names_the_recording(document, locations):
-    document.environment_directory = str(DATASET / "scenes" / "lab")
+    document.environment_directory = str(PLANS / "lab")
     demo = PlannedTaskDemo.of_document(document, port=0)
     assert demo.scene_name() == "lab_PR2_pr2_pick_and_place"
     assert demo.environment_name == "Test laboratory"
@@ -331,25 +299,3 @@ def test_a_stopped_stage_restores_the_signal_handlers(demo):
     staged.stopped.set()
     staged.run()
     assert {number: signal.getsignal(number) for number in STOP_SIGNALS} == handlers
-
-
-def test_a_staged_demo_publishes_its_world_until_it_is_stopped(
-    tmp_path, document, locations
-):
-    port = free_port()
-    runner = DemoRunner(
-        directory=DemoDirectory(tmp_path / "demos", interpreter=sys.executable),
-        port=port,
-        log_limit=64 * 1024,
-    )
-    runner.start(document, RunMode.STAGE)
-    objects_url = f"http://{LIVE_HOST}:{port}{LiveRoute.OBJECTS}"
-    deadline = time.monotonic() + STAGE_WAIT
-    catalog = None
-    while catalog is None and time.monotonic() < deadline:
-        assert runner.status().state is RunState.RUNNING, runner.status().log
-        catalog = ObjectCatalogReader(objects_url).read()
-        time.sleep(STAGE_POLL_INTERVAL)
-    stopped = runner.stop()
-    assert [item.identifier for item in catalog.objects] == ["milk"]
-    assert stopped.state is RunState.STOPPED

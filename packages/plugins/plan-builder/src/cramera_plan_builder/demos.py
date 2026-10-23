@@ -38,31 +38,6 @@ TEMPORARY_PREFIX = ".demo-"
 The prefix of a demo being written, which is hidden until it is complete.
 """
 
-# %% command line
-
-
-class DemoOption(StrEnum):
-    """
-    The options of a generated demo's command line.
-    """
-
-    STAGE = "--stage"
-    """
-    Only build the world and publish it until the process is stopped.
-    """
-
-    PORT = "--port"
-    """
-    The port the world is published on.
-    """
-
-    LIFELINE = "--lifeline"
-    """
-    End when standard input closes, which happens when the process that started the demo
-    ends.
-    """
-
-
 # %% template
 
 

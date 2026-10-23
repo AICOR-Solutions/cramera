@@ -45,8 +45,8 @@ class AttachmentDetector(AbstractDetector):
         known, so nothing about it has changed yet.
 
         :param context: The context holding the world the bodies live in.
-        :param segmind_context: The shared context, unused: what a body hangs from is
-            in the world itself.
+        :param segmind_context: The shared context, unused: what a body hangs from is in
+            the world itself.
         :param tracked_objects: The bodies to look at.
         :return: An event for every watched body that has changed what it hangs from
             since the last tick.

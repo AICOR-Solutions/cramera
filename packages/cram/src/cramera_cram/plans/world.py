@@ -12,7 +12,7 @@ from typing_extensions import Dict, List
 
 from cramera_cram.scenes.bundle_world import ColorText, PoseText
 from cramera_cram.scenes.environment import SceneEnvironment
-from cramera_plan_builder.cram.workspace import OBJECT_DIRECTORY
+from cramera_cram.plans.workspace import OBJECT_DIRECTORY
 from cramera_protocol.plan_builder import PlannedObject
 from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
 from semantic_digital_twin.specifications.connections import (

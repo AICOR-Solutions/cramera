@@ -1,5 +1,5 @@
 """
-A demo's side of its ownership: ending once the owner's pipe closes.
+A child process's side of its ownership: ending once the owner's pipe closes.
 """
 
 from __future__ import annotations
@@ -8,8 +8,8 @@ import os
 import signal
 import threading
 
-from cramera_plan_builder import lifeline
-from cramera_plan_builder.lifeline import Lifeline
+from cramera import lifeline
+from cramera.lifeline import Lifeline
 
 
 def closed_pipe(written: bytes) -> int:

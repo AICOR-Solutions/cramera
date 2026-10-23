@@ -14,11 +14,11 @@ from typing_extensions import Any, Callable, Dict, Iterable, Optional
 from coraplex.datastructures.dataclasses import Context
 from coraplex.querying.predicates import IsAmongTheClosestGraspsTo
 from coraplex.robot_plans.actions.base import ActionDescription
-from cramera_plan_builder.cram.actions import DiscoveredAction, DiscoveredActions
-from cramera_plan_builder.cram.arms import ArmField, Arms, RobotArms
-from cramera_plan_builder.cram.surfaces import SurfaceTargets
-from cramera_plan_builder.cram.world import PlannedGraspable
-from cramera_plan_builder.exceptions import AnnotationNotInWorld, ObjectNotGraspable
+from cramera_cram.plans.actions import DiscoveredAction, DiscoveredActions
+from cramera_cram.plans.arms import ArmField, Arms, RobotArms
+from cramera_cram.plans.surfaces import SurfaceTargets
+from cramera_cram.plans.world import PlannedGraspable
+from cramera_cram.exceptions import AnnotationNotInWorld, ObjectNotGraspable
 from cramera_protocol.geometry import Pose as PlannedPose
 from cramera_protocol.plan_builder import (
     ActionField,

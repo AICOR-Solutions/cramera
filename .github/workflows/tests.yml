@@ -63,7 +63,6 @@ jobs:
               --cov=cramera_plan_builder.demos
               --cov=cramera_plan_builder.environments
               --cov=cramera_plan_builder.exceptions
-              --cov=cramera_plan_builder.lifeline
               --cov=cramera_plan_builder.plans
               --cov=cramera_plan_builder.plugin
               --cov=cramera_plan_builder.routes

@@ -62,9 +62,9 @@ Creates the visualization of a world, called as ``factory(world=world)``.
 @dataclass
 class CoraplexBackendRegistration:
     """
-    Selects the cramera backend and makes the provider create its visualizations
-    through a factory while entered; leaving restores the environment variable and the
-    factory before.
+    Selects the cramera backend and makes the provider create its visualizations through
+    a factory while entered; leaving restores the environment variable and the factory
+    before.
     """
 
     factory: VisualizationFactory = LiveVisualization

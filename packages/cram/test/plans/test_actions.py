@@ -17,14 +17,14 @@ from coraplex.robot_plans.actions.core.robot_body import (
     ParkArmsAction,
     SetGripperAction,
 )
-from cramera_plan_builder.cram.actions import (
+from cramera_cram.plans.actions import (
     ActionConvention,
     ActionDiscovery,
     ActionModules,
     DiscoveredActions,
 )
-from cramera_plan_builder.cram.arms import Arms
-from cramera_plan_builder.exceptions import UnknownAction
+from cramera_cram.plans.arms import Arms
+from cramera_cram.exceptions import UnknownAction
 from cramera_protocol.plan_builder import ActionFieldKind, ActionGroup
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
 

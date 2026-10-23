@@ -6,15 +6,14 @@ from __future__ import annotations
 
 import pytest
 
-from cramera_plan_builder.cram.arms import Arms
-from cramera_plan_builder.cram.workspace import (
-    InstalledWorkspace,
+from cramera_cram.plans.arms import Arms
+from cramera_cram.plans.workspace import (
+    PlanWorkspace,
     RobotAnnotation,
     RobotAnnotations,
     SurfaceAnnotations,
 )
-from cramera_plan_builder.exceptions import UnknownWorkspaceClass
-from cramera_plan_builder.workspace import WorkspaceLoader
+from cramera_cram.exceptions import UnknownWorkspaceClass
 from cramera_protocol.bundle.files import MeshFormat
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
@@ -26,15 +25,11 @@ from semantic_digital_twin.semantic_annotations.semantic_annotations import Tabl
 
 
 @pytest.fixture(scope="module")
-def workspace() -> InstalledWorkspace:
+def workspace() -> PlanWorkspace:
     """
     :return: The workspace this interpreter imports.
     """
-    return InstalledWorkspace()
-
-
-def test_the_loader_reads_the_installed_workspace():
-    assert isinstance(WorkspaceLoader().workspace(), InstalledWorkspace)
+    return PlanWorkspace()
 
 
 def test_a_robot_with_two_arms_and_a_torso_offers_every_choice():
@@ -71,10 +66,7 @@ def test_the_object_models_are_the_meshes_beside_coraplex(workspace):
     assert not any(
         identifier.endswith(MeshFormat.MATERIAL_LIBRARY) for identifier in identifiers
     )
-    assert (
-        workspace.object_file("milk.stl")
-        == (workspace.object_directory() / "milk.stl").resolve()
-    )
+    assert (workspace.object_directory() / "milk.stl").is_file()
 
 
 def test_the_catalog_robots_name_their_choices(workspace):

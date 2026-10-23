@@ -21,7 +21,7 @@ from semantic_digital_twin.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import Body
 
 if TYPE_CHECKING:
-    from cramera_plan_builder.cram.missing_module import TypeCheckingOnly
+    from cramera_cram.plans.missing_module import TypeCheckingOnly
 
 
 class Speed(IntEnum):

@@ -57,6 +57,16 @@ which this repository was mirrored until 22 Oct 2026.
   labelled as the builder labels the field, and each constraint as a chip with its
   monitor and last observation. The panel's description and its links to the
   builder page are gone; the page stays at `/plugins/plan-builder/builder.html`.
+- **Only cramera-cram imports CRAM.** The plan builder's CRAM side (action
+  discovery, steps, arms, world, surfaces, the generated demo's command) moved from
+  `cramera_plan_builder.cram` to `cramera_cram.plans` with its tests; the builder
+  reads its catalog as protocol documents and its demos import
+  `cramera_cram.plans.command`. `DemoOption` moved into `cramera_protocol.plan_builder`,
+  `Lifeline` into `cramera.lifeline`, and the errors the CRAM side raises into
+  `cramera_cram.exceptions` with their status and message unchanged. Demos generated
+  before import the old module and have to be generated again. A test of
+  `cramera-cram` fails on any new CRAM import elsewhere; `cramera-questions`' krrood use
+  is what is left.
 
 ### A rewrite into packages
 - **One protocol for everything.** `cramera-protocol` defines scene bundles, the

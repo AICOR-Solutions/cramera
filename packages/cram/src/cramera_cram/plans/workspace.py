@@ -1,7 +1,8 @@
 """
 The installed CRAM workspace as the plan builder's catalog reads it: robot annotations
 and the choices their parts allow, object meshes, surface annotations and native
-actions, all read from the workspace's own classes and files.
+actions, all read from the workspace's own classes and files and handed over as the
+protocol's documents.
 """
 
 from __future__ import annotations
@@ -20,10 +21,9 @@ import semantic_digital_twin.robots
 
 # defines the concrete surface annotations the catalog lists
 import semantic_digital_twin.semantic_annotations.semantic_annotations  # noqa: F401
-from cramera_plan_builder.cram.actions import ActionDiscovery, DiscoveredActions
-from cramera_plan_builder.cram.arms import Arms
-from cramera_plan_builder.exceptions import UnknownWorkspaceClass
-from cramera_plan_builder.workspace import CramWorkspace
+from cramera_cram.plans.actions import ActionDiscovery, DiscoveredActions
+from cramera_cram.plans.arms import Arms
+from cramera_cram.exceptions import UnknownWorkspaceClass
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
@@ -234,9 +234,10 @@ class SurfaceAnnotations:
 
 
 @dataclass(frozen=True)
-class InstalledWorkspace(CramWorkspace):
+class PlanWorkspace:
     """
-    The CRAM workspace this interpreter imports.
+    What the CRAM workspace this interpreter imports offers a plan, as the protocol's
+    documents the plan builder's catalog lists.
     """
 
     robot_annotations: RobotAnnotations = field(default_factory=RobotAnnotations)
@@ -258,12 +259,18 @@ class InstalledWorkspace(CramWorkspace):
     """
 
     def robots(self) -> List[RobotModel]:
+        """
+        :return: The robot annotations with what their parts allow, sorted by name.
+        """
         return [
             RobotAnnotation(annotation).model()
             for annotation in self.robot_annotations.annotations()
         ]
 
     def objects(self) -> List[ObjectModel]:
+        """
+        :return: The object meshes, sorted by identifier.
+        """
         mesh_suffixes = {
             member.value
             for member in MeshFormat
@@ -276,12 +283,22 @@ class InstalledWorkspace(CramWorkspace):
         ]
 
     def object_directory(self) -> Path:
+        """
+        :return: The directory holding the object meshes.
+        """
         return self.directory
 
     def surface_types(self) -> List[str]:
+        """
+        :return: The class names of the annotations objects can be put on or in, sorted.
+        """
         return [
             annotation.__name__ for annotation in SurfaceAnnotations().annotations()
         ]
 
     def action_catalog(self) -> ActionCatalog:
+        """
+        :return: The schemas of the native actions and the action modules that failed
+            to import.
+        """
         return self.discovered_actions.catalog()

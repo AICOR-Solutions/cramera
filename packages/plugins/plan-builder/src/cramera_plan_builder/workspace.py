@@ -1,6 +1,7 @@
 """
 What the CRAM workspace offers a plan: its robot annotations, object meshes, surface
-annotations and native actions.
+annotations and native actions, as cramera-cram reads them and hands them over in the
+protocol's documents.
 
 Whether the workspace is importable is decided by asking the import system before
 anything imports it, so an absent workspace is a value the plugin reads rather than an
@@ -19,13 +20,16 @@ from enum import StrEnum
 from importlib.machinery import ModuleSpec
 from pathlib import Path
 
-from typing_extensions import Callable, List, Optional, Tuple
+from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
 from cramera_plan_builder.exceptions import CramUnavailable
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
+
+if TYPE_CHECKING:
+    from cramera_cram.plans.workspace import PlanWorkspace
 
 TEXTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg"})
 """
@@ -203,18 +207,45 @@ class MissingWorkspace(CramWorkspace):
         return list(self.missing_modules)
 
 
+@dataclass(frozen=True)
+class InstalledWorkspace(CramWorkspace):
+    """
+    The workspace of an interpreter that imports CRAM, as cramera-cram reads it.
+    """
+
+    plans: PlanWorkspace
+    """
+    The workspace as cramera-cram reads it.
+    """
+
+    def robots(self) -> List[RobotModel]:
+        return self.plans.robots()
+
+    def objects(self) -> List[ObjectModel]:
+        return self.plans.objects()
+
+    def object_directory(self) -> Path:
+        return self.plans.object_directory()
+
+    def surface_types(self) -> List[str]:
+        return self.plans.surface_types()
+
+    def action_catalog(self) -> ActionCatalog:
+        return self.plans.action_catalog()
+
+
 # %% choice
 
 
 class WorkspaceModule(StrEnum):
     """
-    The module reading the installed workspace; it imports CRAM, so it is only imported
-    once every module is found.
+    The module of cramera-cram reading the installed workspace; it imports CRAM, so it
+    is only imported once every module is found.
     """
 
-    INSTALLED = "cramera_plan_builder.cram.workspace"
+    INSTALLED = "cramera_cram.plans.workspace"
     """
-    :class:`cramera_plan_builder.cram.workspace.InstalledWorkspace`.
+    :class:`cramera_cram.plans.workspace.PlanWorkspace`.
     """
 
 
@@ -257,4 +288,5 @@ class WorkspaceLoader:
         missing = self.modules.missing()
         if missing:
             return MissingWorkspace(missing)
-        return importlib.import_module(WorkspaceModule.INSTALLED).InstalledWorkspace()
+        module = importlib.import_module(WorkspaceModule.INSTALLED)
+        return InstalledWorkspace(module.PlanWorkspace())

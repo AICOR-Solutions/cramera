@@ -9,8 +9,8 @@ from dataclasses import dataclass
 
 from typing_extensions import Iterator, List, Optional
 
-from cramera_plan_builder.cram.workspace import SurfaceAnnotations
-from cramera_plan_builder.exceptions import SurfaceNotInWorld
+from cramera_cram.plans.workspace import SurfaceAnnotations
+from cramera_cram.exceptions import SurfaceNotInWorld
 from semantic_digital_twin.semantic_annotations.mixins import HasSupportingSurface
 from semantic_digital_twin.spatial_types import Pose
 from semantic_digital_twin.world import World

@@ -17,12 +17,11 @@ from typing_extensions import Any, Optional, Sequence
 
 from cramera_cram.robot_task import TaskArgument, TaskCommand
 from cramera_cram.visualization import LiveVisualization
-from cramera_plan_builder.cram.demo import PlannedTaskDemo
-from cramera_plan_builder.demos import DemoOption
-from cramera_plan_builder.lifeline import Lifeline
+from cramera_cram.plans.demo import PlannedTaskDemo
+from cramera.lifeline import Lifeline
 from cramera_protocol.live import LIVE_PORT
 from cramera_protocol.live_messages import SavedScene
-from cramera_protocol.plan_builder import DemoDocument
+from cramera_protocol.plan_builder import DemoDocument, DemoOption
 
 STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 """

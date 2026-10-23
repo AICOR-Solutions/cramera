@@ -1,7 +1,8 @@
 """
-The demo's side of its ownership by the viewer: the viewer holds the write end of the
-demo's standard input, and the demo ends when that input closes, which the operating
-system does when the viewer ends in any way.
+A child process's side of its ownership by the viewer, such as a demo the plan builder
+started: the viewer holds the write end of the child's standard input, and the child
+ends when that input closes, which the operating system does when the viewer ends in any
+way.
 """
 
 from __future__ import annotations

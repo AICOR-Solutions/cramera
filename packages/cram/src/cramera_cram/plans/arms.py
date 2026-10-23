@@ -1,7 +1,7 @@
 """
-The arms a step names: the builder's own choice of a robot's arm, offered for every field
-that takes an arm, several arms or an arm's end effector, and resolved into the robot's
-parts when the step's action is built.
+The arms a step names: the builder's own choice of a robot's arm, offered for every
+field that takes an arm, several arms or an arm's end effector, and resolved into the
+robot's parts when the step's action is built.
 
 coraplex names an arm by the robot part itself, which exists only once a robot stands in
 a world; a plan names it by side, so that the same plan reads for every robot.
@@ -14,7 +14,7 @@ from enum import Enum, auto
 
 from typing_extensions import Any, List, get_args, get_origin
 
-from cramera_plan_builder.exceptions import ArmNotOnRobot
+from cramera_cram.exceptions import ArmNotOnRobot
 from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm, EndEffector
 
 

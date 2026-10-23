@@ -19,10 +19,10 @@ from cramera_cram.exceptions import TaskFailed
 from cramera_cram.geometry import NumericPose
 from cramera_cram.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_cram.scenes.multi_robot import RobotPlacement, RobotScene
-from cramera_plan_builder.cram.actions import ActionDiscovery, DiscoveredActions
-from cramera_plan_builder.cram.steps import StepActions
-from cramera_plan_builder.cram.workspace import RobotAnnotations
-from cramera_plan_builder.cram.world import EmptyFloor, PlannedObjects
+from cramera_cram.plans.actions import ActionDiscovery, DiscoveredActions
+from cramera_cram.plans.steps import StepActions
+from cramera_cram.plans.workspace import RobotAnnotations
+from cramera_cram.plans.world import EmptyFloor, PlannedObjects
 from cramera_cram.scenes.bundle_world import PoseText
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.index import SceneName
