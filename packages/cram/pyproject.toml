@@ -25,6 +25,11 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 cramera-live = "cramera_cram.command_line:live"
 cramera-onboard = "cramera_cram.command_line:onboard"
 
+# coraplex loads the visualization backend selected with CORAPLEX_VISUALIZATION=cramera
+# from this group.
+[project.entry-points."coraplex.visualizations"]
+cramera = "cramera_cram.coraplex_backend:CoraplexProvider"
+
 [project.urls]
 Source = "https://github.com/AICOR-Solutions/cramera"
 
