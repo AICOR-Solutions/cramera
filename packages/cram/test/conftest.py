@@ -20,6 +20,7 @@ The CRAM packages the tests import.
 
 TESTS_WITHOUT_CRAM = (
     "test_documents.py",
+    "test_cram_boundary.py",
     "test_demo_script.py",
     "export/test_scene_index.py",
     "recording/test_activity.py",
