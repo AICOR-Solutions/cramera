@@ -179,8 +179,8 @@ class ViewerConfiguration:
 
     def start_server(self) -> HttpServer:
         """
-        Start the viewer's server; when the port is held by another cramera viewer
-        and :attr:`replace_viewer` is set, that viewer is stopped first.
+        Start the viewer's server; when the port is held by another cramera viewer and
+        :attr:`replace_viewer` is set, that viewer is stopped first.
 
         :return: The started server.
         :raises OSError: When the port is in use and cannot be taken over.

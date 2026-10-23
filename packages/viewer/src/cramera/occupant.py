@@ -1,6 +1,6 @@
 """
-The process that already listens on the viewer's port, and its replacement by the
-viewer being started.
+The process that already listens on the viewer's port, and its replacement by the viewer
+being started.
 """
 
 from __future__ import annotations
@@ -164,13 +164,13 @@ class PortOccupant:
 
     def replace_viewer(self, timeout: float = 10.0) -> Optional[int]:
         """
-        Ask the viewer on the port to stop, if what listens there is one (it answers
-        the information route as a viewer, or its command line is the viewer's), and
-        wait until the port is free.
+        Ask the viewer on the port to stop, if what listens there is one (it answers the
+        information route as a viewer, or its command line is the viewer's), and wait
+        until the port is free.
 
         :param timeout: How long to wait for the port, in seconds.
-        :return: The process that was stopped, or None when the port was not held
-            by a viewer this process may stop.
+        :return: The process that was stopped, or None when the port was not held by a
+            viewer this process may stop.
         :raises PortStillInUse: When the port is still in use after the timeout.
         """
         pid = self.pid()
