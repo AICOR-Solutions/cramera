@@ -61,6 +61,9 @@ one hides a bundle of the same name in a later one:
 cramera --demo-scenes demo/scenes --port 8711 --no-browser
 ```
 
+A viewer started on a port another cramera viewer still holds stops that viewer and
+takes the port over; pass `--keep-running` to fail instead.
+
 The demo scenes are part of this repository, not of the installed package, so a
 freshly installed viewer without `--demo-scenes` or `$CRAMERA_SCENES` shows "No
 scenes found". A scenes directory that does not exist is skipped silently; give an

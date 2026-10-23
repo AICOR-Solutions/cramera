@@ -15,6 +15,11 @@ which this repository was mirrored until 22 Oct 2026.
   `laboratory` stays for plugins outside this repository; `cramera_protocol.rights`
   stays for the scene builder.
 
+### Added
+- **A new viewer replaces the old one.** `cramera` started on a port another cramera
+  viewer holds stops that viewer and takes the port; `--keep-running` keeps the
+  earlier behaviour of failing with *address already in use*.
+
 ### A rewrite into packages
 - **One protocol for everything.** `cramera-protocol` defines scene bundles, the
   scenes index, live messages, routes and versions once; the browser reads the same
