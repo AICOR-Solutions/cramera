@@ -31,8 +31,8 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-protocol`](packages/protocol) | The formats and messages: scene bundles, the scenes index, live messages, routes, versions. Python and the browser read the same definitions. | done |
 | [`cramera`](packages/viewer) | The viewer: HTTP server, scene catalog, plugins, the browser application, screenshots, the static site export. Runs without CRAM. | done |
 | [`cramera-usd`](packages/usd) | Converting an Isaac Sim or USD stage into a scene bundle, with the export gate and the robot separation audit. | done |
-| [`cramera-cram`](packages/cram) | Live publishing from a running plan, recording, onboarding demos, task demos. | done |
-| [`cramera-questions`](packages/questions) | The viewer plugin asking recorded scenes questions in the entity query language; `cramera-cram`'s question engine answers them. | done |
+| [`cramera-bridge`](packages/bridge) | Live publishing from a running plan, recording, onboarding demos, task demos. | done |
+| [`cramera-questions`](packages/questions) | The viewer plugin asking recorded scenes questions in the entity query language; `cramera-bridge`'s question engine answers them. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
@@ -42,7 +42,7 @@ Recordings made with earlier versions open unchanged: a document without a
 
 ## Install the whole stack
 
-One command installs the viewer, every plugin, `cramera-cram` and the CRAM workspace
+One command installs the viewer, every plugin, `cramera-bridge` and the CRAM workspace
 into one virtual environment, all editable:
 
 ```bash
@@ -62,7 +62,7 @@ below 8 next to CRAM, since ROS 2's `launch_testing` plugin does not load into p
 and `--dry-run` prints the commands without running them. Running it again updates the
 environment in place.
 
-Robot demos and `cramera-cram`'s tests also need ROS 2 Jazzy and the robot
+Robot demos and `cramera-bridge`'s tests also need ROS 2 Jazzy and the robot
 descriptions: source `/opt/ros/jazzy/setup.bash` and the ROS workspace that CRAM's
 README sets up ("Setup your ROS Workspace") before running one.
 
@@ -131,7 +131,7 @@ behaviour as an optional extra:
 
 | Plugin | Extra | Without it |
 | --- | --- | --- |
-| `cramera-plan-builder` | `[cram]`, that is `cramera-cram` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
+| `cramera-plan-builder` | `[cram]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
 
 ```bash
 pip install './packages/plugins/plan-builder[cram]'
@@ -162,11 +162,11 @@ machine.
 
 ## Follow a running plan
 
-`cramera-cram` publishes a running CRAM world on `http://127.0.0.1:8765`. Run a demo
+`cramera-bridge` publishes a running CRAM world on `http://127.0.0.1:8765`. Run a demo
 file with the cramera backend and keep publishing until Ctrl-C:
 
 ```bash
-pip install ./packages/questions ./packages/cram   # inside the CRAM environment
+pip install ./packages/questions ./packages/bridge   # inside the CRAM environment
 cramera-live demo.py -- --demo-option value
 cramera --no-browser
 # then open http://127.0.0.1:8711/?live=http://127.0.0.1:8765
@@ -191,7 +191,7 @@ With `cramera-questions` installed, the viewer's right column gets:
   shows its details and lights it up in the 3D view; drag to pan, scroll or use the
   buttons to zoom, and fill the window with the graph.
 
-Answering needs `cramera-cram`'s question engine and krrood from the CRAM workspace
+Answering needs `cramera-bridge`'s question engine and krrood from the CRAM workspace
 (`pip install -e 'packages/questions[cram]'`). Where they are missing, and on the
 static demo site, the plugin shows the answers recorded in the bundle instead: the
 presets answer as they did when they were recorded, the graphs are drawn, and the

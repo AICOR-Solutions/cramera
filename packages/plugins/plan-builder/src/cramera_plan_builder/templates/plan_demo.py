@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import sys
 
-from cramera_cram.plans.command import PlanDemoCommand
+from cramera_bridge.plans.command import PlanDemoCommand
 
 DEMO = r"""
 ${demo}

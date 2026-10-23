@@ -33,7 +33,7 @@ from cramera_protocol.viewer import (
 
 
 def test_live_information_round_trips():
-    info = LiveInfo(publisher="cramera-cram 1.0.0", capabilities=[Capability.PLAN])
+    info = LiveInfo(publisher="cramera-bridge 1.0.0", capabilities=[Capability.PLAN])
     written = info.to_json()
     assert written[LiveInfoKey.PROTOCOL_VERSION] == CURRENT_VERSION.to_json()
     assert written[LiveInfoKey.CAPABILITIES] == [Capability.PLAN.value]

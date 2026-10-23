@@ -1,6 +1,6 @@
 """
 What the CRAM workspace offers a plan: its robot annotations, object meshes, surface
-annotations and native actions, as cramera-cram reads them and hands them over in the
+annotations and native actions, as cramera-bridge reads them and hands them over in the
 protocol's documents.
 
 Whether the workspace is importable is decided by asking the import system before
@@ -29,7 +29,7 @@ from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 
 if TYPE_CHECKING:
-    from cramera_cram.plans.workspace import PlanWorkspace
+    from cramera_bridge.plans.workspace import PlanWorkspace
 
 TEXTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg"})
 """
@@ -59,7 +59,7 @@ class CramModule(StrEnum):
     The class introspection robot parts are read with.
     """
 
-    CRAMERA_CRAM = "cramera_cram"
+    CRAMERA_BRIDGE = "cramera_bridge"
     """
     The robot task demo a generated demo runs as.
     """
@@ -210,12 +210,12 @@ class MissingWorkspace(CramWorkspace):
 @dataclass(frozen=True)
 class InstalledWorkspace(CramWorkspace):
     """
-    The workspace of an interpreter that imports CRAM, as cramera-cram reads it.
+    The workspace of an interpreter that imports CRAM, as cramera-bridge reads it.
     """
 
     plans: PlanWorkspace
     """
-    The workspace as cramera-cram reads it.
+    The workspace as cramera-bridge reads it.
     """
 
     def robots(self) -> List[RobotModel]:
@@ -239,13 +239,13 @@ class InstalledWorkspace(CramWorkspace):
 
 class WorkspaceModule(StrEnum):
     """
-    The module of cramera-cram reading the installed workspace; it imports CRAM, so it
+    The module of cramera-bridge reading the installed workspace; it imports CRAM, so it
     is only imported once every module is found.
     """
 
-    INSTALLED = "cramera_cram.plans.workspace"
+    INSTALLED = "cramera_bridge.plans.workspace"
     """
-    :class:`cramera_cram.plans.workspace.PlanWorkspace`.
+    :class:`cramera_bridge.plans.workspace.PlanWorkspace`.
     """
 
 

@@ -1,6 +1,6 @@
 # Runs every package's tests on its own, as CRAM's rules ask, with the coverage floor
 # of 85 %, and checks that the Python code is formatted. CI has no CRAM workspace, so
-# cramera-questions, cramera-cram and the plan builder run only their tests without
+# cramera-questions, cramera-bridge and the plan builder run only their tests without
 # CRAM, measured over the modules those tests reach.
 name: Tests
 
@@ -30,21 +30,21 @@ jobs:
             coverage: >-
               --cov=cramera_questions.exceptions
               --cov=cramera_questions.plugin
-          - package: cram
-            install: -e ./packages/cram
+          - package: bridge
+            install: -e ./packages/bridge
             coverage: >-
-              --cov=cramera_cram.demo_script
-              --cov=cramera_cram.documents
-              --cov=cramera_cram.export.scene_index
-              --cov=cramera_cram.live.activity
-              --cov=cramera_cram.live.marker_topics
-              --cov=cramera_cram.live.recording
-              --cov=cramera_cram.live.segments
-              --cov=cramera_cram.questions.matching
-              --cov=cramera_cram.questions.presets
-              --cov=cramera_cram.questions.recorded.bundle
-              --cov=cramera_cram.questions.recorded.urdf
-              --cov=cramera_cram.scenes.presentation
+              --cov=cramera_bridge.demo_script
+              --cov=cramera_bridge.documents
+              --cov=cramera_bridge.export.scene_index
+              --cov=cramera_bridge.live.activity
+              --cov=cramera_bridge.live.marker_topics
+              --cov=cramera_bridge.live.recording
+              --cov=cramera_bridge.live.segments
+              --cov=cramera_bridge.questions.matching
+              --cov=cramera_bridge.questions.presets
+              --cov=cramera_bridge.questions.recorded.bundle
+              --cov=cramera_bridge.questions.recorded.urdf
+              --cov=cramera_bridge.scenes.presentation
           # The converter's tests need usd-core; the viewer is installed as well, so
           # the screenshot step is tested.
           - package: usd

@@ -38,6 +38,6 @@ The scenes directory of the dataset.
 
 IMPORT_PLUGIN_WITHOUT_KRROOD = DATASET / "scripts" / "import_plugin_without_krrood.py"
 """
-A script importing the questions plugin while krrood and cramera-cram cannot be
+A script importing the questions plugin while krrood and cramera-bridge cannot be
 imported.
 """

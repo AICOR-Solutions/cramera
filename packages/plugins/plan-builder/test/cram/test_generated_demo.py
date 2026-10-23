@@ -1,6 +1,6 @@
 """
 The plan builder against the installed CRAM workspace, which it reaches through cramera-
-cram only: the catalog read from it, the generated demo importing cramera-cram's plan
+cram only: the catalog read from it, the generated demo importing cramera-bridge's plan
 demo command, and a staged demo started as a child process.
 """
 
@@ -14,7 +14,7 @@ import time
 
 import pytest
 
-from cramera_cram.plans.command import PlanDemoCommand
+from cramera_bridge.plans.command import PlanDemoCommand
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.workspace import InstalledWorkspace, WorkspaceLoader
