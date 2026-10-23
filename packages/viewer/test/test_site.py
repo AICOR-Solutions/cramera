@@ -11,11 +11,14 @@ import pytest
 
 from cramera import bundle_upgrade, static_site
 from cramera.bundle_upgrade import BundleLabels, BundleUpgrade, UpgradeOption
+from cramera.exceptions import PluginNotInstalled
+from cramera.plugins import PluginLoader
 from cramera.static_site import (
     ExportOption,
     SiteDirectoryNotEmpty,
     SiteFile,
     StaticSite,
+    installed_plugins,
 )
 from cramera_protocol.browser import BrowserModule
 from cramera_protocol.bundle.files import BundleFile
@@ -23,9 +26,16 @@ from cramera_protocol.bundle.index import InvalidSceneName, SceneIndex
 from cramera_protocol.bundle.scene import SceneDescription, SceneKey
 from cramera_protocol.bundle.trajectory import Trajectory, TrajectoryKey
 from cramera_protocol.version import CURRENT_VERSION
-from cramera_protocol.viewer import BuildStamp, ViewerInfo, ViewerRoute
+from cramera_protocol.viewer import BuildStamp, Serving, ViewerInfo, ViewerRoute
 
 from .conftest import DATASET
+from .dataset.plugins import (
+    PLUGIN_WEB,
+    FactoryEntryPoint,
+    QuestionPlugin,
+    RefusingLoader,
+    SilentPlugin,
+)
 
 PROTOCOL_DATASET = DATASET.parent.parent.parent / "protocol" / "test" / "dataset"
 """
@@ -176,3 +186,72 @@ def test_an_export_without_a_commit_has_no_build_stamp(demo_scenes, tmp_path):
         json.loads((output / ViewerRoute.INFO.strip("/")).read_text())
     )
     assert info.build is None
+
+
+# %% plugins on a static site
+
+
+def test_a_site_says_it_is_static_and_lists_no_plugins_by_default(
+    demo_scenes, tmp_path
+):
+    output = tmp_path / "site"
+    StaticSite(output, demo_scenes).write()
+    info = ViewerInfo.from_json(
+        json.loads((output / ViewerRoute.INFO.strip("/")).read_text())
+    )
+    assert info.serving == Serving.STATIC
+    assert info.plugins == []
+
+
+def test_a_site_carries_the_browser_files_of_its_plugins(demo_scenes, tmp_path):
+    output = tmp_path / "site"
+    plugin = QuestionPlugin()
+    StaticSite(output, demo_scenes, plugins=[plugin, SilentPlugin()]).write()
+    info = ViewerInfo.from_json(
+        json.loads((output / ViewerRoute.INFO.strip("/")).read_text())
+    )
+    assert info.plugins == [plugin.info(), SilentPlugin().info()]
+    copied = output / ViewerRoute.PLUGIN_FILES.strip("/") / plugin.name()
+    assert sorted(path.name for path in copied.iterdir()) == sorted(
+        path.name for path in PLUGIN_WEB.iterdir()
+    )
+    assert not (output / ViewerRoute.PLUGIN_FILES.strip("/") / "silent").exists()
+
+
+@pytest.fixture
+def loader():
+    return PluginLoader(
+        entry_points=[
+            FactoryEntryPoint(SilentPlugin()),
+            FactoryEntryPoint(QuestionPlugin()),
+        ]
+    )
+
+
+def test_named_plugins_are_taken_from_the_installed_ones(loader):
+    chosen = installed_plugins(["silent", "questions", "silent"], loader)
+    assert [plugin.name() for plugin in chosen] == ["questions", "silent"]
+
+
+def test_no_plugin_is_loaded_without_names():
+    assert installed_plugins([], RefusingLoader(entry_points=[])) == []
+
+
+def test_a_plugin_that_is_not_installed_is_refused(loader):
+    with pytest.raises(PluginNotInstalled) as raised:
+        installed_plugins(["cable-lab"], loader)
+    assert raised.value.installed == ["questions", "silent"]
+
+
+def test_the_export_command_includes_the_named_plugins(demo_scenes, tmp_path):
+    output = tmp_path / "site"
+    with pytest.raises(PluginNotInstalled):
+        static_site.main(
+            [
+                str(output),
+                ExportOption.SCENES,
+                str(demo_scenes),
+                ExportOption.PLUGIN,
+                "not-installed-anywhere",
+            ]
+        )

@@ -11,6 +11,7 @@ from typing_extensions import List, Optional
 
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.plugins import (
+    PluginLoader,
     NavigationEntry,
     PluginContext,
     PluginPrefixRoute,
@@ -130,3 +131,16 @@ class FactoryEntryPoint:
         :return: The plugin's factory.
         """
         return lambda: self.plugin
+
+
+@dataclass
+class RefusingLoader(PluginLoader):
+    """
+    A plugin loader that must not be asked to load.
+    """
+
+    def load(self) -> List[ViewerPlugin]:
+        """
+        :raises AssertionError: Always.
+        """
+        raise AssertionError("No plugin may be loaded.")
