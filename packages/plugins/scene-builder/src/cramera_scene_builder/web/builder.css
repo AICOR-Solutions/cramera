@@ -2,12 +2,13 @@
 
 /* %% page */
 
-body.builder-page { display: block; overflow: hidden; }
+body.builder-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 .builder-root {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
 }
 
 .builder-bar { gap: 10px; flex-wrap: wrap; }

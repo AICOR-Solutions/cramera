@@ -16,15 +16,23 @@ from pathlib import Path
 from typing_extensions import Callable, List, Optional, Tuple
 
 from cramera.http.messages import HttpMethod, Request, Response
-from cramera.plugins import PluginContext, PluginRoute, ViewerPlugin
+from cramera.plugins import (
+    NavigationEntry,
+    PageEntry,
+    PluginContext,
+    PluginRoute,
+    ViewerPlugin,
+)
 from cramera_cable_lab.exceptions import CableLabLibrariesMissing
 from cramera_cable_lab.session import CableLabSession, CableSimulation
 from cramera_protocol.cable_lab import (
+    CableLabFile,
     CableConfiguration,
     CableLabRoute,
     GripperCommand,
 )
 from cramera_protocol.plugins import PluginName
+from cramera_protocol.viewer import NavigationGroup
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
@@ -53,6 +61,11 @@ class Distribution(StrEnum):
     The distribution's name, under which its version is recorded.
     """
 
+
+NAVIGATION_TITLE = "Cable Lab"
+"""
+The text of the plugin's entry in the viewer's navigation.
+"""
 
 # %% libraries
 
@@ -260,6 +273,11 @@ class CableLabPlugin(ViewerPlugin):
 
     def module(self) -> Optional[str]:
         return WebFile.MODULE.value
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return PageEntry(
+            NAVIGATION_TITLE, NavigationGroup.LABORATORY, CableLabFile.PAGE.value
+        )
 
     def close(self) -> None:
         for session in self.sessions:

@@ -19,12 +19,33 @@ export const PALETTE_SIZE = 8;
 /**
  * The radius of a node and the margin around the drawing, in drawing units.
  */
-const Size = Object.freeze({ NODE: 9, MARGIN: 40 });
+const Size = Object.freeze({ NODE: 9, MARGIN: 40, EDGE: 1.2 });
+
+/**
+ * The width a hidden drawing is assumed to have, in CSS pixels, so its nodes are sized
+ * before its tab is shown.
+ */
+const ASSUMED_WIDTH = 700;
 
 /**
  * How much one wheel step zooms.
  */
 const ZOOM_STEP = 1.1;
+
+/**
+ * How much one press of a zoom button zooms.
+ */
+const BUTTON_ZOOM_STEP = 1.4;
+
+/**
+ * The view's buttons: their text and what they are for.
+ */
+const CONTROLS = Object.freeze({
+  FULLSCREEN: { TEXT: '⛶', LABEL: 'Show the graph over the whole window' },
+  ZOOM_IN: { TEXT: '+', LABEL: 'Zoom in' },
+  ZOOM_OUT: { TEXT: '−', LABEL: 'Zoom out' },
+  FIT: { TEXT: '⤡', LABEL: 'Fit the graph' },
+});
 
 // %% view
 
@@ -66,6 +87,25 @@ export class GraphView {
   #box = [0, 0, 1, 1];
 
   /**
+   * Where the drawn nodes are.
+   * @type {Array<{x: number, y: number}>}
+   */
+  #places = [];
+
+  /**
+   * The drawn nodes with where they are, so they keep their size on screen at every
+   * zoom.
+   * @type {Array<{mark: SVGGElement, place: {x: number, y: number}}>}
+   */
+  #marks = [];
+
+  /**
+   * The drawn edges.
+   * @type {SVGGElement|null}
+   */
+  #edges = null;
+
+  /**
    * @param {Document} document The page.
    * @param {function(string): void} onSelect Called with a clicked node's identity.
    */
@@ -79,7 +119,7 @@ export class GraphView {
     this.#legend.className = 'legend';
     this.#details = document.createElement('div');
     this.#details.className = 'graph-details';
-    this.element.append(this.#drawing, this.#legend, this.#details);
+    this.element.append(this.#drawing, this.#controls(document), this.#legend, this.#details);
     this.#addNavigation();
   }
 
@@ -106,6 +146,8 @@ export class GraphView {
       edges.append(line);
     }
     const marks = document.createElementNS(SVG, 'g');
+    this.#marks = [];
+    this.#edges = edges;
     for (const node of nodes) {
       const place = placements.get(node[GraphNodeKey.IDENTIFIER]);
       const mark = document.createElementNS(SVG, 'g');
@@ -124,9 +166,11 @@ export class GraphView {
         this.#onSelect(node[GraphNodeKey.IDENTIFIER]);
       });
       marks.append(mark);
+      this.#marks.push({ mark, place });
     }
     this.#drawing.replaceChildren(edges, marks);
-    this.#fit([...placements.values()]);
+    this.#places = [...placements.values()];
+    this.#fit(this.#places);
     this.#showLegend(view[GraphViewKey.LEGEND] ?? []);
     this.#details.replaceChildren();
   }
@@ -136,6 +180,8 @@ export class GraphView {
    */
   clear() {
     this.#drawing.replaceChildren();
+    this.#marks = [];
+    this.#edges = null;
     this.#legend.replaceChildren();
     this.#details.replaceChildren();
   }
@@ -143,6 +189,41 @@ export class GraphView {
   /**
    * @param {Array<{x: number, y: number}>} places Every node's place.
    */
+  /**
+   * @param {Document} document The page.
+   * @returns {HTMLElement} The fullscreen, zoom and fit buttons.
+   */
+  #controls(document) {
+    const controls = document.createElement('div');
+    controls.className = 'graph-controls';
+    const button = (control, action) => {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.textContent = control.TEXT;
+      element.title = control.LABEL;
+      element.setAttribute('aria-label', control.LABEL);
+      element.addEventListener('click', action);
+      return element;
+    };
+    controls.append(
+      button(CONTROLS.FULLSCREEN, () => this.element.classList.toggle('graph-fullscreen')),
+      button(CONTROLS.ZOOM_IN, () => this.zoom(1 / BUTTON_ZOOM_STEP)),
+      button(CONTROLS.ZOOM_OUT, () => this.zoom(BUTTON_ZOOM_STEP)),
+      button(CONTROLS.FIT, () => this.#fit(this.#places)),
+    );
+    return controls;
+  }
+
+  /**
+   * Zoom around the middle of the drawing.
+   * @param {number} factor How much wider the shown region becomes: below one zooms in.
+   */
+  zoom(factor) {
+    const [left, top, width, height] = this.#box;
+    this.#box = [left + (width * (1 - factor)) / 2, top + (height * (1 - factor)) / 2, width * factor, height * factor];
+    this.#applyBox();
+  }
+
   #fit(places) {
     const xs = places.map((place) => place.x);
     const ys = places.map((place) => place.y);
@@ -157,6 +238,9 @@ export class GraphView {
    */
   #applyBox() {
     this.#drawing.setAttribute('viewBox', this.#box.join(' '));
+    const scale = Math.max(1, this.#box[2] / (this.#drawing.clientWidth || ASSUMED_WIDTH));
+    for (const { mark, place } of this.#marks) mark.setAttribute('transform', `translate(${place.x} ${place.y}) scale(${scale})`);
+    this.#edges?.setAttribute('stroke-width', String(Size.EDGE * scale));
   }
 
   /**
@@ -214,10 +298,7 @@ export class GraphView {
     this.#drawing.addEventListener('pointerup', () => { dragging = null; });
     this.#drawing.addEventListener('wheel', (event) => {
       event.preventDefault();
-      const factor = event.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
-      const [left, top, width, height] = this.#box;
-      this.#box = [left + (width * (1 - factor)) / 2, top + (height * (1 - factor)) / 2, width * factor, height * factor];
-      this.#applyBox();
+      this.zoom(event.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
     });
   }
 }

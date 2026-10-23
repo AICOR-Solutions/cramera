@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
 
+from typing_extensions import List
+
 from cramera_protocol.exceptions import ProtocolError
 
 # %% files
@@ -141,4 +143,27 @@ class InvalidPluginName(ViewerError):
         return (
             f"{self.name!r} is not a plugin name: use lowercase letters, digits "
             f"and '-'."
+        )
+
+
+@dataclass
+class PluginNotInstalled(ViewerError):
+    """
+    A plugin asked for by name that no installed entry point provides.
+    """
+
+    name: str
+    """
+    The name asked for.
+    """
+
+    installed: List[str]
+    """
+    The names of the installed plugins.
+    """
+
+    def message(self) -> str:
+        return (
+            f"No installed plugin is named {self.name!r}; installed are "
+            f"{', '.join(self.installed) or 'none'}."
         )

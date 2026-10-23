@@ -3,7 +3,8 @@
 any web server can serve without Python, such as GitHub Pages.
 
 The viewer's two JSON routes become files at the same paths, and ``protocol.js`` is
-generated next to the page.
+generated next to the page. Plugins named with ``--plugin`` contribute their browser
+files; their routes do not exist on a static site, which the viewer's information says.
 """
 
 from __future__ import annotations
@@ -12,20 +13,22 @@ import argparse
 import json
 import shutil
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
 from importlib.metadata import version
 from pathlib import Path
 
-from typing_extensions import Optional, Sequence
+from typing_extensions import List, Optional, Sequence
 
 from cramera.application import WEB_DIRECTORY
+from cramera.exceptions import PluginNotInstalled
+from cramera.plugins import PluginLoader, ViewerPlugin
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_protocol.browser import BrowserModule
 from cramera_protocol.bundle.index import SceneIndex
 from cramera_protocol.document import JsonDocument
-from cramera_protocol.viewer import BuildStamp, ViewerInfo, ViewerRoute
+from cramera_protocol.viewer import BuildStamp, Serving, ViewerInfo, ViewerRoute
 
 # %% vocabulary
 
@@ -71,6 +74,11 @@ class ExportOption(StrEnum):
     The web address of the repository.
     """
 
+    PLUGIN = "--plugin"
+    """
+    An installed plugin whose browser files the site includes; may be repeated.
+    """
+
 
 # %% export
 
@@ -112,6 +120,11 @@ class StaticSite:
     The browser application's files.
     """
 
+    plugins: List[ViewerPlugin] = field(default_factory=list)
+    """
+    The plugins whose browser files the site includes.
+    """
+
     def write(self) -> SceneIndex:
         """
         :return: The index of the published bundles.
@@ -137,8 +150,22 @@ class StaticSite:
                 self.route_file(ViewerRoute.SCENE_FILES) / entry.name,
             )
         self.write_route(ViewerRoute.SCENES, index)
+        for plugin in self.plugins:
+            if plugin.web_directory() is None:
+                continue
+            shutil.copytree(
+                plugin.web_directory(),
+                self.route_file(ViewerRoute.PLUGIN_FILES) / plugin.name(),
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
         self.write_route(
-            ViewerRoute.INFO, ViewerInfo(version=version("cramera"), build=self.build)
+            ViewerRoute.INFO,
+            ViewerInfo(
+                version=version("cramera"),
+                build=self.build,
+                plugins=[plugin.info() for plugin in self.plugins],
+                serving=Serving.STATIC,
+            ),
         )
         return index
 
@@ -159,6 +186,23 @@ class StaticSite:
         path.write_text(json.dumps(document.to_json()), encoding="utf-8")
 
 
+def installed_plugins(names: Sequence[str], loader: PluginLoader) -> List[ViewerPlugin]:
+    """
+    :param names: The names of the plugins to include, in any order.
+    :param loader: Creates the installed plugins.
+    :return: The named plugins, sorted by name; none without names, so no plugin is
+        loaded then.
+    :raises PluginNotInstalled: When a name names no installed plugin.
+    """
+    if not names:
+        return []
+    plugins = {plugin.name(): plugin for plugin in loader.load()}
+    for name in names:
+        if name not in plugins:
+            raise PluginNotInstalled(name, sorted(plugins))
+    return [plugins[name] for name in sorted(set(names))]
+
+
 def main(arguments: Optional[Sequence[str]] = None) -> int:
     """
     Export the site.
@@ -174,6 +218,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(ExportOption.DEFAULT_SCENE, default=None)
     parser.add_argument(ExportOption.COMMIT, default=None)
     parser.add_argument(ExportOption.SOURCE, default=None)
+    parser.add_argument(ExportOption.PLUGIN, action="append", default=[])
     parsed = parser.parse_args(arguments)
     build = None
     if parsed.commit:
@@ -187,7 +232,11 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
             commit=parsed.commit, built_at=built_at, source=parsed.source
         )
     index = StaticSite(
-        parsed.output, parsed.scenes, parsed.default_scene, build
+        parsed.output,
+        parsed.scenes,
+        parsed.default_scene,
+        build,
+        plugins=installed_plugins(parsed.plugin, PluginLoader()),
     ).write()
     print(f"exported {len(index.scenes)} scenes to {parsed.output}")
     return 0

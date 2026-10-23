@@ -18,24 +18,30 @@
   </script>
   <script type="module" src="app/main.js"></script>
 </head>
-<body>
-  <header class="bar">
-    <a class="brand" href="./" aria-label="cramera home">
-      <img src="images/icon.svg" alt="" width="22" height="22">
-      <span>cramera</span>
-    </a>
-    <nav class="scene-picker" id="scene-picker" aria-label="Scene"></nav>
-    <a class="version" id="viewer-version" href="status.html" title="Which build this is"></a>
-  </header>
+<body class="scene-page">
+  <header class="topbar" id="site-header" data-page="scene"></header>
 
-  <main class="workspace">
-    <section class="stage" id="stage" aria-label="3D scene">
-      <div class="stage-message" id="stage-message" hidden></div>
+  <main class="split">
+    <section class="card scene-card" aria-label="Scene">
+      <div class="card-head">
+        <h2>Semantic Digital Twin Scene</h2>
+        <nav class="scene-picker" id="scene-picker" aria-label="Scene"></nav>
+      </div>
+      <section class="stage" id="stage" aria-label="3D scene">
+        <div class="layers" id="layers" aria-label="Layers"></div>
+        <p class="viewer-status status-line" id="status-line" role="status" aria-live="polite">Loading…</p>
+        <div class="stage-message" id="stage-message" hidden></div>
+        <span class="live-badge" id="live-badge" hidden>● LIVE</span>
+        <p class="stage-hint">drag orbit · scroll zoom · right-drag pan · click selects</p>
+        <button type="button" class="pop-out" id="pop-out" title="Open the scene alone in a window of its own">⧉ Pop out</button>
+      </section>
+      <footer class="workflow" id="timeline" aria-label="Playback"></footer>
     </section>
-    <aside class="side" id="side-panels" aria-label="Panels"></aside>
-  </main>
 
-  <footer class="timeline" id="timeline" aria-label="Playback"></footer>
-  <p class="status-line" id="status-line" role="status" aria-live="polite">Loading…</p>
+    <aside class="column" aria-label="Questions and panels">
+      <section class="card query-slot" id="query-slot" hidden></section>
+      <section class="card tabs-slot" id="side-panels" aria-label="Panels"></section>
+    </aside>
+  </main>
 </body>
 </html>

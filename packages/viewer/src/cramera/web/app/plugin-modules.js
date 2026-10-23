@@ -8,8 +8,8 @@ import { PluginKey, ViewerInfoKey } from '../protocol.js';
 // %% context
 
 /**
- * What a plugin module receives: the event bus, the side panels, the viewer's routes
- * and the 3D view.
+ * What a plugin module receives: the event bus, the side panels, the viewer's routes,
+ * the 3D view, the query slot and the viewer's information.
  */
 export class PluginContext {
   /**
@@ -17,8 +17,11 @@ export class PluginContext {
    * @param {import('../panels/panel-host.js').PanelHost} panels The side panels.
    * @param {import('../core/viewer-api.js').ViewerApi} api The viewer's routes.
    * @param {import('../scene/scene-view.js').SceneView} view The 3D view.
+   * @param {import('../panels/query-slot.js').QuerySlot} query The slot above the side
+   *   panels one plugin may fill with its question panel.
+   * @param {Object} info The viewer's information, which says how it is served.
    */
-  constructor(bus, panels, api, view) {
+  constructor(bus, panels, api, view, query, info) {
     /**
      * The application's event bus.
      * @type {import('../core/event-bus.js').EventBus}
@@ -39,6 +42,24 @@ export class PluginContext {
      * @type {import('../scene/scene-view.js').SceneView}
      */
     this.view = view;
+    /**
+     * The slot above the side panels one plugin may fill with its question panel.
+     * @type {import('../panels/query-slot.js').QuerySlot}
+     */
+    this.query = query;
+    /**
+     * The viewer's information.
+     * @type {Object}
+     */
+    this.info = info;
+  }
+
+  /**
+   * @returns {PluginContext} The context of a plugin the top bar links to: its panels
+   *   have no tab, as the top bar shows them.
+   */
+  withoutTabs() {
+    return new PluginContext(this.bus, this.panels.withoutTabs(), this.api, this.view, this.query, this.info);
   }
 }
 
@@ -76,7 +97,9 @@ export class PluginModules {
   }
 
   /**
-   * Import and register every plugin module, in the order the viewer lists them.
+   * Import and register every plugin module: first those of plugins without a
+   * navigation entry, which add to the scene page only, then those the header links
+   * to, whose panels get no tab; each group in the order the viewer lists them.
    * @param {Object} info The viewer's information.
    * @param {PluginContext} context What each module receives.
    * @param {function(string): string} resolve The absolute URL of a module path.
@@ -85,12 +108,14 @@ export class PluginModules {
    */
   async register(info, context, resolve) {
     const registered = [];
-    for (const plugin of info[ViewerInfoKey.PLUGINS] ?? []) {
+    const plugins = info[ViewerInfoKey.PLUGINS] ?? [];
+    const ordered = [...plugins.filter((plugin) => !plugin[PluginKey.NAVIGATION]), ...plugins.filter((plugin) => plugin[PluginKey.NAVIGATION])];
+    for (const plugin of ordered) {
       const module = plugin[PluginKey.MODULE];
       if (!module) continue;
       const imported = await this.#importModule(resolve(module));
       if (typeof imported.register !== 'function') throw new PluginWithoutRegistration(plugin[PluginKey.NAME]);
-      await imported.register(context);
+      await imported.register(plugin[PluginKey.NAVIGATION] ? context.withoutTabs() : context);
       registered.push(plugin[PluginKey.NAME]);
     }
     return registered;

@@ -7,7 +7,10 @@ from __future__ import annotations
 import pytest
 
 from cramera_protocol.bundle.statecharts import Statecharts
-from cramera_protocol.exceptions import InvalidDocumentValue
+from cramera_protocol.exceptions import (
+    InvalidDocumentValue,
+    UnsupportedProtocolVersion,
+)
 from cramera_protocol.questions import (
     AnswerColumn,
     AnswerKind,
@@ -21,6 +24,7 @@ from cramera_protocol.questions import (
     QueryRequest,
     QueryScope,
     QuestionMatch,
+    RecordedAnswers,
     ReplayWindow,
     Vocabulary,
     VocabularyKind,
@@ -43,6 +47,7 @@ from cramera_protocol.questions import (
         (Members, "questions/members.json"),
         (GraphView, "questions/plan_graph.json"),
         (GraphView, "questions/chart_graph.json"),
+        (RecordedAnswers, "questions/recorded_answers.json"),
     ],
 )
 def test_question_documents_round_trip(read_json, document_class, relative_path):
@@ -106,3 +111,27 @@ def test_the_statechart_view_carries_the_recorded_statecharts(read_json):
     view = GraphView.from_json(read_json("questions/chart_graph.json"))
     assert isinstance(view.recorded, Statecharts)
     assert view.recorded.frames == [0, -1]
+
+
+# %% recorded answers
+
+
+def test_recorded_answers_are_found_by_query_and_scope(read_json):
+    data = read_json("questions/recorded_answers.json")
+    recorded = RecordedAnswers.from_json(data)
+    [first] = recorded.answers
+    assert recorded.answer_to(first.code, first.scope) == first.answer
+    assert recorded.answer_to(first.code, QueryScope.DETECTED_EVENTS) is None
+
+
+def test_recorded_graphs_are_found_by_view(read_json):
+    recorded = RecordedAnswers.from_json(read_json("questions/recorded_answers.json"))
+    assert recorded.graph(GraphViewName.PLAN) == recorded.graphs[0]
+    assert recorded.graph(GraphViewName.KINEMATICS) is None
+
+
+def test_recorded_answers_of_another_major_version_are_refused(read_json):
+    with pytest.raises(UnsupportedProtocolVersion):
+        RecordedAnswers.from_json(
+            read_json("questions/recorded_answers_from_next_major_version.json")
+        )

@@ -15,6 +15,7 @@ from typing_extensions import Any, Dict, List, Optional
 
 from cramera_protocol.bundle.statecharts import Statecharts
 from cramera_protocol.document import JsonDocument, document_field, extension_field
+from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED, ProtocolVersion
 
 # %% scopes and routes
 
@@ -1253,3 +1254,155 @@ class GraphView(JsonDocument):
     """
     The recorded statecharts, which the statechart view replays frame by frame.
     """
+
+
+# %% recorded answers
+
+
+class RecordedAnswerKey(StrEnum):
+    """
+    The keys of one recorded answer.
+    """
+
+    CODE = "code"
+    """
+    The query that was answered.
+    """
+
+    SCOPE = "scope"
+    """
+    The body of knowledge it asked.
+    """
+
+    ANSWER = "answer"
+    """
+    The answer.
+    """
+
+
+@dataclass(kw_only=True)
+class RecordedAnswer(JsonDocument):
+    """
+    The answer a ready-made question received when the answers were recorded.
+    """
+
+    code: str = document_field(RecordedAnswerKey.CODE)
+    """
+    The query that was answered.
+    """
+
+    scope: QueryScope = document_field(RecordedAnswerKey.SCOPE)
+    """
+    The body of knowledge it asked.
+    """
+
+    answer: QueryAnswer = document_field(RecordedAnswerKey.ANSWER)
+    """
+    The answer.
+    """
+
+
+class RecordedAnswersKey(StrEnum):
+    """
+    The keys of a bundle's ``recorded_answers.json``.
+    """
+
+    FORMAT_VERSION = "formatVersion"
+    """
+    The protocol version the answers were written with.
+    """
+
+    SCENE = "scene"
+    """
+    The bundle the answers are about.
+    """
+
+    RECORDED_AT = "recordedAt"
+    """
+    When the answers were recorded.
+    """
+
+    PRESETS = "presets"
+    """
+    The bundle's ready-made questions.
+    """
+
+    ANSWERS = "answers"
+    """
+    The answer of each ready-made question that needs no live run.
+    """
+
+    GRAPHS = "graphs"
+    """
+    Every graph view of the bundle.
+    """
+
+
+@dataclass(kw_only=True)
+class RecordedAnswers(JsonDocument):
+    """
+    The ready-made questions of a bundle, their answers and its graph views, recorded
+    where krrood answers them, so a viewer without krrood, such as a static site, can
+    show them.
+    """
+
+    format_version: ProtocolVersion = document_field(
+        RecordedAnswersKey.FORMAT_VERSION, default=UNVERSIONED
+    )
+    """
+    The protocol version the answers were written with.
+    """
+
+    scene: str = document_field(RecordedAnswersKey.SCENE)
+    """
+    The bundle the answers are about.
+    """
+
+    recorded_at: str = document_field(RecordedAnswersKey.RECORDED_AT)
+    """
+    When the answers were recorded, as an ISO 8601 date and time in UTC.
+    """
+
+    presets: PresetCatalog = document_field(RecordedAnswersKey.PRESETS)
+    """
+    The bundle's ready-made questions.
+    """
+
+    answers: List[RecordedAnswer] = document_field(
+        RecordedAnswersKey.ANSWERS, default_factory=list
+    )
+    """
+    The answer of each ready-made question that needs no live run.
+    """
+
+    graphs: List[GraphView] = document_field(
+        RecordedAnswersKey.GRAPHS, default_factory=list
+    )
+    """
+    Every graph view of the bundle.
+    """
+
+    def __post_init__(self) -> None:
+        self.format_version.require_readable_by(CURRENT_VERSION)
+
+    def answer_to(self, code: str, scope: QueryScope) -> Optional[QueryAnswer]:
+        """
+        :param code: A query.
+        :param scope: The body of knowledge it asks.
+        :return: The recorded answer, or None when the query was not recorded.
+        """
+        return next(
+            (
+                recorded.answer
+                for recorded in self.answers
+                if recorded.code == code and recorded.scope == scope
+            ),
+            None,
+        )
+
+    def graph(self, view: GraphViewName) -> Optional[GraphView]:
+        """
+        :param view: A view's name.
+        :return: The recorded view, or None when it was not recorded.
+        """
+        return next((graph for graph in self.graphs if graph.view == view), None)

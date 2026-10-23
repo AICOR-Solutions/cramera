@@ -69,6 +69,12 @@ class BundleFile(StrEnum):
     The measured outcome of a recorded task demo.
     """
 
+    RECORDED_ANSWERS = "recorded_answers.json"
+    """
+    The answers of the bundle's ready-made questions and its graph views, recorded for
+    viewers that cannot answer them.
+    """
+
 
 class ScenesDirectoryFile(StrEnum):
     """

@@ -14,11 +14,17 @@ import pytest
 from cramera_protocol.browser import BROWSER_ENUMERATIONS, BrowserModule
 from cramera_protocol.exceptions import UnsupportedProtocolVersion
 from cramera_protocol.live import Capability, LiveInfo, LiveInfoKey
+from cramera_protocol.page import PageLayout, PageParameter, PageStorageKey, Theme
 from cramera_protocol.version import CURRENT_VERSION
 from cramera_protocol.viewer import (
     BuildKey,
     BuildStamp,
+    NavigationGroup,
+    NavigationKey,
     PluginInfo,
+    PluginKey,
+    PluginNavigation,
+    Serving,
     ViewerInfo,
     ViewerInfoKey,
 )
@@ -54,6 +60,31 @@ def test_viewer_information_lists_plugins():
     )
     assert ViewerInfo.from_json(info.to_json()) == info
     assert info.to_json()[ViewerInfoKey.PLUGINS][0]["name"] == "laboratory"
+
+
+def test_a_plugin_names_its_page_in_the_navigation():
+    navigation = PluginNavigation(
+        title="Plan Builder",
+        group=NavigationGroup.BUILDER,
+        page="/plugins/plan-builder/builder.html",
+    )
+    plugin = PluginInfo(name="plan-builder", version="1.0.0", navigation=navigation)
+    written = plugin.to_json()
+    assert written[PluginKey.NAVIGATION][NavigationKey.GROUP] == NavigationGroup.BUILDER
+    assert PluginInfo.from_json(written) == plugin
+
+
+def test_a_navigation_entry_without_a_page_opens_the_plugins_panel():
+    navigation = PluginNavigation(title="Workshop", group=NavigationGroup.LABORATORY)
+    assert NavigationKey.PAGE not in navigation.to_json()
+    assert PluginInfo(name="workshop", version="1.0.0").navigation is None
+
+
+def test_a_viewer_is_served_by_its_server_unless_it_says_otherwise():
+    assert ViewerInfo(version="1.0.0").serving == Serving.SERVER
+    written = ViewerInfo(version="1.0.0", serving=Serving.STATIC).to_json()
+    assert written[ViewerInfoKey.SERVING] == Serving.STATIC
+    assert ViewerInfo.from_json(written).serving == Serving.STATIC
 
 
 # %% browser module
@@ -100,3 +131,8 @@ def test_a_published_build_names_its_commit_and_time():
     assert written[ViewerInfoKey.BUILD][BuildKey.COMMIT] == "0" * 40
     assert ViewerInfo.from_json(written) == info
     assert ViewerInfoKey.BUILD not in ViewerInfo(version="1.0.0").to_json()
+
+
+def test_the_page_names_are_offered_to_the_browser():
+    for enumeration in (PageParameter, PageLayout, Theme, PageStorageKey):
+        assert enumeration in BROWSER_ENUMERATIONS

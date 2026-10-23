@@ -19,7 +19,7 @@ export class PlanPanel {
    * @param {Document} document The page.
    */
   constructor(document) {
-    this.panel = new SidePanel('plan', 'Plan', document.createElement('section'));
+    this.panel = new SidePanel('plan', 'Plan tree', document.createElement('section'));
   }
 
   /**

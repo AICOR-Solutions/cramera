@@ -14,12 +14,12 @@ from cramera.exceptions import DuplicatePlugin, InvalidPluginName
 from cramera.http.messages import Header, HttpMethod, MediaType, Request
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import RequestAnswerer
-from cramera.plugins import PluginLoader
+from cramera.plugins import PageEntry, PanelEntry, PluginLoader
 from cramera_protocol.browser import BrowserModule
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import SceneIndex
 from cramera_protocol.live import Capability
-from cramera_protocol.viewer import ViewerInfo, ViewerRoute
+from cramera_protocol.viewer import NavigationGroup, ViewerInfo, ViewerRoute
 
 from .dataset.plugins import FactoryEntryPoint, QuestionPlugin, SilentPlugin
 
@@ -59,6 +59,26 @@ def test_info_names_the_viewer_and_its_plugins(plugged):
     assert info.plugins[0].module == f"{ViewerRoute.PLUGIN_FILES}questions/index.js"
     assert info.plugins[0].capabilities == [Capability.QUESTIONS]
     assert info.plugins[1].module is None
+    assert [plugin.navigation for plugin in info.plugins] == [None, None]
+
+
+def test_a_page_entry_names_the_plugins_page_as_a_viewer_route():
+    plugin = QuestionPlugin(
+        entry=PageEntry("Plan Builder", NavigationGroup.BUILDER, "builder.html")
+    )
+    navigation = plugin.info().navigation
+    assert navigation.page == f"{ViewerRoute.PLUGIN_FILES}questions/builder.html"
+    assert (navigation.title, navigation.group) == (
+        "Plan Builder",
+        NavigationGroup.BUILDER,
+    )
+
+
+def test_a_panel_entry_has_no_page():
+    plugin = QuestionPlugin(entry=PanelEntry("Workshop", NavigationGroup.LABORATORY))
+    navigation = plugin.info().navigation
+    assert navigation.page is None
+    assert navigation.group == NavigationGroup.LABORATORY
 
 
 def test_the_scenes_route_answers_the_merged_index(plugged, catalog):

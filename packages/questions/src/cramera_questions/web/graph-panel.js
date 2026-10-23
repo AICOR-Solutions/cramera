@@ -1,5 +1,5 @@
 /**
- * The Graph panel: the knowledge, plan, statechart or kinematics graph of the shown
+ * One graph tab: the knowledge, plan, statechart or kinematics graph of the shown
  * scene; clicking a node lights it up in the 3D view.
  */
 
@@ -7,7 +7,7 @@ import { GraphViewKey, GraphViewName, ViewerEvent } from '../../protocol.js';
 import { GraphView } from './graph-view.js';
 
 /**
- * The titles of the views, in the order they are offered.
+ * The titles of the views, in the order their tabs are offered.
  */
 export const VIEW_TITLES = Object.freeze({
   [GraphViewName.KNOWLEDGE]: 'Knowledge',
@@ -26,16 +26,10 @@ export class GraphPanel {
   element;
 
   /**
-   * The plugin's routes.
-   * @type {import('./questions-client.js').QuestionsClient}
+   * The `GraphViewName` value the panel draws.
+   * @type {string}
    */
-  #client;
-
-  /**
-   * The view chooser.
-   * @type {HTMLSelectElement}
-   */
-  #chooser;
+  view;
 
   /**
    * The drawn graph.
@@ -50,77 +44,46 @@ export class GraphPanel {
   #message;
 
   /**
-   * The shown bundle.
-   * @type {string|null}
-   */
-  #scene = null;
-
-  /**
-   * The chosen `GraphViewName` value.
-   * @type {string}
-   */
-  #view = GraphViewName.KNOWLEDGE;
-
-  /**
-   * Cancels loading a view that was replaced.
+   * Cancels loading a view of a scene that was replaced.
    * @type {AbortController|null}
    */
   #loading = null;
 
   /**
    * @param {Document} document The page.
-   * @param {import('./questions-client.js').QuestionsClient} client The plugin's routes.
+   * @param {string} view The `GraphViewName` value the panel draws.
    * @param {import('../../core/event-bus.js').EventBus} bus The application's event bus.
    */
-  constructor(document, client, bus) {
-    this.#client = client;
+  constructor(document, view, bus) {
+    this.view = view;
     this.element = document.createElement('section');
     this.element.className = 'graph-panel';
-    this.#chooser = document.createElement('select');
-    this.#chooser.setAttribute('aria-label', 'Graph');
-    for (const [view, title] of Object.entries(VIEW_TITLES)) {
-      const option = document.createElement('option');
-      option.value = view;
-      option.textContent = title;
-      this.#chooser.append(option);
-    }
-    this.#chooser.addEventListener('change', () => this.showView(this.#chooser.value));
     this.#message = document.createElement('p');
-    this.#message.className = 'empty';
+    this.#message.className = 'graph-empty';
     this.#graph = new GraphView(document, (identity) => bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, [identity]));
-    this.element.append(this.#chooser, this.#message, this.#graph.element);
+    this.element.append(this.#graph.element, this.#message);
   }
 
   /**
+   * Draw the panel's view of a scene.
    * @param {string} scene The shown bundle.
-   * @returns {Promise<void>} Settles once the chosen view is drawn or has failed.
-   */
-  showScene(scene) {
-    this.#scene = scene;
-    return this.showView(this.#view);
-  }
-
-  /**
-   * @param {string} view A `GraphViewName` value.
+   * @param {Object} client Where the scene's questions are answered.
    * @returns {Promise<void>} Settles once drawn or failed.
    */
-  async showView(view) {
-    this.#view = view;
-    this.#chooser.value = view;
-    if (!this.#scene) return;
+  async showScene(scene, client) {
     this.#loading?.abort();
     const loading = new AbortController();
     this.#loading = loading;
     this.#message.textContent = 'Loading…';
-    const graph = await this.#client.graph(this.#scene, view, loading.signal).catch((error) => (loading.signal.aborted ? null : { [GraphViewKey.OK]: false, [GraphViewKey.ERROR]: error.message }));
+    this.#message.hidden = false;
+    const graph = await client.graph(scene, this.view, loading.signal).catch((error) => (loading.signal.aborted ? null : { [GraphViewKey.OK]: false, [GraphViewKey.ERROR]: error.message }));
     if (!graph || loading.signal.aborted) return;
     const nodes = graph[GraphViewKey.NODES] ?? [];
     this.#graph.clear();
-    this.#graph.element.hidden = graph[GraphViewKey.OK] === false || nodes.length === 0;
     if (graph[GraphViewKey.OK] === false) this.#message.textContent = graph[GraphViewKey.ERROR];
     else if (nodes.length === 0) this.#message.textContent = graph[GraphViewKey.EMPTY] ?? 'This view is empty for the scene.';
     else {
-      this.#message.textContent = '';
+      this.#message.hidden = true;
       this.#graph.show(graph);
     }
   }

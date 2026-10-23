@@ -11,6 +11,8 @@ from typing_extensions import List, Optional
 
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.plugins import (
+    PluginLoader,
+    NavigationEntry,
     PluginContext,
     PluginPrefixRoute,
     PluginRoute,
@@ -46,11 +48,19 @@ class QuestionPlugin(ViewerPlugin):
     How often the viewer closed the plugin.
     """
 
+    entry: Optional[NavigationEntry] = None
+    """
+    The plugin's entry in the viewer's navigation.
+    """
+
     def name(self) -> str:
         return self.plugin_name
 
     def version(self) -> str:
         return "1.2.3"
+
+    def navigation(self) -> Optional[NavigationEntry]:
+        return self.entry
 
     def capabilities(self) -> List[Capability]:
         return [Capability.QUESTIONS]
@@ -121,3 +131,16 @@ class FactoryEntryPoint:
         :return: The plugin's factory.
         """
         return lambda: self.plugin
+
+
+@dataclass
+class RefusingLoader(PluginLoader):
+    """
+    A plugin loader that must not be asked to load.
+    """
+
+    def load(self) -> List[ViewerPlugin]:
+        """
+        :raises AssertionError: Always.
+        """
+        raise AssertionError("No plugin may be loaded.")

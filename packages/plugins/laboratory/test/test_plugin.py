@@ -37,6 +37,8 @@ from cramera_protocol.viewer import ViewerInfo, ViewerRoute
 
 from .conftest import HEADERS, send
 from .dataset.simulations import RecordingFactory
+from cramera_laboratory.plugin import NAVIGATION_TITLE
+from cramera_protocol.viewer import NavigationGroup, ViewerRoute
 
 CHOICE = {LaboratoryChoiceKey.LABORATORY: LaboratoryResource.BENCH}
 """
@@ -196,3 +198,12 @@ def test_the_viewer_lists_the_plugin_and_its_module(answerer):
     [plugin] = info.plugins
     assert plugin.name == LaboratoryName.PLUGIN
     assert plugin.module.endswith(LaboratoryFile.MODULE)
+
+
+def test_the_plugin_has_an_entry_in_the_viewers_navigation():
+    navigation = (
+        LaboratoryPlugin(factory=RecordingFactory(installed=False)).info().navigation
+    )
+    assert navigation.title == NAVIGATION_TITLE
+    assert navigation.group == NavigationGroup.LABORATORY
+    assert navigation.page is None
