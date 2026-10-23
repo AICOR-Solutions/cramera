@@ -215,12 +215,18 @@ class GraphText(StrEnum):
     The texts the views show.
     """
 
-    NO_PLAN = "No plan was recorded with this scene."
+    NO_PLAN = (
+        "This scene holds no recorded plan. A live run's plan shows here once the "
+        "run is saved and opened from the scene picker."
+    )
     """
     The plan view of a scene without a plan.
     """
 
-    NO_STATECHART = "No motion statechart was recorded with this scene."
+    NO_STATECHART = (
+        "This scene holds no recorded motion statechart. A live run's statechart "
+        "shows here once the run is saved and opened from the scene picker."
+    )
     """
     The statechart view of a scene without statecharts.
     """

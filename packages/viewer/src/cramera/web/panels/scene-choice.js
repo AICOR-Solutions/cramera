@@ -13,7 +13,7 @@ export const WITHOUT_ROBOT = '(no robot)';
 /**
  * The label of a bundle without an environment.
  */
-export const WITHOUT_ENVIRONMENT = '(bench only)';
+export const WITHOUT_ENVIRONMENT = '(no environment)';
 
 // %% choice
 

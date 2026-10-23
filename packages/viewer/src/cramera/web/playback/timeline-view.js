@@ -28,6 +28,21 @@ export const MarkKind = Object.freeze({
  */
 const PLAY_TEXT = Object.freeze({ PLAY: '▶ Play', PAUSE: '❚❚ Pause' });
 
+/**
+ * What the timeline says while the view follows a live run, which has no frames to play.
+ */
+export const LIVE_NOTE = 'Following the live run. Save it to replay it here.';
+
+/**
+ * What the timeline says until the live publisher first answers.
+ */
+export const WAITING_NOTE = 'Waiting for the live run to start publishing.';
+
+/**
+ * What the timeline says once the live publisher stopped answering.
+ */
+export const LOST_NOTE = 'The live run ended; the view shows its last state. A demo that saves its run lists it in the scene picker.';
+
 // %% marks
 
 /**
@@ -130,6 +145,12 @@ export class TimelineView {
   #speed;
 
   /**
+   * The note shown instead of the playback controls while a live run is followed.
+   * @type {HTMLElement}
+   */
+  #liveNote;
+
+  /**
    * The clock the view shows and controls.
    * @type {import('./playback-clock.js').PlaybackClock|null}
    */
@@ -157,7 +178,7 @@ export class TimelineView {
     this.#saveButton = document.createElement('button');
     this.#saveButton.type = 'button';
     this.#saveButton.className = 'save-button';
-    this.#saveButton.textContent = '💾 Save episode…';
+    this.#saveButton.textContent = '💾 Save this run…';
     this.#saveButton.title = 'Stop capturing the live run, then name and keep it';
     this.#saveButton.addEventListener('click', () => onSave());
     this.#speed = document.createElement('select');
@@ -171,9 +192,12 @@ export class TimelineView {
     }
     this.#speed.value = '1';
     this.#speed.addEventListener('change', () => { if (this.#clock) this.#clock.speed = Number(this.#speed.value); });
+    this.#liveNote = document.createElement('span');
+    this.#liveNote.className = 'live-note';
+    this.#liveNote.textContent = LIVE_NOTE;
     const buttons = document.createElement('div');
     buttons.className = 'workflow-buttons';
-    buttons.append(this.#playButton, this.#saveButton, this.#speed);
+    buttons.append(this.#playButton, this.#saveButton, this.#speed, this.#liveNote);
     const track = document.createElement('div');
     track.className = 'track';
     this.#slider = document.createElement('input');
@@ -191,6 +215,7 @@ export class TimelineView {
     scrub.append(track, this.#clockText);
     root.replaceChildren(buttons, scrub);
     this.setSaveOffered(false);
+    this.setLive(false);
     this.show(null, []);
   }
 
@@ -229,10 +254,23 @@ export class TimelineView {
   }
 
   /**
-   * @param {boolean} offered Whether a live episode can be saved now.
+   * @param {boolean} offered Whether a live run can be saved now.
    */
   setSaveOffered(offered) {
     this.#saveButton.hidden = !offered;
+  }
+
+  /**
+   * Show the playback controls, or, while the view follows a live run, which has no
+   * frames to play, a note saying so instead.
+   * @param {boolean} live Whether the view follows a live run.
+   * @param {string=} note What the note says.
+   */
+  setLive(live, note = LIVE_NOTE) {
+    this.#root.dataset.live = String(live);
+    this.#liveNote.hidden = !live;
+    this.#liveNote.textContent = note;
+    for (const control of [this.#playButton, this.#speed]) control.hidden = live;
   }
 
   /**
