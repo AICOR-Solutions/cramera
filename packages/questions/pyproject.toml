@@ -14,6 +14,9 @@ authors = [{ name = "Vanessa Hassouna" }]
 dependencies = ["cramera==1.0.0", "cramera-protocol==1.0.0", "typing_extensions>=4.8"]
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
 
+[project.scripts]
+cramera-record-answers = "cramera_questions.answer_recording:main"
+
 [project.entry-points."cramera.plugins"]
 questions = "cramera_questions.plugin:QuestionsPlugin"
 
