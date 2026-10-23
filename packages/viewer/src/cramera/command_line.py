@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import logging
 import os
 import signal
@@ -20,6 +21,7 @@ from cramera.application import ViewerApplication
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import HttpServer, RequestAnswerer
 from cramera.locations import DataLocations
+from cramera.occupant import PortOccupant
 from cramera.plugins import PluginLoader
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 
@@ -57,6 +59,11 @@ class Option(StrEnum):
     NO_BROWSER = "--no-browser"
     """
     Do not open the viewer in a browser.
+    """
+
+    KEEP_RUNNING = "--keep-running"
+    """
+    Fail when the port is in use instead of stopping the viewer that holds it.
     """
 
 
@@ -104,6 +111,11 @@ class ViewerConfiguration:
     Whether to open the viewer in a browser.
     """
 
+    replace_viewer: bool = True
+    """
+    Whether a viewer already listening on the port is stopped and replaced.
+    """
+
     @classmethod
     def from_arguments(
         cls, arguments: Sequence[str], locations: DataLocations
@@ -121,6 +133,7 @@ class ViewerConfiguration:
         parser.add_argument(Option.SCENES, type=Path, action="append", default=[])
         parser.add_argument(Option.DEMO_SCENES, type=Path, default=None)
         parser.add_argument(Option.NO_BROWSER, action="store_true")
+        parser.add_argument(Option.KEEP_RUNNING, action="store_true")
         parsed = parser.parse_args(list(arguments))
         return cls(
             locations=locations,
@@ -129,6 +142,7 @@ class ViewerConfiguration:
             extra_scenes=parsed.scenes,
             demo_scenes=parsed.demo_scenes,
             open_browser=not parsed.no_browser,
+            replace_viewer=not parsed.keep_running,
         )
 
     def scene_directories(self) -> List[SceneDirectory]:
@@ -163,6 +177,23 @@ class ViewerConfiguration:
             on_stop=[application.close],
         )
 
+    def start_server(self) -> HttpServer:
+        """
+        Start the viewer's server; when the port is held by another cramera viewer
+        and :attr:`replace_viewer` is set, that viewer is stopped first.
+
+        :return: The started server.
+        :raises OSError: When the port is in use and cannot be taken over.
+        """
+        server = self.server()
+        try:
+            return server.start()
+        except OSError as error:
+            if error.errno != errno.EADDRINUSE or not self.replace_viewer:
+                raise
+        PortOccupant(self.host, self.port).replace_viewer()
+        return server.start()
+
 
 # %% command
 
@@ -180,11 +211,24 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
     )
     stop_signals = {signal.SIGINT, signal.SIGTERM}
     signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
-    with configuration.server() as server:
+    try:
+        server = configuration.start_server()
+    except OSError as error:
+        if error.errno != errno.EADDRINUSE:
+            raise
+        logger.error(
+            "port %d is in use; stop the program listening there, or choose another %s",
+            configuration.port,
+            Option.PORT,
+        )
+        sys.exit(1)
+    try:
         logger.info("cramera serves %s", server.url())
         if configuration.open_browser:
             webbrowser.open(server.url())
         signal.sigwait(stop_signals)
+    finally:
+        server.stop()
 
 
 if __name__ == "__main__":
