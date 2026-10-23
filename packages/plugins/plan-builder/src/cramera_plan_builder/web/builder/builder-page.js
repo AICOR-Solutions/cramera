@@ -334,10 +334,11 @@ export class BuilderPage {
     const step = this.state.step(identifier);
     const request = {
       [ConstraintTextKey.TEXT]: text,
-      [ConstraintTextKey.STEP_KIND]: step[PlanStepKey.KIND],
+      [ConstraintTextKey.STEP_ACTION]: step[PlanStepKey.ACTION],
       [ConstraintTextKey.OBJECTS]: this.state.objects().map((item) => item[PlannedObjectKey.IDENTIFIER]),
     };
-    if (step[PlanStepKey.OBJECT] !== undefined) request[ConstraintTextKey.STEP_OBJECT] = step[PlanStepKey.OBJECT];
+    const subject = this.state.stepObject(step);
+    if (subject !== undefined) request[ConstraintTextKey.STEP_OBJECT] = subject;
     const compiled = await this.#environment.api.compile(request).catch((error) => {
       this.report(error.message);
       return null;
@@ -354,20 +355,22 @@ export class BuilderPage {
   }
 
   /**
-   * Take the performing robot's pose in the live world as a navigation step's target.
-   * @param {string} identifier The navigation step.
+   * Take the performing robot's pose in the live world as a pose field's value.
+   * @param {string} identifier The step.
+   * @param {string} field The pose field.
    */
-  useLivePose(identifier) {
+  useLivePose(identifier, field) {
     const robot = this.#world.robots.get(this.state.activeRobot()[PlannedRobotKey.IDENTIFIER]);
     if (!robot) {
       this.report('Start the live scene to take the robot’s pose from it.');
       return;
     }
-    this.edit(() => this.state.updateStep(identifier, { [PlanStepKey.TARGET]: robot[RobotInstanceKey.POSE].map(PlanPose.rounded) }));
+    this.edit(() => this.state.setTarget(identifier, field, robot[RobotInstanceKey.POSE].map(PlanPose.rounded)));
   }
 
   /**
-   * @returns {Map<string, Array<string>>} The live world's surface names by type.
+   * @returns {Map<string, Array<string>>} The live world's annotated surface names by
+   *   their annotation's class name.
    */
   surfaces() {
     return this.#world.surfaces;
@@ -562,10 +565,7 @@ export class BuilderPage {
       return;
     }
     if (selection.kind === MarkerKind.TARGET) {
-      const step = this.state.step(selection.identifier);
-      const grounded = !step[PlanStepKey.OBJECT];
-      const target = grounded ? PlanPose.of(...PlanPose.position(pose).slice(0, 2), 0, PlanPose.yaw(pose)) : pose;
-      this.edit(() => this.state.updateStep(selection.identifier, { [PlanStepKey.TARGET]: target }));
+      this.edit(() => this.state.setTarget(selection.identifier, selection.field, pose));
       return;
     }
     this.placeObject(selection.identifier, pose);

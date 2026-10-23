@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-import { PlannedObjectKey, PlannedRobotKey, PlanStepKey, PlacementMode, StepKind } from '../../../protocol.js';
+import { PlannedObjectKey, PlannedRobotKey, PlanStepKey } from '../../../protocol.js';
 import { Bounds } from '../../../scene/bounds.js';
 import { MeshLoading } from '../../../scene/mesh-loading.js';
 import { SceneLighting } from '../../../scene/scene-lighting.js';
@@ -50,7 +50,7 @@ const MarkerColor = Object.freeze({
   ROBOT: 0x0f766e,
   EDITED_ROBOT: 0x14b8a6,
   OBJECT: 0xd6dde6,
-  NAVIGATION: 0x7c3aed,
+  TARGET: 0x7c3aed,
   PUT_DOWN: 0xf59e0b,
   SELECTION: 0x0ea5e9,
 });
@@ -93,14 +93,15 @@ const SELECTION_DATA = 'planSelection';
 // %% selection
 
 /**
- * A marker the person picked: a robot, an object, or the target of a step.
+ * A marker the person picked: a robot, an object, or a pose field of a step.
  */
 export class Selection {
   /**
    * @param {string} kind A `MarkerKind` value.
    * @param {string} identifier The identity of the robot, object or step.
+   * @param {string|null=} field The pose field of a step's target, else null.
    */
-  constructor(kind, identifier) {
+  constructor(kind, identifier, field = null) {
     /**
      * What the marker stands for.
      * @type {string}
@@ -111,6 +112,11 @@ export class Selection {
      * @type {string}
      */
     this.identifier = identifier;
+    /**
+     * The pose field of a step's target, else null.
+     * @type {string|null}
+     */
+    this.field = field;
   }
 
   /**
@@ -118,14 +124,14 @@ export class Selection {
    * @returns {boolean} Whether both pick the same marker.
    */
   equals(other) {
-    return other !== null && other.kind === this.kind && other.identifier === this.identifier;
+    return other !== null && other.key === this.key;
   }
 
   /**
    * @returns {string} The marker's key among all markers.
    */
   get key() {
-    return `${this.kind}:${this.identifier}`;
+    return this.field === null ? `${this.kind}:${this.identifier}` : `${this.kind}:${this.identifier}:${this.field}`;
   }
 }
 
@@ -333,17 +339,16 @@ export class PlanScene {
       want(new Selection(MarkerKind.OBJECT, identifier), live.objects.get(identifier) ?? item[PlannedObjectKey.POSE], `${model}${color}`, false, () => this.#objectMarker(model, color, false));
     }
     for (const step of state.steps()) {
-      const target = step[PlanStepKey.TARGET];
-      const selection = new Selection(MarkerKind.TARGET, step[PlanStepKey.IDENTIFIER]);
-      if (!target) continue;
-      if (step[PlanStepKey.KIND] === StepKind.NAVIGATE) {
-        want(selection, target, StepKind.NAVIGATE, true, () => this.#navigationMarker());
-        continue;
+      for (const target of state.targets(step)) {
+        const selection = new Selection(MarkerKind.TARGET, step[PlanStepKey.IDENTIFIER], target.field);
+        const putDown = state.objects().find((item) => item[PlannedObjectKey.IDENTIFIER] === target.object);
+        if (!putDown) {
+          want(selection, target.pose, MarkerKind.TARGET, false, () => this.#targetMarker());
+          continue;
+        }
+        const model = putDown[PlannedObjectKey.MODEL];
+        want(selection, target.pose, model, false, () => this.#objectMarker(model, null, true));
       }
-      const putDown = state.objects().find((item) => item[PlannedObjectKey.IDENTIFIER] === step[PlanStepKey.OBJECT]);
-      if (step[PlanStepKey.PLACEMENT] !== PlacementMode.POSE || !putDown) continue;
-      const model = putDown[PlannedObjectKey.MODEL];
-      want(selection, target, model, false, () => this.#objectMarker(model, null, true));
     }
     for (const [key, marker] of this.#byKey) {
       if (wanted.get(key)?.signature === marker.userData.signature) continue;
@@ -435,10 +440,10 @@ export class PlanScene {
   }
 
   /**
-   * @returns {THREE.Group} A navigation target: a ring with an arrow along the heading.
+   * @returns {THREE.Group} A pose target: a ring with an arrow along the heading.
    */
-  #navigationMarker() {
-    const material = new THREE.MeshStandardMaterial({ color: MarkerColor.NAVIGATION });
+  #targetMarker() {
+    const material = new THREE.MeshStandardMaterial({ color: MarkerColor.TARGET });
     const ring = new THREE.Mesh(new THREE.TorusGeometry(MarkerSize.TARGET_RADIUS, MarkerSize.TARGET_TUBE, SEGMENTS / 2, SEGMENTS), material);
     ring.position.z = MarkerSize.TARGET_TUBE;
     const group = new THREE.Group();
@@ -529,8 +534,8 @@ export class PlanScene {
   // %% handles
 
   /**
-   * Let the handles move or turn the selection; robots and navigation targets stay on
-   * the floor and turn about the vertical only.
+   * Let the handles move or turn the selection; robots stay on the floor, and every
+   * marker turns about the vertical only.
    */
   #applyMode() {
     const grounded = this.#handles.object?.userData.grounded ?? true;

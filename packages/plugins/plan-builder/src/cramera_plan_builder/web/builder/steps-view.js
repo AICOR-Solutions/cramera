@@ -1,32 +1,31 @@
 /**
- * The edited robot's plan: the palette of the actions its model offers, and the steps
- * with their parameters, constraints and live state; actions are dragged or clicked into
- * the plan, constraints dragged onto a step.
+ * The edited robot's plan: the palette of the actions the CRAM workspace offers, grouped
+ * as the catalog groups them, and the steps with forms built from their actions' fields,
+ * their constraints and live state; actions are dragged or clicked into the plan,
+ * constraints dragged onto a step.
  */
 
 import {
+  ActionFieldKey,
+  ActionFieldKind,
+  ActionSchemaKey,
+  DestinationKey,
+  FailedActionModuleKey,
   PlacementMode,
   PlanBuilderCatalogKey,
   PlannedObjectKey,
   PlanStepKey,
   StepConstraintKey,
-  StepKind,
 } from '../../../protocol.js';
 import { DragKind, DragText, Elements, PlanAction } from './elements.js';
-import { OBJECT_STEPS, PUTTING_DOWN } from './plan-state.js';
+import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
 
 /**
- * How people read each step kind.
+ * How many step colours the stylesheet defines; an action takes the colour of its
+ * position in the catalog.
  */
-export const STEP_LABELS = Object.freeze({
-  [StepKind.PARK_ARMS]: 'Park arms',
-  [StepKind.MOVE_TORSO]: 'Move torso',
-  [StepKind.NAVIGATE]: 'Navigate',
-  [StepKind.TRANSPORT]: 'Transport object',
-  [StepKind.PICK_UP]: 'Pick up',
-  [StepKind.PLACE]: 'Place',
-});
+export const STEP_PALETTE_SIZE = 8;
 
 /**
  * How people read each way of putting an object down.
@@ -42,15 +41,26 @@ const PLACEMENT_LABELS = Object.freeze({
 const ANY_SURFACE = Object.freeze({ value: '', label: 'any of the type' });
 
 /**
+ * The choice of an optional field that leaves the action's default.
+ */
+const DEFAULT_CHOICE = '';
+
+/**
  * The classes the view's elements carry.
  */
 const ViewClass = Object.freeze({
   PALETTE: 'palette',
+  GROUP: 'palette-group',
   BLOCK: 'block',
+  UNAVAILABLE: 'unavailable',
+  NOTICE: 'notice',
   LIST: 'steps',
   STEP: 'step',
   STEP_HEAD: 'step-head',
   PARAMETERS: 'step-parameters',
+  MORE: 'more-options',
+  PROBLEM: 'step-problem',
+  DERIVED: 'derived',
   CHIPS: 'chips',
   CHIP: 'chip',
   DROP: 'drop-hint',
@@ -96,8 +106,8 @@ export class StepsView {
    * @param {Document} document The page's document.
    * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)` (applies
    *   a change of the plan and shows it), `attachConstraint(stepIdentifier, text)`,
-   *   `useLivePose(stepIdentifier)` and `surfaces()` (the live world's surface names
-   *   by type).
+   *   `useLivePose(stepIdentifier, field)` and `surfaces()` (the live world's
+   *   annotation names by type).
    */
   constructor(document, editor) {
     this.#editor = editor;
@@ -117,25 +127,100 @@ export class StepsView {
   render(statuses = [], observations = []) {
     this.#shown.dispose();
     this.#shown = new Elements(this.#frame.document);
-    const state = this.#editor.state;
-    const robot = state.activeRobot();
-    const offered = robot ? state.offeredSteps(robot) : [];
-    this.palette.replaceChildren(
-      ...offered.map((kind) => {
-        const block = this.#shown.button(STEP_LABELS[kind], PlanAction.ADD_STEP, () => this.#add(kind, state.steps().length));
-        block.className = `${ViewClass.BLOCK} ${kind}`;
-        block.dataset.kind = kind;
-        this.#shown.draggable(block, DragText.of(DragKind.STEP, kind));
-        return block;
-      }),
-    );
-    const steps = state.steps();
+    this.palette.replaceChildren(...this.#paletteEntries());
+    const steps = this.#editor.state.steps();
     if (steps.length === 0) {
       this.list.replaceChildren(this.#shown.create('li', ViewClass.DROP, 'Drag actions here, or click them, to build the plan.'));
       return;
     }
     this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map())));
   }
+
+  // %% palette
+
+  /**
+   * @returns {Array<HTMLElement>} The offered actions by group, the actions the robot
+   *   cannot take with why, and the action modules that failed to import.
+   */
+  #paletteEntries() {
+    const elements = this.#shown;
+    const state = this.#editor.state;
+    const robot = state.activeRobot();
+    const entries = [];
+    const failed = state.catalog[PlanBuilderCatalogKey.FAILED_ACTION_MODULES] ?? [];
+    if (failed.length > 0) {
+      const notice = elements.create('p', ViewClass.NOTICE, `${failed.length} action module${failed.length === 1 ? '' : 's'} failed to import, so their actions are missing: ${failed.map((module) => module[FailedActionModuleKey.MODULE]).join(', ')}.`);
+      notice.title = failed.map((module) => `${module[FailedActionModuleKey.MODULE]}: ${module[FailedActionModuleKey.ERROR]}`).join('\n');
+      entries.push(notice);
+    }
+    if (!robot) return entries;
+    const groups = new Map();
+    const refused = [];
+    for (const schema of state.actions()) {
+      const refusal = state.refusal(robot, schema);
+      if (refusal !== null) {
+        refused.push([schema, refusal]);
+        continue;
+      }
+      const group = schema[ActionSchemaKey.GROUP];
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(this.#block(schema));
+    }
+    for (const [group, blocks] of groups) {
+      const section = elements.create('div', ViewClass.GROUP);
+      section.dataset.group = group;
+      section.append(elements.create('h3', '', group), ...blocks);
+      entries.push(section);
+    }
+    if (refused.length > 0) entries.push(this.#refused(refused));
+    return entries;
+  }
+
+  /**
+   * @param {Object} schema An action the robot can take.
+   * @returns {HTMLElement} Its palette entry, clicked or dragged into the plan.
+   */
+  #block(schema) {
+    const name = schema[ActionSchemaKey.NAME];
+    const block = this.#shown.button(schema[ActionSchemaKey.LABEL], PlanAction.ADD_STEP, () => this.#add(name, this.#editor.state.steps().length));
+    block.className = ViewClass.BLOCK;
+    block.dataset.name = name;
+    block.dataset.palette = String(this.#paletteIndex(name));
+    block.title = schema[ActionSchemaKey.DOCUMENTATION] || name;
+    this.#shown.draggable(block, DragText.of(DragKind.STEP, name));
+    return block;
+  }
+
+  /**
+   * @param {Array<[Object, string]>} refused The actions the robot cannot take, with why.
+   * @returns {HTMLElement} A folded list of them, greyed, each with its reason.
+   */
+  #refused(refused) {
+    const elements = this.#shown;
+    const details = elements.create('details', ViewClass.UNAVAILABLE);
+    details.append(elements.create('summary', '', `Not available (${refused.length})`));
+    const list = elements.create('ul');
+    for (const [schema, refusal] of refused) {
+      const item = elements.create('li', `${ViewClass.BLOCK} ${ViewClass.UNAVAILABLE}`);
+      item.dataset.name = schema[ActionSchemaKey.NAME];
+      item.title = schema[ActionSchemaKey.DOCUMENTATION] || schema[ActionSchemaKey.NAME];
+      item.append(elements.create('strong', '', schema[ActionSchemaKey.LABEL]), elements.create('span', 'reason', refusal));
+      list.append(item);
+    }
+    details.append(list);
+    return details;
+  }
+
+  /**
+   * @param {string} name An action's class name.
+   * @returns {number} The colour of its steps: its position in the catalog, wrapped.
+   */
+  #paletteIndex(name) {
+    const index = this.#editor.state.actions().findIndex((schema) => schema[ActionSchemaKey.NAME] === name);
+    return Math.max(index, 0) % STEP_PALETTE_SIZE;
+  }
+
+  // %% steps
 
   /**
    * @param {Object} step A step of the edited robot.
@@ -147,14 +232,15 @@ export class StepsView {
   #card(step, index, status, observations) {
     const elements = this.#shown;
     const identifier = step[PlanStepKey.IDENTIFIER];
-    const kind = step[PlanStepKey.KIND];
-    const card = elements.create('li', `${ViewClass.STEP} ${kind}`);
+    const action = step[PlanStepKey.ACTION];
+    const schema = this.#editor.state.schema(action);
+    const card = elements.create('li', ViewClass.STEP);
     card.dataset.step = identifier;
+    card.dataset.palette = String(this.#paletteIndex(action));
     const head = elements.create('div', ViewClass.STEP_HEAD);
-    head.append(
-      elements.create('span', 'step-number', String(index + 1)),
-      elements.create('span', 'step-name', STEP_LABELS[kind]),
-    );
+    const name = elements.create('span', 'step-name', schema?.[ActionSchemaKey.LABEL] ?? action);
+    name.title = schema?.[ActionSchemaKey.DOCUMENTATION] || action;
+    head.append(elements.create('span', 'step-number', String(index + 1)), name);
     if (status) {
       const chip = elements.create('span', ViewClass.STATUS, status);
       chip.dataset.status = status;
@@ -167,84 +253,255 @@ export class StepsView {
       elements.button('×', PlanAction.REMOVE_STEP, () => this.#edit(() => this.#editor.state.removeStep(identifier))),
     );
     head.append(controls);
-    card.append(head, this.#parameters(step), this.#chips(step, observations));
+    card.append(head);
+    for (const problem of this.#editor.state.problems(step)) card.append(elements.create('p', ViewClass.PROBLEM, problem));
+    if (schema) card.append(...this.#form(step, schema));
+    card.append(this.#chips(step, observations));
     elements.dropTarget(card, ViewClass.DRAG_OVER, (text) => this.#dropped(text, index, identifier));
     return card;
   }
 
   /**
    * @param {Object} step A step of the edited robot.
-   * @returns {HTMLElement} The controls of the step's parameters.
+   * @param {Object} schema Its action.
+   * @returns {Array<HTMLElement>} The controls of the required fields, and the optional
+   *   ones folded under "More options".
    */
-  #parameters(step) {
+  #form(step, schema) {
     const elements = this.#shown;
-    const state = this.#editor.state;
-    const identifier = step[PlanStepKey.IDENTIFIER];
-    const kind = step[PlanStepKey.KIND];
-    const update = (changes) => this.#edit(() => state.updateStep(identifier, changes));
-    const box = elements.create('div', ViewClass.PARAMETERS);
-    const choices = (values) => values.map((value) => ({ value, label: value }));
-    if (OBJECT_STEPS.includes(kind)) {
-      const objects = state.objects().map((item) => ({ value: item[PlannedObjectKey.IDENTIFIER], label: item[PlannedObjectKey.IDENTIFIER] }));
-      if (objects.length === 0) box.append(elements.create('p', ViewClass.EMPTY, 'Add an object for this step to act on.'));
-      else box.append(elements.label('object', elements.select(PlanAction.STEP_PARAMETER, objects, step[PlanStepKey.OBJECT], (value) => update({ [PlanStepKey.OBJECT]: value }))));
+    const required = elements.create('div', ViewClass.PARAMETERS);
+    const optional = elements.create('div', ViewClass.PARAMETERS);
+    for (const field of PlanState.fields(schema)) {
+      const box = field[ActionFieldKey.REQUIRED] ? required : optional;
+      box.append(...this.#control(step, field));
     }
-    if (step[PlanStepKey.ARM] !== undefined) {
-      box.append(elements.label('arm', elements.select(PlanAction.STEP_PARAMETER, choices(state.offeredArms(state.activeRobot())), step[PlanStepKey.ARM], (value) => update({ [PlanStepKey.ARM]: value }))));
-    }
-    if (kind === StepKind.MOVE_TORSO) {
-      box.append(elements.label('height', elements.select(PlanAction.STEP_PARAMETER, choices(state.catalog[PlanBuilderCatalogKey.TORSO_STATES]), step[PlanStepKey.TORSO_STATE], (value) => update({ [PlanStepKey.TORSO_STATE]: value }))));
-    }
-    if (PUTTING_DOWN.includes(kind)) box.append(...this.#destination(step, update));
-    if (kind === StepKind.NAVIGATE) {
-      box.append(...this.#pose(step, update));
-      const capture = elements.button('Use the robot’s live pose', PlanAction.USE_LIVE_POSE, () => this.#editor.useLivePose(identifier));
-      box.append(capture);
-    }
-    return box;
+    if (optional.children.length === 0) return [required];
+    const more = elements.create('details', ViewClass.MORE);
+    more.append(elements.create('summary', '', 'More options'), optional);
+    return [required, more];
   }
 
   /**
-   * @param {Object} step A step that puts an object down.
-   * @param {function(Object): void} update Applies parameter changes.
+   * @param {Object} step A step of the edited robot.
+   * @param {Object} field A field of its action.
+   * @returns {Array<HTMLElement>} The field's controls, by its kind.
+   */
+  #control(step, field) {
+    const controls = {
+      [ActionFieldKind.BODY]: () => this.#objectPicker(step, field),
+      [ActionFieldKind.ANNOTATION]: () => this.#annotationPicker(step, field),
+      [ActionFieldKind.ENUM]: () => this.#memberPicker(step, field),
+      [ActionFieldKind.POSE]: () => (field[ActionFieldKey.ACCEPTS_SURFACE] ? this.#destination(step, field) : this.#poseEditor(step, field)),
+      [ActionFieldKind.POSE_OR_SURFACE]: () => this.#destination(step, field),
+      [ActionFieldKind.NUMBER]: () => this.#numberInput(step, field),
+      [ActionFieldKind.INTEGER]: () => this.#numberInput(step, field),
+      [ActionFieldKind.BOOLEAN]: () => this.#checkbox(step, field),
+      [ActionFieldKind.TEXT]: () => this.#textInput(step, field),
+      [ActionFieldKind.GRASP]: () => this.#derivedNote(field),
+    };
+    return (controls[field[ActionFieldKey.KIND]] ?? (() => []))();
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A field of its action.
+   * @param {HTMLElement} control The field's control.
+   * @returns {HTMLLabelElement} The control labelled with the field's name, its meaning
+   *   as tooltip.
+   */
+  #labelled(step, field, control) {
+    control.dataset.field = field[ActionFieldKey.NAME];
+    const label = this.#shown.label(field[ActionFieldKey.LABEL], control);
+    label.title = field[ActionFieldKey.DOCUMENTATION] || field[ActionFieldKey.NAME];
+    return label;
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field One of its fields.
+   * @param {*} value The field's new value; null leaves the action's default.
+   */
+  #set(step, field, value) {
+    this.#edit(() => this.#editor.state.setValue(step[PlanStepKey.IDENTIFIER], field[ActionFieldKey.NAME], value));
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field Its field.
+   * @returns {*} The field's value, or undefined.
+   */
+  static #value(step, field) {
+    return step[PlanStepKey.VALUES][field[ActionFieldKey.NAME]];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A body field.
+   * @returns {Array<HTMLElement>} A choice of the plan's objects.
+   */
+  #objectPicker(step, field) {
+    const objects = this.#editor.state.objects().map((item) => ({ value: item[PlannedObjectKey.IDENTIFIER], label: item[PlannedObjectKey.IDENTIFIER] }));
+    if (objects.length === 0) return [this.#shown.create('p', ViewClass.EMPTY, `Add an object for ${field[ActionFieldKey.LABEL]}.`)];
+    const choices = field[ActionFieldKey.REQUIRED] ? objects : [{ value: DEFAULT_CHOICE, label: 'none' }, ...objects];
+    const select = this.#shown.select(PlanAction.STEP_PARAMETER, choices, StepsView.#value(step, field) ?? DEFAULT_CHOICE, (value) => this.#set(step, field, value || null));
+    return [this.#labelled(step, field, select)];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field An annotation field.
+   * @returns {Array<HTMLElement>} A choice of the live world's entities carrying the
+   *   annotation, or a note that it holds none and a text input for the name.
+   */
+  #annotationPicker(step, field) {
+    const elements = this.#shown;
+    const annotation = field[ActionFieldKey.ANNOTATION];
+    const value = StepsView.#value(step, field) ?? '';
+    const known = this.#editor.surfaces().get(annotation) ?? [];
+    if (known.length > 0) {
+      const choices = [{ value: DEFAULT_CHOICE, label: 'choose…' }, ...known.map((name) => ({ value: name, label: name }))];
+      return [this.#labelled(step, field, elements.select(PlanAction.STEP_PARAMETER, choices, value, (picked) => this.#set(step, field, picked || null)))];
+    }
+    const input = elements.input('text', PlanAction.STEP_PARAMETER, () => this.#set(step, field, input.value.trim() || null));
+    input.value = value;
+    input.placeholder = `${annotation} name`;
+    return [this.#labelled(step, field, input), elements.create('p', ViewClass.EMPTY, `The live world shows no entity with a ${annotation} annotation; type its name.`)];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field An enumeration field.
+   * @returns {Array<HTMLElement>} A choice of the members the robot offers.
+   */
+  #memberPicker(step, field) {
+    const state = this.#editor.state;
+    const members = state.choices(state.activeRobot(), field).map((member) => ({ value: member, label: member }));
+    const fallback = field[ActionFieldKey.DEFAULT] ? `default (${field[ActionFieldKey.DEFAULT]})` : 'default';
+    const choices = field[ActionFieldKey.REQUIRED] ? members : [{ value: DEFAULT_CHOICE, label: fallback }, ...members];
+    const select = this.#shown.select(PlanAction.STEP_PARAMETER, choices, StepsView.#value(step, field) ?? DEFAULT_CHOICE, (value) => this.#set(step, field, value || null));
+    return [this.#labelled(step, field, select)];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A number or integer field.
+   * @returns {Array<HTMLElement>} A number input; empty leaves the default, shown as
+   *   placeholder.
+   */
+  #numberInput(step, field) {
+    const input = this.#shown.input('number', PlanAction.STEP_PARAMETER, () => {
+      const number = Number(input.value);
+      if (input.value === '') this.#set(step, field, null);
+      else if (Number.isFinite(number)) this.#set(step, field, field[ActionFieldKey.KIND] === ActionFieldKind.INTEGER ? Math.round(number) : number);
+    });
+    const value = StepsView.#value(step, field);
+    input.value = value === undefined ? '' : String(value);
+    input.step = field[ActionFieldKey.KIND] === ActionFieldKind.INTEGER ? '1' : 'any';
+    input.placeholder = field[ActionFieldKey.DEFAULT] === undefined || field[ActionFieldKey.DEFAULT] === null ? 'default' : String(field[ActionFieldKey.DEFAULT]);
+    return [this.#labelled(step, field, input)];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A boolean field.
+   * @returns {Array<HTMLElement>} A checkbox, showing the default until it is changed.
+   */
+  #checkbox(step, field) {
+    const input = this.#shown.input('checkbox', PlanAction.STEP_PARAMETER, () => this.#set(step, field, input.checked));
+    input.checked = Boolean(StepsView.#value(step, field) ?? field[ActionFieldKey.DEFAULT]);
+    return [this.#labelled(step, field, input)];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A text field.
+   * @returns {Array<HTMLElement>} A text input; empty leaves the default.
+   */
+  #textInput(step, field) {
+    const input = this.#shown.input('text', PlanAction.STEP_PARAMETER, () => this.#set(step, field, input.value.trim() || null));
+    input.value = StepsView.#value(step, field) ?? '';
+    input.placeholder = field[ActionFieldKey.DEFAULT] ?? 'default';
+    return [this.#labelled(step, field, input)];
+  }
+
+  /**
+   * @param {Object} field A grasp field.
+   * @returns {Array<HTMLElement>} A note that the grasp is derived, never entered.
+   */
+  #derivedNote(field) {
+    const sources = (field[ActionFieldKey.DERIVED_FROM] ?? []).join(' and ');
+    const text = field[ActionFieldKey.REQUIRED] ? `${field[ActionFieldKey.LABEL]}: derived from ${sources} when the step runs.` : `${field[ActionFieldKey.LABEL]}: left to the action.`;
+    const note = this.#shown.create('p', ViewClass.DERIVED, text);
+    note.dataset.field = field[ActionFieldKey.NAME];
+    return [note];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A field accepting a surface.
    * @returns {Array<HTMLElement>} The choice of pose or surface and its controls.
    */
-  #destination(step, update) {
+  #destination(step, field) {
     const elements = this.#shown;
-    const placement = step[PlanStepKey.PLACEMENT] ?? PlacementMode.POSE;
+    const state = this.#editor.state;
+    const identifier = step[PlanStepKey.IDENTIFIER];
+    const name = field[ActionFieldKey.NAME];
+    const destination = StepsView.#value(step, field) ?? {};
+    const placement = destination[DestinationKey.PLACEMENT] ?? PlacementMode.POSE;
     const modes = Object.values(PlacementMode).map((mode) => ({ value: mode, label: PLACEMENT_LABELS[mode] }));
-    const controls = [elements.label('put down', elements.select(PlanAction.STEP_PARAMETER, modes, placement, (value) => update({ [PlanStepKey.PLACEMENT]: value })))];
-    if (placement === PlacementMode.POSE) return [...controls, ...this.#pose(step, update)];
-    const types = this.#editor.state.catalog[PlanBuilderCatalogKey.SURFACE_TYPES].map((type) => ({ value: type, label: type }));
-    const surfaceType = step[PlanStepKey.SURFACE_TYPE];
-    const named = (this.#editor.surfaces().get(surfaceType) ?? []).map((name) => ({ value: name, label: name }));
-    controls.push(
-      elements.label('surface', elements.select(PlanAction.STEP_PARAMETER, types, surfaceType, (value) => update({ [PlanStepKey.SURFACE_TYPE]: value, [PlanStepKey.SURFACE_NAME]: null }))),
-      elements.label('which', elements.select(PlanAction.STEP_PARAMETER, [ANY_SURFACE, ...named], step[PlanStepKey.SURFACE_NAME] ?? ANY_SURFACE.value, (value) => update({ [PlanStepKey.SURFACE_NAME]: value || null }))),
-    );
+    const controls = [this.#labelled(step, field, elements.select(PlanAction.STEP_PARAMETER, modes, placement, (value) => this.#edit(() => state.setPlacement(identifier, name, value))))];
+    const update = (changes) => this.#set(step, field, { ...destination, ...changes });
+    if (placement === PlacementMode.POSE) return [...controls, this.#poseRow(destination[DestinationKey.POSE], (pose) => update({ [DestinationKey.POSE]: pose }))];
+    const types = state.catalog[PlanBuilderCatalogKey.SURFACE_TYPES].map((type) => ({ value: type, label: type }));
+    const surfaceType = destination[DestinationKey.SURFACE_TYPE];
+    const named = (this.#editor.surfaces().get(surfaceType) ?? []).map((surface) => ({ value: surface, label: surface }));
+    const typeSelect = elements.select(PlanAction.STEP_PARAMETER, types, surfaceType, (value) => update({ [DestinationKey.SURFACE_TYPE]: value, [DestinationKey.SURFACE_NAME]: undefined }));
+    typeSelect.dataset.field = DestinationKey.SURFACE_TYPE;
+    const nameSelect = elements.select(PlanAction.STEP_PARAMETER, [ANY_SURFACE, ...named], destination[DestinationKey.SURFACE_NAME] ?? ANY_SURFACE.value, (value) => update({ [DestinationKey.SURFACE_NAME]: value || undefined }));
+    nameSelect.dataset.field = DestinationKey.SURFACE_NAME;
+    controls.push(elements.label('surface', typeSelect), elements.label('which', nameSelect));
     return controls;
   }
 
   /**
-   * @param {Object} step A step with a target pose.
-   * @param {function(Object): void} update Applies parameter changes.
-   * @returns {Array<HTMLElement>} The controls of the target's position and heading.
+   * @param {Object} step A step.
+   * @param {Object} field A pose field.
+   * @returns {Array<HTMLElement>} The pose's controls and a button taking the robot's
+   *   live pose.
    */
-  #pose(step, update) {
+  #poseEditor(step, field) {
     const elements = this.#shown;
-    const target = step[PlanStepKey.TARGET] ?? PlanPose.of(0, 0, 0, 0);
+    const identifier = step[PlanStepKey.IDENTIFIER];
+    const name = field[ActionFieldKey.NAME];
+    const label = elements.create('span', 'field-name', field[ActionFieldKey.LABEL]);
+    label.title = field[ActionFieldKey.DOCUMENTATION] || name;
+    const row = this.#poseRow(StepsView.#value(step, field), (pose) => this.#set(step, field, pose));
+    row.dataset.field = name;
+    const capture = elements.button('Use the robot’s live pose', PlanAction.USE_LIVE_POSE, () => this.#editor.useLivePose(identifier, name));
+    capture.dataset.field = name;
+    return [label, row, capture];
+  }
+
+  /**
+   * @param {Array<number>|undefined} pose A pose, or undefined for none yet.
+   * @param {function(Array<number>): void} onChange Called with the edited pose.
+   * @returns {HTMLElement} The controls of the pose's position and heading.
+   */
+  #poseRow(pose, onChange) {
+    const elements = this.#shown;
+    const target = pose ?? PlanPose.of(0, 0, 0, 0);
     const position = PlanPose.position(target);
     const row = elements.create('div', 'pose-row');
     const coordinates = ['x', 'y', 'z'].map((axis, index) =>
       elements.number(axis, position[index], PlanAction.POSE, (value) => {
         const moved = [...position];
         moved[index] = value;
-        update({ [PlanStepKey.TARGET]: PlanPose.moved(target, moved) });
+        onChange(PlanPose.moved(target, moved));
       }),
     );
-    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => update({ [PlanStepKey.TARGET]: PlanPose.turned(target, PlanPose.radians(value)) }));
+    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
     row.append(...coordinates, heading);
-    return [row];
+    return row;
   }
 
   /**
@@ -281,9 +538,9 @@ export class StepsView {
    * @param {string=} identifier The step a constraint was dropped on.
    */
   #dropped(text, index, identifier) {
-    const kind = DragText.valueOf(text, DragKind.STEP);
-    if (kind !== null) {
-      this.#add(kind, index);
+    const action = DragText.valueOf(text, DragKind.STEP);
+    if (action !== null) {
+      this.#add(action, index);
       return;
     }
     const sentence = DragText.valueOf(text, DragKind.CONSTRAINT);
@@ -291,11 +548,11 @@ export class StepsView {
   }
 
   /**
-   * @param {string} kind A `StepKind` value.
+   * @param {string} action An action's class name.
    * @param {number} index Where the step goes.
    */
-  #add(kind, index) {
-    this.#edit(() => this.#editor.state.addStep(kind, index));
+  #add(action, index) {
+    this.#edit(() => this.#editor.state.addStep(action, index));
   }
 
   /**

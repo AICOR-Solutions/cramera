@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
+  ActionCatalogKey,
+  ActionSchemaKey,
   ConstraintRequestKey,
   ConstraintRuleKey,
   ConstraintTextKey,
   DemoSourceKey,
   PageState,
+  DestinationKey,
   PlacementMode,
   PageStateAttribute,
   PlanBuilderCatalogKey,
@@ -22,7 +25,6 @@ import {
   RunStatusKey,
   SavedDemoKey,
   StepConstraintKey,
-  StepKind,
   ViewerEvent,
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
@@ -32,12 +34,13 @@ import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constr
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { STEP_LABELS } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { STEP_PALETTE_SIZE } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
 const read = (name) => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const RULES = read('../../src/cramera_plan_builder/rules/constraints.json').rules;
+const ACTIONS = read('../dataset/actions.json');
 const byAction = (root, action) => root.findAll((element) => element.dataset.action === action);
 const settled = () => new Promise((resolve) => setImmediate(resolve));
 const drop = (element, text) => element.dispatch(DomEvent.DROP, { dataTransfer: { getData: (type) => (type === DRAG_MEDIA_TYPE ? text : '') } });
@@ -47,7 +50,12 @@ const drop = (element, text) => element.dispatch(DomEvent.DROP, { dataTransfer: 
  */
 class FakeApi {
   constructor() {
-    this.catalogAnswer = { ...read('dataset/catalog.json'), [PlanBuilderCatalogKey.CONSTRAINT_RULES]: RULES };
+    this.catalogAnswer = {
+      ...read('dataset/catalog.json'),
+      [PlanBuilderCatalogKey.CONSTRAINT_RULES]: RULES,
+      [PlanBuilderCatalogKey.ACTIONS]: ACTIONS[ActionCatalogKey.ACTIONS],
+      [PlanBuilderCatalogKey.FAILED_ACTION_MODULES]: ACTIONS[ActionCatalogKey.FAILED_MODULES],
+    };
     this.saved = [];
     this.compiled = [];
     this.runs = [];
@@ -81,7 +89,7 @@ class FakeApi {
     const rule = RULES.find((candidate) => new RegExp(candidate[ConstraintRuleKey.PHRASING]).test(text.toLowerCase()));
     const compiled = { [StepConstraintKey.TEXT]: text };
     if (rule) compiled[StepConstraintKey.MONITOR_TYPE] = rule[ConstraintRuleKey.MONITOR_TYPE];
-    if (rule && request[ConstraintTextKey.STEP_KIND]) compiled[StepConstraintKey.MONITOR] = { type: rule[ConstraintRuleKey.MONITOR_TYPE], params: {} };
+    if (rule && request[ConstraintTextKey.STEP_ACTION]) compiled[StepConstraintKey.MONITOR] = { type: rule[ConstraintRuleKey.MONITOR_TYPE], params: {} };
     return compiled;
   }
 
@@ -252,7 +260,8 @@ async function openPage(query = '', prepare = () => {}) {
 }
 
 const message = (root) => root.findAll((element) => element.className === 'message')[0].textContent;
-const block = (root, kind) => root.findAll((element) => element.dataset.kind === kind)[0];
+const block = (root, action) => root.findAll((element) => element.dataset.action === PlanAction.ADD_STEP && element.dataset.name === action)[0];
+const parameter = (root, field) => byAction(root, PlanAction.STEP_PARAMETER).find((element) => element.dataset.field === field);
 const steps = (root) => root.findAll((element) => element.dataset.step !== undefined);
 
 /**
@@ -273,7 +282,7 @@ test('the page starts a plan in the first environment and is ready', async () =>
   assert.equal(document.documentElement.dataset[PageStateAttribute.STATE], PageState.READY);
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), api.catalogAnswer[PlanBuilderCatalogKey.ENVIRONMENTS][0].name);
   assert.deepEqual(scene().environments, [page.state.field(PlanKey.ENVIRONMENT)]);
-  assert.equal(byAction(root, PlanAction.ADD_STEP).length, page.state.offeredSteps(page.state.activeRobot()).length);
+  assert.equal(byAction(root, PlanAction.ADD_STEP).length, page.state.offeredActions(page.state.activeRobot()).length);
   assert.equal(timer.callbacks.size, 1);
 });
 
@@ -303,36 +312,115 @@ test('without the CRAM workspace the page composes but does not run', async () =
 
 test('clicking an action and dropping one add steps where they land', async () => {
   const { root, page } = await openPage();
-  block(root, StepKind.PARK_ARMS).click();
-  drop(steps(root)[0], DragText.of(DragKind.STEP, StepKind.MOVE_TORSO));
-  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.KIND]), [StepKind.MOVE_TORSO, StepKind.PARK_ARMS]);
-  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, STEP_LABELS[StepKind.MOVE_TORSO]);
+  block(root, 'ParkArmsAction').click();
+  drop(steps(root)[0], DragText.of(DragKind.STEP, 'MoveTorsoAction'));
+  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['MoveTorsoAction', 'ParkArmsAction']);
+  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, page.state.schema('MoveTorsoAction')[ActionSchemaKey.LABEL]);
+  assert.ok(Number(steps(root)[0].dataset.palette) < STEP_PALETTE_SIZE);
+});
+
+test('the palette groups the actions and names why others are not available', async () => {
+  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'Tracy'));
+  const groups = root.findAll((element) => element.className === 'palette-group').map((element) => element.dataset.group);
+  assert.deepEqual(groups, [...new Set(page.state.offeredActions(page.state.activeRobot()).map((schema) => schema[ActionSchemaKey.GROUP]))]);
+  const refused = root.findAll((element) => element.className === 'block unavailable');
+  const reasons = new Map(refused.map((element) => [element.dataset.name, element.children[1].textContent]));
+  const unavailable = ACTIONS[ActionCatalogKey.ACTIONS].find((schema) => !schema[ActionSchemaKey.AVAILABLE]);
+  assert.equal(reasons.get(unavailable[ActionSchemaKey.NAME]), unavailable[ActionSchemaKey.UNAVAILABLE_REASON]);
+  assert.match(reasons.get('MoveTorsoAction'), /TorsoState/);
+  const notice = root.findAll((element) => element.className === 'notice')[0];
+  assert.match(notice.textContent, new RegExp(ACTIONS[ActionCatalogKey.FAILED_MODULES][0].module));
+});
+
+test('a gripper step offers its enumerations with the choices of the robot', async () => {
+  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'Stretch'));
+  block(root, 'SetGripperAction').click();
+  const gripper = parameter(root, 'gripper');
+  const motion = parameter(root, 'motion');
+  assert.deepEqual(gripper.children.map((option) => option.value), ['BOTH']);
+  assert.deepEqual(motion.children.map((option) => option.value), ['OPEN', 'CLOSE', 'MEDIUM']);
+  motion.value = 'CLOSE';
+  motion.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].motion, 'CLOSE');
+  assert.equal(root.findAll((element) => element.className === 'more-options').length, 0);
+});
+
+test('optional fields fold under more options and keep their defaults until set', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'PickUpAction').click();
+  const values = () => page.state.steps()[0][PlanStepKey.VALUES];
+  assert.equal(root.findAll((element) => element.className === 'more-options').length, 1);
+  assert.match(root.findAll((element) => element.className === 'derived')[0].textContent, /derived from arm and object_designator/);
+  const stall = parameter(root, 'tolerate_grasp_stall');
+  stall.checked = true;
+  stall.dispatch(DomEvent.CHANGE);
+  assert.equal(values().tolerate_grasp_stall, true);
+  const friction = parameter(root, 'object_friction');
+  assert.equal(friction.placeholder, 'default');
+  friction.value = '0.4';
+  friction.dispatch(DomEvent.CHANGE);
+  assert.equal(values().object_friction, 0.4);
+  const cleared = parameter(root, 'object_friction');
+  cleared.value = '';
+  cleared.dispatch(DomEvent.CHANGE);
+  assert.equal('object_friction' in values(), false);
+});
+
+test('an annotation without a live entity is typed by name', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'CuttingAction').click();
+  const tool = parameter(root, 'tool');
+  assert.match(root.findAll((element) => element.className === 'empty').map((element) => element.textContent).join(' '), /Tool annotation/);
+  tool.value = 'knife';
+  tool.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].tool, 'knife');
+  const stride = parameter(root, 'pointer_stride');
+  stride.value = '2.6';
+  stride.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].pointer_stride, 3);
+});
+
+test('a step that no longer fits its action shows why', async () => {
+  const { page, root } = await openPage(`${PlanBuilderPageParameter.PLAN}=plan-1`, ({ api }) => {
+    api.saved.push({
+      [PlanRecordKey.IDENTIFIER]: 'plan-1',
+      [PlanRecordKey.DOCUMENT]: {
+        [PlanKey.NAME]: 'stale',
+        [PlanKey.ROBOTS]: [{ id: 'robot_1', model: 'PR2', label: 'PR2 1', pose: [0, 0, 0, 0, 0, 0, 1], steps: [{ id: 'step_1', action: 'SearchAction', values: {} }] }],
+      },
+    });
+  });
+  const problems = root.findAll((element) => element.className === 'step-problem').map((element) => element.textContent);
+  assert.deepEqual(problems, page.state.problems(page.state.steps()[0]));
+  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, 'SearchAction');
 });
 
 test('a step is moved and removed with its controls', async () => {
   const { root, page } = await openPage();
-  block(root, StepKind.PARK_ARMS).click();
-  block(root, StepKind.MOVE_TORSO).click();
+  block(root, 'ParkArmsAction').click();
+  block(root, 'MoveTorsoAction').click();
   byAction(root, PlanAction.MOVE_STEP_DOWN)[0].click();
-  assert.equal(page.state.steps()[0][PlanStepKey.KIND], StepKind.MOVE_TORSO);
+  assert.equal(page.state.steps()[0][PlanStepKey.ACTION], 'MoveTorsoAction');
   byAction(root, PlanAction.REMOVE_STEP)[0].click();
-  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.KIND]), [StepKind.PARK_ARMS]);
+  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['ParkArmsAction']);
 });
 
 test('a refused edit is reported', async () => {
   const { root, page } = await openPage();
-  for (let count = 0; count <= page.state.limits.maximumSteps; count += 1) block(root, StepKind.PARK_ARMS).click();
+  for (let count = 0; count <= page.state.limits.maximumSteps; count += 1) block(root, 'ParkArmsAction').click();
   assert.match(message(root), /At most/);
 });
 
 test('a dropped sentence is compiled for its step and attached', async () => {
   const { root, page, api } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
-  block(root, StepKind.PICK_UP).click();
+  block(root, 'PickUpAction').click();
   drop(steps(root)[0], DragText.of(DragKind.CONSTRAINT, RULES[0][ConstraintRuleKey.SENTENCE]));
   await settled();
   const [request] = api.compiled;
-  assert.equal(request[ConstraintTextKey.STEP_KIND], StepKind.PICK_UP);
+  assert.equal(request[ConstraintTextKey.STEP_ACTION], 'PickUpAction');
   assert.equal(request[ConstraintTextKey.STEP_OBJECT], page.state.objects()[0][PlannedObjectKey.IDENTIFIER]);
   assert.equal(page.state.steps()[0][PlanStepKey.CONSTRAINTS][0][StepConstraintKey.MONITOR_TYPE], RULES[0][ConstraintRuleKey.MONITOR_TYPE]);
   assert.equal(root.findAll((element) => element.className === 'chip').length, 1);
@@ -340,7 +428,7 @@ test('a dropped sentence is compiled for its step and attached', async () => {
 
 test('a sentence no rule reads is not attached', async () => {
   const { root, page } = await openPage();
-  block(root, StepKind.PARK_ARMS).click();
+  block(root, 'ParkArmsAction').click();
   drop(steps(root)[0], DragText.of(DragKind.CONSTRAINT, 'Sing while working'));
   await settled();
   assert.deepEqual(page.state.steps()[0][PlanStepKey.CONSTRAINTS], []);
@@ -421,17 +509,17 @@ test('an object edited in the list moves in the live world too', async () => {
   assert.deepEqual(live.moves, [{ key: 'key-milk', pose, final: true }]);
 });
 
-test('a dragged robot or navigation target stays on the floor', async () => {
+test('a dragged robot stays on the floor and a target takes the dragged pose', async () => {
   const { root, page, scene } = await openPage();
-  block(root, StepKind.NAVIGATE).click();
+  block(root, 'NavigateAction').click();
   const lifted = [1, 2, 0.5, 0, 0, Math.sin(0.25), Math.cos(0.25)];
   const robot = page.state.activeRobot()[PlannedRobotKey.IDENTIFIER];
   scene().listeners.onPlace(new Selection(MarkerKind.ROBOT, robot), lifted);
-  scene().listeners.onPlace(new Selection(MarkerKind.TARGET, page.state.steps()[0][PlanStepKey.IDENTIFIER]), lifted);
-  for (const pose of [page.state.robot(robot)[PlannedRobotKey.POSE], page.state.steps()[0][PlanStepKey.TARGET]]) {
-    assert.deepEqual(PlanPose.position(pose), [1, 2, 0]);
-    assert.ok(Math.abs(PlanPose.yaw(pose) - 0.5) < 1e-9);
-  }
+  scene().listeners.onPlace(new Selection(MarkerKind.TARGET, page.state.steps()[0][PlanStepKey.IDENTIFIER], 'target_location'), lifted);
+  const pose = page.state.robot(robot)[PlannedRobotKey.POSE];
+  assert.deepEqual(PlanPose.position(pose), [1, 2, 0]);
+  assert.ok(Math.abs(PlanPose.yaw(pose) - 0.5) < 1e-9);
+  assert.deepEqual(page.state.steps()[0][PlanStepKey.VALUES].target_location, lifted);
 });
 
 test('a picked object is marked in the list and the turn mode reaches the view', async () => {
@@ -453,8 +541,8 @@ test('a picked object is marked in the list and the turn mode reaches the view',
 test('a performing run shows the live statuses and attaches its constraints once', async () => {
   const { root, page, live, timer } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
-  block(root, StepKind.PARK_ARMS).click();
-  block(root, StepKind.PICK_UP).click();
+  block(root, 'ParkArmsAction').click();
+  block(root, 'PickUpAction').click();
   drop(steps(root)[1], DragText.of(DragKind.CONSTRAINT, RULES[0][ConstraintRuleKey.SENTENCE]));
   await settled();
   byAction(root, PlanAction.PERFORM)[0].click();
@@ -472,7 +560,7 @@ test('a performing run shows the live statuses and attaches its constraints once
 test('live poses are captured into the plan and the surfaces offered', async () => {
   const { root, page, live, timer } = await openPage();
   addMilk(root);
-  block(root, StepKind.TRANSPORT).click();
+  block(root, 'TransportAction').click();
   byAction(root, PlanAction.STAGE)[0].click();
   await settled();
   await timer.tick();
@@ -483,22 +571,22 @@ test('live poses are captured into the plan and the surfaces offered', async () 
   assert.deepEqual(robot[PlannedRobotKey.POSE], live.world.robots.robots[0].pose);
   assert.deepEqual(robot[PlannedRobotKey.JOINT_POSITIONS], live.world.robots.robots[0].jointPositions);
   const table = live.world.surfaces.surfaces[0].type;
-  page.state.updateStep(page.state.steps()[0][PlanStepKey.IDENTIFIER], { [PlanStepKey.PLACEMENT]: PlacementMode.SURFACE, [PlanStepKey.SURFACE_TYPE]: table });
+  page.state.setValue(page.state.steps()[0][PlanStepKey.IDENTIFIER], 'target_location', { [DestinationKey.PLACEMENT]: PlacementMode.SURFACE, [DestinationKey.SURFACE_TYPE]: table });
   page.render();
-  const which = byAction(root, PlanAction.STEP_PARAMETER).at(-1);
+  const which = parameter(root, DestinationKey.SURFACE_NAME);
   assert.deepEqual(which.children.map((option) => option.value), ['', 'lab/table', 'lab/side_table']);
 });
 
-test('the live robot pose becomes a navigation target, once there is one', async () => {
+test('the live robot pose becomes a pose target, once there is one', async () => {
   const { root, page, timer } = await openPage();
-  block(root, StepKind.NAVIGATE).click();
+  block(root, 'NavigateAction').click();
   byAction(root, PlanAction.USE_LIVE_POSE)[0].click();
   assert.match(message(root), /live scene/);
   byAction(root, PlanAction.STAGE)[0].click();
   await settled();
   await timer.tick();
   byAction(root, PlanAction.USE_LIVE_POSE)[0].click();
-  assert.deepEqual(page.state.steps()[0][PlanStepKey.TARGET], [0.5, -0.25, 0, 0, 0, 0, 1]);
+  assert.deepEqual(page.state.steps()[0][PlanStepKey.VALUES].target_location, [0.5, -0.25, 0, 0, 0, 0, 1]);
 });
 
 test('capturing without a live world says so, and stopping ends the run', async () => {

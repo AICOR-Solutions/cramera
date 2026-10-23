@@ -89,15 +89,50 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 
 /* %% palette */
 
-.palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.palette { display: flex; flex-direction: column; gap: 8px; }
+.palette-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.palette-group h3 { flex-basis: 100%; margin: 0; font-size: 11px; font-weight: 600; text-transform: capitalize; color: var(--text-muted); }
 .palette .block { cursor: grab; border-left: 4px solid var(--step-color, var(--accent)); }
 
-.park_arms { --step-color: #a78bfa; }
-.move_torso { --step-color: #f472b6; }
-.navigate { --step-color: #2dd4bf; }
-.transport { --step-color: #60a5fa; }
-.pick_up { --step-color: #38bdf8; }
-.place { --step-color: #fbbf24; }
+details.unavailable summary { cursor: pointer; font-size: 12px; color: var(--text-muted); }
+details.unavailable ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.palette li.block.unavailable {
+  cursor: not-allowed;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  opacity: 0.8;
+}
+.palette li.block.unavailable .reason { font-size: 11px; }
+
+.notice { margin: 0; padding: 6px 8px; font-size: 12px; color: var(--warning); background: var(--surface-sunken); border-radius: 8px; }
+
+/* Steps take one of eight colours by their action's place in the catalog. */
+.builder-root {
+  --step-palette-0: #a78bfa;
+  --step-palette-1: #f472b6;
+  --step-palette-2: #2dd4bf;
+  --step-palette-3: #60a5fa;
+  --step-palette-4: #38bdf8;
+  --step-palette-5: #fbbf24;
+  --step-palette-6: #fb923c;
+  --step-palette-7: #4ade80;
+}
+
+[data-palette="0"] { --step-color: var(--step-palette-0); }
+[data-palette="1"] { --step-color: var(--step-palette-1); }
+[data-palette="2"] { --step-color: var(--step-palette-2); }
+[data-palette="3"] { --step-color: var(--step-palette-3); }
+[data-palette="4"] { --step-color: var(--step-palette-4); }
+[data-palette="5"] { --step-color: var(--step-palette-5); }
+[data-palette="6"] { --step-color: var(--step-palette-6); }
+[data-palette="7"] { --step-color: var(--step-palette-7); }
 
 /* %% steps */
 
@@ -128,7 +163,14 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 .step-controls button { padding: 0 7px; min-width: 26px; }
 .step-parameters { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; align-items: flex-end; }
 .step-parameters label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-muted); }
-.step-parameters select { font-size: 12px; }
+.step-parameters select, .step-parameters input[type="text"] { font-size: 12px; }
+.step-parameters input[type="number"]:not(.pose-row input) { width: 90px; font-size: 12px; padding: 3px 6px; }
+.step-parameters .field-name { flex-basis: 100%; font-size: 11px; color: var(--text-muted); }
+.step-parameters .derived { margin: 0; font-size: 11px; color: var(--text-muted); font-style: italic; }
+.step-parameters .empty { flex-basis: 100%; }
+details.more-options { margin-top: 6px; }
+details.more-options summary { cursor: pointer; font-size: 12px; color: var(--text-muted); }
+.step-problem { margin: 4px 0 0; font-size: 12px; color: var(--danger); }
 
 .node-status { font: 11px var(--mono); border-radius: 999px; padding: 1px 7px; background: var(--surface-sunken); color: var(--text-muted); }
 
