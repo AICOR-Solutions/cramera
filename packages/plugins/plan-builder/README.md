@@ -61,8 +61,9 @@ cramera
   recorded plan, titled with the robot that performed it. Each card is laid out like
   the builder's, read-only: the required fields of its action with the values they
   were given, the others folded under "More options", each in the control its kind
-  of value takes in the builder (a select, a number input, a checkbox, a note for a
-  grasp), a field left at its default showing "default", and the constraints
+  of value takes in the builder (a select, a number input, a checkbox, the pose
+  inputs, a note for a grasp), a field left at its default showing "default", and
+  the constraints
   attached to the step. A card's chip reads waiting, running, then the status the
   step ended in. The step whose recorded
   frames hold the playhead is marked running and scrolled into sight; a click on a

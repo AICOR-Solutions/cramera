@@ -244,6 +244,7 @@ class PlanTrees:
                 parameters=node.parameters,
                 fields=node.fields,
                 constraints=node.constraints,
+                poses=node.poses,
             )
         roots = []
         for node in self.plan.nodes:

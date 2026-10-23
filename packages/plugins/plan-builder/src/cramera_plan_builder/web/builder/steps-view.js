@@ -481,7 +481,7 @@ export class StepsView {
     const elements = this.#shown;
     const identifier = step[PlanStepKey.IDENTIFIER];
     const name = field[ActionFieldKey.NAME];
-    const label = elements.create('span', 'field-name', field[ActionFieldKey.LABEL]);
+    const label = elements.create('span', StepCardClass.FIELD_NAME, field[ActionFieldKey.LABEL]);
     label.title = field[ActionFieldKey.DOCUMENTATION] || name;
     const row = this.#poseRow(StepsView.#value(step, field), (pose) => this.#set(step, field, pose));
     row.dataset.field = name;
@@ -499,7 +499,7 @@ export class StepsView {
     const elements = this.#shown;
     const target = pose ?? PlanPose.of(0, 0, 0, 0);
     const position = PlanPose.position(target);
-    const row = elements.create('div', 'pose-row');
+    const row = elements.create('div', StepCardClass.POSE_ROW);
     const coordinates = ['x', 'y', 'z'].map((axis, index) =>
       elements.number(axis, position[index], PlanAction.POSE, (value) => {
         const moved = [...position];

@@ -11,7 +11,13 @@ from enum import Enum
 
 from typing_extensions import Any, Dict, List, Optional, Tuple
 
-from cramera_protocol.bundle.scene import BooleanText, DeclaredField, FieldValueKind
+from cramera_cram.geometry import NumericPose
+from cramera_protocol.bundle.scene import (
+    BooleanText,
+    DeclaredField,
+    FieldValueKind,
+    PoseValue,
+)
 from semantic_digital_twin.spatial_types import Point3, Pose
 from semantic_digital_twin.world_description.world_entity import (
     KinematicStructureEntity,
@@ -344,3 +350,34 @@ class FieldDeclarations:
         if isinstance(declared.default, PLAIN_DEFAULTS):
             return FieldValue(declared.default).kind()
         return None
+
+
+@dataclass(frozen=True)
+class FieldPoses:
+    """
+    The poses a dataclass value, such as an action, was given, in the frames they were
+    given in.
+    """
+
+    value: Any
+    """
+    A dataclass value, such as an action.
+    """
+
+    def poses(self) -> Dict[str, PoseValue]:
+        """
+        :return: The pose of every init field that holds one, by field name, in the
+            order the dataclass declares them.
+        """
+        values = vars(self.value)
+        poses: Dict[str, PoseValue] = {}
+        for declared in dataclasses.fields(self.value):
+            if not declared.init or not isinstance(values[declared.name], Pose):
+                continue
+            value = values[declared.name]
+            frame = value.reference_frame
+            poses[declared.name] = PoseValue(
+                pose=NumericPose.of_matrix(value.to_np()).published(),
+                frame=None if frame is None else frame.name.name,
+            )
+        return poses

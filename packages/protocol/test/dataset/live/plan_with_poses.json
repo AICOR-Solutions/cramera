@@ -1,0 +1,29 @@
+{
+ "signature": "plan_node_1",
+ "nodes": [
+  {
+   "id": "plan_node_1",
+   "parent": null,
+   "kind": "ActionNode",
+   "label": "NavigateAction",
+   "status": "RUNNING",
+   "parameters": {
+    "target_location": "(1.2, 0.4, 0) yaw 90° in map"
+   },
+   "poses": {
+    "target_location": {
+     "pose": [
+      1.2,
+      0.4,
+      0.0,
+      0.0,
+      0.0,
+      0.7071068,
+      0.7071068
+     ],
+     "frame": "map"
+    }
+   }
+  }
+ ]
+}

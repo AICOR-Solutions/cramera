@@ -11,7 +11,7 @@
       "status": "SUCCEEDED",
       "robot": "pr2",
       "start": 0,
-      "end": 40,
+      "end": 60,
       "children": [
         {
           "id": "plan_node_1",
@@ -63,6 +63,45 @@
           ],
           "start": 0,
           "end": 40
+        },
+        {
+          "id": "plan_node_2",
+          "parent": "plan_node_0",
+          "kind": "ActionNode",
+          "label": "NavigateAction",
+          "status": "SUCCEEDED",
+          "parameters": {
+            "target_location": "(1.2, 0.4, 0) yaw 90° in map"
+          },
+          "fields": [
+            {
+              "name": "target_location",
+              "required": true,
+              "kind": "pose"
+            },
+            {
+              "name": "keep_joint_states",
+              "required": false,
+              "default": "yes",
+              "kind": "boolean"
+            }
+          ],
+          "poses": {
+            "target_location": {
+              "pose": [
+                1.2,
+                0.4,
+                0.0,
+                0.0,
+                0.0,
+                0.7071068,
+                0.7071068
+              ],
+              "frame": "map"
+            }
+          },
+          "start": 41,
+          "end": 60
         }
       ]
     }

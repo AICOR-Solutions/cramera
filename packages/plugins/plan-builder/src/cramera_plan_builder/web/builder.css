@@ -73,9 +73,6 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 .builder-section label > input, .builder-section label > select { color: var(--text); font-size: 13px; }
 .muted, .empty { color: var(--text-muted); font-size: 12px; margin: 4px 0; }
 
-.pose-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.pose-row label.number { display: flex; flex-direction: column; gap: 1px; margin: 0; font-size: 11px; color: var(--text-muted); }
-.pose-row input[type="number"] { width: 72px; font-size: 12px; padding: 3px 6px; }
 
 .badge {
   font: 11px var(--mono);
@@ -129,9 +126,6 @@ details.unavailable ul { list-style: none; margin: 6px 0 0; padding: 0; display:
 
 .step-controls { margin-left: auto; display: flex; gap: 4px; }
 .step-controls button { padding: 0 7px; min-width: 26px; }
-.step-parameters select, .step-parameters input[type="text"] { font-size: 12px; }
-.step-parameters input[type="number"]:not(.pose-row input) { width: 90px; font-size: 12px; padding: 3px 6px; }
-.step-parameters .field-name { flex-basis: 100%; font-size: 11px; color: var(--text-muted); }
 .step-parameters .empty { flex-basis: 100%; }
 .step-problem { margin: 4px 0 0; font-size: 12px; color: var(--danger); }
 

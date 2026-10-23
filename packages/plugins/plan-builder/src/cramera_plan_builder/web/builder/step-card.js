@@ -25,6 +25,10 @@ export const StepCardClass = Object.freeze({
   BADGE: 'badge',
   OBSERVATION: 'observation',
   DERIVED: 'derived',
+  FIELD_NAME: 'field-name',
+  POSE_ROW: 'pose-row',
+  NUMBER_LABEL: 'number',
+  POSE_FRAME: 'pose-frame',
 });
 
 // %% card

@@ -18,6 +18,7 @@ from cramera_protocol.bundle.scene import (
     ConstraintObservation,
     ConstraintObservationKey,
     DeclaredField,
+    PoseValue,
 )
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.document import JsonDocument, document_field
@@ -239,6 +240,11 @@ class LivePlanNodeKey(StrEnum):
     Every field the node's action declares.
     """
 
+    POSES = "poses"
+    """
+    The poses the node's action was given.
+    """
+
 
 @dataclass(kw_only=True)
 class LivePlanNode(JsonDocument):
@@ -302,6 +308,14 @@ class LivePlanNode(JsonDocument):
     """
     Every field the node's action declares, in the order the action declares them; a
     node without an action has none.
+    """
+
+    poses: Dict[str, PoseValue] = document_field(
+        LivePlanNodeKey.POSES, default_factory=dict
+    )
+    """
+    The poses the node's action was given, by field name; a node without an action has
+    none.
     """
 
 

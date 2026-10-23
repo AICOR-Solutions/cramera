@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from cramera_protocol.bundle.scene import DeclaredFieldKey
+from cramera_protocol.bundle.scene import DeclaredFieldKey, PoseValue
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.exceptions import InvalidDocumentValue, MissingDocumentField
 from cramera_protocol.geometry import Pose, Vector3
@@ -101,6 +101,15 @@ def test_an_action_node_declares_every_field_of_its_action(read_json):
         for entry in data["nodes"][1][LivePlanNodeKey.FIELDS]
     ]
     assert root.fields == []
+
+
+def test_an_action_node_names_the_poses_of_its_action(read_json):
+    data = read_json("live/plan_with_poses.json")
+    [action] = LivePlan.from_json(data).nodes
+    assert action.poses == {
+        name: PoseValue.from_json(entry)
+        for name, entry in data["nodes"][0][LivePlanNodeKey.POSES].items()
+    }
 
 
 def test_statechart_edges_are_the_bundle_edges(read_json):

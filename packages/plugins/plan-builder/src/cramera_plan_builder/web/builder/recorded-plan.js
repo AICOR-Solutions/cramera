@@ -3,7 +3,7 @@
  * frames each ran in, so the step at any frame of the replay is known.
  */
 
-import { DeclaredFieldKey, PlanNodeKey, PlanNodeKind } from '../../../protocol.js';
+import { DeclaredFieldKey, PlanNodeKey, PlanNodeKind, PoseValueKey } from '../../../protocol.js';
 
 /**
  * Where a step is at a frame of the replay.
@@ -81,19 +81,36 @@ export class RecordedField {
   kind;
 
   /**
+   * The pose the action was given in the field, as `[x, y, z, qx, qy, qz, qw]`, or null
+   *   when it holds none or the recording does not name it.
+   * @type {Array<number>|null}
+   */
+  pose;
+
+  /**
+   * The name of the frame `pose` is given in, or null.
+   * @type {string|null}
+   */
+  frame;
+
+  /**
    * @param {string} name The field's name.
    * @param {boolean} required Whether the action has no default for the field.
    * @param {string|null} value The text of the value the action was given, or null.
    * @param {string|null} defaultValue The text of the field's default, or null.
    * @param {string|null} kind What the field's value is, or null.
+   * @param {Object|null} pose The pose the action was given in the field, as the
+   *   recording stores it, or null.
    */
-  constructor(name, required, value, defaultValue, kind) {
+  constructor(name, required, value, defaultValue, kind, pose) {
     this.name = name;
     this.label = RecordedStep.fieldWords(name);
     this.required = required;
     this.value = value;
     this.default = defaultValue;
     this.kind = kind;
+    this.pose = pose?.[PoseValueKey.POSE] ?? null;
+    this.frame = pose?.[PoseValueKey.FRAME] ?? null;
   }
 
   /**
@@ -226,9 +243,10 @@ export class RecordedStep {
    */
   fields() {
     const given = this.node[PlanNodeKey.PARAMETERS] ?? {};
+    const poses = this.node[PlanNodeKey.POSES] ?? {};
     return (this.node[PlanNodeKey.FIELDS] ?? []).map((field) => {
       const name = field[DeclaredFieldKey.NAME];
-      return new RecordedField(name, Boolean(field[DeclaredFieldKey.REQUIRED]), given[name] ?? null, field[DeclaredFieldKey.DEFAULT] ?? null, field[DeclaredFieldKey.KIND] ?? null);
+      return new RecordedField(name, Boolean(field[DeclaredFieldKey.REQUIRED]), given[name] ?? null, field[DeclaredFieldKey.DEFAULT] ?? null, field[DeclaredFieldKey.KIND] ?? null, poses[name] ?? null);
     });
   }
 

@@ -2,19 +2,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { BooleanText, ConstraintObservationKey, DeclaredFieldKey, FieldValueKind, PlanNodeKey, SceneKey } from 'cramera-viewer/protocol.js';
+import { BooleanText, ConstraintObservationKey, DeclaredFieldKey, FieldValueKind, PlanNodeKey, PoseValueKey, SceneKey } from 'cramera-viewer/protocol.js';
 import { RecordedPlans, RecordedStep } from '../../src/cramera_plan_builder/web/builder/recorded-plan.js';
 import { RecordedPlanView } from '../../src/cramera_plan_builder/web/builder/recorded-plan-view.js';
+import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 const ROOTS = JSON.parse(readFileSync(new URL('dataset/recorded_step_details.json', import.meta.url), 'utf8'))[SceneKey.PLAN_TREES];
-const [TORSO, PICK_UP] = ROOTS[0][PlanNodeKey.CHILDREN];
+const [TORSO, PICK_UP, NAVIGATE] = ROOTS[0][PlanNodeKey.CHILDREN];
 const DECLARED = Object.fromEntries(PICK_UP[PlanNodeKey.FIELDS].map((entry) => [entry[DeclaredFieldKey.NAME], entry]));
 
 const cardOf = (element, node) => element.findAll((child) => child.className === 'step').find((card) => card.dataset.node === node[PlanNodeKey.IDENTIFIER]);
 const byClass = (element, className) => element.findAll((child) => child.className === className);
 const fieldNames = (element) => element.findAll((child) => child.dataset.field !== undefined).map((child) => child.dataset.field);
 const controlOf = (element, name) => element.findAll((child) => child.dataset.field === name)[0];
+const boxOf = (control) => control.parentElement.parentElement;
 const shownView = () => {
   const view = new RecordedPlanView(new FakeDocument(), () => {});
   view.show(ROOTS);
@@ -74,7 +76,8 @@ test('an enumeration member or a body reads in a select, as the builder asks for
   for (const name of ['arm', 'object_designator']) {
     const select = controlOf(card, name);
     assert.equal(select.tagName, 'SELECT');
-    assert.equal(select.disabled, true);
+    assert.equal(select.disabled, false);
+    assert.equal(boxOf(select).inert, true);
     assert.deepEqual(select.children.map((option) => option.textContent), [pickUpField(name).text()]);
   }
   assert.equal(DECLARED.arm[DeclaredFieldKey.KIND], FieldValueKind.ENUMERATION);
@@ -84,7 +87,7 @@ test('a number left at its default shows the default in an empty number input', 
   const input = controlOf(cardOf(shownView().element, PICK_UP), 'grasp_detection_threshold');
   assert.equal(input.tagName, 'INPUT');
   assert.equal(input.type, 'number');
-  assert.equal(input.disabled, true);
+  assert.equal(boxOf(input).inert, true);
   assert.equal(input.value, '');
   assert.equal(input.placeholder, DECLARED.grasp_detection_threshold[DeclaredFieldKey.DEFAULT]);
 });
@@ -92,7 +95,8 @@ test('a number left at its default shows the default in an empty number input', 
 test('a switch reads as a checkbox ticked as it was set', () => {
   const input = controlOf(cardOf(shownView().element, PICK_UP), 'tolerate_grasp_stall');
   assert.equal(input.type, 'checkbox');
-  assert.equal(input.disabled, true);
+  assert.equal(input.disabled, false);
+  assert.equal(boxOf(input).inert, true);
   assert.equal(input.checked, DECLARED.tolerate_grasp_stall[DeclaredFieldKey.DEFAULT] === BooleanText.YES);
 });
 
@@ -106,7 +110,7 @@ test('a grasp reads as a note, as the builder notes a derived grasp', () => {
 test('a field of an unknown kind reads in a text input', () => {
   const input = controlOf(cardOf(shownView().element, PICK_UP), 'lift_linear_velocity');
   assert.equal(input.type, 'text');
-  assert.equal(input.disabled, true);
+  assert.equal(boxOf(input).inert, true);
   assert.equal(input.placeholder, pickUpField('lift_linear_velocity').text());
 });
 
@@ -143,4 +147,25 @@ test('a card shows the constraints attached to its step with their monitors', ()
   assert.equal(byClass(chip, 'badge')[0].textContent, constraint[ConstraintObservationKey.MONITOR]);
   assert.equal(byClass(chip, 'observation')[0].dataset.observation, constraint[ConstraintObservationKey.OBSERVATION]);
   assert.deepEqual(byClass(cardOf(shownView().element, TORSO), 'chip'), []);
+});
+
+test('a pose reads in the position and heading inputs the builder edits it in', () => {
+  const card = cardOf(shownView().element, NAVIGATE);
+  const recorded = NAVIGATE[PlanNodeKey.POSES].target_location;
+  const pose = recorded[PoseValueKey.POSE];
+  const row = byClass(card, 'pose-row')[0];
+  assert.equal(row.dataset.field, 'target_location');
+  const inputs = row.findAll((child) => child.tagName === 'INPUT');
+  assert.deepEqual(inputs.map((input) => input.value), [...PlanPose.position(pose).map(PlanPose.rounded), PlanPose.degrees(PlanPose.yaw(pose))].map(String));
+  assert.ok(inputs.every((input) => input.type === 'number' && input.disabled === false));
+  assert.match(row.innerText, new RegExp(recorded[PoseValueKey.FRAME]));
+});
+
+test('a pose recorded only as text reads in a text input', () => {
+  const { [PlanNodeKey.POSES]: poses, ...older } = NAVIGATE;
+  const view = new RecordedPlanView(new FakeDocument(), () => {});
+  view.show([older]);
+  const input = controlOf(view.element, 'target_location');
+  assert.equal(input.type, 'text');
+  assert.equal(input.value, NAVIGATE[PlanNodeKey.PARAMETERS].target_location);
 });

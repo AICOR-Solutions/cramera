@@ -7,6 +7,7 @@
 
 import { BooleanText, ConstraintObservationKey, FieldValueKind, PlanNodeKey } from '../../../protocol.js';
 import { DomEvent, Elements } from './elements.js';
+import { PlanPose } from './poses.js';
 import { RecordedPlans, StepPhase } from './recorded-plan.js';
 import { STEP_PALETTE_SIZE, StepCard, StepCardClass } from './step-card.js';
 
@@ -35,6 +36,16 @@ const CHOSEN_KINDS = Object.freeze([FieldValueKind.ENUMERATION, FieldValueKind.E
  * The input types the replay shows a field's value in.
  */
 const InputType = Object.freeze({ NUMBER: 'number', CHECKBOX: 'checkbox', TEXT: 'text' });
+
+/**
+ * The labels of a pose's position and heading, as the builder's pose editor names them.
+ */
+const POSE_AXES = Object.freeze(['x', 'y', 'z']);
+
+/**
+ * The label of a pose's heading, in degrees.
+ */
+const HEADING_LABEL = 'yaw°';
 
 /**
  * How a running step is scrolled into sight: only as far as needed.
@@ -194,29 +205,53 @@ export class RecordedPlanView {
    */
   #fieldBox(fields) {
     const box = this.#shown.create('div', StepCardClass.PARAMETERS);
-    box.append(...fields.map((field) => this.#field(field)));
+    box.append(...fields.flatMap((field) => this.#field(field)));
+    box.inert = true;
     return box;
   }
 
   /**
    * @param {import('./recorded-plan.js').RecordedField} field A field of a step's action.
-   * @returns {HTMLElement} The field as the builder's form shows it, but not editable:
-   *   a member, an object or a class in a select, a number in a number input with its
-   *   default as placeholder, a switch as a checkbox, a grasp or another structured
-   *   value as a note, and anything else in a text input.
+   * @returns {Array<HTMLElement>} The field as the builder's form shows it: a member, an
+   *   object or a class in a select, a number in a number input with its default as
+   *   placeholder, a switch as a checkbox, a pose in its position and heading inputs, a
+   *   grasp or another structured value as a note, and anything else in a text input.
    */
   #field(field) {
     const elements = this.#shown;
     if (field.kind === FieldValueKind.STRUCTURE) {
       const note = elements.create('p', StepCardClass.DERIVED, `${field.label}: ${field.text()}`);
       note.dataset.field = field.name;
-      return note;
+      return [note];
     }
+    if (field.pose !== null) return [elements.create('span', StepCardClass.FIELD_NAME, field.label), this.#poseRow(field)];
     const control = this.#control(field);
-    control.disabled = true;
     control.dataset.field = field.name;
     if (field.isDefault()) control.classList.add(ViewClass.DEFAULT);
-    return elements.label(field.label, control);
+    return [elements.label(field.label, control)];
+  }
+
+  /**
+   * @param {import('./recorded-plan.js').RecordedField} field A field holding a pose.
+   * @returns {HTMLElement} The pose's position and heading in the builder's pose inputs,
+   *   and the frame it is given in.
+   */
+  #poseRow(field) {
+    const elements = this.#shown;
+    const row = elements.create('div', StepCardClass.POSE_ROW);
+    row.dataset.field = field.name;
+    const position = PlanPose.position(field.pose).map(PlanPose.rounded);
+    const values = [...POSE_AXES.map((axis, index) => [axis, position[index]]), [HEADING_LABEL, PlanPose.degrees(PlanPose.yaw(field.pose))]];
+    row.append(
+      ...values.map(([text, value]) => {
+        const input = elements.create('input');
+        input.type = InputType.NUMBER;
+        input.value = String(value);
+        return elements.label(text, input, StepCardClass.NUMBER_LABEL);
+      }),
+    );
+    if (field.frame !== null) row.append(elements.create('span', StepCardClass.POSE_FRAME, `in ${field.frame}`));
+    return row;
   }
 
   /**

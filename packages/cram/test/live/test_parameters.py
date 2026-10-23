@@ -15,12 +15,15 @@ from cramera_cram.live.parameters import (
     PARAMETER_PRECISION,
     BooleanText,
     FieldDeclarations,
+    FieldPoses,
     FieldTexts,
     FieldValue,
     ParameterText,
 )
 from coraplex.datastructures.enums import Arms
+from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
+from cramera_cram.geometry import NumericPose
 from semantic_digital_twin.spatial_types import Point3, Pose
 
 from cramera_protocol.bundle.scene import FieldValueKind
@@ -169,3 +172,20 @@ def test_a_declared_field_names_the_kind_of_its_value():
 def test_a_field_neither_given_nor_with_a_default_has_no_kind():
     [note] = FieldDeclarations(Hint()).declarations()
     assert note.kind is None
+
+
+# %% poses
+
+
+def test_a_pose_field_keeps_its_pose_and_its_frame(kitchen):
+    target = Pose.from_xyz_rpy(
+        1.2, 0.4, 0.0, 0.0, 0.0, math.pi / 2, reference_frame=kitchen.root
+    )
+    action = NavigateAction(target)
+    poses = FieldPoses(action).poses()
+    assert set(poses) == {
+        name for name, value in vars(action).items() if isinstance(value, Pose)
+    }
+    [given] = poses.values()
+    assert given.pose == NumericPose.of_matrix(target.to_np()).published()
+    assert given.frame == kitchen.root.name.name

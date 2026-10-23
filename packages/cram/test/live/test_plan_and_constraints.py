@@ -16,6 +16,7 @@ from cramera_cram.exceptions import (
     UnknownBody,
     UnknownPlanNode,
 )
+from cramera_cram.live.parameters import FieldPoses
 from cramera_cram.live.plan import PLAN_NODE_PREFIX
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
@@ -30,10 +31,11 @@ from cramera_protocol.live_messages import (
 from coraplex.datastructures.enums import Arms, TaskStatus
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from semantic_digital_twin.datastructures.definitions import TorsoState
+from semantic_digital_twin.spatial_types import Pose
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
 
-from ..dataset.live_worlds import HeightChart
+from ..dataset.live_worlds import HeightChart, NavigationPlan
 from .conftest import dataset_body, live_request
 
 # %% plan
@@ -85,6 +87,15 @@ def test_an_action_publishes_every_field_it_declares(publisher, small_plan):
         if declared.init
     ]
     assert (root.fields, motion.fields) == ([], [])
+
+
+def test_an_action_publishes_the_poses_it_was_given(publisher, kitchen):
+    navigation = NavigationPlan.build(
+        Pose.from_xyz_rpy(1.0, 0.5, reference_frame=kitchen.root)
+    )
+    publisher.begin_plan(navigation.plan)
+    published = publisher.current_plan().nodes[1]
+    assert published.poses == FieldPoses(navigation.action.designator).poses() != {}
 
 
 def test_a_node_is_found_by_its_identity(publisher, small_plan):

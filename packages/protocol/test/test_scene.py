@@ -14,6 +14,8 @@ from cramera_protocol.bundle.scene import (
     FieldValueKind,
     PartSide,
     PlanNodeKey,
+    PoseValue,
+    PoseValueKey,
     SceneDescription,
     SceneKey,
 )
@@ -137,6 +139,20 @@ def test_a_declared_field_names_the_kind_of_value_it_holds(read_json):
 
 def test_a_field_recorded_without_its_kind_has_none():
     assert DeclaredField.from_json({DeclaredFieldKey.NAME: "arm"}).kind is None
+
+
+def test_a_recorded_step_keeps_the_poses_its_action_was_given(read_json):
+    data = read_json("recorded_step_details_scene.json")
+    navigate = SceneDescription.from_json(data).plan_trees[0].children[1]
+    written = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN][1][PlanNodeKey.POSES]
+    assert navigate.poses == {
+        name: PoseValue.from_json(entry) for name, entry in written.items()
+    }
+    target = written["target_location"]
+    assert navigate.poses["target_location"].pose == Pose.from_json(
+        target[PoseValueKey.POSE]
+    )
+    assert navigate.poses["target_location"].frame == target[PoseValueKey.FRAME]
 
 
 def test_a_recorded_step_keeps_the_constraints_attached_to_it(read_json):

@@ -89,12 +89,15 @@ which this repository was mirrored until 22 Oct 2026.
   plain default), and a recording keeps the constraints attached to each node with
   what they observed last. Each declared field also names what its value is
   (`kind`: an enumeration member, a number, a switch, a text, a pose, a point, an
-  entity, a class, a list or a structure such as a grasp). A replayed step's card is
-  laid out like the builder's, with its controls read-only: the required fields with
-  their values, the others folded under "More options", a member, an object or a
-  class in a select, a number in a number input with its default as placeholder, a
-  switch as a checkbox, a grasp as a note, and the constraints as chips with their
-  monitors. A step's chip reads waiting, running, then the status it ended in, with
+  entity, a class, a list or a structure such as a grasp), and the poses an action
+  was given are kept as poses with their frames (`poses`). A replayed step's card
+  looks like the builder's, in the light and the dark theme, its controls read-only
+  but not greyed: the required fields with their values, the others folded under
+  "More options", a member, an object or a class in a select, a number in a number
+  input with its default as placeholder, a switch as a checkbox, a pose in the
+  builder's x, y, z and yaw inputs with its frame, a grasp as a note, and the
+  constraints as chips with their monitors. The builder page and the replay share
+  the step, field and pose styles in steps.css. A step's chip reads waiting, running, then the status it ended in, with
   succeeded and failed in their colours. Unfolding the options neither jumps to the
   step nor folds again while the playhead moves.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests

@@ -44,6 +44,26 @@
 .step-parameters .derived { margin: 0; font-size: 11px; color: var(--text-muted); font-style: italic; }
 .node-status { font: 11px var(--mono); border-radius: 999px; padding: 1px 7px; background: var(--surface-sunken); color: var(--text-muted); }
 
+/* %% fields */
+
+/* The builder page styles every control so; a step's fields look the same in the viewer. */
+.step-parameters select,
+.step-parameters input:not([type="checkbox"]) {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  min-width: 0;
+}
+.pose-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pose-row label.number { display: flex; flex-direction: column; gap: 1px; margin: 0; font-size: 11px; color: var(--text-muted); }
+.pose-row input[type="number"] { width: 72px; font-size: 12px; padding: 3px 6px; }
+.step-parameters select, .step-parameters input[type="text"] { font-size: 12px; }
+.step-parameters input[type="number"]:not(.pose-row input) { width: 90px; font-size: 12px; padding: 3px 6px; }
+.step-parameters .field-name { flex-basis: 100%; font-size: 11px; color: var(--text-muted); }
+
 /* %% options and constraints */
 
 details.more-options { margin-top: 6px; }
@@ -84,25 +104,8 @@ details.more-options summary { cursor: pointer; font-size: 12px; color: var(--te
   overflow-wrap: anywhere;
 }
 .recorded-plan .step-parameters output.default { color: var(--text-muted); }
-/* A recorded field's control looks like the builder's, read-only but not faded. */
-.recorded-plan .step-parameters select,
-.recorded-plan .step-parameters input:not([type="checkbox"]) {
-  font: inherit;
-  font-size: 12px;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px 6px;
-  min-width: 0;
-  opacity: 1;
-  cursor: default;
-}
-.recorded-plan .step-parameters input[type="number"] { width: 90px; }
-.recorded-plan .step-parameters input[type="text"] { width: 100%; }
-.recorded-plan .step-parameters label:has(input[type="text"]) { flex-basis: 100%; }
-.recorded-plan .step-parameters input[type="checkbox"] { opacity: 1; cursor: default; align-self: flex-start; }
-.recorded-plan .step-parameters input::placeholder { color: var(--text-muted); }
 .recorded-plan .step-parameters .default { color: var(--text-muted); }
 .recorded-plan .step-parameters .derived { flex-basis: 100%; }
+.recorded-plan .step-parameters[inert] { cursor: default; }
+.recorded-plan .pose-frame { align-self: flex-end; padding-bottom: 5px; font-size: 11px; color: var(--text-muted); }
 .recorded-plan .chip { padding-right: 10px; }

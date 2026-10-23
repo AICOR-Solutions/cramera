@@ -14,6 +14,7 @@ from coraplex.datastructures.dataclasses import Context
 from coraplex.plans.plan import Plan
 from coraplex.datastructures.enums import Arms
 from coraplex.plans.plan_node import ActionNode, MotionNode, PlanNode
+from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from coraplex.robot_plans.motions.container import OpeningMotion
 from giskardpy.executor import Executor
@@ -21,7 +22,7 @@ from giskardpy.motion_statechart.context import MotionStatechartContext
 from giskardpy.motion_statechart.monitors.feature_monitors import HeightMonitor
 from giskardpy.motion_statechart.motion_statechart import MotionStatechart
 from semantic_digital_twin.datastructures.definitions import TorsoState
-from semantic_digital_twin.spatial_types import Point3
+from semantic_digital_twin.spatial_types import Point3, Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -126,6 +127,36 @@ class Hint:
     """
     A remark, left out by default.
     """
+
+
+@dataclass
+class NavigationPlan:
+    """
+    A plan of a root and one action driving the robot to a target pose.
+    """
+
+    plan: Plan
+    """
+    The plan.
+    """
+
+    action: ActionNode
+    """
+    Its action.
+    """
+
+    @classmethod
+    def build(cls, target: Pose) -> NavigationPlan:
+        """
+        :param target: The pose the robot drives to.
+        :return: A new plan; no node has run.
+        """
+        plan = Plan()
+        root = PlanNode()
+        plan.add_node(root)
+        action = ActionNode(designator=NavigateAction(target))
+        root.add_child(action)
+        return cls(plan=plan, action=action)
 
 
 # %% statecharts

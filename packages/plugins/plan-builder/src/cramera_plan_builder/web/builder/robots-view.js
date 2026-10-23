@@ -6,6 +6,7 @@
 import { PlanBuilderCatalogKey, PlannedRobotKey, RobotModelKey } from '../../../protocol.js';
 import { Elements, PlanAction } from './elements.js';
 import { PlanPose } from './poses.js';
+import { StepCardClass } from './step-card.js';
 
 // %% view
 
@@ -77,7 +78,7 @@ export class RobotsView {
     const pose = robot[PlannedRobotKey.POSE];
     const [x, y] = PlanPose.position(pose);
     const place = (position, yaw) => this.#editor.edit(() => state.setRobotPose(identifier, PlanPose.of(...position, yaw)));
-    const row = elements.create('div', 'pose-row');
+    const row = elements.create('div', StepCardClass.POSE_ROW);
     row.append(
       elements.number('x', x, PlanAction.POSE, (value) => place([value, y, 0], PlanPose.yaw(pose))),
       elements.number('y', y, PlanAction.POSE, (value) => place([x, value, 0], PlanPose.yaw(pose))),

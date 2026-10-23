@@ -681,6 +681,39 @@ class DeclaredField(JsonDocument):
     """
 
 
+class PoseValueKey(StrEnum):
+    """
+    The keys of a pose an action was given.
+    """
+
+    POSE = "pose"
+    """
+    The pose in its frame.
+    """
+
+    FRAME = "frame"
+    """
+    The name of the frame the pose is given in.
+    """
+
+
+@dataclass(kw_only=True)
+class PoseValue(JsonDocument):
+    """
+    A pose an action was given, in the frame it was given in.
+    """
+
+    pose: Pose = document_field(PoseValueKey.POSE)
+    """
+    The position and orientation, in the frame.
+    """
+
+    frame: Optional[str] = document_field(PoseValueKey.FRAME, default=None)
+    """
+    The name of the frame the pose is given in, or None when it names none.
+    """
+
+
 class ConstraintObservationKey(StrEnum):
     """
     The keys of one constraint monitor attached to a plan node.
@@ -801,6 +834,11 @@ class PlanNodeKey(StrEnum):
     The constraint monitors attached to the node.
     """
 
+    POSES = "poses"
+    """
+    The poses the node's action was given.
+    """
+
 
 class PlanNodeKind(StrEnum):
     """
@@ -902,6 +940,14 @@ class PlanNode(JsonDocument):
     )
     """
     The constraint monitors attached to the node, with what each observed last.
+    """
+
+    poses: Dict[str, PoseValue] = document_field(
+        PlanNodeKey.POSES, default_factory=dict
+    )
+    """
+    The poses the node's action was given, by field name; a node without an action, or
+    one recorded before poses were, has none.
     """
 
     extensions: Dict[str, Any] = extension_field()

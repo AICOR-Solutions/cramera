@@ -6,6 +6,7 @@
 import { ObjectModelKey, PlanBuilderCatalogKey, PlannedObjectKey } from '../../../protocol.js';
 import { Elements, PlanAction } from './elements.js';
 import { PlanPose } from './poses.js';
+import { StepCardClass } from './step-card.js';
 
 // %% view
 
@@ -88,7 +89,7 @@ export class ObjectsView {
       elements.button(identifier, PlanAction.SELECT_OBJECT, () => this.#editor.select({ object: identifier })),
       elements.button('×', PlanAction.REMOVE_OBJECT, () => this.#editor.edit(() => state.removeObject(identifier))),
     );
-    const row = elements.create('div', 'pose-row');
+    const row = elements.create('div', StepCardClass.POSE_ROW);
     row.append(
       ...['x', 'y', 'z'].map((axis, index) =>
         elements.number(axis, position[index], PlanAction.POSE, (value) => {

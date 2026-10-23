@@ -36,9 +36,9 @@ from cramera_protocol.live_messages import (
 )
 from cramera.locations import DataLocations
 from coraplex.datastructures.enums import TaskStatus
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Pose
 
-from ..dataset.live_worlds import HeightChart
+from ..dataset.live_worlds import HeightChart, NavigationPlan
 from .test_plan_and_constraints import height_constraint
 
 FRAME_COUNT = 6
@@ -379,3 +379,17 @@ def test_a_recorded_node_keeps_the_constraints_attached_to_it(
     publisher.finish_recording()
     root = bundle_files(locations)[1].plan_trees[0]
     assert root.constraints == published.constraints != []
+
+
+def test_a_recorded_step_keeps_the_poses_its_action_was_given(
+    publisher, kitchen, locations
+):
+    navigation = NavigationPlan.build(
+        Pose.from_xyz_rpy(1.0, 0.5, reference_frame=kitchen.root)
+    )
+    publisher.begin_plan(navigation.plan)
+    carry_milk(kitchen, publisher)
+    published = publisher.current_plan().nodes[1]
+    publisher.finish_recording()
+    action = bundle_files(locations)[1].plan_trees[0].children[0]
+    assert action.poses == published.poses != {}
