@@ -15,7 +15,7 @@ from cramera.locations import DataLocations
 from cramera_cram.live.publisher import LivePublisher
 from cramera_cram.live.server import LiveServer
 from cramera_cram.visualization import PublishedModelChange, PublishedStateChange
-from cramera_questions.workspace_classes import WorkspaceClassIndex
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 
 from ..dataset.live_worlds import SmallPlan
 from ..dataset.worlds import TwoRobots

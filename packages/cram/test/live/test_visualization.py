@@ -28,7 +28,7 @@ from cramera_protocol.bundle.index import ReservedSceneName
 from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.live import LiveInfo, LiveRoute
 from cramera_protocol.live_messages import LivePlan
-from cramera_questions.workspace_classes import WorkspaceClassIndex
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 

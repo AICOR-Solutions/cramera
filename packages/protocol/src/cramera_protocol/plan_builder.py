@@ -2042,6 +2042,29 @@ class DemoDocument(JsonDocument):
     """
 
 
+class DemoOption(StrEnum):
+    """
+    The options of a generated demo's command line, which the plan builder starts it
+    with and cramera-cram's plan demo command reads.
+    """
+
+    STAGE = "--stage"
+    """
+    Only build the world and publish it until the process is stopped.
+    """
+
+    PORT = "--port"
+    """
+    The port the world is published on.
+    """
+
+    LIFELINE = "--lifeline"
+    """
+    End when standard input closes, which happens when the process that started the demo
+    ends.
+    """
+
+
 class DemoSourceKey(StrEnum):
     """
     The keys of a generated demo.

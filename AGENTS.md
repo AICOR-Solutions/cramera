@@ -23,18 +23,11 @@ through the protocol (`cramera_protocol`):
   as the protocol's own name, translated inside `cramera-cram` (as `PlanNodeStatus`
   translates coraplex's life cycle values), so a CRAM rename stays inside the package.
 
-Packages that do not follow this yet, to be moved into `cramera-cram`; add no new CRAM
-imports to them:
-
-- `packages/plugins/plan-builder`: `cramera_plan_builder/cram/` (action discovery, steps,
-  arms, world, surfaces, generated demos) and its tests in `test/cram/` and
-  `test/dataset/mimic_actions/`.
-- `packages/questions`: its use of `krrood` for the entity query language.
-
 Check a change with:
 
 ```bash
 grep -rnE --exclude-dir=build "^\s*(from|import) (coraplex|semantic_digital_twin|giskardpy|krrood|segmind|robokudo|physics_simulators|probabilistic_model|random_events)\b" packages --include=*.py | grep -v "^packages/cram/"
 ```
 
-which lists nothing but the packages named above.
+which lists nothing. `packages/cram/test/test_cram_boundary.py` runs the same check in
+the test suite and fails on any such import.

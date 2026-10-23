@@ -22,7 +22,7 @@ from cramera_cram.live.marker_topics import MarkerTopicConfiguration
 from cramera_cram.live.publisher import LivePublisher
 from cramera_cram.live.server import LIVE_HOST, LIVE_PORT, LiveServer
 from cramera_protocol.live_messages import RecordingState
-from cramera_questions.workspace_classes import WorkspaceClassIndex
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 from coraplex.plans.plan_callbacks import PlanCallback
 from coraplex.plans.plan_node import PlanNode
 from semantic_digital_twin.callbacks.callback import (

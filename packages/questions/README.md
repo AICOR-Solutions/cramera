@@ -1,10 +1,12 @@
 # cramera-questions
 
-Asks a CRAM world or a recorded cramera scene questions in the entity query language,
-and adds the `questions` plugin to the viewer. Needs krrood from the CRAM workspace. See
-the repository README and `docs/architecture.md`.
+Adds the `questions` plugin to the viewer: recorded cramera scenes are asked questions
+in the entity query language. The questions are answered by `cramera-cram`'s question
+engine (`cramera_cram.questions`), which needs krrood from the CRAM workspace; install it
+with the `cram` extra. The plugin imports nothing of either itself. See the repository
+README and `docs/architecture.md`.
 
-Without krrood the plugin still loads: its routes answer that krrood is missing, and
+Without them the plugin still loads: its routes answer what is missing, and
 its browser module shows the answers recorded in each bundle's `recorded_answers.json`,
-which `cramera-record-answers SCENES_DIRECTORY [--scene NAME]` writes in a CRAM
-workspace.
+which `cramera-record-answers SCENES_DIRECTORY [--scene NAME]` of `cramera-cram` writes
+in a CRAM workspace.

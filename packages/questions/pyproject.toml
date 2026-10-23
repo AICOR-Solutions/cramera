@@ -5,17 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cramera-questions"
 version = "1.0.0"
-description = "Ask a CRAM world or a recorded cramera scene questions in the entity query language."
+description = "A cramera viewer plugin asking recorded scenes questions in the entity query language, answered by cramera-cram."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Vanessa Hassouna" }]
-# krrood, which provides the entity query language, comes from the CRAM workspace and
-# is not installable from an index, so it is not listed here.
 dependencies = ["cramera==1.0.0", "cramera-protocol==1.0.0", "typing_extensions>=4.8"]
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
 
-[project.scripts]
-cramera-record-answers = "cramera_questions.answer_recording:main"
+[project.optional-dependencies]
+# Answering questions needs cramera-cram's question engine and krrood, which comes from
+# the CRAM workspace and is not installable from an index.
+cram = ["cramera-cram==1.0.0"]
 
 [project.entry-points."cramera.plugins"]
 questions = "cramera_questions.plugin:QuestionsPlugin"

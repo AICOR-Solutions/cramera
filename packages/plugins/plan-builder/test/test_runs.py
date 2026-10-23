@@ -12,11 +12,12 @@ from pathlib import Path
 import pytest
 from typing_extensions import Callable
 
-from cramera_plan_builder.demos import DemoDirectory, DemoOption, DemoTemplate
+from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import DemoNotStarted
 from cramera_plan_builder.runs import DemoRunner, OutputLog
 from cramera_protocol.plan_builder import (
     DemoDocument,
+    DemoOption,
     RunMode,
     RunState,
     RunStatus,

@@ -15,6 +15,8 @@ from cramera.http.messages import Header, HttpMethod, Request
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
+from cramera_cram.questions.presets import QueryVariable, RobotQuestion
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.live import Capability
 from cramera_protocol.questions import (
@@ -34,8 +36,6 @@ from cramera_protocol.questions import (
 from cramera_protocol.viewer import ViewerRoute
 from cramera_questions.plugin import SOURCE_VERSION, QuestionsPlugin
 from cramera_protocol.plugins import PluginName
-from cramera_questions.presets import QueryVariable, RobotQuestion
-from cramera_questions.workspace_classes import WorkspaceClassIndex
 from .dataset.files import SceneName
 
 LOCAL_HOST = {Header.HOST: "127.0.0.1:8711"}

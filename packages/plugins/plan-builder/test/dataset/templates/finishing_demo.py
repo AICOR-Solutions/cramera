@@ -5,7 +5,7 @@ pipe, as a generated demo does, and then ends on its own.
 
 import sys
 
-from cramera_plan_builder.lifeline import Lifeline
+from cramera.lifeline import Lifeline
 
 DEMO = r"""
 ${demo}

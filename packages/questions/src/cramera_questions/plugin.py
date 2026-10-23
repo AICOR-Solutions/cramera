@@ -1,10 +1,10 @@
 """
 The viewer plugin answering questions about recorded scenes.
 
-The plugin itself imports nothing of krrood, so a viewer without the CRAM workspace
-still loads it and serves its browser module; its routes are built from
-:mod:`cramera_questions.routes` only where krrood is installed, and otherwise answer
-that it is missing.
+The plugin itself imports nothing of krrood or cramera-cram, so a viewer without the
+CRAM workspace still loads it and serves its browser module; its routes are built from
+:mod:`cramera_questions.routes`, which hands the questions to cramera-cram's question
+engine, only where both are installed, and otherwise answer what is missing.
 """
 
 from __future__ import annotations
@@ -25,10 +25,10 @@ from cramera_protocol.live import Capability
 from cramera_protocol.plugins import PluginName
 from cramera_protocol.questions import QuestionsRoute
 from cramera_questions.exceptions import QueryLanguageMissing
-from cramera_questions.workspace_classes import WorkspaceClassIndex, WorkspacePackage
 
 if TYPE_CHECKING:
-    from cramera_questions.routes import SceneQuestionCache
+    from cramera_cram.questions.scenes import SceneQuestionCache
+    from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
@@ -60,7 +60,8 @@ of tests.
 
 class QuestionsModule(StrEnum):
     """
-    The plugin's modules that import krrood, imported only where it is installed.
+    The plugin's modules that import cramera-cram's question engine, imported only where
+    it and krrood are installed.
     """
 
     ROUTES = "cramera_questions.routes"
@@ -72,10 +73,27 @@ class QuestionsModule(StrEnum):
 # %% installation
 
 
+class QuestionsDependency(StrEnum):
+    """
+    The top-level modules answering questions needs.
+    """
+
+    KRROOD = "krrood"
+    """
+    Evaluates the entity query language.
+    """
+
+    CRAMERA_CRAM = "cramera_cram"
+    """
+    The question engine.
+    """
+
+
 @dataclass(frozen=True)
 class QueryLanguageInstallation:
     """
-    Whether krrood, which evaluates the entity query language, is installed.
+    Whether krrood, which evaluates the entity query language, and cramera-cram, whose
+    question engine uses it, are installed.
     """
 
     finder: ModuleFinder = field(default=importlib.util.find_spec)
@@ -83,20 +101,43 @@ class QueryLanguageInstallation:
     Finds a module without importing it.
     """
 
+    def missing(self) -> List[str]:
+        """
+        :return: The modules that cannot be found, in the order of
+            :class:`QuestionsDependency`; a directory that only shares a module's name
+            does not count as the module.
+        """
+        return [
+            dependency.value
+            for dependency in QuestionsDependency
+            if not self.has_code(dependency)
+        ]
+
     def is_installed(self) -> bool:
         """
-        :return: Whether a module with code of its own is found under krrood's name;
-            a directory that only shares the name does not count.
+        :return: Whether every module answering questions needs is found.
         """
-        specification = self.finder(WorkspacePackage.KRROOD.value)
+        return not self.missing()
+
+    def has_code(self, dependency: QuestionsDependency) -> bool:
+        """
+        :param dependency: A top-level module.
+        :return: Whether a module with code of its own is found under that name.
+        """
+        specification = self.finder(dependency.value)
         return specification is not None and specification.origin is not None
 
 
 @dataclass(frozen=True)
 class UnavailableQuestionRoutes:
     """
-    The plugin's routes in an environment without krrood: each answers that it is
-    missing.
+    The plugin's routes in an environment without krrood or cramera-cram: each answers
+    what is missing.
+    """
+
+    missing: List[str]
+    """
+    The modules that cannot be found.
     """
 
     def routes(self) -> List[PluginRoute]:
@@ -109,13 +150,12 @@ class UnavailableQuestionRoutes:
             for method in (HttpMethod.GET, HttpMethod.POST)
         ]
 
-    @staticmethod
-    def refuse(request: Request) -> Response:
+    def refuse(self, request: Request) -> Response:
         """
         :param request: Any request of the plugin.
         :raises QueryLanguageMissing: Always.
         """
-        raise QueryLanguageMissing(WorkspacePackage.KRROOD.value)
+        raise QueryLanguageMissing(self.missing)
 
 
 # %% plugin
@@ -127,18 +167,17 @@ class QuestionsPlugin(ViewerPlugin):
     Answers queries, plain-language questions and graph views about recorded scenes.
     """
 
-    class_index: WorkspaceClassIndex = field(
-        default_factory=WorkspaceClassIndex.of_installed_packages
-    )
+    class_index: Optional[WorkspaceClassIndex] = None
     """
-    The workspace classes a query may name.
+    The workspace classes a query may name; None reads those of the installed workspace
+    packages once the routes are built.
     """
 
     installation: QueryLanguageInstallation = field(
         default_factory=QueryLanguageInstallation
     )
     """
-    Finds out whether krrood is installed.
+    Finds out whether krrood and cramera-cram are installed.
     """
 
     caches: Dict[int, SceneQuestionCache] = field(default_factory=dict)
@@ -172,9 +211,10 @@ class QuestionsPlugin(ViewerPlugin):
         return BROWSER_MODULE
 
     def routes(self, context: PluginContext) -> List[PluginRoute]:
-        if not self.installation.is_installed():
-            return UnavailableQuestionRoutes().routes()
+        missing = self.installation.missing()
+        if missing:
+            return UnavailableQuestionRoutes(missing).routes()
         routes = importlib.import_module(QuestionsModule.ROUTES).QuestionRoutes
         answering = routes.of_catalog(context.catalog, self.class_index)
-        self.caches[id(context.catalog)] = answering.cache
+        self.caches[id(context.catalog)] = answering.questions.cache
         return answering.routes()
