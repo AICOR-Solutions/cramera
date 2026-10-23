@@ -319,7 +319,10 @@ from cramera_protocol.workshop import (
 from cramera_protocol.viewer import (
     BuildKey,
     ErrorKey,
+    NavigationGroup,
+    NavigationKey,
     PluginKey,
+    Serving,
     ViewerInfoKey,
     ViewerRoute,
 )
@@ -434,6 +437,9 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     BuildKey,
     ErrorKey,
     PluginKey,
+    NavigationKey,
+    NavigationGroup,
+    Serving,
     ViewerEvent,
     PageStateAttribute,
     PageState,

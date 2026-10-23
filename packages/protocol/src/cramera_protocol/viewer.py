@@ -124,6 +124,78 @@ class PluginKey(StrEnum):
     What the plugin adds.
     """
 
+    NAVIGATION = "navigation"
+    """
+    The plugin's entry in the viewer's navigation.
+    """
+
+
+class NavigationGroup(StrEnum):
+    """
+    The groups of the viewer's navigation, in the order the header shows them; within a
+    group, entries are ordered by title.
+    """
+
+    ANALYSIS = "analysis"
+    """
+    Pages that ask questions of data, such as a probabilistic model.
+    """
+
+    BUILDER = "builder"
+    """
+    Pages that compose plans and scenes.
+    """
+
+    LABORATORY = "laboratory"
+    """
+    Simulated workplaces a person operates.
+    """
+
+
+class NavigationKey(StrEnum):
+    """
+    The keys of a plugin's navigation entry.
+    """
+
+    TITLE = "title"
+    """
+    The entry's text.
+    """
+
+    GROUP = "group"
+    """
+    The :class:`NavigationGroup` the entry belongs to.
+    """
+
+    PAGE = "page"
+    """
+    The route of the plugin's own page below :attr:`ViewerRoute.PLUGIN_FILES`.
+    """
+
+
+@dataclass(kw_only=True)
+class PluginNavigation(JsonDocument):
+    """
+    A plugin's entry in the viewer's navigation: either a page of its own or its panel
+    on the scene page, whose identity is the plugin's name.
+    """
+
+    title: str = document_field(NavigationKey.TITLE)
+    """
+    The entry's text.
+    """
+
+    group: NavigationGroup = document_field(NavigationKey.GROUP)
+    """
+    The group the entry is shown in.
+    """
+
+    page: Optional[str] = document_field(NavigationKey.PAGE, default=None)
+    """
+    The URL of the plugin's own page relative to the viewer's root, or None for an entry
+    that shows the plugin's panel on the scene page.
+    """
+
 
 @dataclass(kw_only=True)
 class PluginInfo(JsonDocument):
@@ -151,6 +223,13 @@ class PluginInfo(JsonDocument):
     )
     """
     What the plugin adds.
+    """
+
+    navigation: Optional[PluginNavigation] = document_field(
+        PluginKey.NAVIGATION, default=None
+    )
+    """
+    The plugin's entry in the viewer's navigation, or None for a plugin without one.
     """
 
 
@@ -222,6 +301,27 @@ class ViewerInfoKey(StrEnum):
     The build stamp of a published build.
     """
 
+    SERVING = "serving"
+    """
+    How the viewer is served, a :class:`Serving` value.
+    """
+
+
+class Serving(StrEnum):
+    """
+    How the viewer's files reach the browser.
+    """
+
+    SERVER = "server"
+    """
+    The viewer's server answers every route, the plugins' included.
+    """
+
+    STATIC = "static"
+    """
+    A static site: the viewer's JSON routes are files and plugin routes are absent.
+    """
+
 
 @dataclass(kw_only=True)
 class ViewerInfo(JsonDocument):
@@ -252,4 +352,9 @@ class ViewerInfo(JsonDocument):
     """
     The build stamp of a published build, or None for a viewer served from an
     installation.
+    """
+
+    serving: Serving = document_field(ViewerInfoKey.SERVING, default=Serving.SERVER)
+    """
+    How the viewer is served.
     """
