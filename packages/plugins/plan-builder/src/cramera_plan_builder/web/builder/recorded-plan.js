@@ -44,6 +44,12 @@ const DEFAULT_TEXT = 'default';
 
 export class RecordedField {
   /**
+   * The field's name.
+   * @type {string}
+   */
+  name;
+
+  /**
    * The field's name in words.
    * @type {string}
    */
@@ -68,16 +74,26 @@ export class RecordedField {
   default;
 
   /**
-   * @param {string} label The field's name in words.
+   * What the field's value is, a `FieldValueKind`, or null when the recording does not
+   * say.
+   * @type {string|null}
+   */
+  kind;
+
+  /**
+   * @param {string} name The field's name.
    * @param {boolean} required Whether the action has no default for the field.
    * @param {string|null} value The text of the value the action was given, or null.
    * @param {string|null} defaultValue The text of the field's default, or null.
+   * @param {string|null} kind What the field's value is, or null.
    */
-  constructor(label, required, value, defaultValue) {
-    this.label = label;
+  constructor(name, required, value, defaultValue, kind) {
+    this.name = name;
+    this.label = RecordedStep.fieldWords(name);
     this.required = required;
     this.value = value;
     this.default = defaultValue;
+    this.kind = kind;
   }
 
   /**
@@ -212,7 +228,7 @@ export class RecordedStep {
     const given = this.node[PlanNodeKey.PARAMETERS] ?? {};
     return (this.node[PlanNodeKey.FIELDS] ?? []).map((field) => {
       const name = field[DeclaredFieldKey.NAME];
-      return new RecordedField(RecordedStep.fieldWords(name), Boolean(field[DeclaredFieldKey.REQUIRED]), given[name] ?? null, field[DeclaredFieldKey.DEFAULT] ?? null);
+      return new RecordedField(name, Boolean(field[DeclaredFieldKey.REQUIRED]), given[name] ?? null, field[DeclaredFieldKey.DEFAULT] ?? null, field[DeclaredFieldKey.KIND] ?? null);
     });
   }
 

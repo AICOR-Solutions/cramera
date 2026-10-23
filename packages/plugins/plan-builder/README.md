@@ -59,9 +59,12 @@ cramera
   front and lists the plan's steps as the builder's cards (`web/steps.css`, shared
   with the builder page): a plan's steps are its outermost actions, one list per
   recorded plan, titled with the robot that performed it. Each card is laid out like
-  the builder's: the required fields of its action with the values they were given,
-  the others folded under "More options" (a field left at its default reads as
-  "default"), and the constraints attached to the step. The step whose recorded
+  the builder's, read-only: the required fields of its action with the values they
+  were given, the others folded under "More options", each in the control its kind
+  of value takes in the builder (a select, a number input, a checkbox, a note for a
+  grasp), a field left at its default showing "default", and the constraints
+  attached to the step. A card's chip reads waiting, running, then the status the
+  step ended in. The step whose recorded
   frames hold the playhead is marked running and scrolled into sight; a click on a
   step asks the viewer for its first frame.
 - **Runs.** The builder starts one demo at a time as a child process of the viewer, in

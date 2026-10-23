@@ -21,16 +21,45 @@
           "status": "SUCCEEDED",
           "arm": "LEFT",
           "target": "milk",
-          "parameters": {"object_designator": "milk", "arm": "LEFT"},
+          "parameters": {
+            "object_designator": "milk",
+            "arm": "LEFT"
+          },
           "fields": [
-            {"name": "object_designator", "required": true},
-            {"name": "arm", "required": true},
-            {"name": "grasp_description", "required": false},
-            {"name": "grasp_detection_threshold", "required": false, "default": "0.9"},
-            {"name": "tolerate_grasp_stall", "required": false, "default": "no"}
+            {
+              "name": "object_designator",
+              "required": true,
+              "kind": "entity"
+            },
+            {
+              "name": "arm",
+              "required": true,
+              "kind": "enumeration"
+            },
+            {
+              "name": "grasp_description",
+              "required": false,
+              "kind": "structure"
+            },
+            {
+              "name": "grasp_detection_threshold",
+              "required": false,
+              "default": "0.9",
+              "kind": "number"
+            },
+            {
+              "name": "tolerate_grasp_stall",
+              "required": false,
+              "default": "no",
+              "kind": "boolean"
+            }
           ],
           "constraints": [
-            {"text": "keep the milk upright", "monitor": "VectorsAligned", "observation": "TRUE"}
+            {
+              "text": "keep the milk upright",
+              "monitor": "VectorsAligned",
+              "observation": "TRUE"
+            }
           ],
           "start": 0,
           "end": 40

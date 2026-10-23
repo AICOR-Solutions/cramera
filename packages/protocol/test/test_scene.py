@@ -9,7 +9,9 @@ import pytest
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     PartRole,
+    DeclaredField,
     DeclaredFieldKey,
+    FieldValueKind,
     PartSide,
     PlanNodeKey,
     SceneDescription,
@@ -122,6 +124,19 @@ def test_a_recorded_step_declares_every_field_of_its_action(read_json):
         for entry in written
     ]
     assert step.extensions == {}
+
+
+def test_a_declared_field_names_the_kind_of_value_it_holds(read_json):
+    data = read_json("recorded_step_details_scene.json")
+    step = SceneDescription.from_json(data).plan_trees[0].children[0]
+    written = data[SceneKey.PLAN_TREES][0][PlanNodeKey.CHILDREN][0][PlanNodeKey.FIELDS]
+    assert [field.kind for field in step.fields] == [
+        FieldValueKind(entry[DeclaredFieldKey.KIND]) for entry in written
+    ]
+
+
+def test_a_field_recorded_without_its_kind_has_none():
+    assert DeclaredField.from_json({DeclaredFieldKey.NAME: "arm"}).kind is None
 
 
 def test_a_recorded_step_keeps_the_constraints_attached_to_it(read_json):

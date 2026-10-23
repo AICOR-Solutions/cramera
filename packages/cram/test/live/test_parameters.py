@@ -16,13 +16,16 @@ from cramera_cram.live.parameters import (
     BooleanText,
     FieldDeclarations,
     FieldTexts,
+    FieldValue,
     ParameterText,
 )
 from coraplex.datastructures.enums import Arms
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from semantic_digital_twin.spatial_types import Point3, Pose
 
-from ..dataset.live_worlds import Approach, Side
+from cramera_protocol.bundle.scene import FieldValueKind
+
+from ..dataset.live_worlds import Approach, Hint, Side
 
 # %% values
 
@@ -121,3 +124,48 @@ def test_a_declared_field_names_its_plain_default():
     assert side.default is None
     assert offset.default == ParameterText().text(defaults[offset.name])
     assert rotated.default == BooleanText.NO
+
+
+# %% kinds of values
+
+
+@pytest.mark.parametrize(
+    "value, kind",
+    [
+        (True, FieldValueKind.BOOLEAN),
+        (Arms.LEFT, FieldValueKind.ENUMERATION),
+        (3, FieldValueKind.NUMBER),
+        (0.25, FieldValueKind.NUMBER),
+        ("shelf", FieldValueKind.TEXT),
+        (MoveTorsoAction, FieldValueKind.CLASS),
+        ([Arms.LEFT, Arms.RIGHT], FieldValueKind.LIST),
+        (Approach(Side.TOP), FieldValueKind.STRUCTURE),
+        (object(), FieldValueKind.OTHER),
+    ],
+)
+def test_a_value_is_named_by_its_kind(value, kind):
+    assert FieldValue(value).kind() == kind
+
+
+def test_poses_points_and_bodies_are_named_by_their_kind(kitchen):
+    assert [
+        FieldValue(Pose.from_xyz_rpy(reference_frame=kitchen.root)).kind(),
+        FieldValue(Point3(0.0, 0.0, 0.0, reference_frame=kitchen.root)).kind(),
+        FieldValue(kitchen.milk).kind(),
+    ] == [FieldValueKind.POSE, FieldValueKind.POINT, FieldValueKind.ENTITY]
+
+
+def test_a_declared_field_names_the_kind_of_its_value():
+    side, offset, rotated = FieldDeclarations(
+        Approach(Side.TOP, offset=0.2)
+    ).declarations()
+    assert (side.kind, offset.kind, rotated.kind) == (
+        FieldValueKind.ENUMERATION,
+        FieldValueKind.NUMBER,
+        FieldValueKind.BOOLEAN,
+    )
+
+
+def test_a_field_neither_given_nor_with_a_default_has_no_kind():
+    [note] = FieldDeclarations(Hint()).declarations()
+    assert note.kind is None

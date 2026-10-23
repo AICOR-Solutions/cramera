@@ -7,11 +7,11 @@ from __future__ import annotations
 import dataclasses
 import math
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import Enum
 
 from typing_extensions import Any, Dict, List, Optional, Tuple
 
-from cramera_protocol.bundle.scene import DeclaredField
+from cramera_protocol.bundle.scene import BooleanText, DeclaredField, FieldValueKind
 from semantic_digital_twin.spatial_types import Point3, Pose
 from semantic_digital_twin.world_description.world_entity import (
     KinematicStructureEntity,
@@ -61,21 +61,47 @@ The default values a field's value is compared with; a default of another type n
 counts as left unchanged.
 """
 
+# %% kinds
 
-class BooleanText(StrEnum):
-    """
-    How a switch reads.
-    """
 
-    YES = "yes"
+@dataclass(frozen=True)
+class FieldValue:
     """
-    A switch that is on.
+    A value an action's field holds, named by its kind.
     """
 
-    NO = "no"
+    value: Any
     """
-    A switch that is off.
+    The value; never None.
     """
+
+    def kind(self) -> FieldValueKind:
+        """
+        :return: What the value is; an enumeration member is named an enumeration before
+            a number, since some enumerations are numbers too.
+        """
+        value = self.value
+        if isinstance(value, bool):
+            return FieldValueKind.BOOLEAN
+        if isinstance(value, Enum):
+            return FieldValueKind.ENUMERATION
+        if isinstance(value, (int, float)):
+            return FieldValueKind.NUMBER
+        if isinstance(value, str):
+            return FieldValueKind.TEXT
+        if isinstance(value, Pose):
+            return FieldValueKind.POSE
+        if isinstance(value, Point3):
+            return FieldValueKind.POINT
+        if isinstance(value, (KinematicStructureEntity, SemanticAnnotation)):
+            return FieldValueKind.ENTITY
+        if isinstance(value, type):
+            return FieldValueKind.CLASS
+        if isinstance(value, (list, tuple)):
+            return FieldValueKind.LIST
+        if dataclasses.is_dataclass(value):
+            return FieldValueKind.STRUCTURE
+        return FieldValueKind.OTHER
 
 
 # %% values
@@ -192,26 +218,27 @@ class ParameterText:
             by its name, a list by its items, a dataclass value by the fields it was
             given, and any other value by its class.
         """
-        if isinstance(value, bool):
+        kind = FieldValue(value).kind()
+        if kind is FieldValueKind.BOOLEAN:
             return BooleanText.YES if value else BooleanText.NO
-        if isinstance(value, Enum):
+        if kind is FieldValueKind.ENUMERATION:
             return value.name
-        if isinstance(value, float):
-            return NumberText(value).text()
-        if isinstance(value, (int, str)):
-            return str(value)
-        if isinstance(value, Pose):
+        if kind is FieldValueKind.NUMBER:
+            return NumberText(value).text() if isinstance(value, float) else str(value)
+        if kind is FieldValueKind.TEXT:
+            return value
+        if kind is FieldValueKind.POSE:
             return PositionText.of_pose(value).text()
-        if isinstance(value, Point3):
+        if kind is FieldValueKind.POINT:
             return PositionText.of_point(value).text()
-        if isinstance(value, (KinematicStructureEntity, SemanticAnnotation)):
+        if kind is FieldValueKind.ENTITY:
             return value.name.name
-        if isinstance(value, type):
+        if kind is FieldValueKind.CLASS:
             return value.__name__
-        if isinstance(value, (list, tuple)):
+        if kind is FieldValueKind.LIST:
             texts = (self.text(item) for item in value)
             return LIST_SEPARATOR.join(text for text in texts if text is not None)
-        if dataclasses.is_dataclass(value) and self.nesting < MAXIMUM_NESTING:
+        if kind is FieldValueKind.STRUCTURE and self.nesting < MAXIMUM_NESTING:
             texts = FieldTexts(value, self.nesting + 1).texts()
             return LIST_SEPARATOR.join(
                 f"{name.replace(NAME_SEPARATOR, ' ')} {text}"
@@ -283,10 +310,11 @@ class FieldDeclarations:
 
     def declarations(self) -> List[DeclaredField]:
         """
-        :return: Every init field in the order the dataclass declares them; a field
-            without a default or default factory must be given, and only a plain
-            default is named.
+        :return: Every init field in the order the dataclass declares them, with what
+            its value is; a field without a default or default factory must be given,
+            and only a plain default is named.
         """
+        values = vars(self.value)
         return [
             DeclaredField(
                 name=declared.name,
@@ -297,7 +325,22 @@ class FieldDeclarations:
                     if isinstance(declared.default, PLAIN_DEFAULTS)
                     else None
                 ),
+                kind=self.kind(declared, values[declared.name]),
             )
             for declared in dataclasses.fields(self.value)
             if declared.init
         ]
+
+    @staticmethod
+    def kind(declared: dataclasses.Field, value: Any) -> Optional[FieldValueKind]:
+        """
+        :param declared: A field of the dataclass.
+        :param value: Its value.
+        :return: What the value is, else what the field's plain default is; None when
+            the field is not set and has no plain default.
+        """
+        if value is not None:
+            return FieldValue(value).kind()
+        if isinstance(declared.default, PLAIN_DEFAULTS):
+            return FieldValue(declared.default).kind()
+        return None

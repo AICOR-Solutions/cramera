@@ -55,7 +55,7 @@ const ViewClass = Object.freeze({
   PARAMETERS: StepCardClass.PARAMETERS,
   MORE: StepCardClass.MORE,
   PROBLEM: 'step-problem',
-  DERIVED: 'derived',
+  DERIVED: StepCardClass.DERIVED,
   CHIPS: StepCardClass.CHIPS,
   CHIP: StepCardClass.CHIP,
   DROP: 'drop-hint',

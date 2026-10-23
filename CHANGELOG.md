@@ -83,11 +83,16 @@ which this repository was mirrored until 22 Oct 2026.
 - **Every detail of a replayed step.** The live plan and a recording also name every
   field each action declares (`fields`: its name, whether it must be given, and a
   plain default), and a recording keeps the constraints attached to each node with
-  what they observed last. A replayed step's card is laid out like the builder's: the
-  required fields with their values, the others folded under "More options", a field
-  the action left at its default read as "default" with the default where it is
-  known, and the constraints as chips with their monitors. Unfolding the options
-  neither jumps to the step nor folds again while the playhead moves.
+  what they observed last. Each declared field also names what its value is
+  (`kind`: an enumeration member, a number, a switch, a text, a pose, a point, an
+  entity, a class, a list or a structure such as a grasp). A replayed step's card is
+  laid out like the builder's, with its controls read-only: the required fields with
+  their values, the others folded under "More options", a member, an object or a
+  class in a select, a number in a number input with its default as placeholder, a
+  switch as a checkbox, a grasp as a note, and the constraints as chips with their
+  monitors. A step's chip reads waiting, running, then the status it ended in, with
+  succeeded and failed in their colours. Unfolding the options neither jumps to the
+  step nor folds again while the playhead moves.
 - **One browser test kit for plugins.** `cramera.testing` runs a plugin's Node tests
   against the viewer's modules as the viewer serves them, with a shared fake DOM.
 - **Tools.** `cramera-shot` (screenshots once the page is ready),

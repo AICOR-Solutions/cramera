@@ -5,7 +5,7 @@
  * sight, and a click on a step jumps to its first frame.
  */
 
-import { ConstraintObservationKey, PlanNodeKey } from '../../../protocol.js';
+import { BooleanText, ConstraintObservationKey, FieldValueKind, PlanNodeKey } from '../../../protocol.js';
 import { DomEvent, Elements } from './elements.js';
 import { RecordedPlans, StepPhase } from './recorded-plan.js';
 import { STEP_PALETTE_SIZE, StepCard, StepCardClass } from './step-card.js';
@@ -25,6 +25,16 @@ const ViewClass = Object.freeze({
  * The text that unfolds the fields an action may be left without, as in the builder.
  */
 const MORE_OPTIONS = 'More options';
+
+/**
+ * The kinds of value shown in a select, as the builder asks for a member or an object.
+ */
+const CHOSEN_KINDS = Object.freeze([FieldValueKind.ENUMERATION, FieldValueKind.ENTITY, FieldValueKind.CLASS]);
+
+/**
+ * The input types the replay shows a field's value in.
+ */
+const InputType = Object.freeze({ NUMBER: 'number', CHECKBOX: 'checkbox', TEXT: 'text' });
 
 /**
  * How a running step is scrolled into sight: only as far as needed.
@@ -183,10 +193,54 @@ export class RecordedPlanView {
    *   the action kept it.
    */
   #fieldBox(fields) {
-    const elements = this.#shown;
-    const box = elements.create('div', StepCardClass.PARAMETERS);
-    box.append(...fields.map((field) => elements.label(field.label, elements.create('output', field.isDefault() ? ViewClass.DEFAULT : '', field.text()))));
+    const box = this.#shown.create('div', StepCardClass.PARAMETERS);
+    box.append(...fields.map((field) => this.#field(field)));
     return box;
+  }
+
+  /**
+   * @param {import('./recorded-plan.js').RecordedField} field A field of a step's action.
+   * @returns {HTMLElement} The field as the builder's form shows it, but not editable:
+   *   a member, an object or a class in a select, a number in a number input with its
+   *   default as placeholder, a switch as a checkbox, a grasp or another structured
+   *   value as a note, and anything else in a text input.
+   */
+  #field(field) {
+    const elements = this.#shown;
+    if (field.kind === FieldValueKind.STRUCTURE) {
+      const note = elements.create('p', StepCardClass.DERIVED, `${field.label}: ${field.text()}`);
+      note.dataset.field = field.name;
+      return note;
+    }
+    const control = this.#control(field);
+    control.disabled = true;
+    control.dataset.field = field.name;
+    if (field.isDefault()) control.classList.add(ViewClass.DEFAULT);
+    return elements.label(field.label, control);
+  }
+
+  /**
+   * @param {import('./recorded-plan.js').RecordedField} field A field that is not a
+   *   structured value.
+   * @returns {HTMLElement} The control showing the field's value or default.
+   */
+  #control(field) {
+    const elements = this.#shown;
+    if (CHOSEN_KINDS.includes(field.kind)) {
+      const select = elements.create('select');
+      select.append(elements.create('option', '', field.text()));
+      return select;
+    }
+    const input = elements.create('input');
+    if (field.kind === FieldValueKind.BOOLEAN) {
+      input.type = InputType.CHECKBOX;
+      input.checked = (field.value ?? field.default) === BooleanText.YES;
+      return input;
+    }
+    input.type = field.kind === FieldValueKind.NUMBER ? InputType.NUMBER : InputType.TEXT;
+    input.value = field.value ?? '';
+    input.placeholder = field.default ?? field.text();
+    return input;
   }
 
   /**

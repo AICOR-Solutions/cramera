@@ -547,6 +547,84 @@ class Segment(JsonDocument):
     """
 
 
+class FieldValueKind(StrEnum):
+    """
+    What the value of an action's field is, which decides how a replayed step shows the
+    field.
+    """
+
+    ENUMERATION = "enumeration"
+    """
+    A member of an enumeration, named by the member's name.
+    """
+
+    NUMBER = "number"
+    """
+    A number.
+    """
+
+    BOOLEAN = "boolean"
+    """
+    A switch, read as a :class:`BooleanText`.
+    """
+
+    TEXT = "text"
+    """
+    A text.
+    """
+
+    POSE = "pose"
+    """
+    A pose, read as its position, heading and frame.
+    """
+
+    POINT = "point"
+    """
+    A point, read as its position and frame.
+    """
+
+    ENTITY = "entity"
+    """
+    A body or another entity of the world, named by its name.
+    """
+
+    CLASS = "class"
+    """
+    A class, named by its name.
+    """
+
+    LIST = "list"
+    """
+    A list, read as its items.
+    """
+
+    STRUCTURE = "structure"
+    """
+    A dataclass value such as a grasp, read as the fields it was given.
+    """
+
+    OTHER = "other"
+    """
+    A value of a kind no other member names, read as its class's name.
+    """
+
+
+class BooleanText(StrEnum):
+    """
+    How a switch reads in a recorded field.
+    """
+
+    YES = "yes"
+    """
+    A switch that is on.
+    """
+
+    NO = "no"
+    """
+    A switch that is off.
+    """
+
+
 class DeclaredFieldKey(StrEnum):
     """
     The keys of one field an action declares.
@@ -565,6 +643,11 @@ class DeclaredFieldKey(StrEnum):
     DEFAULT = "default"
     """
     The field's default value.
+    """
+
+    KIND = "kind"
+    """
+    What the field's value is.
     """
 
 
@@ -589,6 +672,12 @@ class DeclaredField(JsonDocument):
     """
     The text of the field's default value, or None when it has none or one that is not a
     plain value.
+    """
+
+    kind: Optional[FieldValueKind] = document_field(DeclaredFieldKey.KIND, default=None)
+    """
+    What the value the action holds in the field is, else what its default is; None when
+    neither is set, or for a field recorded before kinds were.
     """
 
 

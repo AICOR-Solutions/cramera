@@ -115,6 +115,19 @@ class Approach:
     """
 
 
+@dataclass
+class Hint:
+    """
+    A dataclass value with a field that is neither given nor has a default value to
+    show, like an optional grasp.
+    """
+
+    note: Optional[str] = None
+    """
+    A remark, left out by default.
+    """
+
+
 # %% statecharts
 
 

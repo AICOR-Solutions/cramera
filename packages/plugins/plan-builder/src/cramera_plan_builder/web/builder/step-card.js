@@ -24,6 +24,7 @@ export const StepCardClass = Object.freeze({
   CHIP: 'chip',
   BADGE: 'badge',
   OBSERVATION: 'observation',
+  DERIVED: 'derived',
 });
 
 // %% card

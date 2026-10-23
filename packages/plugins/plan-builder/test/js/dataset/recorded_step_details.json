@@ -15,8 +15,16 @@
           "kind": "ActionNode",
           "label": "MoveTorsoAction",
           "status": "SUCCEEDED",
-          "parameters": {"torso_state": "HIGH"},
-          "fields": [{"name": "torso_state", "required": true}],
+          "parameters": {
+            "torso_state": "HIGH"
+          },
+          "fields": [
+            {
+              "name": "torso_state",
+              "required": true,
+              "kind": "enumeration"
+            }
+          ],
           "start": 0,
           "end": 19
         },
@@ -34,14 +42,44 @@
             "grasp_description": "approach direction FRONT, vertical alignment NoAlignment"
           },
           "fields": [
-            {"name": "object_designator", "required": true},
-            {"name": "arm", "required": true},
-            {"name": "grasp_description", "required": false},
-            {"name": "grasp_detection_threshold", "required": false, "default": "0.9"},
-            {"name": "lift_linear_velocity", "required": false}
+            {
+              "name": "object_designator",
+              "required": true,
+              "kind": "entity"
+            },
+            {
+              "name": "arm",
+              "required": true,
+              "kind": "enumeration"
+            },
+            {
+              "name": "grasp_description",
+              "required": false,
+              "kind": "structure"
+            },
+            {
+              "name": "grasp_detection_threshold",
+              "required": false,
+              "default": "0.9",
+              "kind": "number"
+            },
+            {
+              "name": "tolerate_grasp_stall",
+              "required": false,
+              "default": "no",
+              "kind": "boolean"
+            },
+            {
+              "name": "lift_linear_velocity",
+              "required": false
+            }
           ],
           "constraints": [
-            {"text": "Keep the milk upright", "monitor": "VectorsAligned", "observation": "TRUE"}
+            {
+              "text": "Keep the milk upright",
+              "monitor": "VectorsAligned",
+              "observation": "TRUE"
+            }
           ],
           "start": 20,
           "end": 59
