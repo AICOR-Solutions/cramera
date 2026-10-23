@@ -87,8 +87,9 @@ outside the class: dataclasses with a `from_json` classmethod.
 
 `https://sunava.github.io/cramera/` is rebuilt on every push to `main`. It serves the
 viewer with the demo scenes under `demo/scenes` and the questions plugin's browser
-module, a status page with the version, commit and build time, and a screenshot of
-the viewer taken in that build. The site has no Python and no krrood, so the
+module, a status page with the version, commit and build time, a screenshot of the
+viewer taken in that build, and the ontology page, which embeds cram_owlviz
+(`https://sorynaryon.github.io/cram_owlviz/`). The site has no Python and no krrood, so the
 questions plugin shows the answers and graph views each demo bundle carries in
 `recorded_answers.json`, written by `cramera-record-answers` in a CRAM workspace.
 
