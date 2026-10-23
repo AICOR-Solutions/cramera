@@ -34,8 +34,3 @@ class PluginName(StrEnum):
     """
     Runs the woodworking workshop's contact simulation.
     """
-
-    CABLE_LAB = "cable-lab"
-    """
-    Simulates a composite cable and a friction gripper.
-    """
