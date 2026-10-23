@@ -97,6 +97,11 @@ Earlier names of this repository's distributions; an environment that still hold
 registers coraplex's ``cramera`` visualization twice, and coraplex then loads neither.
 """
 
+SUBMODULES_FILE = ".gitmodules"
+"""
+The file naming this repository's submodules, such as its object libraries.
+"""
+
 PYPROJECT = "pyproject.toml"
 """
 The file naming a package and, for the CRAM workspace, its members.
@@ -346,11 +351,16 @@ class StackInstallation:
 
     def install(self) -> None:
         """
-        Clone the CRAM workspace if needed, create the environment if needed, install
-        everything and check that it imports.
+        Clone the CRAM workspace and fetch this repository's object libraries if needed,
+        create the environment if needed, install everything and check that it imports.
         """
         if self.cram is not None and not self.cram.directory.is_dir():
             self.run(self.cram.clone_command())
+        if self.cram is not None and (REPOSITORY_ROOT / SUBMODULES_FILE).is_file():
+            # the object libraries under resources/ the plan builder offers
+            self.run(
+                ["git", "-C", str(REPOSITORY_ROOT), "submodule", "update", "--init"]
+            )
         if not self.python().exists():
             # ROS's Python packages, such as rclpy, live in the system's site packages
             self.run(

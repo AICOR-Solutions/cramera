@@ -40,6 +40,7 @@ jobs:
               --cov=cramera_bridge.live.marker_topics
               --cov=cramera_bridge.live.recording
               --cov=cramera_bridge.live.segments
+              --cov=cramera_bridge.plans.objects
               --cov=cramera_bridge.questions.matching
               --cov=cramera_bridge.questions.presets
               --cov=cramera_bridge.questions.recorded.bundle

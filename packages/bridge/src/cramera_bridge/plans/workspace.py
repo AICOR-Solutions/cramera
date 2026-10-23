@@ -23,6 +23,7 @@ import semantic_digital_twin.robots
 import semantic_digital_twin.semantic_annotations.semantic_annotations  # noqa: F401
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.arms import Arms
+from cramera_bridge.plans.objects import ObjectLibraries
 from cramera_bridge.exceptions import UnknownWorkspaceClass
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
@@ -250,6 +251,12 @@ class PlanWorkspace:
     The directory of the object meshes.
     """
 
+    libraries: ObjectLibraries = field(default_factory=ObjectLibraries.of_environment)
+    """
+    The object libraries offered besides the meshes, read once when the workspace is
+    read.
+    """
+
     discovered_actions: DiscoveredActions = field(
         default_factory=lambda: ActionDiscovery().discover()
     )
@@ -269,24 +276,33 @@ class PlanWorkspace:
 
     def objects(self) -> List[ObjectModel]:
         """
-        :return: The object meshes, sorted by identifier.
+        :return: The object meshes, sorted by identifier, then the models of each object
+            library.
         """
         mesh_suffixes = {
             member.value
             for member in MeshFormat
             if member is not MeshFormat.MATERIAL_LIBRARY
         }
-        return [
+        meshes = [
             ObjectModel(identifier=path.name, name=path.stem)
             for path in sorted(self.directory.iterdir())
             if path.is_file() and path.suffix.lower() in mesh_suffixes
         ]
+        return meshes + self.libraries.models()
 
     def object_directory(self) -> Path:
         """
         :return: The directory holding the object meshes.
         """
         return self.directory
+
+    def object_roots(self) -> Dict[str, Path]:
+        """
+        :return: The root of each object library by the name its models' identifiers
+            start with.
+        """
+        return self.libraries.roots()
 
     def surface_types(self) -> List[str]:
         """

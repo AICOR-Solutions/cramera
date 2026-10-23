@@ -62,6 +62,9 @@ below 8 next to CRAM, since ROS 2's `launch_testing` plugin does not load into p
 and `--dry-run` prints the commands without running them. Running it again updates the
 environment in place.
 
+It also fetches the object libraries the plan builder offers, the submodules under
+`resources/` (`git submodule update --init`).
+
 Robot demos and `cramera-bridge`'s tests also need ROS 2 Jazzy and the robot
 descriptions: source `/opt/ros/jazzy/setup.bash` and the ROS workspace that CRAM's
 README sets up ("Setup your ROS Workspace") before running one.

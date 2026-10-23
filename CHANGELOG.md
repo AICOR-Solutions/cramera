@@ -24,6 +24,11 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Objects of the meshes library in the plan builder.** `resources/private_meshes` is
+  a submodule of [sunava/private_meshes](https://github.com/sunava/private_meshes), and
+  the builder offers every model of it, and of any library `CRAMERA_OBJECT_LIBRARIES`
+  names, beside the meshes of coraplex: its URDF is drawn in the 3D view and merged
+  into the demo's world as a free, graspable object.
 - **One command installs the whole stack.** `python3 scripts/install_stack.py` puts the
   viewer, every plugin, `cramera-bridge` and the CRAM workspace (cloned next to the
   checkout when missing) editable into one uv environment that sees ROS 2's Python
