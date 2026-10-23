@@ -1,16 +1,14 @@
 """
-The offline plugin of the viewer: the tour panel and the routes it reads, the storyboard
+The offline plugin of the viewer: the storyboard and bundle check routes, the storyboard
 and the completeness check of a bundle.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import StrEnum
 from importlib.metadata import version
-from pathlib import Path
 
-from typing_extensions import List, Optional
+from typing_extensions import List
 
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.plugins import PluginContext, PluginRoute, ViewerPlugin
@@ -26,23 +24,6 @@ from cramera_protocol.offline import (
 )
 from cramera_protocol.plugins import PluginName
 from cramera_protocol.viewer import ViewerRoute
-
-WEB_DIRECTORY = Path(__file__).parent / "web"
-"""
-The plugin's browser files.
-"""
-
-
-class WebFile(StrEnum):
-    """
-    The plugin's browser files the viewer is told about.
-    """
-
-    MODULE = "index.js"
-    """
-    The module the viewer imports and registers.
-    """
-
 
 # %% routes
 
@@ -112,12 +93,6 @@ class OfflinePlugin(ViewerPlugin):
                 HttpMethod.GET, OfflineRoute.BUNDLE_CHECK, routes.answer_bundle_check
             ),
         ]
-
-    def web_directory(self) -> Optional[Path]:
-        return WEB_DIRECTORY
-
-    def module(self) -> Optional[str]:
-        return WebFile.MODULE.value
 
     def storyboard_route(self) -> str:
         """

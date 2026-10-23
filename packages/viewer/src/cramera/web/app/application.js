@@ -19,10 +19,8 @@ import { PlaybackClock } from '../playback/playback-clock.js';
 import { TimelineView } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
-import { PlanPanel } from '../panels/plan-panel.js';
 import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
-import { StepsPanel } from '../panels/steps-panel.js';
 import { LayerObject, LayersPanel, ViewSwitch } from '../panels/layers-panel.js';
 import { QuerySlot } from '../panels/query-slot.js';
 import { COLUMNS, PaneSplit, ROWS } from './pane-split.js';
@@ -222,18 +220,6 @@ export class Application {
   #panels;
 
   /**
-   * The steps panel.
-   * @type {StepsPanel}
-   */
-  #steps;
-
-  /**
-   * The plan panel.
-   * @type {PlanPanel}
-   */
-  #plan;
-
-  /**
    * The details panel.
    * @type {DetailsPanel}
    */
@@ -363,8 +349,6 @@ export class Application {
     new PaneSplit(elements.column, elements.rowDivider, ROWS, storage);
     this.#panels.onShow((panel) => this.#header.markCurrent(panel && !this.#panels.tabbed(panel) ? panel : SCENE_PAGE));
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
-    this.#steps = new StepsPanel(elements.document, (frame) => this.seek(frame));
-    this.#plan = new PlanPanel(elements.document);
     this.#details = new DetailsPanel(elements.document);
     this.#livePanel = new LivePanel(
       elements.document,
@@ -428,7 +412,7 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#steps, this.#plan, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    for (const part of [this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
@@ -466,8 +450,6 @@ export class Application {
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
     this.#timeline.show(this.#clock, segments);
-    this.#steps.show(segments);
-    this.#plan.show(loaded.description[SceneKey.PLAN_TREES] ?? []);
     this.#details.show(loaded);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
@@ -503,8 +485,8 @@ export class Application {
       new LiveListener(
         (scene) => this.show(scene).then(() => this.#live?.sceneShown()),
         (state) => this.#showLiveState(state),
-        (plan) => this.#plan.showLive(plan),
-        () => {}, // The motion statechart has no panel of its own; the questions plugin graphs it.
+        () => {}, // The live plan and motion statechart have no panels of their own; the questions plugin graphs them.
+        () => {},
         (status) => {
           this.#recordingState = status[RecordingStatusKey.STATE];
           this.#livePanel.showRecording(status);
@@ -591,7 +573,6 @@ export class Application {
     this.#scene.showFrame(frame);
     const segment = this.#scene.frames.segmentAt(frame);
     this.#timeline.update(segment);
-    this.#steps.mark(segment);
     this.#follow.follow(this.#scene.robotPosition());
     this.#picking.update();
     this.#highlights.update();

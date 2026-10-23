@@ -178,10 +178,6 @@ class PresentationSite:
         )
         index = site.write()
         plugin = OfflinePlugin()
-        shutil.copytree(
-            plugin.web_directory(),
-            site.route_file(ViewerRoute.PLUGIN_FILES) / plugin.name(),
-        )
         site.write_route(plugin.storyboard_route(), storyboard)
         site.write_route(
             ViewerRoute.INFO,

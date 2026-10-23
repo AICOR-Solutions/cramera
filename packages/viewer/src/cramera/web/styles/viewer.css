@@ -468,30 +468,11 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .query-slot .fold-button { margin-left: auto; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font: inherit; font-size: 14px; line-height: 1; padding: 4px 8px; cursor: pointer; }
 .query-slot .fold-button:hover { color: var(--text); border-color: var(--accent); }
 
-/* %% plan tree */
-
-.plan-tree, .plan-tree ul { list-style: none; margin: 0; padding: 0; }
-.plan-tree ul { padding-left: 14px; border-left: 1px dashed var(--border-strong); margin-left: 6px; }
-.plan-node { display: flex; align-items: baseline; gap: 6px; padding: 2px 4px; border-radius: var(--radius); }
-.plan-node.current { background: var(--accent-soft); }
-.plan-node .kind { font: 11px var(--mono); color: var(--text-muted); }
-.plan-node .status { margin-left: auto; font: 11px var(--mono); color: var(--text-muted); }
-
 /* %% details */
 
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
 .facts dt { color: var(--text-muted); }
 .facts dd { margin: 0; font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
-
-/* %% steps */
-
-.step { display: block; width: 100%; margin-bottom: 4px; text-align: left; color: var(--text); background: var(--surface); border-color: var(--border-strong); }
-.step.current { border-color: var(--accent); background: var(--accent-soft); }
-
-/* %% statechart */
-
-.chart-node { display: flex; align-items: baseline; gap: 6px; padding: 2px 4px; border-radius: var(--radius); }
-.chart-node .status { margin-left: auto; font: 11px var(--mono); color: var(--text-muted); white-space: nowrap; }
 
 /* %% live */
 

@@ -8,9 +8,12 @@ which this repository was mirrored until 22 Oct 2026.
 ## 1.0.0 · in progress since 22 Oct 2026
 
 ### Removed
-- **The Knowledge and Chart states tabs.** The knowledge graph duplicated what EQL
-  answers, and the viewer's own statechart tree duplicated the questions plugin's
-  Statechart graph; `GraphViewName.KNOWLEDGE` stays in the protocol for the API.
+- **The Tour, Knowledge, Steps, Plan tree and Chart states tabs.** The knowledge
+  graph duplicated what EQL answers, the viewer's own plan tree and statechart tree
+  duplicated the questions plugin's Plan and Statechart graphs, the timeline already
+  marks the steps, and the Tour panel went with its browser module: `cramera-offline`
+  keeps the storyboard and bundle check routes and its commands.
+  `GraphViewName.KNOWLEDGE` stays in the protocol for the API.
 - **The models panel, the laboratory, the workshop and the cable lab.**
   `cramera-models`, `cramera-laboratory`, `cramera-workshop` and `cramera-cable-lab`
   are gone with their panels and pages, their protocol modules

@@ -89,7 +89,7 @@ cramera
 ### Install the pages and panels
 
 Everything beyond the scene page is a plugin: Plan Builder, Scene Builder,
-the Tour of `cramera-offline` and the questions column. Each is a pip package of its
+the questions column and the storyboard and bundle check routes of `cramera-offline`. Each is a pip package of its
 own under `packages/plugins` (and `packages/questions`) that the viewer discovers through the entry-point group
 `cramera.plugins`. `pip install ./packages/viewer` installs none of them, so the top
 bar of a bare viewer shows no pages; an uninstalled plugin simply has no link. Install

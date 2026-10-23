@@ -24,6 +24,3 @@ Source = "https://github.com/AICOR-Solutions/cramera"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-cramera_offline = ["web/**/*"]

@@ -3,13 +3,11 @@ import assert from 'node:assert/strict';
 
 import { DetailsPanel } from '../../src/cramera/web/panels/details-panel.js';
 import { DuplicatePanel, PanelHost, SidePanel } from '../../src/cramera/web/panels/panel-host.js';
-import { PlanPanel } from '../../src/cramera/web/panels/plan-panel.js';
 import { SceneChoice } from '../../src/cramera/web/panels/scene-choice.js';
 import { ScenePickerView } from '../../src/cramera/web/panels/scene-picker-view.js';
-import { StepsPanel } from '../../src/cramera/web/panels/steps-panel.js';
 import { PlaybackClock } from '../../src/cramera/web/playback/playback-clock.js';
 import { formatSeconds, MarkKind, marksOf, SPEEDS, TimelineView } from '../../src/cramera/web/playback/timeline-view.js';
-import { IndexEntryKey, IndexKey, PlanNodeKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
+import { IndexEntryKey, IndexKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
 const SEGMENTS = [
@@ -42,35 +40,6 @@ test('the strip wraps instead of cutting tabs off, and untabbed panels are not c
   assert.equal(host.shown, 'a');
   assert.equal(host.tabbed('lab'), false);
   assert.equal(host.tabbed('a'), true);
-});
-
-// %% steps and plan
-
-test('steps are listed, marked and jump to their start', () => {
-  const document = new FakeDocument();
-  const sought = [];
-  const steps = new StepsPanel(document, (frame) => sought.push(frame));
-  steps.show(SEGMENTS);
-  const buttons = steps.panel.element.children;
-  assert.equal(buttons[1].textContent, '2. pick');
-  buttons[1].dispatch('click');
-  assert.deepEqual(sought, [SEGMENTS[1][SegmentKey.START]]);
-  steps.mark(1);
-  assert.equal(buttons[1].classList.contains('current'), true);
-  steps.show([]);
-  assert.equal(steps.panel.element.children[0].className, 'empty');
-});
-
-test('the plan tree shows every node with its kind and state', () => {
-  const document = new FakeDocument();
-  const plan = new PlanPanel(document);
-  plan.show([{ [PlanNodeKey.KIND]: 'SequentialNode', [PlanNodeKey.LABEL]: 'run', [PlanNodeKey.STATUS]: 'SUCCEEDED', [PlanNodeKey.CHILDREN]: [{ [PlanNodeKey.KIND]: 'ActionNode', [PlanNodeKey.LABEL]: 'pick up the cup', [PlanNodeKey.STATUS]: 'FAILED' }] }]);
-  const rows = plan.panel.element.findAll((element) => element.className === 'plan-node');
-  assert.equal(rows.length, 2);
-  assert.equal(rows[1].dataset.status, 'FAILED');
-  assert.match(rows[1].innerText, /pick up the cup/);
-  plan.show([]);
-  assert.match(plan.panel.element.innerText, /no recorded plan/);
 });
 
 test('details name the scene and every file that could not be loaded', () => {
