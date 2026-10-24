@@ -617,6 +617,16 @@ class PlanNodeKey(StrEnum):
     The constraints attached to the node while it ran.
     """
 
+    PERCEIVED = "perceived"
+    """
+    The objects a perception step reported.
+    """
+
+    REASON = "reason"
+    """
+    Why a failed node failed.
+    """
+
 
 class PlanConstraintKey(StrEnum):
     """
@@ -755,6 +765,18 @@ class PlanNode(JsonDocument):
     )
     """
     The constraints attached to the node while it ran, with their last observations.
+    """
+
+    perceived: Optional[List[str]] = document_field(PlanNodeKey.PERCEIVED, default=None)
+    """
+    For a perception step: the objects it reported, by their keys, else their names,
+    empty when it reported none; None for every other node and in recordings written
+    before.
+    """
+
+    reason: Optional[str] = document_field(PlanNodeKey.REASON, default=None)
+    """
+    Why the node failed, as coraplex worded it; None for a node that did not fail.
     """
 
     extensions: Dict[str, Any] = extension_field()

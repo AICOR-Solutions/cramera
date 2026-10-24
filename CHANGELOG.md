@@ -43,6 +43,13 @@ which this repository was mirrored until 22 Oct 2026.
   the run or waits for one, and an ended run offers *Save this run…*.
 
   ![The live view's states](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-15/states.gif)
+- **The Perception tab.** Every perception step of the shown recording's plans, or of
+  the live plan, with what it was asked (its action's parameters), how it ended, why
+  it failed, and the objects it reported, which light up in the 3D view. The bridge
+  records a step's reported objects (`perceived`) and any node's failure reason
+  (`reason`) on the plan's nodes, and names a class parameter by its class.
+
+  ![The Perception tab](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-25/perception.png)
 - **The Scene graph tab.** The scene page browses the shown world as a tree, the way
   the Ontology tab browses classes: its models with their links nested by joint, its
   free objects and the robot's part annotations. A node shows its fields, what it
