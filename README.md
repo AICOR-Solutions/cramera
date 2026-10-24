@@ -344,6 +344,11 @@ cd packages/viewer && ~/.virtualenvs/cramera-dev/bin/python -m pytest -q --cov=c
 
 - Each package is tested on its own; CI requires 85 % coverage. The browser tests
   run in Node.js through `test_browser_modules.py`.
+- [`tests/end_to_end`](tests/end_to_end/README.md) runs the whole stack with the
+  CRAM workspace and ROS 2. A plan composed in the plan builder for a PR2 in the
+  apartment is exported, run and replayed, and coraplex's apartment demo is shown live,
+  saved and replayed. Run it with `python -m pytest -q -rxX tests/end_to_end` after
+  `scripts/install_stack.py`. It takes about six minutes; CI skips it.
 - Format with `python scripts/format_python.py` (black, then docformatter where
   black keeps its output). CI fails when it would change anything.
 - `scripts/vendor_browser_libraries.py` updates three.js and urdf-loader, checked

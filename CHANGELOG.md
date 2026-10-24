@@ -76,6 +76,14 @@ which this repository was mirrored until 22 Oct 2026.
   checkout when missing) editable into one uv environment that sees ROS 2's Python
   packages, leaving out CRAM's own earlier `cramera` so this repository's viewer is
   installed. `--viewer-only`, `--with-usd`, `--dev` and `--dry-run` choose less or more.
+- **End-to-end scenarios.** `tests/end_to_end` runs the whole stack with the CRAM
+  workspace and ROS 2. A PR2 plan in the apartment is composed through the plan
+  builder's routes, saved, exported, run and replayed. coraplex's apartment demo runs
+  unchanged under `cramera-live`, is checked while it runs, then saved and replayed.
+  What is still broken is marked `xfail(strict=True)` with its issue (#36, #37). CI
+  skips the scenarios; `tests/end_to_end/README.md` says how to run them.
+
+  ![The plan builder's run replayed](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-33/apartment_PR2_pr2_apartment_pick_85.png)
 - **Recorded plans keep every step parameter and constraint.** Every plan node the
   live publisher describes renders each field of its designator by name
   (`LivePlanNodeKey.PARAMETERS`): an enumeration member by its name, an object by its
