@@ -16,7 +16,7 @@ import {
   ViewerEvent,
 } from '../protocol.js';
 import { PlaybackClock } from '../playback/playback-clock.js';
-import { TimelineView } from '../playback/timeline-view.js';
+import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
 import { SceneChoice } from '../panels/scene-choice.js';
@@ -31,7 +31,7 @@ import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
 import { LiveClient } from '../live/live-client.js';
 import { LiveListener, LiveSession } from '../live/live-session.js';
-import { LiveActions, LivePanel } from '../panels/live-panel.js';
+import { LiveActions, LiveBadge, LiveBadgeState, LivePanel } from '../panels/live-panel.js';
 import { SceneHighlights } from '../scene/scene-highlights.js';
 import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
@@ -292,6 +292,12 @@ export class Application {
   #livePanel;
 
   /**
+   * The badge over the 3D view saying whether a live run is followed.
+   * @type {LiveBadge}
+   */
+  #liveBadge;
+
+  /**
    * The connection to a live publisher, or null while none is wanted.
    * @type {LiveSession|null}
    */
@@ -360,6 +366,7 @@ export class Application {
         () => this.#live.client.send(LiveRoute.RECORDING_DISCARD),
       ),
     );
+    this.#liveBadge = new LiveBadge(elements.liveBadge, () => this.#panels.show(this.#livePanel.panel.identifier));
     this.bus.subscribe(ViewerEvent.LIVE_CONNECTED, (info) => this.#showLiveConnection(info));
     this.bus.subscribe(ViewerEvent.LIVE_DISCONNECTED, () => this.#showLiveConnection(null));
   }
@@ -494,6 +501,9 @@ export class Application {
       ),
     );
     this.#livePanel.showConnecting(true, null, address);
+    this.#liveBadge.show(LiveBadgeState.CONNECTING, address);
+    this.#timeline.setLive(true, WAITING_NOTE);
+    this.#status.loading(`Waiting for the live publisher at ${address}…`);
     this.#history.replaceState(null, '', withLive(this.#location.href, address));
     this.#live.start();
   }
@@ -536,9 +546,14 @@ export class Application {
    */
   #showLiveConnection(info) {
     const connected = Boolean(this.#live && info);
-    this.#elements.liveBadge.hidden = !connected;
     this.#timeline.setSaveOffered(connected && (info[LiveInfoKey.CAPABILITIES] ?? []).includes(Capability.RECORDING));
-    if (!this.#live) return;
+    if (!this.#live) {
+      this.#liveBadge.show(LiveBadgeState.OFF);
+      this.#timeline.setLive(false);
+      return;
+    }
+    this.#liveBadge.show(connected ? LiveBadgeState.LIVE : LiveBadgeState.LOST);
+    this.#timeline.setLive(true, connected ? undefined : LOST_NOTE);
     this.#livePanel.showConnecting(true, info);
     this.#elements.statusLine.dataset.live = String(Boolean(info));
     if (!info) this.#status.ready('The live publisher does not answer; showing the last state.');

@@ -6,7 +6,7 @@ import { DuplicatePanel, PanelHost, SidePanel } from '../../src/cramera/web/pane
 import { SceneChoice } from '../../src/cramera/web/panels/scene-choice.js';
 import { ScenePickerView } from '../../src/cramera/web/panels/scene-picker-view.js';
 import { PlaybackClock } from '../../src/cramera/web/playback/playback-clock.js';
-import { formatSeconds, MarkKind, marksOf, SPEEDS, TimelineView } from '../../src/cramera/web/playback/timeline-view.js';
+import { formatSeconds, LIVE_NOTE, LOST_NOTE, MarkKind, marksOf, SPEEDS, TimelineView } from '../../src/cramera/web/playback/timeline-view.js';
 import { IndexEntryKey, IndexKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
@@ -149,6 +149,22 @@ test('the save button is offered only while a live episode can be saved', () => 
   assert.equal(save.hidden, false);
   save.dispatch('click');
   assert.equal(saves, 1);
+});
+
+test('while a live run is followed the timeline says so instead of offering playback', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  const timeline = new TimelineView(root, () => {}, () => {});
+  const [play, , speed, note] = root.children[0].children;
+  assert.equal(note.hidden, true);
+  timeline.setLive(true);
+  assert.equal(root.dataset.live, 'true');
+  assert.deepEqual([play.hidden, speed.hidden, note.hidden], [true, true, false]);
+  assert.equal(note.textContent, LIVE_NOTE);
+  timeline.setLive(true, LOST_NOTE);
+  assert.equal(note.textContent, LOST_NOTE);
+  timeline.setLive(false);
+  assert.deepEqual([play.hidden, speed.hidden, note.hidden], [false, false, true]);
 });
 
 test('playback can be started and paused without a click', () => {
