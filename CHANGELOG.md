@@ -29,6 +29,20 @@ which this repository was mirrored until 22 Oct 2026.
   the builder offers every model of it, and of any library `CRAMERA_OBJECT_LIBRARIES`
   names, beside the meshes of coraplex: its URDF is drawn in the 3D view and merged
   into the demo's world as a free, graspable object.
+
+  ![A library object in the plan builder](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-17/builder.png)
+- **A film of a recording.** The timeline's video button films the shown recording as a
+  WebM with a cinematic camera: it cuts between wide shots and close-ups on every pick
+  and place, slows down around them and saves the film when the recording ends; the
+  layer *Cinematic camera* shows the same shots while playing.
+
+  ![A filmed pick-up](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-13/film.gif)
+- **The live view says what it is doing.** A badge in the top bar shows whether the
+  viewer is off, connecting, live or has lost the publisher; the Live tab names what
+  the publisher offers and whether it records, the timeline says whether it follows
+  the run or waits for one, and an ended run offers *Save this run…*.
+
+  ![The live view's states](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-15/states.gif)
 - **One command installs the whole stack.** `python3 scripts/install_stack.py` puts the
   viewer, every plugin, `cramera-bridge` and the CRAM workspace (cloned next to the
   checkout when missing) editable into one uv environment that sees ROS 2's Python
@@ -61,6 +75,12 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **The plan builder's environment and robots are clearer.** The builder has an
+  Environment section and a Robots section with one card per robot; the card whose plan
+  is edited is marked, picking a robot in the 3D view selects it, and every robot has
+  its name above it.
+
+  ![The builder's environment and robots](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-14/after.png)
 - **cramera-cram is cramera-bridge.** The package that connects cramera to CRAM is
   `cramera-bridge` now, imported as `cramera_bridge`, in `packages/bridge`; the
   plugins' `cram` extra installs it, coraplex still finds its visualization as
