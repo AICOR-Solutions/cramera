@@ -59,6 +59,14 @@ test('the ontology is a page of the viewer\'s own', () => {
   assert.equal(ontology.panel, null);
 });
 
+test('a viewer given another logo names what it shows', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('header');
+  const header = new SiteHeader(root, url, new ThemeSetting(document.documentElement, null), SCENE_PAGE);
+  header.show({ ...INFO, [ViewerInfoKey.LOGO_TEXT]: 'Our lab' });
+  assert.equal(root.children[0].children[0].alt, 'Our lab');
+});
+
 test('the header marks its own page and shows panels on the scene page', () => {
   const document = new FakeDocument();
   const root = document.createElement('header');
@@ -66,7 +74,8 @@ test('the header marks its own page and shows panels on the scene page', () => {
   const header = new SiteHeader(root, url, new ThemeSetting(document.documentElement, null), SCENE_PAGE, (panel) => shown.push(panel));
   header.show(INFO);
   const [brand, navigation, actions] = root.children;
-  assert.equal(brand.children[0].src, `${BASE}images/aicor-logo.png`);
+  assert.equal(brand.children[0].src, `${BASE}api/logo`);
+  assert.match(brand.children[0].alt, /^AICOR/);
   const anchors = navigation.children;
   assert.equal(anchors[0].getAttribute('aria-current'), 'page');
   assert.equal(anchors[1].getAttribute('aria-current'), null);

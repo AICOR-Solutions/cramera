@@ -24,6 +24,9 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Another logo in the top bar.** `cramera --logo FILE` (or `CRAMERA_LOGO`) and
+  `cramera-export-site --logo FILE` show another image instead of the AICOR logo on
+  every page, served at `/api/logo`; `--logo-text` says what it shows.
 - **One command installs the whole stack.** `python3 scripts/install_stack.py` puts the
   viewer, every plugin, `cramera-bridge` and the CRAM workspace (cloned next to the
   checkout when missing) editable into one uv environment that sees ROS 2's Python

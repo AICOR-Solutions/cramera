@@ -12,6 +12,7 @@ import {
   PluginKey,
   Theme,
   ViewerInfoKey,
+  ViewerRoute,
 } from '../protocol.js';
 import { withPanel } from '../core/scene-address.js';
 
@@ -21,9 +22,10 @@ import { withPanel } from '../core/scene-address.js';
 export const SHORT_COMMIT = 7;
 
 /**
- * The logo's file below the viewer's root.
+ * What the AICOR logo shows, for people who cannot see it; a viewer given another logo
+ * names its text in its information.
  */
-const LOGO = '/images/aicor-logo.png';
+const AICOR_LOGO_TEXT = 'AICOR — Artificial Intelligence Powered Cognition-Enabled Robotics';
 
 /**
  * The status page below the viewer's root.
@@ -260,6 +262,12 @@ export class SiteHeader {
   #version;
 
   /**
+   * The logo.
+   * @type {HTMLImageElement}
+   */
+  #logo;
+
+  /**
    * @param {HTMLElement} root The header element.
    * @param {function(string): string} url The URL of a viewer route.
    * @param {ThemeSetting} theme The page's theme.
@@ -279,8 +287,9 @@ export class SiteHeader {
     brand.setAttribute('aria-label', 'cramera home');
     const logo = document.createElement('img');
     logo.className = 'logo';
-    logo.src = url(LOGO);
-    logo.alt = 'AICOR — Artificial Intelligence Powered Cognition-Enabled Robotics';
+    logo.src = url(ViewerRoute.LOGO);
+    logo.alt = AICOR_LOGO_TEXT;
+    this.#logo = logo;
     brand.append(logo);
     this.#navigation = document.createElement('nav');
     this.#navigation.className = 'page-tabs';
@@ -321,6 +330,7 @@ export class SiteHeader {
       }),
     );
     this.#version.textContent = versionOf(info);
+    this.#logo.alt = info[ViewerInfoKey.LOGO_TEXT] ?? AICOR_LOGO_TEXT;
     return links;
   }
 

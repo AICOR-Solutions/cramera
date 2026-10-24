@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -22,7 +23,8 @@ from pathlib import Path
 from typing_extensions import List, Optional, Sequence
 
 from cramera.application import WEB_DIRECTORY
-from cramera.exceptions import PluginNotInstalled
+from cramera.branding import Branding
+from cramera.exceptions import LogoNotFound, PluginNotInstalled, UnsupportedLogo
 from cramera.plugins import PluginLoader, ViewerPlugin
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_protocol.browser import BrowserModule
@@ -72,6 +74,16 @@ class ExportOption(StrEnum):
     SOURCE = "--source"
     """
     The web address of the repository.
+    """
+
+    LOGO = "--logo"
+    """
+    An image the site's top bar shows instead of the AICOR logo.
+    """
+
+    LOGO_TEXT = "--logo-text"
+    """
+    What that image shows, for people who cannot see it.
     """
 
     PLUGIN = "--plugin"
@@ -125,6 +137,11 @@ class StaticSite:
     The plugins whose browser files the site includes.
     """
 
+    branding: Branding = field(default_factory=Branding)
+    """
+    Which logo the site's pages show.
+    """
+
     def write(self) -> SceneIndex:
         """
         :return: The index of the published bundles.
@@ -150,6 +167,9 @@ class StaticSite:
                 self.route_file(ViewerRoute.SCENE_FILES) / entry.name,
             )
         self.write_route(ViewerRoute.SCENES, index)
+        logo = self.route_file(ViewerRoute.LOGO)
+        logo.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(self.branding.file(), logo)
         for plugin in self.plugins:
             if plugin.web_directory() is None:
                 continue
@@ -165,6 +185,7 @@ class StaticSite:
                 build=self.build,
                 plugins=[plugin.info() for plugin in self.plugins],
                 serving=Serving.STATIC,
+                logo_text=self.branding.text(),
             ),
         )
         return index
@@ -219,7 +240,14 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(ExportOption.COMMIT, default=None)
     parser.add_argument(ExportOption.SOURCE, default=None)
     parser.add_argument(ExportOption.PLUGIN, action="append", default=[])
+    parser.add_argument(ExportOption.LOGO, type=Path, default=None)
+    parser.add_argument(ExportOption.LOGO_TEXT, default=None)
     parsed = parser.parse_args(arguments)
+    # a logo that cannot be shown is a usage error of the command, said as one
+    try:
+        branding = Branding.of(parsed.logo, parsed.logo_text, os.environ)
+    except (LogoNotFound, UnsupportedLogo) as error:
+        parser.error(error.message())
     build = None
     if parsed.commit:
         built_at = (
@@ -237,6 +265,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
         parsed.default_scene,
         build,
         plugins=installed_plugins(parsed.plugin, PluginLoader()),
+        branding=branding,
     ).write()
     print(f"exported {len(index.scenes)} scenes to {parsed.output}")
     return 0
