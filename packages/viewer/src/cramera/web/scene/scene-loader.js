@@ -161,6 +161,7 @@ export class SceneLoader {
     ]);
     progress.settleIfUnused();
     await progress.idle();
+    models.dress();
     for (const group of [models.group, objects.group]) {
       group.traverse((child) => {
         if (child.isMesh) child.castShadow = child.receiveShadow = true;

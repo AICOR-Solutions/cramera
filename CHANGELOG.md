@@ -137,6 +137,21 @@ which this repository was mirrored until 22 Oct 2026.
   `cramera`, and the live publisher reports itself as `cramera-bridge`. An
   environment that still holds `cramera-cram` registers that visualization twice, so
   uninstall it (`pip uninstall cramera-cram`); `scripts/install_stack.py` does.
+- **Scenes are drawn in colour.** Every model loaded from a URDF is lit like the
+  scene's own objects:
+  - its URDF and COLLADA materials become physically based ones, keeping their colour,
+    texture and transparency;
+  - lights a model file brings are removed, and blown-out whites are toned down;
+  - a COLLADA mesh without materials takes its URDF colour, as STL and OBJ meshes do;
+  - an environment part that its description leaves uncoloured gets the colour of what
+    its link names (countertop, table, cabinet, handle, wall, …), for any environment;
+    authored colours always win.
+
+  The scene builder draws its URDFs the same way. The URDF colours of bare meshes need
+  the semantic_digital_twin fix on `sunava/cognitive_robot_abstract_machine`, branch
+  `fix/urdf-mesh-colors`.
+
+  ![The apartment and the PR2 in colour](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/colors/after_pick.png)
 - **The Plan builder panel is the Plan View.** The viewer's panel of
   `cramera-plan-builder` is named Plan View and holds only the replayed recording's
   plan: its step cards now show every parameter the step was recorded with,
