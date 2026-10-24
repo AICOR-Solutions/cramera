@@ -1,9 +1,9 @@
 """
 The viewer plugin answering questions about recorded scenes.
 
-The plugin itself imports nothing of krrood or cramera-cram, so a viewer without the
+The plugin itself imports nothing of krrood or cramera-bridge, so a viewer without the
 CRAM workspace still loads it and serves its browser module; its routes are built from
-:mod:`cramera_questions.routes`, which hands the questions to cramera-cram's question
+:mod:`cramera_questions.routes`, which hands the questions to cramera-bridge's question
 engine, only where both are installed, and otherwise answer what is missing.
 """
 
@@ -27,8 +27,8 @@ from cramera_protocol.questions import QuestionsRoute
 from cramera_questions.exceptions import QueryLanguageMissing
 
 if TYPE_CHECKING:
-    from cramera_cram.questions.scenes import SceneQuestionCache
-    from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
+    from cramera_bridge.questions.scenes import SceneQuestionCache
+    from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
 """
@@ -60,8 +60,8 @@ of tests.
 
 class QuestionsModule(StrEnum):
     """
-    The plugin's modules that import cramera-cram's question engine, imported only where
-    it and krrood are installed.
+    The plugin's modules that import cramera-bridge's question engine, imported only
+    where it and krrood are installed.
     """
 
     ROUTES = "cramera_questions.routes"
@@ -83,7 +83,7 @@ class QuestionsDependency(StrEnum):
     Evaluates the entity query language.
     """
 
-    CRAMERA_CRAM = "cramera_cram"
+    CRAMERA_BRIDGE = "cramera_bridge"
     """
     The question engine.
     """
@@ -92,7 +92,7 @@ class QuestionsDependency(StrEnum):
 @dataclass(frozen=True)
 class QueryLanguageInstallation:
     """
-    Whether krrood, which evaluates the entity query language, and cramera-cram, whose
+    Whether krrood, which evaluates the entity query language, and cramera-bridge, whose
     question engine uses it, are installed.
     """
 
@@ -131,7 +131,7 @@ class QueryLanguageInstallation:
 @dataclass(frozen=True)
 class UnavailableQuestionRoutes:
     """
-    The plugin's routes in an environment without krrood or cramera-cram: each answers
+    The plugin's routes in an environment without krrood or cramera-bridge: each answers
     what is missing.
     """
 
@@ -177,7 +177,7 @@ class QuestionsPlugin(ViewerPlugin):
         default_factory=QueryLanguageInstallation
     )
     """
-    Finds out whether krrood and cramera-cram are installed.
+    Finds out whether krrood and cramera-bridge are installed.
     """
 
     caches: Dict[int, SceneQuestionCache] = field(default_factory=dict)

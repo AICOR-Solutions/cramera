@@ -1,7 +1,7 @@
 """
 Shared fixtures of the cramera-questions tests.
 
-The plugin's routes need cramera-cram's question engine and krrood from the CRAM
+The plugin's routes need cramera-bridge's question engine and krrood from the CRAM
 workspace. Where one is missing, only the tests listed in :data:`TESTS_WITHOUT_KRROOD`
 are collected, so the suite skips the rest cleanly and the plugin's loading still runs.
 """
@@ -23,7 +23,7 @@ TESTS_WITHOUT_KRROOD = (
     "test_plugin_without_krrood.py",
 )
 """
-The test modules that import nothing of krrood or cramera-cram.
+The test modules that import nothing of krrood or cramera-bridge.
 """
 
 TEST_DIRECTORY = Path(__file__).parent
@@ -31,7 +31,7 @@ TEST_DIRECTORY = Path(__file__).parent
 The directory of this package's tests.
 """
 
-ENGINE_PACKAGES = ("krrood", "cramera_cram")
+ENGINE_PACKAGES = ("krrood", "cramera_bridge")
 """
 The packages the plugin's routes import.
 """

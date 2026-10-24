@@ -37,7 +37,7 @@ import { ObjectsView } from './objects-view.js';
 import { MarkerKind, PlanSceneListeners, Selection, TransformMode } from './plan-scene.js';
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
-import { RobotsView } from './robots-view.js';
+import { EnvironmentView, RobotsView } from './robots-view.js';
 import { StepsView } from './steps-view.js';
 
 /**
@@ -50,11 +50,6 @@ export const POLL_INTERVAL = 1000;
  * The storage key of the robot model the person used last, which a new plan starts with.
  */
 export const ROBOT_MODEL_KEY = 'cramera.plan-builder.robot-model';
-
-/**
- * The environment choice of an empty floor.
- */
-const EMPTY_FLOOR = Object.freeze({ value: '', label: 'Empty floor' });
 
 /**
  * The choice of the saved plans' select that opens none.
@@ -265,7 +260,7 @@ export class BuilderPage {
     const parts = this.#parts;
     parts.name.value = state.field(PlanKey.NAME);
     parts.task.value = state.field(PlanKey.TASK);
-    parts.environment.value = state.field(PlanKey.ENVIRONMENT);
+    parts.environment.render();
     this.#elements.options(parts.saved, this.#planChoices(), OPEN_PROMPT.value);
     parts.robots.render();
     parts.steps.render(this.#world.statuses, this.#world.observations);
@@ -634,15 +629,14 @@ export class BuilderPage {
     parts.name = elements.input('text', PlanAction.NAME, () => this.edit(() => this.state.setField(PlanKey.NAME, parts.name.value.trim())));
     parts.task = elements.input('text', PlanAction.TASK, () => this.edit(() => this.state.setField(PlanKey.TASK, parts.task.value.trim())));
     parts.task.placeholder = 'What the plan does';
-    const environments = [EMPTY_FLOOR, ...this.state.catalog[PlanBuilderCatalogKey.ENVIRONMENTS].map((entry) => ({ value: entry[IndexEntryKey.NAME], label: entry[IndexEntryKey.ENVIRONMENT] ?? entry[IndexEntryKey.NAME] }))];
-    parts.environment = elements.select(PlanAction.ENVIRONMENT, environments, this.state.field(PlanKey.ENVIRONMENT), (value) => this.edit(() => this.state.setField(PlanKey.ENVIRONMENT, value || null)));
+    parts.environment = new EnvironmentView(document, this);
     parts.saved = elements.select(PlanAction.OPEN, this.#planChoices(), OPEN_PROMPT.value, (value) => {
       if (value) this.#open(value).then(() => this.render());
     });
     const bar = elements.create('header', 'bar builder-bar');
     const plansRow = elements.create('div', 'button-row');
     plansRow.append(elements.button('New', PlanAction.NEW, () => this.#newPlan()), parts.saved, elements.button('Save', PlanAction.SAVE, () => this.#save()));
-    bar.append(elements.create('strong', 'builder-title', 'Plan builder'), elements.label('name', parts.name), elements.label('task', parts.task), elements.label('environment', parts.environment), plansRow);
+    bar.append(elements.create('strong', 'builder-title', 'Plan builder'), elements.label('name', parts.name), elements.label('task', parts.task), plansRow);
 
     parts.robots = new RobotsView(document, this);
     parts.steps = new StepsView(document, this);
@@ -650,7 +644,8 @@ export class BuilderPage {
     parts.constraints = new ConstraintsView(document, this, new ConstraintSentences(this.state.catalog[PlanBuilderCatalogKey.CONSTRAINT_RULES], this.#environment.storage));
     const side = elements.create('aside', 'builder-side');
     side.append(
-      this.#section('Robot', parts.robots.element),
+      this.#section('Environment', parts.environment.element, 'Where the robots perform the plan.'),
+      this.#section('Robots', parts.robots.element, 'Each robot performs a plan of its own; choose one to edit its plan, or click it in the 3D view.'),
       this.#section('Actions', parts.steps.palette, 'Drag an action into the plan, or click it.'),
       this.#section('Objects', parts.objects.element),
       this.#section('Constraints', parts.constraints.element, 'Drag a sentence onto a step.'),
@@ -705,6 +700,8 @@ export class BuilderPage {
           (selection) => {
             parts.selection = selection;
             parts.objects.render(selection?.kind === MarkerKind.OBJECT ? selection.identifier : null);
+            const robot = selection?.kind === MarkerKind.ROBOT ? selection.identifier : null;
+            if (robot && robot !== this.state.activeRobot()?.[PlannedRobotKey.IDENTIFIER]) this.edit(() => this.state.selectRobot(robot));
           },
           (selection, pose) => this.#placed(selection, pose),
           (error) => this.report(error.message),
@@ -755,7 +752,7 @@ export class BuilderPage {
   dispose() {
     if (this.#polling !== null) this.#environment.timer.cancel(this.#polling);
     this.#polling = null;
-    for (const part of [this.#parts.robots, this.#parts.steps, this.#parts.objects, this.#parts.constraints]) part?.dispose();
+    for (const part of [this.#parts.environment, this.#parts.robots, this.#parts.steps, this.#parts.objects, this.#parts.constraints]) part?.dispose();
     this.#scene?.dispose();
     this.#scene = null;
     this.#elements.dispose();

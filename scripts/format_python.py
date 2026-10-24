@@ -20,6 +20,16 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 The repository whose ``pyproject.toml`` configures both tools.
 """
 
+SUBMODULES_FILE = ".gitmodules"
+"""
+The file naming the repository's submodules.
+"""
+
+SUBMODULE_PATH_KEY = "path"
+"""
+The key of a submodule's directory in :data:`SUBMODULES_FILE`.
+"""
+
 DOCSTRING_QUOTES = '"""'
 """
 The quotes that open and close a docstring.
@@ -183,6 +193,22 @@ class PythonFormatter:
         return True
 
 
+def submodule_directories() -> List[Path]:
+    """
+    :return: The directories of the repository's submodules, whose files belong to
+        other repositories and are not formatted here.
+    """
+    listing = REPOSITORY_ROOT / SUBMODULES_FILE
+    if not listing.is_file():
+        return []
+    lines = listing.read_text(encoding="utf-8").splitlines()
+    return [
+        REPOSITORY_ROOT / line.split("=", 1)[1].strip()
+        for line in lines
+        if line.strip().startswith(SUBMODULE_PATH_KEY)
+    ]
+
+
 def main(arguments: Sequence[str]) -> int:
     """
     Format the given files, or every Python file of the repository without arguments.
@@ -190,8 +216,12 @@ def main(arguments: Sequence[str]) -> int:
     :param arguments: The files to format.
     :return: The process exit code.
     """
+    submodules = submodule_directories()
     paths = [Path(argument) for argument in arguments] or sorted(
-        path for path in REPOSITORY_ROOT.glob("**/*.py") if ".git" not in path.parts
+        path
+        for path in REPOSITORY_ROOT.glob("**/*.py")
+        if ".git" not in path.parts
+        and not any(path.is_relative_to(submodule) for submodule in submodules)
     )
     formatter = PythonFormatter()
     changed = [path for path in paths if formatter.format_file(path)]

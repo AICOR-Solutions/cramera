@@ -21,7 +21,7 @@ import {
 import { FakeDocument } from './support/fake-document.mjs';
 
 const INFO = {
-  [LiveInfoKey.PUBLISHER]: 'cramera-cram 1.0.0',
+  [LiveInfoKey.PUBLISHER]: 'cramera-bridge 1.0.0',
   [LiveInfoKey.SCENE]: '__live__',
   [LiveInfoKey.BUNDLE_SIGNATURE]: 'world-1',
   [LiveInfoKey.CAPABILITIES]: [Capability.PLAN, Capability.STATECHART, Capability.RECORDING],
@@ -192,7 +192,7 @@ test('the Live panel connects, reports what the publisher offers, and drives the
   assert.equal(form.children[0].value, DEFAULT_LIVE_ADDRESS);
   form.dispatch('submit');
   panel.showConnecting(true, INFO, 'http://127.0.0.1:9000');
-  assert.match(state.textContent, /cramera-cram 1\.0\.0/);
+  assert.match(state.textContent, /cramera-bridge 1\.0\.0/);
   assert.equal(panel.panel.element.dataset.connected, 'true');
   form.dispatch('submit');
   panel.showRecording({ [RecordingStatusKey.STATE]: RecordingState.RECORDING, [RecordingStatusKey.FRAME_COUNT]: 12, [RecordingStatusKey.DURATION_SECONDS]: 1.5 });

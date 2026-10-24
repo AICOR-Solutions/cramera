@@ -49,7 +49,7 @@ class MissingParameter(QuestionError):
 class QueryLanguageMissing(QuestionError):
     """
     A question asked of a viewer whose Python environment has no krrood, which evaluates
-    the entity query language, or no cramera-cram, whose question engine uses it.
+    the entity query language, or no cramera-bridge, whose question engine uses it.
     """
 
     missing: List[str]

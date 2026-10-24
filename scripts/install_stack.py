@@ -1,6 +1,6 @@
 """
 Install cramera with the CRAM workspace into one virtual environment, so the whole stack
-works: the viewer, its plugins, cramera-cram and every package of the CRAM workspace,
+works: the viewer, its plugins, cramera-bridge and every package of the CRAM workspace,
 all editable.
 
 ``python3 scripts/install_stack.py`` clones the CRAM workspace next to this repository
@@ -10,8 +10,8 @@ script needs only the standard library and uv.
 
 A package of the CRAM workspace whose distribution this repository also provides, such
 as CRAM's own earlier ``cramera``, is left out, so this repository's package is the one
-installed. cramera-cram is installed from this repository while it lives here, and from
-the CRAM workspace once it moved there.
+installed. cramera-bridge is installed from this repository while it lives here, and
+from the CRAM workspace once it moved there.
 """
 
 from __future__ import annotations
@@ -91,6 +91,17 @@ PARALLEL_TESTS = "pytest-xdist"
 Runs a suite's tests in parallel, as ``-n 8`` asks.
 """
 
+RENAMED_DISTRIBUTIONS = ("cramera-cram",)
+"""
+Earlier names of this repository's distributions; an environment that still holds one
+registers coraplex's ``cramera`` visualization twice, and coraplex then loads neither.
+"""
+
+SUBMODULES_FILE = ".gitmodules"
+"""
+The file naming this repository's submodules, such as its object libraries.
+"""
+
 PYPROJECT = "pyproject.toml"
 """
 The file naming a package and, for the CRAM workspace, its members.
@@ -107,7 +118,7 @@ class Extra(StrEnum):
 
     CRAM = "cram"
     """
-    What a plugin needs from cramera-cram.
+    What a plugin needs from cramera-bridge.
     """
 
     TEST = "test"
@@ -165,7 +176,7 @@ VIEWER_PACKAGES = (
 The viewer and its plugins, which install without CRAM.
 """
 
-CRAM_PACKAGES = (PackageDirectory("packages/cram", needs_cram=True),)
+CRAM_PACKAGES = (PackageDirectory("packages/bridge", needs_cram=True),)
 """
 This repository's packages that need the CRAM workspace.
 """
@@ -274,7 +285,7 @@ class StackInstallation:
 
     def repository_packages(self) -> List[PackageDirectory]:
         """
-        :return: This repository's packages the stack installs; cramera-cram only while
+        :return: This repository's packages the stack installs; cramera-bridge only while
             it lives in this repository.
         """
         packages = list(VIEWER_PACKAGES)
@@ -340,11 +351,16 @@ class StackInstallation:
 
     def install(self) -> None:
         """
-        Clone the CRAM workspace if needed, create the environment if needed, install
-        everything and check that it imports.
+        Clone the CRAM workspace and fetch this repository's object libraries if needed,
+        create the environment if needed, install everything and check that it imports.
         """
         if self.cram is not None and not self.cram.directory.is_dir():
             self.run(self.cram.clone_command())
+        if self.cram is not None and (REPOSITORY_ROOT / SUBMODULES_FILE).is_file():
+            # the object libraries under resources/ the plan builder offers
+            self.run(
+                ["git", "-C", str(REPOSITORY_ROOT), "submodule", "update", "--init"]
+            )
         if not self.python().exists():
             # ROS's Python packages, such as rclpy, live in the system's site packages
             self.run(
@@ -357,6 +373,11 @@ class StackInstallation:
                     str(self.environment),
                 ]
             )
+        # uv only warns about a distribution that is not installed
+        self.run(
+            [self.uv, "pip", "uninstall", "--python", str(self.python())]
+            + list(RENAMED_DISTRIBUTIONS)
+        )
         self.run(
             [self.uv, "pip", "install", "--python", str(self.python())]
             + self.requirements()
@@ -369,7 +390,7 @@ class StackInstallation:
         """
         modules = ["cramera", "cramera_protocol", "cramera_questions.plugin"]
         if self.cram is not None:
-            modules += ["coraplex", "krrood", "cramera_cram.questions.scenes"]
+            modules += ["coraplex", "krrood", "cramera_bridge.questions.scenes"]
         return "; ".join(f"import {module}" for module in modules) + "; print('ok')"
 
     def next_steps(self) -> str:
@@ -385,7 +406,7 @@ class StackInstallation:
         if self.cram is not None:
             lines += [
                 "",
-                "Robot demos and cramera-cram's tests also need ROS 2 and the robot",
+                "Robot demos and cramera-bridge's tests also need ROS 2 and the robot",
                 "descriptions; source them before running one:",
                 "  source /opt/ros/jazzy/setup.bash",
                 "  source <your ROS workspace>/install/setup.bash",

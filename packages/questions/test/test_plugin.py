@@ -15,8 +15,8 @@ from cramera.http.messages import Header, HttpMethod, Request
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
-from cramera_cram.questions.presets import QueryVariable, RobotQuestion
-from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
+from cramera_bridge.questions.presets import QueryVariable, RobotQuestion
+from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.live import Capability
 from cramera_protocol.questions import (

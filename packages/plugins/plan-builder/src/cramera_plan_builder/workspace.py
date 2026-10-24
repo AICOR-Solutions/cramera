@@ -1,6 +1,6 @@
 """
 What the CRAM workspace offers a plan: its robot annotations, object meshes, surface
-annotations and native actions, as cramera-cram reads them and hands them over in the
+annotations and native actions, as cramera-bridge reads them and hands them over in the
 protocol's documents.
 
 Whether the workspace is importable is decided by asking the import system before
@@ -20,7 +20,7 @@ from enum import StrEnum
 from importlib.machinery import ModuleSpec
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, Callable, List, Optional, Tuple
+from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
@@ -29,11 +29,21 @@ from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 
 if TYPE_CHECKING:
-    from cramera_cram.plans.workspace import PlanWorkspace
+    from cramera_bridge.plans.workspace import PlanWorkspace
 
 TEXTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg"})
 """
 The suffixes of the textures a mesh may reference beside it.
+"""
+
+DESCRIPTION_SUFFIX = ".urdf"
+"""
+The suffix of an object library model's description, which names its meshes.
+"""
+
+LIBRARY_SEPARATOR = "/"
+"""
+Separates an object library's name from a file's path in the library.
 """
 
 # %% modules
@@ -59,7 +69,7 @@ class CramModule(StrEnum):
     The class introspection robot parts are read with.
     """
 
-    CRAMERA_CRAM = "cramera_cram"
+    CRAMERA_BRIDGE = "cramera_bridge"
     """
     The robot task demo a generated demo runs as.
     """
@@ -152,17 +162,30 @@ class CramWorkspace(ABC):
         """
         return []
 
+    def object_roots(self) -> Dict[str, Path]:
+        """
+        :return: The root of each object library by the name its files' paths start
+            with; none without libraries.
+        """
+        return {}
+
     def object_file(self, requested: str) -> Path:
         """
         :param requested: A mesh of the object directory, or a material library or
-            texture beside one.
+            texture beside one; or ``<library>/<path>`` of a library model's
+            description, mesh or texture.
         :return: The file.
         :raises CramUnavailable: Without the workspace.
-        :raises PathOutsideDirectory: For a path leaving the directory.
+        :raises PathOutsideDirectory: For a path leaving the directory or the library.
         :raises FileNotInDirectory: For a missing file or one that is no mesh, material
-            library or texture.
+            library, texture or description.
         """
-        directory = self.object_directory()
+        library, _, relative = requested.partition(LIBRARY_SEPARATOR)
+        roots = self.object_roots()
+        if relative and library in roots:
+            directory, requested = roots[library], relative
+        else:
+            directory = self.object_directory()
         file = ConfinedDirectory(directory).file(requested)
         if file.suffix.lower() not in self.served_suffixes():
             raise FileNotInDirectory(directory, requested)
@@ -173,7 +196,11 @@ class CramWorkspace(ABC):
         """
         :return: The suffixes of the object directory's files that are served.
         """
-        return frozenset(member.value for member in MeshFormat) | TEXTURE_SUFFIXES
+        return (
+            frozenset(member.value for member in MeshFormat)
+            | TEXTURE_SUFFIXES
+            | {DESCRIPTION_SUFFIX}
+        )
 
 
 @dataclass(frozen=True)
@@ -210,12 +237,12 @@ class MissingWorkspace(CramWorkspace):
 @dataclass(frozen=True)
 class InstalledWorkspace(CramWorkspace):
     """
-    The workspace of an interpreter that imports CRAM, as cramera-cram reads it.
+    The workspace of an interpreter that imports CRAM, as cramera-bridge reads it.
     """
 
     plans: PlanWorkspace
     """
-    The workspace as cramera-cram reads it.
+    The workspace as cramera-bridge reads it.
     """
 
     def robots(self) -> List[RobotModel]:
@@ -226,6 +253,9 @@ class InstalledWorkspace(CramWorkspace):
 
     def object_directory(self) -> Path:
         return self.plans.object_directory()
+
+    def object_roots(self) -> Dict[str, Path]:
+        return self.plans.object_roots()
 
     def surface_types(self) -> List[str]:
         return self.plans.surface_types()
@@ -239,13 +269,13 @@ class InstalledWorkspace(CramWorkspace):
 
 class WorkspaceModule(StrEnum):
     """
-    The module of cramera-cram reading the installed workspace; it imports CRAM, so it
+    The module of cramera-bridge reading the installed workspace; it imports CRAM, so it
     is only imported once every module is found.
     """
 
-    INSTALLED = "cramera_cram.plans.workspace"
+    INSTALLED = "cramera_bridge.plans.workspace"
     """
-    :class:`cramera_cram.plans.workspace.PlanWorkspace`.
+    :class:`cramera_bridge.plans.workspace.PlanWorkspace`.
     """
 
 

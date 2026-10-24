@@ -37,6 +37,7 @@ test('the routes lie below the viewer, also when it is served below a path', () 
   const api = new PlanBuilderApi(new FakeFetch().fetch, VIEWER);
   assert.equal(api.url(PlanBuilderRoute.CATALOG), route(PlanBuilderRoute.CATALOG));
   assert.equal(api.objectUrl('big knife.stl'), route(`${PlanBuilderRoute.OBJECT_FILES}big%20knife.stl`));
+  assert.equal(api.objectUrl('library/objects/cup #2/model.urdf'), route(`${PlanBuilderRoute.OBJECT_FILES}library/objects/cup%20%232/model.urdf`));
 });
 
 test('a plan is saved as a record, under its identity once it has one', async () => {
