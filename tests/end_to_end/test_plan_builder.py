@@ -292,10 +292,6 @@ def test_the_recording_replays_the_plan_and_the_pick_up(builder_run):
     assert replay.unserved_files() == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="#36: coraplex leaves action nodes unstarted, so they stay CREATED",
-)
 def test_every_recorded_action_succeeded_and_names_its_frames(builder_run):
     (root,) = builder_run.replay.description().plan_trees
     actions = [node for node in nodes_of([root]) if node.label in ACTIONS]

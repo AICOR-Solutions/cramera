@@ -80,7 +80,7 @@ which this repository was mirrored until 22 Oct 2026.
   workspace and ROS 2. A PR2 plan in the apartment is composed through the plan
   builder's routes, saved, exported, run and replayed. coraplex's apartment demo runs
   unchanged under `cramera-live`, is checked while it runs, then saved and replayed.
-  What is still broken is marked `xfail(strict=True)` with its issue (#36, #37). CI
+  What is still broken is marked `xfail(strict=True)` with its issue (#37). CI
   skips the scenarios; `tests/end_to_end/README.md` says how to run them.
 
   ![The plan builder's run replayed](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-33/apartment_PR2_pr2_apartment_pick_85.png)
