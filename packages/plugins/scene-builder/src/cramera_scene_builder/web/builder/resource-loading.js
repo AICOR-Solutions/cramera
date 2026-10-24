@@ -10,6 +10,7 @@ import URDFLoader from 'urdf-loader';
 import { ResourceKey, ResourceKind } from '../../../protocol.js';
 import { LoadingProgress } from '../../../scene/loading-progress.js';
 import { MeshLoading } from '../../../scene/mesh-loading.js';
+import { dressModel } from '../../../scene/model-appearance.js';
 import { PointCloudSample } from './point-cloud-sample.js';
 
 // %% errors
@@ -78,6 +79,9 @@ export class ResourceLoading {
     const root = resource[ResourceKey.KIND] === ResourceKind.URDF ? await this.#loadUrdf(url, progress.manager, meshes) : await meshes.load(url, new THREE.MeshStandardMaterial());
     progress.settleIfUnused();
     await progress.idle();
+    // a scene's URDF is a piece of environment, whose uncoloured parts get the colour of
+    // what they are; a lone mesh keeps its own colours
+    dressModel(root, resource[ResourceKey.KIND] === ResourceKind.URDF);
     root.traverse((child) => {
       if (child.isMesh) child.castShadow = child.receiveShadow = true;
     });
