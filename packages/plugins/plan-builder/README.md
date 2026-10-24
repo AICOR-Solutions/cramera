@@ -30,7 +30,7 @@ cramera
   the demo's world free to move and graspable, its links named below the object's
   identity. Its environments, such as `environments/aicor_medical_lab`, become plan
   environments when the viewer is given that directory with `--scenes`.
-- **CRAM** is reached through `cramera-bridge` only (the `cram` extra); the plugin
+- **CRAM** is reached through `cramera-bridge` only (the `bridge` extra); the plugin
   imports nothing of the CRAM workspace. `cramera_bridge.plans.workspace` hands the
   catalog over as the protocol's `RobotModel`, `ObjectModel` and `ActionCatalog`
   documents, and a generated demo hands its plan as a `DemoDocument` to
