@@ -21,6 +21,7 @@ import { PlaybackClock } from '../playback/playback-clock.js';
 import { saveVideo, VideoRecording } from '../playback/video-recording.js';
 import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
+import { SceneGraphPanel } from '../panels/scene-graph-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
 import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
@@ -240,6 +241,12 @@ export class Application {
   #details;
 
   /**
+   * The Scene graph panel.
+   * @type {SceneGraphPanel}
+   */
+  #sceneGraph;
+
+  /**
    * The top bar.
    * @type {SiteHeader}
    */
@@ -382,6 +389,7 @@ export class Application {
     this.#panels.onShow((panel) => this.#header.markCurrent(panel && !this.#panels.tabbed(panel) ? panel : SCENE_PAGE));
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#details = new DetailsPanel(elements.document);
+    this.#sceneGraph = new SceneGraphPanel(elements.document, this.bus);
     this.#livePanel = new LivePanel(
       elements.document,
       new LiveActions(
@@ -431,7 +439,10 @@ export class Application {
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.#highlights = new SceneHighlights(this.#view);
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
-    this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => this.#details.showSelection(selection));
+    this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => {
+      this.#details.showSelection(selection);
+      this.#sceneGraph.reveal(selection);
+    });
     this.bus.subscribe(ViewerEvent.SCENE_REQUESTED, (name) => this.showRequested(name));
     this.bus.subscribe(ViewerEvent.FRAME_REQUESTED, (frame) => this.seek(frame));
     this.bus.subscribe(ViewerEvent.PLAYBACK_REQUESTED, (playing) => this.#timeline.setPlaying(playing));
@@ -446,7 +457,7 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    for (const part of [this.#sceneGraph, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
@@ -486,6 +497,7 @@ export class Application {
     this.#cinematic.plan(ShotPlan.of(segments, loaded.frames.framesPerSecond, this.#clock.duration));
     this.#timeline.show(this.#clock, segments);
     this.#details.show(loaded);
+    this.#sceneGraph.show(loaded);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
     const missing = loaded.missingFiles().length;

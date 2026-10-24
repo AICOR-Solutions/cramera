@@ -167,3 +167,44 @@ class PluginNotInstalled(ViewerError):
             f"No installed plugin is named {self.name!r}; installed are "
             f"{', '.join(self.installed) or 'none'}."
         )
+
+
+# %% branding
+
+
+@dataclass
+class LogoNotFound(ViewerError):
+    """
+    A logo file the viewer was given that does not exist.
+    """
+
+    path: Path
+    """
+    The file.
+    """
+
+    def message(self) -> str:
+        return f"The logo {str(self.path)!r} does not exist."
+
+
+@dataclass
+class UnsupportedLogo(ViewerError):
+    """
+    A logo file the viewer was given that browsers do not show as an image.
+    """
+
+    path: Path
+    """
+    The file.
+    """
+
+    supported: List[str]
+    """
+    The suffixes of the images a logo may be.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The logo {str(self.path)!r} is no image the top bar can show; use one of "
+            f"{', '.join(self.supported)}."
+        )

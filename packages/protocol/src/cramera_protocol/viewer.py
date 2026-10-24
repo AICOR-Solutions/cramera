@@ -51,6 +51,12 @@ class ViewerRoute(StrEnum):
     The prefix of plugin routes: ``/api/plugins/<plugin>/<route>``.
     """
 
+    LOGO = "/api/logo"
+    """
+    The logo the top bar of every page shows: the AICOR logo unless the viewer was given
+    another.
+    """
+
 
 # %% answers
 
@@ -82,6 +88,11 @@ class EnvironmentVariable(StrEnum):
     DATA = "CRAMERA_DATA"
     """
     The directory of cramera's own data; local recordings go to its ``scenes``.
+    """
+
+    LOGO = "CRAMERA_LOGO"
+    """
+    An image file the viewer shows as its logo instead of the AICOR logo.
     """
 
 
@@ -306,6 +317,11 @@ class ViewerInfoKey(StrEnum):
     How the viewer is served, a :class:`Serving` value.
     """
 
+    LOGO_TEXT = "logoText"
+    """
+    What the logo shows, for people who cannot see it.
+    """
+
 
 class Serving(StrEnum):
     """
@@ -357,4 +373,9 @@ class ViewerInfo(JsonDocument):
     serving: Serving = document_field(ViewerInfoKey.SERVING, default=Serving.SERVER)
     """
     How the viewer is served.
+    """
+
+    logo_text: Optional[str] = document_field(ViewerInfoKey.LOGO_TEXT, default=None)
+    """
+    What the logo at :attr:`ViewerRoute.LOGO` shows, or None for the AICOR logo.
     """

@@ -15,9 +15,11 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import List, Optional, Sequence
+from typing_extensions import List, Mapping, Optional, Sequence
 
 from cramera.application import ViewerApplication
+from cramera.branding import Branding
+from cramera.exceptions import LogoNotFound, UnsupportedLogo
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import HttpServer, RequestAnswerer
 from cramera.locations import DataLocations
@@ -64,6 +66,16 @@ class Option(StrEnum):
     KEEP_RUNNING = "--keep-running"
     """
     Fail when the port is in use instead of stopping the viewer that holds it.
+    """
+
+    LOGO = "--logo"
+    """
+    An image the top bar shows instead of the AICOR logo.
+    """
+
+    LOGO_TEXT = "--logo-text"
+    """
+    What that image shows, for people who cannot see it.
     """
 
 
@@ -116,14 +128,24 @@ class ViewerConfiguration:
     Whether a viewer already listening on the port is stopped and replaced.
     """
 
+    branding: Branding = field(default_factory=Branding)
+    """
+    Which logo the pages show.
+    """
+
     @classmethod
     def from_arguments(
-        cls, arguments: Sequence[str], locations: DataLocations
+        cls,
+        arguments: Sequence[str],
+        locations: DataLocations,
+        environment: Optional[Mapping[str, str]] = None,
     ) -> ViewerConfiguration:
         """
         :param arguments: The command-line arguments without the program name.
         :param locations: The locations the environment configures.
-        :return: The configuration they describe.
+        :param environment: The environment variables, none by default.
+        :return: The configuration they describe; a logo that cannot be shown ends the
+            command with its reason.
         """
         parser = argparse.ArgumentParser(
             prog="cramera", description="Serve the cramera viewer."
@@ -134,7 +156,14 @@ class ViewerConfiguration:
         parser.add_argument(Option.DEMO_SCENES, type=Path, default=None)
         parser.add_argument(Option.NO_BROWSER, action="store_true")
         parser.add_argument(Option.KEEP_RUNNING, action="store_true")
+        parser.add_argument(Option.LOGO, type=Path, default=None)
+        parser.add_argument(Option.LOGO_TEXT, default=None)
         parsed = parser.parse_args(list(arguments))
+        # a logo that cannot be shown is a usage error of the command, said as one
+        try:
+            branding = Branding.of(parsed.logo, parsed.logo_text, environment or {})
+        except (LogoNotFound, UnsupportedLogo) as error:
+            parser.error(error.message())
         return cls(
             locations=locations,
             host=parsed.host,
@@ -143,6 +172,7 @@ class ViewerConfiguration:
             demo_scenes=parsed.demo_scenes,
             open_browser=not parsed.no_browser,
             replace_viewer=not parsed.keep_running,
+            branding=branding,
         )
 
     def scene_directories(self) -> List[SceneDirectory]:
@@ -168,6 +198,7 @@ class ViewerConfiguration:
             catalog=SceneCatalog(self.scene_directories()),
             locations=self.locations,
             plugins=PluginLoader().load(),
+            branding=self.branding,
         )
         answerer = RequestAnswerer(router=application.router(), policy=OriginPolicy())
         return HttpServer(
@@ -207,7 +238,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     locations = DataLocations.from_environment(os.environ, Path.home())
     configuration = ViewerConfiguration.from_arguments(
-        arguments if arguments is not None else sys.argv[1:], locations
+        arguments if arguments is not None else sys.argv[1:], locations, os.environ
     )
     stop_signals = {signal.SIGINT, signal.SIGTERM}
     signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
