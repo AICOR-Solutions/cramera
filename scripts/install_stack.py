@@ -118,7 +118,7 @@ class Extra(StrEnum):
 
     BRIDGE = "bridge"
     """
-    cramera-bridge, through which a plugin reaches the CRAM workspace.
+    The cramera-bridge package, through which a plugin reaches the CRAM workspace.
     """
 
     TEST = "test"
