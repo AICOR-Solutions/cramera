@@ -15,7 +15,10 @@ from cramera_bridge.exceptions import (
     UnknownBody,
     UnknownPlanNode,
 )
-from cramera_bridge.live.plan import PLAN_NODE_PREFIX, PlanNodeStatus
+from coraplex.robot_plans.actions.composite.transporting import MoveAndPickUpAction
+from coraplex.robot_plans.actions.core.navigation import NavigateAction
+from coraplex.robot_plans.actions.core.pick_up import PickUpAction
+from cramera_bridge.live.plan import DesignatorSummary, PLAN_NODE_PREFIX, PlanNodeStatus
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
     ConstraintActivation,
@@ -27,7 +30,9 @@ from cramera_protocol.live_messages import (
     RobotSelection,
 )
 from giskardpy.motion_statechart.data_types import LifeCycleValues
+from krrood.entity_query_language.factories import a, variable
 from semantic_digital_twin.datastructures.definitions import TorsoState
+from semantic_digital_twin.spatial_types.spatial_types import Pose
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
 
@@ -305,3 +310,18 @@ def test_a_constraint_posted_by_the_plan_view_reaches_its_node(
     plan = LivePlan.from_json(json.loads(answer.body))
     assert answer.status is HTTPStatus.OK
     assert [node.constraints != [] for node in plan.nodes] == [False, True, False]
+
+
+def test_a_sub_action_left_to_be_found_is_named_by_what_it_matches():
+    pick_up = a(MoveAndPickUpAction)(
+        navigate=a(NavigateAction)(target_location=variable(Pose, domain=[])),
+        pick_up=a(PickUpAction)(),
+    )
+    assert DesignatorSummary.render(pick_up, set()) == (
+        "MoveAndPickUpAction: navigate NavigateAction, pick_up PickUpAction"
+    )
+    assert DesignatorSummary.render(a(NavigateAction)(), set()) == "NavigateAction"
+
+
+def test_a_value_left_open_is_named_by_its_type():
+    assert DesignatorSummary.render(variable(Pose, domain=[]), set()) == "any Pose"

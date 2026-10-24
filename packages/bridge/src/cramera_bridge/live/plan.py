@@ -17,6 +17,8 @@ from cramera_bridge.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
 from giskardpy.motion_statechart.data_types import LifeCycleValues
+from krrood.entity_query_language.core.variable import Variable
+from krrood.entity_query_language.query.match import Match
 from semantic_digital_twin.robots.robot_parts import Arm
 from semantic_digital_twin.spatial_types.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
@@ -73,6 +75,16 @@ How a number is rendered: as short as it reads back exactly enough.
 SWITCH_VALUES = {True: "on", False: "off"}
 """
 How a boolean is rendered.
+"""
+
+MATCH_SEPARATOR = ": "
+"""
+Separates the class a match matches from what it states about the class's fields.
+"""
+
+OPEN_VALUE = "any"
+"""
+Precedes the type of a value a designator leaves open, to be found when it runs.
 """
 
 
@@ -214,6 +226,26 @@ class DesignatorSummary:
         return list(attributes.items())
 
     @classmethod
+    def render_match(cls, match: Match, object_keys: Set[str], nested: bool) -> str:
+        """
+        :param match: A description of a designator, such as a sub-action a composite
+            action leaves to be found.
+        :param object_keys: The keys of the published objects.
+        :param nested: Whether the match sits in a description nested in the
+            designator; a nested match is named by the class it matches.
+        :return: The class the match matches, followed by what it states about each
+            field when it sits in the designator itself.
+        """
+        name = match._type_.__name__
+        if nested or not match._kwargs_:
+            return name
+        stated = PARAMETER_SEPARATOR.join(
+            f"{field_name} {cls.render(inner, object_keys, nested=True)}"
+            for field_name, inner in match._kwargs_.items()
+        )
+        return f"{name}{MATCH_SEPARATOR}{stated}"
+
+    @classmethod
     def render(cls, value: object, object_keys: Set[str], nested: bool = False) -> str:
         """
         :param value: A field's value.
@@ -247,6 +279,10 @@ class DesignatorSummary:
             return PARAMETER_SEPARATOR.join(
                 cls.render(each, object_keys, nested) for each in value
             )
+        if isinstance(value, Match):
+            return cls.render_match(value, object_keys, nested)
+        if isinstance(value, Variable):
+            return f"{OPEN_VALUE} {value}"
         if is_dataclass(value) and not nested:
             return PARAMETER_SEPARATOR.join(
                 f"{name} {cls.render(inner, object_keys, nested=True)}"
