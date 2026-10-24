@@ -21,6 +21,7 @@ const EVERY_CATEGORY = '';
  */
 export const CATEGORY_LABELS = Object.freeze({
   [EVERY_CATEGORY]: 'All resources',
+  [ResourceCategory.PRIMITIVE]: 'Shapes',
   [ResourceCategory.ENVIRONMENT]: 'Environments',
   [ResourceCategory.ROBOT]: 'Robots',
   [ResourceCategory.OBJECT]: 'Objects',
@@ -162,7 +163,9 @@ export class LibraryView {
     button.className = 'resource-card';
     button.title = resource[ResourceKey.IDENTIFIER];
     const name = this.#cards.create('span', 'resource-name', resource[ResourceKey.NAME]);
-    const kind = this.#cards.create('span', 'resource-kind', `${resource[ResourceKey.CATEGORY]} · ${resource[ResourceKey.KIND]}`);
+    const category = resource[ResourceKey.CATEGORY];
+    const label = category === resource[ResourceKey.KIND] ? category : `${category} · ${resource[ResourceKey.KIND]}`;
+    const kind = this.#cards.create('span', 'resource-kind', label);
     button.append(name, kind);
     return button;
   }

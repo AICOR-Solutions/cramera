@@ -24,6 +24,11 @@ const IDENTITY_CHARACTERS = /^[A-Za-z0-9_-]+$/;
 const CONTROL_CHARACTERS = /[\u0000-\u001f]/;
 
 /**
+ * The control characters a description must not hold: all but line breaks and tabs.
+ */
+const DESCRIPTION_CONTROL_CHARACTERS = /[\u0000-\u0008\u000b-\u001f]/;
+
+/**
  * Keys that would change an object's prototype instead of naming a link or joint.
  */
 const PROTOTYPE_KEYS = Object.freeze(['__proto__', 'prototype', 'constructor']);
@@ -155,6 +160,8 @@ export class DraftCheck {
     };
     const appearance = instance[InstanceKey.POINT_CLOUD];
     if (appearance !== undefined && appearance !== null) result[InstanceKey.POINT_CLOUD] = this.appearance(`${location}.${InstanceKey.POINT_CLOUD}`, appearance);
+    const description = instance[InstanceKey.DESCRIPTION];
+    if (description) result[InstanceKey.DESCRIPTION] = this.#description(`${location}.${InstanceKey.DESCRIPTION}`, description);
     return result;
   }
 
@@ -291,6 +298,21 @@ export class DraftCheck {
   #text(location, text, maximum) {
     if (typeof text !== 'string' || !text.trim() || text.length > maximum || CONTROL_CHARACTERS.test(text)) {
       throw new InvalidDraft(location, `expected text of 1 to ${maximum} characters without control characters`);
+    }
+    return text;
+  }
+
+  /**
+   * @param {string} location Where the description sits.
+   * @param {*} text What an instance is and how it works.
+   * @returns {string} The text.
+   * @throws {InvalidDraft} When it is too long or holds control characters other than
+   *   line breaks and tabs.
+   */
+  #description(location, text) {
+    const maximum = this.#limits[LimitsKey.MAXIMUM_DESCRIPTION_LENGTH];
+    if (typeof text !== 'string' || text.length > maximum || DESCRIPTION_CONTROL_CHARACTERS.test(text)) {
+      throw new InvalidDraft(location, `expected text of at most ${maximum} characters without control characters other than line breaks and tabs`);
     }
     return text;
   }

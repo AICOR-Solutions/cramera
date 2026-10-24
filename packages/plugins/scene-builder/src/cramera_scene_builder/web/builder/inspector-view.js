@@ -29,6 +29,27 @@ const SHOWN_DECIMALS = 6;
 const ScaleStep = Object.freeze({ HALF: 0.5, DOUBLE: 2 });
 
 /**
+ * The legend of the scale fields.
+ */
+export const SCALE_LEGEND = 'Scale · factor';
+
+/**
+ * The legend of a primitive shape's scale fields: a shape is one metre across, so its
+ * factors are its size.
+ */
+export const PRIMITIVE_SCALE_LEGEND = 'Size · m';
+
+/**
+ * How many lines the description field shows.
+ */
+const DESCRIPTION_ROWS = 3;
+
+/**
+ * What the empty description field suggests writing.
+ */
+export const DESCRIPTION_HINT = 'What it is and how it works, e.g. a drawer that slides out 40 cm';
+
+/**
  * How a notice opens: in a new window that cannot reach the builder.
  */
 const NewWindow = Object.freeze({ TARGET: '_blank', RELATION: 'noopener' });
@@ -74,7 +95,8 @@ export class MissingNumber extends Error {
  */
 export class InspectorActions {
   /**
-   * @param {Object} callbacks The callbacks, by name: `rename(name)`, `duplicate()`,
+   * @param {Object} callbacks The callbacks, by name: `rename(name)`,
+   *   `describe(description)`, `duplicate()`,
    *   `remove()`, `chooseLink(link)`, `place(position, rotation)`, `scale(scale)`,
    *   `setProportional(proportional)`, `setAppearance(changes)`, `resetLink()`,
    *   `setJoint(joint, value)` and `noticeUrl(asset)`.
@@ -85,6 +107,11 @@ export class InspectorActions {
      * @type {function(string): void}
      */
     this.rename = callbacks.rename;
+    /**
+     * Sets what the instance is and how it works.
+     * @type {function(string): void}
+     */
+    this.describe = callbacks.describe;
     /**
      * Places a copy of the instance beside it.
      * @type {function(): void}
@@ -199,6 +226,9 @@ export class InspectorView {
     const heading = elements.create('div', 'section-heading');
     heading.append(elements.create('h2', '', 'Selected instance'), fields.kind);
     fields.name = elements.input('text', BuilderAction.RENAME, () => actions.rename(fields.name.value.trim()));
+    fields.description = elements.textArea(BuilderAction.DESCRIBE, () => actions.describe(fields.description.value.trim()));
+    fields.description.rows = DESCRIPTION_ROWS;
+    fields.description.placeholder = DESCRIPTION_HINT;
     const buttons = elements.create('div', 'button-row');
     buttons.append(elements.button('Duplicate', BuilderAction.DUPLICATE, () => actions.duplicate()), elements.button('Remove', BuilderAction.REMOVE, () => actions.remove()));
     fields.reference = this.#referenceFields();
@@ -211,6 +241,7 @@ export class InspectorView {
     fields.notices = elements.create('div', 'notice-list');
     fields.editor.append(
       elements.label('Name', fields.name),
+      elements.label('Description', fields.description, 'description-field'),
       buttons,
       fields.reference,
       elements.label('Part', fields.link),
@@ -243,6 +274,8 @@ export class InspectorView {
     const locked = Boolean(instance[InstanceKey.POINT_CLOUD]?.[AppearanceKey.LOCKED]);
     fields.kind.textContent = resource?.[ResourceKey.CATEGORY] ?? MISSING_RESOURCE;
     fields.name.value = instance[InstanceKey.NAME];
+    fields.description.value = instance[InstanceKey.DESCRIPTION] ?? '';
+    fields.scale.legend.textContent = resource?.[ResourceKey.KIND] === ResourceKind.PRIMITIVE ? PRIMITIVE_SCALE_LEGEND : SCALE_LEGEND;
     this.#showReference(instance[InstanceKey.POINT_CLOUD]);
     const links = [...new Set([...structure.links, ...Object.keys(instance[InstanceKey.LINK_OFFSETS])])];
     this.#elements.options(
@@ -274,12 +307,13 @@ export class InspectorView {
    * @param {Array<string>} names The components' names.
    * @param {string} action The fields' `BuilderAction` value.
    * @param {function(): void} onChange Called when a component changes.
-   * @returns {{element: HTMLElement, inputs: Array<HTMLInputElement>, read: function(): Array<number>, write: function(Array<number>): void}}
+   * @returns {{element: HTMLElement, legend: HTMLElement, inputs: Array<HTMLInputElement>, read: function(): Array<number>, write: function(Array<number>): void}}
    *   The group of three number fields.
    */
   #vector(legend, names, action, onChange) {
     const element = this.#elements.create('fieldset', 'vector-fields');
-    element.append(this.#elements.create('legend', '', legend));
+    const caption = this.#elements.create('legend', '', legend);
+    element.append(caption);
     const inputs = names.map((name) => {
       const input = this.#elements.input('number', action, onChange);
       input.dataset.component = name;
@@ -288,6 +322,7 @@ export class InspectorView {
     });
     return {
       element,
+      legend: caption,
       inputs,
       read: () => inputs.map((input, index) => this.#number(input, `${legend} ${names[index]}`)),
       write: (values) => inputs.forEach((input, index) => {
@@ -301,7 +336,7 @@ export class InspectorView {
    */
   #scaleFields() {
     const elements = this.#elements;
-    this.#fields.scale = this.#vector('Scale · factor', AXES, BuilderAction.SCALE, () => {});
+    this.#fields.scale = this.#vector(SCALE_LEGEND, AXES, BuilderAction.SCALE, () => {});
     this.#fields.scale.inputs.forEach((input, index) => elements.listen(input, DomEvent.CHANGE, () => this.#changeScale(index)));
     const proportional = elements.input('checkbox', BuilderAction.PROPORTIONAL, () => {
       this.#proportional = proportional.checked;

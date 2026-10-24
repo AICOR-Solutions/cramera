@@ -24,6 +24,7 @@ export const BuilderAction = Object.freeze({
   ADD: 'add',
   SELECT: 'select',
   RENAME: 'rename',
+  DESCRIBE: 'describe',
   DUPLICATE: 'duplicate',
   REMOVE: 'remove',
   CHOOSE_LINK: 'choose-link',
@@ -115,6 +116,18 @@ export class Elements {
     input.dataset.action = action;
     this.listen(input, DomEvent.CHANGE, onChange);
     return input;
+  }
+
+  /**
+   * @param {string} action The text area's `BuilderAction` value.
+   * @param {function(): void} onChange Called when the person commits a change.
+   * @returns {HTMLTextAreaElement} The text area.
+   */
+  textArea(action, onChange) {
+    const area = this.create('textarea');
+    area.dataset.action = action;
+    this.listen(area, DomEvent.CHANGE, onChange);
+    return area;
   }
 
   /**

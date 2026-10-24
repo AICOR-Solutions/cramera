@@ -148,6 +148,12 @@ class ResourceKind(StrEnum):
     A point cloud, shown as a reference from its display sample.
     """
 
+    PRIMITIVE = "primitive"
+    """
+    A :class:`PrimitiveShape` the builder draws itself, one metre across, so its scale
+    factors are its size in metres.
+    """
+
 
 class ResourceCategory(StrEnum):
     """
@@ -174,6 +180,11 @@ class ResourceCategory(StrEnum):
     A scanned reference.
     """
 
+    PRIMITIVE = "primitive"
+    """
+    A plain shape standing in for an object still to be designed.
+    """
+
 
 class ReservedResourceRoot(StrEnum):
     """
@@ -183,6 +194,33 @@ class ReservedResourceRoot(StrEnum):
     POINT_CLOUDS = "point-clouds"
     """
     The uploaded point clouds.
+    """
+
+    PRIMITIVES = "primitives"
+    """
+    The primitive shapes, ``primitives/<shape>``, which no directory holds.
+    """
+
+
+class PrimitiveShape(StrEnum):
+    """
+    The shapes a draft can place without a file, each one metre across at scale one,
+    standing on its base.
+    """
+
+    BOX = "box"
+    """
+    A cube of one metre.
+    """
+
+    CYLINDER = "cylinder"
+    """
+    An upright cylinder one metre across and one metre high.
+    """
+
+    SPHERE = "sphere"
+    """
+    A sphere one metre across.
     """
 
 
@@ -552,6 +590,11 @@ class InstanceKey(StrEnum):
     How a reference point cloud is shown.
     """
 
+    DESCRIPTION = "description"
+    """
+    What the instance is and how it works.
+    """
+
 
 UNIT_SCALE = Vector3(1.0, 1.0, 1.0)
 """
@@ -614,6 +657,13 @@ class DraftInstance(JsonDocument):
     )
     """
     How the instance is shown, for a reference point cloud; None for a model.
+    """
+
+    description: str = document_field(InstanceKey.DESCRIPTION, default="")
+    """
+    What the instance is, how it works and anything else a person noted about it, such
+    as what a primitive shape stands in for so the object can be designed later; empty
+    when nothing was noted.
     """
 
 
@@ -815,6 +865,11 @@ class LimitsKey(StrEnum):
     How long a name is at most.
     """
 
+    MAXIMUM_DESCRIPTION_LENGTH = "maximumDescriptionLength"
+    """
+    How long an instance's description is at most.
+    """
+
     MAXIMUM_IDENTIFIER_LENGTH = "maximumIdentifierLength"
     """
     How long an instance or draft identity is at most.
@@ -901,6 +956,13 @@ class SceneBuilderLimits(JsonDocument):
     )
     """
     How many characters a scene, instance or notice name has at most.
+    """
+
+    maximum_description_length: int = document_field(
+        LimitsKey.MAXIMUM_DESCRIPTION_LENGTH, default=4000
+    )
+    """
+    How many characters an instance's description has at most.
     """
 
     maximum_identifier_length: int = document_field(

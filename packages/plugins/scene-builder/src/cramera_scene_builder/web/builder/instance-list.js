@@ -72,6 +72,7 @@ export class InstanceList {
       const row = this.#rows.button('', BuilderAction.SELECT, () => this.#onSelect(identifier));
       row.className = 'instance-row';
       row.setAttribute('aria-selected', String(identifier === selected));
+      if (instance[InstanceKey.DESCRIPTION]) row.title = instance[InstanceKey.DESCRIPTION];
       const category = resource(instance[InstanceKey.ASSET])?.[ResourceKey.CATEGORY] ?? MISSING_RESOURCE;
       row.append(this.#rows.create('span', 'instance-tag', category), this.#rows.create('span', 'instance-name', instance[InstanceKey.NAME]));
       return row;

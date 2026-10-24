@@ -169,9 +169,14 @@ class LibraryRoots:
         """
         :param name: The root's name.
         :param directory: The root's directory.
-        :raises InvalidRootName: When the name is no root name or names another root.
+        :raises InvalidRootName: When the name is no root name, names another root or
+            is kept for the primitive shapes.
         """
-        if not SceneName.is_valid(name) or name in self.roots:
+        if (
+            not SceneName.is_valid(name)
+            or name in self.roots
+            or name == ReservedResourceRoot.PRIMITIVES
+        ):
             raise InvalidRootName(directory)
         self.roots[name] = directory
 

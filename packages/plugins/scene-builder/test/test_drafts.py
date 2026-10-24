@@ -15,6 +15,9 @@ from cramera_protocol.scene_builder import (
     DraftKey,
     DraftRecord,
     InstanceKey,
+    PointCloudAppearance,
+    PrimitiveShape,
+    ReservedResourceRoot,
     SceneDraft,
 )
 from cramera_scene_builder.drafts import (
@@ -216,3 +219,67 @@ def test_a_saved_draft_is_written_whole_as_json(store, record):
     path = store.directory / f"{saved.identifier}{DraftFile.SUFFIX}"
     assert json.loads(path.read_text(encoding="utf-8")) == record.document.to_json()
     assert [entry.name for entry in store.directory.iterdir()] == [path.name]
+
+
+# %% primitive shapes and descriptions
+
+
+def with_instance(record: DraftRecord, **changes) -> SceneDraft:
+    """
+    :return: The record's draft holding only its first instance, changed.
+    """
+    first, *_ = record.document.instances
+    return replace(record.document, instances=[replace(first, **changes)])
+
+
+@pytest.mark.parametrize("shape", list(PrimitiveShape))
+def test_a_primitive_shape_is_placed_without_a_file_or_notices(library, record, shape):
+    asset = f"{ReservedResourceRoot.PRIMITIVES}/{shape}"
+    completed = DraftResources(library).complete(with_instance(record, asset=asset))
+    assert [instance.asset for instance in completed.instances] == [asset]
+    assert completed.notices == []
+
+
+@pytest.mark.parametrize(
+    "changes, error",
+    [
+        ({"asset": f"{ReservedResourceRoot.PRIMITIVES}/torus"}, NotAModel),
+        (
+            {
+                "asset": f"{ReservedResourceRoot.PRIMITIVES}/{PrimitiveShape.BOX}",
+                "point_cloud": PointCloudAppearance(),
+            },
+            NotAPointCloud,
+        ),
+    ],
+)
+def test_a_primitive_shape_there_is_none_of_or_shown_as_a_cloud_is_refused(
+    library, record, changes, error
+):
+    with pytest.raises(error):
+        DraftResources(library).complete(with_instance(record, **changes))
+
+
+def test_a_description_may_span_lines_and_be_empty(limits, record):
+    for description in ["", "A shelf for the cups.\n\tIt slides out."]:
+        DraftCheck(limits).check(with_instance(record, description=description))
+
+
+@pytest.mark.parametrize(
+    "description",
+    ["beyond", "with a bell \x07"],
+)
+def test_a_description_too_long_or_with_control_characters_is_refused(
+    limits, record, description
+):
+    if description == "beyond":
+        description = "x" * (limits.maximum_description_length + 1)
+    with pytest.raises(InvalidDraftText):
+        DraftCheck(limits).check(with_instance(record, description=description))
+
+
+def test_a_description_is_kept_when_saved(store, record):
+    draft = with_instance(record, description="Stands in for the robot's charger.")
+    saved = store.save(replace(record, document=draft))
+    (instance,) = store.load(saved.identifier).document.instances
+    assert instance.description == "Stands in for the robot's charger."

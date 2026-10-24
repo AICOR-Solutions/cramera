@@ -127,6 +127,8 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 .vector-fields legend, .reference-fields legend { font-size: 12px; color: var(--text-muted); padding: 0 4px; }
 .vector-fields label, .reference-fields label { margin: 0; }
 
+.description-field textarea { display: block; width: 100%; min-height: 3.6em; resize: vertical; }
+
 .notice-list a { display: block; color: var(--accent); overflow-wrap: anywhere; }
 .notice-list p { overflow-wrap: anywhere; font: 11px var(--mono); }
 

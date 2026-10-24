@@ -27,6 +27,7 @@
     "maximumInstances": 4,
     "maximumDocumentBytes": 2097152,
     "maximumNameLength": 160,
+    "maximumDescriptionLength": 4000,
     "maximumIdentifierLength": 96,
     "maximumReferenceLength": 2048,
     "maximumCoordinate": 10000.0,
