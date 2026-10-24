@@ -65,10 +65,10 @@ def test_a_module_failing_to_import_is_reported_and_hides_only_itself(mimics):
     assert [failed.module for failed in mimics.failed_modules] == [BROKEN_MODULE]
     assert mimics.failed_modules[0].error.startswith(ImportError.__name__)
     assert [action.schema.name for action in mimics.actions] == [
-        waving.HandOverAction.__name__,
-        waving.PointAction.__name__,
-        waving.ShrugAction.__name__,
-        waving.WaveAction.__name__,
+        "hand_over",
+        "point",
+        "shrug",
+        "wave",
     ]
 
 

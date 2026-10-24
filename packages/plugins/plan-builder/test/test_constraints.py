@@ -54,7 +54,7 @@ def schema_of(actions: ActionCatalog, name: str) -> ActionSchema:
     return next(schema for schema in actions.actions if schema.name == name)
 
 
-def attached(text: str, step_action: str = "PickUpAction", **fields):
+def attached(text: str, step_action: str = "pick_up", **fields):
     """
     :param text: A constraint.
     :param step_action: The action of the step it is attached to.
@@ -164,11 +164,11 @@ def test_a_distance_from_nothing_named_is_refused(compiler):
 
 def test_an_attached_constraint_about_no_object_is_refused(compiler):
     with pytest.raises(ConstraintSubjectMissing):
-        compiler.compile(attached("Stay upright", step_action="NavigateAction"))
+        compiler.compile(attached("Stay upright", step_action="navigate"))
 
 
 def test_looking_turns_on_the_boolean_field_the_rule_names(compiler, actions):
-    transport = schema_of(actions, "TransportAction")
+    transport = schema_of(actions, "transport")
     compiled = compiler.compile(
         attached("Look where it operates", step_action=transport.name), transport
     )
@@ -179,7 +179,7 @@ def test_looking_turns_on_the_boolean_field_the_rule_names(compiler, actions):
 
 
 def test_looking_on_an_action_without_the_field_changes_nothing(compiler, actions):
-    navigate = schema_of(actions, "NavigateAction")
+    navigate = schema_of(actions, "navigate")
     compiled = compiler.compile(
         attached("Look where it operates", step_action=navigate.name), navigate
     )
@@ -188,7 +188,7 @@ def test_looking_on_an_action_without_the_field_changes_nothing(compiler, action
 
 
 def test_a_rule_without_a_switch_turns_on_nothing(compiler, actions):
-    transport = schema_of(actions, "TransportAction")
+    transport = schema_of(actions, "transport")
     compiled = compiler.compile(
         attached("Keep the milk upright", objects=["milk"]), transport
     )
@@ -196,7 +196,7 @@ def test_a_rule_without_a_switch_turns_on_nothing(compiler, actions):
 
 
 def test_a_switch_naming_a_field_that_is_no_boolean_turns_on_nothing(compiler, actions):
-    transport = schema_of(actions, "TransportAction")
+    transport = schema_of(actions, "transport")
     rule = compiler.rule_for("look where it operates")
     assert compiler.has_switch(replace(rule, switch="arm"), transport) is False
 

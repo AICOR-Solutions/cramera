@@ -1,10 +1,10 @@
 {
   "liveUrl": "http://127.0.0.1:18765",
   "robots": [
-    {"name": "Armar7", "module": "semantic_digital_twin.robots.armar7", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
-    {"name": "PR2", "module": "semantic_digital_twin.robots.pr2", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
-    {"name": "Stretch", "module": "semantic_digital_twin.robots.stretch", "choices": {"Arms": ["BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
-    {"name": "Tracy", "module": "semantic_digital_twin.robots.tracy", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": []}}
+    {"name": "armar7", "label": "Armar7", "savedAs": ["Armar7"], "module": "semantic_digital_twin.robots.armar7", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
+    {"name": "pr2", "label": "PR2", "savedAs": ["PR2"], "module": "semantic_digital_twin.robots.pr2", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
+    {"name": "stretch", "label": "Stretch", "savedAs": ["Stretch"], "module": "semantic_digital_twin.robots.stretch", "choices": {"Arms": ["BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
+    {"name": "tracy", "label": "Tracy", "savedAs": ["Tracy"], "module": "semantic_digital_twin.robots.tracy", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": []}}
   ],
   "environments": [{"name": "lab", "environment": "Test laboratory"}],
   "objects": [{"id": "big-knife.stl", "name": "big-knife"}, {"id": "milk.stl", "name": "milk"}, {"id": "3d_cup.obj", "name": "3d_cup"}],

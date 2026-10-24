@@ -222,7 +222,7 @@ export class PlanState {
   refusal(robot, schema) {
     if (!schema[ActionSchemaKey.AVAILABLE]) return schema[ActionSchemaKey.UNAVAILABLE_REASON] ?? 'unavailable';
     const lacking = PlanState.fields(schema).find((field) => field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] === ActionFieldKind.ENUM && this.choices(robot, field).length === 0);
-    return lacking ? `${robot[PlannedRobotKey.MODEL]} offers no ${lacking[ActionFieldKey.ENUM_TYPE]} for field '${lacking[ActionFieldKey.NAME]}'` : null;
+    return lacking ? `${this.modelLabel(robot[PlannedRobotKey.MODEL])} offers no ${lacking[ActionFieldKey.ENUM_TYPE]} for field '${lacking[ActionFieldKey.NAME]}'` : null;
   }
 
   /**
@@ -278,7 +278,7 @@ export class PlanState {
   }
 
   /**
-   * @param {string} name The class name of a robot model.
+   * @param {string} name A robot model's identifier.
    * @returns {Object} The model as the catalog lists it.
    * @throws {PlanRefused} When the catalog has no such model.
    */
@@ -289,7 +289,16 @@ export class PlanState {
   }
 
   /**
-   * @param {string} modelName The class name of a robot model.
+   * @param {string} name A robot model's identifier.
+   * @returns {string} The model's display name, its identifier in catalogs that give
+   *   none.
+   */
+  modelLabel(name) {
+    return this.model(name)[RobotModelKey.LABEL] || name;
+  }
+
+  /**
+   * @param {string} modelName A robot model's identifier.
    * @returns {string} The new robot's identity; it is edited from now on.
    * @throws {PlanRefused} When the plan holds as many robots as it may.
    */
@@ -301,7 +310,7 @@ export class PlanState {
     this.robots().push({
       [PlannedRobotKey.IDENTIFIER]: identifier,
       [PlannedRobotKey.MODEL]: modelName,
-      [PlannedRobotKey.LABEL]: `${modelName} ${sameModel + 1}`,
+      [PlannedRobotKey.LABEL]: `${this.modelLabel(modelName)} ${sameModel + 1}`,
       [PlannedRobotKey.POSE]: PlanPose.of(0, this.robots().length * ROBOT_SPACING, 0, 0),
       [PlannedRobotKey.JOINT_POSITIONS]: {},
       [PlannedRobotKey.STEPS]: [],
@@ -329,14 +338,15 @@ export class PlanState {
    * old model and is dropped, and a name made from the old model's name takes the new
    * one's.
    * @param {string} identifier The robot's identity.
-   * @param {string} modelName The class name of the new model.
+   * @param {string} modelName The new model's identifier.
    * @returns {number} How many steps were dropped.
    */
   setRobotModel(identifier, modelName) {
     const robot = this.robot(identifier);
     this.model(modelName);
-    const previous = robot[PlannedRobotKey.MODEL];
-    if (robot[PlannedRobotKey.LABEL].startsWith(`${previous} `)) robot[PlannedRobotKey.LABEL] = `${modelName}${robot[PlannedRobotKey.LABEL].slice(previous.length)}`;
+    const previous = this.modelLabel(robot[PlannedRobotKey.MODEL]);
+    const next = this.modelLabel(modelName);
+    if (robot[PlannedRobotKey.LABEL].startsWith(`${previous} `)) robot[PlannedRobotKey.LABEL] = `${next}${robot[PlannedRobotKey.LABEL].slice(previous.length)}`;
     robot[PlannedRobotKey.MODEL] = modelName;
     robot[PlannedRobotKey.JOINT_POSITIONS] = {};
     const offered = new Set(this.offeredActions(robot).map((schema) => schema[ActionSchemaKey.NAME]));

@@ -176,7 +176,7 @@ def test_a_constraint_is_compiled_for_its_step(post):
         PlanBuilderRoute.CONSTRAINT,
         ConstraintText(
             text="Keep the milk upright",
-            step_action="TransportAction",
+            step_action="transport",
             objects=["milk"],
         ).to_json(),
     )
@@ -188,7 +188,7 @@ def test_a_constraint_turns_on_a_switch_of_the_steps_action(post):
     answer = post(
         PlanBuilderRoute.CONSTRAINT,
         ConstraintText(
-            text="Look where it operates", step_action="TransportAction"
+            text="Look where it operates", step_action="transport"
         ).to_json(),
     )
     compiled = StepConstraint.from_json(json.loads(answer.body))
@@ -198,9 +198,7 @@ def test_a_constraint_turns_on_a_switch_of_the_steps_action(post):
 def test_a_constraint_on_an_action_the_workspace_lacks_turns_on_nothing(post):
     answer = post(
         PlanBuilderRoute.CONSTRAINT,
-        ConstraintText(
-            text="Look where it operates", step_action="SearchAction"
-        ).to_json(),
+        ConstraintText(text="Look where it operates", step_action="search").to_json(),
     )
     assert StepConstraint.from_json(json.loads(answer.body)).switch is None
 

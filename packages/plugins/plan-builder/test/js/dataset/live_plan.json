@@ -1,10 +1,10 @@
 {
   "signature": "s1",
   "nodes": [
-    {"id": "n0", "kind": "SequentialNode", "label": "SequentialNode", "status": "RUNNING"},
-    {"id": "n1", "parent": "n0", "kind": "ActionNode", "label": "ParkArmsAction", "status": "SUCCEEDED"},
-    {"id": "n1a", "parent": "n1", "kind": "MotionNode", "label": "MoveJointsMotion", "status": "SUCCEEDED"},
-    {"id": "n2", "parent": "n0", "kind": "ActionNode", "label": "PickUpAction", "status": "RUNNING",
+    {"id": "n0", "kind": "sequence", "label": "SequentialNode", "status": "RUNNING"},
+    {"id": "n1", "parent": "n0", "kind": "action", "label": "ParkArmsAction", "status": "SUCCEEDED"},
+    {"id": "n1a", "parent": "n1", "kind": "motion", "label": "MoveJointsMotion", "status": "SUCCEEDED"},
+    {"id": "n2", "parent": "n0", "kind": "action", "label": "PickUpAction", "status": "RUNNING",
      "constraints": [{"text": "Keep the milk upright", "monitor": "VectorsAligned", "observation": "TRUE"}]}
   ]
 }

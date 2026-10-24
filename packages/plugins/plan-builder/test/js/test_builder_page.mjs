@@ -288,8 +288,8 @@ test('the page starts a plan in the first environment and is ready', async () =>
 });
 
 test('the page starts in the environment its query names, with the last robot model', async () => {
-  const { page } = await openPage(`${PlanBuilderPageParameter.ENVIRONMENT}=nowhere`, ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'Tracy'));
-  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'Tracy');
+  const { page } = await openPage(`${PlanBuilderPageParameter.ENVIRONMENT}=nowhere`, ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'tracy'));
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'lab');
 });
 
@@ -313,29 +313,29 @@ test('without the CRAM workspace the page composes but does not run', async () =
 
 test('clicking an action and dropping one add steps where they land', async () => {
   const { root, page } = await openPage();
-  block(root, 'ParkArmsAction').click();
-  drop(steps(root)[0], DragText.of(DragKind.STEP, 'MoveTorsoAction'));
-  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['MoveTorsoAction', 'ParkArmsAction']);
-  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, page.state.schema('MoveTorsoAction')[ActionSchemaKey.LABEL]);
+  block(root, 'park_arms').click();
+  drop(steps(root)[0], DragText.of(DragKind.STEP, 'move_torso'));
+  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['move_torso', 'park_arms']);
+  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, page.state.schema('move_torso')[ActionSchemaKey.LABEL]);
   assert.ok(Number(steps(root)[0].dataset.palette) < STEP_PALETTE_SIZE);
 });
 
 test('the palette groups the actions and names why others are not available', async () => {
-  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'Tracy'));
+  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'tracy'));
   const groups = root.findAll((element) => element.className === 'palette-group').map((element) => element.dataset.group);
   assert.deepEqual(groups, [...new Set(page.state.offeredActions(page.state.activeRobot()).map((schema) => schema[ActionSchemaKey.GROUP]))]);
   const refused = root.findAll((element) => element.className === 'block unavailable');
   const reasons = new Map(refused.map((element) => [element.dataset.name, element.children[1].textContent]));
   const unavailable = ACTIONS[ActionCatalogKey.ACTIONS].find((schema) => !schema[ActionSchemaKey.AVAILABLE]);
   assert.equal(reasons.get(unavailable[ActionSchemaKey.NAME]), unavailable[ActionSchemaKey.UNAVAILABLE_REASON]);
-  assert.match(reasons.get('MoveTorsoAction'), /TorsoState/);
+  assert.match(reasons.get('move_torso'), /TorsoState/);
   const notice = root.findAll((element) => element.className === 'notice')[0];
   assert.match(notice.textContent, new RegExp(ACTIONS[ActionCatalogKey.FAILED_MODULES][0].module));
 });
 
 test('a gripper step offers its enumerations with the choices of the robot', async () => {
-  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'Stretch'));
-  block(root, 'SetGripperAction').click();
+  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'stretch'));
+  block(root, 'set_gripper').click();
   const gripper = parameter(root, 'gripper');
   const motion = parameter(root, 'motion');
   assert.deepEqual(gripper.children.map((option) => option.value), ['BOTH']);
@@ -349,7 +349,7 @@ test('a gripper step offers its enumerations with the choices of the robot', asy
 test('optional fields fold under more options and keep their defaults until set', async () => {
   const { root, page } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
-  block(root, 'PickUpAction').click();
+  block(root, 'pick_up').click();
   const values = () => page.state.steps()[0][PlanStepKey.VALUES];
   assert.equal(root.findAll((element) => element.className === 'more-options').length, 1);
   assert.match(root.findAll((element) => element.className === 'derived')[0].textContent, /derived from arm and object_designator/);
@@ -371,7 +371,7 @@ test('optional fields fold under more options and keep their defaults until set'
 test('an annotation without a live entity is typed by name', async () => {
   const { root, page } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
-  block(root, 'CuttingAction').click();
+  block(root, 'cutting').click();
   const tool = parameter(root, 'tool');
   assert.match(root.findAll((element) => element.className === 'empty').map((element) => element.textContent).join(' '), /Tool annotation/);
   tool.value = 'knife';
@@ -389,39 +389,39 @@ test('a step that no longer fits its action shows why', async () => {
       [PlanRecordKey.IDENTIFIER]: 'plan-1',
       [PlanRecordKey.DOCUMENT]: {
         [PlanKey.NAME]: 'stale',
-        [PlanKey.ROBOTS]: [{ id: 'robot_1', model: 'PR2', label: 'PR2 1', pose: [0, 0, 0, 0, 0, 0, 1], steps: [{ id: 'step_1', action: 'SearchAction', values: {} }] }],
+        [PlanKey.ROBOTS]: [{ id: 'robot_1', model: 'pr2', label: 'PR2 1', pose: [0, 0, 0, 0, 0, 0, 1], steps: [{ id: 'step_1', action: 'search', values: {} }] }],
       },
     });
   });
   const problems = root.findAll((element) => element.className === 'step-problem').map((element) => element.textContent);
   assert.deepEqual(problems, page.state.problems(page.state.steps()[0]));
-  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, 'SearchAction');
+  assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, 'search');
 });
 
 test('a step is moved and removed with its controls', async () => {
   const { root, page } = await openPage();
-  block(root, 'ParkArmsAction').click();
-  block(root, 'MoveTorsoAction').click();
+  block(root, 'park_arms').click();
+  block(root, 'move_torso').click();
   byAction(root, PlanAction.MOVE_STEP_DOWN)[0].click();
-  assert.equal(page.state.steps()[0][PlanStepKey.ACTION], 'MoveTorsoAction');
+  assert.equal(page.state.steps()[0][PlanStepKey.ACTION], 'move_torso');
   byAction(root, PlanAction.REMOVE_STEP)[0].click();
-  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['ParkArmsAction']);
+  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['park_arms']);
 });
 
 test('a refused edit is reported', async () => {
   const { root, page } = await openPage();
-  for (let count = 0; count <= page.state.limits.maximumSteps; count += 1) block(root, 'ParkArmsAction').click();
+  for (let count = 0; count <= page.state.limits.maximumSteps; count += 1) block(root, 'park_arms').click();
   assert.match(message(root), /At most/);
 });
 
 test('a dropped sentence is compiled for its step and attached', async () => {
   const { root, page, api } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
-  block(root, 'PickUpAction').click();
+  block(root, 'pick_up').click();
   drop(steps(root)[0], DragText.of(DragKind.CONSTRAINT, RULES[0][ConstraintRuleKey.SENTENCE]));
   await settled();
   const [request] = api.compiled;
-  assert.equal(request[ConstraintTextKey.STEP_ACTION], 'PickUpAction');
+  assert.equal(request[ConstraintTextKey.STEP_ACTION], 'pick_up');
   assert.equal(request[ConstraintTextKey.STEP_OBJECT], page.state.objects()[0][PlannedObjectKey.IDENTIFIER]);
   assert.equal(page.state.steps()[0][PlanStepKey.CONSTRAINTS][0][StepConstraintKey.MONITOR_TYPE], RULES[0][ConstraintRuleKey.MONITOR_TYPE]);
   assert.equal(root.findAll((element) => element.className === 'chip').length, 1);
@@ -429,7 +429,7 @@ test('a dropped sentence is compiled for its step and attached', async () => {
 
 test('a sentence no rule reads is not attached', async () => {
   const { root, page } = await openPage();
-  block(root, 'ParkArmsAction').click();
+  block(root, 'park_arms').click();
   drop(steps(root)[0], DragText.of(DragKind.CONSTRAINT, 'Sing while working'));
   await settled();
   assert.deepEqual(page.state.steps()[0][PlanStepKey.CONSTRAINTS], []);
@@ -562,7 +562,7 @@ test('an object edited in the list moves in the live world too', async () => {
 
 test('a dragged robot stays on the floor and a target takes the dragged pose', async () => {
   const { root, page, scene } = await openPage();
-  block(root, 'NavigateAction').click();
+  block(root, 'navigate').click();
   const lifted = [1, 2, 0.5, 0, 0, Math.sin(0.25), Math.cos(0.25)];
   const robot = page.state.activeRobot()[PlannedRobotKey.IDENTIFIER];
   scene().listeners.onPlace(new Selection(MarkerKind.ROBOT, robot), lifted);
@@ -592,8 +592,8 @@ test('a picked object is marked in the list and the turn mode reaches the view',
 test('a performing run shows the live statuses and attaches its constraints once', async () => {
   const { root, page, live, timer } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
-  block(root, 'ParkArmsAction').click();
-  block(root, 'PickUpAction').click();
+  block(root, 'park_arms').click();
+  block(root, 'pick_up').click();
   drop(steps(root)[1], DragText.of(DragKind.CONSTRAINT, RULES[0][ConstraintRuleKey.SENTENCE]));
   await settled();
   byAction(root, PlanAction.PERFORM)[0].click();
@@ -611,7 +611,7 @@ test('a performing run shows the live statuses and attaches its constraints once
 test('live poses are captured into the plan and the surfaces offered', async () => {
   const { root, page, live, timer } = await openPage();
   addMilk(root);
-  block(root, 'TransportAction').click();
+  block(root, 'transport').click();
   byAction(root, PlanAction.STAGE)[0].click();
   await settled();
   await timer.tick();
@@ -630,7 +630,7 @@ test('live poses are captured into the plan and the surfaces offered', async () 
 
 test('the live robot pose becomes a pose target, once there is one', async () => {
   const { root, page, timer } = await openPage();
-  block(root, 'NavigateAction').click();
+  block(root, 'navigate').click();
   byAction(root, PlanAction.USE_LIVE_POSE)[0].click();
   assert.match(message(root), /live scene/);
   byAction(root, PlanAction.STAGE)[0].click();
@@ -709,15 +709,15 @@ test('the panel is the plan view: its heading and the recorded plan, nothing els
 
 test('unfolded options stay unfolded while the plan changes', async () => {
   const { root } = await openPage();
-  block(root, 'ParkArmsAction').click();
+  block(root, 'park_arms').click();
   const more = root.findAll((element) => element.className === 'more-options')[0];
   more.open = true;
   more.dispatch(DomEvent.TOGGLE);
-  block(root, 'MoveTorsoAction').click();
+  block(root, 'move_torso').click();
   assert.equal(root.findAll((element) => element.className === 'more-options')[0].open, true);
   const unfolded = root.findAll((element) => element.className === 'more-options')[0];
   unfolded.open = false;
   unfolded.dispatch(DomEvent.TOGGLE);
-  block(root, 'MoveTorsoAction').click();
+  block(root, 'move_torso').click();
   assert.equal(root.findAll((element) => element.className === 'more-options')[0].open, false);
 });

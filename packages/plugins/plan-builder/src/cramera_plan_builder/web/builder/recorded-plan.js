@@ -4,6 +4,7 @@
  */
 
 import { PlanNodeKey, PlanNodeKind } from '../../../protocol.js';
+import { planNodeKindOf } from '../../../core/plan-node-kinds.js';
 
 /**
  * Where a step is at a frame of the replay.
@@ -202,7 +203,7 @@ export class RecordedPlan {
    *   below it, in execution order.
    */
   static actionsOf(node) {
-    if (node[PlanNodeKey.KIND] === PlanNodeKind.ACTION) return [node];
+    if (planNodeKindOf(node[PlanNodeKey.KIND]) === PlanNodeKind.ACTION) return [node];
     return (node[PlanNodeKey.CHILDREN] ?? []).flatMap((child) => RecordedPlan.actionsOf(child));
   }
 

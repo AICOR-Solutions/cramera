@@ -117,6 +117,16 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **The protocol names actions, robots and plan node kinds itself.** Plans name actions
+  and robot models by snake_case identifiers (`pick_up`, `pr2`) and recordings name plan
+  node kinds as `action`, `motion`, `sequence`, … instead of CRAM's class names.
+  `cramera_bridge/names.py` is the one table between the two, so a rename in CRAM
+  changes only that table. Plans are written in format 1.2; plans of 1.1, naming the
+  class names, are translated through the names the catalog lists each identifier as
+  having been saved under (`savedAs`), and earlier recordings' class names are read as
+  their kinds.
+
+  ![A plan sent with class names and saved with identifiers](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-49/saved_plan.png)
 - **Things a robot takes hold of are objects from the start.** Every body that a
   semantic annotation of something with grasps describes (Milk, Bowl, Spoon, Cup, …) is
   published and recorded as an object, however the world attaches it. Parts of other

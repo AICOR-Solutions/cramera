@@ -160,7 +160,7 @@ export class RobotsView {
     const elements = (this.#shown = new Elements(document));
     const state = this.#editor.state;
     const robot = state.activeRobot();
-    const models = state.catalog[PlanBuilderCatalogKey.ROBOTS].map((model) => ({ value: model[RobotModelKey.NAME], label: model[RobotModelKey.NAME] }));
+    const models = state.catalog[PlanBuilderCatalogKey.ROBOTS].map((model) => ({ value: model[RobotModelKey.NAME], label: model[RobotModelKey.LABEL] || model[RobotModelKey.NAME] }));
     if (!robot) {
       this.element.replaceChildren(elements.create('p', 'empty', 'The CRAM workspace offers no robot here.'));
       return;
@@ -216,7 +216,7 @@ export class RobotsView {
     const [x, y] = PlanPose.position(robot[PlannedRobotKey.POSE]);
     const steps = robot[PlannedRobotKey.STEPS].length;
     const head = elements.create('span', 'robot-head');
-    head.append(elements.create('strong', '', robot[PlannedRobotKey.LABEL]), elements.create('span', 'badge', robot[PlannedRobotKey.MODEL]));
+    head.append(elements.create('strong', '', robot[PlannedRobotKey.LABEL]), elements.create('span', 'badge', this.#editor.state.modelLabel(robot[PlannedRobotKey.MODEL])));
     const facts = `${steps} ${steps === 1 ? 'step' : 'steps'} · starts at ${RobotsView.metres(x)}, ${RobotsView.metres(y)} m`;
     button.append(head, elements.create('span', 'robot-facts', facts));
     if (edited) button.append(elements.create('span', 'robot-editing', 'editing its plan'));

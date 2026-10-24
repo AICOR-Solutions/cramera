@@ -8,9 +8,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from typing_extensions import Any, Dict, List, Optional
+from typing_extensions import Any, Dict, List, Optional, Self
 
-from cramera_protocol.document import JsonDocument, document_field, extension_field
+from cramera_protocol.document import (
+    JsonDocument,
+    ValueLocation,
+    document_field,
+    extension_field,
+)
 from cramera_protocol.geometry import Bounds, FloorRectangle, Pose, Vector3
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED, ProtocolVersion
 
@@ -741,12 +746,111 @@ class PerceptionImage(JsonDocument):
 
 class PlanNodeKind(StrEnum):
     """
-    The kinds of plan node a reader of a recorded plan tells apart.
+    The kinds of plan node a reader of a recorded plan tells apart; the bridge
+    translates the planner's node classes into them.
+    """
+
+    ACTION = "action"
+    """
+    A node performing an action designator: one step of the plan.
+    """
+
+    MOTION = "motion"
+    """
+    A node performing a motion designator, part of an action.
+    """
+
+    CONDITION = "condition"
+    """
+    A node checking a condition before or after an action.
+    """
+
+    SEQUENCE = "sequence"
+    """
+    A node performing its children one after another, also repeated or until one
+    succeeds.
+    """
+
+    PARALLEL = "parallel"
+    """
+    A node performing its children at once, also until one succeeds.
+    """
+
+    MONITOR = "monitor"
+    """
+    A node watching a condition to pause or cancel its children.
+    """
+
+    CODE = "code"
+    """
+    A node running a piece of code.
+    """
+
+    ATTACHMENT = "attachment"
+    """
+    A node attaching a held object to another body or releasing it.
+    """
+
+    UNDERSPECIFIED = "underspecified"
+    """
+    A node whose action is left to be chosen while the plan runs.
+    """
+
+    OTHER = "other"
+    """
+    Any other node.
+    """
+
+    @classmethod
+    def of_recorded(cls, kind: str) -> PlanNodeKind:
+        """
+        :param kind: A kind as a recording names it: a member's value, or the class
+            name earlier recordings stored.
+        :return: The kind; a class name that is no :class:`LegacyPlanNodeKind` is
+            :attr:`OTHER`.
+        """
+        if kind in {member.value for member in cls}:
+            return cls(kind)
+        if kind in {member.value for member in LegacyPlanNodeKind}:
+            return cls[LegacyPlanNodeKind(kind).name]
+        return cls.OTHER
+
+
+class LegacyPlanNodeKind(StrEnum):
+    """
+    The planner's class names recordings stored as plan node kinds before the protocol
+    named them; frozen, read only to translate such recordings, each member named like
+    the :class:`PlanNodeKind` it stands for.
     """
 
     ACTION = "ActionNode"
     """
-    A node performing an action designator: one step of the plan.
+    An action node.
+    """
+
+    MOTION = "MotionNode"
+    """
+    A motion node.
+    """
+
+    CONDITION = "ConditionNode"
+    """
+    A condition node.
+    """
+
+    SEQUENCE = "SequentialNode"
+    """
+    A sequential node.
+    """
+
+    PARALLEL = "ParallelNode"
+    """
+    A parallel node.
+    """
+
+    ATTACHMENT = "ReAttachNode"
+    """
+    A node re-attaching an object.
     """
 
 
@@ -756,9 +860,9 @@ class PlanNode(JsonDocument):
     One node of an executed plan, as the plan's recorder saw it.
     """
 
-    kind: str = document_field(PlanNodeKey.KIND)
+    kind: PlanNodeKind = document_field(PlanNodeKey.KIND)
     """
-    The class name of the plan node in CRAM.
+    What kind of node it is.
     """
 
     label: str = document_field(PlanNodeKey.LABEL)
@@ -857,6 +961,19 @@ class PlanNode(JsonDocument):
     """
     Further keys a recorder wrote; readers of this version do not interpret them.
     """
+
+    @classmethod
+    def read_at(cls, data: Any, location: ValueLocation) -> Self:
+        """
+        Read a node, translating the class name earlier recordings stored as its kind;
+        see :meth:`JsonDocument.read_at`.
+        """
+        if isinstance(data, dict) and isinstance(data.get(PlanNodeKey.KIND), str):
+            data = {
+                **data,
+                PlanNodeKey.KIND: PlanNodeKind.of_recorded(data[PlanNodeKey.KIND]),
+            }
+        return super().read_at(data, location)
 
 
 class PlannedActionKey(StrEnum):

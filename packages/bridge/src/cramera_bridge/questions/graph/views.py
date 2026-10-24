@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from typing_extensions import Dict, List, Optional
 
-from cramera_protocol.bundle.scene import PartRole, PartSide, RobotPart
+from cramera_protocol.bundle.scene import PartRole, PartSide, PlanNodeKind, RobotPart
 from cramera_protocol.questions import (
     GraphEdgeKind,
     GraphLayout,
@@ -114,52 +114,16 @@ class PlanNodeGroup(LabelledGroup):
     """
 
 
-class PlanNodeKind(StrEnum):
-    """
-    The class names of the plan nodes the plan view colours apart.
-    """
-
-    ACTION = "ActionNode"
-    """
-    An action node.
-    """
-
-    MOTION = "MotionNode"
-    """
-    A motion node.
-    """
-
-    CONDITION = "ConditionNode"
-    """
-    A condition node.
-    """
-
-    ATTACH = "AttachNode"
-    """
-    Attaching an object.
-    """
-
-    DETACH = "DetachNode"
-    """
-    Detaching an object.
-    """
-
-    @classmethod
-    def group_of(cls, kind: str) -> PlanNodeGroup:
-        """
-        :param kind: A plan node's class name.
-        :return: The colour group it is drawn in.
-        """
-        match kind:
-            case cls.ACTION:
-                return PlanNodeGroup.ACTION
-            case cls.MOTION:
-                return PlanNodeGroup.MOTION
-            case cls.CONDITION:
-                return PlanNodeGroup.CONDITION
-            case cls.ATTACH | cls.DETACH:
-                return PlanNodeGroup.ATTACHMENT
-        return PlanNodeGroup.OTHER
+PLAN_NODE_GROUPS = {
+    PlanNodeKind.ACTION: PlanNodeGroup.ACTION,
+    PlanNodeKind.MOTION: PlanNodeGroup.MOTION,
+    PlanNodeKind.CONDITION: PlanNodeGroup.CONDITION,
+    PlanNodeKind.ATTACHMENT: PlanNodeGroup.ATTACHMENT,
+}
+"""
+The colour group of each plan node kind the plan view colours apart; every other kind is
+drawn as :attr:`PlanNodeGroup.OTHER`.
+"""
 
 
 class KinematicsGroup(LabelledGroup):
@@ -391,7 +355,7 @@ class PlanTree(GraphViewBuilder):
             graph.add_node(
                 node.name,
                 node.label,
-                PlanNodeKind.group_of(node.kind),
+                PLAN_NODE_GROUPS.get(node.kind, PlanNodeGroup.OTHER),
                 lines,
                 status=node.status,
                 kind=node.kind,

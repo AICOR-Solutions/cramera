@@ -1,1 +1,1 @@
-{"name": "x", "selectedRobot": "robot_9", "robots": [{"id": "robot_1", "model": "PR2", "label": "PR2", "pose": [0, 0, 0, 0, 0, 0, 1]}]}
+{"name": "x", "selectedRobot": "robot_9", "robots": [{"id": "robot_1", "model": "pr2", "label": "PR2", "pose": [0, 0, 0, 0, 0, 0, 1]}]}

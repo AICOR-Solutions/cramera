@@ -14,7 +14,7 @@ from enum import StrEnum
 
 from typing_extensions import Any, Dict, List, Optional
 
-from cramera_protocol.bundle.scene import PerceptionImage
+from cramera_protocol.bundle.scene import PerceptionImage, PlanNodeKind
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.exceptions import InvalidDocumentValue
@@ -303,9 +303,9 @@ class LivePlanNode(JsonDocument):
     The node's identity within the plan.
     """
 
-    kind: str = document_field(LivePlanNodeKey.KIND)
+    kind: PlanNodeKind = document_field(LivePlanNodeKey.KIND)
     """
-    The class name of the plan node in CRAM.
+    What kind of node it is.
     """
 
     label: str = document_field(LivePlanNodeKey.LABEL)

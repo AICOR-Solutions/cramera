@@ -1,7 +1,7 @@
 {
   "actions": [
     {
-      "name": "FollowToolCenterPointPathAction",
+      "name": "follow_tool_center_point_path", "savedAs": ["FollowToolCenterPointPathAction"],
       "module": "coraplex.robot_plans.actions.core.robot_body",
       "label": "Follow Tool Center Point Path",
       "group": "core",
@@ -28,7 +28,7 @@
       "unavailableReason": "field 'target_locations' has type PoseTrajectory, which has no form control yet"
     },
     {
-      "name": "LookAtAction",
+      "name": "look_at", "savedAs": ["LookAtAction"],
       "module": "coraplex.robot_plans.actions.core.navigation",
       "label": "Look At",
       "group": "core",
@@ -54,7 +54,7 @@
       "available": true
     },
     {
-      "name": "MoveTorsoAction",
+      "name": "move_torso", "savedAs": ["MoveTorsoAction"],
       "module": "coraplex.robot_plans.actions.core.robot_body",
       "label": "Move Torso",
       "group": "core",
@@ -80,7 +80,7 @@
       "available": true
     },
     {
-      "name": "NavigateAction",
+      "name": "navigate", "savedAs": ["NavigateAction"],
       "module": "coraplex.robot_plans.actions.core.navigation",
       "label": "Navigate",
       "group": "core",
@@ -123,7 +123,7 @@
       "available": true
     },
     {
-      "name": "ParkArmsAction",
+      "name": "park_arms", "savedAs": ["ParkArmsAction"],
       "module": "coraplex.robot_plans.actions.core.robot_body",
       "label": "Park Arms",
       "group": "core",
@@ -159,7 +159,7 @@
       "available": true
     },
     {
-      "name": "PickUpAction",
+      "name": "pick_up", "savedAs": ["PickUpAction"],
       "module": "coraplex.robot_plans.actions.core.pick_up",
       "label": "Pick Up",
       "group": "core",
@@ -290,7 +290,7 @@
       "available": true
     },
     {
-      "name": "PlaceAction",
+      "name": "place", "savedAs": ["PlaceAction"],
       "module": "coraplex.robot_plans.actions.core.placing",
       "label": "Place",
       "group": "core",
@@ -398,7 +398,7 @@
       "available": true
     },
     {
-      "name": "SetGripperAction",
+      "name": "set_gripper", "savedAs": ["SetGripperAction"],
       "module": "coraplex.robot_plans.actions.core.robot_body",
       "label": "Set Gripper",
       "group": "core",
@@ -439,7 +439,7 @@
       "available": true
     },
     {
-      "name": "CuttingAction",
+      "name": "cutting", "savedAs": ["CuttingAction"],
       "module": "coraplex.robot_plans.actions.composite.tool_based",
       "label": "Cutting",
       "group": "composite",
@@ -548,7 +548,7 @@
       "available": true
     },
     {
-      "name": "MoveAndPickUpAction",
+      "name": "move_and_pick_up", "savedAs": ["MoveAndPickUpAction"],
       "module": "coraplex.robot_plans.actions.composite.transporting",
       "label": "Move And Pick Up",
       "group": "composite",
@@ -618,7 +618,7 @@
       "available": true
     },
     {
-      "name": "SwirlingAction",
+      "name": "swirling", "savedAs": ["SwirlingAction"],
       "module": "coraplex.robot_plans.actions.composite.swirling",
       "label": "Swirling",
       "group": "composite",
@@ -663,7 +663,7 @@
       "available": true
     },
     {
-      "name": "TransportAction",
+      "name": "transport", "savedAs": ["TransportAction"],
       "module": "coraplex.robot_plans.actions.composite.transporting",
       "label": "Transport",
       "group": "composite",

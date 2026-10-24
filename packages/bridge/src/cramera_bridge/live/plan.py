@@ -11,6 +11,7 @@ from enum import Enum, StrEnum
 from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 from cramera_bridge.exceptions import UnknownPlanNode
+from cramera_bridge.names import plan_node_kind
 from cramera_bridge.live.perception_images import PerceptionImages
 from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
@@ -481,7 +482,7 @@ class PerformedPlan:
         return LivePlanNode(
             identifier=identifier,
             parent=None if parent is None else self.identifier(parent),
-            kind=type(node).__name__,
+            kind=plan_node_kind(node),
             label=summary.label(),
             status=PlanNodeStatus.of(life_cycle),
             arm=summary.arm(),

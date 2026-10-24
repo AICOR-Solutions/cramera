@@ -14,6 +14,7 @@ from cramera_bridge.plans.workspace import (
     SurfaceAnnotations,
 )
 from cramera_bridge.exceptions import UnknownWorkspaceClass
+from cramera_bridge.names import ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
@@ -56,6 +57,10 @@ def test_robots_without_a_model_description_are_not_offered():
 
 def test_the_catalog_robots_are_the_offered_annotations(workspace):
     assert [robot.name for robot in workspace.robots()] == [
+        ROBOT_NAMES.identifier_of(annotation)
+        for annotation in RobotAnnotations().annotations()
+    ]
+    assert [robot.label for robot in workspace.robots()] == [
         annotation.__name__ for annotation in RobotAnnotations().annotations()
     ]
 
@@ -70,7 +75,11 @@ def test_the_object_models_are_the_meshes_beside_coraplex(workspace):
 
 
 def test_the_catalog_robots_name_their_choices(workspace):
-    pr2 = next(robot for robot in workspace.robots() if robot.name == PR2.__name__)
+    pr2 = next(
+        robot
+        for robot in workspace.robots()
+        if robot.name == ROBOT_NAMES.identifier_of(PR2)
+    )
     assert pr2.choices == RobotAnnotation(PR2).choices()
 
 
