@@ -15,7 +15,7 @@ from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
-from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
+from coraplex.plans.plan_node import ActionNode, DesignatorNode, MotionNode, PlanNode
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.robots.robot_parts import Arm
 from semantic_digital_twin.spatial_types.spatial_types import Pose
@@ -127,6 +127,68 @@ class PlanNodeStatus(StrEnum):
             LifeCycleValues.FAILED: cls.FAILED,
             LifeCycleValues.INTERRUPTED: cls.INTERRUPTED,
         }[value]
+
+
+FINISHED_LIFE_CYCLES = (
+    LifeCycleValues.SUCCEEDED,
+    LifeCycleValues.FAILED,
+    LifeCycleValues.INTERRUPTED,
+)
+"""
+The life cycle values of a node that ended.
+"""
+
+
+@dataclass(frozen=True)
+class NodeLifeCycle:
+    """
+    The life cycle a plan node shows: its own, or, for an action coraplex left
+    unstarted, the one its motions went through.
+
+    coraplex performs an action's motions as one motion statechart without starting the
+    action node itself, so the action's own life cycle stays not started although its
+    motions ran.
+    """
+
+    node: PlanNode
+    """
+    The node.
+    """
+
+    plan_ended: bool
+    """
+    Whether the plan's root ended, so an action none of whose motions runs any more is
+    done.
+    """
+
+    def value(self) -> LifeCycleValues:
+        """
+        :return: The node's own life cycle value, unless it is an action coraplex left
+            unstarted: then the value of its motion that started last; an action whose
+            last started motion succeeded while others have not started yet runs until
+            they did or the plan ended.
+        """
+        if (
+            not isinstance(self.node, ActionNode)
+            or self.node.status is not LifeCycleValues.NOT_STARTED
+        ):
+            return self.node.status
+        motions = [
+            descendant.status
+            for descendant in self.node.descendants
+            if isinstance(descendant, MotionNode)
+        ]
+        started = [
+            status for status in motions if status is not LifeCycleValues.NOT_STARTED
+        ]
+        if not started:
+            return LifeCycleValues.NOT_STARTED
+        last = started[-1]
+        if last is not LifeCycleValues.SUCCEEDED:
+            return last
+        if len(started) == len(motions) or self.plan_ended:
+            return LifeCycleValues.SUCCEEDED
+        return LifeCycleValues.RUNNING
 
 
 # %% designators
@@ -361,17 +423,25 @@ class PerformedPlan:
         summary = DesignatorSummary(node)
         identifier = self.identifier(node)
         parent = node.parent
+        life_cycle = NodeLifeCycle(node, self.has_ended()).value()
         return LivePlanNode(
             identifier=identifier,
             parent=None if parent is None else self.identifier(parent),
             kind=type(node).__name__,
             label=summary.label(),
-            status=PlanNodeStatus.of(node.status),
+            status=PlanNodeStatus.of(life_cycle),
             arm=summary.arm(),
             target=summary.target(object_keys),
             constraints=constraints(identifier),
             parameters=summary.parameters(object_keys),
         )
+
+    def has_ended(self) -> bool:
+        """
+        :return: Whether the plan's root ended.
+        """
+        root = self.root()
+        return root is not None and root.status in FINISHED_LIFE_CYCLES
 
     def running(self) -> Optional[RunningAction]:
         """
@@ -380,10 +450,12 @@ class PerformedPlan:
         root = self.root()
         if root is None:
             return None
+        plan_ended = self.has_ended()
         running = [
             node
             for node in [root] + root.descendants
-            if isinstance(node, ActionNode) and node.status is LifeCycleValues.RUNNING
+            if isinstance(node, ActionNode)
+            and NodeLifeCycle(node, plan_ended).value() is LifeCycleValues.RUNNING
         ]
         if not running:
             return None
