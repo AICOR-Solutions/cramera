@@ -87,8 +87,7 @@ which this repository was mirrored until 22 Oct 2026.
   workspace and ROS 2. A PR2 plan in the apartment is composed through the plan
   builder's routes, saved, exported, run and replayed. coraplex's apartment demo runs
   unchanged under `cramera-live`, is checked while it runs, then saved and replayed.
-  What is still broken is marked `xfail(strict=True)` with its issue (#37). CI
-  skips the scenarios; `tests/end_to_end/README.md` says how to run them.
+  CI skips the scenarios; `tests/end_to_end/README.md` says how to run them.
 
   ![The plan builder's run replayed](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-33/apartment_PR2_pr2_apartment_pick_85.png)
 - **Recorded plans keep every step parameter and constraint.** Every plan node the
@@ -118,6 +117,14 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **Things a robot takes hold of are objects from the start.** Every body that a
+  semantic annotation of something with grasps describes (Milk, Bowl, Spoon, Cup, …) is
+  published and recorded as an object, however the world attaches it. Parts of other
+  things (handles, rims, doors, drawers, furniture) are not. A demo that fixes its
+  objects to the environment, like coraplex's apartment demo, now shows them carried
+  in the live view and the replay instead of standing still in the environment.
+
+  ![Carrying the bowl in the replay](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-37/carrying.gif)
 - **A sub-action is shown by what it matches.** A composite action's sub-action that
   coraplex leaves to be found, such as TransportAction's `pick_up`, shows as the
   action it matches and what it states about it (`MoveAndPickUpAction: navigate

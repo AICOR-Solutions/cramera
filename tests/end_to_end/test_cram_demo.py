@@ -191,10 +191,6 @@ def test_the_saved_scene_replays_with_its_plan(demo_run):
     assert demo_run.replay.unserved_files() == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="#37: the demo fixes its objects to the apartment, so none is tracked",
-)
 def test_the_carried_objects_are_seen_and_move_in_the_replay(demo_run):
     assert max(len(catalog.objects) for catalog in demo_run.objects) == CARRIED
     description = demo_run.replay.description()

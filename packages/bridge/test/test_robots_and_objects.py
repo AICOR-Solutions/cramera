@@ -10,6 +10,10 @@ from cramera_bridge.exceptions import UnknownArm, UnknownRobot
 from cramera_bridge.robots import RobotParts, RobotRoster
 from cramera_bridge.world_objects import WorldObjects
 from cramera_protocol.bundle.scene import PartRole, PartSide
+from semantic_digital_twin.semantic_annotations.semantic_annotations import (
+    Handle,
+    Milk,
+)
 
 # %% robots
 
@@ -73,6 +77,35 @@ def test_a_tracked_object_stays_an_object_when_fixed(kitchen):
         )
     assert kitchen.milk not in WorldObjects(world).objects()
     assert kitchen.milk in WorldObjects(world).objects(tracked=[kitchen.milk.id])
+
+
+def fix_to_table(kitchen) -> None:
+    """
+    Attach the milk to the table with a fixed connection, as a demo that places its
+    objects on the furniture does.
+    """
+    world = kitchen.world
+    with world.modify_world():
+        world.remove_connection(kitchen.milk_connection)
+        world.add_connection(
+            type(kitchen.table.parent_connection)(
+                parent=kitchen.table, child=kitchen.milk
+            )
+        )
+
+
+def test_a_fixed_body_annotated_as_something_to_take_hold_of_is_an_object(kitchen):
+    fix_to_table(kitchen)
+    with kitchen.world.modify_world():
+        kitchen.world.add_semantic_annotation(Milk(root=kitchen.milk))
+    assert kitchen.milk in WorldObjects(kitchen.world).objects()
+
+
+def test_a_part_of_something_else_is_no_object_though_it_offers_grasps(kitchen):
+    fix_to_table(kitchen)
+    with kitchen.world.modify_world():
+        kitchen.world.add_semantic_annotation(Handle(root=kitchen.milk))
+    assert kitchen.milk not in WorldObjects(kitchen.world).objects()
 
 
 def test_the_robot_and_its_odometry_are_no_objects(robot_world):
