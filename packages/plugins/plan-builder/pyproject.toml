@@ -15,7 +15,7 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 [project.optional-dependencies]
 # The catalog's robots and objects and the generated demos need the CRAM workspace,
 # which is not installed from an index.
-cram = ["cramera-bridge==1.0.0"]
+bridge = ["cramera-bridge==1.0.0"]
 
 [project.entry-points."cramera.plugins"]
 plan-builder = "cramera_plan_builder.plugin:PlanBuilderPlugin"

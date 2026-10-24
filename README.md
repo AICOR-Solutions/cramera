@@ -134,10 +134,10 @@ behaviour as an optional extra:
 
 | Plugin | Extra | Without it |
 | --- | --- | --- |
-| `cramera-plan-builder` | `[cram]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
+| `cramera-plan-builder` | `[bridge]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
 
 ```bash
-pip install './packages/plugins/plan-builder[cram]'
+pip install './packages/plugins/plan-builder[bridge]'
 ```
 
 See [docs/plugins.md](docs/plugins.md) for writing a plugin.
@@ -195,7 +195,7 @@ With `cramera-questions` installed, the viewer's right column gets:
   buttons to zoom, and fill the window with the graph.
 
 Answering needs `cramera-bridge`'s question engine and krrood from the CRAM workspace
-(`pip install -e 'packages/questions[cram]'`). Where they are missing, and on the
+(`pip install -e 'packages/questions[bridge]'`). Where they are missing, and on the
 static demo site, the plugin shows the answers recorded in the bundle instead: the
 presets answer as they did when they were recorded, the graphs are drawn, and the
 query boxes say why they are disabled. Record them in the CRAM environment with

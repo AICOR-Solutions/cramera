@@ -116,9 +116,9 @@ class Extra(StrEnum):
     The optional dependencies of this repository's packages the stack installs.
     """
 
-    CRAM = "cram"
+    BRIDGE = "bridge"
     """
-    What a plugin needs from cramera-bridge.
+    cramera-bridge, through which a plugin reaches the CRAM workspace.
     """
 
     TEST = "test"
@@ -159,7 +159,7 @@ class PackageDirectory:
         :param with_cram: Whether the stack installs CRAM.
         :return: The editable requirement, with its extra where CRAM is installed.
         """
-        if with_cram and self.extra is Extra.CRAM:
+        if with_cram and self.extra is Extra.BRIDGE:
             return f"{self.directory()}[{self.extra}]"
         return str(self.directory())
 
@@ -167,10 +167,10 @@ class PackageDirectory:
 VIEWER_PACKAGES = (
     PackageDirectory("packages/protocol"),
     PackageDirectory("packages/viewer"),
-    PackageDirectory("packages/questions", extra=Extra.CRAM),
+    PackageDirectory("packages/questions", extra=Extra.BRIDGE),
     PackageDirectory("packages/plugins/offline"),
     PackageDirectory("packages/plugins/scene-builder"),
-    PackageDirectory("packages/plugins/plan-builder", extra=Extra.CRAM),
+    PackageDirectory("packages/plugins/plan-builder", extra=Extra.BRIDGE),
 )
 """
 The viewer and its plugins, which install without CRAM.

@@ -61,9 +61,12 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **The plugins' extra is called `bridge`.** `cramera-questions[bridge]` and
+  `cramera-plan-builder[bridge]` name what they install, `cramera-bridge`; the
+  former `cram` extra is gone.
 - **cramera-cram is cramera-bridge.** The package that connects cramera to CRAM is
   `cramera-bridge` now, imported as `cramera_bridge`, in `packages/bridge`; the
-  plugins' `cram` extra installs it, coraplex still finds its visualization as
+  plugins' `bridge` extra installs it, coraplex still finds its visualization as
   `cramera`, and the live publisher reports itself as `cramera-bridge`. An
   environment that still holds `cramera-cram` registers that visualization twice, so
   uninstall it (`pip uninstall cramera-cram`); `scripts/install_stack.py` does.
@@ -87,7 +90,7 @@ which this repository was mirrored until 22 Oct 2026.
   `cramera_bridge.questions` now, with `cramera_bridge.questions.live` for live worlds
   and `cramera_bridge.questions.scenes` answering the plugin's routes in protocol
   documents. `cramera-questions` keeps the plugin, its routes and its browser module,
-  depends on `cramera-bridge` only through its `cram` extra, and no longer is a
+  depends on `cramera-bridge` only through its `bridge` extra, and no longer is a
   dependency of `cramera-bridge`. `cramera-record-answers` is installed by
   `cramera-bridge`. A test of `cramera-bridge` fails on any CRAM import outside it.
 

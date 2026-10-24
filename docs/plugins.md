@@ -10,8 +10,8 @@ environment as `cramera`: `pip install ./packages/viewer` brings no page but the
 scene page. The pages of this repository (Plan Builder, Scene Builder,
 the questions column) are installed with
 `pip install ./packages/questions ./packages/plugins/*`; optional extras such as
-`[cram]` add what a plugin needs beyond the viewer. The
-README's section *Install the pages and panels* lists them. The viewer's `/api/info`
+`[bridge]` (`cramera-bridge`, the way to the CRAM workspace) add what a plugin needs
+beyond the viewer. The README's section *Install the pages and panels* lists them. The viewer's `/api/info`
 answer names the plugins it has loaded, which is the first thing to check when a
 page is missing from the top bar.
 
