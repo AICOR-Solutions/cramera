@@ -16,10 +16,20 @@ cramera
 
 - **Catalog.** Robots are the concrete robot annotations of the CRAM workspace with a
   model description; which arms and torso states a robot offers is read from the parts
-  its annotation declares. Objects are the meshes beside coraplex, surface types the
-  native annotation classes with a supporting surface. Environments are the viewer's
-  bundles without a robot model. Without the CRAM workspace the catalog names the
-  missing modules and offers environments only.
+  its annotation declares. Objects are the meshes beside coraplex and the models of
+  every object library, surface types the native annotation classes with a supporting
+  surface. Environments are the viewer's bundles without a robot model. Without the
+  CRAM workspace the catalog names the missing modules and offers environments only.
+- **Object libraries** are directories with an `objects` folder of models, each a
+  `model.urdf` with its meshes beside it, named by the library's `collection.json`
+  where it has one. The repository's `resources/` holds `private_meshes`
+  ([sunava/private_meshes](https://github.com/sunava/private_meshes)) as a git
+  submodule (`git submodule update --init`); further libraries are named in
+  `CRAMERA_OBJECT_LIBRARIES`, separated like `PATH`. A library model is identified as
+  `<library>/<path of its URDF>`, drawn with its links in the 3D view, and merged into
+  the demo's world free to move and graspable, its links named below the object's
+  identity. Its environments, such as `environments/aicor_medical_lab`, become plan
+  environments when the viewer is given that directory with `--scenes`.
 - **CRAM** is reached through `cramera-bridge` only (the `cram` extra); the plugin
   imports nothing of the CRAM workspace. `cramera_bridge.plans.workspace` hands the
   catalog over as the protocol's `RobotModel`, `ObjectModel` and `ActionCatalog`

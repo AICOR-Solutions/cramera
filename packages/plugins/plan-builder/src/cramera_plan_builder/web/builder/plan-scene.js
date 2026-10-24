@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import URDFLoader from 'urdf-loader';
 
 import { PlannedObjectKey, PlannedRobotKey, PlanStepKey } from '../../../protocol.js';
 import { Bounds } from '../../../scene/bounds.js';
@@ -24,6 +25,11 @@ export const MarkerKind = Object.freeze({ ROBOT: 'robot', OBJECT: 'object', TARG
  * What the handles change.
  */
 export const TransformMode = Object.freeze({ MOVE: 'translate', TURN: 'rotate' });
+
+/**
+ * The suffix of an object library model's description.
+ */
+const DESCRIPTION_SUFFIX = '.urdf';
 
 /**
  * The region shown on an empty floor, in metres.
@@ -550,14 +556,36 @@ export class PlanScene {
 
   /**
    * @param {string} model An object model's identifier.
-   * @returns {Promise<THREE.Object3D>} Its mesh, loaded once.
+   * @returns {Promise<THREE.Object3D>} Its mesh, or a library model's links as its URDF
+   *   describes them at rest, loaded once.
    */
   #mesh(model) {
     if (!this.#meshes.has(model)) {
-      const loading = new MeshLoading(new THREE.LoadingManager(), () => {});
-      this.#meshes.set(model, loading.load(this.#objectUrl(model)));
+      const manager = new THREE.LoadingManager();
+      const loading = new MeshLoading(manager, () => {});
+      const url = this.#objectUrl(model);
+      this.#meshes.set(model, model.toLowerCase().endsWith(DESCRIPTION_SUFFIX) ? PlanScene.#described(url, manager, loading) : loading.load(url));
     }
     return this.#meshes.get(model);
+  }
+
+  /**
+   * @param {string} url A library model's URDF.
+   * @param {THREE.LoadingManager} manager Tracks the loader's requests.
+   * @param {MeshLoading} loading Loads the meshes the URDF names.
+   * @returns {Promise<THREE.Object3D>} The model's links, once every mesh they name
+   *   arrived: the loader hands the links over before, and markers copy them.
+   */
+  static #described(url, manager, loading) {
+    const meshesLoaded = new Promise((resolve) => {
+      manager.onLoad = resolve;
+    });
+    const loader = new URDFLoader(manager);
+    loader.parseCollision = false;
+    loader.loadMeshCb = (meshUrl, _manager, material, done) => {
+      loading.load(meshUrl, material).then((mesh) => done(mesh), (error) => done(null, error));
+    };
+    return loader.loadAsync(url).then((model) => meshesLoaded.then(() => model));
   }
 
   /**

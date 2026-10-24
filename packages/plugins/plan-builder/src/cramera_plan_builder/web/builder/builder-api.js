@@ -205,9 +205,10 @@ export class PlanBuilderApi {
 
   /**
    * @param {string} identifier An object model's identifier.
-   * @returns {string} The URL of its mesh.
+   * @returns {string} The URL of its mesh or, for a library model, of its URDF; the
+   *   path keeps its slashes, so the files a URDF names resolve beside it.
    */
   objectUrl(identifier) {
-    return this.url(`${PlanBuilderRoute.OBJECT_FILES}${encodeURIComponent(identifier)}`);
+    return this.url(`${PlanBuilderRoute.OBJECT_FILES}${identifier.split('/').map(encodeURIComponent).join('/')}`);
   }
 }

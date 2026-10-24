@@ -23,6 +23,7 @@ TESTS_WITHOUT_CRAM = (
     "test_cram_boundary.py",
     "test_demo_script.py",
     "export/test_scene_index.py",
+    "plans/test_objects.py",
     "questions/test_presets_and_matching.py",
     "questions/test_recorded_bundle.py",
     "questions/test_urdf_structure.py",
