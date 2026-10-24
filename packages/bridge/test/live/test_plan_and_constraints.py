@@ -15,7 +15,10 @@ from cramera_bridge.exceptions import (
     UnknownBody,
     UnknownPlanNode,
 )
-from cramera_bridge.live.plan import PLAN_NODE_PREFIX, PlanNodeStatus
+from coraplex.robot_plans.actions.composite.transporting import MoveAndPickUpAction
+from coraplex.robot_plans.actions.core.navigation import NavigateAction
+from coraplex.robot_plans.actions.core.pick_up import PickUpAction
+from cramera_bridge.live.plan import DesignatorSummary, PLAN_NODE_PREFIX, PlanNodeStatus
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
     ConstraintActivation,
@@ -26,8 +29,12 @@ from cramera_protocol.live_messages import (
     PlanNodeReference,
     RobotSelection,
 )
+from coraplex.plans.plan_node import MotionNode
+from coraplex.robot_plans.motions.container import OpeningMotion
 from giskardpy.motion_statechart.data_types import LifeCycleValues
+from krrood.entity_query_language.factories import a, variable
 from semantic_digital_twin.datastructures.definitions import TorsoState
+from semantic_digital_twin.spatial_types.spatial_types import Pose
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
 
@@ -55,6 +62,58 @@ def test_a_parent_status_is_never_derived_from_its_children(publisher, small_pla
     publisher.begin_plan(small_plan.plan)
     root = publisher.current_plan().nodes[0]
     assert root.status == PlanNodeStatus.CREATED
+
+
+@pytest.mark.parametrize(
+    "motion_status, action_status",
+    [
+        (LifeCycleValues.NOT_STARTED, PlanNodeStatus.CREATED),
+        (LifeCycleValues.RUNNING, PlanNodeStatus.RUNNING),
+        (LifeCycleValues.SUCCEEDED, PlanNodeStatus.SUCCEEDED),
+        (LifeCycleValues.FAILED, PlanNodeStatus.FAILED),
+    ],
+)
+def test_an_action_coraplex_left_unstarted_shows_what_its_motion_went_through(
+    publisher, small_plan, motion_status, action_status
+):
+    small_plan.motion.status = motion_status
+    publisher.begin_plan(small_plan.plan)
+    _, action, _ = publisher.current_plan().nodes
+    assert action.status == action_status
+
+
+def test_an_action_coraplex_started_keeps_its_own_status(publisher, small_plan):
+    small_plan.action.status = LifeCycleValues.FAILED
+    small_plan.motion.status = LifeCycleValues.SUCCEEDED
+    publisher.begin_plan(small_plan.plan)
+    _, action, _ = publisher.current_plan().nodes
+    assert action.status == PlanNodeStatus.FAILED
+
+
+def test_an_action_runs_until_its_motions_ran_or_the_plan_ended(
+    publisher, small_plan, kitchen, robot_world
+):
+    later = MotionNode(
+        designator=OpeningMotion(
+            object_part=kitchen.milk, arm=robot_world.robot.left_arm
+        )
+    )
+    small_plan.action.add_child(later)
+    small_plan.motion.status = LifeCycleValues.SUCCEEDED
+    small_plan.root.status = LifeCycleValues.RUNNING
+    publisher.begin_plan(small_plan.plan)
+    running = publisher.current_plan().nodes[1].status
+    small_plan.root.status = LifeCycleValues.SUCCEEDED
+    ended = publisher.refresh_plan().nodes[1].status
+    assert (running, ended) == (PlanNodeStatus.RUNNING, PlanNodeStatus.SUCCEEDED)
+
+
+def test_an_action_whose_motion_runs_names_the_running_step(publisher, small_plan):
+    small_plan.motion.status = LifeCycleValues.RUNNING
+    publisher.begin_plan(small_plan.plan)
+    assert (
+        publisher.plan.running_action() == type(small_plan.action.designator).__name__
+    )
 
 
 def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen, robot_world):
@@ -305,3 +364,18 @@ def test_a_constraint_posted_by_the_plan_view_reaches_its_node(
     plan = LivePlan.from_json(json.loads(answer.body))
     assert answer.status is HTTPStatus.OK
     assert [node.constraints != [] for node in plan.nodes] == [False, True, False]
+
+
+def test_a_sub_action_left_to_be_found_is_named_by_what_it_matches():
+    pick_up = a(MoveAndPickUpAction)(
+        navigate=a(NavigateAction)(target_location=variable(Pose, domain=[])),
+        pick_up=a(PickUpAction)(),
+    )
+    assert DesignatorSummary.render(pick_up, set()) == (
+        "MoveAndPickUpAction: navigate NavigateAction, pick_up PickUpAction"
+    )
+    assert DesignatorSummary.render(a(NavigateAction)(), set()) == "NavigateAction"
+
+
+def test_a_value_left_open_is_named_by_its_type():
+    assert DesignatorSummary.render(variable(Pose, domain=[]), set()) == "any Pose"

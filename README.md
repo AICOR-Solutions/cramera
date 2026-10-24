@@ -134,10 +134,10 @@ behaviour as an optional extra:
 
 | Plugin | Extra | Without it |
 | --- | --- | --- |
-| `cramera-plan-builder` | `[cram]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
+| `cramera-plan-builder` | `[bridge]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
 
 ```bash
-pip install './packages/plugins/plan-builder[cram]'
+pip install './packages/plugins/plan-builder[bridge]'
 ```
 
 See [docs/plugins.md](docs/plugins.md) for writing a plugin.
@@ -146,8 +146,8 @@ The page has the look of the original AICOR viewer: dark, with the AICOR logo an
 link to every page the installed plugins offer (Plan Builder, Scene Builder) in the
 top bar, the 3D view with its **Layers**
 overlay and the playback controls on the left, questions and graphs on the right. The
-**View** menu switches to a light theme. **Pop out** opens the scene alone in a window
-of its own.
+**Dark | Light** switch in the top bar changes the theme. **Pop out** opens the scene
+alone in a window of its own.
 
 The page address names the shown bundle, `?scene=<name>`, so a view can be shared;
 `?panel=<name>` opens a panel first.
@@ -158,9 +158,9 @@ machine.
 
 | Command | What it does |
 | --- | --- |
-| `cramera` | Serve the viewer. |
+| `cramera` | Serve the viewer. `--logo FILE` (or `CRAMERA_LOGO`) shows another `.png`, `.svg` or `.jpg` instead of the AICOR logo in every page's top bar, `--logo-text TEXT` says what it shows. |
 | `cramera-shot URL OUT.png` | Take a screenshot in headless Chrome (`--browser chrome`, needs `chromedriver`) or Firefox (`--browser firefox`, needs `geckodriver`) once the page reports its scene as shown; exits 1 when it fails. |
-| `cramera-export-site OUT --scenes DIR [--plugin NAME]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins. |
+| `cramera-export-site OUT --scenes DIR [--plugin NAME] [--logo FILE]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins and the given logo. |
 | `cramera-upgrade-bundle SRC DST` | Copy a bundle and rewrite its documents in the current format, optionally with new labels for the scene picker. |
 
 ## Follow a running plan
@@ -195,7 +195,7 @@ With `cramera-questions` installed, the viewer's right column gets:
   buttons to zoom, and fill the window with the graph.
 
 Answering needs `cramera-bridge`'s question engine and krrood from the CRAM workspace
-(`pip install -e 'packages/questions[cram]'`). Where they are missing, and on the
+(`pip install -e 'packages/questions[bridge]'`). Where they are missing, and on the
 static demo site, the plugin shows the answers recorded in the bundle instead: the
 presets answer as they did when they were recorded, the graphs are drawn, and the
 query boxes say why they are disabled. Record them in the CRAM environment with
@@ -344,6 +344,11 @@ cd packages/viewer && ~/.virtualenvs/cramera-dev/bin/python -m pytest -q --cov=c
 
 - Each package is tested on its own; CI requires 85 % coverage. The browser tests
   run in Node.js through `test_browser_modules.py`.
+- [`tests/end_to_end`](tests/end_to_end/README.md) runs the whole stack with the
+  CRAM workspace and ROS 2. A plan composed in the plan builder for a PR2 in the
+  apartment is exported, run and replayed, and coraplex's apartment demo is shown live,
+  saved and replayed. Run it with `python -m pytest -q -rxX tests/end_to_end` after
+  `scripts/install_stack.py`. It takes about six minutes; CI skips it.
 - Format with `python scripts/format_python.py` (black, then docformatter where
   black keeps its output). CI fails when it would change anything.
 - `scripts/vendor_browser_libraries.py` updates three.js and urdf-loader, checked

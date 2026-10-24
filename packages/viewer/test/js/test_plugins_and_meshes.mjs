@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { PluginContext, PluginModules, PluginWithoutRegistration } from '../../src/cramera/web/app/plugin-modules.js';
 import { PanelHost, SidePanel } from '../../src/cramera/web/panels/panel-host.js';
 import { FakeDocument } from './support/fake-document.mjs';
-import { MeshLoading, meshFormatOf, UnsupportedMeshFormat } from '../../src/cramera/web/scene/mesh-loading.js';
+import { MeshLoading, meshFormatOf, paintBareCollada, UnsupportedMeshFormat } from '../../src/cramera/web/scene/mesh-loading.js';
 import { MeshFormat, NavigationGroup, NavigationKey, PluginKey, ViewerInfoKey } from '../../src/cramera/web/protocol.js';
 
 // %% plugins
@@ -94,4 +94,19 @@ test('mesh formats are read from the path, ignoring case and queries', () => {
 test('a mesh of an unknown format is refused', async () => {
   const loading = new MeshLoading(new THREE.LoadingManager(), () => {});
   await assert.rejects(loading.load('meshes/model.fbx'), UnsupportedMeshFormat);
+});
+
+test('a COLLADA document without materials takes its URDF material, one with materials keeps them', () => {
+  const urdfMaterial = new THREE.MeshPhongMaterial({ color: 0xd98229 });
+  const document = (materials) => {
+    const scene = new THREE.Group();
+    scene.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshPhongMaterial()));
+    return { scene, library: { materials } };
+  };
+  const bare = paintBareCollada(document({}), urdfMaterial);
+  const painted = paintBareCollada(document({ wood: {} }), urdfMaterial);
+  const unnamed = paintBareCollada(document({}), undefined);
+  assert.equal(bare.children[0].material, urdfMaterial);
+  assert.notEqual(painted.children[0].material, urdfMaterial);
+  assert.notEqual(unnamed.children[0].material, urdfMaterial);
 });

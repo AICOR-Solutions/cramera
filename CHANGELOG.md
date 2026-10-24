@@ -43,11 +43,47 @@ which this repository was mirrored until 22 Oct 2026.
   the run or waits for one, and an ended run offers *Save this run…*.
 
   ![The live view's states](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-15/states.gif)
+- **The Perception tab.** Every perception step of the shown recording's plans, or of
+  the live plan, with what it was asked (its action's parameters), how it ended, why
+  it failed, and the objects it reported, which light up in the 3D view. The bridge
+  records a step's reported objects (`perceived`) and any node's failure reason
+  (`reason`) on the plan's nodes, and names a class parameter by its class.
+
+  ![The Perception tab](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-25/perception.png)
+- **What perception saw.** A perception step in the Perception tab shows the images of
+  what it saw, also when it failed: in simulation the robot's camera view drawn from the
+  world model, with the reported objects outlined, and its depth; on the real robot also
+  every image RoboKudo's visualizer publishes on `<pipeline>/<annotator>/output_image`
+  while the step runs. A live plan's node lists them in `images`, each served by the
+  publisher's `/perception_image` route; a recording keeps them as PNG files in its
+  `perception/` directory.
+
+  ![What a perception step saw](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-25-images/perception_tab.png)
+- **The Scene graph tab.** The scene page browses the shown world as a tree, the way
+  the Ontology tab browses classes: its models with their links nested by joint, its
+  free objects and the robot's part annotations. A node shows its fields, what it
+  depends on and what refers to it, each a click away, and lights up in the 3D view;
+  clicking a part in the 3D view chooses its node.
+
+  ![Browsing the scene graph](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-24/walkthrough.gif)
+- **Another logo in the top bar.** `cramera --logo FILE` (or `CRAMERA_LOGO`) and
+  `cramera-export-site --logo FILE` show another image instead of the AICOR logo on
+  every page, served at `/api/logo`; `--logo-text` says what it shows.
+
+  ![Another logo in the top bar](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-27/custom_builder.png)
 - **One command installs the whole stack.** `python3 scripts/install_stack.py` puts the
   viewer, every plugin, `cramera-bridge` and the CRAM workspace (cloned next to the
   checkout when missing) editable into one uv environment that sees ROS 2's Python
   packages, leaving out CRAM's own earlier `cramera` so this repository's viewer is
   installed. `--viewer-only`, `--with-usd`, `--dev` and `--dry-run` choose less or more.
+- **End-to-end scenarios.** `tests/end_to_end` runs the whole stack with the CRAM
+  workspace and ROS 2. A PR2 plan in the apartment is composed through the plan
+  builder's routes, saved, exported, run and replayed. coraplex's apartment demo runs
+  unchanged under `cramera-live`, is checked while it runs, then saved and replayed.
+  What is still broken is marked `xfail(strict=True)` with its issue (#37). CI
+  skips the scenarios; `tests/end_to_end/README.md` says how to run them.
+
+  ![The plan builder's run replayed](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-33/apartment_PR2_pr2_apartment_pick_85.png)
 - **Recorded plans keep every step parameter and constraint.** Every plan node the
   live publisher describes renders each field of its designator by name
   (`LivePlanNodeKey.PARAMETERS`): an enumeration member by its name, an object by its
@@ -75,18 +111,55 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **A sub-action is shown by what it matches.** A composite action's sub-action that
+  coraplex leaves to be found, such as TransportAction's `pick_up`, shows as the
+  action it matches and what it states about it (`MoveAndPickUpAction: navigate
+  NavigateAction, …`) instead of the match's internal fields; a value left open shows
+  as `any <type>`.
+
+  ![A transport's sub-actions in the Plan View](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-38/after.png)
+- **An action shows what its motions went through.** coraplex performs an action's
+  motions without starting the action node itself, so recorded actions stayed
+  `CREATED` and named no frames. An action coraplex left unstarted now shows the
+  status of its motion that started last, running until its motions ran or the plan
+  ended. Recordings then know when each step ran, and the Plan View follows the
+  playhead again.
+
+  ![The Plan View following the playhead](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-36/after.png)
 - **The plan builder's environment and robots are clearer.** The builder has an
   Environment section and a Robots section with one card per robot; the card whose plan
   is edited is marked, picking a robot in the 3D view selects it, and every robot has
   its name above it.
 
   ![The builder's environment and robots](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-14/after.png)
+- **The theme switch is in the top bar.** A Dark/Light switch beside the version
+  replaces the View menu, which held only the theme.
+
+  ![The theme switch in the top bar](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-26/after_light.png)
+- **The plugins' extra is called `bridge`.** `cramera-questions[bridge]` and
+  `cramera-plan-builder[bridge]` name what they install, `cramera-bridge`; the
+  former `cram` extra is gone.
 - **cramera-cram is cramera-bridge.** The package that connects cramera to CRAM is
   `cramera-bridge` now, imported as `cramera_bridge`, in `packages/bridge`; the
-  plugins' `cram` extra installs it, coraplex still finds its visualization as
+  plugins' `bridge` extra installs it, coraplex still finds its visualization as
   `cramera`, and the live publisher reports itself as `cramera-bridge`. An
   environment that still holds `cramera-cram` registers that visualization twice, so
   uninstall it (`pip uninstall cramera-cram`); `scripts/install_stack.py` does.
+- **Scenes are drawn in colour.** Every model loaded from a URDF is lit like the
+  scene's own objects:
+  - its URDF and COLLADA materials become physically based ones, keeping their colour,
+    texture and transparency;
+  - lights a model file brings are removed, and blown-out whites are toned down;
+  - a COLLADA mesh without materials takes its URDF colour, as STL and OBJ meshes do;
+  - an environment part that its description leaves uncoloured gets the colour of what
+    its link names (countertop, table, cabinet, handle, wall, …), for any environment;
+    authored colours always win.
+
+  The scene builder draws its URDFs the same way. The URDF colours of bare meshes need
+  the semantic_digital_twin fix on `sunava/cognitive_robot_abstract_machine`, branch
+  `fix/urdf-mesh-colors`.
+
+  ![The apartment and the PR2 in colour](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/colors/after_pick.png)
 - **The Plan builder panel is the Plan View.** The viewer's panel of
   `cramera-plan-builder` is named Plan View and holds only the replayed recording's
   plan: its step cards now show every parameter the step was recorded with,
@@ -107,7 +180,7 @@ which this repository was mirrored until 22 Oct 2026.
   `cramera_bridge.questions` now, with `cramera_bridge.questions.live` for live worlds
   and `cramera_bridge.questions.scenes` answering the plugin's routes in protocol
   documents. `cramera-questions` keeps the plugin, its routes and its browser module,
-  depends on `cramera-bridge` only through its `cram` extra, and no longer is a
+  depends on `cramera-bridge` only through its `bridge` extra, and no longer is a
   dependency of `cramera-bridge`. `cramera-record-answers` is installed by
   `cramera-bridge`. A test of `cramera-bridge` fails on any CRAM import outside it.
 
