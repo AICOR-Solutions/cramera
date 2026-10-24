@@ -5,7 +5,7 @@ import { EventBus } from '../../src/cramera/web/core/event-bus.js';
 import { liveAddressOf, sceneOf, withLive } from '../../src/cramera/web/core/scene-address.js';
 import { LiveClient } from '../../src/cramera/web/live/live-client.js';
 import { LiveListener, LiveSession, PollInterval } from '../../src/cramera/web/live/live-session.js';
-import { DEFAULT_LIVE_ADDRESS, LiveActions, LivePanel } from '../../src/cramera/web/panels/live-panel.js';
+import { DEFAULT_LIVE_ADDRESS, LiveActions, LiveBadge, LiveBadgeState, LivePanel, offeredText, recordingText } from '../../src/cramera/web/panels/live-panel.js';
 import {
   Capability,
   LiveInfoKey,
@@ -21,7 +21,7 @@ import {
 import { FakeDocument } from './support/fake-document.mjs';
 
 const INFO = {
-  [LiveInfoKey.PUBLISHER]: 'cramera-cram 1.0.0',
+  [LiveInfoKey.PUBLISHER]: 'cramera-bridge 1.0.0',
   [LiveInfoKey.SCENE]: '__live__',
   [LiveInfoKey.BUNDLE_SIGNATURE]: 'world-1',
   [LiveInfoKey.CAPABILITIES]: [Capability.PLAN, Capability.STATECHART, Capability.RECORDING],
@@ -192,7 +192,7 @@ test('the Live panel connects, reports what the publisher offers, and drives the
   assert.equal(form.children[0].value, DEFAULT_LIVE_ADDRESS);
   form.dispatch('submit');
   panel.showConnecting(true, INFO, 'http://127.0.0.1:9000');
-  assert.match(state.textContent, /cramera-cram 1\.0\.0/);
+  assert.match(state.textContent, /cramera-bridge 1\.0\.0/);
   assert.equal(panel.panel.element.dataset.connected, 'true');
   form.dispatch('submit');
   panel.showRecording({ [RecordingStatusKey.STATE]: RecordingState.RECORDING, [RecordingStatusKey.FRAME_COUNT]: 12, [RecordingStatusKey.DURATION_SECONDS]: 1.5 });
@@ -210,6 +210,39 @@ test('the Live panel connects, reports what the publisher offers, and drives the
   assert.match(notice.textContent, /Saved as my_run/);
   panel.showConnecting(false, null);
   assert.equal(recording.children.length, 0);
+});
+
+test('the Live panel names what the publisher offers in words', () => {
+  assert.equal(offeredText([Capability.PLAN, Capability.OBJECT_PLACEMENT]), 'the running plan, moving objects');
+  assert.equal(offeredText([]), 'nothing');
+  assert.equal(offeredText(['future_capability']), 'future_capability');
+});
+
+test('the recording is told in a sentence that counts its frames', () => {
+  const status = (state, frames) => ({ [RecordingStatusKey.STATE]: state, [RecordingStatusKey.FRAME_COUNT]: frames, [RecordingStatusKey.DURATION_SECONDS]: 1.25 });
+  assert.equal(recordingText(status(RecordingState.RECORDING, 1)), 'Recording the run: 1 frame, 1.3 s.');
+  assert.match(recordingText(status(RecordingState.FINALIZED, 12)), /^The recording ended \(12 frames, 1\.3 s\); save it/);
+  assert.equal(recordingText(status(RecordingState.IDLE, 0)), 'Not recording.');
+});
+
+test('the badge waits, shows the live run, says when it ended, and opens the Live panel', () => {
+  const document = new FakeDocument();
+  const element = document.createElement('button');
+  let opened = 0;
+  const badge = new LiveBadge(element, () => { opened += 1; });
+  assert.equal(element.hidden, true);
+  badge.show(LiveBadgeState.CONNECTING, 'http://127.0.0.1:18765');
+  assert.equal(element.hidden, false);
+  assert.match(element.textContent, /Waiting for 127\.0\.0\.1:18765/);
+  badge.show(LiveBadgeState.LIVE);
+  assert.equal(element.dataset.state, LiveBadgeState.LIVE);
+  assert.match(element.textContent, /LIVE/);
+  badge.show(LiveBadgeState.LOST);
+  assert.match(element.textContent, /ended/);
+  element.dispatch('click');
+  assert.equal(opened, 1);
+  badge.show(LiveBadgeState.OFF);
+  assert.equal(element.hidden, true);
 });
 
 // %% addresses

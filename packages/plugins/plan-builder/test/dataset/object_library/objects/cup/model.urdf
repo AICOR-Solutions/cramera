@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<robot name="cup">
+  <link name="cup_body">
+    <visual>
+      <geometry><mesh filename="assets/cup.obj"/></geometry>
+    </visual>
+  </link>
+</robot>

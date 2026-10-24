@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import URDFLoader from 'urdf-loader';
 
 import { PlannedObjectKey, PlannedRobotKey, PlanStepKey } from '../../../protocol.js';
 import { Bounds } from '../../../scene/bounds.js';
@@ -26,6 +27,11 @@ export const MarkerKind = Object.freeze({ ROBOT: 'robot', OBJECT: 'object', TARG
 export const TransformMode = Object.freeze({ MOVE: 'translate', TURN: 'rotate' });
 
 /**
+ * The suffix of an object library model's description.
+ */
+const DESCRIPTION_SUFFIX = '.urdf';
+
+/**
  * The region shown on an empty floor, in metres.
  */
 const FLOOR_REGION = new Bounds([-1, -1, 0], [3, 3, 1.5]);
@@ -41,6 +47,26 @@ const MarkerSize = Object.freeze({
   TARGET_RADIUS: 0.22,
   TARGET_TUBE: 0.025,
   PLACEHOLDER: 0.06,
+  LABEL_LIFT: 0.3,
+});
+
+/**
+ * The height of a robot's name label as a share of the view's height; the label keeps
+ * its size on the screen however far the camera is.
+ */
+const LABEL_SCREEN_HEIGHT = 0.035;
+
+/**
+ * How a robot's name label is drawn: the canvas's font size and padding in pixels, and
+ * its colours.
+ */
+const RobotLabel = Object.freeze({
+  FONT_SIZE: 48,
+  PADDING: 16,
+  FONT: '600 48px system-ui, sans-serif',
+  TEXT: '#f8fafc',
+  BACKGROUND: 'rgba(15, 23, 42, 0.82)',
+  EDITED_BACKGROUND: 'rgba(13, 148, 136, 0.92)',
 });
 
 /**
@@ -329,8 +355,10 @@ export class PlanScene {
     const edited = state.activeRobot()?.[PlannedRobotKey.IDENTIFIER];
     for (const robot of state.robots()) {
       const identifier = robot[PlannedRobotKey.IDENTIFIER];
-      const color = identifier === edited ? MarkerColor.EDITED_ROBOT : MarkerColor.ROBOT;
-      want(new Selection(MarkerKind.ROBOT, identifier), live.robots.get(identifier) ?? robot[PlannedRobotKey.POSE], String(color), true, () => this.#robotMarker(color));
+      const isEdited = identifier === edited;
+      const color = isEdited ? MarkerColor.EDITED_ROBOT : MarkerColor.ROBOT;
+      const label = robot[PlannedRobotKey.LABEL];
+      want(new Selection(MarkerKind.ROBOT, identifier), live.robots.get(identifier) ?? robot[PlannedRobotKey.POSE], `${color}${label}`, true, () => this.#robotMarker(color, label, isEdited));
     }
     for (const item of state.objects()) {
       const identifier = item[PlannedObjectKey.IDENTIFIER];
@@ -425,9 +453,12 @@ export class PlanScene {
 
   /**
    * @param {number} color The disc's colour.
-   * @returns {THREE.Group} A robot: a disc with an arrow along its heading.
+   * @param {string} label The robot's name.
+   * @param {boolean} edited Whether its plan is the one edited.
+   * @returns {THREE.Group} A robot: a disc with an arrow along its heading and its name
+   *   above it.
    */
-  #robotMarker(color) {
+  #robotMarker(color, label, edited) {
     const material = new THREE.MeshStandardMaterial({ color });
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(MarkerSize.ROBOT_RADIUS, MarkerSize.ROBOT_RADIUS, MarkerSize.ROBOT_HEIGHT, SEGMENTS), material);
     disc.rotation.x = Math.PI / 2;
@@ -435,8 +466,37 @@ export class PlanScene {
     const arrow = this.#arrow(material);
     arrow.position.z = MarkerSize.ROBOT_HEIGHT;
     const group = new THREE.Group();
-    group.add(disc, arrow);
+    group.add(disc, arrow, this.#nameLabel(label, edited));
     return group;
+  }
+
+  /**
+   * @param {string} text A robot's name.
+   * @param {boolean} edited Whether its plan is the one edited.
+   * @returns {THREE.Sprite} The name, facing the camera and drawn over the environment
+   *   so a robot inside furniture is still named.
+   */
+  #nameLabel(text, edited) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = RobotLabel.FONT;
+    canvas.width = Math.ceil(context.measureText(text).width) + 2 * RobotLabel.PADDING;
+    canvas.height = RobotLabel.FONT_SIZE + 2 * RobotLabel.PADDING;
+    context.font = RobotLabel.FONT;
+    context.fillStyle = edited ? RobotLabel.EDITED_BACKGROUND : RobotLabel.BACKGROUND;
+    context.beginPath();
+    context.roundRect(0, 0, canvas.width, canvas.height, canvas.height / 2);
+    context.fill();
+    context.fillStyle = RobotLabel.TEXT;
+    context.textBaseline = 'middle';
+    context.fillText(text, RobotLabel.PADDING, canvas.height / 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true, sizeAttenuation: false }));
+    sprite.renderOrder = 1;
+    sprite.scale.set((LABEL_SCREEN_HEIGHT * canvas.width) / canvas.height, LABEL_SCREEN_HEIGHT, 1);
+    sprite.position.z = MarkerSize.LABEL_LIFT;
+    return sprite;
   }
 
   /**
@@ -496,14 +556,36 @@ export class PlanScene {
 
   /**
    * @param {string} model An object model's identifier.
-   * @returns {Promise<THREE.Object3D>} Its mesh, loaded once.
+   * @returns {Promise<THREE.Object3D>} Its mesh, or a library model's links as its URDF
+   *   describes them at rest, loaded once.
    */
   #mesh(model) {
     if (!this.#meshes.has(model)) {
-      const loading = new MeshLoading(new THREE.LoadingManager(), () => {});
-      this.#meshes.set(model, loading.load(this.#objectUrl(model)));
+      const manager = new THREE.LoadingManager();
+      const loading = new MeshLoading(manager, () => {});
+      const url = this.#objectUrl(model);
+      this.#meshes.set(model, model.toLowerCase().endsWith(DESCRIPTION_SUFFIX) ? PlanScene.#described(url, manager, loading) : loading.load(url));
     }
     return this.#meshes.get(model);
+  }
+
+  /**
+   * @param {string} url A library model's URDF.
+   * @param {THREE.LoadingManager} manager Tracks the loader's requests.
+   * @param {MeshLoading} loading Loads the meshes the URDF names.
+   * @returns {Promise<THREE.Object3D>} The model's links, once every mesh they name
+   *   arrived: the loader hands the links over before, and markers copy them.
+   */
+  static #described(url, manager, loading) {
+    const meshesLoaded = new Promise((resolve) => {
+      manager.onLoad = resolve;
+    });
+    const loader = new URDFLoader(manager);
+    loader.parseCollision = false;
+    loader.loadMeshCb = (meshUrl, _manager, material, done) => {
+      loading.load(meshUrl, material).then((mesh) => done(mesh), (error) => done(null, error));
+    };
+    return loader.loadAsync(url).then((model) => meshesLoaded.then(() => model));
   }
 
   /**

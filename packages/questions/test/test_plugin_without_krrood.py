@@ -1,5 +1,5 @@
 """
-The questions plugin in a viewer installation without krrood and cramera-cram.
+The questions plugin in a viewer installation without krrood and cramera-bridge.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ The headers of a request addressed to this machine.
 def answerer(catalog, tmp_path) -> RequestAnswerer:
     """
     :return: The viewer's request answerer with a plugin that finds neither krrood nor
-        cramera-cram.
+        cramera-bridge.
     """
     plugin = QuestionsPlugin(
         installation=QueryLanguageInstallation(finder=lambda name: None)
@@ -93,7 +93,7 @@ def test_a_directory_named_like_krrood_is_no_installation():
     assert not installation.is_installed()
 
 
-def test_with_cramera_cram_but_without_krrood_only_krrood_is_missing():
+def test_with_cramera_bridge_but_without_krrood_only_krrood_is_missing():
     installation = QueryLanguageInstallation(
         finder=lambda name: (
             None

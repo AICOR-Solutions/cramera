@@ -34,6 +34,7 @@ import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constr
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
+import { EnvironmentNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { STEP_PALETTE_SIZE } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
@@ -463,17 +464,67 @@ test('robots are added, edited and removed', async () => {
   assert.equal(page.state.robots().length, 1);
 });
 
-test('the name and the environment are edited in the bar', async () => {
+test('the name is edited in the bar and the environment in its section', async () => {
   const { root, page, scene } = await openPage();
   const name = byAction(root, PlanAction.NAME)[0];
   name.value = 'milk_run';
   name.dispatch(DomEvent.CHANGE);
+  const bar = root.findAll((element) => element.className === 'bar builder-bar')[0];
+  assert.equal(bar.findAll((element) => element.dataset.action === PlanAction.ENVIRONMENT).length, 0);
   const environment = byAction(root, PlanAction.ENVIRONMENT)[0];
   environment.value = '';
   environment.dispatch(DomEvent.CHANGE);
   assert.equal(page.state.field(PlanKey.NAME), 'milk_run');
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), '');
   assert.deepEqual(scene().environments.at(-1), null);
+});
+
+const environmentNote = (root) => root.findAll((element) => element.className === 'muted environment-note')[0].textContent;
+
+test('the environment section says where the robots start', async () => {
+  const { root } = await openPage();
+  assert.equal(environmentNote(root), EnvironmentNote.chosen('Test laboratory'));
+  const environment = byAction(root, PlanAction.ENVIRONMENT)[0];
+  environment.value = '';
+  environment.dispatch(DomEvent.CHANGE);
+  assert.equal(environmentNote(root), EnvironmentNote.EMPTY_FLOOR);
+});
+
+test('without an environment on offer the section says where environments come from', async () => {
+  const { root, page } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.ENVIRONMENTS] = [];
+  });
+  assert.equal(page.state.field(PlanKey.ENVIRONMENT), '');
+  assert.equal(environmentNote(root), EnvironmentNote.NONE_OFFERED);
+});
+
+const robotEntries = (root) => byAction(root, PlanAction.SELECT_ROBOT);
+
+test('the robots are listed and the one whose plan is edited is marked', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  const [first, second] = page.state.robots().map((robot) => robot[PlannedRobotKey.IDENTIFIER]);
+  assert.deepEqual(robotEntries(root).map((entry) => entry.dataset.robot), [first, second]);
+  const pressed = () => robotEntries(root).filter((entry) => entry.getAttribute('aria-pressed') === 'true').map((entry) => entry.dataset.robot);
+  assert.deepEqual(pressed(), [page.state.activeRobot()[PlannedRobotKey.IDENTIFIER]]);
+  robotEntries(root).find((entry) => entry.dataset.robot === first).click();
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.IDENTIFIER], first);
+  assert.deepEqual(pressed(), [first]);
+  assert.equal(root.findAll((element) => element.tagName === 'H2' && element.textContent.startsWith('Plan of'))[0].textContent, `Plan of ${page.state.activeRobot()[PlannedRobotKey.LABEL]}`);
+});
+
+test('a robot picked in the 3D view becomes the one whose plan is edited', async () => {
+  const { root, page, scene } = await openPage();
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  const [first] = page.state.robots().map((robot) => robot[PlannedRobotKey.IDENTIFIER]);
+  scene().listeners.onPick(new Selection(MarkerKind.ROBOT, first));
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.IDENTIFIER], first);
+});
+
+test('the last robot cannot be removed', async () => {
+  const { root, page } = await openPage();
+  assert.equal(page.state.robots().length, 1);
+  assert.equal(byAction(root, PlanAction.REMOVE_ROBOT)[0].disabled, true);
 });
 
 // %% 3D view

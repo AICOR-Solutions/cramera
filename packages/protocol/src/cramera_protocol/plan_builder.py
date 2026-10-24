@@ -2045,7 +2045,7 @@ class DemoDocument(JsonDocument):
 class DemoOption(StrEnum):
     """
     The options of a generated demo's command line, which the plan builder starts it
-    with and cramera-cram's plan demo command reads.
+    with and cramera-bridge's plan demo command reads.
     """
 
     STAGE = "--stage"

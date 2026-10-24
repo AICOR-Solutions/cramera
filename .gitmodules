@@ -1,0 +1,3 @@
+[submodule "resources/private_meshes"]
+	path = resources/private_meshes
+	url = https://github.com/sunava/private_meshes.git

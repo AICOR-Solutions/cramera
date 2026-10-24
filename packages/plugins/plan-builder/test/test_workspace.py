@@ -4,9 +4,12 @@ Finding out whether the CRAM workspace is importable, and what a workspace serve
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from importlib.machinery import ModuleSpec
+from pathlib import Path
 
 import pytest
+from typing_extensions import Dict
 
 from cramera.exceptions import FileNotInDirectory, PathOutsideDirectory
 from cramera_plan_builder.exceptions import CramUnavailable
@@ -18,7 +21,12 @@ from cramera_plan_builder.workspace import (
 )
 from cramera_protocol.plan_builder import ActionCatalog
 
-from .dataset.given_workspace import DATASET
+from .dataset.given_workspace import DATASET, GivenWorkspace
+
+LIBRARY = DATASET / "object_library"
+"""
+The test object library.
+"""
 
 
 def finder_without(*absent: CramModule):
@@ -89,3 +97,48 @@ def test_a_file_outside_the_object_directory_is_not_served(given_workspace):
 
 def test_an_installed_workspace_names_nothing_missing(given_workspace):
     assert given_workspace.missing() == []
+
+
+# %% object libraries
+
+
+@dataclass(frozen=True)
+class LibraryWorkspace(GivenWorkspace):
+    """
+    The test workspace with the test object library beside its meshes.
+    """
+
+    def object_roots(self) -> Dict[str, Path]:
+        return {LIBRARY.name: LIBRARY}
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "objects/cup/model.urdf",
+        "objects/cup/assets/cup.obj",
+        "objects/cup/assets/cup.mtl",
+    ],
+)
+def test_a_library_serves_its_descriptions_and_meshes(path):
+    requested = f"{LIBRARY.name}/{path}"
+    assert LibraryWorkspace().object_file(requested) == (LIBRARY / path).resolve()
+
+
+def test_a_library_serves_nothing_but_descriptions_meshes_and_textures():
+    with pytest.raises(FileNotInDirectory):
+        LibraryWorkspace().object_file(f"{LIBRARY.name}/objects/cup/notes.md")
+
+
+def test_a_path_leaving_the_library_is_refused():
+    with pytest.raises(PathOutsideDirectory):
+        LibraryWorkspace().object_file(f"{LIBRARY.name}/../workspace.json")
+
+
+def test_a_path_naming_no_library_is_read_from_the_mesh_directory():
+    assert (
+        LibraryWorkspace().object_file("milk.stl")
+        == (DATASET / "objects" / "milk.stl").resolve()
+    )
+    with pytest.raises(FileNotInDirectory):
+        LibraryWorkspace().object_file("elsewhere/objects/cup/model.urdf")

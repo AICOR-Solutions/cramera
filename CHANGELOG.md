@@ -24,6 +24,30 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Objects of the meshes library in the plan builder.** `resources/private_meshes` is
+  a submodule of [sunava/private_meshes](https://github.com/sunava/private_meshes), and
+  the builder offers every model of it, and of any library `CRAMERA_OBJECT_LIBRARIES`
+  names, beside the meshes of coraplex: its URDF is drawn in the 3D view and merged
+  into the demo's world as a free, graspable object.
+
+  ![A library object in the plan builder](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-17/builder.png)
+- **A film of a recording.** The timeline's video button films the shown recording as a
+  WebM with a cinematic camera: it cuts between wide shots and close-ups on every pick
+  and place, slows down around them and saves the film when the recording ends; the
+  layer *Cinematic camera* shows the same shots while playing.
+
+  ![A filmed pick-up](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-13/film.gif)
+- **The live view says what it is doing.** A badge in the top bar shows whether the
+  viewer is off, connecting, live or has lost the publisher; the Live tab names what
+  the publisher offers and whether it records, the timeline says whether it follows
+  the run or waits for one, and an ended run offers *Save this run…*.
+
+  ![The live view's states](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-15/states.gif)
+- **One command installs the whole stack.** `python3 scripts/install_stack.py` puts the
+  viewer, every plugin, `cramera-bridge` and the CRAM workspace (cloned next to the
+  checkout when missing) editable into one uv environment that sees ROS 2's Python
+  packages, leaving out CRAM's own earlier `cramera` so this repository's viewer is
+  installed. `--viewer-only`, `--with-usd`, `--dev` and `--dry-run` choose less or more.
 - **Recorded plans keep every step parameter and constraint.** Every plan node the
   live publisher describes renders each field of its designator by name
   (`LivePlanNodeKey.PARAMETERS`): an enumeration member by its name, an object by its
@@ -51,29 +75,41 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **The plan builder's environment and robots are clearer.** The builder has an
+  Environment section and a Robots section with one card per robot; the card whose plan
+  is edited is marked, picking a robot in the 3D view selects it, and every robot has
+  its name above it.
+
+  ![The builder's environment and robots](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-14/after.png)
+- **cramera-cram is cramera-bridge.** The package that connects cramera to CRAM is
+  `cramera-bridge` now, imported as `cramera_bridge`, in `packages/bridge`; the
+  plugins' `cram` extra installs it, coraplex still finds its visualization as
+  `cramera`, and the live publisher reports itself as `cramera-bridge`. An
+  environment that still holds `cramera-cram` registers that visualization twice, so
+  uninstall it (`pip uninstall cramera-cram`); `scripts/install_stack.py` does.
 - **The Plan builder panel is the Plan View.** The viewer's panel of
   `cramera-plan-builder` is named Plan View and holds only the replayed recording's
   plan: its step cards now show every parameter the step was recorded with,
   labelled as the builder labels the field, and each constraint as a chip with its
   monitor and last observation. The panel's description and its links to the
   builder page are gone; the page stays at `/plugins/plan-builder/builder.html`.
-- **Only cramera-cram imports CRAM.** The plan builder's CRAM side (action
+- **Only cramera-bridge imports CRAM.** The plan builder's CRAM side (action
   discovery, steps, arms, world, surfaces, the generated demo's command) moved from
-  `cramera_plan_builder.cram` to `cramera_cram.plans` with its tests; the builder
+  `cramera_plan_builder.cram` to `cramera_bridge.plans` with its tests; the builder
   reads its catalog as protocol documents and its demos import
-  `cramera_cram.plans.command`. `DemoOption` moved into `cramera_protocol.plan_builder`,
+  `cramera_bridge.plans.command`. `DemoOption` moved into `cramera_protocol.plan_builder`,
   `Lifeline` into `cramera.lifeline`, and the errors the CRAM side raises into
-  `cramera_cram.exceptions` with their status and message unchanged. Demos generated
+  `cramera_bridge.exceptions` with their status and message unchanged. Demos generated
   before import the old module and have to be generated again.
-- **The question engine moved into cramera-cram.** Everything of `cramera-questions`
+- **The question engine moved into cramera-bridge.** Everything of `cramera-questions`
   that evaluates, words or lists queries with krrood, and what it needs (presets,
   matching, the recorded bundle reader, graph views, the workspace class index), is
-  `cramera_cram.questions` now, with `cramera_cram.questions.live` for live worlds
-  and `cramera_cram.questions.scenes` answering the plugin's routes in protocol
+  `cramera_bridge.questions` now, with `cramera_bridge.questions.live` for live worlds
+  and `cramera_bridge.questions.scenes` answering the plugin's routes in protocol
   documents. `cramera-questions` keeps the plugin, its routes and its browser module,
-  depends on `cramera-cram` only through its `cram` extra, and no longer is a
-  dependency of `cramera-cram`. `cramera-record-answers` is installed by
-  `cramera-cram`. A test of `cramera-cram` fails on any CRAM import outside it.
+  depends on `cramera-bridge` only through its `cram` extra, and no longer is a
+  dependency of `cramera-bridge`. `cramera-record-answers` is installed by
+  `cramera-bridge`. A test of `cramera-bridge` fails on any CRAM import outside it.
 
 ### A rewrite into packages
 - **One protocol for everything.** `cramera-protocol` defines scene bundles, the
