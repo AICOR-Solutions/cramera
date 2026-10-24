@@ -1,7 +1,7 @@
 /**
  * The top bar every page of the viewer shares: the AICOR logo, one link per page (the
  * scene page, the navigation entries the plugins declare and the ontology page), the
- * build stamp and the View menu with the colour theme.
+ * build stamp and the switch between the colour themes.
  */
 
 import {
@@ -12,6 +12,7 @@ import {
   PluginKey,
   Theme,
   ViewerInfoKey,
+  ViewerRoute,
 } from '../protocol.js';
 import { withPanel } from '../core/scene-address.js';
 
@@ -21,9 +22,10 @@ import { withPanel } from '../core/scene-address.js';
 export const SHORT_COMMIT = 7;
 
 /**
- * The logo's file below the viewer's root.
+ * What the AICOR logo shows, for people who cannot see it; a viewer given another logo
+ * names its text in its information.
  */
-const LOGO = '/images/aicor-logo.png';
+const AICOR_LOGO_TEXT = 'AICOR — Artificial Intelligence Powered Cognition-Enabled Robotics';
 
 /**
  * The status page below the viewer's root.
@@ -59,6 +61,11 @@ export const ONTOLOGY_ROUTE = '/ontology.html';
  * The texts of the theme choice.
  */
 const THEME_TITLES = Object.freeze({ [Theme.DARK]: 'Dark', [Theme.LIGHT]: 'Light' });
+
+/**
+ * The sign shown before each theme's title.
+ */
+const THEME_ICONS = Object.freeze({ [Theme.DARK]: '☾', [Theme.LIGHT]: '☀' });
 
 // %% theme
 
@@ -255,6 +262,12 @@ export class SiteHeader {
   #version;
 
   /**
+   * The logo.
+   * @type {HTMLImageElement}
+   */
+  #logo;
+
+  /**
    * @param {HTMLElement} root The header element.
    * @param {function(string): string} url The URL of a viewer route.
    * @param {ThemeSetting} theme The page's theme.
@@ -274,8 +287,9 @@ export class SiteHeader {
     brand.setAttribute('aria-label', 'cramera home');
     const logo = document.createElement('img');
     logo.className = 'logo';
-    logo.src = url(LOGO);
-    logo.alt = 'AICOR — Artificial Intelligence Powered Cognition-Enabled Robotics';
+    logo.src = url(ViewerRoute.LOGO);
+    logo.alt = AICOR_LOGO_TEXT;
+    this.#logo = logo;
     brand.append(logo);
     this.#navigation = document.createElement('nav');
     this.#navigation.className = 'page-tabs';
@@ -287,7 +301,7 @@ export class SiteHeader {
     this.#version.id = 'viewer-version';
     this.#version.href = url(STATUS_PAGE);
     this.#version.title = 'Which build this is';
-    actions.append(this.#version, this.#viewMenu(theme));
+    actions.append(this.#version, this.#themeSwitch(theme));
     root.replaceChildren(brand, this.#navigation, actions);
   }
 
@@ -316,6 +330,7 @@ export class SiteHeader {
       }),
     );
     this.#version.textContent = versionOf(info);
+    this.#logo.alt = info[ViewerInfoKey.LOGO_TEXT] ?? AICOR_LOGO_TEXT;
     return links;
   }
 
@@ -334,39 +349,34 @@ export class SiteHeader {
 
   /**
    * @param {ThemeSetting} theme The page's theme.
-   * @returns {HTMLElement} The View button and its menu.
+   * @returns {HTMLElement} One button per theme, the chosen one pressed, so the choice is
+   *   always in sight and one click away.
    */
-  #viewMenu(theme) {
+  #themeSwitch(theme) {
     const document = this.#root.ownerDocument;
-    const menu = document.createElement('div');
-    menu.className = 'view-menu';
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.textContent = '⊞ View';
-    toggle.setAttribute('aria-expanded', 'false');
-    const list = document.createElement('div');
-    list.className = 'view-menu-list';
-    list.hidden = true;
-    const label = document.createElement('label');
-    const caption = document.createElement('span');
-    caption.textContent = 'Theme';
-    const choice = document.createElement('select');
-    choice.setAttribute('aria-label', 'Theme');
-    for (const [value, title] of Object.entries(THEME_TITLES)) {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = title;
-      choice.append(option);
-    }
-    choice.value = theme.theme;
-    choice.addEventListener('change', () => theme.choose(choice.value));
-    label.append(caption, choice);
-    list.append(label);
-    toggle.addEventListener('click', () => {
-      list.hidden = !list.hidden;
-      toggle.setAttribute('aria-expanded', String(!list.hidden));
+    const group = document.createElement('div');
+    group.className = 'theme-switch';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'Theme');
+    const buttons = Object.entries(THEME_TITLES).map(([value, title]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.theme = value;
+      button.textContent = `${THEME_ICONS[value]} ${title}`;
+      button.title = `Show the ${title.toLowerCase()} theme`;
+      return button;
     });
-    menu.append(toggle, list);
-    return menu;
+    const show = () => {
+      for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.theme === theme.theme));
+    };
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        theme.choose(button.dataset.theme);
+        show();
+      });
+    }
+    show();
+    group.append(...buttons);
+    return group;
   }
 }

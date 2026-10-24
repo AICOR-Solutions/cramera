@@ -10,8 +10,8 @@ environment as `cramera`: `pip install ./packages/viewer` brings no page but the
 scene page. The pages of this repository (Plan Builder, Scene Builder,
 the questions column) are installed with
 `pip install ./packages/questions ./packages/plugins/*`; optional extras such as
-`[cram]` add what a plugin needs beyond the viewer. The
-README's section *Install the pages and panels* lists them. The viewer's `/api/info`
+`[bridge]` (`cramera-bridge`, the way to the CRAM workspace) add what a plugin needs
+beyond the viewer. The README's section *Install the pages and panels* lists them. The viewer's `/api/info`
 answer names the plugins it has loaded, which is the first thing to check when a
 page is missing from the top bar.
 
@@ -111,7 +111,7 @@ Rules for browser modules:
 - Use the CSS variables of `styles/viewer.css` (`--surface`, `--surface-raised`,
   `--text`, `--text-muted`, `--border`, `--accent`, `--control`, `--radius`, `--font`,
   ...), so the plugin follows the dark theme, which is the default, and the light
-  theme a person may choose in the View menu (`:root[data-theme="light"]`).
+  theme a person may choose with the top bar's theme switch (`:root[data-theme="light"]`).
 - Own your elements and listeners and remove them when a scene is replaced, by
   subscribing to `ViewerEvent.SCENE_LOADING`.
 - Insert user and scene text as `textContent`, never as HTML.

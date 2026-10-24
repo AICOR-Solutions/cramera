@@ -11,6 +11,7 @@ from pathlib import Path
 
 from typing_extensions import List
 
+from cramera.branding import Branding
 from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
 from cramera.http.messages import HttpMethod, MediaType, Request, Response
@@ -60,6 +61,11 @@ class ViewerApplication:
     The browser application's files.
     """
 
+    branding: Branding = field(default_factory=Branding)
+    """
+    Which logo the pages show.
+    """
+
     def router(self) -> Router:
         """
         :return: The router of every viewer and plugin route; the browser files come
@@ -68,6 +74,7 @@ class ViewerApplication:
         router = Router()
         router.add(ExactRoute(HttpMethod.GET, ViewerRoute.INFO, self.answer_info))
         router.add(ExactRoute(HttpMethod.GET, ViewerRoute.SCENES, self.answer_scenes))
+        router.add(ExactRoute(HttpMethod.GET, ViewerRoute.LOGO, self.answer_logo))
         router.add(
             ExactRoute(
                 HttpMethod.GET, ViewerRoute.PROTOCOL_MODULE, self.answer_protocol
@@ -114,8 +121,16 @@ class ViewerApplication:
             ViewerInfo(
                 version=version("cramera"),
                 plugins=[plugin.info() for plugin in self.plugins],
+                logo_text=self.branding.text(),
             )
         )
+
+    def answer_logo(self, request: Request) -> Response:
+        """
+        :param request: A request for the logo.
+        :return: The logo's image.
+        """
+        return Response.of_file(self.branding.file())
 
     def answer_scenes(self, request: Request) -> Response:
         """

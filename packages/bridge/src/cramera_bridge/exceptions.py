@@ -309,6 +309,24 @@ class UnknownPlanNode(CramPublisherError):
 
 
 @dataclass
+class UnknownPerceptionImage(CramPublisherError):
+    """
+    An image key no perception step took an image under.
+    """
+
+    key: str
+    """
+    The key that was given.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"No perception step took an image {self.key!r}."
+
+
+@dataclass
 class MarkersUnavailable(Conflict):
     """
     A marker topic change in a process that reads no markers from ROS.

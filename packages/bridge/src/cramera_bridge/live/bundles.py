@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import shutil
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, Dict, List, Optional
@@ -16,6 +16,7 @@ from typing_extensions import TYPE_CHECKING, Dict, List, Optional
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import EmptyRecording
 from cramera_bridge.export.world_models import ObjectFiles, WorldModels
+from cramera_bridge.live.perception_images import bundle_file
 from cramera_bridge.live.recorded_statecharts import RecordedStatecharts
 from cramera_bridge.live.recording import FrameRange, FrameTiming, RecordedFrame
 from cramera_bridge.live.segments import RecordedRun
@@ -247,6 +248,16 @@ class PlanTrees:
                 end=None if frames is None else frames.last,
                 robot=None if node.parent in identifiers else self.robot,
                 parameters=dict(node.parameters),
+                perceived=(None if node.perceived is None else list(node.perceived)),
+                reason=node.reason,
+                images=(
+                    None
+                    if node.images is None
+                    else [
+                        replace(image, file=bundle_file(image.file))
+                        for image in node.images
+                    ]
+                ),
                 constraints=[
                     PlanConstraint(
                         text=constraint.text,
@@ -369,6 +380,7 @@ class LiveBundleWriter:
             DocumentFile(staging / BundleFile.TRAJECTORY).write(
                 self.trajectory(frames, frames_per_second)
             )
+            self.perception_images(plans, staging)
             if not statecharts.is_empty():
                 DocumentFile(staging / BundleFile.STATECHARTS).write(
                     statecharts.document()
@@ -376,6 +388,24 @@ class LiveBundleWriter:
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
         return ReservedSceneName.RECORDING
+
+    @staticmethod
+    def perception_images(plans: List[PerformedPlan], staging: Path) -> None:
+        """
+        Write the image of every perception step the plans' snapshots name.
+
+        :param plans: The plans the run performed.
+        :param staging: The bundle being written.
+        """
+        for plan in plans:
+            for node in plan.latest.nodes:
+                for image in node.images or []:
+                    taken = plan.images.image(image.file)
+                    if taken is None:
+                        continue
+                    path = staging / taken.bundle_file
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(taken.image.png)
 
     @staticmethod
     def plan_trees(

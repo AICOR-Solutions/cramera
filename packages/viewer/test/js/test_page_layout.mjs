@@ -59,6 +59,14 @@ test('the ontology is a page of the viewer\'s own', () => {
   assert.equal(ontology.panel, null);
 });
 
+test('a viewer given another logo names what it shows', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('header');
+  const header = new SiteHeader(root, url, new ThemeSetting(document.documentElement, null), SCENE_PAGE);
+  header.show({ ...INFO, [ViewerInfoKey.LOGO_TEXT]: 'Our lab' });
+  assert.equal(root.children[0].children[0].alt, 'Our lab');
+});
+
 test('the header marks its own page and shows panels on the scene page', () => {
   const document = new FakeDocument();
   const root = document.createElement('header');
@@ -66,7 +74,8 @@ test('the header marks its own page and shows panels on the scene page', () => {
   const header = new SiteHeader(root, url, new ThemeSetting(document.documentElement, null), SCENE_PAGE, (panel) => shown.push(panel));
   header.show(INFO);
   const [brand, navigation, actions] = root.children;
-  assert.equal(brand.children[0].src, `${BASE}images/aicor-logo.png`);
+  assert.equal(brand.children[0].src, `${BASE}api/logo`);
+  assert.match(brand.children[0].alt, /^AICOR/);
   const anchors = navigation.children;
   assert.equal(anchors[0].getAttribute('aria-current'), 'page');
   assert.equal(anchors[1].getAttribute('aria-current'), null);
@@ -133,19 +142,17 @@ test('a page whose storage is refused still shows and changes its theme', () => 
   assert.equal(localStorageOf(window), null);
 });
 
-test('the View menu opens and changes the theme', () => {
+test('the top bar switches the theme with one click and shows which is chosen', () => {
   const document = new FakeDocument();
   const root = document.createElement('header');
   new SiteHeader(root, url, new ThemeSetting(document.documentElement, new FakeStorage()), SCENE_PAGE);
-  const menu = root.children[2].children[1];
-  const [toggle, list] = menu.children;
-  assert.equal(list.hidden, true);
-  toggle.dispatch('click');
-  assert.equal(list.hidden, false);
-  const choice = list.children[0].children[1];
-  choice.value = Theme.LIGHT;
-  choice.dispatch('change');
+  const buttons = root.children[2].children[1].children;
+  const pressed = () => buttons.filter((button) => button.getAttribute('aria-pressed') === 'true').map((button) => button.dataset.theme);
+  assert.deepEqual(buttons.map((button) => button.dataset.theme), [Theme.DARK, Theme.LIGHT]);
+  assert.deepEqual(pressed(), [Theme.DARK]);
+  buttons.find((button) => button.dataset.theme === Theme.LIGHT).dispatch('click');
   assert.equal(document.documentElement.dataset.theme, Theme.LIGHT);
+  assert.deepEqual(pressed(), [Theme.LIGHT]);
 });
 
 // %% addresses

@@ -15,7 +15,7 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 [project.optional-dependencies]
 # Answering questions needs cramera-bridge's question engine and krrood, which comes from
 # the CRAM workspace and is not installable from an index.
-cram = ["cramera-bridge==1.0.0"]
+bridge = ["cramera-bridge==1.0.0"]
 
 [project.entry-points."cramera.plugins"]
 questions = "cramera_questions.plugin:QuestionsPlugin"

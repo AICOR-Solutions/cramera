@@ -165,32 +165,19 @@ button:disabled, select:disabled { opacity: 0.45; cursor: default; }
 .version { color: var(--text-faint); text-decoration: none; font: 11px var(--mono); white-space: nowrap; }
 .version:hover { color: var(--text-muted); }
 
-.view-menu { position: relative; }
-.view-menu > button {
-  padding: 7px 16px;
-  font-size: 13px;
+.theme-switch { display: flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+.theme-switch button {
+  padding: 6px 12px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-muted);
   background: transparent;
-  border-color: var(--border-strong);
+  border: 0;
+  border-radius: 0;
 }
-.view-menu > button:hover { color: var(--text); }
-.view-menu-list {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  z-index: 50;
-  min-width: 240px;
-  display: grid;
-  gap: 6px;
-  padding: 10px 14px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-.view-menu-list[hidden] { display: none; }
-.view-menu-list label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.theme-switch button + button { border-left: 1px solid var(--border-strong); }
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
 
 /* %% the ontology page */
 
@@ -482,6 +469,61 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
 .facts dt { color: var(--text-muted); }
 .facts dd { margin: 0; font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+
+/* %% scene graph */
+
+.scene-graph { display: grid; gap: 8px; align-content: start; }
+.graph-counts { margin: 0; font-size: 12px; color: var(--text-muted); }
+.graph-filter { color: var(--text); background: var(--control); border: 1px solid var(--control-border); border-radius: var(--radius); padding: 5px 10px; }
+.graph-tree, .graph-tree ul { list-style: none; margin: 0; padding: 0; }
+.graph-tree ul { padding-left: 8px; border-left: 1px solid var(--border); margin-left: 9px; }
+.graph-tree { min-height: 140px; max-height: 38vh; overflow: auto; }
+.graph-row { display: flex; align-items: center; gap: 2px; }
+.graph-toggle { width: 20px; padding: 0; font-size: 11px; color: var(--text-muted); background: transparent; border: 0; }
+.graph-toggle:disabled { color: var(--text-faint); cursor: default; }
+.graph-label { display: inline-flex; align-items: center; gap: 6px; padding: 2px 6px; font: 12px var(--mono); color: var(--text); background: transparent; border: 1px solid transparent; border-radius: var(--radius); text-align: left; }
+.graph-label:hover { border-color: var(--border-strong); }
+.graph-label[aria-current="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.graph-label .count { font-size: 10.5px; color: var(--text-faint); }
+.kind-tag { flex: none; width: 9px; height: 9px; border-radius: 2px; background: var(--text-faint); }
+.kind-tag[data-kind="world"] { background: var(--text-muted); }
+.kind-tag[data-kind="model"] { background: var(--accent-2); }
+.kind-tag[data-kind="link"] { background: var(--accent); }
+.kind-tag[data-kind="object"] { background: var(--warning); }
+.kind-tag[data-kind="part"] { background: var(--play); }
+.kind-tag[data-kind="group"] { background: transparent; border: 1px solid var(--text-faint); }
+.graph-details { max-height: 32vh; overflow: auto; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+.graph-details h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 600 13px var(--mono); }
+.graph-details h4 { margin: 10px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+.graph-details dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 0; font-size: 12px; }
+.graph-details dt { color: var(--text-muted); }
+.graph-details dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; }
+.graph-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.graph-chips li { display: flex; align-items: center; gap: 4px; }
+.graph-chips .field { font-size: 11px; color: var(--text-faint); }
+
+/* %% perception */
+
+.perception { display: grid; gap: 8px; align-content: start; }
+.perception > .muted { margin: 0; font-size: 12px; }
+.perception-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.perception-step { padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--text-faint); border-radius: var(--radius); background: var(--surface-sunken); }
+.perception-step[data-status="SUCCEEDED"] { border-left-color: var(--success); }
+.perception-step[data-status="FAILED"] { border-left-color: var(--danger); }
+.perception-step[data-status="RUNNING"] { border-left-color: var(--accent); }
+.perception-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.perception-head button { margin-left: auto; padding: 3px 9px; font-size: 12px; }
+.perception-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.perception-images figure { margin: 0; display: grid; gap: 4px; }
+.perception-images a { display: block; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.perception-images a:hover, .perception-images a:focus-visible { border-color: var(--accent); }
+.perception-images img { display: block; width: 100%; height: auto; image-rendering: auto; }
+.perception-images figcaption { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.perception-status { font: 11px var(--mono); color: var(--text-muted); }
+.perception-step h4 { margin: 8px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+.perception-seen { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.perception-seen button { padding: 3px 10px; font-size: 12px; border-color: var(--warning); color: var(--text); }
+.perception-reason, .perception-step .muted { margin: 4px 0 0; font-size: 12px; }
 
 /* %% live */
 

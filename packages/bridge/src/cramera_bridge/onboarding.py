@@ -100,6 +100,7 @@ class DemoOnboarding:
             port=ONBOARDING_PORT,
             locations=self.locations,
             read_ros_markers=False,
+            read_robokudo_images=False,
         )
         self.visualizations.append(visualization)
         if self.detect_events:

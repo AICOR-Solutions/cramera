@@ -10,7 +10,7 @@ from enum import Enum
 
 from typing_extensions import Callable, Optional, Type, TypeVar
 
-from cramera.http.messages import HttpMethod, Request, Response
+from cramera.http.messages import HttpMethod, MediaType, Request, Response
 from cramera.http.routing import ExactRoute, Router
 from cramera_bridge.exceptions import InvalidParameter, MalformedBody, MissingParameter
 from cramera_bridge.live.publisher import LivePublisher
@@ -170,6 +170,13 @@ class LiveRoutes:
             )
         router.add(ExactRoute(HttpMethod.GET, LiveRoute.MESH, self.answer_mesh))
         router.add(
+            ExactRoute(
+                HttpMethod.GET,
+                LiveRoute.PERCEPTION_IMAGE,
+                self.answer_perception_image,
+            )
+        )
+        router.add(
             ExactRoute(HttpMethod.GET, LiveRoute.VOCABULARY, self.answer_vocabulary)
         )
         router.add(ExactRoute(HttpMethod.GET, LiveRoute.MEMBERS, self.answer_members))
@@ -209,6 +216,16 @@ class LiveRoutes:
                 reader.parameter(LiveParameter.SIDE),
             )
         )
+
+    def answer_perception_image(self, request: Request) -> Response:
+        """
+        :param request: A request naming an image a perception step took.
+        :return: The image as a PNG file.
+        """
+        image = self.publisher.perception_image(
+            LiveRequest(request).required_parameter(LiveParameter.KEY)
+        )
+        return Response(body=image.image.png, media_type=MediaType.PNG)
 
     def answer_vocabulary(self, request: Request) -> Response:
         """

@@ -617,6 +617,21 @@ class PlanNodeKey(StrEnum):
     The constraints attached to the node while it ran.
     """
 
+    PERCEIVED = "perceived"
+    """
+    The objects a perception step reported.
+    """
+
+    REASON = "reason"
+    """
+    Why a failed node failed.
+    """
+
+    IMAGES = "images"
+    """
+    What a perception step saw.
+    """
+
 
 class PlanConstraintKey(StrEnum):
     """
@@ -660,6 +675,67 @@ class PlanConstraint(JsonDocument):
     )
     """
     The name of the monitor's last observation value, or None when it never ticked.
+    """
+
+
+class PerceptionImageSource(StrEnum):
+    """
+    Where an image of what a perception step saw comes from.
+    """
+
+    CAMERA = "camera"
+    """
+    Rendered from the world model through the robot's camera, as in simulation.
+    """
+
+    ROBOKUDO = "robokudo"
+    """
+    Published by a RoboKudo pipeline while it answered the step.
+    """
+
+
+class PerceptionImageKey(StrEnum):
+    """
+    The keys of a :class:`PerceptionImage`.
+    """
+
+    TITLE = "title"
+    """
+    What the image shows.
+    """
+
+    SOURCE = "source"
+    """
+    Where the image comes from.
+    """
+
+    FILE = "file"
+    """
+    Where the image is.
+    """
+
+
+@dataclass(kw_only=True)
+class PerceptionImage(JsonDocument):
+    """
+    One image of what a perception step saw.
+    """
+
+    title: str = document_field(PerceptionImageKey.TITLE)
+    """
+    What the image shows, for people reading it, such as ``Camera`` or the RoboKudo
+    annotator that drew it.
+    """
+
+    source: str = document_field(PerceptionImageKey.SOURCE)
+    """
+    A :class:`PerceptionImageSource` value.
+    """
+
+    file: str = document_field(PerceptionImageKey.FILE)
+    """
+    In a bundle, the PNG file's path in the bundle; in a live plan, the image's key for
+    :attr:`~cramera_protocol.live.LiveRoute.PERCEPTION_IMAGE`.
     """
 
 
@@ -755,6 +831,26 @@ class PlanNode(JsonDocument):
     )
     """
     The constraints attached to the node while it ran, with their last observations.
+    """
+
+    perceived: Optional[List[str]] = document_field(PlanNodeKey.PERCEIVED, default=None)
+    """
+    For a perception step: the objects it reported, by their keys, else their names,
+    empty when it reported none; None for every other node and in recordings written
+    before.
+    """
+
+    reason: Optional[str] = document_field(PlanNodeKey.REASON, default=None)
+    """
+    Why the node failed, as coraplex worded it; None for a node that did not fail.
+    """
+
+    images: Optional[List[PerceptionImage]] = document_field(
+        PlanNodeKey.IMAGES, default=None
+    )
+    """
+    For a perception step: the images of what it saw, empty when none were taken; None
+    for every other node and in recordings written before.
     """
 
     extensions: Dict[str, Any] = extension_field()

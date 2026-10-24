@@ -40,6 +40,11 @@ ROS_MODULES = ("rclpy", "visualization_msgs")
 The modules reading markers from ROS needs.
 """
 
+ROS_IMAGE_MODULES = ("rclpy", "sensor_msgs")
+"""
+The modules reading RoboKudo's images from ROS needs.
+"""
+
 # %% world callbacks
 
 
@@ -136,6 +141,12 @@ class LiveVisualization:
     Whether markers are read from ROS when ROS is installed.
     """
 
+    read_robokudo_images: bool = True
+    """
+    Whether the images RoboKudo's pipelines publish are read from ROS when ROS is
+    installed, to show with every perception step.
+    """
+
     class_index: Optional[WorkspaceClassIndex] = None
     """
     The workspace classes queries may name; the installed CRAM packages when None.
@@ -177,6 +188,13 @@ class LiveVisualization:
             ):
                 publisher.marker_source = self.ros_marker_listener(publisher)
                 acquired.callback(publisher.marker_source.stop)
+            if self.read_robokudo_images and all(
+                importlib.util.find_spec(module) is not None
+                for module in ROS_IMAGE_MODULES
+            ):
+                listener = self.robokudo_image_listener()
+                acquired.callback(listener.stop)
+                publisher.plan.images.cameras.append(listener)
             publisher.attach(self.world)
             acquired.callback(self.finish_recording, publisher)
             for callback_class in (PublishedStateChange, PublishedModelChange):
@@ -203,6 +221,17 @@ class LiveVisualization:
         return RosMarkerListener(publisher.markers).start(
             MarkerTopicConfiguration.of_process().topics()
         )
+
+    @staticmethod
+    def robokudo_image_listener() -> Any:
+        """
+        Start reading RoboKudo's images from ROS; imported here because ROS is optional.
+
+        :return: The started listener.
+        """
+        from cramera_bridge.live.ros_perception_images import RoboKudoImageListener
+
+        return RoboKudoImageListener().start()
 
     @staticmethod
     def finish_recording(publisher: LivePublisher) -> None:
