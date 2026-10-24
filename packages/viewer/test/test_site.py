@@ -10,6 +10,7 @@ import shutil
 import pytest
 
 from cramera import bundle_upgrade, static_site
+from cramera.branding import DEFAULT_LOGO
 from cramera.bundle_upgrade import BundleLabels, BundleUpgrade, UpgradeOption
 from cramera.exceptions import PluginNotInstalled
 from cramera.plugins import PluginLoader
@@ -255,3 +256,42 @@ def test_the_export_command_includes_the_named_plugins(demo_scenes, tmp_path):
                 "not-installed-anywhere",
             ]
         )
+
+
+LOGO_BYTES = b"<svg xmlns='http://www.w3.org/2000/svg'/>"
+"""
+The content of the test logo.
+"""
+
+
+# %% logo
+
+
+def test_an_exported_site_carries_its_logo(demo_scenes, tmp_path):
+    logo = tmp_path / "lab-logo.svg"
+    logo.write_bytes(LOGO_BYTES)
+    output = tmp_path / "site"
+    static_site.main(
+        [
+            str(output),
+            ExportOption.SCENES,
+            str(demo_scenes),
+            ExportOption.LOGO,
+            str(logo),
+            ExportOption.LOGO_TEXT,
+            "Our lab",
+        ]
+    )
+    assert (output / ViewerRoute.LOGO.strip("/")).read_bytes() == LOGO_BYTES
+    info = ViewerInfo.from_json(
+        json.loads((output / ViewerRoute.INFO.strip("/")).read_text())
+    )
+    assert info.logo_text == "Our lab"
+
+
+def test_an_exported_site_carries_the_aicor_logo_by_default(demo_scenes, tmp_path):
+    output = tmp_path / "site"
+    static_site.main([str(output), ExportOption.SCENES, str(demo_scenes)])
+    assert (
+        output / ViewerRoute.LOGO.strip("/")
+    ).read_bytes() == DEFAULT_LOGO.read_bytes()

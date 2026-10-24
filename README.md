@@ -155,9 +155,9 @@ machine.
 
 | Command | What it does |
 | --- | --- |
-| `cramera` | Serve the viewer. |
+| `cramera` | Serve the viewer. `--logo FILE` (or `CRAMERA_LOGO`) shows another `.png`, `.svg` or `.jpg` instead of the AICOR logo in every page's top bar, `--logo-text TEXT` says what it shows. |
 | `cramera-shot URL OUT.png` | Take a screenshot in headless Chrome (`--browser chrome`, needs `chromedriver`) or Firefox (`--browser firefox`, needs `geckodriver`) once the page reports its scene as shown; exits 1 when it fails. |
-| `cramera-export-site OUT --scenes DIR [--plugin NAME]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins. |
+| `cramera-export-site OUT --scenes DIR [--plugin NAME] [--logo FILE]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins and the given logo. |
 | `cramera-upgrade-bundle SRC DST` | Copy a bundle and rewrite its documents in the current format, optionally with new labels for the scene picker. |
 
 ## Follow a running plan
