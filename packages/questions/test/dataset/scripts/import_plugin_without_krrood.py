@@ -1,5 +1,5 @@
 """
-Imports the questions plugin while krrood and cramera-cram cannot be imported, as in a
+Imports the questions plugin while krrood and cramera-bridge cannot be imported, as in a
 viewer installation without the CRAM workspace, and prints the plugin's name.
 """
 
@@ -8,7 +8,7 @@ from __future__ import annotations
 import sys
 from importlib.abc import MetaPathFinder
 
-HIDDEN_PACKAGES = frozenset({"krrood", "cramera_cram"})
+HIDDEN_PACKAGES = frozenset({"krrood", "cramera_bridge"})
 """
 The packages this script pretends are not installed.
 """

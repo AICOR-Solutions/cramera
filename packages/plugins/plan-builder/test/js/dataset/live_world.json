@@ -1,5 +1,5 @@
 {
-  "info": {"protocolVersion": "1.0", "publisher": "cramera-cram 1.0.0", "running": true, "capabilities": ["object_placement", "constraints"]},
+  "info": {"protocolVersion": "1.0", "publisher": "cramera-bridge 1.0.0", "running": true, "capabilities": ["object_placement", "constraints"]},
   "objects": {"objects": [{"key": "key-milk", "id": "milk", "shapes": []}]},
   "captured": {"objects": {"key-milk": [1.25, 0.5, 0.9, 0.0, 0.0, 0.0, 1.0]}},
   "robots": {"robots": [{"identifier": "uuid-1", "label": "robot_1/PR2 1", "model": "PR2", "pose": [0.5, -0.25, 0.0, 0.0, 0.0, 0.0, 1.0], "jointPositions": {"robot_1/torso_lift_joint": 0.3}}], "activeIdentifier": "uuid-1"},

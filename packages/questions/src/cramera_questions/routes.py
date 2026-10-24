@@ -1,7 +1,7 @@
 """
 The questions plugin's routes over recorded scenes.
 
-They hand each request to cramera-cram's question engine, which evaluates queries with
+They hand each request to cramera-bridge's question engine, which evaluates queries with
 krrood, so this module is only imported where both are installed.
 """
 
@@ -14,9 +14,9 @@ from typing_extensions import List, Optional, Tuple
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.plugins import PluginRoute
 from cramera.scenes import SceneCatalog
-from cramera_cram.questions.exceptions import UnknownScope
-from cramera_cram.questions.scenes import RecordedSceneQuestions
-from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
+from cramera_bridge.questions.exceptions import UnknownScope
+from cramera_bridge.questions.scenes import RecordedSceneQuestions
+from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.questions import (
     QueryRequest,
     QueryScope,

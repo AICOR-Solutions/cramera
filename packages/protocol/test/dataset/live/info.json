@@ -1,1 +1,1 @@
-{"protocolVersion": "1.0", "publisher": "cramera-cram 1.0.0", "capabilities": ["plan", "statechart"], "scene": "__live__", "running": true, "bundleSignature": "world-0a1b"}
+{"protocolVersion": "1.0", "publisher": "cramera-bridge 1.0.0", "capabilities": ["plan", "statechart"], "scene": "__live__", "running": true, "bundleSignature": "world-0a1b"}
