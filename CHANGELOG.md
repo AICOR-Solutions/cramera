@@ -36,6 +36,8 @@ which this repository was mirrored until 22 Oct 2026.
   while the step runs. A live plan's node lists them in `images`, each served by the
   publisher's `/perception_image` route; a recording keeps them as PNG files in its
   `perception/` directory.
+
+  ![What a perception step saw](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-25-images/perception_tab.png)
 - **The Scene graph tab.** The scene page browses the shown world as a tree, the way
   the Ontology tab browses classes: its models with their links nested by joint, its
   free objects and the robot's part annotations. A node shows its fields, what it
