@@ -18,6 +18,7 @@ from typing_extensions import TYPE_CHECKING, Dict, List
 
 from cramera_bridge.exceptions import ObjectNotMovable, UnknownJoint, UnknownObject
 from cramera_bridge.geometry import NumericPose
+from cramera_bridge.names import ANNOTATION_NAMES
 from cramera_bridge.live.transforms import TransformTracker
 from cramera_bridge.live.world_model import WorldModelView
 from cramera_protocol.geometry import Pose
@@ -229,7 +230,8 @@ class WorldSurfaces:
         return Surfaces(
             surfaces=[
                 SurfaceDescription(
-                    type_name=type(annotation).__name__, name=str(annotation.name)
+                    type_name=ANNOTATION_NAMES.identifier_of(type(annotation)),
+                    name=str(annotation.name),
                 )
                 for annotation in self.world.get_semantic_annotations_by_type(
                     HasSupportingSurface

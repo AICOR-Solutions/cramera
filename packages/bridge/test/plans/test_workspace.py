@@ -14,7 +14,7 @@ from cramera_bridge.plans.workspace import (
     SurfaceAnnotations,
 )
 from cramera_bridge.exceptions import UnknownWorkspaceClass
-from cramera_bridge.names import ROBOT_NAMES
+from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
@@ -35,17 +35,23 @@ def workspace() -> PlanWorkspace:
 
 def test_a_robot_with_two_arms_and_a_torso_offers_every_choice():
     assert RobotAnnotation(PR2).choices() == {
-        Arms.__name__: [arm.name for arm in Arms],
-        TorsoState.__name__: [state.name for state in TorsoState],
+        ENUM_NAMES.identifier_of(Arms): [
+            ENUM_NAMES.member_identifier(Arms, arm) for arm in Arms
+        ],
+        ENUM_NAMES.identifier_of(TorsoState): [
+            ENUM_NAMES.member_identifier(TorsoState, state) for state in TorsoState
+        ],
     }
 
 
 def test_a_robot_without_a_torso_offers_no_torso_state():
-    assert RobotAnnotation(Tracy).choices()[TorsoState.__name__] == []
+    assert RobotAnnotation(Tracy).choices()[ENUM_NAMES.identifier_of(TorsoState)] == []
 
 
 def test_a_robot_with_one_arm_offers_the_choice_coraplex_resolves_to_it():
-    assert RobotAnnotation(Stretch).arms() == [Arms.BOTH.name]
+    assert RobotAnnotation(Stretch).arms() == [
+        ENUM_NAMES.member_identifier(Arms, Arms.BOTH)
+    ]
 
 
 def test_robots_without_a_model_description_are_not_offered():
@@ -89,8 +95,9 @@ def test_the_catalog_lists_the_discovered_actions(workspace):
 
 def test_the_surfaces_are_concrete_annotations_without_the_mixins(workspace):
     surfaces = workspace.surface_types()
-    assert Table.__name__ in surfaces
+    assert ANNOTATION_NAMES.identifier_of(Table) in surfaces
     assert HasCaseAsRootBody.__name__ not in surfaces
+    assert SurfaceAnnotations().named(ANNOTATION_NAMES.identifier_of(Table)) is Table
     assert SurfaceAnnotations().named(Table.__name__) is Table
 
 

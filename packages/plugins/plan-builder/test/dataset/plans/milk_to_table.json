@@ -1,5 +1,5 @@
 {
-  "formatVersion": "1.2",
+  "formatVersion": "1.3",
   "name": "milk_to_table",
   "task": "Carry the milk to the table",
   "environment": "lab",
@@ -11,19 +11,19 @@
       "label": "PR2 1",
       "pose": [1.0, 2.5, 0.0, 0.0, 0.0, 0.0, 1.0],
       "steps": [
-        {"id": "step_1", "action": "park_arms", "values": {"arm": "BOTH"}},
-        {"id": "step_2", "action": "move_torso", "values": {"torso_state": "HIGH"}},
+        {"id": "step_1", "action": "park_arms", "values": {"arm": "both"}},
+        {"id": "step_2", "action": "move_torso", "values": {"torso_state": "high"}},
         {"id": "step_3", "action": "navigate", "values": {"target_location": [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0]}},
         {"id": "step_4", "action": "transport",
-         "values": {"object_designator": "milk", "arm": "LEFT", "target_location": {"placement": "surface", "surfaceType": "Table"}},
+         "values": {"object_designator": "milk", "arm": "left", "target_location": {"placement": "surface", "surfaceType": "table"}},
          "constraints": [{"text": "Look where it operates", "monitorType": "PointingAt", "switch": "look_at_operation_site"}]},
-        {"id": "step_5", "action": "pick_up", "values": {"object_designator": "cup", "arm": "RIGHT"}},
+        {"id": "step_5", "action": "pick_up", "values": {"object_designator": "cup", "arm": "right"}},
         {"id": "step_6", "action": "place",
-         "values": {"object_designator": "cup", "arm": "RIGHT", "target_location": {"placement": "pose", "pose": [2.4, 1.8, 0.8, 0.0, 0.0, 0.0, 1.0]}}}
+         "values": {"object_designator": "cup", "arm": "right", "target_location": {"placement": "pose", "pose": [2.4, 1.8, 0.8, 0.0, 0.0, 0.0, 1.0]}}}
       ]
     },
     {"id": "robot_2", "model": "tracy", "label": "Tracy 1", "pose": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-     "steps": [{"id": "step_1", "action": "park_arms", "values": {"arm": "LEFT"}}]}
+     "steps": [{"id": "step_1", "action": "park_arms", "values": {"arm": "left"}}]}
   ],
   "objects": [
     {"id": "milk", "model": "milk.stl", "pose": [2.4, 2.2, 0.95, 0.0, 0.0, 0.0, 1.0], "color": "#e6ecff"},

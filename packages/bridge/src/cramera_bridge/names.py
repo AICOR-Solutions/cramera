@@ -16,8 +16,9 @@ import functools
 import importlib
 import re
 from dataclasses import dataclass
+from enum import Enum
 
-from typing_extensions import List, Optional, Tuple
+from typing_extensions import Dict, List, Optional, Tuple
 
 from cramera_protocol.bundle.scene import PlanNodeKind
 
@@ -53,6 +54,54 @@ class PinnedClass:
         """
         module, _, name = self.path.rpartition(".")
         return getattr(importlib.import_module(module), name)
+
+
+@dataclass(frozen=True)
+class PinnedEnum:
+    """
+    A CRAM enumeration pinned to a protocol identifier, with an identifier for each of
+    its members.
+    """
+
+    identifier: str
+    """
+    The protocol's name of the enumeration, which never changes.
+    """
+
+    path: str
+    """
+    Where the enumeration is defined: its module and name, ``module.Enum``.
+    """
+
+    members: Tuple[str, ...]
+    """
+    The identifiers of its members: their names in lower case when it was pinned.
+    """
+
+    renamed: Tuple[Tuple[str, str], ...] = ()
+    """
+    The member identifiers whose member CRAM renamed since, with the member's name now.
+    """
+
+    def resolve(self) -> type:
+        """
+        :return: The enumeration.
+        """
+        return PinnedClass(self.identifier, self.path).resolve()
+
+    def member_name(self, identifier: str) -> str:
+        """
+        :param identifier: A member identifier.
+        :return: The name of the member it stands for now.
+        """
+        return dict(self.renamed).get(identifier, identifier.upper())
+
+    def saved_name(self, identifier: str) -> str:
+        """
+        :param identifier: A member identifier.
+        :return: The name files saved the member under before the protocol named it.
+        """
+        return identifier.upper()
 
 
 ACTIONS = (
@@ -255,6 +304,418 @@ The plan node classes by the kind the protocol names them, tried in order; a nod
 the kind of the first class it is an instance of, else :attr:`PlanNodeKind.OTHER`.
 """
 
+ANNOTATIONS = (
+    PinnedClass(
+        "bowl",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Bowl",
+        ("Bowl",),
+    ),
+    PinnedClass(
+        "cabinet",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Cabinet",
+        ("Cabinet",),
+    ),
+    PinnedClass(
+        "coffee_table",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.CoffeeTable",
+        ("CoffeeTable",),
+    ),
+    PinnedClass(
+        "counter_top",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.CounterTop",
+        ("CounterTop",),
+    ),
+    PinnedClass(
+        "cupboard",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Cupboard",
+        ("Cupboard",),
+    ),
+    PinnedClass(
+        "desk",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Desk",
+        ("Desk",),
+    ),
+    PinnedClass(
+        "dining_table",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.DiningTable",
+        ("DiningTable",),
+    ),
+    PinnedClass(
+        "dishwasher",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Dishwasher",
+        ("Dishwasher",),
+    ),
+    PinnedClass(
+        "drawer",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+        ("Drawer",),
+    ),
+    PinnedClass(
+        "dresser",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Dresser",
+        ("Dresser",),
+    ),
+    PinnedClass(
+        "elevator",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Elevator",
+        ("Elevator",),
+    ),
+    PinnedClass(
+        "floor",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Floor",
+        ("Floor",),
+    ),
+    PinnedClass(
+        "fridge",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Fridge",
+        ("Fridge",),
+    ),
+    PinnedClass(
+        "handle",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+        ("Handle",),
+    ),
+    PinnedClass(
+        "level",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Level",
+        ("Level",),
+    ),
+    PinnedClass(
+        "mounting_table",
+        "semantic_digital_twin.robots.robot_parts.MountingTable",
+        ("MountingTable",),
+    ),
+    PinnedClass(
+        "plate",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Plate",
+        ("Plate",),
+    ),
+    PinnedClass(
+        "shelf",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Shelf",
+        ("Shelf",),
+    ),
+    PinnedClass(
+        "shelf_layer",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.ShelfLayer",
+        ("ShelfLayer",),
+    ),
+    PinnedClass(
+        "side_table",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.SideTable",
+        ("SideTable",),
+    ),
+    PinnedClass(
+        "sofa",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Sofa",
+        ("Sofa",),
+    ),
+    PinnedClass(
+        "table",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Table",
+        ("Table",),
+    ),
+    PinnedClass(
+        "tool",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Tool",
+        ("Tool",),
+    ),
+    PinnedClass(
+        "tracy_table", "semantic_digital_twin.robots.tracy.TracyTable", ("TracyTable",)
+    ),
+    PinnedClass(
+        "trash_can",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.TrashCan",
+        ("TrashCan",),
+    ),
+    PinnedClass(
+        "wardrobe",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.Wardrobe",
+        ("Wardrobe",),
+    ),
+)
+"""
+The semantic annotation classes a plan names: the surfaces objects are put on or in, and
+the classes action fields take an annotation of.
+"""
+
+ENUMS = (
+    PinnedEnum(
+        "arms",
+        "cramera_bridge.plans.arms.Arms",
+        (
+            "left",
+            "right",
+            "both",
+        ),
+    ),
+    PinnedEnum(
+        "cutting_technique",
+        "coraplex.datastructures.enums.CuttingTechnique",
+        (
+            "slice",
+            "saw",
+            "halving",
+        ),
+    ),
+    PinnedEnum(
+        "detection_state",
+        "coraplex.datastructures.enums.DetectionState",
+        (
+            "start",
+            "stop",
+            "pause",
+        ),
+    ),
+    PinnedEnum(
+        "detection_technique",
+        "coraplex.datastructures.enums.DetectionTechnique",
+        (
+            "all",
+            "human",
+            "types",
+            "region",
+            "human_attributes",
+            "human_waving",
+        ),
+    ),
+    PinnedEnum(
+        "pouring_side",
+        "coraplex.datastructures.enums.PouringSide",
+        (
+            "left",
+            "right",
+        ),
+    ),
+    PinnedEnum(
+        "slicing_priority",
+        "coraplex.datastructures.enums.SlicingPriority",
+        (
+            "thickness",
+            "cut_count",
+        ),
+    ),
+    PinnedEnum(
+        "wiping_technique",
+        "coraplex.datastructures.enums.WipingTechnique",
+        (
+            "wipe",
+            "shear",
+            "spread",
+        ),
+    ),
+    PinnedEnum(
+        "gripper_state",
+        "semantic_digital_twin.datastructures.definitions.GripperState",
+        (
+            "open",
+            "close",
+            "medium",
+        ),
+    ),
+    PinnedEnum(
+        "torso_state",
+        "semantic_digital_twin.datastructures.definitions.TorsoState",
+        (
+            "high",
+            "mid",
+            "low",
+        ),
+    ),
+)
+"""
+The enumerations action fields take a member of, with the identifier of each member.
+"""
+
+FIELDS = {
+    "close": (
+        "approach_clearance",
+        "retreat_distance",
+        "handle",
+        "arm",
+        "release_clearance",
+    ),
+    "container": (
+        "approach_clearance",
+        "retreat_distance",
+        "handle",
+        "arm",
+        "release_clearance",
+    ),
+    "detect": (
+        "technique",
+        "state",
+        "object_sem_annotation",
+        "region",
+        "trust_detected_orientation",
+        "accept_first_if_multiple",
+    ),
+    "elevator_navigation": (
+        "elevator",
+        "target_floor",
+        "exit_clearance",
+        "arrival_threshold",
+    ),
+    "face_at": ("target",),
+    "follow_tool_center_point_path": (
+        "position_threshold",
+        "orientation_threshold",
+        "target_locations",
+        "arm",
+    ),
+    "grasping": (
+        "position_threshold",
+        "orientation_threshold",
+        "grasp_detection_threshold",
+        "pre_approach_linear_velocity",
+        "final_approach_linear_velocity",
+        "grasp_closing_velocity",
+        "lift_linear_velocity",
+        "grasp_stall_minimum_time",
+        "object_friction",
+        "approach_clearance",
+        "retreat_distance",
+        "grasp",
+        "arm",
+        "tolerate_grasp_stall",
+    ),
+    "look_at": ("target", "camera"),
+    "move_manipulator": (
+        "position_threshold",
+        "orientation_threshold",
+        "target_pose",
+        "end_effector",
+        "allow_gripper_collision",
+    ),
+    "move_to_reach": (
+        "position_threshold",
+        "orientation_threshold",
+        "approach_clearance",
+        "retreat_distance",
+        "target_pose_offset_robot",
+        "hip_rotation",
+        "reference_T_grasp",
+        "end_effector",
+    ),
+    "move_torso": ("torso_state",),
+    "navigate": ("target_location",),
+    "open": (
+        "approach_clearance",
+        "retreat_distance",
+        "handle",
+        "arm",
+        "release_clearance",
+    ),
+    "park_arms": ("max_joint_velocity", "arms"),
+    "path_planning_navigate": ("target",),
+    "pick_up": (
+        "position_threshold",
+        "orientation_threshold",
+        "grasp_detection_threshold",
+        "pre_approach_linear_velocity",
+        "final_approach_linear_velocity",
+        "grasp_closing_velocity",
+        "lift_linear_velocity",
+        "grasp_stall_minimum_time",
+        "object_friction",
+        "approach_clearance",
+        "retreat_distance",
+        "grasp",
+        "arm",
+        "tolerate_grasp_stall",
+    ),
+    "place": (
+        "position_threshold",
+        "orientation_threshold",
+        "grasp_detection_threshold",
+        "placing_linear_velocity",
+        "transport_linear_velocity",
+        "release_opening_velocity",
+        "retract_linear_velocity",
+        "approach_clearance",
+        "retreat_distance",
+        "object_designator",
+        "target_location",
+        "grasp_release_threshold",
+    ),
+    "reach": (
+        "position_threshold",
+        "orientation_threshold",
+        "grasp_detection_threshold",
+        "pre_approach_linear_velocity",
+        "final_approach_linear_velocity",
+        "approach_clearance",
+        "retreat_distance",
+        "arm",
+        "grasp",
+        "reverse_reach_order",
+        "open_gripper_at_pre_pose",
+    ),
+    "set_gripper": ("gripper", "motion"),
+    "cutting": (
+        "position_threshold",
+        "orientation_threshold",
+        "arm",
+        "tool",
+        "pointer_stride",
+        "object_to_cut",
+        "technique",
+        "slice_thickness",
+        "number_of_cuts_on_local_x_axis",
+        "slicing_priority",
+    ),
+    "face_and_look_at": ("face_at", "look_at"),
+    "mixing": (
+        "position_threshold",
+        "orientation_threshold",
+        "arm",
+        "tool",
+        "pointer_stride",
+        "container",
+        "mix_duration",
+    ),
+    "move_and_open": ("navigate", "face_and_look_at", "open_container"),
+    "move_and_pick_up": ("navigate", "face_and_look_at", "pick_up"),
+    "move_and_place": ("navigate", "face_and_look_at", "place"),
+    "pick_and_place": ("pick_up", "place"),
+    "pouring": (
+        "position_threshold",
+        "orientation_threshold",
+        "target_container",
+        "source_container",
+        "arm",
+        "tilt_angle",
+        "pour_side",
+        "pour_side_offset",
+        "pour_approach_offset",
+        "pour_height",
+    ),
+    "transport": ("pick_up", "place"),
+    "wiping": (
+        "position_threshold",
+        "orientation_threshold",
+        "arm",
+        "tool",
+        "pointer_stride",
+        "surface",
+        "target_pose",
+        "technique",
+        "length",
+        "cycles",
+        "final_waypoint_success_tolerance",
+    ),
+}
+"""
+The identifier of every field of each pinned action, by the action's identifier: the
+field names when the action was pinned.
+"""
+
+FIELD_RENAMES: Dict[str, Dict[str, str]] = {}
+"""
+The field each identifier stands for where CRAM renamed the field since the action was
+pinned, by the action's identifier and the field's identifier.
+"""
+
 # %% identifiers of classes not pinned yet
 
 WORD_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
@@ -363,3 +824,136 @@ def plan_node_kind(node: object) -> PlanNodeKind:
         if isinstance(node, cls):
             return kind
     return PlanNodeKind.OTHER
+
+
+ANNOTATION_NAMES = ClassNames(ANNOTATIONS)
+"""
+The identifiers of the semantic annotation classes.
+"""
+
+
+# %% enumerations
+
+
+@dataclass(frozen=True)
+class EnumNames:
+    """
+    Translates between enumerations and their members and protocol identifiers.
+    """
+
+    pinned: Tuple[PinnedEnum, ...]
+    """
+    The pinned enumerations.
+    """
+
+    def entry_of(self, enumeration: type) -> Optional[PinnedEnum]:
+        """
+        :param enumeration: An enumeration.
+        :return: Its pinned entry, or None when it is not pinned.
+        """
+        path = f"{enumeration.__module__}.{enumeration.__name__}"
+        return next((entry for entry in self.pinned if entry.path == path), None)
+
+    def identifier_of(self, enumeration: type) -> str:
+        """
+        :param enumeration: An enumeration.
+        :return: Its pinned identifier, else one derived from its name.
+        """
+        entry = self.entry_of(enumeration)
+        if entry is None:
+            return derived_identifier(enumeration.__name__)
+        return entry.identifier
+
+    def member_identifier(self, enumeration: type, member: Enum) -> str:
+        """
+        :param enumeration: An enumeration.
+        :param member: One of its members.
+        :return: The member's identifier: pinned, else its name in lower case.
+        """
+        entry = self.entry_of(enumeration)
+        if entry is not None:
+            for identifier in entry.members:
+                if entry.member_name(identifier) == member.name:
+                    return identifier
+        return member.name.lower()
+
+    def member(self, enumeration: type, name: str) -> Enum:
+        """
+        :param enumeration: An enumeration.
+        :param name: A member's identifier, or the name a file saved it under before.
+        :return: The member.
+        :raises KeyError: When the enumeration has no such member.
+        """
+        for member in enumeration:
+            identifier = self.member_identifier(enumeration, member)
+            if name in (identifier, self.saved_name(enumeration, identifier)):
+                return member
+        raise KeyError(name)
+
+    def saved_name(self, enumeration: type, identifier: str) -> str:
+        """
+        :param enumeration: An enumeration.
+        :param identifier: A member identifier.
+        :return: The name files saved the member under before the protocol named it.
+        """
+        entry = self.entry_of(enumeration)
+        return identifier.upper() if entry is None else entry.saved_name(identifier)
+
+    def saved_members(self, enumeration: type) -> Dict[str, str]:
+        """
+        :param enumeration: An enumeration.
+        :return: The identifier of every member by the name files saved it under before.
+        """
+        identifiers = [
+            self.member_identifier(enumeration, member) for member in enumeration
+        ]
+        return {
+            self.saved_name(enumeration, identifier): identifier
+            for identifier in identifiers
+        }
+
+
+ENUM_NAMES = EnumNames(ENUMS)
+"""
+The identifiers of the enumerations and their members.
+"""
+
+
+# %% fields
+
+
+@dataclass(frozen=True)
+class FieldNames:
+    """
+    Translates between the fields of actions and their protocol identifiers.
+    """
+
+    renamed: Dict[str, Dict[str, str]]
+    """
+    The field each identifier stands for where CRAM renamed it, by action identifier.
+    """
+
+    def identifier_of(self, action: str, field_name: str) -> str:
+        """
+        :param action: An action's identifier.
+        :param field_name: One of its fields as CRAM names it.
+        :return: The field's identifier.
+        """
+        for identifier, renamed in self.renamed.get(action, {}).items():
+            if renamed == field_name:
+                return identifier
+        return field_name
+
+    def field_name(self, action: str, identifier: str) -> str:
+        """
+        :param action: An action's identifier.
+        :param identifier: A field identifier.
+        :return: The field as CRAM names it now.
+        """
+        return self.renamed.get(action, {}).get(identifier, identifier)
+
+
+FIELD_NAMES = FieldNames(FIELD_RENAMES)
+"""
+The identifiers of the actions' fields.
+"""

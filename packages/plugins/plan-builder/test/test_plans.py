@@ -140,10 +140,10 @@ def test_a_plan_of_offered_entries_passes_the_catalog(catalog_check, plan):
 
 
 def test_an_arm_the_robot_does_not_have_is_refused(catalog_check, catalog, plan):
-    plan.robots[0].steps[0].values["arm"] = "MIDDLE"
+    plan.robots[0].steps[0].values["arm"] = "middle"
     with pytest.raises(UnsupportedByCatalog) as refusal:
         catalog_check.check(plan)
-    assert refusal.value.offered == catalog.robots[0].choices["Arms"]
+    assert refusal.value.offered == catalog.robots[0].choices["arms"]
     assert refusal.value.location.endswith("step_1.values.arm")
 
 

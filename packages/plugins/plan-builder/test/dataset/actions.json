@@ -12,12 +12,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Entry from the enum for which arm should be parked."
@@ -39,7 +35,7 @@
           "label": "target",
           "kind": "pose",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Position at which the robot should look, given as 6D pose."
@@ -65,12 +61,8 @@
           "label": "torso state",
           "kind": "enum",
           "required": true,
-          "enumType": "TorsoState",
-          "members": [
-            "HIGH",
-            "MID",
-            "LOW"
-          ],
+          "enumType": "torso_state",
+          "members": ["high", "mid", "low"], "savedMembers": {"HIGH": "high", "MID": "mid", "LOW": "low"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The state of the torso that should be set"
@@ -91,7 +83,7 @@
           "label": "target location",
           "kind": "pose",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Location to which the robot should be navigated"
@@ -102,7 +94,7 @@
           "kind": "boolean",
           "required": false,
           "default": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Keep the joint states of the robot the same during the navigation."
@@ -113,7 +105,7 @@
           "kind": "boolean",
           "required": false,
           "default": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Turn toward travel where space permits, retaining the requested final orientation."
@@ -134,12 +126,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Entry from the enum for which arm should be parked."
@@ -149,7 +137,7 @@
           "label": "max joint velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum joint velocity (in rad/s or m/s, per joint), enforced via"
@@ -170,7 +158,7 @@
           "label": "object designator",
           "kind": "body",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Object designator_description describing the object that should be picked up."
@@ -180,12 +168,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The arm that should be used for pick up."
@@ -195,7 +179,7 @@
           "label": "grasp description",
           "kind": "grasp",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [
             "arm",
@@ -209,7 +193,7 @@
           "kind": "number",
           "required": false,
           "default": 0.9,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Minimum fraction of sampled rays between the gripper's fingers that must hit the"
@@ -219,7 +203,7 @@
           "label": "pre approach linear velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum linear speed (in m/s) for the initial pre-pose approach, enforced via"
@@ -229,7 +213,7 @@
           "label": "final approach linear velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum linear speed (in m/s) for the final approach onto the target pose, enforced"
@@ -239,7 +223,7 @@
           "label": "grasp closing velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum finger joint velocity (in m/s) used while closing onto the object, enforced"
@@ -249,7 +233,7 @@
           "label": "lift linear velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum linear speed (in m/s) for lifting the object clear of the table after"
@@ -259,7 +243,7 @@
           "label": "grasp stall minimum time",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Minimum stall dwell time (in seconds, see"
@@ -269,7 +253,7 @@
           "label": "object friction",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Sliding friction coefficient to apply to the target object's geom before this pick,"
@@ -280,7 +264,7 @@
           "kind": "boolean",
           "required": false,
           "default": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Whether the CLOSE motion's completion also tolerates a stalled grasp (see"
@@ -301,7 +285,7 @@
           "label": "object designator",
           "kind": "body",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Object designator_description describing the object that should be place"
@@ -311,7 +295,7 @@
           "label": "target location",
           "kind": "pose",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": true,
           "derivedFrom": [],
           "documentation": "Pose in the world at which the object should be placed."
@@ -321,12 +305,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Arm that is currently holding the object"
@@ -337,7 +317,7 @@
           "kind": "number",
           "required": false,
           "default": 0.9,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Minimum fraction of sampled rays between the gripper's fingers that must hit the"
@@ -347,7 +327,7 @@
           "label": "placing linear velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum linear speed (in m/s) for the final descent onto the target location,"
@@ -357,7 +337,7 @@
           "label": "transport linear velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum linear speed (in m/s) for carrying the held object above the target"
@@ -367,7 +347,7 @@
           "label": "release opening velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum finger joint velocity (in m/s) used while opening the gripper to release"
@@ -377,7 +357,7 @@
           "label": "retract linear velocity",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum linear speed (in m/s) for retracting the end effector away from the placed"
@@ -388,7 +368,7 @@
           "kind": "number",
           "required": false,
           "default": 0.1,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Maximum fraction of sampled rays between the gripper's fingers that may still hit"
@@ -409,12 +389,8 @@
           "label": "gripper",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The gripper that should be set."
@@ -424,12 +400,8 @@
           "label": "motion",
           "kind": "enum",
           "required": true,
-          "enumType": "GripperState",
-          "members": [
-            "OPEN",
-            "CLOSE",
-            "MEDIUM"
-          ],
+          "enumType": "gripper_state",
+          "members": ["open", "close", "medium"], "savedMembers": {"OPEN": "open", "CLOSE": "close", "MEDIUM": "medium"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The motion that should be set on the gripper."
@@ -450,12 +422,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The arm holding the tool."
@@ -465,8 +433,8 @@
           "label": "tool",
           "kind": "annotation",
           "required": true,
-          "members": [],
-          "annotation": "Tool",
+          "members": [], "savedMembers": {},
+          "annotation": "tool",
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The tool that performs the motion."
@@ -476,7 +444,7 @@
           "label": "object to cut",
           "kind": "body",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The object to cut."
@@ -487,7 +455,7 @@
           "kind": "integer",
           "required": false,
           "default": 1,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Keep every Nth sampled waypoint for execution."
@@ -497,13 +465,9 @@
           "label": "technique",
           "kind": "enum",
           "required": false,
-          "default": "SAW",
-          "enumType": "CuttingTechnique",
-          "members": [
-            "SLICE",
-            "SAW",
-            "HALVING"
-          ],
+          "default": "saw",
+          "enumType": "cutting_technique",
+          "members": ["slice", "saw", "halving"], "savedMembers": {"SLICE": "slice", "SAW": "saw", "HALVING": "halving"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The cutting technique to use."
@@ -513,7 +477,7 @@
           "label": "slice thickness",
           "kind": "number",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Target slice thickness in meters, controlling the spacing between cut anchors."
@@ -523,7 +487,7 @@
           "label": "number of cuts on local x axis",
           "kind": "integer",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Number of cut passes along the object's local X axis."
@@ -533,12 +497,9 @@
           "label": "slicing priority",
           "kind": "enum",
           "required": false,
-          "default": "THICKNESS",
-          "enumType": "SlicingPriority",
-          "members": [
-            "THICKNESS",
-            "CUT_COUNT"
-          ],
+          "default": "thickness",
+          "enumType": "slicing_priority",
+          "members": ["thickness", "cut_count"], "savedMembers": {"THICKNESS": "thickness", "CUT_COUNT": "cut_count"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Parameter that is kept when ``slice_thickness`` and"
@@ -559,7 +520,7 @@
           "label": "standing position",
           "kind": "pose",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The pose to stand before trying to pick up the object."
@@ -569,7 +530,7 @@
           "label": "object designator",
           "kind": "body",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The object to pick up."
@@ -579,12 +540,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "The arm to use."
@@ -594,7 +551,7 @@
           "label": "grasp description",
           "kind": "grasp",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [
             "arm",
@@ -608,7 +565,7 @@
           "kind": "boolean",
           "required": false,
           "default": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Keep the joint states of the robot the same during the navigation."
@@ -629,7 +586,7 @@
           "label": "container",
           "kind": "body",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Container already held by the selected arm."
@@ -639,12 +596,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Arm whose existing grasp is preserved."
@@ -674,7 +627,7 @@
           "label": "object designator",
           "kind": "body",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Object designator_description describing the object that should be"
@@ -684,7 +637,7 @@
           "label": "target location",
           "kind": "poseOrSurface",
           "required": true,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": true,
           "derivedFrom": [],
           "documentation": "Destination pose or lazy alternatives tried after acquiring the object."
@@ -694,12 +647,8 @@
           "label": "arm",
           "kind": "enum",
           "required": true,
-          "enumType": "Arms",
-          "members": [
-            "LEFT",
-            "RIGHT",
-            "BOTH"
-          ],
+          "enumType": "arms",
+          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Arm that should be used."
@@ -709,7 +658,7 @@
           "label": "grasp description",
           "kind": "grasp",
           "required": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [
             "arm",
@@ -723,7 +672,7 @@
           "kind": "boolean",
           "required": false,
           "default": false,
-          "members": [],
+          "members": [], "savedMembers": {},
           "acceptsSurface": false,
           "derivedFrom": [],
           "documentation": "Whether the robot looks at the object before picking it up and at the target"

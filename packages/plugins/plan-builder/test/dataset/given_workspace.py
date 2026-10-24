@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from typing_extensions import List
+from typing_extensions import Dict, List
 
 from cramera_plan_builder.workspace import CramWorkspace
 from cramera_protocol.plan_builder import (
@@ -66,6 +66,9 @@ class GivenWorkspace(CramWorkspace):
 
     def surface_types(self) -> List[str]:
         return self.catalog().surface_types
+
+    def saved_surface_types(self) -> Dict[str, str]:
+        return self.catalog().saved_surface_types
 
     def action_catalog(self) -> ActionCatalog:
         return ActionCatalog.from_json(

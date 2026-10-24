@@ -3,7 +3,7 @@
   "task": "Say \"\"\" and ''' and r\"\"\"\\\" with $name, ${demo}, a backslash at the end \\",
   "robots": [
     {"id": "robot_1", "model": "pr2", "label": "Ünïcødé   robot", "pose": [0, 0, 0, 0, 0, 0, 1],
-     "steps": [{"id": "step_1", "action": "park_arms", "values": {"arm": "BOTH"},
+     "steps": [{"id": "step_1", "action": "park_arms", "values": {"arm": "both"},
                 "constraints": [{"text": "Keep it upright\"\"\"; import os"}]}]}
   ]
 }

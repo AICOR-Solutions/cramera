@@ -328,7 +328,7 @@ test('the palette groups the actions and names why others are not available', as
   const reasons = new Map(refused.map((element) => [element.dataset.name, element.children[1].textContent]));
   const unavailable = ACTIONS[ActionCatalogKey.ACTIONS].find((schema) => !schema[ActionSchemaKey.AVAILABLE]);
   assert.equal(reasons.get(unavailable[ActionSchemaKey.NAME]), unavailable[ActionSchemaKey.UNAVAILABLE_REASON]);
-  assert.match(reasons.get('move_torso'), /TorsoState/);
+  assert.match(reasons.get('move_torso'), /torso_state/);
   const notice = root.findAll((element) => element.className === 'notice')[0];
   assert.match(notice.textContent, new RegExp(ACTIONS[ActionCatalogKey.FAILED_MODULES][0].module));
 });
@@ -338,11 +338,11 @@ test('a gripper step offers its enumerations with the choices of the robot', asy
   block(root, 'set_gripper').click();
   const gripper = parameter(root, 'gripper');
   const motion = parameter(root, 'motion');
-  assert.deepEqual(gripper.children.map((option) => option.value), ['BOTH']);
-  assert.deepEqual(motion.children.map((option) => option.value), ['OPEN', 'CLOSE', 'MEDIUM']);
-  motion.value = 'CLOSE';
+  assert.deepEqual(gripper.children.map((option) => option.value), ['both']);
+  assert.deepEqual(motion.children.map((option) => option.value), ['open', 'close', 'medium']);
+  motion.value = 'close';
   motion.dispatch(DomEvent.CHANGE);
-  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].motion, 'CLOSE');
+  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].motion, 'close');
   assert.equal(root.findAll((element) => element.className === 'more-options').length, 0);
 });
 
@@ -373,7 +373,7 @@ test('an annotation without a live entity is typed by name', async () => {
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
   block(root, 'cutting').click();
   const tool = parameter(root, 'tool');
-  assert.match(root.findAll((element) => element.className === 'empty').map((element) => element.textContent).join(' '), /Tool annotation/);
+  assert.match(root.findAll((element) => element.className === 'empty').map((element) => element.textContent).join(' '), /tool annotation/);
   tool.value = 'knife';
   tool.dispatch(DomEvent.CHANGE);
   assert.equal(page.state.steps()[0][PlanStepKey.VALUES].tool, 'knife');

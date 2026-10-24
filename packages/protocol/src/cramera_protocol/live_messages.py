@@ -1314,7 +1314,8 @@ class SurfaceDescription(JsonDocument):
 
     type_name: str = document_field(SurfaceKey.TYPE)
     """
-    The class name of the surface's semantic annotation.
+    The identifier of the surface's semantic annotation class, as the plan builder's
+    catalog lists surface types and annotation field types, such as ``table``.
     """
 
     name: str = document_field(SurfaceKey.NAME)

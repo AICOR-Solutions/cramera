@@ -117,16 +117,19 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
-- **The protocol names actions, robots and plan node kinds itself.** Plans name actions
-  and robot models by snake_case identifiers (`pick_up`, `pr2`) and recordings name plan
-  node kinds as `action`, `motion`, `sequence`, … instead of CRAM's class names.
-  `cramera_bridge/names.py` is the one table between the two, so a rename in CRAM
-  changes only that table. Plans are written in format 1.2; plans of 1.1, naming the
-  class names, are translated through the names the catalog lists each identifier as
-  having been saved under (`savedAs`), and earlier recordings' class names are read as
+- **The protocol names actions, robots, plan node kinds, fields, enumeration members
+  and surface types itself.** Plans name actions and robot models by snake_case
+  identifiers (`pick_up`, `pr2`), enumeration members and surface types too (`high`,
+  `table`), and recordings name plan node kinds as `action`, `motion`, `sequence`, …
+  instead of CRAM's class names. `cramera_bridge/names.py` is the one table between
+  the two; it also maps action fields and enumeration members CRAM renames, so a rename
+  in CRAM changes only that table. Plans are written in format 1.3; plans of 1.1 and
+  1.2 are translated through the names the catalog lists as saved before (`savedAs`,
+  `savedMembers`, `savedSurfaceTypes`), and earlier recordings' class names are read as
   their kinds.
 
-  ![A plan sent with class names and saved with identifiers](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-49/saved_plan.png)
+  ![A plan sent with CRAM's names and saved with identifiers](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-49/saved_plan_values.png)
+
 - **Things a robot takes hold of are objects from the start.** Every body that a
   semantic annotation of something with grasps describes (Milk, Bowl, Spoon, Cup, …) is
   published and recorded as an object, however the world attaches it. Parts of other

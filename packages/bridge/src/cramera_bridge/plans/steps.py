@@ -14,6 +14,7 @@ from typing_extensions import Any, Callable, Dict, Iterable, Optional
 from coraplex.datastructures.dataclasses import Context
 from coraplex.querying.predicates import IsAmongTheClosestGraspsTo
 from coraplex.robot_plans.actions.base import ActionDescription
+from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.plans.actions import DiscoveredAction, DiscoveredActions
 from cramera_bridge.plans.arms import ArmField, Arms, RobotArms
 from cramera_bridge.plans.surfaces import SurfaceTargets
@@ -82,7 +83,7 @@ class StepArguments:
         }
         schema = self.action.schema
         arguments = {
-            offered.name: converters[offered.kind](
+            self.action.field_name(offered.name): converters[offered.kind](
                 offered, self.step.values[offered.name]
             )
             for offered in schema.fields
@@ -90,7 +91,7 @@ class StepArguments:
         }
         for constraint in self.step.constraints:
             if constraint.switch is not None and self.is_switch(constraint.switch):
-                arguments[constraint.switch] = True
+                arguments[self.action.field_name(constraint.switch)] = True
         return arguments
 
     def is_switch(self, name: str) -> bool:
@@ -136,13 +137,14 @@ class StepArguments:
     def member(self, offered: ActionField, value: str) -> Any:
         """
         :param offered: An enumeration field, or one taking the robot's arms.
-        :param value: A member's name.
+        :param value: A member's identifier, or the name a plan saved it under before.
         :return: The member, or the robot's parts the arms it names stand for.
         """
         field_type = self.action.field_types[offered.name]
         if ArmField(field_type).part() is not None:
-            return RobotArms(self.context.robot).value(Arms[value], field_type)
-        return field_type[value]
+            arms = ENUM_NAMES.member(Arms, value)
+            return RobotArms(self.context.robot).value(arms, field_type)
+        return ENUM_NAMES.member(field_type, value)
 
     def pose(self, offered: ActionField, value: Any) -> Pose:
         """

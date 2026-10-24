@@ -161,6 +161,7 @@ class PlanBuilderRoutes:
             environments=EnvironmentBundles(self.scenes).entries(),
             objects=workspace.objects(),
             surface_types=workspace.surface_types(),
+            saved_surface_types=workspace.saved_surface_types(),
             actions=actions.actions,
             failed_action_modules=actions.failed_modules,
             constraint_rules=list(self.compiler.book.rules),

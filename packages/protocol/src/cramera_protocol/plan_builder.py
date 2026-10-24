@@ -10,7 +10,7 @@ The generated demo builds the world and the native actions from it.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from types import MappingProxyType
 
@@ -22,14 +22,22 @@ from cramera_protocol.geometry import Pose
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorSpecification
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
-PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=2)
+PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
 """
-The version plans are written with: steps name an action and its values, and robots a
-model, by the protocol's identifiers.
+The version plans are written with: steps name an action, its fields, enumeration
+members and surface types, and robots a model, by the protocol's identifiers.
 
 Plans of an earlier version are migrated when they are read: those before
 :data:`CLASS_NAME_FORMAT_VERSION` name a step kind, which becomes an action; those of
-that version name the planner's classes, which :class:`SavedNames` translates.
+that version name the planner's classes, and those of
+:data:`ACTION_IDENTIFIER_FORMAT_VERSION` its member and annotation names, which
+:class:`SavedNames` translates.
+"""
+
+ACTION_IDENTIFIER_FORMAT_VERSION = ProtocolVersion(major=1, minor=2)
+"""
+The version whose plans name actions and robot models by identifiers but enumeration
+members and surface types by the planner's names.
 """
 
 CLASS_NAME_FORMAT_VERSION = ProtocolVersion(major=1, minor=1)
@@ -1455,7 +1463,12 @@ class ActionFieldKey(StrEnum):
 
     NAME = "name"
     """
-    The field's keyword argument.
+    The field's identifier.
+    """
+
+    SAVED_MEMBERS = "savedMembers"
+    """
+    The member identifiers by the names plans saved them under before.
     """
 
     LABEL = "label"
@@ -1517,7 +1530,8 @@ class ActionField(JsonDocument):
 
     name: str = document_field(ActionFieldKey.NAME)
     """
-    The keyword argument, which a step's values are keyed by.
+    The field's identifier, which a step's values are keyed by and which stays when the
+    planner renames the field: its name when the bridge pinned the action.
     """
 
     label: str = document_field(ActionFieldKey.LABEL)
@@ -1543,18 +1557,28 @@ class ActionField(JsonDocument):
 
     enum_type: Optional[str] = document_field(ActionFieldKey.ENUM_TYPE, default=None)
     """
-    The class name of the enumeration of an :attr:`ActionFieldKind.ENUM` field.
+    The identifier of the enumeration of an :attr:`ActionFieldKind.ENUM` field, such as
+    ``torso_state``.
     """
 
     members: List[str] = document_field(ActionFieldKey.MEMBERS, default_factory=list)
     """
-    The names of the enumeration's members, in their order.
+    The identifiers of the enumeration's members, in their order, such as ``high``.
+    """
+
+    saved_members: Dict[str, str] = document_field(
+        ActionFieldKey.SAVED_MEMBERS, default_factory=dict
+    )
+    """
+    The identifier of each member by the name plans of
+    :data:`ACTION_IDENTIFIER_FORMAT_VERSION` and earlier saved it under, the planner's
+    member name then, such as ``HIGH``.
     """
 
     annotation: Optional[str] = document_field(ActionFieldKey.ANNOTATION, default=None)
     """
-    The class name of the semantic annotation an :attr:`ActionFieldKind.ANNOTATION`
-    field names an entity of.
+    The identifier of the semantic annotation class an
+    :attr:`ActionFieldKind.ANNOTATION` field names an entity of, such as ``handle``.
     """
 
     accepts_surface: bool = document_field(
@@ -1885,7 +1909,7 @@ class RobotModel(JsonDocument):
         RobotModelKey.CHOICES, default_factory=dict
     )
     """
-    The names of the members the robot's parts allow, by the class name of their
+    The identifiers of the members the robot's parts allow, by the identifier of their
     enumeration: the arm choices of its arms, the torso states when it has a torso and
     none otherwise. An enumeration not listed offers all its members.
     """
@@ -1927,6 +1951,11 @@ class ObjectModel(JsonDocument):
 class PlanBuilderCatalogKey(StrEnum):
     """
     The keys of the plan builder's catalog.
+    """
+
+    SAVED_SURFACE_TYPES = "savedSurfaceTypes"
+    """
+    The surface type identifiers by the names plans saved them under before.
     """
 
     ROBOTS = "robots"
@@ -2021,7 +2050,17 @@ class PlanBuilderCatalog(JsonDocument):
         PlanBuilderCatalogKey.SURFACE_TYPES, default_factory=list
     )
     """
-    The class names of the native annotations with a supporting surface, sorted.
+    The identifiers of the annotation classes with a supporting surface, such as
+    ``table``, sorted.
+    """
+
+    saved_surface_types: Dict[str, str] = document_field(
+        PlanBuilderCatalogKey.SAVED_SURFACE_TYPES, default_factory=dict
+    )
+    """
+    The identifier of each surface type by the name plans of
+    :data:`ACTION_IDENTIFIER_FORMAT_VERSION` and earlier saved it under, the
+    annotation's class name then, such as ``Table``.
     """
 
     actions: List[ActionSchema] = document_field(
@@ -2350,8 +2389,10 @@ class RunStatus(JsonDocument):
 @dataclass(frozen=True)
 class SavedNames:
     """
-    The identifiers of the actions and robot models by the names plans of
-    :data:`CLASS_NAME_FORMAT_VERSION` saved them under, as a catalog lists them.
+    The identifiers of what plans of earlier format versions named by the planner's
+    names, as a catalog lists them: actions and robot models, saved by class name up to
+    :data:`CLASS_NAME_FORMAT_VERSION`, and enumeration members and surface types, saved
+    by member and class name up to :data:`ACTION_IDENTIFIER_FORMAT_VERSION`.
     """
 
     actions: Dict[str, str]
@@ -2364,11 +2405,22 @@ class SavedNames:
     The robot identifiers by saved name.
     """
 
+    members: Dict[str, Dict[str, Dict[str, str]]] = field(default_factory=dict)
+    """
+    The member identifiers by saved name, by action identifier and field identifier.
+    """
+
+    surface_types: Dict[str, str] = field(default_factory=dict)
+    """
+    The surface type identifiers by saved name.
+    """
+
     @classmethod
     def of_catalog(cls, catalog: PlanBuilderCatalog) -> Self:
         """
         :param catalog: A plan builder catalog.
-        :return: The names its actions and robots were saved under.
+        :return: The names its actions, robots, members and surface types were saved
+            under.
         """
         return cls(
             actions={
@@ -2381,30 +2433,86 @@ class SavedNames:
                 for robot in catalog.robots
                 for saved in robot.saved_as
             },
+            members={
+                schema.name: {
+                    offered.name: dict(offered.saved_members)
+                    for offered in schema.fields
+                    if offered.saved_members
+                }
+                for schema in catalog.actions
+            },
+            surface_types=dict(catalog.saved_surface_types),
         )
 
     def translated(self, plan: PlanDocument) -> PlanDocument:
         """
         :param plan: A plan.
-        :return: The plan with every saved action and robot model name replaced by its
-            identifier and carrying :data:`PLAN_FORMAT_VERSION`; a plan of that version
-            unchanged. A name the catalog does not list stays, for the catalog check to
-            report.
+        :return: The plan with every saved name replaced by its identifier and carrying
+            :data:`PLAN_FORMAT_VERSION`; a plan of that version unchanged. A name the
+            catalog does not list stays, for the catalog check to report.
         """
         if plan.format_version >= PLAN_FORMAT_VERSION:
             return plan
+        if plan.format_version < ACTION_IDENTIFIER_FORMAT_VERSION:
+            plan = replace(
+                plan,
+                robots=[
+                    replace(
+                        robot,
+                        model=self.robots.get(robot.model, robot.model),
+                        steps=[
+                            replace(
+                                step, action=self.actions.get(step.action, step.action)
+                            )
+                            for step in robot.steps
+                        ],
+                    )
+                    for robot in plan.robots
+                ],
+            )
         return replace(
             plan,
             format_version=PLAN_FORMAT_VERSION,
             robots=[
                 replace(
-                    robot,
-                    model=self.robots.get(robot.model, robot.model),
-                    steps=[
-                        replace(step, action=self.actions.get(step.action, step.action))
-                        for step in robot.steps
-                    ],
+                    robot, steps=[self.translated_step(step) for step in robot.steps]
                 )
                 for robot in plan.robots
             ],
         )
+
+    def translated_step(self, step: PlanStep) -> PlanStep:
+        """
+        :param step: A step naming its action by identifier.
+        :return: The step with the saved names of its members and surface types
+            replaced by their identifiers.
+        """
+        members = self.members.get(step.action, {})
+        return replace(
+            step,
+            values={
+                name: self.translated_value(value, members.get(name, {}))
+                for name, value in step.values.items()
+            },
+        )
+
+    def translated_value(self, value: Any, members: Dict[str, str]) -> Any:
+        """
+        :param value: A step's value.
+        :param members: The member identifiers of the value's field by saved name.
+        :return: A saved member name as its identifier, a destination with its surface
+            type's identifier, anything else as it is.
+        """
+        if isinstance(value, str):
+            return members.get(value, value)
+        if isinstance(value, dict) and isinstance(
+            value.get(DestinationKey.SURFACE_TYPE), str
+        ):
+            surface_type = value[DestinationKey.SURFACE_TYPE]
+            return {
+                **value,
+                DestinationKey.SURFACE_TYPE: self.surface_types.get(
+                    surface_type, surface_type
+                ),
+            }
+        return value
