@@ -56,6 +56,10 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **The theme switch is in the top bar.** A Dark/Light switch beside the version
+  replaces the View menu, which held only the theme.
+
+  ![The theme switch in the top bar](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-26/after_light.png)
 - **cramera-cram is cramera-bridge.** The package that connects cramera to CRAM is
   `cramera-bridge` now, imported as `cramera_bridge`, in `packages/bridge`; the
   plugins' `cram` extra installs it, coraplex still finds its visualization as

@@ -143,8 +143,8 @@ The page has the look of the original AICOR viewer: dark, with the AICOR logo an
 link to every page the installed plugins offer (Plan Builder, Scene Builder) in the
 top bar, the 3D view with its **Layers**
 overlay and the playback controls on the left, questions and graphs on the right. The
-**View** menu switches to a light theme. **Pop out** opens the scene alone in a window
-of its own.
+**Dark | Light** switch in the top bar changes the theme. **Pop out** opens the scene
+alone in a window of its own.
 
 The page address names the shown bundle, `?scene=<name>`, so a view can be shared;
 `?panel=<name>` opens a panel first.
