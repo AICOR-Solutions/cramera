@@ -312,6 +312,18 @@ export class DraftState {
   }
 
   /**
+   * @param {string} identifier An instance identity.
+   * @param {string} description What the instance is and how it works; empty to clear
+   *   it.
+   */
+  describeInstance(identifier, description) {
+    this.#edit(identifier, (instance) => {
+      if (description) instance[InstanceKey.DESCRIPTION] = description;
+      else delete instance[InstanceKey.DESCRIPTION];
+    });
+  }
+
+  /**
    * Move a whole instance or one of its links.
    * @param {string} identifier An instance identity.
    * @param {{position: Array<number>, rotation: Array<number>}} pose The new position

@@ -49,7 +49,11 @@ from cramera_scene_builder.exceptions import (
     UnsafeStoragePath,
     ValueOutOfRange,
 )
-from cramera_scene_builder.resources import ResourceIdentifier, ResourceLibrary
+from cramera_scene_builder.resources import (
+    PrimitiveShapes,
+    ResourceIdentifier,
+    ResourceLibrary,
+)
 
 IDENTITY_CHARACTERS = re.compile(r"[A-Za-z0-9_-]+")
 """
@@ -59,6 +63,11 @@ The characters an instance or draft identity is made of.
 CONTROL_CHARACTER_LIMIT = 32
 """
 Characters below this code point are control characters, which texts must not hold.
+"""
+
+DESCRIPTION_WHITESPACE = "\n\t"
+"""
+The control characters a description may hold: line breaks and tabs.
 """
 
 DRAFT_INDENTATION = 2
@@ -204,6 +213,9 @@ class DraftCheck:
             self.appearance(
                 self.location(location, InstanceKey.POINT_CLOUD), instance.point_cloud
             )
+        self.description(
+            self.location(location, InstanceKey.DESCRIPTION), instance.description
+        )
 
     def identity(self, identifier: str) -> None:
         """
@@ -257,6 +269,20 @@ class DraftCheck:
             not text.strip()
             or len(text) > maximum
             or any(ord(character) < CONTROL_CHARACTER_LIMIT for character in text)
+        ):
+            raise InvalidDraftText(location, text)
+
+    def description(self, location: str, text: str) -> None:
+        """
+        :param location: Where the description sits.
+        :param text: An instance's description, which may be empty and span lines.
+        :raises InvalidDraftText: When it is too long or holds control characters other
+            than line breaks and tabs.
+        """
+        if len(text) > self.limits.maximum_description_length or any(
+            ord(character) < CONTROL_CHARACTER_LIMIT
+            and character not in DESCRIPTION_WHITESPACE
+            for character in text
         ):
             raise InvalidDraftText(location, text)
 
@@ -339,13 +365,19 @@ class DraftResources:
             holds them, in place of the notices it carried.
         :raises InvalidResourceIdentifier: For an instance of a malformed resource
             identifier.
-        :raises NotAModel: For an instance of a resource that cannot be placed.
+        :raises NotAModel: For an instance of a resource that cannot be placed, or of a
+            primitive shape there is none of.
         :raises FileNotInDirectory: For an instance of a missing resource.
         :raises NotAPointCloud: For a point cloud appearance on a model.
         """
         notices: Dict[str, ResourceNotice] = {}
         for instance in draft.instances:
             identifier = ResourceIdentifier.parse(instance.asset)
+            if PrimitiveShapes.names(identifier):
+                PrimitiveShapes.shape(identifier)
+                if instance.point_cloud is not None:
+                    raise NotAPointCloud(instance.asset)
+                continue
             self.library.placeable_file(identifier)
             if (
                 instance.point_cloud is not None

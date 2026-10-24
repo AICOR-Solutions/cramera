@@ -24,6 +24,13 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Primitive shapes in the scene builder.** The library's new **Shapes** category
+  offers a box, a cylinder and a sphere (`primitives/box`, …), one metre across, so
+  their size is set in metres. Every placed instance can carry a description of what
+  it is and how it works, saved with the draft (`InstanceKey.DESCRIPTION`), so the
+  object a shape stands for can be designed later.
+
+  ![Placing, sizing and describing shapes](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-41/walkthrough.gif)
 - **Objects of the meshes library in the plan builder.** `resources/private_meshes` is
   a submodule of [sunava/private_meshes](https://github.com/sunava/private_meshes), and
   the builder offers every model of it, and of any library `CRAMERA_OBJECT_LIBRARIES`

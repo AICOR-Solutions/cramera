@@ -590,6 +590,7 @@ export class BuilderPage {
     const selected = () => this.#selection.instance;
     return new InspectorActions({
       rename: (name) => this.#attempt(() => this.#state.renameInstance(selected(), name)),
+      describe: (description) => this.#attempt(() => this.#state.describeInstance(selected(), description)),
       duplicate: () => this.#attempt(() => this.#select(new Selection(this.#state.duplicate(selected())[InstanceKey.IDENTIFIER]))),
       remove: () =>
         this.#attempt(() => {

@@ -32,6 +32,8 @@ from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.scene_builder import (
     PointCloudFormat,
     PointCloudMetadata,
+    PrimitiveShape,
+    ReservedResourceRoot,
     ResourceCategory,
     ResourceDescription,
     ResourceKind,
@@ -463,11 +465,12 @@ class ResourceLibrary:
 
     def resources(self) -> List[ResourceDescription]:
         """
-        :return: Every file a draft can place, with what it shows.
+        :return: Every primitive shape and every file a draft can place, with what it
+            shows.
         """
         files = list(self.files())
         roles = BundleRoles.of(path for _, path in files)
-        return [
+        return [PrimitiveShapes.describe(shape) for shape in PrimitiveShape] + [
             self.describe(identifier, path, roles)
             for identifier, path in files
             if identifier.suffix() in PLACEABLE_SUFFIXES
@@ -528,6 +531,66 @@ class ResourceLibrary:
         if identifier.suffix() in POINT_CLOUD_SUFFIXES:
             return ResourceKind.POINT_CLOUD
         return ResourceKind.MESH
+
+
+# %% primitive shapes
+
+
+PRIMITIVE_NAMES = {
+    PrimitiveShape.BOX: "Box",
+    PrimitiveShape.CYLINDER: "Cylinder",
+    PrimitiveShape.SPHERE: "Sphere",
+}
+"""
+How the library names each primitive shape.
+"""
+
+
+class PrimitiveShapes:
+    """
+    The shapes a draft places without a file, under
+    :attr:`ReservedResourceRoot.PRIMITIVES`.
+    """
+
+    @staticmethod
+    def identifier(shape: PrimitiveShape) -> ResourceIdentifier:
+        """
+        :param shape: A shape.
+        :return: Its resource identifier.
+        """
+        return ResourceIdentifier(ReservedResourceRoot.PRIMITIVES, shape.value)
+
+    @classmethod
+    def describe(cls, shape: PrimitiveShape) -> ResourceDescription:
+        """
+        :param shape: A shape.
+        :return: The shape as the library lists it.
+        """
+        return ResourceDescription(
+            identifier=cls.identifier(shape).text(),
+            name=PRIMITIVE_NAMES[shape],
+            kind=ResourceKind.PRIMITIVE,
+            category=ResourceCategory.PRIMITIVE,
+        )
+
+    @staticmethod
+    def names(identifier: ResourceIdentifier) -> bool:
+        """
+        :param identifier: A resource identifier.
+        :return: Whether it lies below the primitive shapes' root.
+        """
+        return identifier.root == ReservedResourceRoot.PRIMITIVES
+
+    @staticmethod
+    def shape(identifier: ResourceIdentifier) -> PrimitiveShape:
+        """
+        :param identifier: An identifier below the primitive shapes' root.
+        :return: The shape it names.
+        :raises NotAModel: When it names no shape.
+        """
+        if identifier.path not in {shape.value for shape in PrimitiveShape}:
+            raise NotAModel(identifier.text())
+        return PrimitiveShape(identifier.path)
 
 
 # %% categories

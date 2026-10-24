@@ -9,6 +9,7 @@ import pytest
 from cramera.exceptions import FileNotInDirectory, PathOutsideDirectory
 from cramera.scenes import SceneSource
 from cramera_protocol.scene_builder import (
+    PrimitiveShape,
     ReservedResourceRoot,
     ResourceCategory,
     ResourceKind,
@@ -94,6 +95,17 @@ def test_a_configured_directory_without_a_plain_name_is_refused(
         )
 
 
+def test_a_configured_directory_named_like_the_primitive_shapes_is_refused(
+    catalog, storage, workspace
+):
+    directory = workspace / ReservedResourceRoot.PRIMITIVES
+    directory.mkdir()
+    with pytest.raises(InvalidRootName):
+        LibraryRoots.of(
+            catalog, storage, {SceneBuilderVariable.LIBRARY: str(directory)}
+        )
+
+
 def test_an_unknown_root_is_refused(library):
     with pytest.raises(UnknownResourceRoot) as refused:
         library.file(ResourceIdentifier("elsewhere", "cabinet.urdf"))
@@ -105,6 +117,17 @@ def test_an_unknown_root_is_refused(library):
 
 def describe(library):
     return {resource.identifier: resource for resource in library.resources()}
+
+
+def test_the_library_offers_every_primitive_shape(library):
+    listed = describe(library)
+    shapes = [
+        listed[f"{ReservedResourceRoot.PRIMITIVES}/{shape}"] for shape in PrimitiveShape
+    ]
+    assert {(resource.kind, resource.category) for resource in shapes} == {
+        (ResourceKind.PRIMITIVE, ResourceCategory.PRIMITIVE)
+    }
+    assert [resource.name for resource in shapes] == ["Box", "Cylinder", "Sphere"]
 
 
 def test_the_library_lists_models_meshes_and_point_clouds_only(library):

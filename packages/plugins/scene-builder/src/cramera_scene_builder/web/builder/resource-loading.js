@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import URDFLoader from 'urdf-loader';
 
-import { ResourceKey, ResourceKind } from '../../../protocol.js';
+import { PrimitiveShape, ResourceKey, ResourceKind } from '../../../protocol.js';
 import { LoadingProgress } from '../../../scene/loading-progress.js';
 import { MeshLoading } from '../../../scene/mesh-loading.js';
 import { dressModel } from '../../../scene/model-appearance.js';
@@ -36,6 +36,45 @@ export class MissingMesh extends Error {
      */
     this.reason = reason;
   }
+}
+
+// %% primitive shapes
+
+/**
+ * How a primitive shape is drawn: a plain, light blue stand-in with its edges outlined,
+ * so it reads as a placeholder for an object still to be designed.
+ */
+export const PrimitiveLook = Object.freeze({
+  COLOR: 0x8fb8de,
+  ROUGHNESS: 0.6,
+  EDGE_COLOR: 0x1f3b57,
+  CURVE_SEGMENTS: 48,
+});
+
+/**
+ * The geometry of each primitive shape: one metre across, z up, standing on its base.
+ */
+const PRIMITIVE_GEOMETRY = Object.freeze({
+  [PrimitiveShape.BOX]: () => new THREE.BoxGeometry(1, 1, 1),
+  [PrimitiveShape.CYLINDER]: () => new THREE.CylinderGeometry(0.5, 0.5, 1, PrimitiveLook.CURVE_SEGMENTS).rotateX(Math.PI / 2),
+  [PrimitiveShape.SPHERE]: () => new THREE.SphereGeometry(0.5, PrimitiveLook.CURVE_SEGMENTS, PrimitiveLook.CURVE_SEGMENTS / 2),
+});
+
+/**
+ * @param {string} identifier A primitive shape's resource identifier, `primitives/<shape>`.
+ * @returns {THREE.Object3D} The shape, with its edges outlined.
+ * @throws {Error} For a shape there is none of.
+ */
+export function primitiveObject(identifier) {
+  const shape = identifier.split('/').at(-1);
+  const geometry = PRIMITIVE_GEOMETRY[shape]?.();
+  if (!geometry) throw new Error(`There is no primitive shape ${shape}.`);
+  geometry.translate(0, 0, 0.5);
+  const root = new THREE.Group();
+  const body = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: PrimitiveLook.COLOR, roughness: PrimitiveLook.ROUGHNESS }));
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 20), new THREE.LineBasicMaterial({ color: PrimitiveLook.EDGE_COLOR }));
+  root.add(body, edges);
+  return root;
 }
 
 // %% loading
@@ -70,6 +109,13 @@ export class ResourceLoading {
    */
   async load(resource, appearance) {
     const identifier = resource[ResourceKey.IDENTIFIER];
+    if (resource[ResourceKey.KIND] === ResourceKind.PRIMITIVE) {
+      const shape = primitiveObject(identifier);
+      shape.traverse((child) => {
+        if (child.isMesh) child.castShadow = child.receiveShadow = true;
+      });
+      return shape;
+    }
     if (resource[ResourceKey.KIND] === ResourceKind.POINT_CLOUD) {
       return PointCloudSample.fromBytes(await this.#api.sample(identifier)).points(appearance);
     }

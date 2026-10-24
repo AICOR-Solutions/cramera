@@ -16,6 +16,11 @@ cramera
 - The resource library holds every model, mesh and point cloud of the viewer's
   scenes directories, and of the directories `CRAMERA_SCENE_BUILDER_LIBRARY` names
   (separated like `PATH`, each offered under its directory name).
+- The library also offers primitive shapes under **Shapes**: a box, a cylinder and a
+  sphere, one metre across, standing on their base, as stand-ins for objects still to
+  be designed. Their scale fields read as their size in metres.
+- Every placed instance has a name and an optional description: what it is, how it
+  works, anything to remember when designing it later. Both are saved with the draft.
 - Drafts are saved under `CRAMERA_DATA/scene-builder/drafts`, uploaded point clouds
   under `CRAMERA_DATA/scene-builder/point-clouds`.
 - Point clouds are vertex-only PLY files or ASCII and uncompressed binary PCD files of
