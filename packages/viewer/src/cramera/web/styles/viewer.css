@@ -405,6 +405,9 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .save-button { padding: 11px 18px; color: var(--record-text); border-color: var(--record); background: rgb(224 169 74 / 0.14); }
 .save-button:hover { background: rgb(224 169 74 / 0.24); }
 .save-button[hidden] { display: none; }
+.video-button { padding: 11px 16px; white-space: nowrap; }
+.video-button[aria-pressed="true"] { color: #fff; border-color: transparent; background: rgb(214 40 57 / 0.9); }
+.video-button[hidden] { display: none; }
 .workflow .speed { flex: 1; min-width: 70px; }
 
 .scrub-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }

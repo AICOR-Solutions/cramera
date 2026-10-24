@@ -6,7 +6,7 @@ import { DuplicatePanel, PanelHost, SidePanel } from '../../src/cramera/web/pane
 import { SceneChoice } from '../../src/cramera/web/panels/scene-choice.js';
 import { ScenePickerView } from '../../src/cramera/web/panels/scene-picker-view.js';
 import { PlaybackClock } from '../../src/cramera/web/playback/playback-clock.js';
-import { formatSeconds, LIVE_NOTE, LOST_NOTE, MarkKind, marksOf, SPEEDS, TimelineView } from '../../src/cramera/web/playback/timeline-view.js';
+import { formatSeconds, LIVE_NOTE, LOST_NOTE, MarkKind, marksOf, SPEEDS, TimelineView, VIDEO_TEXT } from '../../src/cramera/web/playback/timeline-view.js';
 import { IndexEntryKey, IndexKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
@@ -155,16 +155,33 @@ test('while a live run is followed the timeline says so instead of offering play
   const document = new FakeDocument();
   const root = document.createElement('footer');
   const timeline = new TimelineView(root, () => {}, () => {});
-  const [play, , speed, note] = root.children[0].children;
+  const [play, , speed, video, note] = root.children[0].children;
   assert.equal(note.hidden, true);
   timeline.setLive(true);
   assert.equal(root.dataset.live, 'true');
-  assert.deepEqual([play.hidden, speed.hidden, note.hidden], [true, true, false]);
+  assert.deepEqual([play.hidden, speed.hidden, video.hidden, note.hidden], [true, true, true, false]);
   assert.equal(note.textContent, LIVE_NOTE);
   timeline.setLive(true, LOST_NOTE);
   assert.equal(note.textContent, LOST_NOTE);
   timeline.setLive(false);
-  assert.deepEqual([play.hidden, speed.hidden, note.hidden], [false, false, true]);
+  assert.deepEqual([play.hidden, speed.hidden, video.hidden, note.hidden], [false, false, false, true]);
+});
+
+test('the video button films only a recording with frames and says when it films', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  let asked = 0;
+  const timeline = new TimelineView(root, () => {}, () => {}, () => { asked += 1; });
+  const video = root.children[0].children[3];
+  assert.equal(video.disabled, true);
+  timeline.show(new PlaybackClock(10, 31), SEGMENTS);
+  assert.equal(video.disabled, false);
+  assert.equal(video.textContent, VIDEO_TEXT.RECORD);
+  video.dispatch('click');
+  assert.equal(asked, 1);
+  timeline.setFilming(true);
+  assert.equal(video.textContent, VIDEO_TEXT.STOP);
+  assert.equal(video.getAttribute('aria-pressed'), 'true');
 });
 
 test('playback can be started and paused without a click', () => {

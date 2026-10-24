@@ -3,6 +3,8 @@
  * the side panels and the plugins. Each part owns its own elements and cleanup.
  */
 
+import * as THREE from 'three';
+
 import { EventBus } from '../core/event-bus.js';
 import { layoutOf, liveAddressOf, panelOf, sceneAlone, sceneOf, withLive, withScene } from '../core/scene-address.js';
 import { PageStatus } from '../core/page-status.js';
@@ -16,6 +18,7 @@ import {
   ViewerEvent,
 } from '../protocol.js';
 import { PlaybackClock } from '../playback/playback-clock.js';
+import { saveVideo, VideoRecording } from '../playback/video-recording.js';
 import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
@@ -25,6 +28,7 @@ import { LayerObject, LayersPanel, ViewSwitch } from '../panels/layers-panel.js'
 import { QuerySlot } from '../panels/query-slot.js';
 import { COLUMNS, PaneSplit, ROWS } from './pane-split.js';
 import { CameraFollow } from '../scene/camera-follow.js';
+import { CinematicCamera, ShotPlan } from '../scene/cinematic-camera.js';
 import { FrameAxes, framesOf } from '../scene/frame-axes.js';
 import { ObjectLabels } from '../scene/object-labels.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
@@ -44,6 +48,16 @@ import { SCENE_PAGE, SiteHeader, ThemeSetting } from './site-header.js';
  * the Layers overlay starts folded so it does not cover the 3D view.
  */
 const NARROW_SCREEN = '(max-width: 900px)';
+
+/**
+ * The style property holding the colour of the 3D view's backdrop.
+ */
+const STAGE_COLOR = '--stage';
+
+/**
+ * The backdrop a filmed video gets when the page names none.
+ */
+const DEFAULT_BACKDROP = '#050608';
 
 // %% elements
 
@@ -262,6 +276,18 @@ export class Application {
   #follow = null;
 
   /**
+   * Films the recording like a movie while it is on, once the 3D view exists.
+   * @type {CinematicCamera|null}
+   */
+  #cinematic = null;
+
+  /**
+   * The video being filmed, and whether the cinematic camera was on before, or null.
+   * @type {{recording: VideoRecording, cinematic: boolean}|null}
+   */
+  #filming = null;
+
+  /**
    * Whether the free objects are drawn.
    * @type {boolean}
    */
@@ -348,7 +374,7 @@ export class Application {
     const theme = new ThemeSetting(elements.document.documentElement, storage);
     theme.apply();
     this.#header = new SiteHeader(elements.header, (route) => api.url(route), theme, SCENE_PAGE, (panel) => this.#panels.show(panel));
-    this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame), () => this.saveEpisode());
+    this.#timeline = new TimelineView(elements.timeline, (frame) => this.seek(frame), () => this.saveEpisode(), () => this.toggleVideo());
     this.#panels = new PanelHost(elements.side);
     this.#querySlot = new QuerySlot(elements.querySlot, storage);
     new PaneSplit(elements.split, elements.divider, COLUMNS, storage);
@@ -400,6 +426,7 @@ export class Application {
     this.#labels = new ObjectLabels(this.#elements.stage, this.#view);
     this.#axes = new FrameAxes(this.#view);
     this.#follow = new CameraFollow(this.#view);
+    this.#cinematic = new CinematicCamera(this.#view);
     this.#addLayers(this.#view);
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.#highlights = new SceneHighlights(this.#view);
@@ -456,6 +483,7 @@ export class Application {
     this.#layers.refresh();
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
+    this.#cinematic.plan(ShotPlan.of(segments, loaded.frames.framesPerSecond, this.#clock.duration));
     this.#timeline.show(this.#clock, segments);
     this.#details.show(loaded);
     this.#rememberScene(name);
@@ -566,6 +594,7 @@ export class Application {
   seek(frame) {
     if (!this.#clock) return;
     this.#clock.seek(frame);
+    this.#cinematic.cut();
     this.#showFrame();
   }
 
@@ -575,9 +604,53 @@ export class Application {
    * @returns {boolean} Whether the shown frame changed.
    */
   #tick(seconds) {
-    if (!this.#clock || !this.#clock.advance(seconds)) return false;
+    if (!this.#clock) return false;
+    this.#clock.speed = this.#timeline.speed * this.#cinematic.pace(this.#clock.time);
+    if (!this.#clock.advance(seconds)) return false;
     this.#showFrame();
+    if (this.#filming && !this.#clock.playing) this.toggleVideo();
     return true;
+  }
+
+  // %% video
+
+  /**
+   * Film the recording from its start with the cinematic camera and save the video
+   * once it played to its end, or stop filming early and save what was filmed.
+   */
+  toggleVideo() {
+    if (this.#filming) {
+      const { recording, cinematic } = this.#filming;
+      this.#filming = null;
+      this.#timeline.setPlaying(false);
+      this.#cinematic.enabled = cinematic;
+      this.#layers.refresh();
+      this.#timeline.setFilming(false);
+      this.#view.setSolidBackground(null);
+      const name = this.#scene?.name ?? 'cramera';
+      recording.stop().then((video) => saveVideo(this.#elements.document, video, name));
+      this.#status.ready(`Filmed ${name}; the video is saved as a download.`);
+      return;
+    }
+    const canvas = this.#view?.renderer.domElement;
+    const window = this.#elements.document.defaultView;
+    if (!this.#clock || this.#live || !canvas) return;
+    if (!VideoRecording.supported(canvas, window)) {
+      this.#status.ready('This browser cannot film the 3D view.');
+      return;
+    }
+    const backdrop = window.getComputedStyle(this.#elements.stage).getPropertyValue(STAGE_COLOR).trim();
+    this.#view.setSolidBackground(backdrop || DEFAULT_BACKDROP);
+    this.#filming = {
+      recording: new VideoRecording(canvas, window.MediaRecorder, (listener) => this.#view.onRender(listener)),
+      cinematic: this.#cinematic.enabled,
+    };
+    this.#cinematic.enabled = true;
+    this.#layers.refresh();
+    this.#timeline.setFilming(true);
+    this.seek(0);
+    this.#filming.recording.start();
+    this.#timeline.setPlaying(true);
   }
 
   /**
@@ -588,7 +661,10 @@ export class Application {
     this.#scene.showFrame(frame);
     const segment = this.#scene.frames.segmentAt(frame);
     this.#timeline.update(segment);
-    this.#follow.follow(this.#scene.robotPosition());
+    const robot = this.#scene.robotPosition();
+    const filmed = this.#cinematic.update(this.#clock.time, robot, (key) => this.#objectPosition(key));
+    if (filmed) this.#follow.reset(robot);
+    else this.#follow.follow(robot);
     this.#picking.update();
     this.#highlights.update();
     this.#view.requestRender();
@@ -608,10 +684,30 @@ export class Application {
         new ViewSwitch('Floor shadow', () => view.ground.visible, (shown) => view.showGround(shown)),
         new ViewSwitch('Ambient occlusion', () => view.ambientOcclusion, (enabled) => view.setAmbientOcclusion(enabled)),
         new ViewSwitch('Follow robot', () => this.#follow.following, (following) => { this.#follow.following = following; }),
+        new ViewSwitch('Cinematic camera', () => this.#cinematic.enabled, (enabled) => this.#filmWith(enabled)),
       ],
       (key) => this.bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, [key]),
     );
     this.#layers.setFolded(this.#elements.document.defaultView.matchMedia(NARROW_SCREEN).matches);
+  }
+
+  /**
+   * @param {boolean} enabled Whether the cinematic camera films the recording.
+   */
+  #filmWith(enabled) {
+    this.#cinematic.enabled = enabled;
+    this.#cinematic.cut();
+    if (enabled && this.#clock && this.#scene && !this.#live) this.#showFrame();
+  }
+
+  /**
+   * @param {string} key An object's key.
+   * @returns {THREE.Vector3|null} Where the object is in the world now, or null when the
+   *   shown scene has no such object.
+   */
+  #objectPosition(key) {
+    const holder = this.#scene?.objects.holderOf(key);
+    return holder ? holder.getWorldPosition(new THREE.Vector3()) : null;
   }
 
   /**
