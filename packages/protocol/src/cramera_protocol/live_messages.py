@@ -14,6 +14,7 @@ from enum import StrEnum
 
 from typing_extensions import Any, Dict, List, Optional
 
+from cramera_protocol.bundle.scene import PerceptionImage
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.exceptions import InvalidDocumentValue
@@ -87,7 +88,8 @@ class LiveParameter(StrEnum):
 
     KEY = "key"
     """
-    The served mesh, for :attr:`~cramera_protocol.live.LiveRoute.MESH`.
+    The served mesh, for :attr:`~cramera_protocol.live.LiveRoute.MESH`, or the served
+    image, for :attr:`~cramera_protocol.live.LiveRoute.PERCEPTION_IMAGE`.
     """
 
     SIDE = "side"
@@ -284,6 +286,11 @@ class LivePlanNodeKey(StrEnum):
     Why a failed node failed.
     """
 
+    IMAGES = "images"
+    """
+    What a perception step saw.
+    """
+
 
 @dataclass(kw_only=True)
 class LivePlanNode(JsonDocument):
@@ -353,6 +360,15 @@ class LivePlanNode(JsonDocument):
     reason: Optional[str] = document_field(LivePlanNodeKey.REASON, default=None)
     """
     Why the node failed, as coraplex words it; None for a node that did not fail.
+    """
+
+    images: Optional[List[PerceptionImage]] = document_field(
+        LivePlanNodeKey.IMAGES, default=None
+    )
+    """
+    For a perception step: the images of what it saw once it ended, each served by
+    :attr:`~cramera_protocol.live.LiveRoute.PERCEPTION_IMAGE`; None for every other
+    node.
     """
 
 

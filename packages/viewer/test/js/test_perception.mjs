@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { EventBus } from '../../src/cramera/web/core/event-bus.js';
-import { flattened, NO_PERCEPTION, NOTHING_REPORTED, PerceptionPanel, perceptionSteps } from '../../src/cramera/web/panels/perception-panel.js';
-import { LivePlanKey, LivePlanNodeKey, PlanNodeKey, ViewerEvent } from '../../src/cramera/web/protocol.js';
+import { flattened, IMAGE_SOURCES, NO_IMAGES, NO_PERCEPTION, NOTHING_REPORTED, PerceptionPanel, perceptionSteps } from '../../src/cramera/web/panels/perception-panel.js';
+import { LivePlanKey, LivePlanNodeKey, PerceptionImageKey, PerceptionImageSource, PlanNodeKey, ViewerEvent } from '../../src/cramera/web/protocol.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
 /**
@@ -31,6 +31,7 @@ const TREES = Object.freeze([
             [PlanNodeKey.STATUS]: 'SUCCEEDED',
             [PlanNodeKey.PARAMETERS]: { query: 'semantic_annotation Milk' },
             [PlanNodeKey.PERCEIVED]: ['k-milk'],
+            [PlanNodeKey.IMAGES]: [{ [PerceptionImageKey.TITLE]: 'Camera', [PerceptionImageKey.SOURCE]: PerceptionImageSource.CAMERA, [PerceptionImageKey.FILE]: 'perception/n3_0.png' }],
             [PlanNodeKey.CHILDREN]: [],
           },
         ],
@@ -102,4 +103,33 @@ test('without perception steps the panel says where they would come from', () =>
   assert.ok(root.findAll((element) => element.textContent === NO_PERCEPTION).length);
   panel.showLive({ [LivePlanKey.NODES]: [{ [LivePlanNodeKey.IDENTIFIER]: 'b', [LivePlanNodeKey.LABEL]: 'DetectingMotion', [LivePlanNodeKey.STATUS]: 'RUNNING', [LivePlanNodeKey.PERCEIVED]: [] }] });
   assert.ok(root.findAll((element) => element.textContent === NOTHING_REPORTED).length);
+});
+
+test('a recorded step shows its images from the bundle, each opening full size', () => {
+  const { panel, root } = openPanel();
+  panel.show(scene(TREES), 'planTrees', (file) => `/scenes/run/${file}`);
+  const [figure] = root.findAll((element) => element.tagName === 'FIGURE');
+  const [link] = figure.findAll((element) => element.tagName === 'A');
+  const [picture] = figure.findAll((element) => element.tagName === 'IMG');
+  assert.equal(picture.src, '/scenes/run/perception/n3_0.png');
+  assert.equal(link.href, picture.src);
+  assert.equal(figure.dataset.source, PerceptionImageSource.CAMERA);
+  assert.ok(figure.findAll((element) => element.textContent === IMAGE_SOURCES[PerceptionImageSource.CAMERA]).length);
+  assert.equal(picture.alt, 'Camera of DetectAction');
+});
+
+test('a live step shows the images the publisher serves once it ended', () => {
+  const { panel, root } = openPanel();
+  const motion = (status, images) => ({
+    [LivePlanKey.NODES]: [{ [LivePlanNodeKey.IDENTIFIER]: 'b', [LivePlanNodeKey.LABEL]: 'DetectingMotion', [LivePlanNodeKey.STATUS]: status, [LivePlanNodeKey.PERCEIVED]: [], [LivePlanNodeKey.IMAGES]: images }],
+  });
+  const url = (key) => `http://robot:8765/perception_image?key=${key}`;
+  panel.showLive(motion('RUNNING', []), url);
+  assert.equal(root.findAll((element) => element.textContent === 'Saw').length, 0);
+  panel.showLive(motion('FAILED', []), url);
+  assert.ok(root.findAll((element) => element.textContent === NO_IMAGES).length);
+  panel.showLive(motion('FAILED', [{ [PerceptionImageKey.TITLE]: 'ClusterColorAnnotator', [PerceptionImageKey.SOURCE]: PerceptionImageSource.ROBOKUDO, [PerceptionImageKey.FILE]: 'b_0' }]), url);
+  const [picture] = root.findAll((element) => element.tagName === 'IMG');
+  assert.equal(picture.src, 'http://robot:8765/perception_image?key=b_0');
+  assert.equal(panel.steps[0].images[0].title, 'ClusterColorAnnotator');
 });
