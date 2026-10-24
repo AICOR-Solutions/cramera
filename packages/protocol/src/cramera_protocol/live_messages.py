@@ -274,6 +274,16 @@ class LivePlanNodeKey(StrEnum):
     Every field of the node's designator by name.
     """
 
+    PERCEIVED = "perceived"
+    """
+    The objects a perception step reported.
+    """
+
+    REASON = "reason"
+    """
+    Why a failed node failed.
+    """
+
 
 @dataclass(kw_only=True)
 class LivePlanNode(JsonDocument):
@@ -330,6 +340,19 @@ class LivePlanNode(JsonDocument):
     Every field of the node's designator by name, rendered for reading: an enumeration
     member by its name, an object by its key, a pose by its position; empty for a node
     without a designator.
+    """
+
+    perceived: Optional[List[str]] = document_field(
+        LivePlanNodeKey.PERCEIVED, default=None
+    )
+    """
+    For a perception step: the objects it reported once it ended, by their keys, else
+    their names, empty while it runs or when it failed; None for every other node.
+    """
+
+    reason: Optional[str] = document_field(LivePlanNodeKey.REASON, default=None)
+    """
+    Why the node failed, as coraplex words it; None for a node that did not fail.
     """
 
 

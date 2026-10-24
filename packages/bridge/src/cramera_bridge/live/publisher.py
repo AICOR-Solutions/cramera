@@ -344,6 +344,8 @@ class LivePublisher:
         with self.world_lock:
             if isinstance(node, MotionNode):
                 self.motion_running = False
+            object_keys = set() if self.model is None else set(self.model.object_keys())
+            self.plan.observe_ended(node, object_keys)
             self.refresh_plan()
 
     def observe_motion_tick(self, chart: MotionStatechart) -> None:

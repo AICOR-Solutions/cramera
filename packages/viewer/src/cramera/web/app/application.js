@@ -18,6 +18,7 @@ import {
 import { PlaybackClock } from '../playback/playback-clock.js';
 import { TimelineView } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
+import { PerceptionPanel } from '../panels/perception-panel.js';
 import { SceneGraphPanel } from '../panels/scene-graph-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
 import { SceneChoice } from '../panels/scene-choice.js';
@@ -233,6 +234,12 @@ export class Application {
   #sceneGraph;
 
   /**
+   * The Perception panel.
+   * @type {PerceptionPanel}
+   */
+  #perception;
+
+  /**
    * The top bar.
    * @type {SiteHeader}
    */
@@ -358,6 +365,7 @@ export class Application {
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#details = new DetailsPanel(elements.document);
     this.#sceneGraph = new SceneGraphPanel(elements.document, this.bus);
+    this.#perception = new PerceptionPanel(elements.document, this.bus);
     this.#livePanel = new LivePanel(
       elements.document,
       new LiveActions(
@@ -423,7 +431,7 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#sceneGraph, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    for (const part of [this.#sceneGraph, this.#perception, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
@@ -463,6 +471,7 @@ export class Application {
     this.#timeline.show(this.#clock, segments);
     this.#details.show(loaded);
     this.#sceneGraph.show(loaded);
+    this.#perception.show(loaded, SceneKey.PLAN_TREES);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
     const missing = loaded.missingFiles().length;
@@ -497,7 +506,7 @@ export class Application {
       new LiveListener(
         (scene) => this.show(scene).then(() => this.#live?.sceneShown()),
         (state) => this.#showLiveState(state),
-        () => {}, // The live plan and motion statechart have no panels of their own; the questions plugin graphs them.
+        (plan) => this.#perception.showLive(plan), // the questions plugin graphs the live plan and statechart
         () => {},
         (status) => {
           this.#recordingState = status[RecordingStatusKey.STATE];
