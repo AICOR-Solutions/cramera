@@ -19,6 +19,100 @@ import { SidePanel } from './panel-host.js';
  */
 export const DEFAULT_LIVE_ADDRESS = 'http://127.0.0.1:8765';
 
+/**
+ * How people read each capability a publisher offers.
+ */
+export const CAPABILITY_LABELS = Object.freeze({
+  [Capability.PLAN]: 'the running plan',
+  [Capability.STATECHART]: 'the motion statechart',
+  [Capability.TRANSFORMS]: 'frames',
+  [Capability.MARKERS]: 'markers',
+  [Capability.QUESTIONS]: 'questions',
+  [Capability.RECORDING]: 'recording',
+  [Capability.TELEOPERATION]: 'teleoperation',
+  [Capability.CONSTRAINTS]: 'constraints',
+  [Capability.OBJECT_PLACEMENT]: 'moving objects',
+  [Capability.ROBOT_SELECTION]: 'choosing the robot',
+});
+
+/**
+ * @param {Array<string>} capabilities The `Capability` values a publisher offers.
+ * @returns {string} What it offers, in words, or 'nothing'.
+ */
+export function offeredText(capabilities) {
+  return capabilities.map((capability) => CAPABILITY_LABELS[capability] ?? capability).join(', ') || 'nothing';
+}
+
+/**
+ * @param {Object} status A recording's status.
+ * @returns {string} What the recording is doing, in a sentence.
+ */
+export function recordingText(status) {
+  const frames = status[RecordingStatusKey.FRAME_COUNT] ?? 0;
+  const size = `${frames} ${frames === 1 ? 'frame' : 'frames'}, ${(status[RecordingStatusKey.DURATION_SECONDS] ?? 0).toFixed(1)} s`;
+  const state = status[RecordingStatusKey.STATE];
+  if (state === RecordingState.RECORDING) return `Recording the run: ${size}.`;
+  if (state === RecordingState.FINALIZED) return `The recording ended (${size}); save it under a name to replay it, or discard it.`;
+  return 'Not recording.';
+}
+
+// %% badge
+
+/**
+ * What the badge over the 3D view says about the live publisher.
+ */
+export const LiveBadgeState = Object.freeze({
+  OFF: 'off',
+  CONNECTING: 'connecting',
+  LIVE: 'live',
+  LOST: 'lost',
+});
+
+/**
+ * The badge over the 3D view: whether the view follows a live run, waits for one, or
+ * shows the last state of one that ended; clicking it opens the Live panel.
+ */
+export class LiveBadge {
+  /**
+   * The badge.
+   * @type {HTMLElement}
+   */
+  element;
+
+  /**
+   * @param {HTMLElement} element The badge element.
+   * @param {function(): void} onOpen Opens the Live panel.
+   */
+  constructor(element, onOpen) {
+    this.element = element;
+    element.addEventListener('click', () => onOpen());
+    this.show(LiveBadgeState.OFF);
+  }
+
+  /**
+   * @param {string} state A `LiveBadgeState` value.
+   * @param {string=} address The publisher's address, shown while connecting.
+   */
+  show(state, address = '') {
+    this.element.dataset.state = state;
+    this.element.hidden = state === LiveBadgeState.OFF;
+    this.element.textContent = LiveBadge.text(state, address);
+    this.element.title = state === LiveBadgeState.OFF ? '' : 'Open the Live panel';
+  }
+
+  /**
+   * @param {string} state A `LiveBadgeState` value.
+   * @param {string} address The publisher's address.
+   * @returns {string} What the badge says.
+   */
+  static text(state, address) {
+    if (state === LiveBadgeState.CONNECTING) return `◌ Waiting for ${address.replace(/^https?:\/\//, '') || 'the live publisher'}…`;
+    if (state === LiveBadgeState.LIVE) return '● LIVE';
+    if (state === LiveBadgeState.LOST) return '■ Live run ended · showing its last state';
+    return '';
+  }
+}
+
 // %% actions
 
 /**
@@ -153,9 +247,9 @@ export class LivePanel {
     if (address) this.#address.value = address;
     this.#connection.textContent = connecting ? 'Disconnect' : 'Connect';
     this.#address.disabled = connecting;
-    if (!connecting) this.#state.textContent = 'Not connected. Start a demo with cramera-live, then connect.';
-    else if (!info) this.#state.textContent = 'Waiting for the publisher to answer…';
-    else this.#state.textContent = `Connected to ${info[LiveInfoKey.PUBLISHER]}; it offers ${(info[LiveInfoKey.CAPABILITIES] ?? []).join(', ') || 'nothing'}.`;
+    if (!connecting) this.#state.textContent = 'Not connected. Start a demo with cramera-live, or a plan in the Plan Builder, then connect.';
+    else if (!info) this.#state.textContent = 'Waiting for the publisher to answer. A run that ended stays shown as it was last.';
+    else this.#state.textContent = `Connected to ${info[LiveInfoKey.PUBLISHER]}; it offers ${offeredText(info[LiveInfoKey.CAPABILITIES] ?? [])}.`;
     this.panel.element.dataset.connected = String(Boolean(connecting && info));
     if (!info || !(info[LiveInfoKey.CAPABILITIES] ?? []).includes(Capability.RECORDING)) this.#recording.replaceChildren();
   }
@@ -167,7 +261,7 @@ export class LivePanel {
     const document = this.panel.element.ownerDocument;
     const state = status[RecordingStatusKey.STATE];
     const summary = document.createElement('p');
-    summary.textContent = `Recording: ${state}, ${status[RecordingStatusKey.FRAME_COUNT] ?? 0} frames, ${(status[RecordingStatusKey.DURATION_SECONDS] ?? 0).toFixed(1)} s`;
+    summary.textContent = recordingText(status);
     const controls = [summary];
     if (state === RecordingState.RECORDING) controls.push(this.#button('Stop recording', () => this.#actions.stopRecording()));
     if (state === RecordingState.FINALIZED) controls.push(this.#saveForm(), this.#button('Discard', () => this.#actions.discardRecording()));
