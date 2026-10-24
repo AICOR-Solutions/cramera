@@ -2,11 +2,11 @@
  * The Perception panel: what the robot's perception was asked and what it reported. One
  * entry per perception step of the shown recording's plans, or of the live plan: the
  * action it belongs to with its parameters, how it ended, why it failed, and the
- * objects it reported, which light up in the 3D view; a step whose frames are recorded
- * replays its moment.
+ * objects it reported, which light up in the 3D view, and the images of what it saw; a
+ * step whose frames are recorded replays its moment.
  */
 
-import { LivePlanKey, LivePlanNodeKey, PlanNodeKey, ViewerEvent } from '../protocol.js';
+import { LivePlanKey, LivePlanNodeKey, PerceptionImageKey, PerceptionImageSource, PlanNodeKey, ViewerEvent } from '../protocol.js';
 import { SidePanel } from './panel-host.js';
 
 /**
@@ -24,6 +24,19 @@ export const NOTHING_REPORTED = 'Nothing reported yet.';
  */
 export const PERCEPTION_SOURCES = 'In simulation perception reads the world model; on the real robot it asks RoboKudo.';
 
+/**
+ * Where each kind of image comes from, for people reading the panel.
+ */
+export const IMAGE_SOURCES = {
+  [PerceptionImageSource.CAMERA]: 'rendered from the world model',
+  [PerceptionImageSource.ROBOKUDO]: 'RoboKudo',
+};
+
+/**
+ * What a step that ended without images says where its images would be.
+ */
+export const NO_IMAGES = 'No images were taken.';
+
 // %% steps
 
 /**
@@ -33,8 +46,8 @@ export class PerceptionStep {
   /**
    * @param {Object} parts The step's parts: `identifier`, `action` (the label of the
    *   action it belongs to), `parameters` (that action's parameters, else the step's
-   *   own), `status`, `reason`, `perceived` (object keys or names), `start`, `end` and
-   *   `robot`.
+   *   own), `status`, `reason`, `perceived` (object keys or names), `images` (each with
+   *   its `title`, `source` and `url`), `start`, `end` and `robot`.
    */
   constructor(parts) {
     Object.assign(this, parts);
@@ -62,9 +75,11 @@ export function flattened(roots) {
 /**
  * @param {Array<Object>} nodes A plan's nodes, each naming its parent; a recorded node
  *   and a live one carry the same keys.
+ * @param {function(string): string} imageUrl The URL of an image, from where the node
+ *   says it is.
  * @returns {Array<PerceptionStep>} Its perception steps, in plan order.
  */
-export function perceptionSteps(nodes) {
+export function perceptionSteps(nodes, imageUrl = (file) => file) {
   const byIdentifier = new Map(nodes.map((node) => [node[PlanNodeKey.IDENTIFIER], node]));
   return nodes
     .filter((node) => Array.isArray(node[PlanNodeKey.PERCEIVED]))
@@ -78,6 +93,11 @@ export function perceptionSteps(nodes) {
         status: node[PlanNodeKey.STATUS],
         reason: node[PlanNodeKey.REASON] ?? action[PlanNodeKey.REASON] ?? null,
         perceived: node[PlanNodeKey.PERCEIVED],
+        images: (node[PlanNodeKey.IMAGES] ?? []).map((image) => ({
+          title: image[PerceptionImageKey.TITLE],
+          source: image[PerceptionImageKey.SOURCE],
+          url: imageUrl(image[PerceptionImageKey.FILE]),
+        })),
         start: node[PlanNodeKey.START] ?? action[PlanNodeKey.START] ?? null,
         end: node[PlanNodeKey.END] ?? action[PlanNodeKey.END] ?? null,
         robot: node.robot ?? null,
@@ -139,18 +159,25 @@ export class PerceptionPanel {
   /**
    * @param {import('../scene/scene-loader.js').LoadedScene} scene The shown scene.
    * @param {string} plansKey The scene description's key of its plan trees.
+   * @param {function(string): string} fileUrl The URL of one of the scene's files.
    */
-  show(scene, plansKey) {
+  show(scene, plansKey, fileUrl) {
     this.#names = new Map(scene.objects.named().map(({ key, name }) => [key, name]));
-    this.showSteps(perceptionSteps(flattened(scene.description[plansKey] ?? [])));
+    this.showSteps(perceptionSteps(flattened(scene.description[plansKey] ?? []), fileUrl));
   }
 
   /**
    * @param {Object} plan The live plan.
+   * @param {function(string): string} imageUrl The URL of an image the publisher
+   *   serves, by its key.
    */
-  showLive(plan) {
-    const nodes = (plan[LivePlanKey.NODES] ?? []).map((node) => ({ ...node, [PlanNodeKey.PERCEIVED]: node[LivePlanNodeKey.PERCEIVED] }));
-    this.showSteps(perceptionSteps(nodes));
+  showLive(plan, imageUrl) {
+    const nodes = (plan[LivePlanKey.NODES] ?? []).map((node) => ({
+      ...node,
+      [PlanNodeKey.PERCEIVED]: node[LivePlanNodeKey.PERCEIVED],
+      [PlanNodeKey.IMAGES]: node[LivePlanNodeKey.IMAGES],
+    }));
+    this.showSteps(perceptionSteps(nodes, imageUrl));
   }
 
   /**
@@ -221,8 +248,40 @@ export class PerceptionPanel {
       parts.push(this.#text(document, 'p', 'muted', step.reason ?? NOTHING_REPORTED));
     }
     if (step.reason && step.perceived.length) parts.push(this.#text(document, 'p', 'perception-reason', step.reason));
+    if (step.status !== 'RUNNING' && step.status !== 'CREATED') parts.push(this.#text(document, 'h4', '', 'Saw'), this.#images(document, step));
     entry.append(...parts);
     return entry;
+  }
+
+  /**
+   * @param {Document} document The page.
+   * @param {PerceptionStep} step A step that ended.
+   * @returns {HTMLElement} Its images, each opening full size, or the note that none
+   *   were taken.
+   */
+  #images(document, step) {
+    if (!step.images.length) return this.#text(document, 'p', 'muted', NO_IMAGES);
+    const strip = document.createElement('div');
+    strip.className = 'perception-images';
+    for (const image of step.images) {
+      const figure = document.createElement('figure');
+      figure.dataset.source = image.source;
+      const link = document.createElement('a');
+      link.href = image.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.title = 'Open full size';
+      const picture = document.createElement('img');
+      picture.src = image.url;
+      picture.alt = `${image.title} of ${step.action}`;
+      picture.loading = 'lazy';
+      link.append(picture);
+      const caption = document.createElement('figcaption');
+      caption.append(this.#text(document, 'strong', '', image.title), this.#text(document, 'span', 'muted', IMAGE_SOURCES[image.source] ?? image.source));
+      figure.append(link, caption);
+      strip.append(figure);
+    }
+    return strip;
   }
 
   /**

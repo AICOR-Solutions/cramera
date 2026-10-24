@@ -11,6 +11,7 @@ from enum import Enum, StrEnum
 from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 from cramera_bridge.exceptions import UnknownPlanNode
+from cramera_bridge.live.perception_images import PerceptionImages
 from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.robots import RobotRoster
@@ -297,11 +298,19 @@ class PerformedPlan:
     What each perception step of the plan reported when it ended, by the step's index.
     """
 
+    images: PerceptionImages = field(default_factory=PerceptionImages)
+    """
+    The images of what each perception step saw.
+    """
+
     @classmethod
-    def of_plan(cls, plan: Plan, number: int) -> PerformedPlan:
+    def of_plan(
+        cls, plan: Plan, number: int, images: PerceptionImages
+    ) -> PerformedPlan:
         """
         :param plan: A plan that starts performing.
         :param number: Its position among the plans performed, counted from one.
+        :param images: Takes and keeps the images of its perception steps.
         :return: The plan with the robot its context names.
         """
         robot = None if plan.context is None else plan.context.robot
@@ -309,6 +318,7 @@ class PerformedPlan:
             plan=plan,
             number=number,
             robot=None if robot is None else RobotRoster.label(robot),
+            images=images,
         )
 
     def identifier(self, node: PlanNode) -> str:
@@ -385,6 +395,11 @@ class PerformedPlan:
                 else None
             ),
             reason=None if node.reason is None else str(node.reason),
+            images=(
+                [image.document(image.key) for image in self.images.of_step(identifier)]
+                if self.is_perception(node)
+                else None
+            ),
         )
 
     @staticmethod
@@ -402,17 +417,25 @@ class PerformedPlan:
         """
         Keep what a perception step reported when it ends: the objects of the queried
         kind in the queried region that the robot's camera sees, once the detection was
-        applied to the world; a step that failed reported nothing.
+        applied to the world, and the images of what it saw; a step that failed reported
+        nothing, but its images show what it saw instead.
 
         :param node: A node of the plan that ended.
         :param object_keys: The keys of the published objects.
         """
-        if not self.is_perception(node) or node.status is not LifeCycleValues.SUCCEEDED:
+        if not self.is_perception(node):
             return
-        self.perceived[node.index] = [
-            DesignatorSummary.render(body, object_keys)
-            for body in node.designator.query.from_world()
-        ]
+        query = node.designator.query
+        reported = (
+            query.from_world() if node.status is LifeCycleValues.SUCCEEDED else []
+        )
+        if node.status is LifeCycleValues.SUCCEEDED:
+            self.perceived[node.index] = [
+                DesignatorSummary.render(body, object_keys) for body in reported
+            ]
+        self.images.observe_ended(
+            self.identifier(node), query.world, query.robot, reported
+        )
 
     def running(self) -> Optional[RunningAction]:
         """
@@ -457,6 +480,11 @@ class PlanPublisher:
     Guards :attr:`performed`, :attr:`active_plan` and the snapshots of the plans.
     """
 
+    images: PerceptionImages = field(default_factory=PerceptionImages)
+    """
+    Takes and keeps the images of every plan's perception steps.
+    """
+
     def begin(self, plan: Plan) -> None:
         """
         :param plan: The plan that starts performing; a plan performed before keeps its
@@ -467,9 +495,18 @@ class PlanPublisher:
                 (entry for entry in self.performed if entry.plan is plan), None
             )
             if performed is None:
-                performed = PerformedPlan.of_plan(plan, len(self.performed) + 1)
+                performed = PerformedPlan.of_plan(
+                    plan, len(self.performed) + 1, self.images
+                )
                 self.performed.append(performed)
             self.active_plan = performed
+
+    def observe_started(self, node: PlanNode) -> None:
+        """
+        :param node: A plan node that started.
+        """
+        if PerformedPlan.is_perception(node):
+            self.images.observe_started()
 
     def observe_ended(self, node: PlanNode, object_keys: Set[str]) -> None:
         """

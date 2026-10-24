@@ -504,6 +504,12 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .perception-step[data-status="RUNNING"] { border-left-color: var(--accent); }
 .perception-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .perception-head button { margin-left: auto; padding: 3px 9px; font-size: 12px; }
+.perception-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.perception-images figure { margin: 0; display: grid; gap: 4px; }
+.perception-images a { display: block; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.perception-images a:hover, .perception-images a:focus-visible { border-color: var(--accent); }
+.perception-images img { display: block; width: 100%; height: auto; image-rendering: auto; }
+.perception-images figcaption { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
 .perception-status { font: 11px var(--mono); color: var(--text-muted); }
 .perception-step h4 { margin: 8px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
 .perception-seen { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }

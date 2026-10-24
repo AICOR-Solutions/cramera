@@ -29,6 +29,13 @@ which this repository was mirrored until 22 Oct 2026.
   it failed, and the objects it reported, which light up in the 3D view. The bridge
   records a step's reported objects (`perceived`) and any node's failure reason
   (`reason`) on the plan's nodes, and names a class parameter by its class.
+- **What perception saw.** A perception step in the Perception tab shows the images of
+  what it saw, also when it failed: in simulation the robot's camera view drawn from the
+  world model, with the reported objects outlined, and its depth; on the real robot also
+  every image RoboKudo's visualizer publishes on `<pipeline>/<annotator>/output_image`
+  while the step runs. A live plan's node lists them in `images`, each served by the
+  publisher's `/perception_image` route; a recording keeps them as PNG files in its
+  `perception/` directory.
 - **The Scene graph tab.** The scene page browses the shown world as a tree, the way
   the Ontology tab browses classes: its models with their links nested by joint, its
   free objects and the robot's part annotations. A node shows its fields, what it

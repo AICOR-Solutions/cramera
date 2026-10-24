@@ -2,7 +2,7 @@
  * A live publisher's routes as the browser calls them.
  */
 
-import { LiveRoute } from '../protocol.js';
+import { LiveParameter, LiveRoute } from '../protocol.js';
 import { ViewerApi } from '../core/viewer-api.js';
 
 // %% client
@@ -38,6 +38,14 @@ export class LiveClient {
    */
   send(route, body = {}) {
     return this.#api.postJson(this.#api.url(route), body);
+  }
+
+  /**
+   * @param {string} key The key of an image a perception step took.
+   * @returns {string} The image's URL.
+   */
+  perceptionImageUrl(key) {
+    return `${this.#api.url(LiveRoute.PERCEPTION_IMAGE)}?${LiveParameter.KEY}=${encodeURIComponent(key)}`;
   }
 
   /**

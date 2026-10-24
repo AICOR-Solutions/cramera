@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
-from typing_extensions import List
+from typing_extensions import List, Optional
 
 from coraplex.datastructures.enums import DetectionTechnique
 from coraplex.exceptions import NothingDetected
@@ -19,6 +19,7 @@ from coraplex.robot_plans.motions.misc import DetectingMotion
 from cramera_bridge.live.bundles import PlanTrees
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle
+from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
 
@@ -31,6 +32,16 @@ class SeenQuery:
     seen: List[Body]
     """
     The bodies seen.
+    """
+
+    world: Optional[World] = None
+    """
+    The world asked about.
+    """
+
+    robot: Optional[object] = None
+    """
+    The robot that perceives, None for a step whose images are not taken.
     """
 
     def from_world(self) -> List[Body]:
