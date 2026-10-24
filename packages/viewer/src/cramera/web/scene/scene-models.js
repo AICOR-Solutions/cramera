@@ -7,6 +7,7 @@ import URDFLoader from 'urdf-loader';
 
 import { ModelKey } from '../protocol.js';
 import { MeshLoading } from './mesh-loading.js';
+import { dressModel } from './model-appearance.js';
 import { applyPose } from './poses.js';
 
 // %% models
@@ -76,6 +77,14 @@ export class SceneModels {
       );
     };
     return loader.loadAsync(fileUrl(description[ModelKey.URDF]));
+  }
+
+  /**
+   * Draw every model the way the scene draws its own objects, once its meshes are
+   * loaded; an environment's uncoloured parts get the colour of what they are.
+   */
+  dress() {
+    for (const [name, robot] of this.#robots) dressModel(robot, !this.#descriptions.get(name)[ModelKey.ROBOT]);
   }
 
   /**

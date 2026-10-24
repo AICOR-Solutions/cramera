@@ -46,6 +46,22 @@ export function meshFormatOf(url) {
   return Object.values(MeshFormat).find((suffix) => path.endsWith(suffix)) ?? null;
 }
 
+/**
+ * A COLLADA document that declares no material is drawn with the material its URDF
+ * gives it, as STL and OBJ files without one are; a document with materials of its own
+ * keeps them.
+ * @param {{scene: THREE.Object3D, library: {materials: Object}}} collada A loaded
+ *   COLLADA document.
+ * @param {THREE.Material=} material The material its URDF gives it, if any.
+ * @returns {THREE.Object3D} The document's scene.
+ */
+export function paintBareCollada(collada, material) {
+  if (material && !Object.keys(collada.library.materials).length) {
+    collada.scene.traverse((child) => { if (child.isMesh) child.material = material; });
+  }
+  return collada.scene;
+}
+
 // %% loading
 
 export class MeshLoading {
@@ -86,7 +102,7 @@ export class MeshLoading {
       case MeshFormat.GLTF:
         return new GLTFLoader(this.#manager).loadAsync(url).then((gltf) => gltf.scene);
       case MeshFormat.COLLADA:
-        return this.#loadCollada(url);
+        return this.#loadCollada(url, material);
       case MeshFormat.OBJ:
         return this.#loadObj(url, material);
       default:
@@ -109,13 +125,14 @@ export class MeshLoading {
    * URDF frames are z-up already, so the loader's turn of z-up documents into a y-up
    * world is undone.
    * @param {string} url A COLLADA file.
+   * @param {THREE.Material=} material Its material when the document declares none.
    * @returns {Promise<THREE.Object3D>} The document's scene.
    */
-  async #loadCollada(url) {
+  async #loadCollada(url, material) {
     const collada = await new ColladaLoader(this.#manager).loadAsync(url);
     collada.scene.rotation.set(0, 0, 0);
     collada.scene.updateMatrix();
-    return collada.scene;
+    return paintBareCollada(collada, material);
   }
 
   /**
