@@ -75,6 +75,13 @@ which this repository was mirrored until 22 Oct 2026.
   earlier behaviour of failing with *address already in use*.
 
 ### Changed
+- **A sub-action is shown by what it matches.** A composite action's sub-action that
+  coraplex leaves to be found, such as TransportAction's `pick_up`, shows as the
+  action it matches and what it states about it (`MoveAndPickUpAction: navigate
+  NavigateAction, …`) instead of the match's internal fields; a value left open shows
+  as `any <type>`.
+
+  ![A transport's sub-actions in the Plan View](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-38/after.png)
 - **The plan builder's environment and robots are clearer.** The builder has an
   Environment section and a Robots section with one card per robot; the card whose plan
   is edited is marked, picking a robot in the 3D view selects it, and every robot has
