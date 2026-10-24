@@ -75,6 +75,11 @@ class LiveRoute(StrEnum):
     A mesh file the world references.
     """
 
+    PERCEPTION_IMAGE = "/perception_image"
+    """
+    An image of what a perception step saw, as a PNG file.
+    """
+
     LIVE_SCENE = "/live_scene"
     """
     Bundles the world's current model into the live scene.

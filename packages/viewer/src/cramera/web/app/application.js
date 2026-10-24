@@ -506,7 +506,7 @@ export class Application {
     this.#timeline.show(this.#clock, segments);
     this.#details.show(loaded);
     this.#sceneGraph.show(loaded);
-    this.#perception.show(loaded, SceneKey.PLAN_TREES);
+    this.#perception.show(loaded, SceneKey.PLAN_TREES, (file) => this.#api.sceneFileUrl(loaded.name, file));
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
     const missing = loaded.missingFiles().length;
@@ -534,14 +534,15 @@ export class Application {
    */
   connectLive(address) {
     this.disconnectLive();
+    const client = new LiveClient(this.#fetch, address);
     this.#live = new LiveSession(
-      new LiveClient(this.#fetch, address),
+      client,
       this.#timers,
       this.bus,
       new LiveListener(
         (scene) => this.show(scene).then(() => this.#live?.sceneShown()),
         (state) => this.#showLiveState(state),
-        (plan) => this.#perception.showLive(plan), // the questions plugin graphs the live plan and statechart
+        (plan) => this.#perception.showLive(plan, (key) => client.perceptionImageUrl(key)), // the questions plugin graphs the live plan and statechart
         () => {},
         (status) => {
           this.#recordingState = status[RecordingStatusKey.STATE];

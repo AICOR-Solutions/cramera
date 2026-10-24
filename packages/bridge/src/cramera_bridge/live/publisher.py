@@ -25,6 +25,7 @@ from cramera_bridge.exceptions import (
     NoWorldAttached,
     RobotSelectionBusy,
     TeleoperationUnavailable,
+    UnknownPerceptionImage,
 )
 from cramera_bridge.live.activity import SimulationActivity
 from cramera_bridge.live.bundles import LiveBundleWriter, WorldSignature
@@ -37,6 +38,7 @@ from cramera_bridge.live.manipulation import WorldEdits, WorldSurfaces
 from cramera_bridge.live.marker_topics import MarkerTopicSource
 from cramera_bridge.live.markers import MarkerBoard
 from cramera_bridge.live.objects import ObjectCatalogPublisher
+from cramera_bridge.live.perception_images import TakenImage
 from cramera_bridge.live.plan import PlanPublisher
 from cramera_bridge.live.recording import Recording
 from cramera_bridge.live.recording_storage import RecordingStorage
@@ -335,6 +337,7 @@ class LivePublisher:
                 )
                 self.motion_running = True
                 self.constraints.note_motion_started()
+            self.plan.observe_started(node)
             self.refresh_plan()
 
     def observe_node_ended(self, node: PlanNode) -> None:
@@ -464,6 +467,17 @@ class LivePublisher:
         :return: The free objects with their shapes.
         """
         return self.objects.current()
+
+    def perception_image(self, key: str) -> TakenImage:
+        """
+        :param key: The key of an image a perception step took.
+        :return: The image.
+        :raises UnknownPerceptionImage: When no step took an image under the key.
+        """
+        image = self.plan.images.image(key)
+        if image is None:
+            raise UnknownPerceptionImage(key)
+        return image
 
     def mesh_file(self, key: str, side: Optional[str]) -> Path:
         """
