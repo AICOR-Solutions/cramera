@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cramera-cram"
 version = "1.0.0"
-description = "Publish a running CRAM world to the cramera viewer, record runs into scene bundles and onboard demos."
+description = "Publish a running CRAM world to the cramera viewer, record runs into scene bundles, onboard demos, answer questions in the entity query language and perform plan builder plans."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Vanessa Hassouna" }]
@@ -14,7 +14,6 @@ authors = [{ name = "Vanessa Hassouna" }]
 dependencies = [
     "cramera==1.0.0",
     "cramera-protocol==1.0.0",
-    "cramera-questions==1.0.0",
     "numpy",
     "scipy",
     "typing_extensions>=4.8",
@@ -24,6 +23,12 @@ classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS In
 [project.scripts]
 cramera-live = "cramera_cram.command_line:live"
 cramera-onboard = "cramera_cram.command_line:onboard"
+cramera-record-answers = "cramera_cram.questions.answer_recording:main"
+
+# coraplex loads the visualization backend selected with CORAPLEX_VISUALIZATION=cramera
+# from this group.
+[project.entry-points."coraplex.visualizations"]
+cramera = "cramera_cram.coraplex_backend:CoraplexProvider"
 
 [project.urls]
 Source = "https://github.com/AICOR-Solutions/cramera"

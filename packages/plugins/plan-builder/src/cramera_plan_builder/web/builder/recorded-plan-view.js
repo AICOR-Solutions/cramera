@@ -1,10 +1,10 @@
 /**
- * The plans of a replayed recording as the builder's step cards: the step at the
- * playhead is marked running and kept in sight, and a click on a step jumps to its first
- * frame.
+ * The plans of a replayed recording as the builder's step cards, each with every
+ * parameter and constraint it was recorded with: the step at the playhead is marked
+ * running and kept in sight, and a click on a step jumps to its first frame.
  */
 
-import { PlanNodeKey } from '../../../protocol.js';
+import { PlanConstraintKey, PlanNodeKey } from '../../../protocol.js';
 import { DomEvent, Elements } from './elements.js';
 import { RecordedPlans, StepPhase } from './recorded-plan.js';
 import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
@@ -17,6 +17,10 @@ const ViewClass = Object.freeze({
   LIST: 'steps',
   TITLE: 'plan-title',
   PARAMETERS: 'step-parameters',
+  CHIPS: 'chips',
+  CHIP: 'chip',
+  MONITOR: 'badge',
+  OBSERVATION: 'observation',
   EMPTY: 'empty',
 });
 
@@ -143,12 +147,38 @@ export class RecordedPlanView {
       box.append(...parameters.map((parameter) => elements.label(parameter.name, elements.create('output', '', parameter.value))));
       view.card.append(box);
     }
+    const constraints = step.constraints();
+    if (constraints.length > 0) {
+      const chips = elements.create('div', ViewClass.CHIPS);
+      chips.append(...constraints.map((constraint) => this.#chip(constraint)));
+      view.card.append(chips);
+    }
     if (step.hasFrames()) {
       view.card.title = 'Jump to this step';
       elements.listen(view.card, DomEvent.CLICK, () => this.#onSeek(step.start));
     }
     this.#cards.set(step, view);
     return view.card;
+  }
+
+  /**
+   * @param {Object} constraint A constraint the step was recorded with.
+   * @returns {HTMLElement} A chip with the constraint's text, the monitor it became
+   *   and what the monitor observed last.
+   */
+  #chip(constraint) {
+    const elements = this.#shown;
+    const chip = elements.create('span', ViewClass.CHIP);
+    chip.append(elements.create('span', '', constraint[PlanConstraintKey.TEXT]));
+    const monitor = constraint[PlanConstraintKey.MONITOR];
+    if (monitor) chip.append(elements.create('span', ViewClass.MONITOR, monitor));
+    const observed = constraint[PlanConstraintKey.OBSERVATION];
+    if (observed) {
+      const badge = elements.create('span', ViewClass.OBSERVATION, observed);
+      badge.dataset.observation = observed;
+      chip.append(badge);
+    }
+    return chip;
   }
 
   /**

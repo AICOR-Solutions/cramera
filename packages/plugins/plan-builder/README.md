@@ -5,7 +5,9 @@ plan's robots, objects and targets in the 3D view of an environment, attaches
 constraints written in plain language to its steps and runs the demo generated from it.
 
 Install it next to the viewer; the viewer finds it through the `cramera.plugins` entry
-point and shows a **Plan builder** panel that opens the builder page.
+point and shows a **Plan View** panel: the plan of a replayed recording as the builder's
+step cards, each with every parameter and constraint it was recorded with, following the
+playhead. The builder page itself is served at `/plugins/plan-builder/builder.html`.
 
 ```bash
 pip install -e packages/plugins/plan-builder
@@ -18,9 +20,18 @@ cramera
   native annotation classes with a supporting surface. Environments are the viewer's
   bundles without a robot model. Without the CRAM workspace the catalog names the
   missing modules and offers environments only.
+- **CRAM** is reached through `cramera-cram` only (the `cram` extra); the plugin
+  imports nothing of the CRAM workspace. `cramera_cram.plans.workspace` hands the
+  catalog over as the protocol's `RobotModel`, `ObjectModel` and `ActionCatalog`
+  documents, and a generated demo hands its plan as a `DemoDocument` to
+  `cramera_cram.plans.command`, which builds the world, turns the steps into native
+  actions and performs or stages them. A step the CRAM side refuses (an arm the robot
+  lacks, an object without a grasp, an annotation or surface the world lacks, an
+  unknown action) is answered with the same status and message as before, raised as
+  a `cramera_cram.exceptions` error.
 - **Actions** are discovered, not listed by hand: every module below
   `coraplex.robot_plans.actions` is imported on its own, and every concrete action
-  dataclass defined there becomes a schema (`cram/actions.py`). Each init field is
+  dataclass defined there becomes a schema (`cramera_cram.plans.actions`). Each init field is
   resolved in the class that declares it and mapped to a kind by an ordered list of
   type rules:
 
@@ -50,11 +61,11 @@ cramera
   demo is refused with the step and field named.
 - **Demos** are generated from `templates/plan_demo.py` and written to
   `CRAMERA_DATA/plan-builder/demos`, or to the directory `CRAMERA_PLAN_BUILDER_OUTPUT`
-  names; never into a CRAM checkout. A demo carries its plan as JSON and runs it as a
-  `RobotTaskDemo`: `python <demo>.py` performs the selected robot's steps, each built
-  generically from its action's class and values, and saves the
-  recording into the local scenes directory, `--stage` only publishes the world until it
-  is stopped, `--port` chooses where it is published.
+  names; never into a CRAM checkout. A demo carries its plan as JSON and runs it as
+  `cramera_cram.plans`' `RobotTaskDemo`: `python <demo>.py` performs the selected
+  robot's steps, each built generically from its action's class and values, and saves
+  the recording into the local scenes directory, `--stage` only publishes the world
+  until it is stopped, `--port` chooses where it is published.
 - **Replays.** When the viewer shows a recording with a plan, the panel comes to the
   front and lists the plan's steps as the builder's cards (`web/steps.css`, shared
   with the builder page): a plan's steps are its outermost actions, one list per

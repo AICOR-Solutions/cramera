@@ -16,10 +16,11 @@ from pathlib import Path
 
 from typing_extensions import IO, List, Optional
 
-from cramera_plan_builder.demos import DemoDirectory, DemoOption, DemoTemplate
+from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import DemoNotStarted
 from cramera_protocol.plan_builder import (
     DemoDocument,
+    DemoOption,
     RunMode,
     RunState,
     RunStatus,

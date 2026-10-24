@@ -9,7 +9,7 @@ import signal
 import sys
 import threading
 
-from cramera_plan_builder.lifeline import Lifeline
+from cramera.lifeline import Lifeline
 
 DEMO = r"""
 ${demo}

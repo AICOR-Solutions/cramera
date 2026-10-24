@@ -4,14 +4,16 @@ Selecting this package's live visualization as coraplex's cramera backend.
 
 from __future__ import annotations
 
-import importlib
 import os
-import sys
-import types
+from importlib.metadata import entry_points
 
-from cramera_cram.coraplex_backend import CoraplexBackend, CoraplexBackendRegistration
+from cramera_cram.coraplex_backend import (
+    CoraplexBackend,
+    CoraplexBackendRegistration,
+    CoraplexProvider,
+)
 from cramera_cram.visualization import LiveVisualization
-from cramera_questions.workspace_classes import WorkspaceClassIndex
+from cramera_cram.questions.workspace_classes import WorkspaceClassIndex
 
 PREVIOUS_SELECTION = "rviz"
 """
@@ -19,25 +21,33 @@ A backend a process selected before the registration.
 """
 
 
+def test_the_provider_is_installed_where_coraplex_loads_it():
+    (installed,) = entry_points(group=CoraplexBackend.GROUP, name=CoraplexBackend.VALUE)
+    assert installed.load() is CoraplexProvider
+
+
 def test_a_registration_selects_the_backend_while_entered(monkeypatch):
     monkeypatch.delenv(CoraplexBackend.VARIABLE, raising=False)
     with CoraplexBackendRegistration():
         selection = os.environ[CoraplexBackend.VARIABLE]
-        module = importlib.import_module(CoraplexBackend.MODULE)
+        factory = CoraplexBackendRegistration.current_factory()
     assert selection == CoraplexBackend.VALUE
-    assert vars(module)[CoraplexBackend.CLASS] is LiveVisualization
+    assert factory is LiveVisualization
     assert CoraplexBackend.VARIABLE not in os.environ
-    assert CoraplexBackend.MODULE not in sys.modules
 
 
 def test_leaving_restores_what_the_registration_replaced(monkeypatch):
-    previous_module = types.ModuleType(CoraplexBackend.MODULE)
+    def factory(world) -> LiveVisualization:
+        return LiveVisualization(world=world)
+
     monkeypatch.setenv(CoraplexBackend.VARIABLE, PREVIOUS_SELECTION)
-    monkeypatch.setitem(sys.modules, CoraplexBackend.MODULE, previous_module)
-    with CoraplexBackendRegistration():
-        pass
+    with CoraplexBackendRegistration(factory=factory):
+        with CoraplexBackendRegistration():
+            pass
+        inner_left = CoraplexBackendRegistration.current_factory()
+    assert inner_left is factory
+    assert CoraplexBackendRegistration.current_factory() is LiveVisualization
     assert os.environ[CoraplexBackend.VARIABLE] == PREVIOUS_SELECTION
-    assert sys.modules[CoraplexBackend.MODULE] is previous_module
 
 
 def test_coraplex_creates_its_visualization_through_the_factory(
@@ -61,7 +71,7 @@ def test_coraplex_creates_its_visualization_through_the_factory(
         visualization = coraplex_visualization.WorldVisualization.from_environment(
             sliding_box.world
         ).start()
-    shown = visualization.cramera_visualization
+    shown = visualization.provider.visualization
     visualization.stop()
     assert created == [shown]
     assert shown.world is sliding_box.world

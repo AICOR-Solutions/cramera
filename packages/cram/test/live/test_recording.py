@@ -29,12 +29,18 @@ from cramera_protocol.bundle.scene import PlanNode, PlanNodeKind, SceneDescripti
 from cramera_protocol.bundle.statecharts import Statecharts
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import (
+    ConstraintActivation,
+    ConstraintMonitorType,
+    ConstraintRequest,
+    MonitorSpecification,
+    PlanNodeReference,
     RecordingSaveRequest,
     RecordingState,
     SceneDestination,
 )
 from cramera.locations import DataLocations
-from coraplex.datastructures.enums import TaskStatus
+from giskardpy.motion_statechart.data_types import LifeCycleValues
+from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 
 from ..dataset.live_worlds import HeightChart
@@ -216,11 +222,11 @@ def run_the_small_plan(kitchen, publisher, small_plan) -> FrameRange:
     """
     publisher.begin_plan(small_plan.plan)
     carry_milk(kitchen, publisher)
-    small_plan.action.status = TaskStatus.RUNNING
+    small_plan.action.status = LifeCycleValues.RUNNING
     first = publisher.recording.frame_count()
     carry_milk(kitchen, publisher)
     running = FrameRange(first, publisher.recording.frame_count() - 1)
-    small_plan.action.status = TaskStatus.SUCCEEDED
+    small_plan.action.status = LifeCycleValues.SUCCEEDED
     carry_milk(kitchen, publisher)
     return running
 
@@ -250,6 +256,38 @@ def test_a_recorded_step_names_the_frames_its_action_ran_in(
     assert action.kind == PlanNodeKind.ACTION
     assert (action.start, action.end) == (running.first, running.last)
     assert (root.start, root.end) == (running.first, running.last)
+
+
+def test_a_recorded_step_keeps_its_parameters_and_constraints(
+    publisher, kitchen, small_plan, locations
+):
+    publisher.begin_plan(small_plan.plan)
+    publisher.attach_constraint(
+        ConstraintRequest(
+            target_plan_node=PlanNodeReference(
+                identifier=publisher.plan.active_plan.identifier(small_plan.action)
+            ),
+            monitor=MonitorSpecification(
+                monitor_type=ConstraintMonitorType.HEIGHT,
+                parameters={"tip_link": kitchen.milk.name.name, "lower_limit": 0.5},
+            ),
+            text="keep the milk up",
+            apply=ConstraintActivation.IMMEDIATE,
+        )
+    )
+    live = publisher.refresh_plan().nodes[1].constraints[0]
+    small_plan.action.status = LifeCycleValues.RUNNING
+    carry_milk(kitchen, publisher)
+    small_plan.action.status = LifeCycleValues.SUCCEEDED
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    root = bundle_files(locations)[1].plan_trees[0]
+    action = root.children[0]
+    assert action.parameters == {"torso_state": TorsoState.HIGH.name}
+    assert [(each.text, each.monitor) for each in action.constraints] == [
+        (live.text, live.monitor)
+    ]
+    assert (root.parameters, root.constraints) == ({}, [])
 
 
 def test_a_node_that_never_was_the_running_action_has_no_frames(

@@ -12,10 +12,10 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Any, List, Optional
 
+from cramera_cram.attachment import AttachmentDetector
 from cramera_protocol.bundle.scene import DetectedEvent
 from giskardpy.motion_statechart.context import MotionStatechartContext
 from segmind.datastructures.events import EventWithTrackedObjects
-from segmind.detectors.attachment_detector_nodes import AttachmentDetector
 from segmind.detectors.base import AbstractDetector, SegmindContext
 from segmind.detectors.coarse_event_detector_nodes import (
     PickUpDetector,

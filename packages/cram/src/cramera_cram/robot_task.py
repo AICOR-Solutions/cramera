@@ -47,7 +47,7 @@ from cramera_protocol.live_messages import (
     SavedScene,
     SceneDestination,
 )
-from semantic_digital_twin.api import RobotSpecification
+from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.world import World
 
 PUBLISHING_PREFIX = ".publish_"
@@ -129,7 +129,7 @@ class RobotTaskDemo(ABC):
     The port the run is published on while it runs.
     """
 
-    execution_type: ExecutionType = ExecutionType.SIMULATED
+    execution_type: ExecutionType = ExecutionType.KINEMATICALLY_SIMULATED
     """
     How the plan's motions are executed.
     """

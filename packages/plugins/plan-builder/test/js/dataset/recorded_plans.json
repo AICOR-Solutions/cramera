@@ -70,6 +70,20 @@
                 }
               ]
             }
+          ],
+          "parameters": {
+            "object_designator": "A08",
+            "arm": "LEFT",
+            "grasp_description": "approach_direction FRONT, vertical_alignment TOP",
+            "grasp_detection_threshold": "0.9",
+            "tolerate_grasp_stall": "off"
+          },
+          "constraints": [
+            {
+              "text": "Keep the box upright",
+              "monitor": "VectorsAligned",
+              "observation": "TRUE"
+            }
           ]
         },
         {

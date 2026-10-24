@@ -14,7 +14,8 @@ from typing_extensions import Dict, Optional, Sequence, Type
 from cramera_cram.exceptions import InvalidRobotPlacement, RobotPlacementUnavailable
 from cramera_cram.robots import RobotRoster
 from cramera_cram.scenes.environment import SceneEnvironment
-from semantic_digital_twin.api import RobotSpecification, WorldSpecification
+from semantic_digital_twin.specifications.robots import RobotSpecification
+from semantic_digital_twin.specifications.worlds import WorldSpecification
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
@@ -83,13 +84,47 @@ class RobotPlacement:
 
     def specification(self) -> RobotSpecification:
         """
-        :return: The native description placing the robot under its namespace.
+        :return: The native description placing the robot at its start pose.
         """
         return RobotSpecification(
-            semantic_annotation_type=self.robot_type,
-            world_T_odom=self.pose,
-            prefix=self.namespace,
+            semantic_annotation_type=self.robot_type, world_T_odom=self.pose
         )
+
+    def place(self, world: World) -> AbstractRobot:
+        """
+        Merge the robot into a world and move every name of its bodies, joints and
+        degrees of freedom under its namespace, in place of the prefix its description
+        gives them, so that robots of one model stay apart.
+
+        :param world: The world receiving the robot.
+        :return: The placed robot.
+        """
+        robot = self.specification().spawn(world)
+        described = robot.root.name.prefix
+        connections = [body.parent_connection for body in robot.bodies]
+        dofs = [dof for connection in connections for dof in connection.dofs]
+        with world.modify_world():
+            for entity in [*robot.bodies, *dofs]:
+                entity.update_name(self.namespaced(entity.name, described))
+        # a connection serializes without an identity, which the world's record of a
+        # renamed entity needs, so its name is set without being recorded
+        for connection in connections:
+            connection.name = self.namespaced(connection.name, described)
+        return robot
+
+    def namespaced(self, name: PrefixedName, described: str) -> PrefixedName:
+        """
+        :param name: A name of the robot.
+        :param described: The prefix the robot's description gives its names.
+        :return: The name under the robot's namespace in place of that prefix; a name
+            with another prefix as it is.
+        """
+        prefix = name.prefix
+        if prefix != described and not prefix.startswith(
+            f"{described}{NAME_SEPARATOR}"
+        ):
+            return name
+        return PrefixedName(name.name, prefix=self.namespace + prefix[len(described) :])
 
     def resolve(self, world: World) -> AbstractRobot:
         """
@@ -163,9 +198,9 @@ class RobotScene:
         :param environment: The scene the robots stand in, or None for an empty world.
         :return: A new world holding every robot at its start pose and posture.
         """
-        world = WorldSpecification(
-            robots=[placement.specification() for placement in self.placements]
-        ).to_domain_object()
+        world = WorldSpecification().to_domain_object()
+        for placement in self.placements:
+            placement.place(world)
         with world.modify_world():
             for placement in self.placements:
                 placement.resolve(world).update_name(

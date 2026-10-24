@@ -17,7 +17,9 @@ from cramera_cram.geometry import NumericPose
 from cramera_cram.robot_task import RobotTaskDemo
 from cramera_cram.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
-from semantic_digital_twin.api import BodySpecification
+from semantic_digital_twin.specifications.kinematic_structure_entities import (
+    BodySpecification,
+)
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.geometry import Scale

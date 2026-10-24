@@ -1,0 +1,33 @@
+# Working on cramera
+
+See `README.md` for what the packages do and `docs/architecture.md` for how they fit
+together.
+
+## CRAM is reached through cramera-cram only
+
+`packages/cram` (`cramera_cram`) is the only package that imports the CRAM workspace:
+`coraplex`, `semantic_digital_twin`, `giskardpy`, `krrood`, `segmind`, `robokudo`,
+`physics_simulators`, `probabilistic_model` and `random_events`. When CRAM changes,
+`cramera-cram` is the only package that has to change with it.
+
+Every other package, the plugins included, reaches CRAM through `cramera-cram`'s API or
+through the protocol (`cramera_protocol`):
+
+- Do not add an `import` or `from ... import` of a CRAM package outside `packages/cram`,
+  in source or in tests, and not behind `TYPE_CHECKING` either.
+- What a package outside `packages/cram` needs from CRAM, such as a catalog of native
+  actions, a world built from a plan or a plan run, is offered by `cramera-cram` as data
+  in the protocol's documents, or as a function of `cramera_cram` that takes and returns
+  such documents. Add it there; do not hand native CRAM objects across the boundary.
+- A name CRAM defines, such as a status, an arm or an action field, crosses the boundary
+  as the protocol's own name, translated inside `cramera-cram` (as `PlanNodeStatus`
+  translates coraplex's life cycle values), so a CRAM rename stays inside the package.
+
+Check a change with:
+
+```bash
+grep -rnE --exclude-dir=build "^\s*(from|import) (coraplex|semantic_digital_twin|giskardpy|krrood|segmind|robokudo|physics_simulators|probabilistic_model|random_events)\b" packages --include=*.py | grep -v "^packages/cram/"
+```
+
+which lists nothing. `packages/cram/test/test_cram_boundary.py` runs the same check in
+the test suite and fails on any such import.

@@ -57,6 +57,23 @@ which this repository was mirrored until 22 Oct 2026.
   labelled as the builder labels the field, and each constraint as a chip with its
   monitor and last observation. The panel's description and its links to the
   builder page are gone; the page stays at `/plugins/plan-builder/builder.html`.
+- **Only cramera-cram imports CRAM.** The plan builder's CRAM side (action
+  discovery, steps, arms, world, surfaces, the generated demo's command) moved from
+  `cramera_plan_builder.cram` to `cramera_cram.plans` with its tests; the builder
+  reads its catalog as protocol documents and its demos import
+  `cramera_cram.plans.command`. `DemoOption` moved into `cramera_protocol.plan_builder`,
+  `Lifeline` into `cramera.lifeline`, and the errors the CRAM side raises into
+  `cramera_cram.exceptions` with their status and message unchanged. Demos generated
+  before import the old module and have to be generated again.
+- **The question engine moved into cramera-cram.** Everything of `cramera-questions`
+  that evaluates, words or lists queries with krrood, and what it needs (presets,
+  matching, the recorded bundle reader, graph views, the workspace class index), is
+  `cramera_cram.questions` now, with `cramera_cram.questions.live` for live worlds
+  and `cramera_cram.questions.scenes` answering the plugin's routes in protocol
+  documents. `cramera-questions` keeps the plugin, its routes and its browser module,
+  depends on `cramera-cram` only through its `cram` extra, and no longer is a
+  dependency of `cramera-cram`. `cramera-record-answers` is installed by
+  `cramera-cram`. A test of `cramera-cram` fails on any CRAM import outside it.
 
 ### A rewrite into packages
 - **One protocol for everything.** `cramera-protocol` defines scene bundles, the

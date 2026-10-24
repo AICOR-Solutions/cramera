@@ -24,7 +24,7 @@ from cramera_protocol.bundle.index import InvalidSceneName, SceneIndex
 from cramera_protocol.bundle.scene import Camera, SceneDescription
 from cramera_protocol.geometry import Vector3
 from cramera_protocol.viewer import EnvironmentVariable
-from semantic_digital_twin.api import RobotSpecification
+from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.pr2 import PR2
 

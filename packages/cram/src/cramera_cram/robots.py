@@ -46,7 +46,7 @@ class RobotParts:
         """
         :return: The arms the robot's annotation names as its parts.
         """
-        return self.robot.get_arms()
+        return self.robot.all_arms
 
     def side_of(self, arm: Arm) -> Optional[PartSide]:
         """

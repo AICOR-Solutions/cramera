@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
 
-from typing_extensions import List
+from typing_extensions import List, Optional
 
 from cramera.exceptions import ViewerError
 
@@ -684,3 +684,153 @@ class DemoStartedNoWorld(DemoError):
             f"{str(self.demo)!r} started no visualization; select the cramera backend "
             f"through coraplex's visualization in the demo."
         )
+
+
+# %% plans
+
+
+@dataclass
+class PlanError(ViewerError):
+    """
+    A plan's step the CRAM workspace cannot turn into an action, or a workspace class or
+    action it does not define.
+    """
+
+
+@dataclass
+class SurfaceNotInWorld(PlanError):
+    """
+    A step putting an object on a surface the world does not hold or that offers no free
+    spot.
+    """
+
+    surface_type: str
+    """
+    The class name of the surface annotation.
+    """
+
+    surface_name: Optional[str]
+    """
+    The name of the surface, or None for any surface of the class.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        surface = self.surface_type + (
+            f" {self.surface_name!r}" if self.surface_name is not None else ""
+        )
+        return f"The world offers no free spot on a {surface}."
+
+
+@dataclass
+class AnnotationNotInWorld(PlanError):
+    """
+    A step naming an annotated entity the world does not hold.
+    """
+
+    annotation: str
+    """
+    The class name of the annotation.
+    """
+
+    name: str
+    """
+    The name the step gives.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The world holds no {self.annotation} named {self.name!r}."
+
+
+@dataclass
+class ArmNotOnRobot(PlanError):
+    """
+    A step naming arms the robot performing it does not have as the field asks for them.
+    """
+
+    arms: str
+    """
+    The name of the arms the step gives.
+    """
+
+    robot: str
+    """
+    The class name of the robot.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"A {self.robot} has no single arm named {self.arms}."
+
+
+@dataclass
+class ObjectNotGraspable(PlanError):
+    """
+    A step naming an object to grasp that offers no grasp.
+    """
+
+    identifier: str
+    """
+    The object's identity.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The object {self.identifier!r} offers no grasp."
+
+
+@dataclass
+class UnknownWorkspaceClass(PlanError):
+    """
+    A robot or surface annotation class the CRAM workspace does not define.
+    """
+
+    name: str
+    """
+    The class name.
+    """
+
+    offered: List[str]
+    """
+    The class names the workspace defines.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"The CRAM workspace defines no {self.name!r}; it defines {self.offered}."
+        )
+
+
+@dataclass
+class UnknownAction(PlanError):
+    """
+    An action class name the CRAM workspace does not define.
+    """
+
+    name: str
+    """
+    The class name.
+    """
+
+    offered: List[str]
+    """
+    The class names of the actions the workspace defines.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The CRAM workspace defines no action {self.name!r}."

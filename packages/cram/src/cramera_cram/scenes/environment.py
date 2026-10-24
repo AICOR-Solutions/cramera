@@ -11,7 +11,8 @@ from pathlib import Path
 from typing_extensions import Optional, Sequence
 
 from semantic_digital_twin.adapters.urdf import URDFParser
-from semantic_digital_twin.api import RobotSpecification, WorldSpecification
+from semantic_digital_twin.specifications.robots import RobotSpecification
+from semantic_digital_twin.specifications.worlds import WorldSpecification
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import FixedConnection
