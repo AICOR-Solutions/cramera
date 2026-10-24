@@ -493,6 +493,23 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .graph-chips li { display: flex; align-items: center; gap: 4px; }
 .graph-chips .field { font-size: 11px; color: var(--text-faint); }
 
+/* %% perception */
+
+.perception { display: grid; gap: 8px; align-content: start; }
+.perception > .muted { margin: 0; font-size: 12px; }
+.perception-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.perception-step { padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--text-faint); border-radius: var(--radius); background: var(--surface-sunken); }
+.perception-step[data-status="SUCCEEDED"] { border-left-color: var(--success); }
+.perception-step[data-status="FAILED"] { border-left-color: var(--danger); }
+.perception-step[data-status="RUNNING"] { border-left-color: var(--accent); }
+.perception-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.perception-head button { margin-left: auto; padding: 3px 9px; font-size: 12px; }
+.perception-status { font: 11px var(--mono); color: var(--text-muted); }
+.perception-step h4 { margin: 8px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+.perception-seen { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.perception-seen button { padding: 3px 10px; font-size: 12px; border-color: var(--warning); color: var(--text); }
+.perception-reason, .perception-step .muted { margin: 4px 0 0; font-size: 12px; }
+
 /* %% live */
 
 .live { display: grid; gap: 10px; align-content: start; }

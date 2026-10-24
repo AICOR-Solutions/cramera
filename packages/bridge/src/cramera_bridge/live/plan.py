@@ -15,7 +15,8 @@ from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
-from coraplex.plans.plan_node import ActionNode, DesignatorNode, PlanNode
+from coraplex.plans.plan_node import ActionNode, DesignatorNode, MotionNode, PlanNode
+from coraplex.robot_plans.motions.misc import DetectingMotion
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.robots.robot_parts import Arm
 from semantic_digital_twin.spatial_types.spatial_types import Pose
@@ -220,11 +221,13 @@ class DesignatorSummary:
         :param object_keys: The keys of the published objects.
         :param nested: Whether the value sits in a description nested in the
             designator; a description nested deeper is named by its class.
-        :return: The value as the viewer shows it: an enumeration member by its name,
-            a body by its published key else its name, an annotation by its name, a
-            pose by its position, a boolean as on or off, a list by its items, a nested
-            description by its fields, and anything else by its text.
+        :return: The value as the viewer shows it: a class by its name, an enumeration
+            member by its name, a body by its published key else its name, an annotation
+            by its name, a pose by its position, a boolean as on or off, a list by its
+            items, a nested description by its fields, and anything else by its text.
         """
+        if isinstance(value, type):
+            return value.__name__
         if isinstance(value, Enum):
             return value.name
         if isinstance(value, Body):
@@ -287,6 +290,11 @@ class PerformedPlan:
     latest: LivePlan = field(default_factory=LivePlan)
     """
     The plan's newest snapshot.
+    """
+
+    perceived: Dict[int, List[str]] = field(default_factory=dict)
+    """
+    What each perception step of the plan reported when it ended, by the step's index.
     """
 
     @classmethod
@@ -371,7 +379,40 @@ class PerformedPlan:
             target=summary.target(object_keys),
             constraints=constraints(identifier),
             parameters=summary.parameters(object_keys),
+            perceived=(
+                list(self.perceived.get(node.index, []))
+                if self.is_perception(node)
+                else None
+            ),
+            reason=None if node.reason is None else str(node.reason),
         )
+
+    @staticmethod
+    def is_perception(node: PlanNode) -> bool:
+        """
+        :param node: A node of the plan.
+        :return: Whether it is a perception step: the motion that answers a perception
+            query.
+        """
+        return isinstance(node, MotionNode) and isinstance(
+            node.designator, DetectingMotion
+        )
+
+    def observe_ended(self, node: PlanNode, object_keys: Set[str]) -> None:
+        """
+        Keep what a perception step reported when it ends: the objects of the queried
+        kind in the queried region that the robot's camera sees, once the detection was
+        applied to the world; a step that failed reported nothing.
+
+        :param node: A node of the plan that ended.
+        :param object_keys: The keys of the published objects.
+        """
+        if not self.is_perception(node) or node.status is not LifeCycleValues.SUCCEEDED:
+            return
+        self.perceived[node.index] = [
+            DesignatorSummary.render(body, object_keys)
+            for body in node.designator.query.from_world()
+        ]
 
     def running(self) -> Optional[RunningAction]:
         """
@@ -429,6 +470,18 @@ class PlanPublisher:
                 performed = PerformedPlan.of_plan(plan, len(self.performed) + 1)
                 self.performed.append(performed)
             self.active_plan = performed
+
+    def observe_ended(self, node: PlanNode, object_keys: Set[str]) -> None:
+        """
+        :param node: A plan node that ended.
+        :param object_keys: The keys of the published objects.
+        """
+        with self.lock:
+            performed = next(
+                (entry for entry in self.performed if entry.plan is node.plan), None
+            )
+        if performed is not None:
+            performed.observe_ended(node, object_keys)
 
     def performed_plans(self) -> List[PerformedPlan]:
         """
