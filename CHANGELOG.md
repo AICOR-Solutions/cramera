@@ -110,6 +110,14 @@ which this repository was mirrored until 22 Oct 2026.
   as `any <type>`.
 
   ![A transport's sub-actions in the Plan View](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-38/after.png)
+- **An action shows what its motions went through.** coraplex performs an action's
+  motions without starting the action node itself, so recorded actions stayed
+  `CREATED` and named no frames. An action coraplex left unstarted now shows the
+  status of its motion that started last, running until its motions ran or the plan
+  ended. Recordings then know when each step ran, and the Plan View follows the
+  playhead again.
+
+  ![The Plan View following the playhead](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-36/after.png)
 - **The plan builder's environment and robots are clearer.** The builder has an
   Environment section and a Robots section with one card per robot; the card whose plan
   is edited is marked, picking a robot in the 3D view selects it, and every robot has
