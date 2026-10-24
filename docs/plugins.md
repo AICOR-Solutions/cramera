@@ -111,7 +111,7 @@ Rules for browser modules:
 - Use the CSS variables of `styles/viewer.css` (`--surface`, `--surface-raised`,
   `--text`, `--text-muted`, `--border`, `--accent`, `--control`, `--radius`, `--font`,
   ...), so the plugin follows the dark theme, which is the default, and the light
-  theme a person may choose in the View menu (`:root[data-theme="light"]`).
+  theme a person may choose with the top bar's theme switch (`:root[data-theme="light"]`).
 - Own your elements and listeners and remove them when a scene is replaced, by
   subscribing to `ViewerEvent.SCENE_LOADING`.
 - Insert user and scene text as `textContent`, never as HTML.

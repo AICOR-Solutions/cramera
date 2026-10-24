@@ -133,19 +133,17 @@ test('a page whose storage is refused still shows and changes its theme', () => 
   assert.equal(localStorageOf(window), null);
 });
 
-test('the View menu opens and changes the theme', () => {
+test('the top bar switches the theme with one click and shows which is chosen', () => {
   const document = new FakeDocument();
   const root = document.createElement('header');
   new SiteHeader(root, url, new ThemeSetting(document.documentElement, new FakeStorage()), SCENE_PAGE);
-  const menu = root.children[2].children[1];
-  const [toggle, list] = menu.children;
-  assert.equal(list.hidden, true);
-  toggle.dispatch('click');
-  assert.equal(list.hidden, false);
-  const choice = list.children[0].children[1];
-  choice.value = Theme.LIGHT;
-  choice.dispatch('change');
+  const buttons = root.children[2].children[1].children;
+  const pressed = () => buttons.filter((button) => button.getAttribute('aria-pressed') === 'true').map((button) => button.dataset.theme);
+  assert.deepEqual(buttons.map((button) => button.dataset.theme), [Theme.DARK, Theme.LIGHT]);
+  assert.deepEqual(pressed(), [Theme.DARK]);
+  buttons.find((button) => button.dataset.theme === Theme.LIGHT).dispatch('click');
   assert.equal(document.documentElement.dataset.theme, Theme.LIGHT);
+  assert.deepEqual(pressed(), [Theme.LIGHT]);
 });
 
 // %% addresses
