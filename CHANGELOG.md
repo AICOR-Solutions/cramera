@@ -126,7 +126,8 @@ which this repository was mirrored until 22 Oct 2026.
   in CRAM changes only that table. Plans are written in format 1.3; plans of 1.1 and
   1.2 are translated through the names the catalog lists as saved before (`savedAs`,
   `savedMembers`, `savedSurfaceTypes`), and earlier recordings' class names are read as
-  their kinds.
+  their kinds. A new plan still starts with the robot model used last when the browser
+  remembers it by its old name.
 
   ![A plan sent with CRAM's names and saved with identifiers](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-49/saved_plan_values.png)
 

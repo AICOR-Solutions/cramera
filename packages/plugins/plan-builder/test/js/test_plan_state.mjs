@@ -51,6 +51,11 @@ test('a new plan starts with the model the person used last', () => {
   assert.equal(state.field(PlanKey.ENVIRONMENT), '');
 });
 
+test('a new plan starts with the model the person used last under its saved name', () => {
+  const state = PlanState.empty(catalog(), null, 'PR2');
+  assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'pr2');
+});
+
 test('the document names the edited robot as the one that performs', () => {
   const state = PlanState.empty(catalog(), 'lab');
   const second = state.addRobot('tracy');

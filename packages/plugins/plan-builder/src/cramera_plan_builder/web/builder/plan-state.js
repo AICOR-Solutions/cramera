@@ -126,7 +126,7 @@ export class PlanState {
    * @param {Object} catalog The plan builder's catalog.
    * @param {string|null} environment The environment bundle, or null for an empty floor.
    * @param {string|null=} preferred The robot model to start with when the catalog has
-   *   it.
+   *   it, by its name or a name it was saved under before.
    * @returns {PlanState} A new plan with one robot: of the preferred model, else of the
    *   model offering the most actions.
    */
@@ -137,7 +137,8 @@ export class PlanState {
     const offered = (model) => state.offeredActions({ [PlannedRobotKey.MODEL]: model[RobotModelKey.NAME] }).length;
     const models = [...catalog[PlanBuilderCatalogKey.ROBOTS]];
     models.sort((first, second) => offered(second) - offered(first));
-    const chosen = models.find((model) => model[RobotModelKey.NAME] === preferred) ?? models[0];
+    const named = (model) => model[RobotModelKey.NAME] === preferred || (model[RobotModelKey.SAVED_AS] ?? []).includes(preferred);
+    const chosen = models.find(named) ?? models[0];
     if (chosen) state.addRobot(chosen[RobotModelKey.NAME]);
     return state;
   }
