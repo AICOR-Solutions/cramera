@@ -834,8 +834,8 @@ class UnknownWorkspaceClass(PlanError):
 @dataclass
 class RobotDescriptionUnavailable(PlanError):
     """
-    A robot whose model description cannot be written: its package is not installed,
-    it is no URDF or xacro file, or its xacro does not expand.
+    A robot whose model description cannot be written: its package is not installed, it
+    is no URDF or xacro file, or its xacro does not expand.
     """
 
     robot: str
