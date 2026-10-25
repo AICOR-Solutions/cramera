@@ -1,1 +1,1 @@
-{"name": "x", "robots": [{"id": "robot_1", "model": "PR2", "label": "PR2\u0007", "pose": [0, 0, 0, 0, 0, 0, 1]}]}
+{"name": "x", "robots": [{"id": "robot_1", "model": "pr2", "label": "PR2\u0007", "pose": [0, 0, 0, 0, 0, 0, 1]}]}

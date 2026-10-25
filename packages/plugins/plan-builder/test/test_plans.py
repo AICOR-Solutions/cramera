@@ -33,6 +33,7 @@ from cramera_plan_builder.exceptions import (
 )
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanFile, PlanStore
 from cramera_protocol.plan_builder import (
+    CLASS_NAME_FORMAT_VERSION,
     ActionCatalog,
     ActionFieldKind,
     Destination,
@@ -43,6 +44,7 @@ from cramera_protocol.plan_builder import (
     PlanDocument,
     PlanKey,
     PlanRecord,
+    SavedNames,
     StepConstraint,
 )
 
@@ -315,14 +317,27 @@ def legacy_store(store) -> PlanStore:
 
 
 def test_a_saved_plan_of_step_kinds_loads_as_the_same_plan_of_actions(
-    legacy_store, read_plan
+    legacy_store, read_plan, catalog
 ):
     loaded = legacy_store.load("milk_to_table").document
-    assert loaded == read_plan("milk_to_table.json")
+    translated = SavedNames.of_catalog(catalog).translated(loaded)
+    assert translated == read_plan("milk_to_table.json")
 
 
-def test_a_migrated_plan_passes_the_catalog(legacy_store, catalog_check, check):
+def test_a_plan_of_class_names_is_translated_to_the_catalogs_identifiers(
+    legacy_store, read_plan, catalog
+):
+    loaded = legacy_store.load("class_names").document
+    assert loaded.format_version == CLASS_NAME_FORMAT_VERSION
+    translated = SavedNames.of_catalog(catalog).translated(loaded)
+    assert translated == read_plan("milk_to_table.json")
+
+
+def test_a_migrated_plan_passes_the_catalog(
+    legacy_store, catalog_check, check, catalog
+):
     for summary in legacy_store.summaries():
-        migrated = legacy_store.load(summary.identifier).document
+        loaded = legacy_store.load(summary.identifier).document
+        migrated = SavedNames.of_catalog(catalog).translated(loaded)
         check.check(migrated)
         catalog_check.check(migrated)

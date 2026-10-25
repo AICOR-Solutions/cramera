@@ -1,4 +1,4 @@
 {"signature": "plan_node_1|plan_node_2", "nodes": [
- {"id": "plan_node_1", "parent": null, "kind": "SequentialNode", "label": "SequentialNode", "status": "RUNNING"},
- {"id": "plan_node_2", "parent": "plan_node_1", "kind": "ActionNode", "label": "PickUpAction", "status": "CREATED", "arm": "LEFT", "target": "milk",
+ {"id": "plan_node_1", "parent": null, "kind": "sequence", "label": "SequentialNode", "status": "RUNNING"},
+ {"id": "plan_node_2", "parent": "plan_node_1", "kind": "action", "label": "PickUpAction", "status": "CREATED", "arm": "LEFT", "target": "milk",
   "constraints": [{"text": "keep the milk upright", "monitor": "VectorsAligned", "observation": "TRUE"}]}]}

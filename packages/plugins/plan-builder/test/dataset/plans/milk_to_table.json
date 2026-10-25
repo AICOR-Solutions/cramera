@@ -1,5 +1,5 @@
 {
-  "formatVersion": "1.1",
+  "formatVersion": "1.2",
   "name": "milk_to_table",
   "task": "Carry the milk to the table",
   "environment": "lab",
@@ -7,23 +7,23 @@
   "robots": [
     {
       "id": "robot_1",
-      "model": "PR2",
+      "model": "pr2",
       "label": "PR2 1",
       "pose": [1.0, 2.5, 0.0, 0.0, 0.0, 0.0, 1.0],
       "steps": [
-        {"id": "step_1", "action": "ParkArmsAction", "values": {"arm": "BOTH"}},
-        {"id": "step_2", "action": "MoveTorsoAction", "values": {"torso_state": "HIGH"}},
-        {"id": "step_3", "action": "NavigateAction", "values": {"target_location": [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0]}},
-        {"id": "step_4", "action": "TransportAction",
+        {"id": "step_1", "action": "park_arms", "values": {"arm": "BOTH"}},
+        {"id": "step_2", "action": "move_torso", "values": {"torso_state": "HIGH"}},
+        {"id": "step_3", "action": "navigate", "values": {"target_location": [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0]}},
+        {"id": "step_4", "action": "transport",
          "values": {"object_designator": "milk", "arm": "LEFT", "target_location": {"placement": "surface", "surfaceType": "Table"}},
          "constraints": [{"text": "Look where it operates", "monitorType": "PointingAt", "switch": "look_at_operation_site"}]},
-        {"id": "step_5", "action": "PickUpAction", "values": {"object_designator": "cup", "arm": "RIGHT"}},
-        {"id": "step_6", "action": "PlaceAction",
+        {"id": "step_5", "action": "pick_up", "values": {"object_designator": "cup", "arm": "RIGHT"}},
+        {"id": "step_6", "action": "place",
          "values": {"object_designator": "cup", "arm": "RIGHT", "target_location": {"placement": "pose", "pose": [2.4, 1.8, 0.8, 0.0, 0.0, 0.0, 1.0]}}}
       ]
     },
-    {"id": "robot_2", "model": "Tracy", "label": "Tracy 1", "pose": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-     "steps": [{"id": "step_1", "action": "ParkArmsAction", "values": {"arm": "LEFT"}}]}
+    {"id": "robot_2", "model": "tracy", "label": "Tracy 1", "pose": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+     "steps": [{"id": "step_1", "action": "park_arms", "values": {"arm": "LEFT"}}]}
   ],
   "objects": [
     {"id": "milk", "model": "milk.stl", "pose": [2.4, 2.2, 0.95, 0.0, 0.0, 0.0, 1.0], "color": "#e6ecff"},

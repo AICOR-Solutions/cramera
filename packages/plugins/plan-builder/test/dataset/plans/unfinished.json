@@ -1,7 +1,7 @@
 {
   "name": "unfinished",
   "robots": [
-    {"id": "robot_1", "model": "PR2", "label": "PR2 1", "pose": [0, 0, 0, 0, 0, 0, 1],
-     "steps": [{"id": "step_1", "action": "TransportAction", "values": {"arm": "LEFT"}}]}
+    {"id": "robot_1", "model": "pr2", "label": "PR2 1", "pose": [0, 0, 0, 0, 0, 0, 1],
+     "steps": [{"id": "step_1", "action": "transport", "values": {"arm": "LEFT"}}]}
   ]
 }

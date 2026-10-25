@@ -21,6 +21,7 @@ from cramera_protocol.bundle.scene import PlanNode
 from cramera_protocol.plan_builder import (
     PlanBuilderCatalog,
     PlanBuilderRoute,
+    PLAN_FORMAT_VERSION,
     PlanRecord,
     RunMode,
     RunRequest,
@@ -108,8 +109,11 @@ PLAN: Dict[str, Any] = {
     ],
 }
 """
-The plan a person composes in the builder: the PR2 parks its arms, raises its torso,
+The plan a person composed in the builder: the PR2 parks its arms, raises its torso,
 drives to the counter and picks the milk up.
+
+It is a plan of format 1.1, naming the planner's classes, as plans saved before the
+protocol had its own names do; the builder translates it to the catalog's identifiers.
 """
 
 ACTIONS = [step["action"] for step in PLAN["robots"][0]["steps"]]
@@ -254,14 +258,24 @@ def test_the_builder_offers_the_pr2_the_apartment_the_milk_and_the_actions(
     builder_run,
 ):
     catalog = builder_run.catalog
-    assert ROBOT in [robot.name for robot in catalog.robots]
+    assert ROBOT in [saved for robot in catalog.robots for saved in robot.saved_as]
     assert ENVIRONMENT in [entry.name for entry in catalog.environments]
     assert "milk.stl" in [model.identifier for model in catalog.objects]
-    assert set(ACTIONS) <= {action.name for action in catalog.actions}
+    saved_actions = {saved for action in catalog.actions for saved in action.saved_as}
+    assert set(ACTIONS) <= saved_actions
 
 
 def test_the_plan_is_saved_and_exported_as_a_demo(builder_run):
     assert builder_run.saved.identifier is not None
+    saved = builder_run.saved.document
+    assert saved.format_version == PLAN_FORMAT_VERSION
+    assert saved.robots[0].model == "pr2"
+    assert [step.action for step in saved.robots[0].steps] == [
+        "park_arms",
+        "move_torso",
+        "navigate",
+        "pick_up",
+    ]
     assert Path(builder_run.exported.path).is_file()
     assert PLAN["name"] in Path(builder_run.exported.path).read_text()
 

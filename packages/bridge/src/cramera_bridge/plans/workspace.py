@@ -25,6 +25,7 @@ from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.objects import ObjectLibraries
 from cramera_bridge.exceptions import UnknownWorkspaceClass
+from cramera_bridge.names import ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
@@ -159,8 +160,10 @@ class RobotAnnotation:
         :return: The robot as the catalog lists it.
         """
         return RobotModel(
-            name=self.annotation.__name__,
+            name=ROBOT_NAMES.identifier_of(self.annotation),
+            label=self.annotation.__name__,
             module=self.annotation.__module__,
+            saved_as=ROBOT_NAMES.saved_as(self.annotation),
             choices=self.choices(),
         )
 
@@ -193,11 +196,17 @@ class RobotAnnotations:
 
     def named(self, name: str) -> Type[AbstractRobot]:
         """
-        :param name: The class name of a robot annotation.
+        :param name: A robot's identifier, or a name a plan saved it under before.
         :return: The annotation class.
         :raises UnknownWorkspaceClass: When no annotation has the name.
         """
-        return WorkspaceClasses(self.annotations()).named(name)
+        annotations = self.annotations()
+        for annotation in annotations:
+            if ROBOT_NAMES.matches(annotation, name):
+                return annotation
+        raise UnknownWorkspaceClass(
+            name, [ROBOT_NAMES.identifier_of(annotation) for annotation in annotations]
+        )
 
 
 # %% surfaces

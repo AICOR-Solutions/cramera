@@ -1,1 +1,1 @@
-{"name": "x", "robots": [{"id": "robot_1", "model": "PR2", "label": "PR2", "pose": [0, 0, 0, 0, 0, 0, 1], "steps": [{"id": "step_1", "action": "PickUpAction", "values": {"object_designator": "bowl", "arm": "LEFT"}}]}]}
+{"name": "x", "robots": [{"id": "robot_1", "model": "pr2", "label": "PR2", "pose": [0, 0, 0, 0, 0, 0, 1], "steps": [{"id": "step_1", "action": "pick_up", "values": {"object_designator": "bowl", "arm": "LEFT"}}]}]}

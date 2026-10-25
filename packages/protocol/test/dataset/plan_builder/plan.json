@@ -1,5 +1,5 @@
 {
-  "formatVersion": "1.1",
+  "formatVersion": "1.2",
   "name": "milk_to_table",
   "task": "Carry the milk to the table",
   "environment": "aicor_medical_lab",
@@ -7,16 +7,16 @@
   "robots": [
     {
       "id": "robot_1",
-      "model": "PR2",
+      "model": "pr2",
       "label": "PR2 1",
       "pose": [1.0, 2.5, 0.0, 0.0, 0.0, 0.0, 1.0],
       "jointPositions": {"robot_1/torso_lift_joint": 0.2},
       "steps": [
-        {"id": "step_1", "action": "ParkArmsAction", "values": {"arm": "BOTH"}},
-        {"id": "step_2", "action": "MoveTorsoAction", "values": {"torso_state": "HIGH"}},
+        {"id": "step_1", "action": "park_arms", "values": {"arm": "BOTH"}},
+        {"id": "step_2", "action": "move_torso", "values": {"torso_state": "HIGH"}},
         {
           "id": "step_3",
-          "action": "TransportAction",
+          "action": "transport",
           "values": {
             "object_designator": "milk",
             "arm": "LEFT",
@@ -31,12 +31,12 @@
             {"text": "Look where it operates", "monitorType": "PointingAt", "switch": "look_at_operation_site"}
           ]
         },
-        {"id": "step_4", "action": "NavigateAction", "values": {"target_location": [2.6, 1.8, 0.0, 0.0, 0.0, 0.0, 1.0]}}
+        {"id": "step_4", "action": "navigate", "values": {"target_location": [2.6, 1.8, 0.0, 0.0, 0.0, 0.0, 1.0]}}
       ]
     },
     {
       "id": "robot_2",
-      "model": "Stretch",
+      "model": "stretch",
       "label": "Stretch 1",
       "pose": [4.0, 1.0, 0.0, 0.0, 0.0, 0.7071, 0.7071]
     }

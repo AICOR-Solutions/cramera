@@ -10,7 +10,7 @@ The generated demo builds the world and the native actions from it.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from types import MappingProxyType
 
@@ -22,11 +22,19 @@ from cramera_protocol.geometry import Pose
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorSpecification
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
-PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=1)
+PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=2)
 """
-The version plans are written with: steps name an action and its values.
+The version plans are written with: steps name an action and its values, and robots a
+model, by the protocol's identifiers.
 
-Plans of an earlier version name a step kind; they are migrated when they are read.
+Plans of an earlier version are migrated when they are read: those before
+:data:`CLASS_NAME_FORMAT_VERSION` name a step kind, which becomes an action; those of
+that version name the planner's classes, which :class:`SavedNames` translates.
+"""
+
+CLASS_NAME_FORMAT_VERSION = ProtocolVersion(major=1, minor=1)
+"""
+The version whose plans name actions and robot models by the planner's class names.
 """
 
 # %% plugin
@@ -564,8 +572,8 @@ class PlanStepKey(StrEnum):
 class PlanStep(JsonDocument):
     """
     One native action of a robot's plan with the values of its fields; a step written in
-    the format before :data:`PLAN_FORMAT_VERSION`, naming a step kind, is read as the
-    action that kind stood for.
+    the format before :data:`CLASS_NAME_FORMAT_VERSION`, naming a step kind, is read as
+    the action that kind stood for.
     """
 
     identifier: str = document_field(PlanStepKey.IDENTIFIER)
@@ -575,7 +583,7 @@ class PlanStep(JsonDocument):
 
     action: str = document_field(PlanStepKey.ACTION)
     """
-    The class name of the native action, as the catalog's action schemas name it.
+    The native action's identifier, as the catalog's action schemas name it.
     """
 
     values: Dict[str, Any] = document_field(PlanStepKey.VALUES, default_factory=dict)
@@ -609,8 +617,8 @@ class PlanStep(JsonDocument):
 
 class LegacyStepKind(StrEnum):
     """
-    The step kinds plans named before :data:`PLAN_FORMAT_VERSION`; read only to migrate
-    such plans.
+    The step kinds plans named before :data:`CLASS_NAME_FORMAT_VERSION`; read only to
+    migrate such plans.
     """
 
     PARK_ARMS = "park_arms"
@@ -646,7 +654,9 @@ class LegacyStepKind(StrEnum):
 
 class MigratedAction(StrEnum):
     """
-    The class names of the native actions the step kinds of earlier plans stood for.
+    The native actions the step kinds of earlier plans stood for, named as plans of
+    :data:`CLASS_NAME_FORMAT_VERSION` named them, by the planner's class names; frozen,
+    since :class:`SavedNames` translates them further.
     """
 
     PARK_ARMS = "ParkArmsAction"
@@ -728,7 +738,7 @@ The step kinds of earlier plans whose target was a :class:`Destination`.
 
 class LegacyStepKey(StrEnum):
     """
-    The keys of a step of a plan written before :data:`PLAN_FORMAT_VERSION`.
+    The keys of a step of a plan written before :data:`CLASS_NAME_FORMAT_VERSION`.
     """
 
     IDENTIFIER = "id"
@@ -785,8 +795,8 @@ class LegacyStepKey(StrEnum):
 @dataclass(kw_only=True)
 class LegacyPlanStep(JsonDocument):
     """
-    A step of a plan written before :data:`PLAN_FORMAT_VERSION`: a step kind with kind-
-    specific parameters, read only to migrate it.
+    A step of a plan written before :data:`CLASS_NAME_FORMAT_VERSION`: a step kind with
+    kind-specific parameters, read only to migrate it.
     """
 
     identifier: str = document_field(LegacyStepKey.IDENTIFIER)
@@ -943,7 +953,7 @@ class PlannedRobot(JsonDocument):
 
     model: str = document_field(PlannedRobotKey.MODEL)
     """
-    The class name of the robot's annotation, as the catalog lists it.
+    The robot model's identifier, as the catalog lists it.
     """
 
     label: str = document_field(PlannedRobotKey.LABEL)
@@ -1079,8 +1089,11 @@ class PlanDocument(JsonDocument):
         PlanKey.FORMAT_VERSION, default=PLAN_FORMAT_VERSION
     )
     """
-    The format version the plan is written in; a plan of an earlier minor version is
-    migrated when it is read and then carries :data:`PLAN_FORMAT_VERSION`.
+    The format version the plan is written in.
+
+    A plan before :data:`CLASS_NAME_FORMAT_VERSION` is migrated to that version when it
+    is read; a plan of that version is translated by :class:`SavedNames` and then
+    carries :data:`PLAN_FORMAT_VERSION`.
     """
 
     task: str = document_field(PlanKey.TASK, default="")
@@ -1118,9 +1131,26 @@ class PlanDocument(JsonDocument):
         :meth:`JsonDocument.read_at`.
         """
         plan = super().read_at(data, location)
-        if plan.format_version < PLAN_FORMAT_VERSION:
-            plan.format_version = PLAN_FORMAT_VERSION
+        if plan.format_version < CLASS_NAME_FORMAT_VERSION or cls.names_step_kinds(
+            data
+        ):
+            plan.format_version = CLASS_NAME_FORMAT_VERSION
         return plan
+
+    @staticmethod
+    def names_step_kinds(data: Any) -> bool:
+        """
+        :param data: A plan's JSON object.
+        :return: Whether a step names a step kind, which a plan without a format version
+            may do and which migrates to the planner's class names.
+        """
+        robots = data.get(PlanKey.ROBOTS, []) if isinstance(data, dict) else []
+        return any(
+            isinstance(step, dict) and LegacyStepKey.KIND in step
+            for robot in robots
+            if isinstance(robot, dict)
+            for step in robot.get(PlannedRobotKey.STEPS, [])
+        )
 
 
 # %% saved plans
@@ -1590,7 +1620,7 @@ class ActionSchemaKey(StrEnum):
 
     NAME = "name"
     """
-    The action's class name.
+    The action's identifier.
     """
 
     MODULE = "module"
@@ -1601,6 +1631,11 @@ class ActionSchemaKey(StrEnum):
     LABEL = "label"
     """
     The action's display name.
+    """
+
+    SAVED_AS = "savedAs"
+    """
+    The names plans saved the action under before the protocol named it.
     """
 
     GROUP = "group"
@@ -1644,7 +1679,8 @@ class ActionSchema(JsonDocument):
 
     name: str = document_field(ActionSchemaKey.NAME)
     """
-    The action's class name, which a step stores.
+    The action's identifier, which plans name it by and which stays when the planner
+    renames its class, such as ``pick_up``.
     """
 
     module: str = document_field(ActionSchemaKey.MODULE)
@@ -1692,6 +1728,12 @@ class ActionSchema(JsonDocument):
     )
     """
     Why a step cannot be this action, or None for an available one.
+    """
+
+    saved_as: List[str] = document_field(ActionSchemaKey.SAVED_AS, default_factory=list)
+    """
+    The names plans of format 1.1 and earlier saved the action under, the planner's
+    class names then, so such plans are translated to :attr:`name` when read.
     """
 
     def field_named(self, name: str) -> Optional[ActionField]:
@@ -1786,12 +1828,22 @@ class RobotModelKey(StrEnum):
 
     NAME = "name"
     """
-    The annotation class.
+    The robot's identifier.
+    """
+
+    LABEL = "label"
+    """
+    The robot's display name.
     """
 
     MODULE = "module"
     """
     The module defining the class.
+    """
+
+    SAVED_AS = "savedAs"
+    """
+    The names plans saved the robot under before the protocol named it.
     """
 
     CHOICES = "choices"
@@ -1808,12 +1860,25 @@ class RobotModel(JsonDocument):
 
     name: str = document_field(RobotModelKey.NAME)
     """
-    The class name of the robot's annotation.
+    The robot's identifier, which plans name it by and which stays when the planner
+    renames its annotation class, such as ``pr2``.
+    """
+
+    label: str = document_field(RobotModelKey.LABEL, default="")
+    """
+    The robot's display name, such as ``PR2``; empty in catalogs written before, which
+    show the identifier.
     """
 
     module: str = document_field(RobotModelKey.MODULE)
     """
     The module defining the annotation class.
+    """
+
+    saved_as: List[str] = document_field(RobotModelKey.SAVED_AS, default_factory=list)
+    """
+    The names plans of format 1.1 and earlier saved the robot under, the class names of
+    its annotation then, so such plans are translated to :attr:`name` when read.
     """
 
     choices: Dict[str, List[str]] = document_field(
@@ -2277,3 +2342,69 @@ class RunStatus(JsonDocument):
     """
     The started demo file.
     """
+
+
+# %% plans naming the planner's classes
+
+
+@dataclass(frozen=True)
+class SavedNames:
+    """
+    The identifiers of the actions and robot models by the names plans of
+    :data:`CLASS_NAME_FORMAT_VERSION` saved them under, as a catalog lists them.
+    """
+
+    actions: Dict[str, str]
+    """
+    The action identifiers by saved name.
+    """
+
+    robots: Dict[str, str]
+    """
+    The robot identifiers by saved name.
+    """
+
+    @classmethod
+    def of_catalog(cls, catalog: PlanBuilderCatalog) -> Self:
+        """
+        :param catalog: A plan builder catalog.
+        :return: The names its actions and robots were saved under.
+        """
+        return cls(
+            actions={
+                saved: schema.name
+                for schema in catalog.actions
+                for saved in schema.saved_as
+            },
+            robots={
+                saved: robot.name
+                for robot in catalog.robots
+                for saved in robot.saved_as
+            },
+        )
+
+    def translated(self, plan: PlanDocument) -> PlanDocument:
+        """
+        :param plan: A plan.
+        :return: The plan with every saved action and robot model name replaced by its
+            identifier and carrying :data:`PLAN_FORMAT_VERSION`; a plan of that version
+            unchanged. A name the catalog does not list stays, for the catalog check to
+            report.
+        """
+        if plan.format_version >= PLAN_FORMAT_VERSION:
+            return plan
+        return replace(
+            plan,
+            format_version=PLAN_FORMAT_VERSION,
+            robots=[
+                replace(
+                    robot,
+                    model=self.robots.get(robot.model, robot.model),
+                    steps=[
+                        replace(step, action=self.actions.get(step.action, step.action))
+                        for step in robot.steps
+                    ],
+                )
+                for robot in plan.robots
+            ],
+        )

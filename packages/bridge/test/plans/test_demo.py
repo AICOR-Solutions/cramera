@@ -262,7 +262,7 @@ def test_a_taken_name_gets_the_next_number(demo, locations):
 def test_an_environment_bundle_names_the_recording(document, locations):
     document.environment_directory = str(PLANS / "lab")
     demo = PlannedTaskDemo.of_document(document, port=0)
-    assert demo.scene_name() == "lab_PR2_pr2_pick_and_place"
+    assert demo.scene_name() == "lab_pr2_pr2_pick_and_place"
     assert demo.environment_name == "Test laboratory"
 
 

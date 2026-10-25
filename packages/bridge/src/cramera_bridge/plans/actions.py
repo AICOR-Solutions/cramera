@@ -38,6 +38,7 @@ import coraplex.robot_plans.actions
 from coraplex.robot_plans.actions.base import ActionDescription
 from cramera_bridge.plans.arms import ArmField, Arms
 from cramera_bridge.exceptions import UnknownAction
+from cramera_bridge.names import ACTION_NAMES
 from cramera_protocol.plan_builder import (
     ActionCatalog,
     ActionField,
@@ -603,7 +604,8 @@ class ActionSchemaBuilder:
                 self.read(DeclaredField(self.action_class, declaration))
         self.mark_surface_fields()
         schema = ActionSchema(
-            name=self.action_class.__name__,
+            name=ACTION_NAMES.identifier_of(self.action_class),
+            saved_as=ACTION_NAMES.saved_as(self.action_class),
             module=self.action_class.__module__,
             label=self.label(),
             group=self.group,
@@ -751,12 +753,12 @@ class DiscoveredActions:
 
     def named(self, name: str) -> DiscoveredAction:
         """
-        :param name: An action's class name.
+        :param name: An action's identifier, or a name a plan saved it under before.
         :return: The action.
         :raises UnknownAction: When the workspace has no action of that name.
         """
         for discovered in self.actions:
-            if discovered.schema.name == name:
+            if ACTION_NAMES.matches(discovered.action_class, name):
                 return discovered
         raise UnknownAction(
             name, [discovered.schema.name for discovered in self.actions]

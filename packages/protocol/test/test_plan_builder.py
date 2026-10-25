@@ -18,11 +18,13 @@ from cramera_protocol.live_messages import (
     MonitorSpecificationKey,
 )
 from cramera_protocol.plan_builder import (
+    CLASS_NAME_FORMAT_VERSION,
     ActionCatalog,
     ActionCatalogKey,
     ActionFieldKind,
     ActionFieldKey,
     ActionGroup,
+    ActionSchema,
     ActionSchemaKey,
     DemoDocument,
     DemoDocumentKey,
@@ -48,6 +50,8 @@ from cramera_protocol.plan_builder import (
     PlanRecord,
     PlanRecordKey,
     PlanStepKey,
+    RobotModel,
+    SavedNames,
     RobotModelKey,
     RuleValue,
     RunMode,
@@ -138,10 +142,61 @@ def test_a_written_plan_names_the_plan_format_version():
 # %% plans of earlier versions
 
 
+CLASS_NAMES = SavedNames(
+    actions={
+        MigratedAction.PARK_ARMS: "park_arms",
+        MigratedAction.MOVE_TORSO: "move_torso",
+        MigratedAction.NAVIGATE: "navigate",
+        MigratedAction.TRANSPORT: "transport",
+        MigratedAction.PICK_UP: "pick_up",
+        MigratedAction.PLACE: "place",
+    },
+    robots={"PR2": "pr2", "Stretch": "stretch"},
+)
+"""
+The identifiers a catalog would list the migrated actions and the test robot under.
+"""
+
+
 def test_a_plan_of_step_kinds_is_read_as_the_actions_they_stood_for(read_json):
     legacy = PlanDocument.from_json(read_json("plan_builder/legacy/plan.json"))
     current = PlanDocument.from_json(read_json("plan_builder/plan.json"))
-    assert legacy == current
+    assert CLASS_NAMES.translated(legacy) == current
+
+
+def test_a_plan_of_identifiers_is_left_as_it_is(read_json):
+    current = PlanDocument.from_json(read_json("plan_builder/plan.json"))
+    assert CLASS_NAMES.translated(current) is current
+
+
+def test_names_a_catalog_does_not_list_stay_for_its_check_to_report(read_json):
+    legacy = PlanDocument.from_json(read_json("plan_builder/legacy/plan.json"))
+    translated = SavedNames(actions={}, robots={}).translated(legacy)
+    assert translated.format_version == PLAN_FORMAT_VERSION
+    assert [step.action for step in translated.robots[0].steps] == [
+        step.action for step in legacy.robots[0].steps
+    ]
+
+
+def test_saved_names_are_read_from_a_catalog():
+    catalog = PlanBuilderCatalog(
+        live_url="",
+        robots=[RobotModel(name="pr2", label="PR2", module="robots", saved_as=["PR2"])],
+        actions=[
+            ActionSchema(
+                name="pick_up",
+                module="actions",
+                label="Pick Up",
+                group=ActionGroup.CORE,
+                saved_as=["PickUpAction"],
+            )
+        ],
+    )
+    names = SavedNames.of_catalog(catalog)
+    assert (names.actions, names.robots) == (
+        {"PickUpAction": "pick_up"},
+        {"PR2": "pr2"},
+    )
 
 
 def test_every_step_kind_names_an_action():
@@ -173,15 +228,15 @@ def test_a_migrated_pose_destination_reads_as_a_destination(read_json):
     )
 
 
-def test_a_migrated_plan_carries_the_plan_format_version(read_json):
+def test_a_migrated_plan_carries_the_class_name_format_version(read_json):
     data = read_json("plan_builder/legacy/plan.json")
     assert data[PlanKey.FORMAT_VERSION] == CURRENT_VERSION.to_json()
     plan = PlanDocument.from_json(data)
-    assert plan.format_version == PLAN_FORMAT_VERSION
+    assert plan.format_version == CLASS_NAME_FORMAT_VERSION
     unversioned = PlanDocument.from_json(
         {PlanKey.FORMAT_VERSION: UNVERSIONED.to_json(), PlanKey.NAME: "old"}
     )
-    assert unversioned.format_version == PLAN_FORMAT_VERSION
+    assert unversioned.format_version == CLASS_NAME_FORMAT_VERSION
 
 
 def test_a_destination_names_its_placement_pose_and_surface():

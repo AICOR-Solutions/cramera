@@ -8,9 +8,12 @@ import pytest
 
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
+    LegacyPlanNodeKind,
     PartRole,
     PartSide,
+    PlanNode,
     PlanNodeKey,
+    PlanNodeKind,
     SceneDescription,
     SceneKey,
 )
@@ -25,6 +28,32 @@ from cramera_protocol.geometry import Bounds, Pose, Vector3
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED, ProtocolVersion
 
 # %% recordings
+
+
+def plan_node(kind: str) -> dict:
+    """
+    :return: A recorded plan node of a kind.
+    """
+    return {
+        PlanNodeKey.KIND: kind,
+        PlanNodeKey.LABEL: "ParkArmsAction",
+        PlanNodeKey.STATUS: "SUCCEEDED",
+    }
+
+
+@pytest.mark.parametrize("legacy", list(LegacyPlanNodeKind))
+def test_an_earlier_recordings_class_name_is_read_as_its_kind(legacy):
+    node = PlanNode.from_json(plan_node(legacy.value))
+    assert node.kind is PlanNodeKind[legacy.name]
+    assert node.to_json()[PlanNodeKey.KIND] == PlanNodeKind[legacy.name].value
+
+
+def test_a_class_name_no_kind_stands_for_is_read_as_other():
+    assert PlanNode.from_json(plan_node("TryAllNode")).kind is PlanNodeKind.OTHER
+
+
+def test_a_kind_is_read_as_itself():
+    assert PlanNode.from_json(plan_node("motion")).kind is PlanNodeKind.MOTION
 
 
 def test_an_early_recording_reads_its_legacy_frame_rate(read_json):

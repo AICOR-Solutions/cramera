@@ -6,7 +6,7 @@ demos, the demo process and the object models' files.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from typing_extensions import Any, List, Optional
 
@@ -31,6 +31,7 @@ from cramera_protocol.plan_builder import (
     PlanList,
     PlanRecord,
     RunRequest,
+    SavedNames,
 )
 
 # %% request bodies
@@ -198,7 +199,10 @@ class PlanBuilderRoutes:
         :param identifier: The plan's identity.
         :return: The plan with its identity.
         """
-        return Response.of_json(self.plans.load(identifier))
+        record = self.plans.load(identifier)
+        return Response.of_json(
+            replace(record, document=self.translated(record.document))
+        )
 
     def answer_save(self, request: Request) -> Response:
         """
@@ -209,6 +213,7 @@ class PlanBuilderRoutes:
         :return: The saved plan with its identity.
         """
         record = PlanRecord.from_json(self.body(request))
+        record = replace(record, document=self.translated(record.document))
         PlanCheck(self.limits).check(record.document)
         return Response.of_json(self.plans.save(record))
 
@@ -237,6 +242,15 @@ class PlanBuilderRoutes:
 
     # %% demos
 
+    def translated(self, plan: PlanDocument) -> PlanDocument:
+        """
+        :param plan: A plan as it was saved or sent.
+        :return: The plan naming actions and robots by the catalog's identifiers; a plan
+            of the planner's class names is translated through the names the catalog
+            lists them as having been saved under.
+        """
+        return SavedNames.of_catalog(self.catalog()).translated(plan)
+
     def runnable(self, plan: PlanDocument) -> DemoDocument:
         """
         :param plan: A plan as a browser sent it.
@@ -244,6 +258,7 @@ class PlanBuilderRoutes:
             what the catalog offers; the catalog lists only environments the viewer
             holds, so the environment's directory is found.
         """
+        plan = self.translated(plan)
         check = PlanCheck(self.limits)
         check.check(plan)
         check.complete(plan)

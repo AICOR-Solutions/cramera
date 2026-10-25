@@ -12,13 +12,14 @@ from cramera_protocol.bundle.scene import PartRole, RobotPart
 from cramera_protocol.questions import GraphEdgeKind, GraphLayout, GraphViewName
 from cramera_bridge.questions.exceptions import DuplicateGraphNode, UnknownGraphView
 from cramera_bridge.questions.graph.builder import GraphBuilder
+from cramera_protocol.bundle.scene import PlanNodeKind
 from cramera_bridge.questions.graph.views import (
+    PLAN_NODE_GROUPS,
     GraphText,
     GraphViews,
     KinematicsGroup,
     KnowledgeGroup,
     PlanNodeGroup,
-    PlanNodeKind,
 )
 from cramera_bridge.questions.recorded.bundle import RecordedBundle
 from cramera_bridge.questions.recorded.knowledge_base import RecordedKnowledge
@@ -61,10 +62,11 @@ def test_the_plan_tree_keeps_native_statuses_and_groups_by_kind(knowledge):
         node.status for node in knowledge.plan_nodes
     ]
     assert [node.group for node in view.nodes] == [
-        PlanNodeKind.group_of(node.kind) for node in knowledge.plan_nodes
+        PLAN_NODE_GROUPS.get(node.kind, PlanNodeGroup.OTHER)
+        for node in knowledge.plan_nodes
     ]
-    assert PlanNodeKind.group_of(PlanNodeKind.ATTACH) is PlanNodeGroup.ATTACHMENT
-    assert PlanNodeKind.group_of("SequentialNode") is PlanNodeGroup.OTHER
+    assert PLAN_NODE_GROUPS[PlanNodeKind.ATTACHMENT] is PlanNodeGroup.ATTACHMENT
+    assert PlanNodeKind.SEQUENCE not in PLAN_NODE_GROUPS
 
 
 def test_the_statechart_view_carries_the_recorded_statecharts(knowledge):

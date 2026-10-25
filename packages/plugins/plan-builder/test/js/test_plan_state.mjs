@@ -41,19 +41,19 @@ test('a new plan starts with one robot of the model offering the most actions', 
   assert.equal(state.field(PlanKey.NAME), NEW_PLAN_NAME);
   assert.equal(state.field(PlanKey.ENVIRONMENT), 'lab');
   assert.equal(state.robots().length, 1);
-  assert.equal(robot[PlannedRobotKey.MODEL], 'Armar7');
+  assert.equal(robot[PlannedRobotKey.MODEL], 'armar7');
   assert.equal(robot[PlannedRobotKey.IDENTIFIER], `${IdentityPrefix.ROBOT}1`);
 });
 
 test('a new plan starts with the model the person used last', () => {
-  const state = PlanState.empty(catalog(), null, 'Tracy');
-  assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'Tracy');
+  const state = PlanState.empty(catalog(), null, 'tracy');
+  assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
   assert.equal(state.field(PlanKey.ENVIRONMENT), '');
 });
 
 test('the document names the edited robot as the one that performs', () => {
   const state = PlanState.empty(catalog(), 'lab');
-  const second = state.addRobot('Tracy');
+  const second = state.addRobot('tracy');
   assert.equal(state.document[PlanKey.SELECTED_ROBOT], second);
   state.selectRobot(`${IdentityPrefix.ROBOT}1`);
   assert.equal(state.document[PlanKey.SELECTED_ROBOT], `${IdentityPrefix.ROBOT}1`);
@@ -62,7 +62,7 @@ test('the document names the edited robot as the one that performs', () => {
 // %% actions
 
 test('a robot is offered every available action whose enumerations it can fill', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const offered = state.offeredActions(state.activeRobot()).map((schema) => schema[ActionSchemaKey.NAME]);
   const available = state.actions().filter((schema) => schema[ActionSchemaKey.AVAILABLE]).map((schema) => schema[ActionSchemaKey.NAME]);
   assert.deepEqual(offered, available);
@@ -71,31 +71,31 @@ test('a robot is offered every available action whose enumerations it can fill',
 });
 
 test('a robot without a torso is not offered moving the torso', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'Tracy');
-  const torso = state.schema('MoveTorsoAction');
+  const state = PlanState.empty(catalog(), 'lab', 'tracy');
+  const torso = state.schema('move_torso');
   assert.match(state.refusal(state.activeRobot(), torso), /TorsoState/);
-  assert.throws(() => state.addStep('MoveTorsoAction'), PlanRefused);
-  assert.throws(() => state.addStep('DanceAction'), PlanRefused);
+  assert.throws(() => state.addStep('move_torso'), PlanRefused);
+  assert.throws(() => state.addStep('dance'), PlanRefused);
 });
 
 test('an enumeration offers the robot its own choices', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'Stretch');
-  const gripper = fieldOf(state, 'SetGripperAction', 'gripper');
-  const motion = fieldOf(state, 'SetGripperAction', 'motion');
-  assert.deepEqual(state.choices(state.activeRobot(), gripper), model(state, 'Stretch')[RobotModelKey.CHOICES].Arms);
+  const state = PlanState.empty(catalog(), 'lab', 'stretch');
+  const gripper = fieldOf(state, 'set_gripper', 'gripper');
+  const motion = fieldOf(state, 'set_gripper', 'motion');
+  assert.deepEqual(state.choices(state.activeRobot(), gripper), model(state, 'stretch')[RobotModelKey.CHOICES].Arms);
   assert.deepEqual(state.choices(state.activeRobot(), motion), motion[ActionFieldKey.MEMBERS]);
 });
 
 // %% steps
 
 test('a new step can run right away', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
-  const arms = model(state, 'PR2')[RobotModelKey.CHOICES].Arms;
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const arms = model(state, 'pr2')[RobotModelKey.CHOICES].Arms;
   state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
-  const steps = ['ParkArmsAction', 'MoveTorsoAction', 'PickUpAction', 'PlaceAction', 'SetGripperAction'].map((action) => state.addStep(action));
+  const steps = ['park_arms', 'move_torso', 'pick_up', 'place', 'set_gripper'].map((action) => state.addStep(action));
   const [park, torso, pick, place, gripper] = steps.map((identifier) => values(state, identifier));
   assert.equal(park.arm, arms[0]);
-  assert.equal(torso.torso_state, model(state, 'PR2')[RobotModelKey.CHOICES].TorsoState[0]);
+  assert.equal(torso.torso_state, model(state, 'pr2')[RobotModelKey.CHOICES].TorsoState[0]);
   assert.equal(pick.object_designator, state.objects()[0][PlannedObjectKey.IDENTIFIER]);
   assert.equal(pick.grasp_description, undefined);
   assert.equal(place.target_location[DestinationKey.PLACEMENT], PlacementMode.POSE);
@@ -105,10 +105,10 @@ test('a new step can run right away', () => {
 });
 
 test('a pose target goes ahead of the robot, the next one beyond the last', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   state.setRobotPose(state.activeRobot()[PlannedRobotKey.IDENTIFIER], PlanPose.of(1, 2, 0, Math.PI / 2));
-  const first = values(state, state.addStep('NavigateAction')).target_location;
-  const second = values(state, state.addStep('NavigateAction')).target_location;
+  const first = values(state, state.addStep('navigate')).target_location;
+  const second = values(state, state.addStep('navigate')).target_location;
   const [x, y] = PlanPose.position(first);
   assert.ok(Math.abs(x - 1) < 1e-9 && y > 2);
   assert.ok(Math.abs(PlanPose.yaw(first) - Math.PI / 2) < 1e-9);
@@ -116,29 +116,29 @@ test('a pose target goes ahead of the robot, the next one beyond the last', () =
 });
 
 test('a plan full of steps refuses another', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const limit = state.limits[PlanBuilderLimitsKey.MAXIMUM_STEPS];
-  for (let index = 0; index < limit; index += 1) state.addStep('ParkArmsAction');
-  assert.throws(() => state.addStep('ParkArmsAction'), PlanRefused);
+  for (let index = 0; index < limit; index += 1) state.addStep('park_arms');
+  assert.throws(() => state.addStep('park_arms'), PlanRefused);
 });
 
 test('steps are inserted, moved and removed', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
-  const park = state.addStep('ParkArmsAction');
-  const torso = state.addStep('MoveTorsoAction', 0);
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const park = state.addStep('park_arms');
+  const torso = state.addStep('move_torso', 0);
   const names = () => state.steps().map((step) => step[PlanStepKey.ACTION]);
-  assert.deepEqual(names(), ['MoveTorsoAction', 'ParkArmsAction']);
+  assert.deepEqual(names(), ['move_torso', 'park_arms']);
   state.moveStep(torso, 1);
-  assert.deepEqual(names(), ['ParkArmsAction', 'MoveTorsoAction']);
+  assert.deepEqual(names(), ['park_arms', 'move_torso']);
   state.moveStep(torso, 1);
-  assert.deepEqual(names(), ['ParkArmsAction', 'MoveTorsoAction']);
+  assert.deepEqual(names(), ['park_arms', 'move_torso']);
   state.removeStep(park);
-  assert.deepEqual(names(), ['MoveTorsoAction']);
+  assert.deepEqual(names(), ['move_torso']);
 });
 
 test('a value is set and left to the default', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
-  const park = state.addStep('ParkArmsAction');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const park = state.addStep('park_arms');
   state.setValue(park, 'max_joint_velocity', 0.5);
   assert.equal(values(state, park).max_joint_velocity, 0.5);
   state.setValue(park, 'max_joint_velocity', null);
@@ -146,9 +146,9 @@ test('a value is set and left to the default', () => {
 });
 
 test('putting an object on a surface names a surface type, back at a pose a pose', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
-  const transport = state.addStep('TransportAction');
+  const transport = state.addStep('transport');
   state.setPlacement(transport, 'target_location', PlacementMode.SURFACE);
   const destination = values(state, transport).target_location;
   assert.equal(destination[DestinationKey.SURFACE_TYPE], state.catalog[PlanBuilderCatalogKey.SURFACE_TYPES][0]);
@@ -158,10 +158,10 @@ test('putting an object on a surface names a surface type, back at a pose a pose
 });
 
 test('a step names its pose targets, a put-down one with its object', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
-  const look = state.step(state.addStep('LookAtAction'));
-  const place = state.addStep('PlaceAction');
+  const look = state.step(state.addStep('look_at'));
+  const place = state.addStep('place');
   assert.deepEqual(state.targets(look).map((target) => [target.field, target.object]), [['target', undefined]]);
   assert.deepEqual(state.targets(state.step(place)).map((target) => [target.field, target.object]), [['target_location', milk]]);
   const pose = PlanPose.of(1, 1, 1, 0);
@@ -174,8 +174,8 @@ test('a step names its pose targets, a put-down one with its object', () => {
 });
 
 test('a step that no longer fits its action names each problem', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
-  const gripper = state.addStep('SetGripperAction');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const gripper = state.addStep('set_gripper');
   state.setValue(gripper, 'motion', 'SQUEEZE');
   state.setValue(gripper, 'speed', 2);
   state.setValue(gripper, 'gripper', null);
@@ -184,34 +184,34 @@ test('a step that no longer fits its action names each problem', () => {
   assert.match(problems.join(' '), /speed/);
   assert.match(problems.join(' '), /SQUEEZE/);
   assert.match(problems.join(' '), /gripper/);
-  const gone = new PlanState(catalog(), { [PlanKey.NAME]: 'x', [PlanKey.ROBOTS]: [{ ...state.activeRobot(), [PlannedRobotKey.STEPS]: [{ [PlanStepKey.IDENTIFIER]: 'step_1', [PlanStepKey.ACTION]: 'SearchAction' }] }] });
-  assert.match(gone.problems(gone.steps()[0])[0], /SearchAction/);
-  const unavailable = state.addStep('ParkArmsAction');
-  state.step(unavailable)[PlanStepKey.ACTION] = 'FollowToolCenterPointPathAction';
+  const gone = new PlanState(catalog(), { [PlanKey.NAME]: 'x', [PlanKey.ROBOTS]: [{ ...state.activeRobot(), [PlannedRobotKey.STEPS]: [{ [PlanStepKey.IDENTIFIER]: 'step_1', [PlanStepKey.ACTION]: 'search' }] }] });
+  assert.match(gone.problems(gone.steps()[0])[0], /search/);
+  const unavailable = state.addStep('park_arms');
+  state.step(unavailable)[PlanStepKey.ACTION] = 'follow_tool_center_point_path';
   assert.match(state.problems(state.step(unavailable))[0], /PoseTrajectory/);
 });
 
 test('values of the wrong type are problems', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
-  const pick = state.addStep('PickUpAction');
+  const pick = state.addStep('pick_up');
   for (const [name, value] of [['object_designator', 'bowl'], ['tolerate_grasp_stall', 'yes'], ['grasp_description', 'top'], ['object_friction', 'much']]) {
     const original = values(state, pick)[name] ?? null;
     state.setValue(pick, name, value);
     assert.equal(state.problems(state.step(pick)).length, 1, name);
     state.setValue(pick, name, original);
   }
-  const look = state.addStep('LookAtAction');
+  const look = state.addStep('look_at');
   state.setValue(look, 'target', [1, 2]);
   assert.equal(state.problems(state.step(look)).length, 1);
-  const transport = state.addStep('TransportAction');
+  const transport = state.addStep('transport');
   state.setValue(transport, 'target_location', { [DestinationKey.PLACEMENT]: PlacementMode.SURFACE });
   assert.equal(state.problems(state.step(transport)).length, 1);
 });
 
 test('a step holds each constraint once and within the limit', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
-  const park = state.addStep('ParkArmsAction');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const park = state.addStep('park_arms');
   const constraint = (text) => ({ [StepConstraintKey.TEXT]: text });
   assert.equal(state.attachConstraint(park, constraint('one')), true);
   assert.equal(state.attachConstraint(park, constraint('one')), false);
@@ -224,21 +224,21 @@ test('a step holds each constraint once and within the limit', () => {
 // %% robots
 
 test('changing the model keeps the actions it offers with its choices and takes its name', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const identifier = state.activeRobot()[PlannedRobotKey.IDENTIFIER];
-  state.addStep('MoveTorsoAction');
-  const park = state.addStep('ParkArmsAction');
+  state.addStep('move_torso');
+  const park = state.addStep('park_arms');
   state.setValue(park, 'arm', 'RIGHT');
-  assert.equal(state.setRobotModel(identifier, 'Stretch'), 0);
-  assert.equal(values(state, park).arm, model(state, 'Stretch')[RobotModelKey.CHOICES].Arms[0]);
-  assert.equal(state.setRobotModel(identifier, 'Tracy'), 1);
+  assert.equal(state.setRobotModel(identifier, 'stretch'), 0);
+  assert.equal(values(state, park).arm, model(state, 'stretch')[RobotModelKey.CHOICES].Arms[0]);
+  assert.equal(state.setRobotModel(identifier, 'tracy'), 1);
   assert.equal(state.activeRobot()[PlannedRobotKey.LABEL], 'Tracy 1');
 });
 
 test('the last robot is kept', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const first = state.activeRobot()[PlannedRobotKey.IDENTIFIER];
-  const second = state.addRobot('PR2');
+  const second = state.addRobot('pr2');
   assert.equal(state.activeRobot()[PlannedRobotKey.LABEL], 'PR2 2');
   assert.equal(state.removeRobot(second), true);
   assert.equal(state.activeRobot()[PlannedRobotKey.IDENTIFIER], first);
@@ -246,16 +246,16 @@ test('the last robot is kept', () => {
 });
 
 test('a plan full of robots refuses another', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
-  while (state.robots().length < state.limits[PlanBuilderLimitsKey.MAXIMUM_ROBOTS]) state.addRobot('PR2');
-  assert.throws(() => state.addRobot('PR2'), PlanRefused);
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  while (state.robots().length < state.limits[PlanBuilderLimitsKey.MAXIMUM_ROBOTS]) state.addRobot('pr2');
+  assert.throws(() => state.addRobot('pr2'), PlanRefused);
   assert.throws(() => state.addRobot('R2D2'), PlanRefused);
 });
 
 // %% objects
 
 test('an object is named after its model as an identity and once', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const [knife, milk, cup] = state.catalog[PlanBuilderCatalogKey.OBJECTS].map((entry) => entry[ObjectModelKey.IDENTIFIER]);
   assert.equal(state.addObject(knife), 'big_knife');
   assert.equal(state.addObject(milk), 'milk');
@@ -265,10 +265,10 @@ test('an object is named after its model as an identity and once', () => {
 });
 
 test('removing an object moves its steps to the next object, or leaves them without', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const knife = state.addObject(objectModel(state, 0)[ObjectModelKey.IDENTIFIER]);
-  const pick = state.addStep('PickUpAction');
+  const pick = state.addStep('pick_up');
   state.removeObject(milk);
   assert.equal(values(state, pick).object_designator, knife);
   assert.equal(state.stepObject(state.step(pick)), knife);
@@ -277,7 +277,7 @@ test('removing an object moves its steps to the next object, or leaves them with
 });
 
 test('an object takes a pose and a colour', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   state.setObjectPose(milk, PlanPose.of(1, 2, 3, 0));
   state.setObjectColor(milk, '#ff0000');
@@ -288,7 +288,7 @@ test('an object takes a pose and a colour', () => {
 });
 
 test('fields are set and left out', () => {
-  const state = PlanState.empty(catalog(), 'lab', 'PR2');
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
   state.setField(PlanKey.TASK, 'Carry the milk');
   assert.equal(state.document[PlanKey.TASK], 'Carry the milk');
   state.setField(PlanKey.ENVIRONMENT, null);
@@ -296,8 +296,8 @@ test('fields are set and left out', () => {
 });
 
 test('a saved plan is edited as it was saved', () => {
-  const saved = PlanState.empty(catalog(), 'lab', 'Tracy');
-  saved.addStep('ParkArmsAction');
+  const saved = PlanState.empty(catalog(), 'lab', 'tracy');
+  saved.addStep('park_arms');
   const reopened = new PlanState(catalog(), saved.document);
   assert.deepEqual(reopened.document, saved.document);
   assert.throws(() => reopened.robot('robot_9'), PlanRefused);
