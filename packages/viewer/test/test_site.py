@@ -12,7 +12,11 @@ import pytest
 from cramera import bundle_upgrade, static_site
 from cramera.branding import DEFAULT_LOGO
 from cramera.bundle_upgrade import BundleLabels, BundleUpgrade, UpgradeOption
-from cramera.exceptions import PluginNotInstalled
+from cramera.exceptions import (
+    DefaultSceneNotExported,
+    NoScenesToExport,
+    PluginNotInstalled,
+)
 from cramera.plugins import PluginLoader
 from cramera.static_site import (
     ExportOption,
@@ -157,6 +161,39 @@ def test_a_site_is_not_written_over_existing_files(demo_scenes, tmp_path):
     (output / "kept.txt").write_text("kept")
     with pytest.raises(SiteDirectoryNotEmpty):
         StaticSite(output, demo_scenes).write()
+
+
+@pytest.fixture
+def unreadable_scenes(tmp_path):
+    scenes = tmp_path / "unreadable"
+    shutil.copytree(DATASET / "shared_scenes" / "broken", scenes / "broken")
+    return scenes
+
+
+def test_a_site_without_a_readable_bundle_is_not_written(unreadable_scenes, tmp_path):
+    output = tmp_path / "site"
+    with pytest.raises(NoScenesToExport) as raised:
+        StaticSite(output, unreadable_scenes).write()
+    assert raised.value.directory == unreadable_scenes
+    assert not output.exists()
+
+
+def test_a_site_whose_default_scene_is_not_exported_is_not_written(
+    demo_scenes, tmp_path
+):
+    output = tmp_path / "site"
+    with pytest.raises(DefaultSceneNotExported) as raised:
+        StaticSite(output, demo_scenes, default_scene="broken").write()
+    assert raised.value.name == "broken"
+    assert raised.value.exported == ["cell", "warehouse"]
+    assert not output.exists()
+
+
+def test_the_export_command_refuses_a_scenes_directory_that_does_not_exist(tmp_path):
+    with pytest.raises(NoScenesToExport):
+        static_site.main(
+            [str(tmp_path / "site"), ExportOption.SCENES, str(tmp_path / "missing")]
+        )
 
 
 def test_the_export_command_stamps_the_build(demo_scenes, tmp_path):

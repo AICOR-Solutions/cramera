@@ -208,3 +208,47 @@ class UnsupportedLogo(ViewerError):
             f"The logo {str(self.path)!r} is no image the top bar can show; use one of "
             f"{', '.join(self.supported)}."
         )
+
+
+# %% static site
+
+
+@dataclass
+class NoScenesToExport(ViewerError):
+    """
+    A scenes directory to export as a static site that holds no readable bundle.
+    """
+
+    directory: Path
+    """
+    The scenes directory.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{str(self.directory)!r} holds no bundle the viewer can read, so the site "
+            f"would show no scene."
+        )
+
+
+@dataclass
+class DefaultSceneNotExported(ViewerError):
+    """
+    A default scene for a static site that is not among the bundles the site exports.
+    """
+
+    name: str
+    """
+    The bundle name given as the default scene.
+    """
+
+    exported: List[str]
+    """
+    The names of the bundles the site exports.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The default scene {self.name!r} is not among the exported bundles: "
+            f"{', '.join(self.exported)}."
+        )

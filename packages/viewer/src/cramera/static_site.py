@@ -24,7 +24,13 @@ from typing_extensions import List, Optional, Sequence
 
 from cramera.application import WEB_DIRECTORY
 from cramera.branding import Branding
-from cramera.exceptions import LogoNotFound, PluginNotInstalled, UnsupportedLogo
+from cramera.exceptions import (
+    DefaultSceneNotExported,
+    LogoNotFound,
+    NoScenesToExport,
+    PluginNotInstalled,
+    UnsupportedLogo,
+)
 from cramera.plugins import PluginLoader, ViewerPlugin
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_protocol.browser import BrowserModule
@@ -146,9 +152,13 @@ class StaticSite:
         """
         :return: The index of the published bundles.
         :raises SiteDirectoryNotEmpty: When the output directory holds files.
+        :raises NoScenesToExport: When the scenes directory holds no readable bundle.
+        :raises DefaultSceneNotExported: When the default scene is not among the
+            published bundles.
         """
         if self.output.exists() and any(self.output.iterdir()):
             raise SiteDirectoryNotEmpty(str(self.output))
+        index = self.scene_index()
         shutil.copytree(
             self.web_directory,
             self.output,
@@ -159,8 +169,6 @@ class StaticSite:
             BrowserModule().source(), encoding="utf-8"
         )
         (self.output / SiteFile.NO_JEKYLL).write_text("", encoding="utf-8")
-        index = SceneCatalog([SceneDirectory(self.scenes, SceneSource.DEMO)]).index()
-        index.default = self.default_scene or index.default
         for entry in index.scenes:
             shutil.copytree(
                 self.scenes / entry.name,
@@ -188,6 +196,25 @@ class StaticSite:
                 logo_text=self.branding.text(),
             ),
         )
+        return index
+
+    def scene_index(self) -> SceneIndex:
+        """
+        :return: The index of the readable bundles of the scenes directory, opening the
+            default scene first when one is given.
+        :raises NoScenesToExport: When the scenes directory holds no readable bundle.
+        :raises DefaultSceneNotExported: When the default scene is not among them.
+        """
+        index = SceneCatalog([SceneDirectory(self.scenes, SceneSource.DEMO)]).index()
+        if not index.scenes:
+            raise NoScenesToExport(self.scenes)
+        if self.default_scene is None:
+            return index
+        if index.entry(self.default_scene) is None:
+            raise DefaultSceneNotExported(
+                self.default_scene, [entry.name for entry in index.scenes]
+            )
+        index.default = self.default_scene
         return index
 
     def route_file(self, route: str) -> Path:

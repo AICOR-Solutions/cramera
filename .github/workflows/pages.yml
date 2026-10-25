@@ -2,7 +2,8 @@
 # the small medical laboratory cramera-laboratory ships, and a status page that shows the
 # version, the commit, the build time and a screenshot of the viewer taken in this build.
 # A build whose viewer does not show its scene fails, so the site keeps the last working
-# build.
+# build. Pull requests run the same build without publishing it, so a change that breaks
+# the site fails before it is merged.
 # The questions plugin's browser module is included without krrood and cramera-bridge: on
 # the static site it shows the answers recorded in each bundle's recorded_answers.json,
 # which cramera-bridge's cramera-record-answers writes in a CRAM workspace.
@@ -11,15 +12,15 @@ name: Publish the demo site
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# One group per ref, so a pull request's build never cancels the publishing of main.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -61,8 +62,13 @@ jobs:
           path: site
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
