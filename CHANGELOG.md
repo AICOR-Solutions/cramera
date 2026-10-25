@@ -155,6 +155,13 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Changed
+- **A new plan starts without a robot.** The plan builder no longer adds one to a new
+  plan; the Robots section asks for one and its **Add** picks the model used last, else
+  the one offering the most actions. The last robot can be removed again.
+  `PlanState.empty` adds a robot only of a model it is given, and
+  `PlanState.defaultModel` names the model **Add** picks.
+
+  ![A new plan without a robot](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/no-default-robot/no_robot.png)
 - **The protocol names actions, robots, plan node kinds, fields, enumeration members
   and surface types itself.** Plans name actions and robot models by snake_case
   identifiers (`pick_up`, `pr2`), enumeration members and surface types too (`high`,

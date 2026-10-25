@@ -49,7 +49,7 @@ import { StepsView } from './steps-view.js';
 export const POLL_INTERVAL = 1000;
 
 /**
- * The storage key of the robot model the person used last, which a new plan starts with.
+ * The storage key of the robot model the person used last, which a robot is added as.
  */
 export const ROBOT_MODEL_KEY = 'cramera.plan-builder.robot-model';
 
@@ -267,7 +267,7 @@ export class BuilderPage {
     const environments = catalog[PlanBuilderCatalogKey.ENVIRONMENTS].map((entry) => entry[IndexEntryKey.NAME]);
     const asked = query.get(PlanBuilderPageParameter.ENVIRONMENT);
     const environment = environments.includes(asked) ? asked : (environments[0] ?? null);
-    this.state = PlanState.empty(catalog, environment, this.#environment.storage.getItem(ROBOT_MODEL_KEY));
+    this.state = PlanState.empty(catalog, environment);
     this.#layout(statusLine);
     const saved = query.get(PlanBuilderPageParameter.PLAN);
     if (saved) await this.#open(saved);
@@ -331,6 +331,14 @@ export class BuilderPage {
     this.state.catalog[PlanBuilderCatalogKey.ENVIRONMENTS].push(entry);
     this.edit(() => this.state.setField(PlanKey.ENVIRONMENT, entry[IndexEntryKey.NAME]));
     this.report(loadedMessage(entry[IndexEntryKey.ENVIRONMENT] ?? entry[IndexEntryKey.NAME], loaded[LoadedEnvironmentKey.MISSING_MESHES]));
+  }
+
+  /**
+   * @returns {string|null} The robot model the person used last, which a robot is
+   *   added as unless they pick another.
+   */
+  preferredModel() {
+    return this.#environment.storage.getItem(ROBOT_MODEL_KEY);
   }
 
   /**
@@ -441,7 +449,7 @@ export class BuilderPage {
    */
   #newPlan() {
     this.#planIdentifier = null;
-    this.state = PlanState.empty(this.state.catalog, this.state.field(PlanKey.ENVIRONMENT) || null, this.#environment.storage.getItem(ROBOT_MODEL_KEY));
+    this.state = PlanState.empty(this.state.catalog, this.state.field(PlanKey.ENVIRONMENT) || null);
     this.report('New plan.');
     this.render();
   }
