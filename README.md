@@ -104,8 +104,9 @@ takes the port over; pass `--keep-running` to fail instead.
 A scenes directory may hold other scenes directories: every child that is not a
 bundle but holds an `index.json` or bundles counts as a further directory of the same
 source, and so on below it. So `demo` holds `demo/standard_scenes`, this repository's
-recording of the PR2 working in the small medical lab, which replays without CRAM, and
-any scenes repository cloned next to it, such as
+recording of the PR2 working in the small medical lab
+(`aicor_medical_lab_pr2_workflow`), which replays without CRAM, and any scenes
+repository cloned next to it, such as
 `AICOR-Solutions/solutions-cramera-scenes`, is shown without being named. Clones under
 `demo` other than `standard_scenes` are ignored by git.
 
