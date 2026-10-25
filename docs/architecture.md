@@ -110,6 +110,11 @@ ontology page, which embeds cram_owlviz
 questions plugin shows the answers and graph views each demo bundle carries in
 `recorded_answers.json`, written by `cramera-record-answers` in a CRAM workspace.
 
+Every pull request runs the same build, screenshot included, without publishing it, so a
+change that breaks the site fails before it reaches `main`. `cramera-export-site` refuses a
+scenes directory without a readable bundle (`NoScenesToExport`) and a `--default-scene` it
+does not export (`DefaultSceneNotExported`) before it writes anything.
+
 ## Rules
 
 The code follows CRAM's `AGENTS.md` and the Code of Conduct in CRAM's `README.md`:
