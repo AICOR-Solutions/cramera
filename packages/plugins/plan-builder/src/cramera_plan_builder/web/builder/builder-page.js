@@ -36,7 +36,7 @@ import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
 import { MarkerKind, PlanSceneListeners, Selection, TransformMode } from './plan-scene.js';
 import { PlanRefused, PlanState } from './plan-state.js';
-import { PlanPose } from './poses.js';
+import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
 import { StepsView } from './steps-view.js';
 
@@ -556,7 +556,8 @@ export class BuilderPage {
    */
   #placed(selection, pose) {
     if (selection.kind === MarkerKind.ROBOT) {
-      this.edit(() => this.state.setRobotPose(selection.identifier, PlanPose.of(...PlanPose.position(pose).slice(0, 2), 0, PlanPose.yaw(pose))));
+      const height = PlanPose.position(this.state.robot(selection.identifier)[PlannedRobotKey.POSE])[PoseIndex.Z];
+      this.edit(() => this.state.setRobotPose(selection.identifier, PlanPose.of(...PlanPose.position(pose).slice(0, 2), height, PlanPose.yaw(pose))));
       return;
     }
     if (selection.kind === MarkerKind.TARGET) {

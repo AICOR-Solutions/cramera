@@ -1881,6 +1881,11 @@ class RobotModelKey(StrEnum):
     The members of the enumerations whose choices depend on the robot.
     """
 
+    STANDING_HEIGHT = "standingHeight"
+    """
+    How high the robot's root stands above the floor when it stands on it.
+    """
+
 
 @dataclass(kw_only=True)
 class RobotModel(JsonDocument):
@@ -1918,6 +1923,13 @@ class RobotModel(JsonDocument):
     The identifiers of the members the robot's parts allow, by the identifier of their
     enumeration: the arm choices of its arms, the torso states when it has a torso and
     none otherwise. An enumeration not listed offers all its members.
+    """
+
+    standing_height: float = document_field(RobotModelKey.STANDING_HEIGHT, default=0.0)
+    """
+    How high the robot's root stands above the floor, in metres, when its joints are at
+    zero and its feet or base rest on the floor, so a new robot is placed that high;
+    0 for robots whose root is on the floor, more for one whose root is its pelvis.
     """
 
 

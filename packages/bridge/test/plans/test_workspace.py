@@ -10,6 +10,7 @@ import pytest
 
 from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.workspace import (
+    STANDING_HEIGHTS,
     PlanWorkspace,
     RobotAnnotation,
     RobotAnnotations,
@@ -21,12 +22,15 @@ from cramera_bridge.exceptions import (
     UnknownWorkspaceClass,
 )
 from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
+from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_protocol.bundle.files import MeshFormat
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.robots.stretch import Stretch
 from semantic_digital_twin.robots.tracy import Tracy
+from semantic_digital_twin.robots.unitree_g1 import UnitreeG1
+from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.semantic_annotations.mixins import HasCaseAsRootBody
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
 
@@ -95,6 +99,33 @@ def test_the_catalog_robots_name_their_choices(workspace):
         if robot.name == ROBOT_NAMES.identifier_of(PR2)
     )
     assert pr2.choices == RobotAnnotation(PR2).choices()
+
+
+def test_a_robot_whose_root_is_its_pelvis_stands_that_high(workspace):
+    heights = {robot.name: robot.standing_height for robot in workspace.robots()}
+    assert heights[ROBOT_NAMES.identifier_of(UnitreeG1)] == 0.7923
+    assert heights[ROBOT_NAMES.identifier_of(PR2)] == 0
+
+
+def test_the_unitree_g1_at_its_standing_height_rests_on_the_floor():
+    placement = RobotPlacement(
+        namespace="g1",
+        label="G1",
+        robot_type=UnitreeG1,
+        pose=HomogeneousTransformationMatrix.from_xyz_rpy(
+            z=STANDING_HEIGHTS[ROBOT_NAMES.identifier_of(UnitreeG1)]
+        ),
+    )
+    world = RobotScene([placement], "g1").build_world()
+    robot = placement.resolve(world)
+    lowest = min(
+        body.collision.as_bounding_box_collection_in_frame(world.root)
+        .bounding_box()
+        .min_z
+        for body in world.get_kinematic_structure_entities_of_branch(robot.root)
+        if body.collision
+    )
+    assert lowest == pytest.approx(0, abs=1e-3)
 
 
 def test_the_catalog_lists_the_discovered_actions(workspace):
