@@ -115,6 +115,12 @@ export CRAMERA_SCENES=/path/to/cramera/demo
 cramera
 ```
 
+### Run the wood workshop locally
+
+See [Local workshop setup](docs/local-workshop.md) to copy the deployed scenes from
+SSH into the latest viewer, or run the historical interactive MuJoCo workshop in a
+separate environment.
+
 ### Install the pages and panels
 
 Everything beyond the scene page is a plugin: Plan Builder, Scene Builder,
