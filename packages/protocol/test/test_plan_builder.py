@@ -285,6 +285,16 @@ def test_a_record_without_identity_asks_for_a_new_plan():
 # %% catalog
 
 
+def test_a_robot_model_stands_on_the_floor_unless_it_names_a_height():
+    standing = RobotModel(name="unitree_g1", module="robots", standing_height=0.7923)
+    written = standing.to_json()
+    assert written[RobotModelKey.STANDING_HEIGHT] == 0.7923
+    assert RobotModel.from_json(written) == standing
+    assert (
+        RobotModel.from_json({"name": "pr2", "module": "robots"}).standing_height == 0
+    )
+
+
 def test_the_catalog_reads_robots_environments_objects_and_rules(read_json):
     data = read_json("plan_builder/catalog.json")
     catalog = PlanBuilderCatalog.from_json(data)

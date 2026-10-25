@@ -4,7 +4,8 @@
     {"name": "armar7", "label": "Armar7", "savedAs": ["Armar7"], "module": "semantic_digital_twin.robots.armar7", "choices": {"arms": ["left", "right", "both"], "torso_state": ["high", "mid", "low"]}},
     {"name": "pr2", "label": "PR2", "savedAs": ["PR2"], "module": "semantic_digital_twin.robots.pr2", "choices": {"arms": ["left", "right", "both"], "torso_state": ["high", "mid", "low"]}},
     {"name": "stretch", "label": "Stretch", "savedAs": ["Stretch"], "module": "semantic_digital_twin.robots.stretch", "choices": {"arms": ["both"], "torso_state": ["high", "mid", "low"]}},
-    {"name": "tracy", "label": "Tracy", "savedAs": ["Tracy"], "module": "semantic_digital_twin.robots.tracy", "choices": {"arms": ["left", "right", "both"], "torso_state": []}}
+    {"name": "tracy", "label": "Tracy", "savedAs": ["Tracy"], "module": "semantic_digital_twin.robots.tracy", "choices": {"arms": ["left", "right", "both"], "torso_state": []}},
+    {"name": "unitree_g1", "label": "UnitreeG1", "savedAs": ["UnitreeG1"], "module": "semantic_digital_twin.robots.unitree_g1", "choices": {"arms": ["left", "right", "both"], "torso_state": []}, "standingHeight": 0.7923}
   ],
   "environments": [{"name": "lab", "environment": "Test laboratory"}],
   "objects": [{"id": "big-knife.stl", "name": "big-knife"}, {"id": "milk.stl", "name": "milk"}, {"id": "3d_cup.obj", "name": "3d_cup"}],

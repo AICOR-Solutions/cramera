@@ -131,6 +131,11 @@ which this repository was mirrored until 22 Oct 2026.
   with the ROS workspace sourced.
 
   ![PR2 in the plan builder](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/plan-builder-robots/builder.png)
+- **The Unitree G1 stands on the floor in the plan builder.** Its root is its pelvis,
+  so a G1 added to a plan starts 0.7923 m up (coraplex's `PELVIS_HEIGHT_ABOVE_FLOOR`)
+  instead of sinking through the floor; other robots stay at 0. The catalog's robot
+  models carry the height (`RobotModelKey.STANDING_HEIGHT`), and moving or turning a
+  robot in the builder keeps its height.
 
 ### Changed
 - **The protocol names actions, robots, plan node kinds, fields, enumeration members

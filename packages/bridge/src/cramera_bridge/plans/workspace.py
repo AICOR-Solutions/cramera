@@ -59,6 +59,15 @@ The object meshes coraplex's own demos and tests place, beside its sources.
 
 # %% robots
 
+STANDING_HEIGHTS: Dict[str, float] = {"unitree_g1": 0.7923}
+"""
+How high a robot's root stands above the floor with its joints at zero, in metres, by
+the robot's identifier, for robots whose root is not on the floor; others stand at 0.
+
+The Unitree G1's root is its pelvis; the height is coraplex's
+``PELVIS_HEIGHT_ABOVE_FLOOR`` of its G1 warehouse demo.
+"""
+
 
 @dataclass(frozen=True)
 class RobotAnnotation:
@@ -130,6 +139,12 @@ class RobotAnnotation:
             ENUM_NAMES.identifier_of(TorsoState): self.torso_states(),
         }
 
+    def standing_height(self) -> float:
+        """
+        :return: How high the robot's root stands above the floor, in metres.
+        """
+        return STANDING_HEIGHTS.get(ROBOT_NAMES.identifier_of(self.annotation), 0.0)
+
     def has_model_description(self) -> bool:
         """
         :return: Whether the annotation names a file describing the robot's model.
@@ -151,6 +166,7 @@ class RobotAnnotation:
             module=self.annotation.__module__,
             saved_as=ROBOT_NAMES.saved_as(self.annotation),
             choices=self.choices(),
+            standing_height=self.standing_height(),
         )
 
 

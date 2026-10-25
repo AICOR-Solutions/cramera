@@ -172,13 +172,13 @@ export class RobotsView {
     label.value = robot[PlannedRobotKey.LABEL];
     const model = elements.select(PlanAction.ROBOT_MODEL, models, robot[PlannedRobotKey.MODEL], (value) => this.#editor.edit(() => state.setRobotModel(identifier, value)));
     const pose = robot[PlannedRobotKey.POSE];
-    const [x, y] = PlanPose.position(pose);
+    const [x, y, z] = PlanPose.position(pose);
     const place = (position, yaw) => this.#editor.edit(() => state.setRobotPose(identifier, PlanPose.of(...position, yaw)));
     const row = elements.create('div', 'pose-row');
     row.append(
-      elements.number('x', x, PlanAction.POSE, (value) => place([value, y, 0], PlanPose.yaw(pose))),
-      elements.number('y', y, PlanAction.POSE, (value) => place([x, value, 0], PlanPose.yaw(pose))),
-      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, 0], PlanPose.radians(value))),
+      elements.number('x', x, PlanAction.POSE, (value) => place([value, y, z], PlanPose.yaw(pose))),
+      elements.number('y', y, PlanAction.POSE, (value) => place([x, value, z], PlanPose.yaw(pose))),
+      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, z], PlanPose.radians(value))),
     );
     const remove = elements.button(`Remove ${robot[PlannedRobotKey.LABEL]}`, PlanAction.REMOVE_ROBOT, () => this.#editor.edit(() => state.removeRobot(identifier)));
     remove.disabled = state.robots().length <= 1;

@@ -20,7 +20,7 @@ import {
   RobotModelKey,
   StepConstraintKey,
 } from '../../../protocol.js';
-import { PlanPose } from './poses.js';
+import { PlanPose, PoseIndex } from './poses.js';
 
 /**
  * The name of a new plan.
@@ -299,6 +299,15 @@ export class PlanState {
   }
 
   /**
+   * @param {string} name A robot model's identifier.
+   * @returns {number} How high the model's root stands above the floor, in metres: 0
+   *   for robots whose root is on the floor and in catalogs written before.
+   */
+  standingHeight(name) {
+    return this.model(name)[RobotModelKey.STANDING_HEIGHT] ?? 0;
+  }
+
+  /**
    * @param {string} modelName A robot model's identifier.
    * @returns {string} The new robot's identity; it is edited from now on.
    * @throws {PlanRefused} When the plan holds as many robots as it may.
@@ -312,7 +321,7 @@ export class PlanState {
       [PlannedRobotKey.IDENTIFIER]: identifier,
       [PlannedRobotKey.MODEL]: modelName,
       [PlannedRobotKey.LABEL]: `${this.modelLabel(modelName)} ${sameModel + 1}`,
-      [PlannedRobotKey.POSE]: PlanPose.of(0, this.robots().length * ROBOT_SPACING, 0, 0),
+      [PlannedRobotKey.POSE]: PlanPose.of(0, this.robots().length * ROBOT_SPACING, this.standingHeight(modelName), 0),
       [PlannedRobotKey.JOINT_POSITIONS]: {},
       [PlannedRobotKey.STEPS]: [],
     });
@@ -336,7 +345,8 @@ export class PlanState {
   /**
    * Change a robot's model, keeping the steps whose actions the new model can take and
    * moving their enumeration values to members it offers; its posture belongs to the
-   * old model and is dropped, and a name made from the old model's name takes the new
+   * old model and is dropped, a robot standing at the old model's height is lifted or
+   * lowered to the new one's, and a name made from the old model's name takes the new
    * one's.
    * @param {string} identifier The robot's identity.
    * @param {string} modelName The new model's identifier.
@@ -348,6 +358,8 @@ export class PlanState {
     const previous = this.modelLabel(robot[PlannedRobotKey.MODEL]);
     const next = this.modelLabel(modelName);
     if (robot[PlannedRobotKey.LABEL].startsWith(`${previous} `)) robot[PlannedRobotKey.LABEL] = `${next}${robot[PlannedRobotKey.LABEL].slice(previous.length)}`;
+    const pose = robot[PlannedRobotKey.POSE];
+    if (PlanPose.rounded(pose[PoseIndex.Z]) === PlanPose.rounded(this.standingHeight(robot[PlannedRobotKey.MODEL]))) pose[PoseIndex.Z] = this.standingHeight(modelName);
     robot[PlannedRobotKey.MODEL] = modelName;
     robot[PlannedRobotKey.JOINT_POSITIONS] = {};
     const offered = new Set(this.offeredActions(robot).map((schema) => schema[ActionSchemaKey.NAME]));

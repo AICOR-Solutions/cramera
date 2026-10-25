@@ -573,6 +573,17 @@ test('a dragged robot stays on the floor and a target takes the dragged pose', a
   assert.deepEqual(page.state.steps()[0][PlanStepKey.VALUES].target_location, lifted);
 });
 
+test('a robot whose root is its pelvis keeps its height when it is dragged or edited', async () => {
+  const { root, page, scene } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'unitree_g1'));
+  const robot = page.state.activeRobot()[PlannedRobotKey.IDENTIFIER];
+  scene().listeners.onPlace(new Selection(MarkerKind.ROBOT, robot), [1, 2, 0, 0, 0, 0, 1]);
+  assert.deepEqual(PlanPose.position(page.state.robot(robot)[PlannedRobotKey.POSE]), [1, 2, 0.7923]);
+  const x = byAction(root, PlanAction.POSE).find((input) => input.dataset.field === 'x');
+  x.value = '3';
+  x.dispatch(DomEvent.CHANGE);
+  assert.deepEqual(PlanPose.position(page.state.robot(robot)[PlannedRobotKey.POSE]), [3, 2, 0.7923]);
+});
+
 test('a picked object is marked in the list and the turn mode reaches the view', async () => {
   const { root, page, scene } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();

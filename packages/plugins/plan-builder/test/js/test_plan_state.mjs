@@ -240,6 +240,26 @@ test('changing the model keeps the actions it offers with its choices and takes 
   assert.equal(state.activeRobot()[PlannedRobotKey.LABEL], 'Tracy 1');
 });
 
+test('a robot stands at its model\'s height, the others on the floor', () => {
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const g1 = state.addRobot('unitree_g1');
+  assert.equal(PlanPose.position(state.robot(g1)[PlannedRobotKey.POSE])[2], model(state, 'unitree_g1')[RobotModelKey.STANDING_HEIGHT]);
+  assert.equal(PlanPose.position(state.robots()[0][PlannedRobotKey.POSE])[2], 0);
+});
+
+test('changing the model moves a robot standing at the old height to the new one', () => {
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const identifier = state.activeRobot()[PlannedRobotKey.IDENTIFIER];
+  const height = () => PlanPose.position(state.robot(identifier)[PlannedRobotKey.POSE])[2];
+  state.setRobotModel(identifier, 'unitree_g1');
+  assert.equal(height(), 0.7923);
+  state.setRobotModel(identifier, 'tracy');
+  assert.equal(height(), 0);
+  state.setRobotPose(identifier, PlanPose.of(0, 0, 0.3, 0));
+  state.setRobotModel(identifier, 'unitree_g1');
+  assert.equal(height(), 0.3);
+});
+
 test('the last robot is kept', () => {
   const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const first = state.activeRobot()[PlannedRobotKey.IDENTIFIER];
