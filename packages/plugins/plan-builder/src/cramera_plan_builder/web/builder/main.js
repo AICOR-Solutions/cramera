@@ -29,7 +29,7 @@ const environment = new BuilderEnvironment({
   live: (base) => new LiveClient(fetch, base),
   storage: window.localStorage,
   query: new URLSearchParams(window.location.search),
-  createScene: PlanScene.isAvailable(document) ? (container, listeners) => new PlanScene(container, viewerApi, (model) => api.objectUrl(model), listeners) : null,
+  createScene: PlanScene.isAvailable(document) ? (container, listeners) => new PlanScene(container, viewerApi, (model) => api.objectUrl(model), (model) => api.robotUrl(model), listeners) : null,
   timer: { repeat: (callback, interval) => window.setInterval(callback, interval), cancel: (handle) => window.clearInterval(handle) },
 });
 const root = document.getElementById(ROOT_IDENTIFIER);

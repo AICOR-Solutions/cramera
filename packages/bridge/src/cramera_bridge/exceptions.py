@@ -832,6 +832,30 @@ class UnknownWorkspaceClass(PlanError):
 
 
 @dataclass
+class RobotDescriptionUnavailable(PlanError):
+    """
+    A robot whose model description cannot be written: its package is not installed, it
+    is no URDF or xacro file, or its xacro does not expand.
+    """
+
+    robot: str
+    """
+    The robot's identifier.
+    """
+
+    reason: str
+    """
+    Why the description cannot be written.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"The model of the robot {self.robot!r} cannot be shown: {self.reason}"
+
+
+@dataclass
 class UnknownAction(PlanError):
     """
     An action class name the CRAM workspace does not define.

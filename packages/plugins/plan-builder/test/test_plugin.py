@@ -116,6 +116,12 @@ def test_an_object_models_file_is_served(get):
     assert answer.body == (DATASET / "objects" / "milk.stl").read_bytes()
 
 
+def test_a_robot_models_description_is_served(get):
+    answer = get(f"{PlanBuilderRoute.ROBOT_FILES}pr2/pr2.urdf")
+    assert answer.status == HTTPStatus.OK
+    assert b'<robot name="pr2">' in answer.body
+
+
 def test_without_cram_no_object_file_is_served(serve, output):
     plugin = PlanBuilderPlugin(environment={PlanBuilderVariable.OUTPUT: str(output)})
     plugin.workspace.loaded = MissingWorkspace([CramModule.CORAPLEX.value])

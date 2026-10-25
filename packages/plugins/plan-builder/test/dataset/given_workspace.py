@@ -6,6 +6,7 @@ tests that run without CRAM.
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +23,11 @@ from cramera_protocol.plan_builder import (
 DATASET = Path(__file__).parent
 """
 The directory of the test dataset.
+"""
+
+ROBOT_MESH = "milk.stl"
+"""
+The mesh of the object directory a written robot description names as its body.
 """
 
 
@@ -57,6 +63,21 @@ class GivenWorkspace(CramWorkspace):
 
     def robots(self) -> List[RobotModel]:
         return self.catalog().robots
+
+    def write_robot_description(self, name: str, directory: Path) -> Path:
+        """
+        Write a description of one link whose body is :data:`ROBOT_MESH`.
+        """
+        meshes = directory / "meshes"
+        meshes.mkdir(parents=True)
+        shutil.copyfile(self.directory / ROBOT_MESH, meshes / ROBOT_MESH)
+        urdf = directory / f"{name}.urdf"
+        urdf.write_text(
+            f'<robot name="{name}"><link name="base"><visual><geometry>'
+            f'<mesh filename="meshes/{ROBOT_MESH}"/></geometry></visual></link></robot>',
+            encoding="utf-8",
+        )
+        return urdf
 
     def objects(self) -> List[ObjectModel]:
         return self.catalog().objects

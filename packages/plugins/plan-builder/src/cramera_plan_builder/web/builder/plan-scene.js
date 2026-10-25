@@ -1,7 +1,7 @@
 /**
  * The builder's 3D view: the environment bundle as the viewer shows it, and over it the
- * plan's robots, objects and the edited robot's targets as markers that are picked by a
- * click and moved or turned with handles.
+ * plan's robots as their models at rest, objects and the edited robot's targets as
+ * markers that are picked by a click and moved or turned with handles.
  */
 
 import * as THREE from 'three';
@@ -250,6 +250,18 @@ export class PlanScene {
   #objectUrl;
 
   /**
+   * Each robot model's links at rest once loaded, by model, copied for every robot.
+   * @type {Map<string, Promise<THREE.Object3D>>}
+   */
+  #robotModels = new Map();
+
+  /**
+   * The URL of a robot model's URDF.
+   * @type {function(string): string}
+   */
+  #robotUrl;
+
+  /**
    * What the view reports.
    * @type {PlanSceneListeners}
    */
@@ -297,10 +309,12 @@ export class PlanScene {
    * @param {HTMLElement} container The element the view fills.
    * @param {import('../../../core/viewer-api.js').ViewerApi} api The viewer's routes.
    * @param {function(string): string} objectUrl The URL of an object model's mesh.
+   * @param {function(string): string} robotUrl The URL of a robot model's URDF.
    * @param {PlanSceneListeners} listeners What the view reports.
    */
-  constructor(container, api, objectUrl, listeners) {
+  constructor(container, api, objectUrl, robotUrl, listeners) {
     this.#objectUrl = objectUrl;
+    this.#robotUrl = robotUrl;
     this.#listeners = listeners;
     this.#loader = new SceneLoader(api);
     this.#view = new SceneView(container);
@@ -358,7 +372,8 @@ export class PlanScene {
       const isEdited = identifier === edited;
       const color = isEdited ? MarkerColor.EDITED_ROBOT : MarkerColor.ROBOT;
       const label = robot[PlannedRobotKey.LABEL];
-      want(new Selection(MarkerKind.ROBOT, identifier), live.robots.get(identifier) ?? robot[PlannedRobotKey.POSE], `${color}${label}`, true, () => this.#robotMarker(color, label, isEdited));
+      const model = robot[PlannedRobotKey.MODEL];
+      want(new Selection(MarkerKind.ROBOT, identifier), live.robots.get(identifier) ?? robot[PlannedRobotKey.POSE], `${model}${color}${label}`, true, () => this.#robotMarker(model, color, label, isEdited));
     }
     for (const item of state.objects()) {
       const identifier = item[PlannedObjectKey.IDENTIFIER];
@@ -452,22 +467,52 @@ export class PlanScene {
   // %% markers
 
   /**
+   * @param {string} model The robot model's name.
    * @param {number} color The disc's colour.
    * @param {string} label The robot's name.
    * @param {boolean} edited Whether its plan is the one edited.
-   * @returns {THREE.Group} A robot: a disc with an arrow along its heading and its name
-   *   above it.
+   * @returns {THREE.Group} A robot: its model at rest with its name above it; a disc
+   *   with an arrow along its heading until the model is loaded, and for a model whose
+   *   description is not installed.
    */
-  #robotMarker(color, label, edited) {
+  #robotMarker(model, color, label, edited) {
     const material = new THREE.MeshStandardMaterial({ color });
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(MarkerSize.ROBOT_RADIUS, MarkerSize.ROBOT_RADIUS, MarkerSize.ROBOT_HEIGHT, SEGMENTS), material);
     disc.rotation.x = Math.PI / 2;
     disc.position.z = MarkerSize.ROBOT_HEIGHT / 2;
     const arrow = this.#arrow(material);
     arrow.position.z = MarkerSize.ROBOT_HEIGHT;
+    const name = this.#nameLabel(label, edited);
     const group = new THREE.Group();
-    group.add(disc, arrow, this.#nameLabel(label, edited));
+    group.add(disc, arrow, name);
+    // a robot whose description is not installed keeps its disc, which is no error
+    this.#robotModel(model).then(
+      (links) => {
+        const copy = links.clone();
+        copy.traverse((child) => {
+          child.castShadow = child.isMesh;
+        });
+        group.remove(disc, arrow);
+        group.add(copy);
+        name.position.z = new THREE.Box3().setFromObject(copy).max.z + MarkerSize.LABEL_LIFT;
+        this.#view.requestRender();
+      },
+      () => {},
+    );
     return group;
+  }
+
+  /**
+   * @param {string} model A robot model's name.
+   * @returns {Promise<THREE.Object3D>} Its links as its URDF describes them at rest,
+   *   loaded once.
+   */
+  #robotModel(model) {
+    if (!this.#robotModels.has(model)) {
+      const manager = new THREE.LoadingManager();
+      this.#robotModels.set(model, PlanScene.#described(this.#robotUrl(model), manager, new MeshLoading(manager, () => {})));
+    }
+    return this.#robotModels.get(model);
   }
 
   /**

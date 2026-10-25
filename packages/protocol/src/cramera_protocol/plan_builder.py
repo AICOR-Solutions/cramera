@@ -130,6 +130,12 @@ class PlanBuilderRoute(StrEnum):
     The prefix of the object models' files: ``objects/<file>``.
     """
 
+    ROBOT_FILES = "robots/"
+    """
+    The prefix of the robot models' files: ``robots/<robot>/<robot>.urdf`` describes a
+    robot's model at rest, and names its meshes relative to itself.
+    """
+
 
 class PlanBuilderPageParameter(StrEnum):
     """
