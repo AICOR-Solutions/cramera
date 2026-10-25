@@ -4,6 +4,7 @@ Running robot task demos in a process of their own.
 
 from __future__ import annotations
 
+import signal
 import sys
 import time
 import os
@@ -16,6 +17,7 @@ import cramera_laboratory.task_runs as task_runs
 from cramera_laboratory.resources import RESOURCES_DIRECTORY, LaboratoryResource
 from cramera_laboratory.task_runs import (
     LaboratoryTask,
+    ProcessEnding,
     TaskProcess,
     TaskRecording,
 )
@@ -32,6 +34,11 @@ The recording the stand-in demos save.
 FAILURE = "the vessel is still held"
 """
 What the failing stand-in prints.
+"""
+
+READY = "ready"
+"""
+What the stubborn stand-in prints once it ignores termination.
 """
 
 WAIT = 20.0
@@ -72,6 +79,19 @@ def settled(process: TaskProcess):
     return process.state()
 
 
+def announced(process: TaskProcess, text: str) -> None:
+    """
+    Wait until a started process wrote a text to its log.
+
+    :param process: A started process.
+    :param text: What it writes once it is ready.
+    """
+    deadline = time.monotonic() + WAIT
+    while text not in process.log.read_text():
+        assert time.monotonic() < deadline
+        time.sleep(POLL)
+
+
 def test_a_demo_that_saves_its_recording_ends_recorded(locations):
     process = stand_in(locations, "recording_task.py")
     assert process.state().state is TaskRunState.IDLE
@@ -93,7 +113,7 @@ def test_a_running_demo_is_not_started_twice_and_ends_on_request(locations):
     running = process.process
     assert first is TaskRunState.RUNNING
     assert process.start().state is TaskRunState.RUNNING and process.process is running
-    assert process.stop().state is TaskRunState.FAILED
+    assert process.stop().state is TaskRunState.ENDED
 
 
 def test_a_demo_without_its_packages_is_unavailable(locations):
@@ -178,15 +198,87 @@ def test_shutdown_kills_a_child_that_ignores_termination(locations, monkeypatch)
     monkeypatch.setattr(task_runs, "STOP_TIMEOUT", 0.02)
     process = stand_in(locations, "stubborn_task.py")
     process.start()
-    deadline = time.monotonic() + WAIT
     try:
-        while "ready" not in process.log.read_text():
-            assert time.monotonic() < deadline
-            time.sleep(POLL)
-        assert process.stop().state is TaskRunState.FAILED
+        announced(process, READY)
+        assert process.stop().state is TaskRunState.ENDED
         assert process.process.poll() is not None
     finally:
         process.stop()
+
+
+# %% how a run ended
+
+
+def test_a_demo_ended_by_a_signal_names_it_before_its_last_output(locations):
+    process = stand_in(locations, "stubborn_task.py")
+    process.start()
+    announced(process, READY)
+    process.process.send_signal(signal.SIGKILL)
+    state = settled(process)
+    assert state.state is TaskRunState.FAILED
+    assert state.error == "\n".join(
+        [
+            ProcessEnding.ENDED_BY_SIGNAL.format(signal=signal.SIGKILL.name),
+            process.last_output(),
+        ]
+    )
+
+
+@pytest.mark.skipif(
+    not hasattr(signal, "SIGRTMIN"), reason="The system has no real-time signals"
+)
+def test_a_demo_ended_by_an_unnamed_signal_gives_its_number(locations):
+    process = stand_in(locations, "stubborn_task.py")
+    process.start()
+    announced(process, READY)
+    number = signal.SIGRTMIN + 2
+    process.process.send_signal(number)
+    state = settled(process)
+    assert state.error.splitlines()[0] == ProcessEnding.ENDED_BY_SIGNAL.format(
+        signal=number
+    )
+
+
+def test_a_demo_exiting_with_an_error_names_its_exit_code_before_its_last_output(
+    locations,
+):
+    process = stand_in(locations, "failing_task.py")
+    process.start()
+    state = settled(process)
+    assert state.error == "\n".join(
+        [
+            ProcessEnding.EXITED_WITH_ERROR.format(code=process.process.returncode),
+            process.last_output(),
+        ]
+    )
+
+
+def test_a_demo_finishing_without_its_recording_says_so_before_its_last_output(
+    locations,
+):
+    process = stand_in(locations, "unrecorded_task.py")
+    process.start()
+    state = settled(process)
+    assert state.state is TaskRunState.FAILED
+    assert state.error == "\n".join(
+        [ProcessEnding.EXITED_WITHOUT_RECORDING, process.last_output()]
+    )
+
+
+def test_a_demo_ended_on_request_reports_no_error(locations):
+    process = stand_in(locations, "waiting_task.py")
+    process.start()
+    stopped = process.stop()
+    assert stopped.state is TaskRunState.ENDED and stopped.error is None
+
+
+def test_a_run_after_an_ended_one_reports_its_own_failure(locations):
+    process = stand_in(locations, "waiting_task.py")
+    process.start()
+    process.stop()
+    process.command[1] = str(DATASET / "tasks" / "failing_task.py")
+    process.start()
+    assert settled(process).state is TaskRunState.FAILED
 
 
 # %% native reruns and live address

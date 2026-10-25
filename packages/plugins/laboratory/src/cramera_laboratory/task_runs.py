@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import signal
 import subprocess
 import sys
 import threading
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -63,6 +65,28 @@ STOP_TIMEOUT = 3.0
 Seconds a child receives to terminate before it is killed on shutdown.
 """
 
+
+class ProcessEnding(StrEnum):
+    """
+    How a failed demo's process ended, as the first line of its error.
+    """
+
+    ENDED_BY_SIGNAL = "The demo was ended by signal {signal}."
+    """
+    A signal from outside ended the process, such as SIGKILL when memory runs out.
+    """
+
+    EXITED_WITH_ERROR = "The demo exited with code {code}."
+    """
+    The process exited with a nonzero code.
+    """
+
+    EXITED_WITHOUT_RECORDING = "The demo finished without saving its recording."
+    """
+    The process exited normally but saved no recording.
+    """
+
+
 # %% process
 
 
@@ -105,6 +129,11 @@ class TaskProcess:
     process: Optional[subprocess.Popen] = field(default=None, init=False)
     """
     The demo's process, once started.
+    """
+
+    ended_on_request: bool = field(default=False, init=False)
+    """
+    Whether the current process was ended by :meth:`stop` rather than by itself.
     """
 
     lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
@@ -231,15 +260,34 @@ class TaskProcess:
                 )
             return result
         self.live_url_file.unlink(missing_ok=True)
-        if self.process is not None and self.process.returncode != 0:
-            result.state = TaskRunState.FAILED
-            result.error = self.last_output()
-        elif self.recorded():
+        exited_with_error = self.process is not None and self.process.returncode != 0
+        if self.recorded() and not exited_with_error:
             result.state = TaskRunState.RECORDED
+        elif self.process is not None and self.ended_on_request:
+            result.state = TaskRunState.ENDED
         elif self.process is not None:
             result.state = TaskRunState.FAILED
-            result.error = self.last_output()
+            result.error = self.failure()
         return result
+
+    def ending(self) -> str:
+        """
+        :return: How the finished process ended: the signal that ended it, its nonzero
+            exit code, or that it saved no recording.
+        """
+        code = self.process.returncode
+        if code < 0:
+            names = {member.value: member.name for member in signal.Signals}
+            return ProcessEnding.ENDED_BY_SIGNAL.format(signal=names.get(-code, -code))
+        if code > 0:
+            return ProcessEnding.EXITED_WITH_ERROR.format(code=code)
+        return ProcessEnding.EXITED_WITHOUT_RECORDING
+
+    def failure(self) -> str:
+        """
+        :return: How the failed process ended, followed by the last lines it wrote.
+        """
+        return "\n".join(filter(None, [self.ending(), self.last_output()]))
 
     def last_output(self) -> str:
         """
@@ -286,6 +334,7 @@ class TaskProcess:
                     stderr=subprocess.STDOUT,
                     env=environment,
                 )
+            self.ended_on_request = False
             return self.state_locked()
 
     def stop(self) -> TaskRun:
@@ -296,6 +345,7 @@ class TaskProcess:
         """
         with self.lock:
             if self.process is not None and self.process.poll() is None:
+                self.ended_on_request = True
                 self.process.terminate()
                 try:
                     self.process.wait(timeout=STOP_TIMEOUT)

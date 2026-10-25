@@ -144,6 +144,7 @@ export const Text = Object.freeze({
   RUN: 'Run the demo',
   OPEN_RECORDING: 'Open the recording',
   END_RUN: 'End the run',
+  RUN_ENDED: 'The run was ended before it saved a recording.',
   LID_OPEN: 'lid open',
   LID_CLOSED: 'lid closed',
   LID_MOVING: 'lid moving',
@@ -492,7 +493,9 @@ export class LaboratoryPanel {
       const preview = await this.attempt(() => this.#client.send(LaboratoryRoute.PREVIEW));
       if (preview) this.#showScene(preview[InstalledLaboratoryKey.SCENE]);
     }));
-    if (state === TaskRunState.IDLE || state === TaskRunState.FAILED || (state === TaskRunState.RECORDED && run[TaskRunKey.CAN_RUN])) {
+    const runnable = [TaskRunState.IDLE, TaskRunState.FAILED, TaskRunState.ENDED].includes(state)
+      || (state === TaskRunState.RECORDED && run[TaskRunKey.CAN_RUN]);
+    if (runnable) {
       actions.append(
         elements.button(Text.RUN, async () => {
           const started = await this.attempt(() => this.#client.send(LaboratoryRoute.TRANSFER_START));
@@ -511,6 +514,7 @@ export class LaboratoryPanel {
     }
     if (state === TaskRunState.RECORDED) actions.append(elements.button(Text.OPEN_RECORDING, () => this.#showScene(scene)));
     const parts = [elements.element('h2', Text.TRANSFER), elements.element('p', `${state} \u00b7 ${scene}`, Style.NOTE), actions];
+    if (state === TaskRunState.ENDED) parts.push(elements.element('p', Text.RUN_ENDED, Style.NOTE));
     if (run[TaskRunKey.ERROR]) parts.push(elements.element('pre', run[TaskRunKey.ERROR], Style.FACTS));
     const setup = elements.element('details', '', Style.SETUP);
     setup.open = state === TaskRunState.UNAVAILABLE;

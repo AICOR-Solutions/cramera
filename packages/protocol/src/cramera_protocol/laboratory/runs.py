@@ -96,7 +96,12 @@ class TaskRunState(StrEnum):
 
     FAILED = "failed"
     """
-    The demo ended without saving a recording.
+    The demo ended without saving a recording, other than on request.
+    """
+
+    ENDED = "ended"
+    """
+    The demo was ended on request before it saved a recording.
     """
 
 
@@ -117,7 +122,7 @@ class TaskRunKey(StrEnum):
 
     ERROR = "error"
     """
-    Why the demo failed.
+    How the failed demo ended and the end of its output.
     """
 
     LIVE_URL = "liveUrl"
@@ -149,7 +154,8 @@ class TaskRun(JsonDocument):
 
     error: Optional[str] = document_field(TaskRunKey.ERROR, default=None)
     """
-    The end of the demo's output when it failed; None otherwise.
+    How the demo's process ended, followed by the end of its output, when it failed;
+    None otherwise.
     """
 
     live_url: Optional[str] = document_field(TaskRunKey.LIVE_URL, default=None)
