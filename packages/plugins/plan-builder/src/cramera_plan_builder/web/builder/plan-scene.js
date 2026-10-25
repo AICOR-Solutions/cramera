@@ -1,7 +1,8 @@
 /**
  * The builder's 3D view: the environment bundle as the viewer shows it, and over it the
  * plan's robots as their models at rest, objects and the edited robot's targets as
- * markers that are picked by a click and moved or turned with handles.
+ * markers that are picked by a click and moved or turned with handles, and a map of the
+ * world's axes.
  */
 
 import * as THREE from 'three';
@@ -15,6 +16,7 @@ import { SceneLighting } from '../../../scene/scene-lighting.js';
 import { SceneLoader } from '../../../scene/scene-loader.js';
 import { SceneView } from '../../../scene/scene-view.js';
 import { PlanPose } from './poses.js';
+import { SceneAxes } from './scene-axes.js';
 
 /**
  * What a marker stands for.
@@ -268,6 +270,12 @@ export class PlanScene {
   #listeners;
 
   /**
+   * The world's axes at the origin and in the view's corner.
+   * @type {SceneAxes}
+   */
+  #axes;
+
+  /**
    * The handles on the selected marker.
    * @type {TransformControls}
    */
@@ -319,6 +327,7 @@ export class PlanScene {
     this.#loader = new SceneLoader(api);
     this.#view = new SceneView(container);
     this.#view.scene.add(this.#lighting.group, this.#markers);
+    this.#axes = new SceneAxes(this.#view, container.ownerDocument);
     this.#showFloor();
     this.#handles = new TransformControls(this.#view.camera, this.#view.renderer.domElement);
     this.#handles.addEventListener(ViewEvent.DRAGGING_CHANGED, (event) => {
@@ -461,6 +470,7 @@ export class PlanScene {
     for (const [type, listener] of this.#canvasListeners) this.#view.renderer.domElement.removeEventListener(type, listener);
     this.#handles.detach();
     this.#handles.dispose();
+    this.#axes.dispose();
     this.#view.dispose();
   }
 
