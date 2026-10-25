@@ -19,7 +19,11 @@ from typing_extensions import Any, Dict, List, Optional, Self
 from cramera_protocol.bundle.index import SceneIndexEntry
 from cramera_protocol.document import JsonDocument, ValueLocation, document_field
 from cramera_protocol.geometry import Pose
-from cramera_protocol.live_messages import ConstraintMonitorType, MonitorSpecification
+from cramera_protocol.live_messages import (
+    ConstraintMonitorType,
+    MonitorSpecification,
+    SurfaceDescription,
+)
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
 PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
@@ -139,6 +143,12 @@ class PlanBuilderRoute(StrEnum):
     ENVIRONMENTS = "environments"
     """
     Writes a URDF or xacro file of this machine as an environment bundle.
+    """
+
+    ENVIRONMENT_ANNOTATIONS = "environment-annotations"
+    """
+    The semantic annotations of an environment, which annotation fields offer; the
+    :class:`EnvironmentAnnotationsParameter` values name the environment.
     """
 
     URDF_FOLDER = "urdf-folder"
@@ -402,6 +412,43 @@ class UrdfEnvironment(JsonDocument):
     path: str = document_field(UrdfEnvironmentKey.PATH)
     """
     The file, absolute or starting with ``~``.
+    """
+
+
+class EnvironmentAnnotationsParameter(StrEnum):
+    """
+    The query parameters of :attr:`PlanBuilderRoute.ENVIRONMENT_ANNOTATIONS`.
+    """
+
+    ENVIRONMENT = "environment"
+    """
+    The environment bundle's name.
+    """
+
+
+class EnvironmentAnnotationsKey(StrEnum):
+    """
+    The keys of an environment's semantic annotations.
+    """
+
+    ANNOTATIONS = "annotations"
+    """
+    The annotations, each its class's identifier and its name.
+    """
+
+
+@dataclass(kw_only=True)
+class EnvironmentAnnotations(JsonDocument):
+    """
+    The semantic annotations of an environment as a plan run finds them, so an
+    annotation field offers their names; none without the CRAM workspace.
+    """
+
+    annotations: List[SurfaceDescription] = document_field(
+        EnvironmentAnnotationsKey.ANNOTATIONS, default_factory=list
+    )
+    """
+    The annotations, sorted by class and name.
     """
 
 

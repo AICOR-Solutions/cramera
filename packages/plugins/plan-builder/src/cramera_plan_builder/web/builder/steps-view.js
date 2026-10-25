@@ -43,6 +43,12 @@ const ANY_SURFACE = Object.freeze({ value: '', label: 'any of the type' });
 const DEFAULT_CHOICE = '';
 
 /**
+ * @param {string} annotation An annotation class's identifier.
+ * @returns {string} What an annotation field says when nothing carries the annotation.
+ */
+export const noAnnotation = (annotation) => `Neither the environment nor the live world shows an entity with a ${annotation} annotation; type its name.`;
+
+/**
  * The classes the view's elements carry.
  */
 const ViewClass = Object.freeze({
@@ -358,8 +364,9 @@ export class StepsView {
   /**
    * @param {Object} step A step.
    * @param {Object} field An annotation field.
-   * @returns {Array<HTMLElement>} A choice of the live world's entities carrying the
-   *   annotation, or a note that it holds none and a text input for the name.
+   * @returns {Array<HTMLElement>} A choice of the environment's and the live world's
+   *   entities carrying the annotation, or a note that they hold none and a text input
+   *   for the name.
    */
   #annotationPicker(step, field) {
     const elements = this.#shown;
@@ -373,7 +380,7 @@ export class StepsView {
     const input = elements.input('text', PlanAction.STEP_PARAMETER, () => this.#set(step, field, input.value.trim() || null));
     input.value = value;
     input.placeholder = `${annotation} name`;
-    return [this.#labelled(step, field, input), elements.create('p', ViewClass.EMPTY, `The live world shows no entity with a ${annotation} annotation; type its name.`)];
+    return [this.#labelled(step, field, input), elements.create('p', ViewClass.EMPTY, noAnnotation(annotation))];
   }
 
   /**

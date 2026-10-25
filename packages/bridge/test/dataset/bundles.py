@@ -33,3 +33,9 @@ BUNDLED_CUP_URDF = DATASET / "urdf" / "bundled_cup.urdf"
 A URDF referencing a mesh relative to itself, a mesh of a package that is not installed
 and a file that is no mesh.
 """
+
+DRAWER_CABINET_URDF = DATASET / "urdf" / "drawer_cabinet.urdf"
+"""
+A cabinet with one drawer and its handle, named as coraplex's apartment names them, in
+which CRAM's world reasoner finds a cabinet, a drawer and a handle.
+"""

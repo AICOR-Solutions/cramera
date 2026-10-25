@@ -27,6 +27,11 @@ cramera
   it names (`package://` references resolved) into a new bundle of the local scenes
   (`CRAMERA_DATA/scenes`), which the builder then offers and chooses. Meshes it cannot
   find are named in the page's message and left out.
+- **Annotation fields** (a handle, a drawer, a door, …) offer a drop-down of the chosen
+  environment's annotations of their class, as a plan run finds them, and the live
+  world's surfaces while it runs. An environment without prim semantics, such as one
+  loaded from a URDF, gets the annotations CRAM's `WorldReasoner` infers, each named
+  after the body it is rooted in (`handle_cab1_top_door`).
 - **Object libraries** are directories with an `objects` folder of models, each a
   `model.urdf` with its meshes beside it, named by the library's `collection.json`
   where it has one. The repository's `resources/` holds `private_meshes`

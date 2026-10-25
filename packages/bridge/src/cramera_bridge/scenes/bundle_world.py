@@ -16,6 +16,7 @@ from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import BundleNotFound, UnknownPrimLink
 from cramera_bridge.geometry import COLOR_CHANNEL_MAXIMUM
 from cramera_bridge.scenes.environment import SceneEnvironment
+from cramera_bridge.scenes.inferred_annotations import InferredAnnotations
 from cramera_bridge.scenes.semantics import (
     SemanticClassMapping,
     Semantics,
@@ -255,7 +256,8 @@ class BundleEnvironment(SceneEnvironment):
     def populate(self, world: World) -> None:
         """
         Add the environment models with their joints at the first recorded values, the
-        free objects, and the prim annotations.
+        free objects, and the prim annotations; an environment without prims, such as
+        one loaded from a URDF, gets the annotations CRAM's reasoner infers instead.
 
         :param world: The world receiving the scene.
         """
@@ -265,6 +267,8 @@ class BundleEnvironment(SceneEnvironment):
         for description in self.contents.scene.objects:
             self.add_object(world, description)
         self.annotate(world, links)
+        if not self.contents.semantics.prims:
+            InferredAnnotations(world).add(links.values())
 
     def add_model(self, world: World, model: ModelDescription) -> Dict[str, Body]:
         """

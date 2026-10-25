@@ -16,7 +16,10 @@ from cramera.plugins import PluginPrefixRoute, PluginRoute, RouteDeclaration
 from cramera.scenes import SceneCatalog
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
-from cramera_plan_builder.environments import EnvironmentBundles
+from cramera_plan_builder.environments import (
+    EnvironmentAnnotationCache,
+    EnvironmentBundles,
+)
 from cramera_plan_builder.exceptions import (
     ContentTooLarge,
     MalformedRequestBody,
@@ -40,6 +43,7 @@ from cramera_protocol.plan_builder import (
     SavedNames,
     UrdfEnvironment,
     UrdfFolderParameter,
+    EnvironmentAnnotationsParameter,
 )
 
 # %% request bodies
@@ -102,6 +106,11 @@ class PlanBuilderRoutes:
     Reads what the CRAM workspace offers.
     """
 
+    annotations: EnvironmentAnnotationCache
+    """
+    The environments' semantic annotations read so far.
+    """
+
     robot_files: RobotModelFiles
     """
     The robots' model descriptions and their meshes.
@@ -158,6 +167,11 @@ class PlanBuilderRoutes:
             ),
             PluginRoute(
                 HttpMethod.GET, PlanBuilderRoute.URDF_FOLDER, self.answer_urdf_folder
+            ),
+            PluginRoute(
+                HttpMethod.GET,
+                PlanBuilderRoute.ENVIRONMENT_ANNOTATIONS,
+                self.answer_environment_annotations,
             ),
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.PLANS, self.answer_plans),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.PLANS, self.answer_save),
@@ -228,6 +242,19 @@ class PlanBuilderRoutes:
                 source.resolve(), self.local_scenes, taken
             )
         )
+
+    def answer_environment_annotations(self, request: Request) -> Response:
+        """
+        :param request: A request naming an environment with
+            :attr:`EnvironmentAnnotationsParameter.ENVIRONMENT`.
+        :return: The environment's :class:`EnvironmentAnnotations`.
+        :raises UnknownScene: When no scenes directory holds the environment.
+        """
+        name = request.parameters().get(
+            EnvironmentAnnotationsParameter.ENVIRONMENT, [""]
+        )[0]
+        directory = self.scenes.directory_of(name).path / name
+        return Response.of_json(self.annotations.of(directory.resolve()))
 
     def answer_urdf_folder(self, request: Request) -> Response:
         """
