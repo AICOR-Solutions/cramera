@@ -25,7 +25,9 @@ Open [Medical lab](http://127.0.0.1:8711/plugins/laboratory/laboratory.html).
 **Run the demo** starts a fresh local transfer, follows it live and opens its
 recording on completion. Further runs preserve previous recordings under unused
 names. **Open the recording** and the timeline provide replay; **Show lab and PR2**
-returns to the initial pose. **End the run** stops the active process.
+returns to the initial pose. **End the run** stops the active process, which the
+page then reports as ended rather than failed. A failed run names the signal or
+exit code that ended its process before the end of its log.
 
 The plan picks a vessel from A1, lifts it and places it in A3. It uses CRAM's
 kinematic simulation and saves the recording only after its action, motion and

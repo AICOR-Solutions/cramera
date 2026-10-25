@@ -179,6 +179,12 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **The medical lab page says how a PR2 run ended.** A failed run reported only
+  the end of its log, which often held nothing but startup warnings. Its error now
+  starts with the signal that ended the process (such as `SIGKILL`), its exit code,
+  or that it finished without saving its recording. A run stopped with **End the
+  run** or on viewer shutdown is reported as `TaskRunState.ENDED` instead of
+  failed, and can run again.
 - **A plan runs in an environment loaded from a URDF.** A bundle's URDF naming its
   meshes relative to itself was read relative to the process's working directory, so
   building its world failed (`string is not a file: …/meshes/environment/…`); its

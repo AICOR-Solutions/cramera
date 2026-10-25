@@ -217,6 +217,13 @@ test('a failed transfer shows its output and may run again', () => {
   assert.equal(buttons(panel.demos, Text.RUN).length, 1);
 });
 
+test('a transfer ended on request says so and may run again', () => {
+  const { panel } = setUp();
+  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.ENDED, [TaskRunKey.SCENE]: 'x' }, () => null);
+  assert.ok(panel.demos.innerText.includes(Text.RUN_ENDED));
+  assert.equal(buttons(panel.demos, Text.RUN).length, 1);
+});
+
 test('the PR2 preview opens independently of running the demo', async () => {
   const { panel, network, shown } = setUp();
   panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'recording' }, () => {});

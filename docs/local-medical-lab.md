@@ -52,11 +52,13 @@ lifts it and places it in A3. The page follows the live robot motion as soon as
 the process is ready, then opens the completed recording in the same 3D view.
 Use the timeline to play, pause and seek, or **Open the recording** to return to
 it. **Show lab and PR2** restores the initial view. **End the run** stops an active
-process.
+process; the page then reports the run as ended, not failed.
 
 Every new run gets an unused recording name, so **Run the demo** remains available
 after a successful run and preserves earlier recordings. A failed run reports
-its error even if an older recording exists. Recordings are saved in
+its error even if an older recording exists: how its process ended (the signal
+that ended it, its exit code, or that it saved no recording), then the last lines
+of its log. Recordings are saved in
 `$CRAMERA_DATA/scenes`; the task log is under `$CRAMERA_DATA/laboratory`. Stopping
 the viewer also stops a transfer process it owns.
 
@@ -132,6 +134,8 @@ that scene's assets. Original packaged assets stay unchanged. Keep `LICENSE.txt`
   `python -m pip`, then restart the viewer.
 - **Run fails:** read the error on the page and the task log under
   `$CRAMERA_DATA/laboratory`. Check the CRAM revision and sourced robot resources.
+  A run ended by a signal such as `SIGKILL` was stopped from outside, for example
+  when memory ran out; its log may show only harmless startup warnings.
 - **Port already in use:** choose a free `--port` and open its matching URL;
   `--keep-running` preserves the other viewer.
 - **No WebGL context:** use a browser with working WebGL. Python runs the demo,
