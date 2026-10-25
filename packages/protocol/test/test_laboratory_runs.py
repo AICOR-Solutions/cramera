@@ -30,3 +30,13 @@ def test_a_failed_demo_round_trips_with_its_error():
 
 def test_the_browser_reads_the_run_states():
     assert {TaskRunState, TaskRunKey} <= set(BROWSER_ENUMERATIONS)
+
+
+def test_a_running_demo_carries_its_local_live_address_and_run_availability():
+    run = TaskRun(
+        state=TaskRunState.RUNNING,
+        scene=SCENE,
+        live_url="/api/plugins/laboratory/transfer/live/",
+        can_run=True,
+    )
+    assert TaskRun.from_json(run.to_json()) == run

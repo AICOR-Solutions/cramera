@@ -37,6 +37,26 @@ class TransferOption(StrEnum):
     The directory of the laboratory scene bundle.
     """
 
+    PREVIEW = "--preview"
+    """
+    Prepare the initial robot laboratory in this local scenes directory.
+    """
+
+    RECORDING = "--recording"
+    """
+    The name under which this run saves its recording.
+    """
+
+    LIVE_URL_FILE = "--live-url-file"
+    """
+    The local file receiving the started live publisher's URL.
+    """
+
+    PORT = "--port"
+    """
+    The live publisher's port; zero selects an available local port.
+    """
+
 
 class TaskRecording(StrEnum):
     """
@@ -100,6 +120,16 @@ class TaskRunKey(StrEnum):
     Why the demo failed.
     """
 
+    LIVE_URL = "liveUrl"
+    """
+    The live publisher's base URL while the local demo is running.
+    """
+
+    CAN_RUN = "canRun"
+    """
+    Whether the local environment can start another native run.
+    """
+
 
 @dataclass(kw_only=True)
 class TaskRun(JsonDocument):
@@ -120,4 +150,14 @@ class TaskRun(JsonDocument):
     error: Optional[str] = document_field(TaskRunKey.ERROR, default=None)
     """
     The end of the demo's output when it failed; None otherwise.
+    """
+
+    live_url: Optional[str] = document_field(TaskRunKey.LIVE_URL, default=None)
+    """
+    The live publisher's base URL, only while this demo runs and publishes.
+    """
+
+    can_run: Optional[bool] = document_field(TaskRunKey.CAN_RUN, default=None)
+    """
+    Whether the current local environment can execute the native demo.
     """

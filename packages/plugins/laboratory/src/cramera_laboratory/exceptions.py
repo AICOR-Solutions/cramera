@@ -27,6 +27,42 @@ class LaboratoryError(ViewerError):
 
 
 @dataclass
+class RobotDemoUnavailable(LaboratoryError):
+    """
+    The local robot environment or its running live publisher is unavailable.
+    """
+
+    reason: str
+    """
+    What the local setup or publisher needs.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.SERVICE_UNAVAILABLE
+
+    def message(self) -> str:
+        return self.reason
+
+
+@dataclass
+class UnknownLiveRead(LaboratoryError):
+    """
+    A path outside the laboratory's live observation routes.
+    """
+
+    path: str
+    """
+    The requested relative path.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"No laboratory live observation route is named {self.path!r}."
+
+
+@dataclass
 class UnknownLaboratory(LaboratoryError):
     """
     A laboratory name the plugin does not ship.

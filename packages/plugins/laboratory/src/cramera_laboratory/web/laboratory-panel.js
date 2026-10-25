@@ -136,6 +136,11 @@ export const Text = Object.freeze({
   REFILL: 'Refill',
   EMPTY: '—',
   TRANSFER: 'PR2 vessel transfer (CRAM)',
+  PREVIEW: 'Show lab and PR2',
+  PR2_SETUP: 'Set up the local PR2 demo',
+  PR2_EXPLANATION: 'The PR2 preview and robot plan need the full CRAM stack in the same environment as the viewer. MuJoCo alone enables the manual workbench controls.',
+  PR2_COMMAND: 'python3 scripts/install_stack.py --venv "$PWD/.venv"\nsource .venv/bin/activate',
+  PR2_RESTART: 'Run these commands from the repository root. Follow the README’s ROS 2 and robot-description setup, then restart cramera from this environment. The demo runs locally; its live motion and completed recording appear on this page.',
   RUN: 'Run the demo',
   OPEN_RECORDING: 'Open the recording',
   END_RUN: 'End the run',
@@ -483,8 +488,11 @@ export class LaboratoryPanel {
     const elements = this.#elements;
     const state = run[TaskRunKey.STATE];
     const scene = run[TaskRunKey.SCENE];
-    const actions = elements.row();
-    if (state === TaskRunState.IDLE || state === TaskRunState.FAILED) {
+    const actions = elements.row(elements.button(Text.PREVIEW, async () => {
+      const preview = await this.attempt(() => this.#client.send(LaboratoryRoute.PREVIEW));
+      if (preview) this.#showScene(preview[InstalledLaboratoryKey.SCENE]);
+    }));
+    if (state === TaskRunState.IDLE || state === TaskRunState.FAILED || (state === TaskRunState.RECORDED && run[TaskRunKey.CAN_RUN])) {
       actions.append(
         elements.button(Text.RUN, async () => {
           const started = await this.attempt(() => this.#client.send(LaboratoryRoute.TRANSFER_START));
@@ -504,6 +512,12 @@ export class LaboratoryPanel {
     if (state === TaskRunState.RECORDED) actions.append(elements.button(Text.OPEN_RECORDING, () => this.#showScene(scene)));
     const parts = [elements.element('h2', Text.TRANSFER), elements.element('p', `${state} \u00b7 ${scene}`, Style.NOTE), actions];
     if (run[TaskRunKey.ERROR]) parts.push(elements.element('pre', run[TaskRunKey.ERROR], Style.FACTS));
+    const setup = elements.element('details', '', Style.SETUP);
+    setup.open = state === TaskRunState.UNAVAILABLE;
+    const command = elements.element('pre');
+    command.append(elements.element('code', Text.PR2_COMMAND));
+    setup.append(elements.element('summary', Text.PR2_SETUP), elements.element('p', Text.PR2_EXPLANATION), command, elements.element('p', Text.PR2_RESTART));
+    parts.push(setup);
     this.demos.replaceChildren(...parts);
   }
 

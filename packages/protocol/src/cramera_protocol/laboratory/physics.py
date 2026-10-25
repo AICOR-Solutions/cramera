@@ -42,6 +42,11 @@ class LaboratoryFile(StrEnum):
     The module the viewer registers.
     """
 
+    PAGE = "laboratory.html"
+    """
+    The laboratory's dedicated page with its own scene view and controls.
+    """
+
 
 class LaboratoryRoute(StrEnum):
     """
@@ -56,6 +61,11 @@ class LaboratoryRoute(StrEnum):
     INSTALL = "install"
     """
     Copies a laboratory into the local scenes, so the viewer shows it.
+    """
+
+    PREVIEW = "preview"
+    """
+    Prepares the compact laboratory with its locally installed PR2 in the initial pose.
     """
 
     DEVICES = "devices"
@@ -136,6 +146,11 @@ class LaboratoryRoute(StrEnum):
     INSTRUMENT = "physics/instrument"
     """
     Moves an instrument of the expanded laboratory to its rest or inspection pose.
+    """
+
+    TRANSFER_LIVE = "transfer/live/"
+    """
+    The viewer's local proxy for its running PR2 demo's live read routes.
     """
 
     TRANSFER_STATE = "transfer/state"

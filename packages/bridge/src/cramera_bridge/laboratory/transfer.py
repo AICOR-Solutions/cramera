@@ -46,6 +46,7 @@ from semantic_digital_twin.world_description.world_entity import Body
 
 from cramera_bridge.exceptions import TaskFailed
 from cramera_bridge.robot_task import RobotTaskDemo
+from cramera_bridge.visualization import LiveVisualization
 from cramera_bridge.scenes.presentation import ScenePresentation
 from cramera_bridge.laboratory.grasping import (
     PadContact,
@@ -70,10 +71,10 @@ Where the PR2 starts: x and y in metres and its heading, facing the bench.
 """
 
 TRANSFER_CAMERA = Camera(
-    position=Vector3(0.9, -0.9, 1.45), target=Vector3(0.22, -0.04, 0.95)
+    position=Vector3(3.5, -1.8, 2.8), target=Vector3(0.2, -0.3, 1.1)
 )
 """
-The recording's first view: the rack from the robot's right, past its arm.
+The recording's first view: the whole PR2 and the small workbench from the side.
 """
 
 POSE_TOLERANCE = 1e-10
@@ -350,6 +351,11 @@ class VesselTransferDemo(RobotTaskDemo):
     A PR2 at the bench moves a vessel between two rack slots with its left arm.
     """
 
+    live_url_file: Optional[Path] = None
+    """
+    Where the owning viewer reads this run's live address, or None for standalone use.
+    """
+
     source_slot: str = "A1"
     """
     The slot the vessel starts in.
@@ -566,15 +572,28 @@ class VesselTransferDemo(RobotTaskDemo):
         self.plan = plan
         return plan
 
+    def on_live_started(self, visualization: LiveVisualization) -> None:
+        """
+        :param visualization: The started server whose real port the viewer needs.
+        """
+        if self.live_url_file is not None:
+            self.live_url_file.parent.mkdir(parents=True, exist_ok=True)
+            self.live_url_file.write_text(visualization.url(), encoding="utf-8")
+
     def run(self) -> SavedScene:
         """
-        :return: The measured recording; stop observing even when a run fails.
+        :return: The measured recording; release observation and announcement on failure
+            as well as success.
         """
+        if self.live_url_file is not None:
+            self.live_url_file.unlink(missing_ok=True)
         try:
             return super().run()
         finally:
             if self.observation is not None:
                 self.observation.stop()
+            if self.live_url_file is not None:
+                self.live_url_file.unlink(missing_ok=True)
 
     def measure(self, context: Context) -> AcceptanceMetrics:
         """

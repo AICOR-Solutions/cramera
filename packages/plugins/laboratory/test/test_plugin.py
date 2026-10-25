@@ -33,7 +33,7 @@ from cramera_protocol.laboratory.physics import (
     TargetRequestKey,
 )
 from cramera_protocol.bundle.files import BundleFile
-from cramera_protocol.viewer import ViewerInfo, ViewerRoute
+from cramera_protocol.viewer import NavigationGroup, ViewerInfo, ViewerRoute
 
 from .conftest import HEADERS, send
 from .dataset.simulations import RecordingFactory
@@ -185,18 +185,30 @@ def test_without_mujoco_the_start_is_unavailable(locations):
     assert response.status == HTTPStatus.SERVICE_UNAVAILABLE
 
 
-def test_the_viewer_lists_the_plugin_and_its_module(answerer):
+def test_the_viewer_lists_the_laboratory_as_its_own_page(answerer):
     response = answerer.answer(
         Request(method=HttpMethod.GET, path=ViewerRoute.INFO, headers=HEADERS)
     )
     info = ViewerInfo.from_json(decoded(response))
     [plugin] = info.plugins
     assert plugin.name == LaboratoryName.PLUGIN
-    assert plugin.module.endswith(LaboratoryFile.MODULE)
+    assert plugin.module is None
+    assert plugin.navigation.page == "/plugins/laboratory/laboratory.html"
+    assert plugin.navigation.title == "Medical lab"
 
 
-def test_the_plugin_is_available_on_the_scene_page():
+def test_the_plugin_has_its_own_laboratory_navigation_entry():
     navigation = (
         LaboratoryPlugin(factory=RecordingFactory(installed=False)).info().navigation
     )
-    assert navigation is None
+    assert navigation.group is NavigationGroup.LABORATORY
+    assert navigation.page.endswith(LaboratoryFile.PAGE)
+
+
+def test_the_robot_preview_explains_missing_local_dependencies(post, monkeypatch):
+    from cramera_laboratory.task_runs import TaskProcess
+
+    monkeypatch.setattr(TaskProcess, "available", lambda self: False)
+    response = post(LaboratoryRoute.PREVIEW, {})
+    assert response.status == HTTPStatus.SERVICE_UNAVAILABLE
+    assert "CRAM" in decoded(response)["error"]

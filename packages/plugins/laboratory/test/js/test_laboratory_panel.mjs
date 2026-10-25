@@ -216,3 +216,22 @@ test('a failed transfer shows its output and may run again', () => {
   assert.ok(panel.demos.innerText.includes('the vessel is still held'));
   assert.equal(buttons(panel.demos, Text.RUN).length, 1);
 });
+
+test('the PR2 preview opens independently of running the demo', async () => {
+  const { panel, network, shown } = setUp();
+  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'recording' }, () => {});
+  network.answer(routeUrl(LaboratoryRoute.PREVIEW), 200, { scene: 'aicor_medical_lab_pr2' });
+  buttons(panel.demos, Text.PREVIEW)[0].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(shown, ['aicor_medical_lab_pr2']);
+});
+
+test('a completed PR2 recording can replay without CRAM and runs again only when supported', () => {
+  const { panel } = setUp();
+  const run = { [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: 'recording', [TaskRunKey.CAN_RUN]: false };
+  panel.showTransfer(run, () => {});
+  assert.equal(buttons(panel.demos, Text.OPEN_RECORDING).length, 1);
+  assert.equal(buttons(panel.demos, Text.RUN).length, 0);
+  panel.showTransfer({ ...run, [TaskRunKey.CAN_RUN]: true }, () => {});
+  assert.equal(buttons(panel.demos, Text.RUN).length, 1);
+});
