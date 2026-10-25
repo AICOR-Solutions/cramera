@@ -1928,8 +1928,8 @@ class RobotModel(JsonDocument):
     standing_height: float = document_field(RobotModelKey.STANDING_HEIGHT, default=0.0)
     """
     How high the robot's root stands above the floor, in metres, when its joints are at
-    zero and its feet or base rest on the floor, so a new robot is placed that high;
-    0 for robots whose root is on the floor, more for one whose root is its pelvis.
+    zero and its feet or base rest on the floor, so a new robot is placed that high; 0
+    for robots whose root is on the floor, more for one whose root is its pelvis.
     """
 
 
