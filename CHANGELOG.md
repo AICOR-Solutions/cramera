@@ -22,8 +22,18 @@ which this repository was mirrored until 22 Oct 2026.
   and `PluginName.WORKSHOP`, and the vendored Plotly. The navigation group
   `laboratory` stays for plugins outside this repository; `cramera_protocol.rights`
   stays for the scene builder.
+  The compact medical laboratory is restored below; the expanded room remains
+  removed.
 
 ### Added
+- **The small medical lab tab.** `cramera-laboratory` restores the compact
+  workbench and its liquid handling, scale, centrifuge and manuals, refrigerator,
+  drawer and dispenser controls. Only the small scene and its five device bundles
+  are shipped. The tab stays available without MuJoCo and shows how to install
+  the `[physics]` extra into the viewer's environment and restart. The stack
+  installer includes the tab; the optional PR2 transfer reaches CRAM through
+  `cramera-bridge`. The viewer stops the simulation and its transfer process on
+  shutdown. See [the setup guide](docs/local-medical-lab.md).
 - **Drop-downs for a plan step's handle, drawer, door and other annotations.** An
   annotation field of the plan builder offers the chosen environment's annotations of
   its class without a live scene, and the live world's surfaces while it runs. An

@@ -35,6 +35,7 @@ jobs:
             coverage: >-
               --cov=cramera_bridge.demo_script
               --cov=cramera_bridge.documents
+              --cov=cramera_bridge.laboratory.command
               --cov=cramera_bridge.export.scene_index
               --cov=cramera_bridge.live.activity
               --cov=cramera_bridge.live.marker_topics
@@ -54,6 +55,9 @@ jobs:
           - package: plugins/offline
             module: cramera_offline
             install: -e ./packages/plugins/offline
+          - package: plugins/laboratory
+            module: cramera_laboratory
+            install: -e './packages/plugins/laboratory[physics]' -e ./packages/bridge
           - package: plugins/scene-builder
             module: cramera_scene_builder
             install: -e ./packages/plugins/scene-builder

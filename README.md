@@ -35,6 +35,7 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-questions`](packages/questions) | The viewer plugin asking recorded scenes questions in the entity query language; `cramera-bridge`'s question engine answers them. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
+| [`cramera-laboratory`](packages/plugins/laboratory) | The small medical lab as a viewer tab, with optional MuJoCo contact physics and installation help. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
@@ -71,9 +72,9 @@ README sets up ("Setup your ROS Workspace") before running one.
 
 ## Use the viewer
 
-For the SSH-hosted compact and expanded medical laboratories, see
-[Run the medical laboratory locally](docs/local-medical-lab.md). It covers current
-scene viewing and a separate pinned setup for the existing interactive controls.
+For the compact medical workbench and its controls, see
+[Use the small medical lab](docs/local-medical-lab.md). The **Medical lab** tab
+ships the scene and explains how to install MuJoCo for its contact simulation.
 
 ```bash
 pip install ./packages/protocol ./packages/viewer
@@ -139,6 +140,7 @@ behaviour as an optional extra:
 | Plugin | Extra | Without it |
 | --- | --- | --- |
 | `cramera-plan-builder` | `[bridge]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
+| `cramera-laboratory` | `[physics]` installs MuJoCo; `[bridge]` adds the optional CRAM transfer integration. | The small scene opens; the tab explains how to add physics, and transfer reports missing CRAM dependencies. |
 
 ```bash
 pip install './packages/plugins/plan-builder[bridge]'
