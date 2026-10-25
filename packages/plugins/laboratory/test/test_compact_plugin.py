@@ -15,7 +15,8 @@ from cramera.plugins import PluginContext, PluginRoute
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_laboratory.plugin import LaboratoryPlugin
 from cramera_laboratory.resources import LaboratoryResource
-from cramera_laboratory.task_runs import TaskProcess, TaskRecording
+from cramera_laboratory.exceptions import DemoBusy
+from cramera_laboratory.task_runs import TaskProcess
 from cramera_protocol.laboratory.physics import (
     DeviceCatalog,
     LaboratoryCatalog,
@@ -24,7 +25,7 @@ from cramera_protocol.laboratory.physics import (
     SimulationAnswer,
     SimulationState,
 )
-from cramera_protocol.laboratory.runs import TaskRunState
+from cramera_protocol.laboratory.runs import DemoRoute, LaboratoryDemo, TaskRunState
 
 from .conftest import DATASET
 
@@ -85,7 +86,8 @@ def plugin_routes(locations, factory):
     )
     yield plugin, context, owner
     owner.session.stop()
-    owner.transfer.stop()
+    for process in owner.demos.values():
+        process.stop()
     plugin.close()
 
 
@@ -122,32 +124,54 @@ def test_registering_routes_again_keeps_the_running_session(
     )
 
 
-def test_closing_the_plugin_ends_its_running_transfer(plugin_routes, locations):
-    plugin, _, owner = plugin_routes
-    owner.transfer = TaskProcess(
+def waiting(demo, locations) -> TaskProcess:
+    """
+    :param demo: The demo the stand-in stands in for.
+    :param locations: Where the viewer keeps its scenes.
+    :return: A stand-in that runs until it is ended.
+    """
+    return TaskProcess(
         command=[sys.executable, str(DATASET / "tasks" / "waiting_task.py")],
-        scene=TaskRecording.TRANSFER,
+        demo=demo,
         locations=locations,
         packages=(),
     )
-    assert owner.transfer.start().state is TaskRunState.RUNNING
-    process = owner.transfer.process
+
+
+@pytest.mark.parametrize("demo", list(LaboratoryDemo))
+def test_closing_the_plugin_ends_its_running_demo(plugin_routes, locations, demo):
+    plugin, _, owner = plugin_routes
+    owner.demos[demo] = waiting(demo, locations)
+    assert owner.demos[demo].start().state is TaskRunState.RUNNING
+    process = owner.demos[demo].process
     plugin.close()
     assert process.poll() is not None
+
+
+def test_a_second_demo_does_not_start_while_one_runs(plugin_routes, locations):
+    plugin, context, owner = plugin_routes
+    for demo in LaboratoryDemo:
+        owner.demos[demo] = waiting(demo, locations)
+    owner.demos[LaboratoryDemo.TRANSFER].start()
+    start = next(
+        route
+        for route in plugin.routes(context)
+        if isinstance(route, PluginRoute)
+        and route.path == LaboratoryDemo.WORKFLOW.route(DemoRoute.START)
+    )
+    with pytest.raises(DemoBusy) as refused:
+        start.handler(Request(method=HttpMethod.POST, path=start.path, body=b"{}"))
+    assert refused.value.running is LaboratoryDemo.TRANSFER
+    assert owner.demos[LaboratoryDemo.WORKFLOW].process is None
 
 
 def test_transfer_is_stopped_if_releasing_the_simulation_fails(
     plugin_routes, locations, monkeypatch
 ):
     plugin, _, owner = plugin_routes
-    owner.transfer = TaskProcess(
-        command=[sys.executable, str(DATASET / "tasks" / "waiting_task.py")],
-        scene=TaskRecording.TRANSFER,
-        locations=locations,
-        packages=(),
-    )
-    owner.transfer.start()
-    process = owner.transfer.process
+    owner.demos[LaboratoryDemo.TRANSFER] = waiting(LaboratoryDemo.TRANSFER, locations)
+    owner.demos[LaboratoryDemo.TRANSFER].start()
+    process = owner.demos[LaboratoryDemo.TRANSFER].process
 
     def fail_to_stop():
         raise RuntimeError("simulation could not release its target")

@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
-import { LaboratoryCatalogKey, LaboratoryName, LaboratoryRoute, TaskRunState, ViewerEvent, ViewerRoute } from 'cramera-viewer/protocol.js';
+import { DemoRoute, LaboratoryCatalogKey, LaboratoryDemo, LaboratoryName, LaboratoryRoute, TaskRunState, ViewerEvent, ViewerRoute } from 'cramera-viewer/protocol.js';
 
 import { connectLaboratory } from '../../src/cramera_laboratory/web/index.js';
+import { demoRoute } from '../../src/cramera_laboratory/web/laboratory-client.js';
 import { Text } from '../../src/cramera_laboratory/web/laboratory-panel.js';
 import { FakeApi, FakeFetch, FakeTimer, FakeView } from './fakes.mjs';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 const routeUrl = (route) => `http://viewer${ViewerRoute.PLUGIN_API}${LaboratoryName.PLUGIN}/${route}`;
 const LABORATORY = 'aicor_medical_lab';
+const TRANSFER_STATE = demoRoute(LaboratoryDemo.TRANSFER, DemoRoute.STATE);
 async function connected(state = TaskRunState.IDLE) {
   const document = new FakeDocument();
   const api = new FakeApi();
@@ -19,7 +21,8 @@ async function connected(state = TaskRunState.IDLE) {
     [LaboratoryCatalogKey.PHYSICS_AVAILABLE]: true,
   });
   api.answers.set(routeUrl(LaboratoryRoute.DEVICES), { devices: [] });
-  api.answers.set(routeUrl(LaboratoryRoute.TRANSFER_STATE), { state, scene: 'aicor_medical_lab_pr2_transfer' });
+  api.answers.set(routeUrl(TRANSFER_STATE), { state, scene: 'aicor_medical_lab_pr2_transfer' });
+  api.answers.set(routeUrl(demoRoute(LaboratoryDemo.WORKFLOW, DemoRoute.STATE)), { state: TaskRunState.IDLE, scene: 'aicor_medical_lab_pr2_workflow' });
   const network = new FakeFetch();
   network.answer(routeUrl(LaboratoryRoute.INSTALL), 200, { scene: LABORATORY });
   const bus = new EventBus();
@@ -27,7 +30,7 @@ async function connected(state = TaskRunState.IDLE) {
   const view = new FakeView();
   const timer = new FakeTimer();
   const transfers = [];
-  const parts = await connectLaboratory({ bus, api, view }, (name) => requested.push(name), document, timer, (url, options) => network.fetch(url, options), () => {}, (run) => transfers.push(run));
+  const parts = await connectLaboratory({ bus, api, view }, (name) => requested.push(name), document, timer, (url, options) => network.fetch(url, options), () => {}, (demo, run) => transfers.push({ demo, run }));
   return { parts, requested, document, bus, view, timer, api, transfers };
 }
 
@@ -67,13 +70,13 @@ test('loading a scene hides the simulation controls', async () => {
 
 test('a temporary transfer connection failure recovers and still reports the saved recording', async () => {
   const { parts, timer, api, transfers } = await connected(TaskRunState.RUNNING);
-  api.answers.set(routeUrl(LaboratoryRoute.TRANSFER_STATE), new Error('Connection interrupted'));
+  api.answers.set(routeUrl(TRANSFER_STATE), new Error('Connection interrupted'));
   await timer.runLatest();
   assert.ok(parts.panel.message.textContent.includes('Connection interrupted'));
   assert.equal(timer.calls.length, 2);
-  api.answers.set(routeUrl(LaboratoryRoute.TRANSFER_STATE), { state: TaskRunState.RECORDED, scene: 'finished-pr2' });
+  api.answers.set(routeUrl(TRANSFER_STATE), { state: TaskRunState.RECORDED, scene: 'finished-pr2' });
   await timer.runLatest();
-  assert.equal(transfers.at(-1).scene, 'finished-pr2');
+  assert.deepEqual(transfers.at(-1), { demo: LaboratoryDemo.TRANSFER, run: { state: TaskRunState.RECORDED, scene: 'finished-pr2' } });
   assert.equal(parts.panel.message.textContent, '');
   assert.ok(parts.panel.demos.innerText.includes(Text.OPEN_RECORDING));
   parts.dispose();

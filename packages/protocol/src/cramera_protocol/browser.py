@@ -137,7 +137,12 @@ from cramera_protocol.laboratory.physics import (
     VesselInteriorKey,
     VesselLiquidKey,
 )
-from cramera_protocol.laboratory.runs import TaskRunKey, TaskRunState
+from cramera_protocol.laboratory.runs import (
+    DemoRoute,
+    LaboratoryDemo,
+    TaskRunKey,
+    TaskRunState,
+)
 from cramera_protocol.live import Capability, LiveInfoKey, LiveRoute
 from cramera_protocol.offline import (
     AssetProblemKey,
@@ -546,6 +551,8 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     VesselLiquidKey,
     TaskRunKey,
     TaskRunState,
+    LaboratoryDemo,
+    DemoRoute,
     PlanBuilderName,
     PlanBuilderFile,
     PlanBuilderRoute,

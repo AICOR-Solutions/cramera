@@ -23,7 +23,7 @@ install the complete stack into a dedicated environment:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source "$HOME/ros_ws/install/setup.bash"  # adjust if your ROS workspace is elsewhere
+source "$HOME/ros2_ws/install/setup.bash"  # CRAM's setup_ros_workspace.sh builds ~/ros2_ws
 python3 scripts/install_stack.py --venv "$PWD/.venv"
 source .venv/bin/activate
 export CRAMERA_DATA="$HOME/.local/share/cramera-medical-lab"
@@ -62,7 +62,22 @@ of its log. Recordings are saved in
 `$CRAMERA_DATA/scenes`; the task log is under `$CRAMERA_DATA/laboratory`. Stopping
 the viewer also stops a transfer process it owns.
 
-This robot demo uses CRAM's **kinematic simulation**, including motion and grasp
+### The longer PR2 lab workflow
+
+**PR2 lab workflow (CRAM)** is a second demo on the same page, run, followed and
+replayed like the transfer. The PR2 re-sorts the rack (A1 → A3, A2 → B2, B1 → A1),
+drives to the sample refrigerator and opens and closes its door, then drives to the
+centrifuge and opens and closes its lid, driving between its stands at the bench. The
+lid's hinge sits too far back for the PR2 to open it fully by its handle from the
+bench, so it pulls the lid to about 0.6 rad by the handle and pushes it on to 1.3 rad
+from below, and closes it the same way in reverse. Only one PR2 demo runs at a time;
+while one runs, the other offers no **Run the demo**.
+
+The workflow measures every vessel it sets down (within a millimetre of its new
+slot), that the door and the lid were opened and are closed again, and the same grasp
+and collision checks as the transfer.
+
+These robot demos use CRAM's **kinematic simulation**, including motion and grasp
 checks. It is separate from the manual MuJoCo contact simulation below. Its saved
 recording is produced by the local run and includes the PR2 model and trajectory.
 
