@@ -71,6 +71,10 @@ README sets up ("Setup your ROS Workspace") before running one.
 
 ## Use the viewer
 
+For the SSH-hosted compact and expanded medical laboratories, see
+[Run the medical laboratory locally](docs/local-medical-lab.md). It covers current
+scene viewing and a separate pinned setup for the existing interactive controls.
+
 ```bash
 pip install ./packages/protocol ./packages/viewer
 cramera                      # serves http://127.0.0.1:8711 and opens it
