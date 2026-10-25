@@ -585,6 +585,42 @@ class NotAUrdfFile(PlanBuilderError):
         return f"{self.path!r} is no URDF or xacro file on the viewer's machine."
 
 
+@dataclass
+class NotAFolder(PlanBuilderError):
+    """
+    A path the URDF picker is asked to list that names no folder.
+    """
+
+    path: str
+    """
+    The path as it was given.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"{self.path!r} is no folder on the viewer's machine."
+
+
+@dataclass
+class FolderNotReadable(PlanBuilderError):
+    """
+    A folder the viewer may not list.
+    """
+
+    path: str
+    """
+    The folder.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.FORBIDDEN
+
+    def message(self) -> str:
+        return f"The viewer may not list {self.path!r}."
+
+
 # %% CRAM
 
 

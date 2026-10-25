@@ -8,6 +8,7 @@ import {
   DemoSourceKey,
   IndexEntryKey,
   LoadedEnvironmentKey,
+  UrdfFolderKey,
   ObjectPosesKey,
   LiveInfoKey,
   LivePlanNodeKey,
@@ -51,6 +52,11 @@ export const POLL_INTERVAL = 1000;
  * The storage key of the robot model the person used last, which a new plan starts with.
  */
 export const ROBOT_MODEL_KEY = 'cramera.plan-builder.robot-model';
+
+/**
+ * The storage key of the folder the URDF picker showed last, which it opens on again.
+ */
+export const URDF_FOLDER_KEY = 'cramera.plan-builder.urdf-folder';
 
 /**
  * The choice of the saved plans' select that opens none.
@@ -325,6 +331,26 @@ export class BuilderPage {
     this.state.catalog[PlanBuilderCatalogKey.ENVIRONMENTS].push(entry);
     this.edit(() => this.state.setField(PlanKey.ENVIRONMENT, entry[IndexEntryKey.NAME]));
     this.report(loadedMessage(entry[IndexEntryKey.ENVIRONMENT] ?? entry[IndexEntryKey.NAME], loaded[LoadedEnvironmentKey.MISSING_MESHES]));
+  }
+
+  /**
+   * @param {string|null} path A folder of the viewer's machine, or null for the one the
+   *   picker showed last, else the home folder.
+   * @returns {Promise<Object|null>} The `UrdfFolder`, or null once the refusal is
+   *   reported.
+   */
+  async listFolder(path) {
+    const storage = this.#environment.storage;
+    const remembered = path === null ? storage.getItem(URDF_FOLDER_KEY) : null;
+    const api = this.#environment.api;
+    // a remembered folder that is gone opens the home folder instead
+    const listing = remembered === null ? api.urdfFolder(path) : api.urdfFolder(remembered).catch(() => api.urdfFolder(null));
+    const folder = await listing.catch((error) => {
+      this.report(error.message);
+      return null;
+    });
+    if (folder) storage.setItem(URDF_FOLDER_KEY, folder[UrdfFolderKey.PATH]);
+    return folder;
   }
 
   /**

@@ -141,6 +141,12 @@ class PlanBuilderRoute(StrEnum):
     Writes a URDF or xacro file of this machine as an environment bundle.
     """
 
+    URDF_FOLDER = "urdf-folder"
+    """
+    Lists a folder of this machine: its folders and its URDF and xacro files; the
+    :class:`UrdfFolderParameter` values name the folder.
+    """
+
 
 class PlanBuilderPageParameter(StrEnum):
     """
@@ -396,6 +402,71 @@ class UrdfEnvironment(JsonDocument):
     path: str = document_field(UrdfEnvironmentKey.PATH)
     """
     The file, absolute or starting with ``~``.
+    """
+
+
+class UrdfFolderParameter(StrEnum):
+    """
+    The query parameters of :attr:`PlanBuilderRoute.URDF_FOLDER`.
+    """
+
+    PATH = "path"
+    """
+    The folder to list; the home folder without it.
+    """
+
+
+class UrdfFolderKey(StrEnum):
+    """
+    The keys of a folder listed to pick a URDF from.
+    """
+
+    PATH = "path"
+    """
+    The folder, as an absolute path.
+    """
+
+    PARENT = "parent"
+    """
+    The folder above it, or null at the root.
+    """
+
+    FOLDERS = "folders"
+    """
+    The names of the folders in it.
+    """
+
+    FILES = "files"
+    """
+    The names of the URDF and xacro files in it.
+    """
+
+
+@dataclass(kw_only=True)
+class UrdfFolder(JsonDocument):
+    """
+    A folder of the viewer's machine as the URDF picker shows it; hidden entries are
+    left out.
+    """
+
+    path: str = document_field(UrdfFolderKey.PATH)
+    """
+    The folder, as an absolute path.
+    """
+
+    parent: Optional[str] = document_field(UrdfFolderKey.PARENT, default=None)
+    """
+    The folder above it, or None at the root.
+    """
+
+    folders: List[str] = document_field(UrdfFolderKey.FOLDERS, default_factory=list)
+    """
+    The names of the folders in it, sorted.
+    """
+
+    files: List[str] = document_field(UrdfFolderKey.FILES, default_factory=list)
+    """
+    The names of the URDF and xacro files in it, sorted.
     """
 
 

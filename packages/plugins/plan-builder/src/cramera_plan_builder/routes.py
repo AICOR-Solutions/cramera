@@ -24,6 +24,7 @@ from cramera_plan_builder.exceptions import (
 )
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.runs import DemoRunner
+from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.plan_builder import (
     ActionSchema,
@@ -38,12 +39,8 @@ from cramera_protocol.plan_builder import (
     RunRequest,
     SavedNames,
     UrdfEnvironment,
+    UrdfFolderParameter,
 )
-
-URDF_SOURCE_SUFFIXES = frozenset({".urdf", ".xacro"})
-"""
-The suffixes of the files an environment is loaded from.
-"""
 
 # %% request bodies
 
@@ -145,6 +142,11 @@ class PlanBuilderRoutes:
     Renders a plan into its demo.
     """
 
+    urdf_folders: UrdfFolders = field(default_factory=UrdfFolders)
+    """
+    Lists the folders the URDF picker browses.
+    """
+
     def declarations(self) -> List[RouteDeclaration]:
         """
         :return: The routes, below the plugin's prefix.
@@ -153,6 +155,9 @@ class PlanBuilderRoutes:
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.CATALOG, self.answer_catalog),
             PluginRoute(
                 HttpMethod.POST, PlanBuilderRoute.ENVIRONMENTS, self.answer_environment
+            ),
+            PluginRoute(
+                HttpMethod.GET, PlanBuilderRoute.URDF_FOLDER, self.answer_urdf_folder
             ),
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.PLANS, self.answer_plans),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.PLANS, self.answer_save),
@@ -223,6 +228,15 @@ class PlanBuilderRoutes:
                 source.resolve(), self.local_scenes, taken
             )
         )
+
+    def answer_urdf_folder(self, request: Request) -> Response:
+        """
+        :param request: A request naming a folder with :attr:`UrdfFolderParameter.PATH`,
+            or none for the home folder.
+        :return: The folder's :class:`UrdfFolder`.
+        """
+        given = request.parameters().get(UrdfFolderParameter.PATH, [None])[0]
+        return Response.of_json(self.urdf_folders.listing(given))
 
     def answer_object_file(self, request: Request, path: str) -> Response:
         """
