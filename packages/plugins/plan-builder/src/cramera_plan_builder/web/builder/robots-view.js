@@ -4,7 +4,7 @@
  * robot's model, name and start pose, and adding and removing robots.
  */
 
-import { IndexEntryKey, PlanBuilderCatalogKey, PlanKey, PlannedRobotKey, RobotModelKey } from '../../../protocol.js';
+import { IndexEntryKey, PlanBuilderCatalogKey, PlanKey, PlannedRobotKey, RobotModelKey, UrdfFolderKey } from '../../../protocol.js';
 import { Elements, PlanAction } from './elements.js';
 import { PlanPose } from './poses.js';
 
@@ -17,6 +17,16 @@ export const EMPTY_FLOOR = Object.freeze({ value: '', label: 'Empty floor' });
  * The hint in the path field of a URDF to load as an environment.
  */
 export const URDF_PLACEHOLDER = '/path/to/world.urdf';
+
+/**
+ * Keeps a path's leading slash in front when the picker cuts it on the left.
+ */
+const LEFT_TO_RIGHT_MARK = '\u200e';
+
+/**
+ * What the URDF picker says about a folder without folders or URDF files.
+ */
+export const EMPTY_FOLDER = 'No folders or URDF files here.';
 
 /**
  * What the environment section says about each kind of choice.
@@ -72,15 +82,28 @@ export class EnvironmentView {
   path;
 
   /**
+   * The picker browsing this machine's folders for a URDF, hidden until opened.
+   * @type {HTMLElement}
+   */
+  picker;
+
+  /**
    * Owns the select's listener.
    * @type {Elements}
    */
   #elements;
 
   /**
+   * Owns the listeners of the folder the picker shows, replaced with every folder.
+   * @type {Elements}
+   */
+  #folder;
+
+  /**
    * @param {Document} document The page's document.
-   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)` and
-   *   `loadEnvironment(path)`.
+   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)`,
+   *   `loadEnvironment(path)` and `listFolder(path)`, which answers a `UrdfFolder` or
+   *   null when the folder cannot be listed.
    */
   constructor(document, editor) {
     this.#editor = editor;
@@ -92,15 +115,76 @@ export class EnvironmentView {
     this.#note = elements.create('p', 'muted environment-note');
     this.path = elements.input('text', PlanAction.URDF_PATH, () => {});
     this.path.placeholder = URDF_PLACEHOLDER;
-    const load = elements.button('Load URDF', PlanAction.LOAD_URDF, () => {
+    const load = elements.button('Load', PlanAction.LOAD_URDF, () => {
       const path = this.path.value.trim();
       if (path) this.#editor.loadEnvironment(path);
     });
+    const browse = elements.button('Browse…', PlanAction.BROWSE_URDF, () => this.browse(null));
     const row = elements.create('div', 'urdf-row');
-    row.append(this.path, load);
+    row.append(this.path, browse, load);
+    this.#folder = new Elements(document);
+    this.picker = elements.create('div', 'urdf-picker');
+    this.picker.hidden = true;
     this.element = elements.create('div', 'environment');
-    this.element.append(this.select, this.#note, elements.label('or load a URDF of this machine', row, 'urdf-load'));
+    this.element.append(this.select, this.#note, elements.label('or load a URDF of this machine', row, 'urdf-load'), this.picker);
     this.render();
+  }
+
+  /**
+   * Open the picker on a folder.
+   * @param {string|null} path The folder, or null for the one the picker showed last.
+   * @returns {Promise<void>} Settles once the folder is shown or refused.
+   */
+  async browse(path) {
+    const folder = await this.#editor.listFolder(path);
+    if (folder) this.#showFolder(folder);
+  }
+
+  /**
+   * Close the picker.
+   */
+  closePicker() {
+    this.picker.hidden = true;
+    this.#folder.dispose();
+    this.picker.replaceChildren();
+  }
+
+  /**
+   * @param {Object} folder A `UrdfFolder`: its folders to open and its URDF files to
+   *   load.
+   */
+  #showFolder(folder) {
+    const document = this.#folder.document;
+    this.#folder.dispose();
+    const elements = (this.#folder = new Elements(document));
+    const here = folder[UrdfFolderKey.PATH];
+    const parent = folder[UrdfFolderKey.PARENT] ?? null;
+    const up = elements.button('Up', PlanAction.FOLDER_UP, () => this.browse(parent));
+    up.disabled = parent === null;
+    const head = elements.create('div', 'urdf-picker-head');
+    // the path is cut on the left to keep the folder's own name; the mark keeps its
+    // leading slash in front
+    const shown = elements.create('span', 'urdf-picker-path', `${LEFT_TO_RIGHT_MARK}${here}`);
+    shown.title = here;
+    head.append(up, shown, elements.button('Close', PlanAction.CLOSE_PICKER, () => this.closePicker()));
+    const list = elements.create('div', 'urdf-picker-list');
+    for (const name of folder[UrdfFolderKey.FOLDERS]) {
+      const open = elements.button(`${name}/`, PlanAction.OPEN_FOLDER, () => this.browse(joined(here, name)));
+      open.dataset.name = name;
+      list.append(open);
+    }
+    for (const name of folder[UrdfFolderKey.FILES]) {
+      const pick = elements.button(name, PlanAction.PICK_URDF, () => {
+        this.path.value = joined(here, name);
+        this.closePicker();
+        this.#editor.loadEnvironment(this.path.value);
+      });
+      pick.dataset.name = name;
+      list.append(pick);
+    }
+    if (list.children.length === 0) list.append(elements.create('p', 'muted', EMPTY_FOLDER));
+    this.picker.replaceChildren(head, list);
+    this.picker.hidden = false;
   }
 
   /**
@@ -132,7 +216,17 @@ export class EnvironmentView {
    */
   dispose() {
     this.#elements.dispose();
+    this.#folder.dispose();
   }
+}
+
+/**
+ * @param {string} folder A folder's absolute path.
+ * @param {string} name A name in it.
+ * @returns {string} The path of the name in the folder.
+ */
+function joined(folder, name) {
+  return folder.endsWith('/') ? `${folder}${name}` : `${folder}/${name}`;
 }
 
 // %% robots

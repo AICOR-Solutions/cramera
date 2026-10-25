@@ -79,6 +79,13 @@ button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(
 .environment-note { line-height: 1.4; }
 .urdf-row { display: flex; gap: 6px; align-items: center; }
 .urdf-row input { flex: 1; min-width: 0; font-size: 12px; }
+.urdf-picker { margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.urdf-picker-head { display: flex; gap: 6px; align-items: center; padding: 6px; border-bottom: 1px solid var(--border); }
+.urdf-picker-path { flex: 1; min-width: 0; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.urdf-picker-list { display: flex; flex-direction: column; max-height: 260px; overflow: auto; padding: 4px; }
+.urdf-picker-list button { text-align: left; border: 0; background: transparent; padding: 4px 6px; font-size: 12px; border-radius: 6px; }
+.urdf-picker-list button:hover { background: var(--accent-soft); }
+.urdf-picker-list button[data-action="pick-urdf"] { color: var(--accent); font-weight: 600; }
 
 .robot-list { list-style: none; margin: 6px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .robot-list button {

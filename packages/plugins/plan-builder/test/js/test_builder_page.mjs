@@ -13,6 +13,7 @@ import {
   DestinationKey,
   IndexEntryKey,
   LoadedEnvironmentKey,
+  UrdfFolderKey,
   PlacementMode,
   PageStateAttribute,
   PlanBuilderCatalogKey,
@@ -31,12 +32,12 @@ import {
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, ROBOT_MODEL_KEY, loadedMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
+import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { STEP_PALETTE_SIZE } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
@@ -47,6 +48,15 @@ const ACTIONS = read('../dataset/actions.json');
 const byAction = (root, action) => root.findAll((element) => element.dataset.action === action);
 const settled = () => new Promise((resolve) => setImmediate(resolve));
 const drop = (element, text) => element.dispatch(DomEvent.DROP, { dataTransfer: { getData: (type) => (type === DRAG_MEDIA_TYPE ? text : '') } });
+
+/**
+ * The folders the fake viewer's machine holds, by path.
+ */
+const FOLDERS = {
+  '/home/vee': { [UrdfFolderKey.PARENT]: '/home', [UrdfFolderKey.FOLDERS]: ['worlds'], [UrdfFolderKey.FILES]: [] },
+  '/home/vee/worlds': { [UrdfFolderKey.PARENT]: '/home/vee', [UrdfFolderKey.FOLDERS]: [], [UrdfFolderKey.FILES]: ['apartment.urdf', 'kitchen.urdf'] },
+  '/': { [UrdfFolderKey.PARENT]: null, [UrdfFolderKey.FOLDERS]: [], [UrdfFolderKey.FILES]: [] },
+};
 
 /**
  * Answers the page's requests and records what it asked.
@@ -65,6 +75,14 @@ class FakeApi {
     this.status = { [RunStatusKey.STATE]: RunState.IDLE };
     this.stopped = 0;
     this.loaded = [];
+    this.listed = [];
+  }
+
+  async urdfFolder(path) {
+    this.listed.push(path);
+    const folder = FOLDERS[path ?? '/home/vee'];
+    if (!folder) throw new Error(`'${path}' is no folder on the viewer's machine.`);
+    return { [UrdfFolderKey.PATH]: path ?? '/home/vee', ...folder };
   }
 
   async loadEnvironment(path) {
@@ -540,6 +558,56 @@ test('a path the viewer refuses keeps the environment and says why', async () =>
   await settled();
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), chosen);
   assert.match(message(root), /no URDF or xacro file/);
+});
+
+const picker = (root) => root.findAll((element) => element.className === 'urdf-picker')[0];
+const pickerButton = (root, action, name) => byAction(root, action).find((element) => element.dataset.name === name);
+
+test('the picker browses folders and a picked URDF becomes the environment', async () => {
+  const { root, page, api, storage } = await openPage();
+  assert.equal(picker(root).hidden, true);
+  byAction(root, PlanAction.BROWSE_URDF)[0].click();
+  await settled();
+  assert.equal(picker(root).hidden, false);
+  assert.deepEqual(api.listed, [null]);
+  pickerButton(root, PlanAction.OPEN_FOLDER, 'worlds').click();
+  await settled();
+  assert.deepEqual(byAction(root, PlanAction.PICK_URDF).map((button) => button.dataset.name), ['apartment.urdf', 'kitchen.urdf']);
+  assert.equal(storage.getItem(URDF_FOLDER_KEY), '/home/vee/worlds');
+  pickerButton(root, PlanAction.PICK_URDF, 'kitchen.urdf').click();
+  await settled();
+  assert.deepEqual(api.loaded, ['/home/vee/worlds/kitchen.urdf']);
+  assert.equal(byAction(root, PlanAction.URDF_PATH)[0].value, '/home/vee/worlds/kitchen.urdf');
+  assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'kitchen');
+  assert.equal(picker(root).hidden, true);
+});
+
+test('the picker opens on the folder it showed last, goes up and closes', async () => {
+  const { root, api } = await openPage('', ({ storage }) => storage.setItem(URDF_FOLDER_KEY, '/home/vee/worlds'));
+  byAction(root, PlanAction.BROWSE_URDF)[0].click();
+  await settled();
+  assert.deepEqual(api.listed, ['/home/vee/worlds']);
+  byAction(root, PlanAction.FOLDER_UP)[0].click();
+  await settled();
+  assert.deepEqual(api.listed.at(-1), '/home/vee');
+  byAction(root, PlanAction.CLOSE_PICKER)[0].click();
+  assert.equal(picker(root).hidden, true);
+});
+
+test('a remembered folder that is gone opens the home folder', async () => {
+  const { root, api } = await openPage('', ({ storage }) => storage.setItem(URDF_FOLDER_KEY, '/gone'));
+  byAction(root, PlanAction.BROWSE_URDF)[0].click();
+  await settled();
+  assert.deepEqual(api.listed, ['/gone', null]);
+  assert.ok(pickerButton(root, PlanAction.OPEN_FOLDER, 'worlds'));
+});
+
+test('the root has no way up and an empty folder says so', async () => {
+  const { root } = await openPage('', ({ storage }) => storage.setItem(URDF_FOLDER_KEY, '/'));
+  byAction(root, PlanAction.BROWSE_URDF)[0].click();
+  await settled();
+  assert.equal(byAction(root, PlanAction.FOLDER_UP)[0].disabled, true);
+  assert.equal(picker(root).findAll((element) => element.textContent === EMPTY_FOLDER).length, 1);
 });
 
 test('a loaded environment names its first missing meshes', () => {

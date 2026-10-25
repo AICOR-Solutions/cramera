@@ -24,6 +24,14 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **A picker for the plan builder's URDF environment.** **Browse…** next to the URDF
+  path field opens a list of the viewer's machine's folders and their URDF and xacro
+  files, hidden ones left out; a click on a file loads it as the environment. The picker
+  starts in the home folder and later reopens on the folder it showed last. New are
+  the route `PlanBuilderRoute.URDF_FOLDER` with `UrdfFolderParameter.PATH` and the
+  document `UrdfFolder`.
+
+  ![The URDF picker on CRAM's worlds](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-56-picker/picker_worlds.png)
 - **A URDF of this machine as the plan builder's environment.** Below the environment
   list, a path field and **Load URDF** take a URDF or xacro file, such as CRAM's
   `coraplex/resources/worlds/apartment.urdf` or `kitchen.urdf`. It is copied with every

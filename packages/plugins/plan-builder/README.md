@@ -20,8 +20,9 @@ cramera
   every object library, surface types the native annotation classes with a supporting
   surface. Environments are the viewer's bundles without a robot model. Without the
   CRAM workspace the catalog names the missing modules and offers environments only.
-- **A URDF as the environment.** The Environment section's path field takes a URDF or
-  xacro file of the viewer's machine, such as
+- **A URDF as the environment.** The Environment section's **Browse…** opens a picker
+  of the viewer's machine's folders and their URDF and xacro files, reopening on the
+  folder it showed last; its path field takes such a file's path too, such as
   `coraplex/resources/worlds/apartment.urdf`. `cramera-bridge` copies it with every mesh
   it names (`package://` references resolved) into a new bundle of the local scenes
   (`CRAMERA_DATA/scenes`), which the builder then offers and chooses. Meshes it cannot
