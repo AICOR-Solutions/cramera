@@ -152,6 +152,14 @@ CLASS_NAMES = SavedNames(
         MigratedAction.PLACE: "place",
     },
     robots={"PR2": "pr2", "Stretch": "stretch"},
+    members={
+        "park_arms": {"arm": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"}},
+        "move_torso": {"torso_state": {"HIGH": "high", "MID": "mid", "LOW": "low"}},
+        "transport": {"arm": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"}},
+        "pick_up": {"arm": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"}},
+        "place": {"arm": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"}},
+    },
+    surface_types={"Table": "table", "CounterTop": "counter_top"},
 )
 """
 The identifiers a catalog would list the migrated actions and the test robot under.

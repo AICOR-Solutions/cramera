@@ -73,7 +73,7 @@ test('a robot is offered every available action whose enumerations it can fill',
 test('a robot without a torso is not offered moving the torso', () => {
   const state = PlanState.empty(catalog(), 'lab', 'tracy');
   const torso = state.schema('move_torso');
-  assert.match(state.refusal(state.activeRobot(), torso), /TorsoState/);
+  assert.match(state.refusal(state.activeRobot(), torso), /torso_state/);
   assert.throws(() => state.addStep('move_torso'), PlanRefused);
   assert.throws(() => state.addStep('dance'), PlanRefused);
 });
@@ -82,7 +82,7 @@ test('an enumeration offers the robot its own choices', () => {
   const state = PlanState.empty(catalog(), 'lab', 'stretch');
   const gripper = fieldOf(state, 'set_gripper', 'gripper');
   const motion = fieldOf(state, 'set_gripper', 'motion');
-  assert.deepEqual(state.choices(state.activeRobot(), gripper), model(state, 'stretch')[RobotModelKey.CHOICES].Arms);
+  assert.deepEqual(state.choices(state.activeRobot(), gripper), model(state, 'stretch')[RobotModelKey.CHOICES].arms);
   assert.deepEqual(state.choices(state.activeRobot(), motion), motion[ActionFieldKey.MEMBERS]);
 });
 
@@ -90,12 +90,12 @@ test('an enumeration offers the robot its own choices', () => {
 
 test('a new step can run right away', () => {
   const state = PlanState.empty(catalog(), 'lab', 'pr2');
-  const arms = model(state, 'pr2')[RobotModelKey.CHOICES].Arms;
+  const arms = model(state, 'pr2')[RobotModelKey.CHOICES].arms;
   state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const steps = ['park_arms', 'move_torso', 'pick_up', 'place', 'set_gripper'].map((action) => state.addStep(action));
   const [park, torso, pick, place, gripper] = steps.map((identifier) => values(state, identifier));
   assert.equal(park.arm, arms[0]);
-  assert.equal(torso.torso_state, model(state, 'pr2')[RobotModelKey.CHOICES].TorsoState[0]);
+  assert.equal(torso.torso_state, model(state, 'pr2')[RobotModelKey.CHOICES].torso_state[0]);
   assert.equal(pick.object_designator, state.objects()[0][PlannedObjectKey.IDENTIFIER]);
   assert.equal(pick.grasp_description, undefined);
   assert.equal(place.target_location[DestinationKey.PLACEMENT], PlacementMode.POSE);
@@ -152,7 +152,7 @@ test('putting an object on a surface names a surface type, back at a pose a pose
   state.setPlacement(transport, 'target_location', PlacementMode.SURFACE);
   const destination = values(state, transport).target_location;
   assert.equal(destination[DestinationKey.SURFACE_TYPE], state.catalog[PlanBuilderCatalogKey.SURFACE_TYPES][0]);
-  state.setValue(transport, 'target_location', { [DestinationKey.PLACEMENT]: PlacementMode.SURFACE, [DestinationKey.SURFACE_TYPE]: 'Table' });
+  state.setValue(transport, 'target_location', { [DestinationKey.PLACEMENT]: PlacementMode.SURFACE, [DestinationKey.SURFACE_TYPE]: 'table' });
   state.setPlacement(transport, 'target_location', PlacementMode.POSE);
   assert.ok(PlanPose.isPose(values(state, transport).target_location[DestinationKey.POSE]));
 });
@@ -228,9 +228,9 @@ test('changing the model keeps the actions it offers with its choices and takes 
   const identifier = state.activeRobot()[PlannedRobotKey.IDENTIFIER];
   state.addStep('move_torso');
   const park = state.addStep('park_arms');
-  state.setValue(park, 'arm', 'RIGHT');
+  state.setValue(park, 'arm', 'right');
   assert.equal(state.setRobotModel(identifier, 'stretch'), 0);
-  assert.equal(values(state, park).arm, model(state, 'stretch')[RobotModelKey.CHOICES].Arms[0]);
+  assert.equal(values(state, park).arm, model(state, 'stretch')[RobotModelKey.CHOICES].arms[0]);
   assert.equal(state.setRobotModel(identifier, 'tracy'), 1);
   assert.equal(state.activeRobot()[PlannedRobotKey.LABEL], 'Tracy 1');
 });

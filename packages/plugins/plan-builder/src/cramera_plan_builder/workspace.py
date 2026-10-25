@@ -146,8 +146,15 @@ class CramWorkspace(ABC):
     @abstractmethod
     def surface_types(self) -> List[str]:
         """
-        :return: The class names of the annotations objects can be put on or in, sorted.
+        :return: The identifiers of the annotations objects can be put on or in, sorted.
         """
+
+    def saved_surface_types(self) -> Dict[str, str]:
+        """
+        :return: The identifier of each surface type by the name plans saved it under
+            before the protocol named it; none by default.
+        """
+        return {}
 
     @abstractmethod
     def action_catalog(self) -> ActionCatalog:
@@ -259,6 +266,9 @@ class InstalledWorkspace(CramWorkspace):
 
     def surface_types(self) -> List[str]:
         return self.plans.surface_types()
+
+    def saved_surface_types(self) -> Dict[str, str]:
+        return self.plans.saved_surface_types()
 
     def action_catalog(self) -> ActionCatalog:
         return self.plans.action_catalog()

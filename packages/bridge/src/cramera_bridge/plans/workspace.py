@@ -25,7 +25,7 @@ from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.objects import ObjectLibraries
 from cramera_bridge.exceptions import UnknownWorkspaceClass
-from cramera_bridge.names import ROBOT_NAMES
+from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
@@ -49,31 +49,6 @@ The object meshes coraplex's own demos and tests place, beside its sources.
 """
 
 # %% classes by name
-
-
-@dataclass(frozen=True)
-class WorkspaceClasses:
-    """
-    Annotation classes of the workspace, found by the class names a plan uses.
-    """
-
-    classes: List[type]
-    """
-    The classes.
-    """
-
-    def named(self, name: str) -> type:
-        """
-        :param name: A class name.
-        :return: The class of that name.
-        :raises UnknownWorkspaceClass: When none has the name.
-        """
-        for candidate in self.classes:
-            if candidate.__name__ == name:
-                return candidate
-        raise UnknownWorkspaceClass(
-            name, [candidate.__name__ for candidate in self.classes]
-        )
 
 
 # %% robots
@@ -124,9 +99,9 @@ class RobotAnnotation:
         """
         parts = self.part_types()
         if any(issubclass(part, HasLeftRightArm) for part in parts):
-            return [arm.name for arm in Arms]
+            return [ENUM_NAMES.member_identifier(Arms, arm) for arm in Arms]
         if any(issubclass(part, Arm) for part in parts):
-            return [Arms.BOTH.name]
+            return [ENUM_NAMES.member_identifier(Arms, Arms.BOTH)]
         return []
 
     def torso_states(self) -> List[str]:
@@ -134,15 +109,20 @@ class RobotAnnotation:
         :return: The native torso states for a robot with a torso, else none.
         """
         if any(issubclass(part, Torso) for part in self.part_types()):
-            return [state.name for state in TorsoState]
+            return [
+                ENUM_NAMES.member_identifier(TorsoState, state) for state in TorsoState
+            ]
         return []
 
     def choices(self) -> Dict[str, List[str]]:
         """
-        :return: The members of the enumerations whose choices depend on the robot's
-            parts, by the enumeration's class name.
+        :return: The member identifiers of the enumerations whose choices depend on the
+            robot's parts, by the enumeration's identifier.
         """
-        return {Arms.__name__: self.arms(), TorsoState.__name__: self.torso_states()}
+        return {
+            ENUM_NAMES.identifier_of(Arms): self.arms(),
+            ENUM_NAMES.identifier_of(TorsoState): self.torso_states(),
+        }
 
     def has_model_description(self) -> bool:
         """
@@ -233,11 +213,19 @@ class SurfaceAnnotations:
 
     def named(self, name: str) -> Type[HasSupportingSurface]:
         """
-        :param name: The class name of a surface annotation.
+        :param name: A surface type's identifier, or the class name a plan saved it
+            under before.
         :return: The annotation class.
         :raises UnknownWorkspaceClass: When no annotation has the name.
         """
-        return WorkspaceClasses(self.annotations()).named(name)
+        annotations = self.annotations()
+        for annotation in annotations:
+            if ANNOTATION_NAMES.matches(annotation, name):
+                return annotation
+        raise UnknownWorkspaceClass(
+            name,
+            [ANNOTATION_NAMES.identifier_of(annotation) for annotation in annotations],
+        )
 
 
 # %% workspace
@@ -315,11 +303,23 @@ class PlanWorkspace:
 
     def surface_types(self) -> List[str]:
         """
-        :return: The class names of the annotations objects can be put on or in, sorted.
+        :return: The identifiers of the annotations objects can be put on or in, sorted.
         """
-        return [
-            annotation.__name__ for annotation in SurfaceAnnotations().annotations()
-        ]
+        return sorted(
+            ANNOTATION_NAMES.identifier_of(annotation)
+            for annotation in SurfaceAnnotations().annotations()
+        )
+
+    def saved_surface_types(self) -> Dict[str, str]:
+        """
+        :return: The identifier of each surface type by the names plans saved it under
+            before the protocol named it.
+        """
+        return {
+            saved: ANNOTATION_NAMES.identifier_of(annotation)
+            for annotation in SurfaceAnnotations().annotations()
+            for saved in ANNOTATION_NAMES.saved_as(annotation)
+        }
 
     def action_catalog(self) -> ActionCatalog:
         """

@@ -38,7 +38,12 @@ import coraplex.robot_plans.actions
 from coraplex.robot_plans.actions.base import ActionDescription
 from cramera_bridge.plans.arms import ArmField, Arms
 from cramera_bridge.exceptions import UnknownAction
-from cramera_bridge.names import ACTION_NAMES
+from cramera_bridge.names import (
+    ACTION_NAMES,
+    ANNOTATION_NAMES,
+    ENUM_NAMES,
+    FIELD_NAMES,
+)
 from cramera_protocol.plan_builder import (
     ActionCatalog,
     ActionField,
@@ -545,8 +550,20 @@ class DiscoveredAction:
 
     field_types: Dict[str, Any]
     """
-    The type of each offered field, without ``None`` in a union.
+    The type of each offered field, without ``None`` in a union, by field identifier.
     """
+
+    field_names: Dict[str, str] = field(default_factory=dict)
+    """
+    The keyword argument each field identifier stands for.
+    """
+
+    def field_name(self, identifier: str) -> str:
+        """
+        :param identifier: A field identifier of the schema.
+        :return: The action's keyword argument it stands for.
+        """
+        return self.field_names.get(identifier, identifier)
 
 
 @dataclass
@@ -592,8 +609,29 @@ class ActionSchemaBuilder:
 
     field_types: Dict[str, Any] = field(default_factory=dict, init=False)
     """
-    The type of each offered field.
+    The type of each offered field, by field identifier.
     """
+
+    field_names: Dict[str, str] = field(default_factory=dict, init=False)
+    """
+    The keyword argument of each field identifier.
+    """
+
+    @property
+    def identifier(self) -> str:
+        """
+        The action's identifier.
+        """
+        return ACTION_NAMES.identifier_of(self.action_class)
+
+    def field_identifier(self, declared: DeclaredField) -> str:
+        """
+        :param declared: An init field of the action.
+        :return: Its identifier, noting the keyword argument it stands for.
+        """
+        identifier = FIELD_NAMES.identifier_of(self.identifier, declared.name)
+        self.field_names[identifier] = declared.name
+        return identifier
 
     def build(self) -> DiscoveredAction:
         """
@@ -604,7 +642,7 @@ class ActionSchemaBuilder:
                 self.read(DeclaredField(self.action_class, declaration))
         self.mark_surface_fields()
         schema = ActionSchema(
-            name=ACTION_NAMES.identifier_of(self.action_class),
+            name=self.identifier,
             saved_as=ACTION_NAMES.saved_as(self.action_class),
             module=self.action_class.__module__,
             label=self.label(),
@@ -619,6 +657,7 @@ class ActionSchemaBuilder:
             action_class=self.action_class,
             schema=schema,
             field_types=self.field_types,
+            field_names=self.field_names,
         )
 
     def read(self, declared: DeclaredField) -> None:
@@ -634,7 +673,7 @@ class ActionSchemaBuilder:
         if classified is None:
             self.unsupported(declared, annotation)
             return
-        self.field_types[declared.name] = classified.python_type
+        self.field_types[self.field_identifier(declared)] = classified.python_type
         self.fields.append(self.offered(declared, classified))
 
     def unsupported(
@@ -650,7 +689,9 @@ class ActionSchemaBuilder:
             type_name = TypeText(annotation).text()
         if declared.has_default():
             self.hidden.append(
-                HiddenActionField(name=declared.name, type_name=type_name)
+                HiddenActionField(
+                    name=self.field_identifier(declared), type_name=type_name
+                )
             )
             return
         self.reasons.append(
@@ -667,7 +708,7 @@ class ActionSchemaBuilder:
         :return: The field as the schema offers it.
         """
         offered = ActionField(
-            name=declared.name,
+            name=self.field_identifier(declared),
             label=declared.label(),
             kind=classified.kind,
             required=not declared.has_default(),
@@ -682,10 +723,21 @@ class ActionSchemaBuilder:
                 if ArmField(classified.python_type).part() is not None
                 else classified.python_type
             )
-            offered.enum_type = enumeration.__name__
-            offered.members = [member.name for member in enumeration]
+            offered.enum_type = ENUM_NAMES.identifier_of(enumeration)
+            offered.members = [
+                ENUM_NAMES.member_identifier(enumeration, member)
+                for member in enumeration
+            ]
+            offered.saved_members = ENUM_NAMES.saved_members(enumeration)
+            # an arm field's default is a member of the planner's own arm choice,
+            # which shares its member names with the enumeration offered
+            default = declared.declaration.default
+            if isinstance(default, Enum) and default.name in enumeration.__members__:
+                offered.default = ENUM_NAMES.member_identifier(
+                    enumeration, enumeration[default.name]
+                )
         if classified.kind is ActionFieldKind.ANNOTATION:
-            offered.annotation = classified.python_type.__name__
+            offered.annotation = ANNOTATION_NAMES.identifier_of(classified.python_type)
         return offered
 
     def mark_surface_fields(self) -> None:

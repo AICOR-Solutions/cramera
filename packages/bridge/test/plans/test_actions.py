@@ -17,6 +17,7 @@ from coraplex.robot_plans.actions.core.robot_body import (
     ParkArmsAction,
     SetGripperAction,
 )
+from cramera_bridge.names import ACTION_NAMES, ANNOTATION_NAMES, ENUM_NAMES
 from cramera_bridge.plans.actions import (
     ActionConvention,
     ActionDiscovery,
@@ -87,12 +88,12 @@ def test_each_field_type_maps_to_its_kind(mimics):
     }
     arm = wave.field_named("arm")
     assert (arm.enum_type, arm.members) == (
-        Arms.__name__,
-        [member.name for member in Arms],
+        ENUM_NAMES.identifier_of(Arms),
+        [ENUM_NAMES.member_identifier(Arms, member) for member in Arms],
     )
     speed = wave.field_named("speed")
-    assert speed.members == [member.name for member in waving.Speed]
-    assert speed.default == waving.Speed.SLOW.name
+    assert speed.members == [member.name.lower() for member in waving.Speed]
+    assert speed.default == waving.Speed.SLOW.name.lower()
     assert wave.field_named("arm").required is True
     assert wave.field_named("mood").required is False
 
@@ -114,8 +115,10 @@ def test_the_schema_reads_the_label_group_and_docstrings(mimics):
 def test_a_grasp_is_picked_as_the_object_it_is_on(mimics):
     hand_over = mimics.named(waving.HandOverAction.__name__).schema
     assert hand_over.field_named("grasp").kind is ActionFieldKind.BODY
-    assert hand_over.field_named("arms").enum_type == Arms.__name__
-    assert hand_over.field_named("tool").annotation == Tool.__name__
+    assert hand_over.field_named("arms").enum_type == ENUM_NAMES.identifier_of(Arms)
+    assert hand_over.field_named("tool").annotation == (
+        ANNOTATION_NAMES.identifier_of(Tool)
+    )
     assert hand_over.field_named(ActionConvention.DESTINATION).kind is (
         ActionFieldKind.POSE_OR_SURFACE
     )
@@ -125,7 +128,7 @@ def test_a_grasp_is_picked_as_the_object_it_is_on(mimics):
 def test_a_hand_is_picked_by_its_arm(mimics):
     point = mimics.named(waving.PointAction.__name__).schema
     assert point.available is True
-    assert point.field_named("hand").enum_type == Arms.__name__
+    assert point.field_named("hand").enum_type == ENUM_NAMES.identifier_of(Arms)
     assert point.field_named(ActionConvention.DESTINATION).accepts_surface is False
 
 
@@ -156,7 +159,7 @@ def test_an_unknown_action_is_refused(mimics):
     ],
 )
 def test_the_native_actions_are_available(native, action):
-    discovered = native.named(action.__name__)
+    discovered = native.named(ACTION_NAMES.identifier_of(action))
     assert discovered.action_class is action
     assert discovered.schema.available is True
 
@@ -174,8 +177,8 @@ def test_an_action_with_a_required_trajectory_is_unavailable(native):
 def test_set_gripper_offers_its_two_enumerations(native):
     schema = native.named(SetGripperAction.__name__).schema
     assert [offered.enum_type for offered in schema.fields] == [
-        Arms.__name__,
-        "GripperState",
+        ENUM_NAMES.identifier_of(Arms),
+        "gripper_state",
     ]
 
 

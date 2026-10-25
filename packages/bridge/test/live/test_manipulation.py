@@ -7,6 +7,7 @@ from __future__ import annotations
 import pytest
 
 from cramera_bridge.exceptions import ObjectNotMovable, UnknownJoint, UnknownObject
+from cramera_bridge.names import ANNOTATION_NAMES
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.live.manipulation import WorldSurfaces
 from cramera_bridge.live.publisher import LivePublisher
@@ -95,4 +96,6 @@ def test_annotated_surfaces_are_listed(kitchen):
     with kitchen.world.modify_world():
         kitchen.world.add_semantic_annotation(Table(root=kitchen.table))
     surfaces = WorldSurfaces(kitchen.world).surfaces().surfaces
-    assert [surface.type_name for surface in surfaces] == [Table.__name__]
+    assert [surface.type_name for surface in surfaces] == [
+        ANNOTATION_NAMES.identifier_of(Table)
+    ]

@@ -22,12 +22,14 @@ through the protocol (`cramera_protocol`):
 - A name CRAM defines, such as a status, an arm or an action field, crosses the boundary
   as the protocol's own name, translated inside `cramera-bridge` (as `PlanNodeStatus`
   translates coraplex's life cycle values), so a CRAM rename stays inside the package.
-- Classes whose names a saved file or a check relies on (actions, robots, plan node
-  kinds) are pinned in `cramera_bridge/names.py` to snake_case identifiers of the
-  protocol's own. When CRAM renames or moves such a class, update its path there and
-  keep its identifier. When CRAM adds one, pin it; `test/live/test_names.py` fails
-  until every action and robot the workspace offers is pinned. Labels shown to people
-  and EQL queries follow CRAM's names by design.
+- Names a saved file or a check relies on are pinned in `cramera_bridge/names.py` to
+  snake_case identifiers of the protocol's own: actions, robots, plan node kinds,
+  semantic annotation (surface) types, enumerations and their members, and the fields
+  of every action. When CRAM renames or moves a class, update its path there and keep
+  its identifier; when it renames an enumeration member or an action field, add it to
+  the entry's `renamed` or to `FIELD_RENAMES`. When CRAM adds an action, a robot or a
+  surface type, pin it. `test/live/test_names.py` fails until the table follows CRAM.
+  Labels shown to people and EQL queries follow CRAM's names by design.
 
 Check a change with:
 

@@ -1,5 +1,5 @@
 {
-  "formatVersion": "1.2",
+  "formatVersion": "1.3",
   "name": "milk_to_table",
   "task": "Carry the milk to the table",
   "environment": "aicor_medical_lab",
@@ -12,15 +12,15 @@
       "pose": [1.0, 2.5, 0.0, 0.0, 0.0, 0.0, 1.0],
       "jointPositions": {"robot_1/torso_lift_joint": 0.2},
       "steps": [
-        {"id": "step_1", "action": "park_arms", "values": {"arm": "BOTH"}},
-        {"id": "step_2", "action": "move_torso", "values": {"torso_state": "HIGH"}},
+        {"id": "step_1", "action": "park_arms", "values": {"arm": "both"}},
+        {"id": "step_2", "action": "move_torso", "values": {"torso_state": "high"}},
         {
           "id": "step_3",
           "action": "transport",
           "values": {
             "object_designator": "milk",
-            "arm": "LEFT",
-            "target_location": {"placement": "surface", "surfaceType": "Table"}
+            "arm": "left",
+            "target_location": {"placement": "surface", "surfaceType": "table"}
           },
           "constraints": [
             {

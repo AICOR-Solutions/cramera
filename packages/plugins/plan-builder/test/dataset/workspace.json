@@ -1,9 +1,9 @@
 {
   "liveUrl": "http://127.0.0.1:8765",
   "robots": [
-    {"name": "pr2", "label": "PR2", "savedAs": ["PR2"], "module": "semantic_digital_twin.robots.pr2", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": ["HIGH", "MID", "LOW"]}},
-    {"name": "tracy", "label": "Tracy", "savedAs": ["Tracy"], "module": "semantic_digital_twin.robots.tracy", "choices": {"Arms": ["LEFT", "RIGHT", "BOTH"], "TorsoState": []}}
+    {"name": "pr2", "label": "PR2", "savedAs": ["PR2"], "module": "semantic_digital_twin.robots.pr2", "choices": {"arms": ["left", "right", "both"], "torso_state": ["high", "mid", "low"]}},
+    {"name": "tracy", "label": "Tracy", "savedAs": ["Tracy"], "module": "semantic_digital_twin.robots.tracy", "choices": {"arms": ["left", "right", "both"], "torso_state": []}}
   ],
   "objects": [{"id": "cup.obj", "name": "cup"}, {"id": "milk.stl", "name": "milk"}],
-  "surfaceTypes": ["CounterTop", "Table"]
+  "surfaceTypes": ["counter_top", "table"], "savedSurfaceTypes": {"CounterTop": "counter_top", "Table": "table"}
 }
