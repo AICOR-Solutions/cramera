@@ -27,7 +27,12 @@ from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
 from cramera_plan_builder.exceptions import CramUnavailable
 from cramera_protocol.bundle.files import MeshFormat
-from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
+from cramera_protocol.plan_builder import (
+    ActionCatalog,
+    LoadedEnvironment,
+    ObjectModel,
+    RobotModel,
+)
 
 if TYPE_CHECKING:
     from cramera_bridge.plans.workspace import PlanWorkspace
@@ -141,6 +146,18 @@ class CramWorkspace(ABC):
         """
 
     @abstractmethod
+    def write_environment(
+        self, source: Path, scenes: Path, taken: Set[str]
+    ) -> LoadedEnvironment:
+        """
+        :param source: A URDF or xacro file of this machine.
+        :param scenes: The scenes directory the environment bundle is written to.
+        :param taken: The bundle names already in use, in any scenes directory.
+        :return: The written bundle's index entry and the meshes that were not found.
+        :raises CramUnavailable: Without the workspace.
+        """
+
+    @abstractmethod
     def objects(self) -> List[ObjectModel]:
         """
         :return: The object meshes, sorted by identifier.
@@ -238,6 +255,11 @@ class MissingWorkspace(CramWorkspace):
     def write_robot_description(self, name: str, directory: Path) -> Path:
         raise CramUnavailable(self.missing_modules)
 
+    def write_environment(
+        self, source: Path, scenes: Path, taken: Set[str]
+    ) -> LoadedEnvironment:
+        raise CramUnavailable(self.missing_modules)
+
     def objects(self) -> List[ObjectModel]:
         return []
 
@@ -270,6 +292,11 @@ class InstalledWorkspace(CramWorkspace):
 
     def write_robot_description(self, name: str, directory: Path) -> Path:
         return self.plans.write_robot_description(name, directory)
+
+    def write_environment(
+        self, source: Path, scenes: Path, taken: Set[str]
+    ) -> LoadedEnvironment:
+        return self.plans.write_environment(source, scenes, taken)
 
     def objects(self) -> List[ObjectModel]:
         return self.plans.objects()

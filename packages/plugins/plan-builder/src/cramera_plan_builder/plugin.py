@@ -195,6 +195,7 @@ class PlanBuilderPlugin(ViewerPlugin):
         port = self.port()
         return PlanBuilderRoutes(
             scenes=context.catalog,
+            local_scenes=context.locations.local_scenes,
             workspace=self.workspace,
             robot_files=RobotModelFiles(self.workspace, storage.robots),
             plans=PlanStore(storage.plans),

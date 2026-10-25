@@ -14,12 +14,17 @@ import { PlanPose } from './poses.js';
 export const EMPTY_FLOOR = Object.freeze({ value: '', label: 'Empty floor' });
 
 /**
+ * The hint in the path field of a URDF to load as an environment.
+ */
+export const URDF_PLACEHOLDER = '/path/to/world.urdf';
+
+/**
  * What the environment section says about each kind of choice.
  */
 export const EnvironmentNote = Object.freeze({
   EMPTY_FLOOR: 'The robots start on an empty floor.',
   NONE_OFFERED:
-    'No environment is offered yet. An environment is a scene without a robot, such as one made in the Scene Builder or imported from a USD stage; the robots start on an empty floor until one is there.',
+    'No environment is offered yet. An environment is a scene without a robot, such as one made in the Scene Builder, imported from a USD stage or loaded from a URDF below; the robots start on an empty floor until one is there.',
   /**
    * @param {string} label The environment's name for people.
    * @returns {string} What the section says about a chosen environment.
@@ -40,7 +45,7 @@ export class EnvironmentView {
    * The environment choices, the empty floor first.
    * @type {Array<{value: string, label: string}>}
    */
-  #choices;
+  #choices = [EMPTY_FLOOR];
 
   /**
    * The page that applies the person's edits.
@@ -61,6 +66,12 @@ export class EnvironmentView {
   #note;
 
   /**
+   * The path of a URDF or xacro file to load as an environment.
+   * @type {HTMLInputElement}
+   */
+  path;
+
+  /**
    * Owns the select's listener.
    * @type {Elements}
    */
@@ -68,31 +79,41 @@ export class EnvironmentView {
 
   /**
    * @param {Document} document The page's document.
-   * @param {Object} editor The page: `state` (the `PlanState`) and `edit(change)`.
+   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)` and
+   *   `loadEnvironment(path)`.
    */
   constructor(document, editor) {
     this.#editor = editor;
     this.#elements = new Elements(document);
     const elements = this.#elements;
-    const state = editor.state;
+    this.select = elements.select(PlanAction.ENVIRONMENT, this.#choices, '', (value) =>
+      this.#editor.edit(() => this.#editor.state.setField(PlanKey.ENVIRONMENT, value || null)),
+    );
+    this.#note = elements.create('p', 'muted environment-note');
+    this.path = elements.input('text', PlanAction.URDF_PATH, () => {});
+    this.path.placeholder = URDF_PLACEHOLDER;
+    const load = elements.button('Load URDF', PlanAction.LOAD_URDF, () => {
+      const path = this.path.value.trim();
+      if (path) this.#editor.loadEnvironment(path);
+    });
+    const row = elements.create('div', 'urdf-row');
+    row.append(this.path, load);
+    this.element = elements.create('div', 'environment');
+    this.element.append(this.select, this.#note, elements.label('or load a URDF of this machine', row, 'urdf-load'));
+    this.render();
+  }
+
+  /**
+   * Offer the catalog's environments, show the chosen one and what it means.
+   */
+  render() {
+    const state = this.#editor.state;
+    const chosen = state.field(PlanKey.ENVIRONMENT) || '';
     this.#choices = [
       EMPTY_FLOOR,
       ...state.catalog[PlanBuilderCatalogKey.ENVIRONMENTS].map((entry) => ({ value: entry[IndexEntryKey.NAME], label: entry[IndexEntryKey.ENVIRONMENT] ?? entry[IndexEntryKey.NAME] })),
     ];
-    this.select = elements.select(PlanAction.ENVIRONMENT, this.#choices, state.field(PlanKey.ENVIRONMENT), (value) =>
-      this.#editor.edit(() => this.#editor.state.setField(PlanKey.ENVIRONMENT, value || null)),
-    );
-    this.#note = elements.create('p', 'muted environment-note');
-    this.element = elements.create('div', 'environment');
-    this.element.append(this.select, this.#note);
-  }
-
-  /**
-   * Show the chosen environment and what it means.
-   */
-  render() {
-    const chosen = this.#editor.state.field(PlanKey.ENVIRONMENT) || '';
-    this.select.value = chosen;
+    this.#elements.options(this.select, this.#choices, chosen);
     this.#note.textContent = this.note(chosen);
   }
 

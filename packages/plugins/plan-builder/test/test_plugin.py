@@ -7,9 +7,15 @@ from __future__ import annotations
 import json
 from http import HTTPStatus
 
+import pytest
 
+
+from cramera.application import ViewerApplication
 from cramera.http.messages import HttpMethod, MediaType
+from cramera.http.origin import OriginPolicy
+from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
+from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
 from cramera_plan_builder.plugin import (
@@ -27,6 +33,7 @@ from cramera_protocol.live import LIVE_HOST, LIVE_PORT
 from cramera_protocol.plan_builder import (
     ConstraintText,
     DemoDocument,
+    LoadedEnvironment,
     DemoSource,
     PlanBuilderCatalog,
     PlanBuilderLimits,
@@ -40,6 +47,7 @@ from cramera_protocol.plan_builder import (
     RunStatus,
     SavedDemo,
     StepConstraint,
+    UrdfEnvironment,
 )
 from cramera_protocol.viewer import ErrorKey
 
@@ -129,6 +137,74 @@ def test_without_cram_no_object_file_is_served(serve, output):
         serve(plugin), HttpMethod.GET, f"{PlanBuilderRoute.OBJECT_FILES}milk.stl"
     )
     assert answer.status == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+# %% environments
+
+URDF = '<robot name="apartment"><link name="floor"/></robot>'
+"""
+A URDF of one link, loaded as an environment.
+"""
+
+
+def answerer_with_local_scenes(plugin, scenes, locations) -> RequestAnswerer:
+    """
+    :return: The viewer's request answerer whose catalog holds the local scenes before
+        the test scenes, as the viewer's command line builds it.
+    """
+    catalog = SceneCatalog(
+        [SceneDirectory(locations.local_scenes, SceneSource.LOCAL), *scenes.directories]
+    )
+    application = ViewerApplication(
+        catalog=catalog, locations=locations, plugins=[plugin]
+    )
+    return RequestAnswerer(router=application.router(), policy=OriginPolicy())
+
+
+def load(answerer, path) -> object:
+    """
+    :return: The answer to loading the path as an environment.
+    """
+    body = json.dumps(UrdfEnvironment(path=str(path)).to_json()).encode("utf-8")
+    return send(answerer, HttpMethod.POST, PlanBuilderRoute.ENVIRONMENTS, body)
+
+
+def test_a_urdf_becomes_an_environment_the_catalog_lists(
+    plugin, scenes, locations, tmp_path
+):
+    source = tmp_path / "apartment.urdf"
+    source.write_text(URDF, encoding="utf-8")
+    answerer = answerer_with_local_scenes(plugin, scenes, locations)
+    answer = load(answerer, source)
+    loaded = LoadedEnvironment.from_json(json.loads(answer.body))
+    assert answer.status == HTTPStatus.OK
+    assert loaded.entry.name == "apartment"
+    assert (locations.local_scenes / "apartment" / "apartment.urdf").is_file()
+    catalog = PlanBuilderCatalog.from_json(
+        json.loads(send(answerer, HttpMethod.GET, PlanBuilderRoute.CATALOG).body)
+    )
+    assert [entry.name for entry in catalog.environments] == ["apartment", "lab"]
+
+
+@pytest.mark.parametrize("name", ["apartment.stl", "none.urdf"])
+def test_only_an_existing_urdf_is_loaded(post, tmp_path, name):
+    (tmp_path / "apartment.stl").write_text("solid", encoding="utf-8")
+    answer = post(
+        PlanBuilderRoute.ENVIRONMENTS,
+        UrdfEnvironment(path=str(tmp_path / name)).to_json(),
+    )
+    assert answer.status == HTTPStatus.NOT_FOUND
+    assert name in json.loads(answer.body)[ErrorKey.ERROR]
+
+
+def test_without_cram_no_urdf_is_loaded(serve, output, tmp_path):
+    source = tmp_path / "apartment.urdf"
+    source.write_text(URDF, encoding="utf-8")
+    plugin = PlanBuilderPlugin(
+        environment={PlanBuilderVariable.OUTPUT: str(output)},
+        workspace=WorkspaceLoader(modules=CramModules(finder=lambda name: None)),
+    )
+    assert load(serve(plugin), source).status == HTTPStatus.SERVICE_UNAVAILABLE
 
 
 # %% plans

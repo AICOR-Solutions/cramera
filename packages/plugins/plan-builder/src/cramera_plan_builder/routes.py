@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 from typing_extensions import Any, List, Optional
 
@@ -16,7 +17,11 @@ from cramera.scenes import SceneCatalog
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.environments import EnvironmentBundles
-from cramera_plan_builder.exceptions import ContentTooLarge, MalformedRequestBody
+from cramera_plan_builder.exceptions import (
+    ContentTooLarge,
+    MalformedRequestBody,
+    NotAUrdfFile,
+)
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
@@ -32,7 +37,13 @@ from cramera_protocol.plan_builder import (
     PlanRecord,
     RunRequest,
     SavedNames,
+    UrdfEnvironment,
 )
+
+URDF_SOURCE_SUFFIXES = frozenset({".urdf", ".xacro"})
+"""
+The suffixes of the files an environment is loaded from.
+"""
 
 # %% request bodies
 
@@ -82,6 +93,11 @@ class PlanBuilderRoutes:
     scenes: SceneCatalog
     """
     The scenes the viewer shows, whose bundles without a robot are environments.
+    """
+
+    local_scenes: Path
+    """
+    The scenes directory environments loaded from a URDF are written to.
     """
 
     workspace: WorkspaceLoader
@@ -135,6 +151,9 @@ class PlanBuilderRoutes:
         """
         return [
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.CATALOG, self.answer_catalog),
+            PluginRoute(
+                HttpMethod.POST, PlanBuilderRoute.ENVIRONMENTS, self.answer_environment
+            ),
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.PLANS, self.answer_plans),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.PLANS, self.answer_save),
             PluginPrefixRoute(HttpMethod.GET, PlanBuilderRoute.PLAN, self.answer_plan),
@@ -184,6 +203,26 @@ class PlanBuilderRoutes:
         :return: The catalog.
         """
         return Response.of_json(self.catalog())
+
+    def answer_environment(self, request: Request) -> Response:
+        """
+        Write a URDF or xacro file of this machine, with its meshes, as an environment
+        bundle into the local scenes, where the catalog then lists it.
+
+        :param request: A request whose body is a :class:`UrdfEnvironment`.
+        :return: The written bundle's :class:`LoadedEnvironment`.
+        :raises NotAUrdfFile: When the path names no URDF or xacro file.
+        """
+        given = UrdfEnvironment.from_json(self.body(request)).path
+        source = Path(given.strip()).expanduser()
+        if source.suffix not in URDF_SOURCE_SUFFIXES or not source.is_file():
+            raise NotAUrdfFile(given)
+        taken = {entry.name for entry in self.scenes.index().scenes}
+        return Response.of_json(
+            self.workspace.workspace().write_environment(
+                source.resolve(), self.local_scenes, taken
+            )
+        )
 
     def answer_object_file(self, request: Request, path: str) -> Response:
         """

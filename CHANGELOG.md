@@ -24,6 +24,15 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **A URDF of this machine as the plan builder's environment.** Below the environment
+  list, a path field and **Load URDF** take a URDF or xacro file, such as CRAM's
+  `coraplex/resources/worlds/apartment.urdf` or `kitchen.urdf`. It is copied with every
+  mesh it names into a new bundle of the local scenes, offered among the environments
+  and chosen; meshes that cannot be found are named and left out. New are the route
+  `PlanBuilderRoute.ENVIRONMENTS`, the documents `UrdfEnvironment` and
+  `LoadedEnvironment`, and `cramera_bridge.export.urdf_environment`.
+
+  ![CRAM's apartment loaded as the environment](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-56/apartment_loaded.png)
 - **A map of the world's axes in the plan builder.** The 3D view shows a labelled
   x, y and z triad at the origin, where the robots' and objects' poses are measured
   from, drawn over the robots so one standing at the origin does not hide it, and a
