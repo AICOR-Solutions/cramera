@@ -24,6 +24,14 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **A map of the world's axes in the plan builder.** The 3D view shows a labelled
+  x, y and z triad at the origin, where the robots' and objects' poses are measured
+  from, drawn over the robots so one standing at the origin does not hide it, and a
+  compass in the bottom left corner that turns with the camera, so x, y and z read
+  the same way the pose fields do from any view. Red is x, green y and blue z, as the
+  viewer's frame axes. The map is `SceneAxes` in the builder's `scene-axes.js`.
+
+  ![The plan builder's axes at the origin and the compass](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/issue-53/after.png)
 - **Primitive shapes in the scene builder.** The library's new **Shapes** category
   offers a box, a cylinder and a sphere (`primitives/box`, …), one metre across, so
   their size is set in metres. Every placed instance can carry a description of what
