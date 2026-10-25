@@ -137,6 +137,14 @@ export class EnvironmentView {
 
 // %% robots
 
+/**
+ * What the robots section says while the plan has no robot.
+ */
+export const RobotsNote = Object.freeze({
+  NONE_OFFERED: 'The CRAM workspace offers no robot here.',
+  NONE_ADDED: 'No robot yet; add one to compose its plan.',
+});
+
 export class RobotsView {
   /**
    * The view's element.
@@ -164,7 +172,8 @@ export class RobotsView {
 
   /**
    * @param {Document} document The page's document.
-   * @param {Object} editor The page: `state` (the `PlanState`) and `edit(change)`.
+   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)` and
+   *   `preferredModel()`, the robot model the person used last or null.
    */
   constructor(document, editor) {
     this.#editor = editor;
@@ -182,8 +191,13 @@ export class RobotsView {
     const state = this.#editor.state;
     const robot = state.activeRobot();
     const models = state.catalog[PlanBuilderCatalogKey.ROBOTS].map((model) => ({ value: model[RobotModelKey.NAME], label: model[RobotModelKey.LABEL] || model[RobotModelKey.NAME] }));
+    if (models.length === 0) {
+      this.element.replaceChildren(elements.create('p', 'empty', RobotsNote.NONE_OFFERED));
+      return;
+    }
+    const adding = this.#adding(elements, models, robot);
     if (!robot) {
-      this.element.replaceChildren(elements.create('p', 'empty', 'The CRAM workspace offers no robot here.'));
+      this.element.replaceChildren(elements.create('p', 'empty', RobotsNote.NONE_ADDED), adding);
       return;
     }
     const identifier = robot[PlannedRobotKey.IDENTIFIER];
@@ -202,8 +216,6 @@ export class RobotsView {
       elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, z], PlanPose.radians(value))),
     );
     const remove = elements.button(`Remove ${robot[PlannedRobotKey.LABEL]}`, PlanAction.REMOVE_ROBOT, () => this.#editor.edit(() => state.removeRobot(identifier)));
-    remove.disabled = state.robots().length <= 1;
-    remove.title = remove.disabled ? 'A plan keeps at least one robot.' : '';
     const settings = elements.create('div', 'robot-settings');
     settings.append(
       elements.create('h3', '', `Settings of ${robot[PlannedRobotKey.LABEL]}`),
@@ -212,15 +224,29 @@ export class RobotsView {
       elements.label('starts at', row),
       remove,
     );
-    const addedModel = elements.select(PlanAction.ROBOT_MODEL, models, this.#addedModel ?? robot[PlannedRobotKey.MODEL], (value) => {
+    this.element.replaceChildren(list, settings, adding);
+  }
+
+  /**
+   * @param {Elements} elements Owns the controls' listeners.
+   * @param {Array<{value: string, label: string}>} models The robot models on offer.
+   * @param {Object|null} robot The robot whose plan is edited, or null.
+   * @returns {HTMLLabelElement} The model a robot is added as and the button adding it;
+   *   the model picked before, else the edited robot's, else the one the person used
+   *   last or the one offering the most actions.
+   */
+  #adding(elements, models, robot) {
+    const state = this.#editor.state;
+    const shown = this.#addedModel ?? robot?.[PlannedRobotKey.MODEL] ?? state.defaultModel(this.#editor.preferredModel());
+    const addedModel = elements.select(PlanAction.ROBOT_MODEL, models, shown, (value) => {
       this.#addedModel = value;
     });
-    const adding = elements.create('div', 'button-row');
-    adding.append(
+    const row = elements.create('div', 'button-row');
+    row.append(
       addedModel,
       elements.button('Add', PlanAction.ADD_ROBOT, () => this.#editor.edit(() => state.addRobot(addedModel.value))),
     );
-    this.element.replaceChildren(list, settings, elements.label('add a robot', adding, 'robot-adding'));
+    return elements.label('add a robot', row, 'robot-adding');
   }
 
   /**

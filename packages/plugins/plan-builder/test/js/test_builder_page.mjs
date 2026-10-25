@@ -36,7 +36,7 @@ import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constr
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { EnvironmentNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
+import { EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { STEP_PALETTE_SIZE } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
@@ -245,7 +245,13 @@ class FakeTimer {
   }
 }
 
-async function openPage(query = '', prepare = () => {}) {
+/**
+ * Open the page, by default adding one robot as the person would.
+ * @param {string} query The page's query.
+ * @param {function(Object): void} prepare Prepares the fake API and storage.
+ * @param {{robot: boolean}} options Whether to add a robot once the page started.
+ */
+async function openPage(query = '', prepare = () => {}, { robot = true } = {}) {
   const document = new FakeDocument();
   const api = new FakeApi();
   const live = new FakeLive();
@@ -267,6 +273,7 @@ async function openPage(query = '', prepare = () => {}) {
   const page = new BuilderPage(root, environment);
   await page.start();
   await settled();
+  if (robot) byAction(root, PlanAction.ADD_ROBOT)[0]?.click();
   return { document, api, live, timer, storage, root, page, scene: () => scene };
 }
 
@@ -306,7 +313,7 @@ test('the page starts in the environment its query names, with the last robot mo
 test('the page opens the saved plan its query names', async () => {
   const { page } = await openPage(`${PlanBuilderPageParameter.PLAN}=plan-1`, ({ api }) => {
     api.saved.push({ [PlanRecordKey.IDENTIFIER]: 'plan-1', [PlanRecordKey.DOCUMENT]: { [PlanKey.NAME]: 'opened', [PlanKey.ROBOTS]: [] } });
-  });
+  }, { robot: false });
   assert.equal(page.state.field(PlanKey.NAME), 'opened');
 });
 
@@ -402,7 +409,7 @@ test('a step that no longer fits its action shows why', async () => {
         [PlanKey.ROBOTS]: [{ id: 'robot_1', model: 'pr2', label: 'PR2 1', pose: [0, 0, 0, 0, 0, 0, 1], steps: [{ id: 'step_1', action: 'search', values: {} }] }],
       },
     });
-  });
+  }, { robot: false });
   const problems = root.findAll((element) => element.className === 'step-problem').map((element) => element.textContent);
   assert.deepEqual(problems, page.state.problems(page.state.steps()[0]));
   assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, 'search');
@@ -563,10 +570,32 @@ test('a robot picked in the 3D view becomes the one whose plan is edited', async
   assert.equal(page.state.activeRobot()[PlannedRobotKey.IDENTIFIER], first);
 });
 
-test('the last robot cannot be removed', async () => {
+test('a new plan starts without a robot, and the last robot can be removed', async () => {
+  const { root, page } = await openPage('', () => {}, { robot: false });
+  assert.deepEqual(page.state.robots(), []);
+  assert.ok(root.findAll((element) => element.textContent === RobotsNote.NONE_ADDED).length === 1);
+  assert.equal(root.findAll((element) => element.tagName === 'H2' && element.textContent === 'Plan of no robot').length, 1);
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  assert.equal(page.state.robots().length, 1);
+  byAction(root, PlanAction.REMOVE_ROBOT)[0].click();
+  assert.deepEqual(page.state.robots(), []);
+  assert.equal(page.state.activeRobot(), null);
+});
+
+test('a new plan from the bar starts without a robot too', async () => {
   const { root, page } = await openPage();
   assert.equal(page.state.robots().length, 1);
-  assert.equal(byAction(root, PlanAction.REMOVE_ROBOT)[0].disabled, true);
+  byAction(root, PlanAction.NEW)[0].click();
+  await settled();
+  assert.deepEqual(page.state.robots(), []);
+});
+
+test('a robot is added as the model the person used last', async () => {
+  const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'tracy'), { robot: false });
+  const [model] = byAction(root, PlanAction.ROBOT_MODEL);
+  assert.equal(model.value, 'tracy');
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
 });
 
 // %% 3D view

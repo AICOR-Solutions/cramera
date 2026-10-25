@@ -35,29 +35,33 @@ const fieldOf = (state, action, name) => state.schema(action)[ActionSchemaKey.FI
 
 // %% new plans
 
-test('a new plan starts with one robot of the model offering the most actions', () => {
+test('a new plan starts without a robot', () => {
   const state = PlanState.empty(catalog(), 'lab');
-  const robot = state.activeRobot();
   assert.equal(state.field(PlanKey.NAME), NEW_PLAN_NAME);
   assert.equal(state.field(PlanKey.ENVIRONMENT), 'lab');
-  assert.equal(state.robots().length, 1);
-  assert.equal(robot[PlannedRobotKey.MODEL], 'armar7');
-  assert.equal(robot[PlannedRobotKey.IDENTIFIER], `${IdentityPrefix.ROBOT}1`);
+  assert.deepEqual(state.robots(), []);
+  assert.equal(state.activeRobot(), null);
+  assert.equal(state.document[PlanKey.SELECTED_ROBOT], undefined);
 });
 
-test('a new plan starts with the model the person used last', () => {
-  const state = PlanState.empty(catalog(), null, 'tracy');
-  assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
+test('a new plan asked for a model starts with one robot of it, by its saved name too', () => {
+  const state = PlanState.empty(catalog(), null, 'PR2');
+  assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'pr2');
+  assert.equal(state.activeRobot()[PlannedRobotKey.IDENTIFIER], `${IdentityPrefix.ROBOT}1`);
   assert.equal(state.field(PlanKey.ENVIRONMENT), '');
 });
 
-test('a new plan starts with the model the person used last under its saved name', () => {
-  const state = PlanState.empty(catalog(), null, 'PR2');
-  assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'pr2');
+test('a robot is added as the model used last, else the one offering the most actions', () => {
+  const state = PlanState.empty(catalog(), 'lab');
+  assert.equal(state.defaultModel(null), 'armar7');
+  assert.equal(state.defaultModel('tracy'), 'tracy');
+  assert.equal(state.defaultModel('PR2'), 'pr2');
+  assert.equal(state.defaultModel('gone'), 'armar7');
+  assert.equal(new PlanState({ ...catalog(), [PlanBuilderCatalogKey.ROBOTS]: [] }, {}).defaultModel(null), null);
 });
 
 test('the document names the edited robot as the one that performs', () => {
-  const state = PlanState.empty(catalog(), 'lab');
+  const state = PlanState.empty(catalog(), 'lab', 'armar7');
   const second = state.addRobot('tracy');
   assert.equal(state.document[PlanKey.SELECTED_ROBOT], second);
   state.selectRobot(`${IdentityPrefix.ROBOT}1`);
@@ -260,14 +264,16 @@ test('changing the model moves a robot standing at the old height to the new one
   assert.equal(height(), 0.3);
 });
 
-test('the last robot is kept', () => {
+test('removing a robot edits the first one left, and the last leaves none', () => {
   const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const first = state.activeRobot()[PlannedRobotKey.IDENTIFIER];
   const second = state.addRobot('pr2');
   assert.equal(state.activeRobot()[PlannedRobotKey.LABEL], 'PR2 2');
-  assert.equal(state.removeRobot(second), true);
+  state.removeRobot(second);
   assert.equal(state.activeRobot()[PlannedRobotKey.IDENTIFIER], first);
-  assert.equal(state.removeRobot(first), false);
+  state.removeRobot(first);
+  assert.deepEqual(state.robots(), []);
+  assert.equal(state.activeRobot(), null);
 });
 
 test('a plan full of robots refuses another', () => {

@@ -125,22 +125,42 @@ export class PlanState {
   /**
    * @param {Object} catalog The plan builder's catalog.
    * @param {string|null} environment The environment bundle, or null for an empty floor.
-   * @param {string|null=} preferred The robot model to start with when the catalog has
-   *   it, by its name or a name it was saved under before.
-   * @returns {PlanState} A new plan with one robot: of the preferred model, else of the
-   *   model offering the most actions.
+   * @param {string|null=} model A robot model to start with, by its name or a name it
+   *   was saved under before, or null to start without a robot.
+   * @returns {PlanState} A new plan: without robots, the person adds them, or with one
+   *   robot of the model when the catalog has it.
    */
-  static empty(catalog, environment, preferred = null) {
+  static empty(catalog, environment, model = null) {
     const plan = { [PlanKey.NAME]: NEW_PLAN_NAME };
     if (environment) plan[PlanKey.ENVIRONMENT] = environment;
     const state = new PlanState(catalog, plan);
-    const offered = (model) => state.offeredActions({ [PlannedRobotKey.MODEL]: model[RobotModelKey.NAME] }).length;
-    const models = [...catalog[PlanBuilderCatalogKey.ROBOTS]];
-    models.sort((first, second) => offered(second) - offered(first));
-    const named = (model) => model[RobotModelKey.NAME] === preferred || (model[RobotModelKey.SAVED_AS] ?? []).includes(preferred);
-    const chosen = models.find(named) ?? models[0];
-    if (chosen) state.addRobot(chosen[RobotModelKey.NAME]);
+    const named = model === null ? null : state.#modelNamed(model);
+    if (named) state.addRobot(named[RobotModelKey.NAME]);
     return state;
+  }
+
+  /**
+   * @param {string|null} preferred The robot model the person used last, by its name or
+   *   a name it was saved under before, or null.
+   * @returns {string|null} The model a robot is added as unless the person picks
+   *   another: the preferred one when the catalog has it, else the model offering the
+   *   most actions; null when the catalog offers no robot.
+   */
+  defaultModel(preferred) {
+    const named = preferred === null ? null : this.#modelNamed(preferred);
+    if (named) return named[RobotModelKey.NAME];
+    const offered = (model) => this.offeredActions({ [PlannedRobotKey.MODEL]: model[RobotModelKey.NAME] }).length;
+    const models = [...this.#catalog[PlanBuilderCatalogKey.ROBOTS]];
+    models.sort((first, second) => offered(second) - offered(first));
+    return models[0]?.[RobotModelKey.NAME] ?? null;
+  }
+
+  /**
+   * @param {string} name A robot model's name, or a name it was saved under before.
+   * @returns {Object|undefined} The catalog's model of that name.
+   */
+  #modelNamed(name) {
+    return this.#catalog[PlanBuilderCatalogKey.ROBOTS].find((model) => model[RobotModelKey.NAME] === name || (model[RobotModelKey.SAVED_AS] ?? []).includes(name));
   }
 
   /**
@@ -330,16 +350,13 @@ export class PlanState {
   }
 
   /**
-   * Remove a robot; the plan keeps at least one.
+   * Remove a robot; the first robot left is then the one whose plan is edited, if any.
    * @param {string} identifier The robot's identity.
-   * @returns {boolean} Whether it was removed.
    */
   removeRobot(identifier) {
-    if (this.robots().length <= 1) return false;
     this.robot(identifier);
     this.#plan[PlanKey.ROBOTS] = this.robots().filter((robot) => robot[PlannedRobotKey.IDENTIFIER] !== identifier);
-    if (this.#activeRobot === identifier) this.#activeRobot = this.robots()[0][PlannedRobotKey.IDENTIFIER];
-    return true;
+    if (this.#activeRobot === identifier) this.#activeRobot = this.robots()[0]?.[PlannedRobotKey.IDENTIFIER] ?? null;
   }
 
   /**
