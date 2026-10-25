@@ -185,6 +185,9 @@ which this repository was mirrored until 22 Oct 2026.
   or that it finished without saving its recording. A run stopped with **End the
   run** or on viewer shutdown is reported as `TaskRunState.ENDED` instead of
   failed, and can run again.
+
+  ![A PR2 run ended with End the run](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/run-exit-status/ended_panel.png)
+  ![A PR2 run whose process SIGKILL ended](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/run-exit-status/signal_panel.png)
 - **A plan runs in an environment loaded from a URDF.** A bundle's URDF naming its
   meshes relative to itself was read relative to the process's working directory, so
   building its world failed (`string is not a file: …/meshes/environment/…`); its
