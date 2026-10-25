@@ -50,8 +50,9 @@ with a navigation entry; nothing in the viewer names a plugin, so an uninstalled
 plugin simply has no link. The viewer's information reports each entry as the
 plugin's `navigation`: a `title`, a `group` and, for a page, its `page` route. The
 `NavigationGroup` orders the links: `analysis` (pages that ask questions of data), `builder` (Plan
-Builder, Scene Builder), `laboratory` (simulated workplaces, none in this repository); within a
-group they are ordered by title.
+Builder, Scene Builder), `laboratory` (simulated workplaces); within a
+group they are ordered by title. The Medical lab plugin registers a regular scene
+panel without a navigation entry, so it appears as a tab in the right column.
 
 ```python
 from cramera.plugins import PageEntry, PanelEntry

@@ -169,6 +169,7 @@ VIEWER_PACKAGES = (
     PackageDirectory("packages/viewer"),
     PackageDirectory("packages/questions", extra=Extra.BRIDGE),
     PackageDirectory("packages/plugins/offline"),
+    PackageDirectory("packages/plugins/laboratory", extra=Extra.BRIDGE),
     PackageDirectory("packages/plugins/scene-builder"),
     PackageDirectory("packages/plugins/plan-builder", extra=Extra.BRIDGE),
 )
@@ -367,6 +368,7 @@ class StackInstallation:
                 [
                     self.uv,
                     "venv",
+                    "--seed",
                     "--python",
                     PYTHON_VERSION,
                     "--system-site-packages",
@@ -402,6 +404,11 @@ class StackInstallation:
             "Installed. Activate the environment and start the viewer:",
             f"  source {self.environment}/bin/activate",
             f"  cramera --demo-scenes {REPOSITORY_ROOT / 'demo'}",
+            "",
+            "The Medical lab tab can show its scene without MuJoCo. For physics,",
+            "activate this environment, install the physics extra and restart cramera:",
+            "  python -m ensurepip --upgrade  # only if this environment has no pip",
+            f"  python -m pip install -e '{REPOSITORY_ROOT / 'packages/plugins/laboratory'}[physics]'",
         ]
         if self.cram is not None:
             lines += [

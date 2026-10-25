@@ -1,0 +1,309 @@
+{
+  "state": "running",
+  "laboratory": "aicor_medical_lab",
+  "scene": "aicor_medical_lab_contact_physics",
+  "snapshot": {
+    "time": 1.5,
+    "energy": -12.25,
+    "appliedForce": 0.31,
+    "maximumAppliedForce": 0.45,
+    "maximumContactForce": 2.5,
+    "objects": {
+      "tube_clear": [
+        0.16,
+        -0.065,
+        1.02,
+        0,
+        0,
+        0,
+        1
+      ],
+      "stopper": [
+        0.5,
+        -0.12,
+        0.9,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "bodyPoses": {
+      "laboratory_rack": [
+        0.22,
+        -0.04,
+        0.9,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "joints": {
+      "laboratory_drawer_joint": 0.0,
+      "laboratory_centrifuge_lid_joint": 1.35
+    },
+    "target": {
+      "key": "tube_clear",
+      "position": [
+        0.16,
+        -0.065,
+        1.03
+      ],
+      "orientation": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "contacts": [
+      {
+        "position": [
+          0.16,
+          -0.065,
+          0.906
+        ],
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "force": 0.12,
+        "bodyA": "laboratory_rack",
+        "bodyB": "tube_amber"
+      }
+    ],
+    "liquid": {
+      "time": 1.5,
+      "vessels": {
+        "tube_amber": {
+          "volumeMl": 1.25,
+          "color": [
+            0.82,
+            0.32,
+            0.055
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "offset": 0.074
+        }
+      },
+      "droplets": [
+        {
+          "source": "tube_amber",
+          "position": [
+            0.2,
+            -0.06,
+            1.0
+          ],
+          "velocity": [
+            0.1,
+            0,
+            -0.5
+          ],
+          "volumeMl": 0.01,
+          "color": [
+            0.82,
+            0.32,
+            0.055
+          ],
+          "emittedAt": 1.4
+        }
+      ],
+      "puddles": [
+        {
+          "position": [
+            0.25,
+            -0.06,
+            0.9005
+          ],
+          "volumeMl": 0.2,
+          "color": [
+            0.82,
+            0.32,
+            0.055
+          ]
+        }
+      ],
+      "suppliedMl": 1.46
+    },
+    "scale": {
+      "grams": 12.004,
+      "tareGrams": 0.0,
+      "stable": true,
+      "forceNewtons": 0.1178,
+      "objects": [
+        "tube_reserve"
+      ]
+    },
+    "centrifuge": {
+      "rpm": 0.0,
+      "targetRpm": 0.0,
+      "rcf": 0.0,
+      "lidOpen": true,
+      "lidClosed": false,
+      "running": false,
+      "balanced": false,
+      "remainingSeconds": 0.0,
+      "slots": [
+        {
+          "id": "C1",
+          "position": [
+            -0.458,
+            -0.18,
+            0.96
+          ],
+          "key": "tube_teal",
+          "grams": 17.0
+        },
+        {
+          "id": "C3",
+          "position": [
+            -0.602,
+            -0.18,
+            0.96
+          ],
+          "grams": 0.0
+        }
+      ],
+      "knowledge": {
+        "manual": {
+          "title": "CRAMERA laboratory centrifuge",
+          "version": "1.0",
+          "document": "# CRAMERA laboratory centrifuge",
+          "digest": "0f",
+          "minimumSamples": 2,
+          "citation": {
+            "section": "Operating rules",
+            "line": 11,
+            "quote": "| Minimum secured samples | 2 |"
+          }
+        },
+        "revision": 2,
+        "history": [
+          {
+            "revision": 1,
+            "version": "2.0",
+            "digest": "0e",
+            "changes": []
+          },
+          {
+            "revision": 2,
+            "version": "1.0",
+            "digest": "0f",
+            "changes": [
+              {
+                "rule": "minimumSamples",
+                "before": 4,
+                "after": 2,
+                "citation": {
+                  "section": "Operating rules",
+                  "line": 11,
+                  "quote": "| Minimum secured samples | 2 |"
+                }
+              }
+            ],
+            "simulationTime": 1.2
+          }
+        ],
+        "evaluation": {
+          "allowed": false,
+          "requirements": [
+            {
+              "name": "minimumSamples",
+              "satisfied": false,
+              "actual": 1,
+              "required": 2,
+              "citation": {
+                "section": "Operating rules",
+                "line": 11,
+                "quote": "| Minimum secured samples | 2 |"
+              }
+            },
+            {
+              "name": "lidClosed",
+              "satisfied": false,
+              "actual": false,
+              "required": true
+            }
+          ],
+          "nextSteps": [
+            "Close the lid completely."
+          ]
+        }
+      }
+    },
+    "refrigerator": {
+      "doorOpen": false,
+      "doorClosed": true,
+      "temperatureC": 4.0,
+      "temperatureModel": "simulated",
+      "slots": [
+        {
+          "id": "R1"
+        },
+        {
+          "id": "R2",
+          "key": "tube_reserve"
+        }
+      ]
+    },
+    "drawer": {
+      "position": 0.0,
+      "targetPosition": 0.0,
+      "open": false,
+      "closed": true
+    },
+    "rack": {
+      "pose": [
+        0.22,
+        -0.04,
+        0.9,
+        0,
+        0,
+        0,
+        1
+      ],
+      "supportBodies": [
+        "laboratory_room"
+      ],
+      "slots": [
+        {
+          "id": "A2",
+          "pose": [
+            0.22,
+            -0.065,
+            0.906,
+            0,
+            0,
+            0,
+            1
+          ],
+          "key": "tube_amber"
+        }
+      ]
+    },
+    "pipetting": {
+      "state": "blocked",
+      "source": "amber",
+      "key": "tube_clear",
+      "requestedMl": 1.0,
+      "deliveredMl": 0.4,
+      "error": "Place the receiver beneath the pipetting nozzle.",
+      "reservoirs": [
+        {
+          "id": "amber",
+          "volumeMl": 49.6
+        },
+        {
+          "id": "teal",
+          "volumeMl": 50.0
+        }
+      ]
+    }
+  }
+}
