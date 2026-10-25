@@ -24,6 +24,7 @@ from cramera.plugins import (
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.plans import PlanStore
+from cramera_plan_builder.environments import EnvironmentAnnotationCache
 from cramera_plan_builder.routes import PlanBuilderRoutes
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
@@ -197,6 +198,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             scenes=context.catalog,
             local_scenes=context.locations.local_scenes,
             workspace=self.workspace,
+            annotations=EnvironmentAnnotationCache(self.workspace),
             robot_files=RobotModelFiles(self.workspace, storage.robots),
             plans=PlanStore(storage.plans),
             compiler=ConstraintCompiler.of_file(),

@@ -24,6 +24,17 @@ which this repository was mirrored until 22 Oct 2026.
   stays for the scene builder.
 
 ### Added
+- **Drop-downs for a plan step's handle, drawer, door and other annotations.** An
+  annotation field of the plan builder offers the chosen environment's annotations of
+  its class without a live scene, and the live world's surfaces while it runs. An
+  environment without prim semantics, such as one loaded from a URDF, gets the
+  annotations CRAM's `WorldReasoner` infers when its world is built, for a plan run and
+  the live scene alike, each named after the body it is rooted in
+  (`handle_cab1_top_door`) so a plan can name it. New are the route
+  `PlanBuilderRoute.ENVIRONMENT_ANNOTATIONS`, the document `EnvironmentAnnotations`
+  and `cramera_bridge.scenes.inferred_annotations`.
+
+  ![The handle drop-down of an Open step in the apartment](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/environment-annotations/handle_dropdown.png)
 - **A picker for the plan builder's URDF environment.** **Browse…** next to the URDF
   path field opens a list of the viewer's machine's folders and their URDF and xacro
   files, hidden ones left out; a click on a file loads it as the environment. The picker
@@ -153,6 +164,12 @@ which this repository was mirrored until 22 Oct 2026.
   instead of sinking through the floor; other robots stay at 0. The catalog's robot
   models carry the height (`RobotModelKey.STANDING_HEIGHT`), and moving or turning a
   robot in the builder keeps its height.
+
+### Fixed
+- **A plan runs in an environment loaded from a URDF.** A bundle's URDF naming its
+  meshes relative to itself was read relative to the process's working directory, so
+  building its world failed (`string is not a file: …/meshes/environment/…`); its
+  meshes are now found beside the URDF.
 
 ### Changed
 - **A new plan starts without a robot.** The plan builder no longer adds one to a new

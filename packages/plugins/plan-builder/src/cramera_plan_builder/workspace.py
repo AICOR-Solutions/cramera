@@ -29,6 +29,7 @@ from cramera_plan_builder.exceptions import CramUnavailable
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import (
     ActionCatalog,
+    EnvironmentAnnotations,
     LoadedEnvironment,
     ObjectModel,
     RobotModel,
@@ -144,6 +145,13 @@ class CramWorkspace(ABC):
         :return: The written URDF, which references its meshes relative to itself.
         :raises CramUnavailable: Without the workspace.
         """
+
+    def environment_annotations(self, directory: Path) -> EnvironmentAnnotations:
+        """
+        :param directory: An environment bundle.
+        :return: Its semantic annotations as a plan run finds them; none by default.
+        """
+        return EnvironmentAnnotations()
 
     @abstractmethod
     def write_environment(
@@ -297,6 +305,9 @@ class InstalledWorkspace(CramWorkspace):
         self, source: Path, scenes: Path, taken: Set[str]
     ) -> LoadedEnvironment:
         return self.plans.write_environment(source, scenes, taken)
+
+    def environment_annotations(self, directory: Path) -> EnvironmentAnnotations:
+        return self.plans.environment_annotations(directory)
 
     def objects(self) -> List[ObjectModel]:
         return self.plans.objects()

@@ -10,6 +10,11 @@ from pathlib import Path
 
 from typing_extensions import Optional, Sequence
 
+from semantic_digital_twin.adapters.package_resolver import (
+    CompositePathResolver,
+    FileUriResolver,
+    PackageUriResolver,
+)
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.specifications.worlds import WorldSpecification
@@ -55,7 +60,8 @@ class SceneEnvironment(ABC):
     ) -> KinematicStructureEntity:
         """
         Merge the links and joints of a URDF into a world, its root fixed to the world's
-        root.
+        root. A mesh the URDF names by a relative path is found beside the URDF,
+        wherever the process runs.
 
         :param world: The world receiving the links.
         :param description: The URDF file.
@@ -64,7 +70,15 @@ class SceneEnvironment(ABC):
         :param root_pose: Where the URDF's root is fixed, the world's origin by default.
         :return: The URDF's root in the world.
         """
-        model = URDFParser.from_file(str(description), prefix=prefix).parse()
+        resolver = CompositePathResolver(
+            [
+                FileUriResolver(base_directory=str(description.parent)),
+                PackageUriResolver(),
+            ]
+        )
+        model = URDFParser.from_file(
+            str(description), prefix=prefix, path_resolver=resolver
+        ).parse()
         root_identity = model.root.id
         with world.modify_world():
             connection = FixedConnection.create_with_dofs(

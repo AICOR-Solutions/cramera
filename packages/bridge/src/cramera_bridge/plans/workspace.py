@@ -31,10 +31,14 @@ from cramera_bridge.exceptions import (
 from cramera_bridge.export.assets import MeshReference
 from cramera_bridge.export.urdf import URDF_SUFFIX, XACRO_SUFFIX, UrdfBundle
 from cramera_bridge.export.urdf_environment import UrdfEnvironmentBundle
+from cramera_bridge.scenes.bundle_world import BundleEnvironment
+from cramera_bridge.scenes.semantics import UsdPrimAnnotation
 from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
+from cramera_protocol.live_messages import SurfaceDescription
 from cramera_protocol.plan_builder import (
     ActionCatalog,
+    EnvironmentAnnotations,
     LoadedEnvironment,
     ObjectModel,
     RobotModel,
@@ -365,6 +369,28 @@ class PlanWorkspace:
         :raises RobotDescriptionUnavailable: When its description cannot be written.
         """
         return RobotDescription(self.robot_annotations.named(name)).write(directory)
+
+    def environment_annotations(self, directory: Path) -> EnvironmentAnnotations:
+        """
+        Build the environment's world as a plan run builds it and list its semantic
+        annotations, the prims' own left out.
+
+        :param directory: An environment bundle.
+        :return: Each annotation's class identifier and name, once each, sorted.
+        :raises BundleNotFound: When the directory holds no bundle.
+        """
+        world = BundleEnvironment(directory).create_world()
+        found = {
+            (ANNOTATION_NAMES.identifier_of(type(annotation)), str(annotation.name))
+            for annotation in world.semantic_annotations
+            if not isinstance(annotation, UsdPrimAnnotation)
+        }
+        return EnvironmentAnnotations(
+            annotations=[
+                SurfaceDescription(type_name=type_name, name=name)
+                for type_name, name in sorted(found)
+            ]
+        )
 
     def write_environment(
         self, source: Path, scenes: Path, taken: Set[str]

@@ -11,6 +11,8 @@ import {
   DemoSourceKey,
   PageState,
   DestinationKey,
+  EnvironmentAnnotationsKey,
+  SurfaceKey,
   IndexEntryKey,
   LoadedEnvironmentKey,
   UrdfFolderKey,
@@ -38,7 +40,7 @@ import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../..
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
-import { STEP_PALETTE_SIZE } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
@@ -76,6 +78,13 @@ class FakeApi {
     this.stopped = 0;
     this.loaded = [];
     this.listed = [];
+    this.annotationsAsked = [];
+    this.annotationsAnswer = { [EnvironmentAnnotationsKey.ANNOTATIONS]: [] };
+  }
+
+  async environmentAnnotations(environment) {
+    this.annotationsAsked.push(environment);
+    return structuredClone(this.annotationsAnswer);
   }
 
   async urdfFolder(path) {
@@ -408,7 +417,7 @@ test('an annotation without a live entity is typed by name', async () => {
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
   block(root, 'cutting').click();
   const tool = parameter(root, 'tool');
-  assert.match(root.findAll((element) => element.className === 'empty').map((element) => element.textContent).join(' '), /tool annotation/);
+  assert.ok(root.findAll((element) => element.className === 'empty').some((element) => element.textContent === noAnnotation('tool')));
   tool.value = 'knife';
   tool.dispatch(DomEvent.CHANGE);
   assert.equal(page.state.steps()[0][PlanStepKey.VALUES].tool, 'knife');
@@ -416,6 +425,39 @@ test('an annotation without a live entity is typed by name', async () => {
   stride.value = '2.6';
   stride.dispatch(DomEvent.CHANGE);
   assert.equal(page.state.steps()[0][PlanStepKey.VALUES].pointer_stride, 3);
+});
+
+test('an annotation field offers the environment\'s annotations of its class', async () => {
+  const { root, page, api } = await openPage('', ({ api }) => {
+    api.annotationsAnswer[EnvironmentAnnotationsKey.ANNOTATIONS] = [
+      { [SurfaceKey.TYPE]: 'tool', [SurfaceKey.NAME]: 'knife_block_knife' },
+      { [SurfaceKey.TYPE]: 'tool', [SurfaceKey.NAME]: 'drawer_knife' },
+      { [SurfaceKey.TYPE]: 'handle', [SurfaceKey.NAME]: 'handle_cab1_top_door' },
+    ];
+  });
+  await settled();
+  assert.deepEqual(api.annotationsAsked, [page.state.field(PlanKey.ENVIRONMENT)]);
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'cutting').click();
+  const tool = parameter(root, 'tool');
+  assert.equal(tool.tagName, 'SELECT');
+  assert.deepEqual(tool.children.map((option) => option.value).slice(1), ['knife_block_knife', 'drawer_knife']);
+  tool.value = 'drawer_knife';
+  tool.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].tool, 'drawer_knife');
+});
+
+test('the empty floor offers no annotations and asks for none', async () => {
+  const { root, api } = await openPage();
+  await settled();
+  const environment = byAction(root, PlanAction.ENVIRONMENT)[0];
+  environment.value = '';
+  environment.dispatch(DomEvent.CHANGE);
+  await settled();
+  assert.equal(api.annotationsAsked.length, 1);
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'cutting').click();
+  assert.equal(parameter(root, 'tool').tagName, 'INPUT');
 });
 
 test('a step that no longer fits its action shows why', async () => {

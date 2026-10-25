@@ -6,6 +6,7 @@
 
 import {
   DemoSourceKey,
+  EnvironmentAnnotationsKey,
   IndexEntryKey,
   LoadedEnvironmentKey,
   UrdfFolderKey,
@@ -193,6 +194,13 @@ export class BuilderPage {
    * @type {string|null|undefined}
    */
   #shownEnvironment = undefined;
+
+  /**
+   * The shown environment's semantic annotation names by their class, as a plan run
+   * finds them.
+   * @type {Map<string, Array<string>>}
+   */
+  #environmentAnnotations = new Map();
 
   /**
    * The live publisher started demos publish on.
@@ -435,11 +443,34 @@ export class BuilderPage {
   }
 
   /**
-   * @returns {Map<string, Array<string>>} The live world's annotated surface names by
-   *   their annotation's class name.
+   * @returns {Map<string, Array<string>>} The annotation names by their class: the shown
+   *   environment's, and the live world's annotated surfaces while it runs.
    */
   surfaces() {
-    return this.#world.surfaces;
+    const merged = new Map(this.#environmentAnnotations);
+    for (const [type, names] of this.#world.surfaces) merged.set(type, [...new Set([...(merged.get(type) ?? []), ...names])]);
+    return merged;
+  }
+
+  /**
+   * Read the environment's semantic annotations and offer them to annotation fields.
+   * @param {string|null} environment The environment bundle, or null for the floor.
+   * @returns {Promise<void>} Settles once they are shown or refused.
+   */
+  async #readAnnotations(environment) {
+    this.#environmentAnnotations = new Map();
+    if (environment === null) return;
+    const answer = await this.#environment.api.environmentAnnotations(environment).catch((error) => {
+      this.report(error.message);
+      return null;
+    });
+    if (!answer || environment !== this.#shownEnvironment) return;
+    const byType = new Map();
+    for (const annotation of answer[EnvironmentAnnotationsKey.ANNOTATIONS]) {
+      byType.set(annotation[SurfaceKey.TYPE], [...(byType.get(annotation[SurfaceKey.TYPE]) ?? []), annotation[SurfaceKey.NAME]]);
+    }
+    this.#environmentAnnotations = byType;
+    this.render();
   }
 
   // %% plans
@@ -682,6 +713,7 @@ export class BuilderPage {
     const environment = this.state.field(PlanKey.ENVIRONMENT) || null;
     if (environment !== this.#shownEnvironment) {
       this.#shownEnvironment = environment;
+      this.#readAnnotations(environment);
       this.#scene.showEnvironment(environment).then(() => this.#scene?.frame());
     }
     const robots = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.POSE]]));
