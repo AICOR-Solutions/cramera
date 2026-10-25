@@ -37,6 +37,11 @@ which this repository was mirrored until 22 Oct 2026.
   `LaboratoryTask.COMMAND`, which takes `--demo`. The vessel handling the two demos
   share is `cramera_bridge.laboratory.handling`; driving, tucking the arms with the
   base held and moving a door or a lid are `cramera_bridge.laboratory.mobility`.
+
+  ![The medical lab page offering both PR2 demos](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/lab_page_two_demos.png)
+  ![The PR2 setting a vessel into its new rack slot](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/rack_re_sort.png)
+  ![The PR2 holding the refrigerator's door open](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/refrigerator_door_open.png)
+  ![The PR2 pushing the centrifuge's lid open from below](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/centrifuge_lid_open.png)
 - **The demo site is built for every pull request.** The site's build and screenshot
   run on pull requests too, without publishing, so a change that breaks the site fails
   before it is merged; a pull request's build never cancels the publishing of `main`.
