@@ -35,7 +35,7 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-questions`](packages/questions) | The viewer plugin asking recorded scenes questions in the entity query language; `cramera-bridge`'s question engine answers them. | done |
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
-| [`cramera-laboratory`](packages/plugins/laboratory) | The small medical lab as a viewer tab, with optional MuJoCo contact physics and installation help. | done |
+| [`cramera-laboratory`](packages/plugins/laboratory) | A dedicated Medical lab page with the small workbench, real PR2 preview, local robot demo and replay, plus manual MuJoCo controls and setup help. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
@@ -72,9 +72,13 @@ README sets up ("Setup your ROS Workspace") before running one.
 
 ## Use the viewer
 
-For the compact medical workbench and its controls, see
-[Use the small medical lab](docs/local-medical-lab.md). The **Medical lab** tab
-ships the scene and explains how to install MuJoCo for its contact simulation.
+For the compact medical workbench and its PR2 demo, see
+[Run the medical lab locally](docs/local-medical-lab.md). **Medical lab** in the
+top bar opens its own page at `/plugins/laboratory/laboratory.html`, with a 3D view,
+controls and playback timeline. With the full CRAM stack and ROS robot descriptions
+installed, it opens the small lab with the real PR2. **Run the demo** follows the
+locally executing transfer live, then opens its recording. The page also explains
+how to add MuJoCo for the separate manual contact simulation.
 
 ```bash
 pip install ./packages/protocol ./packages/viewer
@@ -128,7 +132,7 @@ separate environment.
 
 ### Install the pages and panels
 
-Everything beyond the scene page is a plugin: Plan Builder, Scene Builder,
+Everything beyond the scene page is a plugin: Plan Builder, Scene Builder, Medical lab,
 the questions column and the storyboard and bundle check routes of `cramera-offline`. Each is a pip package of its
 own under `packages/plugins` (and `packages/questions`) that the viewer discovers through the entry-point group
 `cramera.plugins`. `pip install ./packages/viewer` installs none of them, so the top
@@ -146,7 +150,7 @@ behaviour as an optional extra:
 | Plugin | Extra | Without it |
 | --- | --- | --- |
 | `cramera-plan-builder` | `[bridge]`, that is `cramera-bridge` inside the CRAM environment | The page opens, but its catalog names the CRAM modules it misses and no plan can run. |
-| `cramera-laboratory` | `[physics]` installs MuJoCo; `[bridge]` adds the optional CRAM transfer integration. | The small scene opens; the tab explains how to add physics, and transfer reports missing CRAM dependencies. |
+| `cramera-laboratory` | `[physics]` installs MuJoCo for manual controls; `[bridge]` adds the bridge, which also needs the full CRAM workspace and ROS robot descriptions for the PR2 preview and demo. | The dedicated page opens the small workbench and explains the missing setup. Saved recordings remain viewable. |
 
 ```bash
 pip install './packages/plugins/plan-builder[bridge]'
@@ -155,7 +159,7 @@ pip install './packages/plugins/plan-builder[bridge]'
 See [docs/plugins.md](docs/plugins.md) for writing a plugin.
 
 The page has the look of the original AICOR viewer: dark, with the AICOR logo and a
-link to every page the installed plugins offer (Plan Builder, Scene Builder) in the
+link to every page the installed plugins offer (Plan Builder, Scene Builder, Medical lab) in the
 top bar, the 3D view with its **Layers**
 overlay and the playback controls on the left, questions and graphs on the right. The
 **Dark | Light** switch in the top bar changes the theme. **Pop out** opens the scene

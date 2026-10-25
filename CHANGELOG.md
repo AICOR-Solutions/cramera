@@ -26,14 +26,17 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
-- **The small medical lab tab.** `cramera-laboratory` restores the compact
-  workbench and its liquid handling, scale, centrifuge and manuals, refrigerator,
-  drawer and dispenser controls. Only the small scene and its five device bundles
-  are shipped. The tab stays available without MuJoCo and shows how to install
-  the `[physics]` extra into the viewer's environment and restart. The stack
-  installer includes the tab; the optional PR2 transfer reaches CRAM through
-  `cramera-bridge`. The viewer stops the simulation and its transfer process on
-  shutdown. See [the setup guide](docs/local-medical-lab.md).
+- **A dedicated small medical lab page with the local PR2 demo.** The top-bar
+  **Medical lab** link opens its own 3D view, controls and timeline. With the full
+  CRAM stack and ROS robot descriptions, it starts with the compact workbench and
+  the real PR2, follows a new vessel transfer live and opens its recording on
+  completion. Further runs preserve earlier recordings. The robot demo uses CRAM's
+  kinematic simulation through `cramera-bridge`.
+  The separate MuJoCo contact simulation keeps the liquid handling, scale,
+  centrifuge and manuals, refrigerator, drawer and dispenser controls, with setup
+  help inside the page. Only the small scene and its five device bundles are
+  shipped. The stack installer includes the page; the viewer stops its simulation
+  and owned transfer process on shutdown. See [the setup guide](docs/local-medical-lab.md).
 - **Drop-downs for a plan step's handle, drawer, door and other annotations.** An
   annotation field of the plan builder offers the chosen environment's annotations of
   its class without a live scene, and the live world's surfaces while it runs. An

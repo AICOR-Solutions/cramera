@@ -5,11 +5,12 @@ The PR2 vessel transfer, run once in simulation, recorded and measured.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 
 import pytest
 
 from cramera.locations import DataLocations
-from cramera_bridge.exceptions import TaskFailed
+from cramera_bridge.exceptions import SceneNameTaken, TaskFailed
 from cramera_bridge.laboratory.grasping import (
     GraspGeometryError,
     GraspProblem,
@@ -94,3 +95,52 @@ def test_an_open_gripper_far_from_the_glass_finds_no_contact(transfer):
     with pytest.raises(GraspGeometryError) as refused:
         contact.stop_position()
     assert refused.value.problem is GraspProblem.NO_CONTACT
+
+
+# %% live announcement
+
+
+@dataclass(frozen=True)
+class ListeningAddress:
+    """
+    The address reported by a listening visualization.
+    """
+
+    address: str
+    """
+    The real port assigned when the visualization starts.
+    """
+
+    def url(self) -> str:
+        """
+        :return: The listening address.
+        """
+        return self.address
+
+
+def test_transfer_announces_the_started_visualization_address(
+    laboratory_bundle, tmp_path
+):
+    announcement = tmp_path / "live" / "address"
+    demo = VesselTransferDemo.at_the_bench(
+        laboratory_bundle, live_url_file=announcement
+    )
+    visualization = ListeningAddress("http://127.0.0.1:54321/")
+    demo.on_live_started(visualization)
+    assert announcement.read_text() == visualization.address
+
+
+def test_transfer_clears_an_old_live_address_even_if_start_fails(
+    laboratory_bundle, tmp_path
+):
+    announcement = tmp_path / "address"
+    demo = VesselTransferDemo.at_the_bench(
+        laboratory_bundle,
+        live_url_file=announcement,
+        locations=DataLocations(data=tmp_path / "data", shared_scenes=None),
+    )
+    (demo.locations.local_scenes / demo.name).mkdir(parents=True)
+    announcement.write_text("http://127.0.0.1:54321/")
+    with pytest.raises(SceneNameTaken):
+        demo.run()
+    assert not announcement.exists()

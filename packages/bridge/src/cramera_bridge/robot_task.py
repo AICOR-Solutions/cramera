@@ -222,6 +222,13 @@ class RobotTaskDemo(ABC):
         )[0]
         return Context(world=world, robot=robot)
 
+    def on_live_started(self, visualization: LiveVisualization) -> None:
+        """
+        Called after the live server starts and before the plan performs any motion.
+
+        :param visualization: The started visualization publishing this run.
+        """
+
     def run(self) -> SavedScene:
         """
         Perform the task while it is published and recorded, measure the outcome and
@@ -243,6 +250,7 @@ class RobotTaskDemo(ABC):
             world=world, port=self.port, locations=self.locations
         ).start()
         try:
+            self.on_live_started(visualization)
             plan.node_callbacks.append(visualization.plan_callback(plan))
             with ExecutionEnvironment(
                 execution_type=self.execution_type,

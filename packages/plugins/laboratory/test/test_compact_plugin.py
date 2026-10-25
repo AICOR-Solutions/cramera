@@ -59,8 +59,10 @@ def test_only_compact_devices_are_served(get):
     }
 
 
-def test_the_medical_lab_is_a_default_scene_tab(factory):
-    assert LaboratoryPlugin(factory=factory).navigation() is None
+def test_the_medical_lab_has_its_own_page_instead_of_a_scene_tab(factory):
+    plugin = LaboratoryPlugin(factory=factory)
+    assert plugin.navigation().page == "laboratory.html"
+    assert plugin.module() is None
 
 
 # %% shutdown

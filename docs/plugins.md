@@ -7,7 +7,7 @@ viewer names a plugin.
 
 This also means a plugin is only there once its package is installed into the same
 environment as `cramera`: `pip install ./packages/viewer` brings no page but the
-scene page. The pages of this repository (Plan Builder, Scene Builder,
+scene page. The pages of this repository (Plan Builder, Scene Builder, Medical lab,
 the questions column) are installed with
 `pip install ./packages/questions ./packages/plugins/*`; optional extras such as
 `[bridge]` (`cramera-bridge`, the way to the CRAM workspace) add what a plugin needs
@@ -51,8 +51,9 @@ plugin simply has no link. The viewer's information reports each entry as the
 plugin's `navigation`: a `title`, a `group` and, for a page, its `page` route. The
 `NavigationGroup` orders the links: `analysis` (pages that ask questions of data), `builder` (Plan
 Builder, Scene Builder), `laboratory` (simulated workplaces); within a
-group they are ordered by title. The Medical lab plugin registers a regular scene
-panel without a navigation entry, so it appears as a tab in the right column.
+group they are ordered by title. The Medical lab plugin registers
+`PageEntry("Medical lab", NavigationGroup.LABORATORY, "laboratory.html")`, so its
+top-bar link opens a dedicated page with its own 3D view, controls and timeline.
 
 ```python
 from cramera.plugins import PageEntry, PanelEntry

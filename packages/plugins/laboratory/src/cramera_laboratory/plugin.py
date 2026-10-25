@@ -17,6 +17,7 @@ from cramera.confinement import ConfinedDirectory
 from cramera.http.messages import HttpMethod, Request, Response
 from cramera.locations import DataLocations
 from cramera.plugins import (
+    PageEntry,
     PluginContext,
     PluginPrefixRoute,
     PluginRoute,
@@ -27,6 +28,7 @@ from cramera.plugins import (
 from cramera_laboratory.devices import DeviceShelf
 from cramera_laboratory.exceptions import InvalidRequestBody
 from cramera_laboratory.resources import LaboratoryInstallation, LaboratoryShelf
+from cramera_laboratory.robot_view import RobotLaboratoryView
 from cramera_laboratory.task_runs import LaboratoryTask, TaskProcess, TaskRecording
 from cramera_laboratory.session import (
     ContactSimulation,
@@ -35,6 +37,7 @@ from cramera_laboratory.session import (
     SimulationSession,
 )
 from cramera_protocol.document import JsonDocument
+from cramera_protocol.viewer import NavigationGroup
 from cramera_protocol.laboratory.physics import (
     CentrifugeRequest,
     DispenserRequest,
@@ -187,11 +190,17 @@ class LaboratoryRoutes:
     Runs the PR2 vessel transfer demo.
     """
 
+    robot_view: RobotLaboratoryView = field(init=False)
+    """
+    The initial PR2 scene and the live view of the owned task process.
+    """
+
     def __post_init__(self) -> None:
         self.session = SimulationSession(self.locations, self.factory)
         self.transfer = TaskProcess.of_task(
             LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, self.locations
         )
+        self.robot_view = RobotLaboratoryView(self.transfer, self.shelf)
 
     @property
     def installation(self) -> LaboratoryInstallation:
@@ -263,6 +272,22 @@ class LaboratoryRoutes:
         :return: The devices.
         """
         return Response.of_json(self.devices.entries())
+
+    def answer_preview(self, request: Request) -> Response:
+        """
+        :param request: A request to prepare the initial local robot laboratory.
+        :return: The scene showing the compact laboratory and the PR2.
+        """
+        self.body(request, EmptyRequest)
+        return Response.of_json(self.robot_view.preview())
+
+    def answer_live_read(self, request: Request, path: str) -> Response:
+        """
+        :param request: A request for a local live observation.
+        :param path: The observation route below the live prefix.
+        :return: The owned robot demo's current observation.
+        """
+        return self.robot_view.live_read(path)
 
     def answer_device_file(self, request: Request, path: str) -> Response:
         """
@@ -349,6 +374,10 @@ class LaboratoryRoutes:
                 HttpMethod.GET, LaboratoryRoute.LABORATORIES, self.answer_laboratories
             ),
             PluginRoute(HttpMethod.POST, LaboratoryRoute.INSTALL, self.answer_install),
+            PluginRoute(HttpMethod.POST, LaboratoryRoute.PREVIEW, self.answer_preview),
+            PluginPrefixRoute(
+                HttpMethod.GET, LaboratoryRoute.TRANSFER_LIVE, self.answer_live_read
+            ),
             PluginRoute(HttpMethod.GET, LaboratoryRoute.DEVICES, self.answer_devices),
             PluginPrefixRoute(
                 HttpMethod.GET, LaboratoryRoute.DEVICE_FILES, self.answer_device_file
@@ -413,7 +442,10 @@ class LaboratoryPlugin(ViewerPlugin):
         return WEB_DIRECTORY
 
     def module(self) -> Optional[str]:
-        return LaboratoryFile.MODULE.value
+        return None
+
+    def navigation(self) -> PageEntry:
+        return PageEntry("Medical lab", NavigationGroup.LABORATORY, LaboratoryFile.PAGE)
 
     def close(self) -> None:
         """

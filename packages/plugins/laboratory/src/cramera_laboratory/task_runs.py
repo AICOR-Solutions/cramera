@@ -15,12 +15,15 @@ import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
+from uuid import uuid4
 
 from typing_extensions import List, Optional, Sequence
 
 from cramera.locations import DataLocations
 from cramera_protocol.bundle.files import BundleFile
 from cramera_laboratory.resources import RESOURCES_DIRECTORY, LaboratoryResource
+from cramera_protocol.laboratory.physics import LaboratoryName, LaboratoryRoute
 from cramera_protocol.laboratory.runs import (
     LaboratoryTask,
     TaskRecording,
@@ -28,7 +31,7 @@ from cramera_protocol.laboratory.runs import (
     TaskRunState,
     TransferOption,
 )
-from cramera_protocol.viewer import EnvironmentVariable
+from cramera_protocol.viewer import EnvironmentVariable, ViewerRoute
 
 LOG_DIRECTORY = "laboratory"
 """
@@ -89,6 +92,16 @@ class TaskProcess:
     The packages the demo needs.
     """
 
+    fresh_recording: bool = False
+    """
+    Whether every start runs the native command with a new recording name.
+    """
+
+    recording: Optional[str] = field(default=None, init=False)
+    """
+    The current run's recording, or None before the first run.
+    """
+
     process: Optional[subprocess.Popen] = field(default=None, init=False)
     """
     The demo's process, once started.
@@ -106,6 +119,43 @@ class TaskProcess:
         """
         return self.locations.data / LOG_DIRECTORY / f"{self.scene}{LOG_SUFFIX}"
 
+    @property
+    def live_url_file(self) -> Path:
+        """
+        The current child writes its listening address here after its server starts.
+        """
+        return self.log.with_suffix(".live-url")
+
+    def live_address(self) -> Optional[str]:
+        """
+        :return: The running child's loopback HTTP root, or None until it announces one.
+        """
+        if self.process is None or self.process.poll() is not None:
+            return None
+        try:
+            address = self.live_url_file.read_text(encoding="utf-8").strip()
+            parsed = urlsplit(address)
+            valid = (
+                parsed.scheme == "http"
+                and parsed.hostname == "127.0.0.1"
+                and parsed.port is not None
+                and 0 < parsed.port <= 65535
+                and parsed.path in ("", "/")
+                and not parsed.query
+                and not parsed.fragment
+                and parsed.username is None
+                and parsed.password is None
+            )
+        except (OSError, ValueError):
+            return None
+        return f"http://127.0.0.1:{parsed.port}/" if valid else None
+
+    def recording_name(self) -> str:
+        """
+        :return: The active recording's name, or the original recording before a run.
+        """
+        return self.recording or self.scene
+
     def available(self) -> bool:
         """
         :return: Whether every package the demo needs is installed.
@@ -117,16 +167,20 @@ class TaskProcess:
                 return False
             if importlib.util.find_spec(LaboratoryTask.TRANSFER) is None:
                 return False
-            from cramera_bridge.laboratory.command import missing_libraries
+            from cramera_bridge.laboratory import command
 
-            return not missing_libraries()
+            return (
+                hasattr(command, "prepare_preview") and not command.missing_libraries()
+            )
         return True
 
     def recorded(self) -> bool:
         """
         :return: Whether the local scenes hold the demo's recording.
         """
-        return (self.locations.local_scenes / self.scene / BundleFile.SCENE).is_file()
+        return (
+            self.locations.local_scenes / self.recording_name() / BundleFile.SCENE
+        ).is_file()
 
     @classmethod
     def of_task(
@@ -148,6 +202,7 @@ class TaskProcess:
             ],
             scene=scene.value,
             locations=locations,
+            fresh_recording=True,
         )
 
     def state(self) -> TaskRun:
@@ -161,17 +216,30 @@ class TaskProcess:
         """
         :return: How far the demo is; the caller holds :attr:`lock`.
         """
+        available = self.available()
+        result = TaskRun(
+            state=TaskRunState.IDLE if available else TaskRunState.UNAVAILABLE,
+            scene=self.recording_name(),
+            can_run=available,
+        )
         if self.process is not None and self.process.poll() is None:
-            return TaskRun(state=TaskRunState.RUNNING, scene=self.scene)
-        if self.recorded():
-            return TaskRun(state=TaskRunState.RECORDED, scene=self.scene)
-        if self.process is not None:
-            return TaskRun(
-                state=TaskRunState.FAILED, scene=self.scene, error=self.last_output()
-            )
-        if not self.available():
-            return TaskRun(state=TaskRunState.UNAVAILABLE, scene=self.scene)
-        return TaskRun(state=TaskRunState.IDLE, scene=self.scene)
+            result.state = TaskRunState.RUNNING
+            if self.live_address() is not None:
+                result.live_url = (
+                    f"{ViewerRoute.PLUGIN_API}{LaboratoryName.PLUGIN}/"
+                    f"{LaboratoryRoute.TRANSFER_LIVE}"
+                )
+            return result
+        self.live_url_file.unlink(missing_ok=True)
+        if self.process is not None and self.process.returncode != 0:
+            result.state = TaskRunState.FAILED
+            result.error = self.last_output()
+        elif self.recorded():
+            result.state = TaskRunState.RECORDED
+        elif self.process is not None:
+            result.state = TaskRunState.FAILED
+            result.error = self.last_output()
+        return result
 
     def last_output(self) -> str:
         """
@@ -182,22 +250,38 @@ class TaskProcess:
 
     def start(self) -> TaskRun:
         """
-        Run the demo unless it runs, its recording exists or it cannot run here.
+        Run the demo when available, preserving the recordings of earlier native runs.
 
         :return: How far the demo is.
         """
         with self.lock:
             current = self.state_locked()
-            if current.state not in (TaskRunState.IDLE, TaskRunState.FAILED):
+            if current.state is TaskRunState.RUNNING or not current.can_run:
+                return current
+            if current.state is TaskRunState.RECORDED and not self.fresh_recording:
                 return current
             self.log.parent.mkdir(parents=True, exist_ok=True)
+            self.live_url_file.unlink(missing_ok=True)
+            command = list(self.command)
+            if self.fresh_recording:
+                self.recording = self.scene
+                while (self.locations.local_scenes / self.recording).exists():
+                    self.recording = f"{self.scene}_{uuid4().hex[:12]}"
+                command += [
+                    TransferOption.RECORDING.value,
+                    self.recording,
+                    TransferOption.PORT.value,
+                    "0",
+                    TransferOption.LIVE_URL_FILE.value,
+                    str(self.live_url_file),
+                ]
             environment = {
                 **os.environ,
                 EnvironmentVariable.DATA.value: str(self.locations.data),
             }
             with self.log.open("w", encoding="utf-8") as output:
                 self.process = subprocess.Popen(
-                    self.command,
+                    command,
                     stdout=output,
                     stderr=subprocess.STDOUT,
                     env=environment,

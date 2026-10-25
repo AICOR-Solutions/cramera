@@ -10,6 +10,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 import cramera_laboratory.task_runs as task_runs
 from cramera_laboratory.resources import RESOURCES_DIRECTORY, LaboratoryResource
 from cramera_laboratory.task_runs import (
@@ -18,6 +20,7 @@ from cramera_laboratory.task_runs import (
     TaskRecording,
 )
 from cramera_protocol.laboratory.runs import TaskRunState, TransferOption
+from cramera_protocol.bundle.files import BundleFile
 
 from .conftest import DATASET
 
@@ -154,6 +157,23 @@ def test_an_older_bridge_without_the_laboratory_is_unavailable(tmp_path):
     assert result.stdout.strip() == TaskRunState.UNAVAILABLE
 
 
+def test_the_previous_bridge_cannot_start_a_run_with_unsupported_options(
+    locations, monkeypatch
+):
+    from cramera_bridge.laboratory import command
+
+    monkeypatch.setattr(task_runs.importlib.util, "find_spec", lambda package: object())
+    monkeypatch.setattr(command, "missing_libraries", lambda: [])
+    monkeypatch.delattr(command, "prepare_preview")
+    process = TaskProcess.of_task(
+        LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, locations
+    )
+    state = process.start()
+    assert state.state is TaskRunState.UNAVAILABLE
+    assert state.can_run is False
+    assert process.process is None
+
+
 def test_shutdown_kills_a_child_that_ignores_termination(locations, monkeypatch):
     monkeypatch.setattr(task_runs, "STOP_TIMEOUT", 0.02)
     process = stand_in(locations, "stubborn_task.py")
@@ -165,5 +185,109 @@ def test_shutdown_kills_a_child_that_ignores_termination(locations, monkeypatch)
             time.sleep(POLL)
         assert process.stop().state is TaskRunState.FAILED
         assert process.process.poll() is not None
+    finally:
+        process.stop()
+
+
+# %% native reruns and live address
+
+
+def native_stand_in(locations, *arguments) -> TaskProcess:
+    """
+    :return: A command that accepts the native recording and live announcement options.
+    """
+    return TaskProcess(
+        command=[
+            sys.executable,
+            str(DATASET / "tasks" / "native_recording_task.py"),
+            *arguments,
+        ],
+        scene=SCENE,
+        locations=locations,
+        packages=(),
+        fresh_recording=True,
+    )
+
+
+def test_native_reruns_save_new_recordings_and_preserve_the_previous_one(locations):
+    process = native_stand_in(locations)
+    process.start()
+    first = settled(process)
+    original = locations.local_scenes / first.scene / BundleFile.SCENE
+    original_bytes = original.read_bytes()
+    assert process.start().state is TaskRunState.RUNNING
+    second = settled(process)
+    assert second.state is TaskRunState.RECORDED
+    assert second.scene != first.scene
+    assert (locations.local_scenes / second.scene / BundleFile.SCENE).is_file()
+    assert original.read_bytes() == original_bytes
+
+
+def test_failed_native_rerun_is_not_hidden_by_an_older_recording(locations):
+    process = native_stand_in(locations)
+    process.start()
+    previous = settled(process)
+    process.command.append("--failure")
+    process.start()
+    failed = settled(process)
+    assert failed.state is TaskRunState.FAILED
+    assert failed.scene != previous.scene
+    assert FAILURE in failed.error
+    assert (locations.local_scenes / previous.scene / BundleFile.SCENE).is_file()
+
+
+def test_existing_recording_remains_viewable_without_the_native_runtime(locations):
+    process = native_stand_in(locations)
+    process.start()
+    recorded = settled(process)
+    process.packages = ("no_such_package",)
+    unavailable = process.start()
+    assert unavailable.state is TaskRunState.RECORDED
+    assert unavailable.scene == recorded.scene
+    assert unavailable.can_run is False
+
+
+def test_live_address_belongs_to_the_current_child_and_is_cleared_on_stop(locations):
+    process = native_stand_in(locations, "--waiting")
+    process.live_url_file.parent.mkdir(parents=True)
+    process.live_url_file.write_text("http://127.0.0.1:1234/")
+    assert process.live_address() is None
+    process.start()
+    deadline = time.monotonic() + WAIT
+    try:
+        while process.live_address() is None:
+            assert time.monotonic() < deadline
+            time.sleep(POLL)
+        assert process.live_address() == "http://127.0.0.1:8765/"
+        assert process.state().live_url == "/api/plugins/laboratory/transfer/live/"
+    finally:
+        process.stop()
+    assert process.live_address() is None
+    assert not process.live_url_file.exists()
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "https://127.0.0.1:8765/",
+        "http://example.com:8765/",
+        "http://127.0.0.1:8765/private/",
+        "http://127.0.0.1:8765/?destination=elsewhere",
+        "http://user:secret@127.0.0.1:8765/",
+        "http://127.0.0.1:99999/",
+    ],
+)
+def test_live_address_refuses_anything_beyond_the_child_loopback_root(
+    locations, address
+):
+    process = native_stand_in(locations, "--waiting")
+    process.start()
+    deadline = time.monotonic() + WAIT
+    try:
+        while process.live_address() is None:
+            assert time.monotonic() < deadline
+            time.sleep(POLL)
+        process.live_url_file.write_text(address)
+        assert process.live_address() is None
     finally:
         process.stop()
