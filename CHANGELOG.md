@@ -179,6 +179,10 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **The demo site is published again.** Since the demo scenes left the repository,
+  every build of `main` exported a site without scenes and failed its screenshot
+  check, so the site kept the build of 23 Oct. It now shows the small medical
+  laboratory that `cramera-laboratory` ships.
 - **The medical lab page says how a PR2 run ended.** A failed run reported only
   the end of its log, which often held nothing but startup warnings. Its error now
   starts with the signal that ended the process (such as `SIGKILL`), its exit code,
