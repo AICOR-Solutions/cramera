@@ -17,11 +17,12 @@ from cramera_plan_builder.workspace import (
     CramModule,
     CramModules,
     MissingWorkspace,
+    RobotModelFiles,
     WorkspaceLoader,
 )
 from cramera_protocol.plan_builder import ActionCatalog
 
-from .dataset.given_workspace import DATASET, GivenWorkspace
+from .dataset.given_workspace import DATASET, ROBOT_MESH, GivenWorkspace
 
 LIBRARY = DATASET / "object_library"
 """
@@ -75,6 +76,8 @@ def test_the_missing_workspace_offers_nothing_and_names_what_is_missing():
     with pytest.raises(CramUnavailable) as refusal:
         workspace.object_file("milk.stl")
     assert refusal.value.missing == workspace.missing()
+    with pytest.raises(CramUnavailable):
+        workspace.write_robot_description("pr2", Path("unused"))
 
 
 # %% object files
@@ -142,3 +145,64 @@ def test_a_path_naming_no_library_is_read_from_the_mesh_directory():
     )
     with pytest.raises(FileNotInDirectory):
         LibraryWorkspace().object_file("elsewhere/objects/cup/model.urdf")
+
+
+# %% robot models
+
+
+@dataclass(frozen=True)
+class CountingWorkspace(GivenWorkspace):
+    """
+    The test workspace, recording each robot whose description it writes.
+    """
+
+    descriptions: list = None
+
+    def write_robot_description(self, name: str, directory: Path) -> Path:
+        self.descriptions.append(name)
+        return super().write_robot_description(name, directory)
+
+
+@pytest.fixture
+def robot_files(tmp_path) -> RobotModelFiles:
+    """
+    :return: The robot model files of the counting test workspace.
+    """
+    loader = WorkspaceLoader()
+    loader.loaded = CountingWorkspace(descriptions=[])
+    return RobotModelFiles(loader, tmp_path / "robots")
+
+
+def test_a_robots_description_and_its_meshes_are_served(robot_files):
+    urdf = robot_files.file("pr2/pr2.urdf")
+    assert urdf == robot_files.directory / "pr2" / "pr2.urdf"
+    assert f"meshes/{ROBOT_MESH}" in urdf.read_text(encoding="utf-8")
+    mesh = robot_files.file(f"pr2/meshes/{ROBOT_MESH}")
+    assert mesh.read_bytes() == (DATASET / "objects" / ROBOT_MESH).read_bytes()
+
+
+def test_a_robots_description_is_written_once(robot_files):
+    robot_files.file("pr2/pr2.urdf")
+    robot_files.file(f"pr2/meshes/{ROBOT_MESH}")
+    robot_files.file("tracy/tracy.urdf")
+    assert robot_files.workspace.workspace().descriptions == ["pr2", "tracy"]
+
+
+def test_a_robot_the_workspace_does_not_offer_is_not_served(robot_files):
+    with pytest.raises(FileNotInDirectory):
+        robot_files.file("../robots/pr2.urdf")
+    assert robot_files.workspace.workspace().descriptions == []
+
+
+def test_a_path_leaving_the_robots_directory_is_refused(robot_files):
+    with pytest.raises(PathOutsideDirectory):
+        robot_files.file("pr2/../tracy/tracy.urdf")
+
+
+def test_a_robots_directory_serves_nothing_but_descriptions_meshes_and_textures(
+    robot_files,
+):
+    robot_files.file("pr2/pr2.urdf")
+    (robot_files.directory / "pr2" / "notes.txt").write_text("", encoding="utf-8")
+    with pytest.raises(FileNotInDirectory):
+        robot_files.file("pr2/notes.txt")

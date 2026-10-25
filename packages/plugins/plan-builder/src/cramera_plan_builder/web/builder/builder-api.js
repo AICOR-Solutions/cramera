@@ -211,4 +211,13 @@ export class PlanBuilderApi {
   objectUrl(identifier) {
     return this.url(`${PlanBuilderRoute.OBJECT_FILES}${identifier.split('/').map(encodeURIComponent).join('/')}`);
   }
+
+  /**
+   * @param {string} name A robot model's name.
+   * @returns {string} The URL of its URDF, beside which the meshes it names resolve.
+   */
+  robotUrl(name) {
+    const robot = encodeURIComponent(name);
+    return this.url(`${PlanBuilderRoute.ROBOT_FILES}${robot}/${robot}.urdf`);
+  }
 }

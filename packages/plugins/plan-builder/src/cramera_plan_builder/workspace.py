@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import shutil
 import threading
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -20,7 +21,7 @@ from enum import StrEnum
 from importlib.machinery import ModuleSpec
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
@@ -131,6 +132,15 @@ class CramWorkspace(ABC):
         """
 
     @abstractmethod
+    def write_robot_description(self, name: str, directory: Path) -> Path:
+        """
+        :param name: A robot's identifier.
+        :param directory: The directory the description and its meshes are written to.
+        :return: The written URDF, which references its meshes relative to itself.
+        :raises CramUnavailable: Without the workspace.
+        """
+
+    @abstractmethod
     def objects(self) -> List[ObjectModel]:
         """
         :return: The object meshes, sorted by identifier.
@@ -225,6 +235,9 @@ class MissingWorkspace(CramWorkspace):
     def robots(self) -> List[RobotModel]:
         return []
 
+    def write_robot_description(self, name: str, directory: Path) -> Path:
+        raise CramUnavailable(self.missing_modules)
+
     def objects(self) -> List[ObjectModel]:
         return []
 
@@ -254,6 +267,9 @@ class InstalledWorkspace(CramWorkspace):
 
     def robots(self) -> List[RobotModel]:
         return self.plans.robots()
+
+    def write_robot_description(self, name: str, directory: Path) -> Path:
+        return self.plans.write_robot_description(name, directory)
 
     def objects(self) -> List[ObjectModel]:
         return self.plans.objects()
@@ -330,3 +346,60 @@ class WorkspaceLoader:
             return MissingWorkspace(missing)
         module = importlib.import_module(WorkspaceModule.INSTALLED)
         return InstalledWorkspace(module.PlanWorkspace())
+
+
+# %% robot models
+
+
+@dataclass
+class RobotModelFiles:
+    """
+    The robots' model descriptions and their meshes, written into a directory the first
+    time a robot is asked for in this process, so a changed description shows after a
+    restart.
+    """
+
+    workspace: WorkspaceLoader
+    """
+    Reads what the CRAM workspace offers.
+    """
+
+    directory: Path
+    """
+    The directory holding one directory per robot.
+    """
+
+    written: Set[str] = field(default_factory=set, init=False)
+    """
+    The robots whose description was written in this process.
+    """
+
+    lock: threading.Lock = field(default_factory=threading.Lock, init=False)
+    """
+    Lets one request write a description while others wait for it.
+    """
+
+    def file(self, requested: str) -> Path:
+        """
+        :param requested: ``<robot>/<robot>.urdf`` of a robot's description, or
+            ``<robot>/<path>`` of a mesh or texture it references.
+        :return: The file.
+        :raises CramUnavailable: Without the workspace.
+        :raises FileNotInDirectory: For a robot the workspace does not offer, a missing
+            file or one that is no mesh, texture or description.
+        :raises PathOutsideDirectory: For a path leaving the robot's directory.
+        """
+        robot, _, relative = requested.partition(LIBRARY_SEPARATOR)
+        workspace = self.workspace.workspace()
+        if robot not in {model.name for model in workspace.robots()}:
+            raise FileNotInDirectory(self.directory, requested)
+        directory = self.directory / robot
+        with self.lock:
+            if robot not in self.written:
+                shutil.rmtree(directory, ignore_errors=True)
+                workspace.write_robot_description(robot, directory)
+                self.written.add(robot)
+        file = ConfinedDirectory(directory).file(relative)
+        if file.suffix.lower() not in CramWorkspace.served_suffixes():
+            raise FileNotInDirectory(directory, relative)
+        return file

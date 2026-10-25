@@ -1,6 +1,6 @@
 """
 The plan builder's routes: the catalog, saved plans, constraint compilation, generated
-demos, the demo process and the object models' files.
+demos, the demo process and the object and robot models' files.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from cramera_plan_builder.environments import EnvironmentBundles
 from cramera_plan_builder.exceptions import ContentTooLarge, MalformedRequestBody
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.runs import DemoRunner
-from cramera_plan_builder.workspace import WorkspaceLoader
+from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.plan_builder import (
     ActionSchema,
     ConstraintText,
@@ -89,6 +89,11 @@ class PlanBuilderRoutes:
     Reads what the CRAM workspace offers.
     """
 
+    robot_files: RobotModelFiles
+    """
+    The robots' model descriptions and their meshes.
+    """
+
     plans: PlanStore
     """
     The saved plans.
@@ -144,6 +149,9 @@ class PlanBuilderRoutes:
             PluginPrefixRoute(
                 HttpMethod.GET, PlanBuilderRoute.OBJECT_FILES, self.answer_object_file
             ),
+            PluginPrefixRoute(
+                HttpMethod.GET, PlanBuilderRoute.ROBOT_FILES, self.answer_robot_file
+            ),
         ]
 
     # %% catalog
@@ -184,6 +192,14 @@ class PlanBuilderRoutes:
         :return: The file.
         """
         return Response.of_file(self.workspace.workspace().object_file(path))
+
+    def answer_robot_file(self, request: Request, path: str) -> Response:
+        """
+        :param request: A request for a robot model's file.
+        :param path: The file: ``<robot>/<path>``.
+        :return: The file.
+        """
+        return Response.of_file(self.robot_files.file(path))
 
     # %% plans
 

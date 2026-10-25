@@ -4,6 +4,8 @@ The installed CRAM workspace as the catalog reads it.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from cramera_bridge.plans.arms import Arms
@@ -11,9 +13,13 @@ from cramera_bridge.plans.workspace import (
     PlanWorkspace,
     RobotAnnotation,
     RobotAnnotations,
+    RobotDescription,
     SurfaceAnnotations,
 )
-from cramera_bridge.exceptions import UnknownWorkspaceClass
+from cramera_bridge.exceptions import (
+    RobotDescriptionUnavailable,
+    UnknownWorkspaceClass,
+)
 from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
 from semantic_digital_twin.datastructures.definitions import TorsoState
@@ -23,6 +29,8 @@ from semantic_digital_twin.robots.stretch import Stretch
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.semantic_annotations.mixins import HasCaseAsRootBody
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
+
+from ..dataset.bundles import BUNDLED_CUP_URDF
 
 
 @pytest.fixture(scope="module")
@@ -104,3 +112,71 @@ def test_the_surfaces_are_concrete_annotations_without_the_mixins(workspace):
 def test_an_unknown_class_name_is_refused():
     with pytest.raises(UnknownWorkspaceClass):
         RobotAnnotations().named("R2D2")
+
+
+# %% robot descriptions
+
+
+class DescribedRobot:
+    """
+    Stands in for a robot annotation naming a description; a subclass of the workspace's
+    robot base would join the catalog of every later test.
+    """
+
+    description = BUNDLED_CUP_URDF.as_uri()
+
+    @classmethod
+    def get_ros_file_path(cls) -> str:
+        return cls.description
+
+
+def described_by(description: str) -> type:
+    """
+    :param description: The reference the robot names.
+    :return: A robot annotation naming it.
+    """
+    return type(
+        DescribedRobot.__name__, (DescribedRobot,), {"description": description}
+    )
+
+
+def test_a_robots_description_is_written_with_its_meshes(tmp_path):
+    robot = described_by(BUNDLED_CUP_URDF.as_uri())
+    urdf = RobotDescription(robot).write(tmp_path)
+    identifier = ROBOT_NAMES.identifier_of(robot)
+    assert urdf == tmp_path / f"{identifier}.urdf"
+    assert [path.name for path in (tmp_path / "meshes").rglob("*.obj")] == ["cup.obj"]
+
+
+def test_a_description_that_is_not_installed_is_unavailable(tmp_path):
+    robot = described_by("package://no_such_description/urdf/robot.urdf")
+    with pytest.raises(RobotDescriptionUnavailable):
+        RobotDescription(robot).write(tmp_path)
+
+
+def test_a_description_that_is_no_urdf_is_unavailable(tmp_path):
+    mjcf = tmp_path / "robot.xml"
+    mjcf.write_text("<mujoco/>", encoding="utf-8")
+    with pytest.raises(RobotDescriptionUnavailable):
+        RobotDescription(described_by(mjcf.as_uri())).write(tmp_path / "out")
+
+
+def test_a_xacro_that_does_not_expand_is_unavailable(tmp_path):
+    xacro = tmp_path / "robot.urdf.xacro"
+    xacro.write_text(
+        '<robot name="r" xmlns:xacro="http://www.ros.org/wiki/xacro">'
+        '<xacro:include filename="$(find no_such_description)/robot.xacro"/></robot>',
+        encoding="utf-8",
+    )
+    with pytest.raises(RobotDescriptionUnavailable):
+        RobotDescription(described_by(xacro.as_uri())).write(tmp_path / "out")
+
+
+def test_the_workspace_writes_a_robots_description_by_its_identifier(
+    workspace, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        PR2, "get_ros_file_path", classmethod(lambda cls: BUNDLED_CUP_URDF.as_uri())
+    )
+    urdf = workspace.write_robot_description(ROBOT_NAMES.identifier_of(PR2), tmp_path)
+    assert urdf == tmp_path / f"{ROBOT_NAMES.identifier_of(PR2)}.urdf"

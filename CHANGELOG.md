@@ -115,6 +115,14 @@ which this repository was mirrored until 22 Oct 2026.
 - **A new viewer replaces the old one.** `cramera` started on a port another cramera
   viewer holds stops that viewer and takes the port; `--keep-running` keeps the
   earlier behaviour of failing with *address already in use*.
+- **Robots as their models in the plan builder.** The 3D view draws each robot of a
+  plan as its model at rest instead of a disc. cramera-bridge writes a robot's URDF or
+  xacro with its meshes into the plan builder's data directory the first time it is
+  asked for (`robots/<robot>/<robot>.urdf`); a robot whose description is not installed
+  keeps its disc. The packages are found as CRAM finds them, so the viewer is started
+  with the ROS workspace sourced.
+
+  ![PR2 in the plan builder](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/plan-builder-robots/builder.png)
 
 ### Changed
 - **The protocol names actions, robots, plan node kinds, fields, enumeration members

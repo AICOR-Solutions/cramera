@@ -26,7 +26,7 @@ from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.plans import PlanStore
 from cramera_plan_builder.routes import PlanBuilderRoutes
 from cramera_plan_builder.runs import DemoRunner
-from cramera_plan_builder.workspace import WorkspaceLoader
+from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT
 from cramera_protocol.plan_builder import (
     PlanBuilderFile,
@@ -73,6 +73,11 @@ class StorageDirectory(StrEnum):
     """
     The generated demos, below :attr:`BUILDER`, unless the environment names another
     directory.
+    """
+
+    ROBOTS = "robots"
+    """
+    The robots' model descriptions the 3D view loads, below :attr:`BUILDER`.
     """
 
 
@@ -130,6 +135,13 @@ class PlanBuilderStorage:
         """
         return self.directory / StorageDirectory.PLANS
 
+    @property
+    def robots(self) -> Path:
+        """
+        The directory of the robots' model descriptions.
+        """
+        return self.directory / StorageDirectory.ROBOTS
+
 
 # %% plugin
 
@@ -184,6 +196,7 @@ class PlanBuilderPlugin(ViewerPlugin):
         return PlanBuilderRoutes(
             scenes=context.catalog,
             workspace=self.workspace,
+            robot_files=RobotModelFiles(self.workspace, storage.robots),
             plans=PlanStore(storage.plans),
             compiler=ConstraintCompiler.of_file(),
             demos=demos,

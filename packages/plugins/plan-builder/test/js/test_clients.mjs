@@ -38,6 +38,7 @@ test('the routes lie below the viewer, also when it is served below a path', () 
   assert.equal(api.url(PlanBuilderRoute.CATALOG), route(PlanBuilderRoute.CATALOG));
   assert.equal(api.objectUrl('big knife.stl'), route(`${PlanBuilderRoute.OBJECT_FILES}big%20knife.stl`));
   assert.equal(api.objectUrl('library/objects/cup #2/model.urdf'), route(`${PlanBuilderRoute.OBJECT_FILES}library/objects/cup%20%232/model.urdf`));
+  assert.equal(api.robotUrl('pr2'), route(`${PlanBuilderRoute.ROBOT_FILES}pr2/pr2.urdf`));
 });
 
 test('a plan is saved as a record, under its identity once it has one', async () => {

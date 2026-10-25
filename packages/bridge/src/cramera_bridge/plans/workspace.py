@@ -24,7 +24,12 @@ import semantic_digital_twin.semantic_annotations.semantic_annotations  # noqa: 
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.objects import ObjectLibraries
-from cramera_bridge.exceptions import UnknownWorkspaceClass
+from cramera_bridge.exceptions import (
+    RobotDescriptionUnavailable,
+    UnknownWorkspaceClass,
+)
+from cramera_bridge.export.assets import MeshReference
+from cramera_bridge.export.urdf import URDF_SUFFIX, XACRO_SUFFIX, UrdfBundle
 from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
@@ -40,6 +45,7 @@ from semantic_digital_twin.robots.robot_parts import (
 )
 from semantic_digital_twin.semantic_annotations import mixins
 from semantic_digital_twin.semantic_annotations.mixins import HasSupportingSurface
+from xacro import XacroException
 
 OBJECT_DIRECTORY = (
     Path(coraplex.__file__).resolve().parents[2] / "resources" / "objects"
@@ -189,6 +195,63 @@ class RobotAnnotations:
         )
 
 
+@dataclass(frozen=True)
+class RobotDescription:
+    """
+    The model description a robot annotation names, written with its meshes into a
+    directory a browser loads it from.
+    """
+
+    annotation: Type[AbstractRobot]
+    """
+    The robot annotation.
+    """
+
+    def source(self) -> Path:
+        """
+        :return: The URDF or xacro file the annotation names.
+        :raises RobotDescriptionUnavailable: When the file is not installed or is no URDF
+            or xacro file.
+        """
+        reference = self.annotation.get_ros_file_path()
+        source = MeshReference(reference).resolve(
+            Path(inspect.getfile(self.annotation)).parent
+        )
+        if source is None:
+            raise RobotDescriptionUnavailable(
+                self.identifier(), f"{reference} is not installed."
+            )
+        if source.suffix not in (URDF_SUFFIX, XACRO_SUFFIX):
+            raise RobotDescriptionUnavailable(
+                self.identifier(), f"{reference} is no URDF or xacro file."
+            )
+        return source
+
+    def identifier(self) -> str:
+        """
+        :return: The robot's identifier.
+        """
+        return ROBOT_NAMES.identifier_of(self.annotation)
+
+    def write(self, directory: Path) -> Path:
+        """
+        :param directory: The directory receiving ``<identifier>.urdf`` and the meshes
+            it references, below ``meshes``.
+        :return: The written URDF.
+        :raises RobotDescriptionUnavailable: When the description is not installed or
+            its xacro does not expand.
+        """
+        identifier = self.identifier()
+        # xacro reports an argument or package it cannot substitute only by raising, so
+        # this is the one place where that report becomes an unavailable description
+        try:
+            return (
+                UrdfBundle(directory, identifier).write(self.source(), identifier).urdf
+            )
+        except XacroException as error:
+            raise RobotDescriptionUnavailable(identifier, str(error)) from error
+
+
 # %% surfaces
 
 
@@ -270,6 +333,16 @@ class PlanWorkspace:
             RobotAnnotation(annotation).model()
             for annotation in self.robot_annotations.annotations()
         ]
+
+    def write_robot_description(self, name: str, directory: Path) -> Path:
+        """
+        :param name: A robot's identifier, or a name a plan saved it under before.
+        :param directory: The directory the description and its meshes are written to.
+        :return: The written URDF, which a browser loads with the meshes beside it.
+        :raises UnknownWorkspaceClass: When no robot has the name.
+        :raises RobotDescriptionUnavailable: When its description cannot be written.
+        """
+        return RobotDescription(self.robot_annotations.named(name)).write(directory)
 
     def objects(self) -> List[ObjectModel]:
         """
