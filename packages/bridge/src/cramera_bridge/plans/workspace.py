@@ -30,9 +30,15 @@ from cramera_bridge.exceptions import (
 )
 from cramera_bridge.export.assets import MeshReference
 from cramera_bridge.export.urdf import URDF_SUFFIX, XACRO_SUFFIX, UrdfBundle
+from cramera_bridge.export.urdf_environment import UrdfEnvironmentBundle
 from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_protocol.bundle.files import MeshFormat
-from cramera_protocol.plan_builder import ActionCatalog, ObjectModel, RobotModel
+from cramera_protocol.plan_builder import (
+    ActionCatalog,
+    LoadedEnvironment,
+    ObjectModel,
+    RobotModel,
+)
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
 from krrood.utils import recursive_subclasses
 from semantic_digital_twin.datastructures.definitions import TorsoState
@@ -343,6 +349,18 @@ class PlanWorkspace:
         :raises RobotDescriptionUnavailable: When its description cannot be written.
         """
         return RobotDescription(self.robot_annotations.named(name)).write(directory)
+
+    def write_environment(
+        self, source: Path, scenes: Path, taken: Set[str]
+    ) -> LoadedEnvironment:
+        """
+        :param source: A URDF or xacro file of this machine.
+        :param scenes: The scenes directory the environment bundle is written to.
+        :param taken: The bundle names already in use, in any scenes directory.
+        :return: The written bundle's index entry and the meshes that were not found.
+        :raises UrdfSourceNotFound: When the source does not exist.
+        """
+        return UrdfEnvironmentBundle(scenes).write(source, taken)
 
     def objects(self) -> List[ObjectModel]:
         """

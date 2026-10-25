@@ -20,6 +20,8 @@ export const PlanAction = Object.freeze({
   NAME: 'name',
   TASK: 'task',
   ENVIRONMENT: 'environment',
+  URDF_PATH: 'urdf-path',
+  LOAD_URDF: 'load-urdf',
   SELECT_ROBOT: 'select-robot',
   ADD_ROBOT: 'add-robot',
   REMOVE_ROBOT: 'remove-robot',

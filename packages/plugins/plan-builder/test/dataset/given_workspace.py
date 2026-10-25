@@ -10,11 +10,15 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from typing_extensions import Dict, List
+from typing_extensions import Dict, List, Set
 
 from cramera_plan_builder.workspace import CramWorkspace
+from cramera_protocol.bundle.files import BundleFile
+from cramera_protocol.bundle.index import SceneIndexEntry
+from cramera_protocol.bundle.scene import ModelDescription, SceneDescription
 from cramera_protocol.plan_builder import (
     ActionCatalog,
+    LoadedEnvironment,
     ObjectModel,
     PlanBuilderCatalog,
     RobotModel,
@@ -78,6 +82,28 @@ class GivenWorkspace(CramWorkspace):
             encoding="utf-8",
         )
         return urdf
+
+    def write_environment(
+        self, source: Path, scenes: Path, taken: Set[str]
+    ) -> LoadedEnvironment:
+        """
+        Copy the file into a bundle named after it, its meshes left behind.
+        """
+        name = source.stem
+        bundle = scenes / name
+        bundle.mkdir(parents=True)
+        shutil.copyfile(source, bundle / source.name)
+        description = SceneDescription(
+            name=name,
+            environment_name=name,
+            models=[
+                ModelDescription(name=name, urdf=source.name, prefix="", robot=False)
+            ],
+        )
+        (bundle / BundleFile.SCENE).write_text(
+            json.dumps(description.to_json()), encoding="utf-8"
+        )
+        return LoadedEnvironment(entry=SceneIndexEntry(name=name, environment=name))
 
     def objects(self) -> List[ObjectModel]:
         return self.catalog().objects

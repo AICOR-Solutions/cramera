@@ -136,6 +136,11 @@ class PlanBuilderRoute(StrEnum):
     robot's model at rest, and names its meshes relative to itself.
     """
 
+    ENVIRONMENTS = "environments"
+    """
+    Writes a URDF or xacro file of this machine as an environment bundle.
+    """
+
 
 class PlanBuilderPageParameter(StrEnum):
     """
@@ -368,6 +373,64 @@ class ConstraintText(JsonDocument):
     objects: List[str] = document_field(ConstraintTextKey.OBJECTS, default_factory=list)
     """
     The identifiers of the plan's objects, which a sentence can name.
+    """
+
+
+class UrdfEnvironmentKey(StrEnum):
+    """
+    The keys of a request loading a URDF as an environment.
+    """
+
+    PATH = "path"
+    """
+    The URDF or xacro file, as a path on the viewer's machine.
+    """
+
+
+@dataclass(kw_only=True)
+class UrdfEnvironment(JsonDocument):
+    """
+    A URDF or xacro file of the viewer's machine to load as an environment.
+    """
+
+    path: str = document_field(UrdfEnvironmentKey.PATH)
+    """
+    The file, absolute or starting with ``~``.
+    """
+
+
+class LoadedEnvironmentKey(StrEnum):
+    """
+    The keys of the answer to loading a URDF as an environment.
+    """
+
+    ENTRY = "entry"
+    """
+    The written bundle as the catalog lists it.
+    """
+
+    MISSING_MESHES = "missingMeshes"
+    """
+    The mesh references that resolved to no file.
+    """
+
+
+@dataclass(kw_only=True)
+class LoadedEnvironment(JsonDocument):
+    """
+    An environment bundle written from a URDF or xacro file.
+    """
+
+    entry: SceneIndexEntry = document_field(LoadedEnvironmentKey.ENTRY)
+    """
+    The bundle as the catalog's environments list it.
+    """
+
+    missing_meshes: List[str] = document_field(
+        LoadedEnvironmentKey.MISSING_MESHES, default_factory=list
+    )
+    """
+    The mesh references of the file that resolved to no file, left out of the bundle.
     """
 
 

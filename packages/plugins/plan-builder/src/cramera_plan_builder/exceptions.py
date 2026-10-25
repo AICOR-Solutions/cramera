@@ -564,6 +564,27 @@ class ConstraintReferenceMissing(PlanBuilderError):
         )
 
 
+# %% environments
+
+
+@dataclass
+class NotAUrdfFile(PlanBuilderError):
+    """
+    A path given to load as an environment that names no URDF or xacro file.
+    """
+
+    path: str
+    """
+    The path as it was given.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"{self.path!r} is no URDF or xacro file on the viewer's machine."
+
+
 # %% CRAM
 
 

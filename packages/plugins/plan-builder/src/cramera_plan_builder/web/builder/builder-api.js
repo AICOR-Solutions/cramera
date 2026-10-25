@@ -2,7 +2,7 @@
  * The plan builder's routes as the builder page calls them.
  */
 
-import { ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RunRequestKey, ViewerRoute } from '../../../protocol.js';
+import { ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RunRequestKey, UrdfEnvironmentKey, ViewerRoute } from '../../../protocol.js';
 
 /**
  * The media type of JSON bodies, which also explain errors.
@@ -128,6 +128,15 @@ export class PlanBuilderApi {
    */
   catalog() {
     return this.#client.get(this.url(PlanBuilderRoute.CATALOG));
+  }
+
+  /**
+   * @param {string} path A URDF or xacro file on the viewer's machine.
+   * @returns {Promise<Object>} The `LoadedEnvironment`: the environment bundle written
+   *   from it and the meshes that were not found.
+   */
+  loadEnvironment(path) {
+    return this.#client.post(this.url(PlanBuilderRoute.ENVIRONMENTS), { [UrdfEnvironmentKey.PATH]: path });
   }
 
   /**

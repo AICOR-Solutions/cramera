@@ -11,6 +11,8 @@ import {
   DemoSourceKey,
   PageState,
   DestinationKey,
+  IndexEntryKey,
+  LoadedEnvironmentKey,
   PlacementMode,
   PageStateAttribute,
   PlanBuilderCatalogKey,
@@ -29,7 +31,7 @@ import {
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, ROBOT_MODEL_KEY } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, ROBOT_MODEL_KEY, loadedMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -62,6 +64,14 @@ class FakeApi {
     this.runs = [];
     this.status = { [RunStatusKey.STATE]: RunState.IDLE };
     this.stopped = 0;
+    this.loaded = [];
+  }
+
+  async loadEnvironment(path) {
+    this.loaded.push(path);
+    if (!path.endsWith('.urdf')) throw new Error(`'${path}' is no URDF or xacro file on the viewer's machine.`);
+    const name = path.split('/').at(-1).replace('.urdf', '');
+    return { [LoadedEnvironmentKey.ENTRY]: { [IndexEntryKey.NAME]: name, [IndexEntryKey.ENVIRONMENT]: name }, [LoadedEnvironmentKey.MISSING_MESHES]: [] };
   }
 
   async catalog() {
@@ -496,6 +506,38 @@ test('without an environment on offer the section says where environments come f
   });
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), '');
   assert.equal(environmentNote(root), EnvironmentNote.NONE_OFFERED);
+});
+
+test('a URDF loaded from its path is offered and becomes the environment', async () => {
+  const { root, page, api, scene } = await openPage();
+  const path = byAction(root, PlanAction.URDF_PATH)[0];
+  path.value = '  /worlds/apartment.urdf ';
+  byAction(root, PlanAction.LOAD_URDF)[0].click();
+  await settled();
+  assert.deepEqual(api.loaded, ['/worlds/apartment.urdf']);
+  assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'apartment');
+  const offered = byAction(root, PlanAction.ENVIRONMENT)[0].children.map((option) => option.value);
+  assert.deepEqual(offered.slice(-1), ['apartment']);
+  assert.equal(environmentNote(root), EnvironmentNote.chosen('apartment'));
+  assert.equal(scene().environments.at(-1), 'apartment');
+  assert.equal(message(root), 'Loaded apartment.');
+});
+
+test('a path the viewer refuses keeps the environment and says why', async () => {
+  const { root, page, api } = await openPage();
+  const chosen = page.state.field(PlanKey.ENVIRONMENT);
+  byAction(root, PlanAction.LOAD_URDF)[0].click();
+  assert.deepEqual(api.loaded, []);
+  byAction(root, PlanAction.URDF_PATH)[0].value = '/worlds/apartment.stl';
+  byAction(root, PlanAction.LOAD_URDF)[0].click();
+  await settled();
+  assert.equal(page.state.field(PlanKey.ENVIRONMENT), chosen);
+  assert.match(message(root), /no URDF or xacro file/);
+});
+
+test('a loaded environment names its first missing meshes', () => {
+  assert.equal(loadedMessage('apartment', ['a.dae']), 'Loaded apartment; 1 mesh it names was not found and left out: a.dae');
+  assert.match(loadedMessage('apartment', ['a', 'b', 'c', 'd']), /4 meshes .*: a, b, c, …$/);
 });
 
 const robotEntries = (root) => byAction(root, PlanAction.SELECT_ROBOT);

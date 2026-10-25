@@ -7,6 +7,7 @@
 import {
   DemoSourceKey,
   IndexEntryKey,
+  LoadedEnvironmentKey,
   ObjectPosesKey,
   LiveInfoKey,
   LivePlanNodeKey,
@@ -71,6 +72,24 @@ const RUN_LABELS = Object.freeze({
  * The run states in which the live world is published.
  */
 const LIVE_STATES = Object.freeze([RunState.RUNNING]);
+
+/**
+ * How many missing meshes a loaded environment's message names.
+ */
+export const NAMED_MISSING_MESHES = 3;
+
+/**
+ * @param {string} label The loaded environment's name for people.
+ * @param {Array<string>} missing The mesh references that resolved to no file.
+ * @returns {string} What the page says about the loaded environment.
+ */
+export function loadedMessage(label, missing) {
+  if (missing.length === 0) return `Loaded ${label}.`;
+  const named = missing.slice(0, NAMED_MISSING_MESHES).join(', ');
+  const more = missing.length > NAMED_MISSING_MESHES ? ', …' : '';
+  const count = missing.length === 1 ? '1 mesh it names was' : `${missing.length} meshes it names were`;
+  return `Loaded ${label}; ${count} not found and left out: ${named}${more}`;
+}
 
 // %% environment
 
@@ -288,6 +307,24 @@ export class BuilderPage {
       this.report(error.message);
     }
     this.render();
+  }
+
+  /**
+   * Write a URDF of the viewer's machine as an environment and start the plan there.
+   * @param {string} path The URDF or xacro file.
+   * @returns {Promise<void>} Settles once the environment is chosen or refused.
+   */
+  async loadEnvironment(path) {
+    this.report(`Loading ${path}…`);
+    const loaded = await this.#environment.api.loadEnvironment(path).catch((error) => {
+      this.report(error.message);
+      return null;
+    });
+    if (!loaded) return;
+    const entry = loaded[LoadedEnvironmentKey.ENTRY];
+    this.state.catalog[PlanBuilderCatalogKey.ENVIRONMENTS].push(entry);
+    this.edit(() => this.state.setField(PlanKey.ENVIRONMENT, entry[IndexEntryKey.NAME]));
+    this.report(loadedMessage(entry[IndexEntryKey.ENVIRONMENT] ?? entry[IndexEntryKey.NAME], loaded[LoadedEnvironmentKey.MISSING_MESHES]));
   }
 
   /**
