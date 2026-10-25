@@ -33,6 +33,8 @@ which this repository was mirrored until 22 Oct 2026.
   (`NoScenesToExport`) and a `--default-scene` it does not export
   (`DefaultSceneNotExported`) before writing anything, instead of writing a site whose
   screenshot step waits 180 s for a scene that never comes.
+
+  ![cramera-export-site refusing a missing scenes directory and a default scene it does not export](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/site-export-checks/export-error.png)
 - **A dedicated small medical lab page with the local PR2 demo.** The top-bar
   **Medical lab** link opens its own 3D view, controls and timeline. With the full
   CRAM stack and ROS robot descriptions, it starts with the compact workbench and
