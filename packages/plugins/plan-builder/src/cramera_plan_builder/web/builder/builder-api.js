@@ -2,7 +2,7 @@
  * The plan builder's routes as the builder page calls them.
  */
 
-import { ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RunRequestKey, UrdfEnvironmentKey, ViewerRoute } from '../../../protocol.js';
+import { ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RunRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ViewerRoute } from '../../../protocol.js';
 
 /**
  * The media type of JSON bodies, which also explain errors.
@@ -137,6 +137,17 @@ export class PlanBuilderApi {
    */
   loadEnvironment(path) {
     return this.#client.post(this.url(PlanBuilderRoute.ENVIRONMENTS), { [UrdfEnvironmentKey.PATH]: path });
+  }
+
+  /**
+   * @param {string|null} path A folder on the viewer's machine, or null for the home
+   *   folder.
+   * @returns {Promise<Object>} The `UrdfFolder`: its folders and URDF files.
+   */
+  urdfFolder(path) {
+    const url = new URL(this.url(PlanBuilderRoute.URDF_FOLDER));
+    if (path !== null) url.searchParams.set(UrdfFolderParameter.PATH, path);
+    return this.#client.get(url.href);
   }
 
   /**
