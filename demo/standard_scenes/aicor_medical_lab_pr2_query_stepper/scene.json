@@ -1,0 +1,727 @@
+{
+ "name": "aicor_medical_lab_pr2_query_stepper",
+ "formatVersion": "1.0",
+ "framesPerSecond": 31.91,
+ "trajectory": "trajectory.json",
+ "querySteps": "query_steps.json",
+ "models": [
+  {
+   "name": "environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 21,
+   "movableJoints": [
+    "aicor_medical_lab/laboratory_refrigerator_door_joint",
+    "aicor_medical_lab/laboratory_centrifuge_lid_joint",
+    "aicor_medical_lab/laboratory_centrifuge_rotor_joint",
+    "aicor_medical_lab/laboratory_drawer_joint"
+   ],
+   "preserveMaterials": true,
+   "posedJoints": []
+  },
+  {
+   "name": "pr2",
+   "urdf": "pr2.urdf",
+   "prefix": "",
+   "robot": true,
+   "links": 105,
+   "movableJoints": [
+    "pr2/torso_lift_motor_screw_joint",
+    "pr2/torso_lift_joint",
+    "pr2/l_shoulder_pan_joint",
+    "pr2/l_shoulder_lift_joint",
+    "pr2/l_upper_arm_roll_joint",
+    "pr2/l_elbow_flex_joint",
+    "pr2/l_forearm_roll_joint",
+    "pr2/l_wrist_flex_joint",
+    "pr2/l_wrist_roll_joint",
+    "pr2/l_gripper_r_finger_joint",
+    "pr2/l_gripper_r_finger_tip_joint",
+    "pr2/l_gripper_joint",
+    "pr2/l_gripper_l_finger_joint",
+    "pr2/l_gripper_l_finger_tip_joint",
+    "pr2/l_gripper_motor_slider_joint",
+    "pr2/l_gripper_motor_screw_joint",
+    "pr2/r_shoulder_pan_joint",
+    "pr2/r_shoulder_lift_joint",
+    "pr2/r_upper_arm_roll_joint",
+    "pr2/r_elbow_flex_joint",
+    "pr2/r_forearm_roll_joint",
+    "pr2/r_wrist_flex_joint",
+    "pr2/r_wrist_roll_joint",
+    "pr2/r_gripper_r_finger_joint",
+    "pr2/r_gripper_r_finger_tip_joint",
+    "pr2/r_gripper_joint",
+    "pr2/r_gripper_l_finger_joint",
+    "pr2/r_gripper_l_finger_tip_joint",
+    "pr2/r_gripper_motor_slider_joint",
+    "pr2/r_gripper_motor_screw_joint",
+    "pr2/laser_tilt_mount_joint",
+    "pr2/head_pan_joint",
+    "pr2/head_tilt_joint",
+    "pr2/br_caster_rotation_joint",
+    "pr2/br_caster_r_wheel_joint",
+    "pr2/br_caster_l_wheel_joint",
+    "pr2/bl_caster_rotation_joint",
+    "pr2/bl_caster_r_wheel_joint",
+    "pr2/bl_caster_l_wheel_joint",
+    "pr2/fr_caster_rotation_joint",
+    "pr2/fr_caster_r_wheel_joint",
+    "pr2/fr_caster_l_wheel_joint",
+    "pr2/fl_caster_rotation_joint",
+    "pr2/fl_caster_r_wheel_joint",
+    "pr2/fl_caster_l_wheel_joint"
+   ],
+   "posedJoints": [],
+   "identifier": "5de30326-184f-459d-8b3e-102a18cc6d96",
+   "pose": [
+    0.4,
+    -0.72,
+    0.0,
+    0.0,
+    0.0,
+    0.70739,
+    0.70682
+   ]
+  }
+ ],
+ "robot": {
+  "name": "pr2",
+  "prefix": "",
+  "baseBody": "pr2/base_footprint",
+  "parts": {
+   "PR2LeftArm": [
+    "pr2/l_elbow_flex_link",
+    "pr2/l_force_torque_adapter_link",
+    "pr2/l_force_torque_link",
+    "pr2/l_forearm_link",
+    "pr2/l_forearm_roll_link",
+    "pr2/l_shoulder_lift_link",
+    "pr2/l_shoulder_pan_link",
+    "pr2/l_upper_arm_link",
+    "pr2/l_upper_arm_roll_link",
+    "pr2/l_wrist_flex_link",
+    "pr2/l_wrist_roll_link",
+    "pr2/torso_lift_link"
+   ],
+   "PR2LeftGripper": [
+    "pr2/l_gripper_l_finger_link",
+    "pr2/l_gripper_l_finger_tip_frame",
+    "pr2/l_gripper_l_finger_tip_link",
+    "pr2/l_gripper_led_frame",
+    "pr2/l_gripper_motor_accelerometer_link",
+    "pr2/l_gripper_motor_screw_link",
+    "pr2/l_gripper_motor_slider_link",
+    "pr2/l_gripper_palm_link",
+    "pr2/l_gripper_r_finger_link",
+    "pr2/l_gripper_r_finger_tip_link",
+    "pr2/l_gripper_tool_frame"
+   ],
+   "PR2RightArm": [
+    "pr2/r_elbow_flex_link",
+    "pr2/r_forearm_link",
+    "pr2/r_forearm_roll_link",
+    "pr2/r_shoulder_lift_link",
+    "pr2/r_shoulder_pan_link",
+    "pr2/r_upper_arm_link",
+    "pr2/r_upper_arm_roll_link",
+    "pr2/r_wrist_flex_link",
+    "pr2/r_wrist_roll_link",
+    "pr2/torso_lift_link"
+   ],
+   "PR2RightGripper": [
+    "pr2/r_gripper_l_finger_link",
+    "pr2/r_gripper_l_finger_tip_frame",
+    "pr2/r_gripper_l_finger_tip_link",
+    "pr2/r_gripper_led_frame",
+    "pr2/r_gripper_motor_accelerometer_link",
+    "pr2/r_gripper_motor_screw_link",
+    "pr2/r_gripper_motor_slider_link",
+    "pr2/r_gripper_palm_link",
+    "pr2/r_gripper_r_finger_link",
+    "pr2/r_gripper_r_finger_tip_link",
+    "pr2/r_gripper_tool_frame"
+   ]
+  },
+  "partAnnotations": [
+   {
+    "name": "PR2LeftArm",
+    "role": "arm",
+    "side": "left",
+    "links": [
+     "pr2/l_elbow_flex_link",
+     "pr2/l_force_torque_adapter_link",
+     "pr2/l_force_torque_link",
+     "pr2/l_forearm_link",
+     "pr2/l_forearm_roll_link",
+     "pr2/l_shoulder_lift_link",
+     "pr2/l_shoulder_pan_link",
+     "pr2/l_upper_arm_link",
+     "pr2/l_upper_arm_roll_link",
+     "pr2/l_wrist_flex_link",
+     "pr2/l_wrist_roll_link",
+     "pr2/torso_lift_link"
+    ]
+   },
+   {
+    "name": "PR2LeftGripper",
+    "role": "end_effector",
+    "side": "left",
+    "links": [
+     "pr2/l_gripper_l_finger_link",
+     "pr2/l_gripper_l_finger_tip_frame",
+     "pr2/l_gripper_l_finger_tip_link",
+     "pr2/l_gripper_led_frame",
+     "pr2/l_gripper_motor_accelerometer_link",
+     "pr2/l_gripper_motor_screw_link",
+     "pr2/l_gripper_motor_slider_link",
+     "pr2/l_gripper_palm_link",
+     "pr2/l_gripper_r_finger_link",
+     "pr2/l_gripper_r_finger_tip_link",
+     "pr2/l_gripper_tool_frame"
+    ],
+    "attachedTo": "PR2LeftArm"
+   },
+   {
+    "name": "PR2RightArm",
+    "role": "arm",
+    "side": "right",
+    "links": [
+     "pr2/r_elbow_flex_link",
+     "pr2/r_forearm_link",
+     "pr2/r_forearm_roll_link",
+     "pr2/r_shoulder_lift_link",
+     "pr2/r_shoulder_pan_link",
+     "pr2/r_upper_arm_link",
+     "pr2/r_upper_arm_roll_link",
+     "pr2/r_wrist_flex_link",
+     "pr2/r_wrist_roll_link",
+     "pr2/torso_lift_link"
+    ]
+   },
+   {
+    "name": "PR2RightGripper",
+    "role": "end_effector",
+    "side": "right",
+    "links": [
+     "pr2/r_gripper_l_finger_link",
+     "pr2/r_gripper_l_finger_tip_frame",
+     "pr2/r_gripper_l_finger_tip_link",
+     "pr2/r_gripper_led_frame",
+     "pr2/r_gripper_motor_accelerometer_link",
+     "pr2/r_gripper_motor_screw_link",
+     "pr2/r_gripper_motor_slider_link",
+     "pr2/r_gripper_palm_link",
+     "pr2/r_gripper_r_finger_link",
+     "pr2/r_gripper_r_finger_tip_link",
+     "pr2/r_gripper_tool_frame"
+    ],
+    "attachedTo": "PR2RightArm"
+   }
+  ],
+  "identifier": "5de30326-184f-459d-8b3e-102a18cc6d96",
+  "label": "PR2"
+ },
+ "objects": [
+  {
+   "id": "laboratory_rack",
+   "key": "5e35a92d-cd0f-409d-9728-9e9e658e603e",
+   "spawn": [
+    0.22,
+    -0.04,
+    0.9,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.0681,
+   "mesh": "meshes/objects/5e35a92d-cd0f-409d-9728-9e9e658e603e/tube_rack.glb"
+  },
+  {
+   "id": "tube_clear",
+   "key": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+   "spawn": [
+    0.16,
+    -0.065,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/1acf45bb-c50d-47a3-a893-c681ed5c5b4b/tube_clear.glb"
+  },
+  {
+   "id": "tube_amber",
+   "key": "3f75538d-a269-48f2-bf92-49feaf8c6352",
+   "spawn": [
+    0.22,
+    -0.065,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/3f75538d-a269-48f2-bf92-49feaf8c6352/tube_amber.glb"
+  },
+  {
+   "id": "tube_teal",
+   "key": "f77fca6f-4789-4c22-9cff-730db09a8694",
+   "spawn": [
+    0.16,
+    -0.015,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/f77fca6f-4789-4c22-9cff-730db09a8694/tube_teal.glb"
+  },
+  {
+   "id": "tube_reserve",
+   "key": "f577379e-4fb0-42e6-b3c7-2aed3d6ec9cd",
+   "spawn": [
+    0.28,
+    -0.015,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/f577379e-4fb0-42e6-b3c7-2aed3d6ec9cd/tube_clear.glb"
+  },
+  {
+   "id": "stopper",
+   "key": "d1eae4a0-e1fc-4158-99d5-20838819b894",
+   "spawn": [
+    0.5,
+    -0.12,
+    0.9,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.021,
+   "mesh": "meshes/objects/d1eae4a0-e1fc-4158-99d5-20838819b894/stopper.glb"
+  }
+ ],
+ "segments": [
+  {
+   "step": "run",
+   "start": 0,
+   "end": 341
+  },
+  {
+   "step": "VesselPickUpAction",
+   "start": 341,
+   "end": 651,
+   "picks": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+   "attach": 341,
+   "detach": 620
+  }
+ ],
+ "planTrees": [
+  {
+   "kind": "sequence",
+   "label": "SequentialNode",
+   "status": "SUCCEEDED",
+   "children": [
+    {
+     "kind": "action",
+     "label": "VesselPickUpAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_10",
+       "parent": "plan_node_1",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "VesselReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_16",
+           "parent": "plan_node_4",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_12",
+             "parent": "plan_node_9",
+             "parameters": {
+              "max_linear_velocity": "0.12",
+              "target": "0.000, 0.000, 0.214",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_13",
+             "parent": "plan_node_9",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_14",
+             "parent": "plan_node_9",
+             "parameters": {
+              "position_threshold": "0.0005",
+              "max_linear_velocity": "0.025",
+              "target": "-0.000, -0.000, 0.105",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_9",
+           "parent": "plan_node_4",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_17",
+           "parent": "plan_node_4",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_4",
+         "parent": "plan_node_3",
+         "start": 11,
+         "end": 280,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "pre_approach_linear_velocity": "0.12",
+          "final_approach_linear_velocity": "0.025",
+          "approach_clearance": "0.109",
+          "retreat_distance": "0.16",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on",
+          "grasp_position_threshold": "0.0005"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "PadContactNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_5",
+         "parent": "plan_node_3",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "PadContactMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "target": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+         "id": "plan_node_6",
+         "parent": "plan_node_3",
+         "parameters": {
+          "gripper": "PR2LeftGripper",
+          "object_designator": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+          "contact_clearance": "0.00025",
+          "joint_position_threshold": "0.0001",
+          "finger_velocity": "0.1"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_7",
+         "parent": "plan_node_3",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_8",
+         "parent": "plan_node_3",
+         "parameters": {
+          "max_linear_velocity": "0.04",
+          "target": "0.000, 0.000, 0.265",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "TRANSLATION"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_3",
+       "parent": "plan_node_1",
+       "start": 11,
+       "end": 280,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_11",
+       "parent": "plan_node_1",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_1",
+     "parent": "plan_node_0",
+     "start": 11,
+     "end": 344,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "pre_approach_linear_velocity": "0.12",
+      "final_approach_linear_velocity": "0.025",
+      "grasp_closing_velocity": "0.1",
+      "lift_linear_velocity": "0.04",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off",
+      "grasp_joint_position_threshold": "0.0001",
+      "contact_clearance": "0.00025",
+      "grasp_position_threshold": "0.0005",
+      "lift_movement": "TRANSLATION"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "RackPlaceAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_24",
+       "parent": "plan_node_2",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_18",
+         "parent": "plan_node_15",
+         "parameters": {
+          "position_threshold": "0.003",
+          "max_linear_velocity": "0.08",
+          "target": "0.280, -0.065, 1.171",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_19",
+         "parent": "plan_node_15",
+         "parameters": {
+          "max_linear_velocity": "0.02",
+          "target": "0.280, -0.065, 1.011",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "HeldToolGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_20",
+         "parent": "plan_node_15",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "OPEN",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_21",
+         "parent": "plan_node_15",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_22",
+         "parent": "plan_node_15",
+         "parameters": {
+          "max_linear_velocity": "0.08",
+          "target": "0.280, -0.065, 1.120",
+          "arm": "PR2LeftArm",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_15",
+       "parent": "plan_node_2",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_25",
+       "parent": "plan_node_2",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_2",
+     "parent": "plan_node_0",
+     "start": 418,
+     "end": 647,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "placing_linear_velocity": "0.02",
+      "transport_linear_velocity": "0.08",
+      "retract_linear_velocity": "0.08",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "object_designator": "Container",
+      "target_location": "0.280, -0.065, 0.906",
+      "grasp_release_threshold": "0.1",
+      "approach_position_threshold": "0.003"
+     },
+     "constraints": []
+    }
+   ],
+   "id": "plan_node_0",
+   "start": 11,
+   "end": 647,
+   "robot": "PR2",
+   "parameters": {},
+   "constraints": []
+  }
+ ],
+ "actions": [],
+ "detectedEvents": [],
+ "missingAssets": [],
+ "task": "PR2: vessel transfer A1 \u2192 A3, stepping through its queries",
+ "environmentName": "AICOR Laboratory",
+ "camera": {
+  "position": [
+   3.5,
+   -1.8,
+   2.8
+  ],
+  "target": [
+   0.2,
+   -0.3,
+   1.1
+  ]
+ },
+ "rendering": {
+  "exposure": 0.65,
+  "ambientOcclusion": false
+ }
+}

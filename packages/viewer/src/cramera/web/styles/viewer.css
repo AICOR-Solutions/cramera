@@ -546,6 +546,7 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .answers { font: 12px var(--mono); color: var(--accent); }
 .resolution-actions, .query-step-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .query-step-controls .switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.query-step-controls [hidden] { display: none; }
 
 .reasoning { display: grid; gap: 6px; font-size: 12px; }
 .fades-in { animation: fade-in 0.45s ease both; }

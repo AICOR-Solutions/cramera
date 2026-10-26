@@ -26,6 +26,14 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **A recorded run's queries, stepped through in its replay.** A recording keeps the
+  query steps its run published in `query_steps.json`, named by the scene's
+  `querySteps`, and the Queries panel of its replay steps through them with **Next**,
+  each query with its code, question, answers and what they light up, without CRAM or
+  a running process. `cramera_bridge.demos.query_stepping` runs the PR2's vessel
+  transfer at the bench held at every query it asks, and saves it with its queries;
+  its recording ships as the demo scene `aicor_medical_lab_pr2_query_stepper`.
+
 
 - **Collision boxes and free objects from USD stages.** `cramera-import` writes every
   enabled USD collider as a `<collision>` box of its link (`ReportCount.COLLISIONS`),

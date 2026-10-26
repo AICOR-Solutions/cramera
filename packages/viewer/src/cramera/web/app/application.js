@@ -556,6 +556,7 @@ export class Application {
     this.#details.show(loaded);
     this.#sceneGraph.show(loaded);
     this.#perception.show(loaded, SceneKey.PLAN_TREES, (file) => this.#api.sceneFileUrl(loaded.name, file));
+    if (!this.#live) this.#querySteps.showRecorded(loaded.querySteps);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
     const missing = loaded.missingFiles().length;

@@ -29,6 +29,11 @@ class BundleFile(StrEnum):
     The motion statecharts a recorded run went through.
     """
 
+    QUERY_STEPS = "query_steps.json"
+    """
+    The queries a recorded run asked, which the viewer steps through in its replay.
+    """
+
     ENVIRONMENT = "environment.urdf"
     """
     The links and joints of a converted stage.
