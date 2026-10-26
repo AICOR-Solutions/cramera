@@ -12,22 +12,29 @@ from __future__ import annotations
 import math
 from copy import deepcopy
 from dataclasses import dataclass, field
+from functools import cached_property
 from enum import StrEnum
 
 import numpy as np
+import trimesh
 from typing_extensions import List, Optional
 
+from coraplex.datastructures.enums import MovementType
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction, ReachAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
 from coraplex.robot_plans.motions.base import BaseMotion
-from coraplex.robot_plans.motions.gripper import MoveToolCenterPointMotion
+from coraplex.robot_plans.motions.gripper import (
+    MoveGripperMotion,
+    MoveToolCenterPointMotion,
+)
 from coraplex.plans.attachment_nodes import ReAttachNode
 from coraplex.plans.factories import sequential
 from coraplex.plans.executables import Executable
 from coraplex.plans.plan_node import ExecutionBoundaryNode, MotionNode, PlanNode
 from giskardpy.motion_statechart.context import MotionStatechartContext
-from giskardpy.motion_statechart.goals.templates import Sequence
+from giskardpy.motion_statechart.goals.templates import Parallel, Sequence
 from giskardpy.motion_statechart.graph_node import MotionStatechartNode
+from giskardpy.motion_statechart.tasks.cartesian_tasks import HoldPose
 from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList
 from semantic_digital_twin.datastructures.definitions import GripperState
 from semantic_digital_twin.datastructures.joint_state import JointState
@@ -112,8 +119,7 @@ class GraspGeometryError(ViewerError):
 @dataclass(frozen=True)
 class PadClearances:
     """
-    The signed clearances between the glass and each finger pad, collision margins
-    included.
+    The signed clearances between the glass and each finger pad.
     """
 
     first: float
@@ -139,6 +145,28 @@ class PadClearances:
         The farther pad's clearance.
         """
         return max(self.first, self.second)
+
+
+@dataclass(frozen=True)
+class GlassExtent:
+    """
+    Where a vessel's glass lies around its axis, in the vessel's frame.
+    """
+
+    radius: float
+    """
+    The glass's outer radius, in metres.
+    """
+
+    bottom: float
+    """
+    The height of the glass's lowest point, in metres.
+    """
+
+    top: float
+    """
+    The height of the glass's highest point, in metres.
+    """
 
 
 @dataclass
@@ -183,6 +211,12 @@ class PadContact:
     How narrow the searched finger interval becomes, in radians.
     """
 
+    axis_step: float = 0.0005
+    """
+    How finely the glass's axis is sampled when the pads are measured against it, in
+    metres.
+    """
+
     def __post_init__(self) -> None:
         values = (
             self.clearance,
@@ -216,7 +250,8 @@ class PadContact:
 
     def clearances(self) -> PadClearances:
         """
-        :return: Both pads' clearances from the glass, measured directly.
+        :return: Both pads' clearances from the glass, measured by the collision
+            detector, collision margins included.
         """
         detector = self.world.collision_manager.collision_detector
         values = []
@@ -226,6 +261,51 @@ class PadContact:
             )
             values.append(math.inf if contact is None else contact.distance)
         return PadClearances(*values)
+
+    @cached_property
+    def glass(self) -> GlassExtent:
+        """
+        Where the glass lies around its axis, from its collision shapes.
+        """
+        points = np.concatenate(
+            [shape.mesh_in_frame(self.body).vertices for shape in self.body.collision]
+        )
+        return GlassExtent(
+            radius=float(np.max(np.hypot(points[:, 0], points[:, 1]))),
+            bottom=float(points[:, 2].min()),
+            top=float(points[:, 2].max()),
+        )
+
+    def glass_clearances(self) -> PadClearances:
+        """
+        :return: Both pads' clearances from the glass's outer surface, measured against
+            the glass's axis: the same wherever the gripper and the glass stand
+            together, which the collision detector's distances between the flat pads
+            and the glass's thin wall are not.
+        """
+        return PadClearances(
+            *(self.axis_distance(pad) - self.glass.radius for pad in self.pads)
+        )
+
+    def axis_distance(self, pad: Body) -> float:
+        """
+        :param pad: One of the pads.
+        :return: How close the pad comes to the glass's axis beside the glass, in
+            metres; infinite when the pad is above or below the glass.
+        """
+        mesh = trimesh.util.concatenate(
+            [shape.mesh_in_frame(self.body) for shape in pad.collision]
+        )
+        low = max(self.glass.bottom, float(mesh.vertices[:, 2].min()))
+        high = min(self.glass.top, float(mesh.vertices[:, 2].max()))
+        if low > high:
+            return math.inf
+        heights = np.append(np.arange(low, high, self.axis_step), high)
+        axis = np.column_stack(
+            [np.zeros_like(heights), np.zeros_like(heights), heights]
+        )
+        _, distances, _ = trimesh.proximity.closest_point(mesh, axis)
+        return float(distances.min())
 
     def aperture(self) -> float:
         """
@@ -343,6 +423,25 @@ class VesselReachAction(CalibratedVesselApproach, ReachAction):
     Reaches the vessel using the calibrated tool-frame distances.
     """
 
+    grasp_position_threshold: Optional[float] = field(default=None, kw_only=True)
+    """
+    The tool's position tolerance at the grasp itself, in metres; the reach's
+    :attr:`position_threshold` when None.
+    """
+
+    @property
+    def _action_plan(self) -> PlanNode:
+        plan = super()._action_plan
+        if self.grasp_position_threshold is not None:
+            final_approach = [
+                node
+                for node in plan.descendants
+                if isinstance(node, MotionNode)
+                and isinstance(node.designator, MoveToolCenterPointMotion)
+            ][-1]
+            final_approach.designator.position_threshold = self.grasp_position_threshold
+        return plan
+
 
 @dataclass(eq=False, repr=False)
 class PadContactGoal(Sequence):
@@ -369,10 +468,32 @@ class PadContactGoal(Sequence):
         super().expand(context)
 
 
-@dataclass
-class PadContactMotion(BaseMotion):
+class ToolHolding:
     """
-    Closes the fingers until both pads reach the glass.
+    A gripper motion that holds the tool and the base where they are while the fingers
+    move, so collision avoidance cannot move the arm, and with it the glass the fingers
+    take or let go of.
+    """
+
+    def tool_held(self) -> List[MotionStatechartNode]:
+        """
+        :return: The tasks holding the base and the gripper's tool frame where they are.
+        """
+        return [
+            *self.keep_base_still(),
+            HoldPose(
+                name="hold tool",
+                root_link=self.world.root,
+                tip_link=self.gripper.tool_frame,
+            ),
+        ]
+
+
+@dataclass
+class PadContactMotion(ToolHolding, BaseMotion):
+    """
+    Closes the fingers until both pads reach the glass, the tool held where the approach
+    ended.
     """
 
     gripper: EndEffector
@@ -402,7 +523,10 @@ class PadContactMotion(BaseMotion):
 
     @property
     def _motion_chart(self) -> MotionStatechartNode:
-        return PadContactGoal(motion=self)
+        return Parallel(
+            [PadContactGoal(motion=self), *self.tool_held()],
+            name=self.__class__.__name__,
+        )
 
     def goal_state(self) -> JointState:
         """
@@ -450,6 +574,24 @@ class VesselPickUpAction(CalibratedVesselApproach, PickUpAction):
     The clearance each pad keeps from the glass, in metres.
     """
 
+    grasp_position_threshold: Optional[float] = field(default=None, kw_only=True)
+    """
+    The tool's position tolerance at the grasp itself, before the fingers close, in
+    metres; :attr:`position_threshold` when None.
+    """
+
+    lift_movement: MovementType = field(default=MovementType.TRANSLATION, kw_only=True)
+    """
+    How the lift moves the tool: by its position only, as CRAM's pickup does, which lets
+    the vessel tilt, or with its orientation kept, which keeps the vessel upright.
+    """
+
+    @property
+    def _action_plan(self) -> PlanNode:
+        plan = super()._action_plan
+        plan.children[-1].designator.movement_type = self.lift_movement
+        return plan
+
     def _grasp_attempt_plan(self) -> PlanNode:
         """
         :return: Reach the grasp, close to contact, then attach the carried vessel.
@@ -466,6 +608,7 @@ class VesselPickUpAction(CalibratedVesselApproach, PickUpAction):
                     open_gripper_at_pre_pose=True,
                     position_threshold=self.position_threshold,
                     orientation_threshold=self.orientation_threshold,
+                    grasp_position_threshold=self.grasp_position_threshold,
                 ),
                 PadContactNode(),
                 PadContactMotion(
@@ -484,9 +627,39 @@ class VesselPickUpAction(CalibratedVesselApproach, PickUpAction):
 
 
 @dataclass
+class HeldToolGripperMotion(ToolHolding, MoveGripperMotion):
+    """
+    CRAM's gripper motion, with the tool and the base held where they are.
+    """
+
+    @classmethod
+    def of(cls, motion: MoveGripperMotion) -> HeldToolGripperMotion:
+        """
+        :param motion: A gripper motion.
+        :return: The same gripper motion with the tool and the base held.
+        """
+        return cls(
+            motion.motion,
+            motion.gripper,
+            allow_gripper_collision=motion.allow_gripper_collision,
+            finger_velocity=motion.finger_velocity,
+            stall_minimum_time=motion.stall_minimum_time,
+            tolerate_stall=motion.tolerate_stall,
+        )
+
+    @property
+    def _motion_chart(self) -> MotionStatechartNode:
+        return Parallel(
+            [super()._motion_chart, *self.tool_held()],
+            name=self.__class__.__name__,
+        )
+
+
+@dataclass
 class RackPlaceAction(CalibratedVesselApproach, PlaceAction):
     """
-    CRAM's placing, with looser tolerance above the rack and tight insertion tolerance.
+    CRAM's placing, with looser tolerance above the rack and tight insertion tolerance,
+    the tool held where it set the vessel down while the fingers let go.
     """
 
     approach_position_threshold: float = field(default=0.003, kw_only=True)
@@ -503,4 +676,11 @@ class RackPlaceAction(CalibratedVesselApproach, PlaceAction):
             ):
                 node.designator.position_threshold = self.approach_position_threshold
                 break
+        for node in plan.descendants:
+            if (
+                isinstance(node, MotionNode)
+                and type(node.designator) is MoveGripperMotion
+            ):
+                node.designator = HeldToolGripperMotion.of(node.designator)
+                node.designator.plan_node = node
         return plan

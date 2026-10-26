@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from importlib.metadata import version
 from pathlib import Path
 
-from typing_extensions import Any, Callable, List, Optional, Type, TypeVar
+from typing_extensions import Any, Callable, Dict, List, Optional, Type, TypeVar
 
 from cramera.confinement import ConfinedDirectory
 from cramera.http.messages import HttpMethod, Request, Response
@@ -26,10 +26,10 @@ from cramera.plugins import (
 )
 
 from cramera_laboratory.devices import DeviceShelf
-from cramera_laboratory.exceptions import InvalidRequestBody
+from cramera_laboratory.exceptions import DemoBusy, InvalidRequestBody
 from cramera_laboratory.resources import LaboratoryInstallation, LaboratoryShelf
 from cramera_laboratory.robot_view import RobotLaboratoryView
-from cramera_laboratory.task_runs import LaboratoryTask, TaskProcess, TaskRecording
+from cramera_laboratory.task_runs import TaskProcess
 from cramera_laboratory.session import (
     ContactSimulation,
     MujocoSimulations,
@@ -37,6 +37,7 @@ from cramera_laboratory.session import (
     SimulationSession,
 )
 from cramera_protocol.document import JsonDocument
+from cramera_protocol.laboratory.runs import DemoRoute, LaboratoryDemo, TaskRunState
 from cramera_protocol.viewer import NavigationGroup
 from cramera_protocol.laboratory.physics import (
     CentrifugeRequest,
@@ -185,22 +186,25 @@ class LaboratoryRoutes:
     The contact simulation's session.
     """
 
-    transfer: TaskProcess = field(init=False)
+    demos: Dict[LaboratoryDemo, TaskProcess] = field(init=False)
     """
-    Runs the PR2 vessel transfer demo.
+    Runs each of the laboratory's robot demos.
     """
 
-    robot_view: RobotLaboratoryView = field(init=False)
+    robot_views: Dict[LaboratoryDemo, RobotLaboratoryView] = field(init=False)
     """
-    The initial PR2 scene and the live view of the owned task process.
+    The initial PR2 scene and the live view of each demo's process.
     """
 
     def __post_init__(self) -> None:
         self.session = SimulationSession(self.locations, self.factory)
-        self.transfer = TaskProcess.of_task(
-            LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, self.locations
-        )
-        self.robot_view = RobotLaboratoryView(self.transfer, self.shelf)
+        self.demos = {
+            demo: TaskProcess.of_demo(demo, self.locations) for demo in LaboratoryDemo
+        }
+        self.robot_views = {
+            demo: RobotLaboratoryView(process, self.shelf)
+            for demo, process in self.demos.items()
+        }
 
     @property
     def installation(self) -> LaboratoryInstallation:
@@ -279,15 +283,7 @@ class LaboratoryRoutes:
         :return: The scene showing the compact laboratory and the PR2.
         """
         self.body(request, EmptyRequest)
-        return Response.of_json(self.robot_view.preview())
-
-    def answer_live_read(self, request: Request, path: str) -> Response:
-        """
-        :param request: A request for a local live observation.
-        :param path: The observation route below the live prefix.
-        :return: The owned robot demo's current observation.
-        """
-        return self.robot_view.live_read(path)
+        return Response.of_json(self.robot_views[LaboratoryDemo.TRANSFER].preview())
 
     def answer_device_file(self, request: Request, path: str) -> Response:
         """
@@ -301,28 +297,51 @@ class LaboratoryRoutes:
 
     # %% simulation
 
-    def answer_transfer_state(self, request: Request) -> Response:
+    def demo_routes(self, demo: LaboratoryDemo) -> List[RouteDeclaration]:
         """
-        :param request: A request for the transfer demo's state.
-        :return: How far the demo is.
+        :param demo: One of the laboratory's robot demos.
+        :return: The demo's state, start, stop and live read routes.
         """
-        return Response.of_json(self.transfer.state())
+        process = self.demos[demo]
 
-    def answer_transfer_start(self, request: Request) -> Response:
-        """
-        :param request: A request carrying an :class:`EmptyRequest`.
-        :return: How far the demo is after starting it.
-        """
-        self.body(request, EmptyRequest)
-        return Response.of_json(self.transfer.start())
+        def answer_state(request: Request) -> Response:
+            return Response.of_json(process.state())
 
-    def answer_transfer_stop(self, request: Request) -> Response:
+        def answer_start(request: Request) -> Response:
+            self.body(request, EmptyRequest)
+            running = self.running_demo()
+            if running is not None and running is not demo:
+                raise DemoBusy(running)
+            return Response.of_json(process.start())
+
+        def answer_stop(request: Request) -> Response:
+            self.body(request, EmptyRequest)
+            return Response.of_json(process.stop())
+
+        def answer_live_read(request: Request, path: str) -> Response:
+            return self.robot_views[demo].live_read(path)
+
+        return [
+            PluginRoute(HttpMethod.GET, demo.route(DemoRoute.STATE), answer_state),
+            PluginRoute(HttpMethod.POST, demo.route(DemoRoute.START), answer_start),
+            PluginRoute(HttpMethod.POST, demo.route(DemoRoute.STOP), answer_stop),
+            PluginPrefixRoute(
+                HttpMethod.GET, demo.route(DemoRoute.LIVE), answer_live_read
+            ),
+        ]
+
+    def running_demo(self) -> Optional[LaboratoryDemo]:
         """
-        :param request: A request carrying an :class:`EmptyRequest`.
-        :return: How far the demo is after ending it.
+        :return: The robot demo whose process runs, or None.
         """
-        self.body(request, EmptyRequest)
-        return Response.of_json(self.transfer.stop())
+        return next(
+            (
+                demo
+                for demo, process in self.demos.items()
+                if process.state().state is TaskRunState.RUNNING
+            ),
+            None,
+        )
 
     def answer_state(self, request: Request) -> Response:
         """
@@ -375,28 +394,11 @@ class LaboratoryRoutes:
             ),
             PluginRoute(HttpMethod.POST, LaboratoryRoute.INSTALL, self.answer_install),
             PluginRoute(HttpMethod.POST, LaboratoryRoute.PREVIEW, self.answer_preview),
-            PluginPrefixRoute(
-                HttpMethod.GET, LaboratoryRoute.TRANSFER_LIVE, self.answer_live_read
-            ),
             PluginRoute(HttpMethod.GET, LaboratoryRoute.DEVICES, self.answer_devices),
             PluginPrefixRoute(
                 HttpMethod.GET, LaboratoryRoute.DEVICE_FILES, self.answer_device_file
             ),
-            PluginRoute(
-                HttpMethod.GET,
-                LaboratoryRoute.TRANSFER_STATE,
-                self.answer_transfer_state,
-            ),
-            PluginRoute(
-                HttpMethod.POST,
-                LaboratoryRoute.TRANSFER_START,
-                self.answer_transfer_start,
-            ),
-            PluginRoute(
-                HttpMethod.POST,
-                LaboratoryRoute.TRANSFER_STOP,
-                self.answer_transfer_stop,
-            ),
+            *(route for demo in LaboratoryDemo for route in self.demo_routes(demo)),
             PluginRoute(HttpMethod.GET, LaboratoryRoute.STATE, self.answer_state),
             PluginRoute(HttpMethod.POST, LaboratoryRoute.START, self.answer_start),
             PluginRoute(HttpMethod.POST, LaboratoryRoute.STOP, self.answer_stop),
@@ -449,7 +451,7 @@ class LaboratoryPlugin(ViewerPlugin):
 
     def close(self) -> None:
         """
-        Join the contact worker and end an optional running transfer demo.
+        Join the contact worker and end any running robot demo.
         """
         if self.handlers is None:
             return
@@ -457,4 +459,5 @@ class LaboratoryPlugin(ViewerPlugin):
         try:
             handlers.session.stop()
         finally:
-            handlers.transfer.stop()
+            for process in handlers.demos.values():
+                process.stop()

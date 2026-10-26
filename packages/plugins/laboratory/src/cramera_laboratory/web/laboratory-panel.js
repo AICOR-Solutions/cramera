@@ -5,6 +5,8 @@
 
 import { SidePanel } from '../../panels/panel-host.js';
 import {
+  DemoRoute,
+  LaboratoryDemo,
   TaskRunKey,
   TaskRunState,
   BenchDrawerStateKey,
@@ -53,6 +55,7 @@ import {
   DropletKey,
   VesselLiquidKey,
 } from '../../protocol.js';
+import { demoRoute } from './laboratory-client.js';
 
 /**
  * The small bench and its independent devices; expanded-room assets are not offered.
@@ -136,6 +139,8 @@ export const Text = Object.freeze({
   REFILL: 'Refill',
   EMPTY: '—',
   TRANSFER: 'PR2 vessel transfer (CRAM)',
+  WORKFLOW: 'PR2 lab workflow (CRAM)',
+  WORKFLOW_ABOUT: 'Re-sorts the rack, stores a vessel in the refrigerator and loads a balanced pair into the centrifuge, driving between them.',
   PREVIEW: 'Show lab and PR2',
   PR2_SETUP: 'Set up the local PR2 demo',
   PR2_EXPLANATION: 'The PR2 preview and robot plan need the full CRAM stack in the same environment as the viewer. MuJoCo alone enables the manual workbench controls.',
@@ -158,6 +163,21 @@ export const Text = Object.freeze({
   CABINET_EMPTY: 'empty',
   VIEW: 'View',
   LOOK: 'Look at selected object',
+});
+
+/**
+ * The title of each robot demo, by `LaboratoryDemo` value.
+ */
+const DEMO_TITLES = Object.freeze({
+  [LaboratoryDemo.TRANSFER]: Text.TRANSFER,
+  [LaboratoryDemo.WORKFLOW]: Text.WORKFLOW,
+});
+
+/**
+ * What a longer robot demo does, by `LaboratoryDemo` value.
+ */
+const DEMO_DESCRIPTIONS = Object.freeze({
+  [LaboratoryDemo.WORKFLOW]: Text.WORKFLOW_ABOUT,
 });
 
 /**
@@ -340,6 +360,18 @@ export class LaboratoryPanel {
   #updates = [];
 
   /**
+   * The latest state of every robot demo shown, by `LaboratoryDemo` value.
+   * @type {Map<string, Object>}
+   */
+  #runs = new Map();
+
+  /**
+   * What follows each robot demo once it was started, by `LaboratoryDemo` value.
+   * @type {Map<string, function(): void>}
+   */
+  #followers = new Map();
+
+  /**
    * The object the move and fill buttons act on.
    * @type {HTMLSelectElement|null}
    */
@@ -481,48 +513,65 @@ export class LaboratoryPanel {
   // %% task demos
 
   /**
-   * Show the transfer demo's state with the actions it allows.
+   * Show a robot demo's state with the actions it allows, beside the other demos.
+   * @param {string} demo A `LaboratoryDemo` value.
    * @param {Object} run The demo's state, keyed by `TaskRunKey`.
-   * @param {function(): void} onStarted Called once a run started, to follow it.
+   * @param {function(): void} onStarted Called once a run of the demo started, to follow it.
    */
-  showTransfer(run, onStarted) {
+  showDemo(demo, run, onStarted) {
+    this.#runs.set(demo, run);
+    this.#followers.set(demo, onStarted);
     const elements = this.#elements;
-    const state = run[TaskRunKey.STATE];
-    const scene = run[TaskRunKey.SCENE];
-    const actions = elements.row(elements.button(Text.PREVIEW, async () => {
-      const preview = await this.attempt(() => this.#client.send(LaboratoryRoute.PREVIEW));
-      if (preview) this.#showScene(preview[InstalledLaboratoryKey.SCENE]);
+    const preview = elements.row(elements.button(Text.PREVIEW, async () => {
+      const prepared = await this.attempt(() => this.#client.send(LaboratoryRoute.PREVIEW));
+      if (prepared) this.#showScene(prepared[InstalledLaboratoryKey.SCENE]);
     }));
-    const runnable = [TaskRunState.IDLE, TaskRunState.FAILED, TaskRunState.ENDED].includes(state)
-      || (state === TaskRunState.RECORDED && run[TaskRunKey.CAN_RUN]);
-    if (runnable) {
-      actions.append(
-        elements.button(Text.RUN, async () => {
-          const started = await this.attempt(() => this.#client.send(LaboratoryRoute.TRANSFER_START));
-          if (started) {
-            this.showTransfer(started, onStarted);
-            onStarted();
-          }
-        }),
-      );
-    }
-    if (state === TaskRunState.RUNNING) {
-      actions.append(elements.button(Text.END_RUN, async () => {
-        const stopped = await this.attempt(() => this.#client.send(LaboratoryRoute.TRANSFER_STOP));
-        if (stopped) this.showTransfer(stopped, onStarted);
-      }));
-    }
-    if (state === TaskRunState.RECORDED) actions.append(elements.button(Text.OPEN_RECORDING, () => this.#showScene(scene)));
-    const parts = [elements.element('h2', Text.TRANSFER), elements.element('p', `${state} \u00b7 ${scene}`, Style.NOTE), actions];
-    if (state === TaskRunState.ENDED) parts.push(elements.element('p', Text.RUN_ENDED, Style.NOTE));
-    if (run[TaskRunKey.ERROR]) parts.push(elements.element('pre', run[TaskRunKey.ERROR], Style.FACTS));
+    const runs = Object.values(LaboratoryDemo).filter((shown) => this.#runs.has(shown));
+    const busy = runs.some((shown) => this.#runs.get(shown)[TaskRunKey.STATE] === TaskRunState.RUNNING);
     const setup = elements.element('details', '', Style.SETUP);
-    setup.open = state === TaskRunState.UNAVAILABLE;
+    setup.open = runs.some((shown) => this.#runs.get(shown)[TaskRunKey.STATE] === TaskRunState.UNAVAILABLE);
     const command = elements.element('pre');
     command.append(elements.element('code', Text.PR2_COMMAND));
     setup.append(elements.element('summary', Text.PR2_SETUP), elements.element('p', Text.PR2_EXPLANATION), command, elements.element('p', Text.PR2_RESTART));
-    parts.push(setup);
-    this.demos.replaceChildren(...parts);
+    this.demos.replaceChildren(preview, ...runs.flatMap((shown) => this.#demoParts(shown, busy)), setup);
+  }
+
+  /**
+   * @param {string} demo A `LaboratoryDemo` value whose state is known.
+   * @param {boolean} busy Whether any demo runs, which no other demo may start beside.
+   * @returns {Array<HTMLElement>} The demo's title, state, actions and outcome.
+   */
+  #demoParts(demo, busy) {
+    const elements = this.#elements;
+    const run = this.#runs.get(demo);
+    const onStarted = this.#followers.get(demo);
+    const state = run[TaskRunKey.STATE];
+    const scene = run[TaskRunKey.SCENE];
+    const actions = elements.row();
+    const runnable = [TaskRunState.IDLE, TaskRunState.FAILED, TaskRunState.ENDED].includes(state)
+      || (state === TaskRunState.RECORDED && run[TaskRunKey.CAN_RUN]);
+    if (runnable && !busy) {
+      actions.append(elements.button(Text.RUN, async () => {
+        const started = await this.attempt(() => this.#client.send(demoRoute(demo, DemoRoute.START)));
+        if (started) {
+          this.showDemo(demo, started, onStarted);
+          onStarted();
+        }
+      }));
+    }
+    if (state === TaskRunState.RUNNING) {
+      actions.append(elements.button(Text.END_RUN, async () => {
+        const stopped = await this.attempt(() => this.#client.send(demoRoute(demo, DemoRoute.STOP)));
+        if (stopped) this.showDemo(demo, stopped, onStarted);
+      }));
+    }
+    if (state === TaskRunState.RECORDED) actions.append(elements.button(Text.OPEN_RECORDING, () => this.#showScene(scene)));
+    const parts = [elements.element('h2', DEMO_TITLES[demo]), elements.element('p', `${state} \u00b7 ${scene}`, Style.NOTE)];
+    if (DEMO_DESCRIPTIONS[demo]) parts.push(elements.element('p', DEMO_DESCRIPTIONS[demo], Style.NOTE));
+    parts.push(actions);
+    if (state === TaskRunState.ENDED) parts.push(elements.element('p', Text.RUN_ENDED, Style.NOTE));
+    if (run[TaskRunKey.ERROR]) parts.push(elements.element('pre', run[TaskRunKey.ERROR], Style.FACTS));
+    return parts;
   }
 
   // %% devices

@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from typing_extensions import List
+
 from semantic_digital_twin.adapters.package_resolver import (
     CompositePathResolver,
     FileUriResolver,
@@ -107,8 +109,9 @@ class LaboratoryEnvironment(BundleEnvironment):
 
     allow_support_contacts: bool = field(default=False, kw_only=True)
     """
-    Whether collision checks leave out the contacts between the vessels and the rack
-    they rest in; nothing else is left out.
+    Whether collision checks leave out the contacts between the vessels and what they
+    rest in: the rack, the centrifuge's rotor and the refrigerator; nothing else is left
+    out.
     """
 
     @property
@@ -140,7 +143,7 @@ class LaboratoryEnvironment(BundleEnvironment):
         self.annotate_handles(world)
         self.add_cabinet(world)
         if self.allow_support_contacts:
-            self.allow_rack_contacts(world)
+            self.allow_supports(world)
 
     def add_object(self, world: World, description: ObjectDescription) -> Body:
         """
@@ -195,7 +198,21 @@ class LaboratoryEnvironment(BundleEnvironment):
             visual_shapes=ShapeCollection(),
         ).spawn(world)
 
-    def allow_rack_contacts(self, world: World) -> None:
+    def supports(self, world: World) -> List[Body]:
+        """
+        :param world: The world holding the laboratory.
+        :return: What the vessels rest in: the rack, and the centrifuge's rotor and the
+            refrigerator where the bench has them.
+        """
+        bench = self.bench
+        names = [LaboratoryLink.RACK.value]
+        if bench.centrifuge is not None:
+            names.append(bench.centrifuge.rotor_body)
+        if bench.refrigerator is not None:
+            names.append(bench.refrigerator.body)
+        return [world.get_body_by_name(name) for name in names]
+
+    def allow_supports(self, world: World) -> None:
         """
         :param world: The world holding the laboratory.
         """
@@ -206,9 +223,43 @@ class LaboratoryEnvironment(BundleEnvironment):
                         world.get_body_by_name(placement.key)
                         for placement in self.bench.tubes
                     ],
-                    body_group_b=[world.get_body_by_name(LaboratoryLink.RACK)],
+                    body_group_b=self.supports(world),
                 )
             )
+
+    def centrifuge_holder_pose(self, identifier: str, world: World) -> Pose:
+        """
+        :param identifier: A holder of the centrifuge's rotor.
+        :param world: A world holding the laboratory.
+        :return: Where a seated vessel's bottom rests, in the rotor's frame.
+        """
+        centrifuge = self.bench.centrifuge
+        position = {holder.identifier: holder.position for holder in centrifuge.slots}[
+            identifier
+        ]
+        return Pose.from_xyz_rpy(
+            position.x,
+            position.y,
+            position.z,
+            reference_frame=world.get_body_by_name(centrifuge.rotor_body),
+        )
+
+    def refrigerator_holder_pose(self, identifier: str, world: World) -> Pose:
+        """
+        :param identifier: A holder on a shelf of the refrigerator.
+        :param world: A world holding the laboratory.
+        :return: Where a stored vessel's bottom rests, in the refrigerator's frame.
+        """
+        refrigerator = self.bench.refrigerator
+        position = {
+            holder.identifier: holder.local_position for holder in refrigerator.slots
+        }[identifier]
+        return Pose.from_xyz_rpy(
+            position.x,
+            position.y,
+            position.z,
+            reference_frame=world.get_body_by_name(refrigerator.body),
+        )
 
     def slot_pose(self, identifier: str, world: World) -> Pose:
         """

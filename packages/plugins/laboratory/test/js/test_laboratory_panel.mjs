@@ -17,9 +17,11 @@ import {
   TaskRunKey,
   TaskRunState,
   ViewerRoute,
+  DemoRoute,
+  LaboratoryDemo,
 } from 'cramera-viewer/protocol.js';
 
-import { LaboratoryClient } from '../../src/cramera_laboratory/web/laboratory-client.js';
+import { LaboratoryClient, demoRoute } from '../../src/cramera_laboratory/web/laboratory-client.js';
 import { LOOK_OFFSET, LaboratoryPanel, MOVE_STEP, Text } from '../../src/cramera_laboratory/web/laboratory-panel.js';
 import { FakeApi, FakeFetch, readDataset } from './fakes.mjs';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
@@ -199,34 +201,34 @@ test('the transfer demo runs, can be ended and opens its recording', async () =>
   const { panel, network, shown } = setUp();
   const scene = 'aicor_medical_lab_pr2_transfer';
   const followed = [];
-  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: scene }, () => followed.push(true));
-  network.answer(routeUrl(LaboratoryRoute.TRANSFER_START), 200, { [TaskRunKey.STATE]: TaskRunState.RUNNING, [TaskRunKey.SCENE]: scene });
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: scene }, () => followed.push(true));
+  network.answer(routeUrl(demoRoute(LaboratoryDemo.TRANSFER, DemoRoute.START)), 200, { [TaskRunKey.STATE]: TaskRunState.RUNNING, [TaskRunKey.SCENE]: scene });
   buttons(panel.demos, Text.RUN)[0].click();
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(followed, [true]);
   assert.equal(buttons(panel.demos, Text.END_RUN).length, 1);
-  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: scene }, () => null);
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: scene }, () => null);
   buttons(panel.demos, Text.OPEN_RECORDING)[0].click();
   assert.deepEqual(shown, [scene]);
 });
 
 test('a failed transfer shows its output and may run again', () => {
   const { panel } = setUp();
-  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.FAILED, [TaskRunKey.SCENE]: 'x', [TaskRunKey.ERROR]: 'the vessel is still held' }, () => null);
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.FAILED, [TaskRunKey.SCENE]: 'x', [TaskRunKey.ERROR]: 'the vessel is still held' }, () => null);
   assert.ok(panel.demos.innerText.includes('the vessel is still held'));
   assert.equal(buttons(panel.demos, Text.RUN).length, 1);
 });
 
 test('a transfer ended on request says so and may run again', () => {
   const { panel } = setUp();
-  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.ENDED, [TaskRunKey.SCENE]: 'x' }, () => null);
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.ENDED, [TaskRunKey.SCENE]: 'x' }, () => null);
   assert.ok(panel.demos.innerText.includes(Text.RUN_ENDED));
   assert.equal(buttons(panel.demos, Text.RUN).length, 1);
 });
 
 test('the PR2 preview opens independently of running the demo', async () => {
   const { panel, network, shown } = setUp();
-  panel.showTransfer({ [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'recording' }, () => {});
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'recording' }, () => {});
   network.answer(routeUrl(LaboratoryRoute.PREVIEW), 200, { scene: 'aicor_medical_lab_pr2' });
   buttons(panel.demos, Text.PREVIEW)[0].click();
   await new Promise((resolve) => setImmediate(resolve));
@@ -236,9 +238,30 @@ test('the PR2 preview opens independently of running the demo', async () => {
 test('a completed PR2 recording can replay without CRAM and runs again only when supported', () => {
   const { panel } = setUp();
   const run = { [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: 'recording', [TaskRunKey.CAN_RUN]: false };
-  panel.showTransfer(run, () => {});
+  panel.showDemo(LaboratoryDemo.TRANSFER, run, () => {});
   assert.equal(buttons(panel.demos, Text.OPEN_RECORDING).length, 1);
   assert.equal(buttons(panel.demos, Text.RUN).length, 0);
-  panel.showTransfer({ ...run, [TaskRunKey.CAN_RUN]: true }, () => {});
+  panel.showDemo(LaboratoryDemo.TRANSFER, { ...run, [TaskRunKey.CAN_RUN]: true }, () => {});
   assert.equal(buttons(panel.demos, Text.RUN).length, 1);
+});
+
+test('each demo has its own block and starts on its own route', async () => {
+  const { panel, network } = setUp();
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'transfer' }, () => {});
+  panel.showDemo(LaboratoryDemo.WORKFLOW, { [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'workflow' }, () => {});
+  assert.ok(panel.demos.innerText.includes(Text.TRANSFER));
+  assert.ok(panel.demos.innerText.includes(Text.WORKFLOW));
+  const route = demoRoute(LaboratoryDemo.WORKFLOW, DemoRoute.START);
+  network.answer(routeUrl(route), 200, { [TaskRunKey.STATE]: TaskRunState.RUNNING, [TaskRunKey.SCENE]: 'workflow' });
+  buttons(panel.demos, Text.RUN)[1].click();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(network.requests.map((request) => request.url), [routeUrl(route)]);
+});
+
+test('while one demo runs no other demo can be started', () => {
+  const { panel } = setUp();
+  panel.showDemo(LaboratoryDemo.WORKFLOW, { [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'workflow' }, () => {});
+  panel.showDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.RUNNING, [TaskRunKey.SCENE]: 'transfer' }, () => {});
+  assert.equal(buttons(panel.demos, Text.RUN).length, 0);
+  assert.equal(buttons(panel.demos, Text.END_RUN).length, 1);
 });
