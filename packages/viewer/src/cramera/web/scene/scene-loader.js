@@ -33,9 +33,10 @@ export class LoadedScene {
    * @param {SceneModels} models The loaded models.
    * @param {SceneObjects} objects The loaded free objects.
    * @param {Object|null} statecharts The statecharts document, or null.
+   * @param {Object|null} querySteps The queries the recorded run asked, or null.
    * @param {Array<string>} failedUrls The requests that failed.
    */
-  constructor(name, description, frames, models, objects, statecharts, failedUrls) {
+  constructor(name, description, frames, models, objects, statecharts, querySteps, failedUrls) {
     /**
      * The bundle's name.
      * @type {string}
@@ -66,6 +67,11 @@ export class LoadedScene {
      * @type {Object|null}
      */
     this.statecharts = statecharts;
+    /**
+     * The queries the recorded run asked, or null.
+     * @type {Object|null}
+     */
+    this.querySteps = querySteps;
     /**
      * The requests that failed while loading.
      * @type {Array<string>}
@@ -149,9 +155,10 @@ export class SceneLoader {
   async load(name, view, lighting, signal, onProgress) {
     const description = await this.#api.sceneJson(name, BundleFile.SCENE, signal);
     const fileUrl = (file) => this.#api.sceneFileUrl(name, file);
-    const [trajectory, statecharts, stageLights] = await Promise.all([
+    const [trajectory, statecharts, querySteps, stageLights] = await Promise.all([
       this.#optionalJson(name, description[SceneKey.TRAJECTORY], signal),
       this.#optionalJson(name, description[SceneKey.STATECHARTS], signal),
+      this.#optionalJson(name, description[SceneKey.QUERY_STEPS], signal),
       this.#optionalJson(name, description[SceneKey.RENDERING]?.[RenderingKey.ENVIRONMENT], signal),
     ]);
     const progress = new LoadingProgress(onProgress);
@@ -168,7 +175,7 @@ export class SceneLoader {
       });
     }
     const frames = new TrajectoryFrames(description, trajectory ?? { [TrajectoryKey.FRAMES]: [] });
-    const loaded = new LoadedScene(name, description, frames, models, objects, statecharts, progress.failedUrls());
+    const loaded = new LoadedScene(name, description, frames, models, objects, statecharts, querySteps, progress.failedUrls());
     if (signal.aborted) {
       loaded.dispose();
       throw signal.reason;

@@ -38,6 +38,13 @@ from cramera_protocol.live_messages import (
     RecordingState,
     SceneDestination,
 )
+from cramera_protocol.query_steps import (
+    QueryStep,
+    QuerySteps,
+    StepMoment,
+    StepPhase,
+)
+from cramera_protocol.resolutions import BackendDescription, KnowledgeSource
 from cramera.locations import DataLocations
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.datastructures.definitions import TorsoState
@@ -113,6 +120,44 @@ def test_the_statechart_of_each_frame_is_recorded(publisher, kitchen, locations)
     ).read(Statecharts)
     assert len(statecharts.charts) == 1
     assert len(statecharts.frames) == publisher.recording.frame_count()
+
+
+def test_the_queries_the_run_asked_are_saved_with_it(publisher, kitchen, locations):
+    steps = QuerySteps(
+        steps=[
+            QueryStep(
+                number=0,
+                phase=StepPhase.RESOLUTION,
+                during="carry",
+                moment=StepMoment.ANSWERED,
+                backend=BackendDescription(
+                    name="WorkingMemory", source=KnowledgeSource.WORKING_MEMORY
+                ),
+                answers=["milk"],
+            )
+        ]
+    )
+    publisher.query_steps.publish(steps)
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    saved = (
+        locations.local_scenes
+        / publisher.save_recording(RecordingSaveRequest(name="carry")).scene
+    )
+    scene = DocumentFile(saved / BundleFile.SCENE).read(SceneDescription)
+    assert scene.query_steps == BundleFile.QUERY_STEPS
+    recorded = DocumentFile(saved / BundleFile.QUERY_STEPS).read(QuerySteps)
+    assert recorded.steps == steps.steps
+
+
+def test_a_run_that_asked_no_queries_saves_none(publisher, kitchen, locations):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    scene = bundle_files(locations)[1]
+    assert scene.query_steps is None
+    assert not (
+        locations.local_scenes / ReservedSceneName.RECORDING / BundleFile.QUERY_STEPS
+    ).exists()
 
 
 def test_finishing_twice_reports_the_same_bundle(publisher, kitchen):

@@ -156,6 +156,14 @@ def test_query_steps_are_offered_once_published(publisher):
     )
 
 
+def test_a_recording_keeps_every_step_held_nowhere(publisher):
+    assert publisher.query_steps.recorded() is None
+    publisher.query_steps.publish(query_steps(2), RememberedStepControl())
+    recorded = publisher.query_steps.recorded()
+    assert recorded.steps == query_steps(2).steps
+    assert (recorded.held, recorded.stepping, recorded.revision) == (None, False, 0)
+
+
 def test_each_publication_is_a_new_revision(publisher):
     publisher.query_steps.publish(query_steps(1))
     first = publisher.query_steps.current().revision

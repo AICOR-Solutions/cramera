@@ -1360,6 +1360,11 @@ class SceneKey(StrEnum):
     The statecharts file.
     """
 
+    QUERY_STEPS = "querySteps"
+    """
+    The query steps file.
+    """
+
     MODELS = "models"
     """
     The kinematic models.
@@ -1491,6 +1496,12 @@ class SceneDescription(JsonDocument):
     statecharts: Optional[str] = document_field(SceneKey.STATECHARTS, default=None)
     """
     The statecharts file, relative to the bundle.
+    """
+
+    query_steps: Optional[str] = document_field(SceneKey.QUERY_STEPS, default=None)
+    """
+    The query steps file, relative to the bundle, or None for a run that published no
+    queries.
     """
 
     models: List[ModelDescription] = document_field(
