@@ -4,6 +4,7 @@ HTTP requests and responses as the viewer's routes see them.
 
 from __future__ import annotations
 
+import io
 import json
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -11,7 +12,17 @@ from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import parse_qs
 
-from typing_extensions import Any, Dict, List, Optional, Self, Type, TypeVar
+from typing_extensions import (
+    Any,
+    BinaryIO,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Self,
+    Type,
+    TypeVar,
+)
 
 from cramera.exceptions import MalformedRequestBody
 from cramera_protocol.document import JsonDocument, JsonValue
@@ -246,8 +257,60 @@ SUFFIX_MEDIA_TYPES: Dict[str, MediaType] = {
 The media type of each file suffix the viewer knows.
 """
 
-
 # %% request
+
+BODY_CHUNK_BYTES = 1024 * 1024
+"""
+How many bytes of a streamed body are read at once.
+"""
+
+
+@dataclass
+class BodyStream:
+    """
+    A request body read in chunks by the route that answers it, so a large upload never
+    has to fit in memory.
+    """
+
+    source: BinaryIO
+    """
+    Where the body's bytes come from.
+    """
+
+    length: int
+    """
+    The body's length in bytes, as the request declared it.
+    """
+
+    read_bytes: int = 0
+    """
+    How many of the body's bytes were read so far.
+    """
+
+    def remaining(self) -> int:
+        """
+        :return: How many of the body's bytes are still unread.
+        """
+        return self.length - self.read_bytes
+
+    def chunks(self, size: int = BODY_CHUNK_BYTES) -> Iterator[bytes]:
+        """
+        :param size: The largest chunk, in bytes.
+        :return: The unread rest of the body, chunk by chunk; ends early when the
+            client stops sending.
+        """
+        while self.remaining() > 0:
+            chunk = self.source.read(min(size, self.remaining()))
+            if not chunk:
+                return
+            self.read_bytes += len(chunk)
+            yield chunk
+
+    def read(self) -> bytes:
+        """
+        :return: The unread rest of the body.
+        """
+        return b"".join(self.chunks())
 
 
 @dataclass(frozen=True)
@@ -278,8 +341,23 @@ class Request:
 
     body: bytes = b""
     """
-    The request body.
+    The request body, empty when the route reads it from :attr:`stream`.
     """
+
+    stream: Optional[BodyStream] = None
+    """
+    The unread body of a request to a route that streams its body, see
+    :attr:`cramera.http.routing.Route.streams_body`; None when the body was read into
+    :attr:`body`.
+    """
+
+    def body_stream(self) -> BodyStream:
+        """
+        :return: The body as a stream: :attr:`stream`, or one over :attr:`body`.
+        """
+        if self.stream is not None:
+            return self.stream
+        return BodyStream(source=io.BytesIO(self.body), length=len(self.body))
 
     def header(self, name: Header) -> Optional[str]:
         """

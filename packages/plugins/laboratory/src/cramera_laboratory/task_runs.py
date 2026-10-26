@@ -25,10 +25,11 @@ from typing_extensions import List, Optional, Sequence
 from cramera.locations import DataLocations
 from cramera_protocol.bundle.files import BundleFile
 from cramera_laboratory.resources import RESOURCES_DIRECTORY, LaboratoryResource
-from cramera_protocol.laboratory.physics import LaboratoryName, LaboratoryRoute
+from cramera_protocol.laboratory.physics import LaboratoryName
 from cramera_protocol.laboratory.runs import (
+    DemoRoute,
+    LaboratoryDemo,
     LaboratoryTask,
-    TaskRecording,
     TaskRun,
     TaskRunState,
     TransferOption,
@@ -101,9 +102,9 @@ class TaskProcess:
     The command that runs the demo.
     """
 
-    scene: str
+    demo: LaboratoryDemo
     """
-    The bundle the demo saves its recording as.
+    Which of the laboratory's robot demos runs.
     """
 
     locations: DataLocations
@@ -140,6 +141,21 @@ class TaskProcess:
     """
     Serializes starting, stopping and reading the process.
     """
+
+    @property
+    def scene(self) -> str:
+        """
+        The bundle the demo saves its recording as.
+        """
+        return self.demo.recording.value
+
+    @property
+    def live_route(self) -> str:
+        """
+        The route below the laboratory's prefix that reads the running demo's live
+        publisher.
+        """
+        return self.demo.route(DemoRoute.LIVE)
 
     @property
     def log(self) -> Path:
@@ -194,12 +210,14 @@ class TaskProcess:
         if "cramera_bridge" in self.packages:
             if importlib.util.find_spec("cramera_bridge.laboratory") is None:
                 return False
-            if importlib.util.find_spec(LaboratoryTask.TRANSFER) is None:
+            if importlib.util.find_spec(LaboratoryTask.COMMAND) is None:
                 return False
             from cramera_bridge.laboratory import command
 
             return (
-                hasattr(command, "prepare_preview") and not command.missing_libraries()
+                hasattr(command, "prepare_preview")
+                and hasattr(command, "runner")
+                and not command.missing_libraries()
             )
         return True
 
@@ -212,24 +230,23 @@ class TaskProcess:
         ).is_file()
 
     @classmethod
-    def of_task(
-        cls, task: LaboratoryTask, scene: TaskRecording, locations: DataLocations
-    ) -> TaskProcess:
+    def of_demo(cls, demo: LaboratoryDemo, locations: DataLocations) -> TaskProcess:
         """
-        :param task: A demo of the laboratory.
-        :param scene: The bundle it saves its recording as.
+        :param demo: One of the laboratory's robot demos.
         :param locations: Where the viewer keeps its scenes.
-        :return: The demo, run as a module of this interpreter.
+        :return: The demo, run by the bridge's command as a module of this interpreter.
         """
         return cls(
             command=[
                 sys.executable,
                 PYTHON_MODULE_FLAG,
-                task.value,
+                LaboratoryTask.COMMAND.value,
                 TransferOption.BUNDLE.value,
                 str(RESOURCES_DIRECTORY / LaboratoryResource.BENCH),
+                TransferOption.DEMO.value,
+                demo.value,
             ],
-            scene=scene.value,
+            demo=demo,
             locations=locations,
             fresh_recording=True,
         )
@@ -255,8 +272,7 @@ class TaskProcess:
             result.state = TaskRunState.RUNNING
             if self.live_address() is not None:
                 result.live_url = (
-                    f"{ViewerRoute.PLUGIN_API}{LaboratoryName.PLUGIN}/"
-                    f"{LaboratoryRoute.TRANSFER_LIVE}"
+                    f"{ViewerRoute.PLUGIN_API}{LaboratoryName.PLUGIN}/{self.live_route}"
                 )
             return result
         self.live_url_file.unlink(missing_ok=True)

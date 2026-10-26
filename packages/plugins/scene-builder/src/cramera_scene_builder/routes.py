@@ -17,6 +17,7 @@ from cramera_protocol.scene_builder import (
     DraftList,
     DraftRecord,
     PointCloudFormat,
+    ScanFormat,
     SceneBuilderCatalog,
     SceneBuilderLimits,
     SceneBuilderRoute,
@@ -123,7 +124,10 @@ class SceneBuilderRoutes:
                 HttpMethod.GET, SceneBuilderRoute.ASSETS, self.answer_asset
             ),
             PluginPrefixRoute(
-                HttpMethod.POST, SceneBuilderRoute.POINT_CLOUDS, self.answer_upload
+                HttpMethod.POST,
+                SceneBuilderRoute.POINT_CLOUDS,
+                self.answer_upload,
+                streams_body=True,
             ),
             PluginPrefixRoute(
                 HttpMethod.GET,
@@ -201,14 +205,24 @@ class SceneBuilderRoutes:
 
     def answer_upload(self, request: Request, format_name: str) -> Response:
         """
-        :param request: A request whose body is a point cloud file.
-        :param format_name: The file's :class:`PointCloudFormat` value.
+        The route streams its body, so a scan larger than memory is written to disk as
+        it arrives.
+
+        :param request: A request whose body is a point cloud or scan file.
+        :param format_name: The file's :class:`PointCloudFormat` or :class:`ScanFormat`
+            value.
         :return: The kept point cloud as the library lists it.
         :raises UnsupportedPointCloudFormat: For another format.
         """
-        if format_name not in {member.value for member in PointCloudFormat}:
+        stream = request.body_stream()
+        if format_name in {member.value for member in PointCloudFormat}:
+            identifier = self.point_clouds.keep_stream(
+                PointCloudFormat(format_name), stream
+            )
+        elif format_name in {member.value for member in ScanFormat}:
+            identifier = self.point_clouds.keep_scan(ScanFormat(format_name), stream)
+        else:
             raise UnsupportedPointCloudFormat(format_name)
-        identifier = self.point_clouds.keep(PointCloudFormat(format_name), request.body)
         return Response.of_json(self.library.resource(identifier))
 
     def answer_sample(self, request: Request, path: str) -> Response:

@@ -13,9 +13,9 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-from typing_extensions import List, Optional, Sequence
+from typing_extensions import Any, Callable, List, Optional, Sequence
 
-from cramera_protocol.laboratory.runs import TransferOption
+from cramera_protocol.laboratory.runs import LaboratoryDemo, TransferOption
 from cramera_protocol.live_messages import SavedScene
 
 CRAM_PACKAGES = (
@@ -51,6 +51,60 @@ def run_transfer(
     :return: The saved or published scene, as a protocol document.
     """
     from cramera_bridge.laboratory.transfer import VesselTransferDemo
+
+    return run_demo(
+        VesselTransferDemo.at_the_bench, bundle, arguments, recording, live_url_file
+    )
+
+
+def run_workflow(
+    bundle: str,
+    arguments: Sequence[str],
+    recording: Optional[str] = None,
+    live_url_file: Optional[str] = None,
+) -> SavedScene:
+    """
+    :param bundle: The caller's laboratory bundle directory.
+    :param arguments: The workflow's remaining command-line options.
+    :param recording: A recording name for this run, or the demo's default name.
+    :param live_url_file: Where to announce the run's local live server, if requested.
+    :return: The saved or published scene, as a protocol document.
+    """
+    from cramera_bridge.laboratory.workflow import LaboratoryWorkflowDemo
+
+    return run_demo(
+        LaboratoryWorkflowDemo.at_the_bench, bundle, arguments, recording, live_url_file
+    )
+
+
+def runner(demo: LaboratoryDemo) -> Callable[..., SavedScene]:
+    """
+    :param demo: One of the laboratory's robot demos.
+    :return: The function that runs it, given the bundle, the remaining options, and
+        optionally the recording's name and the live announcement file.
+    """
+    return {
+        LaboratoryDemo.TRANSFER: run_transfer,
+        LaboratoryDemo.WORKFLOW: run_workflow,
+    }[demo]
+
+
+def run_demo(
+    build: Callable[..., Any],
+    bundle: str,
+    arguments: Sequence[str],
+    recording: Optional[str],
+    live_url_file: Optional[str],
+) -> SavedScene:
+    """
+    :param build: Builds the demo at the bench from the bundle's path and the run's
+        fields.
+    :param bundle: The caller's laboratory bundle directory.
+    :param arguments: The demo's remaining command-line options.
+    :param recording: A recording name for this run, or the demo's default name.
+    :param live_url_file: Where to announce the run's local live server, if requested.
+    :return: The saved or published scene, as a protocol document.
+    """
     from cramera_bridge.robot_task import TaskCommand
 
     fields = {}
@@ -58,9 +112,7 @@ def run_transfer(
         fields["name"] = recording
     if live_url_file is not None:
         fields["live_url_file"] = Path(live_url_file)
-    return TaskCommand(VesselTransferDemo.at_the_bench(Path(bundle), **fields)).main(
-        arguments
-    )
+    return TaskCommand(build(Path(bundle), **fields)).main(arguments)
 
 
 def prepare_preview(bundle: str, scenes: str) -> SavedScene:
@@ -80,8 +132,15 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
     """
     :param arguments: The command arguments, or this process's arguments by default.
     """
-    parser = ArgumentParser(description="Run the laboratory's PR2 vessel transfer.")
+    parser = ArgumentParser(description="Run one of the laboratory's PR2 demos.")
     parser.add_argument(TransferOption.BUNDLE, required=True, type=Path)
+    parser.add_argument(
+        TransferOption.DEMO,
+        type=LaboratoryDemo,
+        choices=list(LaboratoryDemo),
+        default=LaboratoryDemo.TRANSFER,
+        help="the demo to run",
+    )
     parser.add_argument(
         TransferOption.PREVIEW,
         type=Path,
@@ -116,7 +175,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
         fields["recording"] = options.recording
     if options.live_url_file is not None:
         fields["live_url_file"] = str(options.live_url_file)
-    run_transfer(str(options.bundle), remaining, **fields)
+    runner(options.demo)(str(options.bundle), remaining, **fields)
 
 
 if __name__ == "__main__":

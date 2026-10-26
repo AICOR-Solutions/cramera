@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from cramera_bridge.laboratory import command
-from cramera_protocol.laboratory.runs import TransferOption
+from cramera_protocol.laboratory.runs import LaboratoryDemo, TransferOption
 from cramera_protocol.live_messages import SavedScene
 
 
@@ -147,4 +147,72 @@ def test_transfer_boundary_passes_run_options_to_the_native_demo(monkeypatch, tm
     )
     assert supplied == [
         (Path("/lab"), {"name": "transfer_2", "live_url_file": announcement})
+    ]
+
+
+# %% demos
+
+
+def test_the_command_runs_the_demo_it_is_given(monkeypatch, tmp_path):
+    monkeypatch.setattr(command, "missing_libraries", lambda: [])
+    called = []
+    monkeypatch.setattr(
+        command, "run_transfer", lambda *arguments: called.append(("transfer",))
+    )
+    monkeypatch.setattr(
+        command, "run_workflow", lambda *arguments: called.append(arguments)
+    )
+    command.main(
+        [
+            TransferOption.BUNDLE,
+            str(tmp_path),
+            TransferOption.DEMO,
+            LaboratoryDemo.WORKFLOW,
+            "--port",
+            "0",
+        ]
+    )
+    assert called == [(str(tmp_path), ["--port", "0"])]
+
+
+def test_an_unknown_demo_is_refused(monkeypatch, tmp_path):
+    monkeypatch.setattr(command, "missing_libraries", lambda: [])
+    with pytest.raises(SystemExit) as stopped:
+        command.main(
+            [TransferOption.BUNDLE, str(tmp_path), TransferOption.DEMO, "juggling"]
+        )
+    assert stopped.value.code == 2
+
+
+def test_workflow_boundary_passes_run_options_to_the_native_demo(monkeypatch, tmp_path):
+    supplied = []
+    result = SavedScene(scene="workflow_2")
+
+    def at_the_bench(bundle, **fields):
+        supplied.append((bundle, fields))
+        return "native demo"
+
+    def task_command(demo):
+        assert demo == "native demo"
+        return SimpleNamespace(main=lambda arguments: result)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "cramera_bridge.laboratory.workflow",
+        SimpleNamespace(
+            LaboratoryWorkflowDemo=SimpleNamespace(at_the_bench=at_the_bench)
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "cramera_bridge.robot_task",
+        SimpleNamespace(TaskCommand=task_command),
+    )
+    announcement = tmp_path / "live-url.json"
+    assert (
+        command.run_workflow("/lab", ["--port", "0"], "workflow_2", str(announcement))
+        is result
+    )
+    assert supplied == [
+        (Path("/lab"), {"name": "workflow_2", "live_url_file": announcement})
     ]

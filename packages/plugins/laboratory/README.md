@@ -15,7 +15,7 @@ cramera repository root, after building the ROS workspace described in the
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source "$HOME/ros_ws/install/setup.bash"  # adjust to your ROS workspace
+source "$HOME/ros2_ws/install/setup.bash"  # CRAM's setup_ros_workspace.sh builds ~/ros2_ws
 python3 scripts/install_stack.py --venv "$PWD/.venv"
 source .venv/bin/activate
 cramera --no-browser --keep-running
@@ -29,7 +29,12 @@ returns to the initial pose. **End the run** stops the active process, which the
 page then reports as ended rather than failed. A failed run names the signal or
 exit code that ended its process before the end of its log.
 
-The plan picks a vessel from A1, lifts it and places it in A3. It uses CRAM's
+**PR2 lab workflow (CRAM)** is a second, longer demo beside it: the PR2 re-sorts the
+rack, stores a vessel in the refrigerator and loads a balanced pair into the
+centrifuge, opening and closing the refrigerator's door and the centrifuge's lid and
+driving between its stands. One demo runs at a time.
+
+The transfer's plan picks a vessel from A1, lifts it and places it in A3. It uses CRAM's
 kinematic simulation and saves the recording only after its action, motion and
 contact checks succeed. The manual MuJoCo simulation is a separate mode.
 The current APIs were verified with

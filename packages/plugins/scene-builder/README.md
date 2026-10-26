@@ -25,3 +25,9 @@ cramera
   under `CRAMERA_DATA/scene-builder/point-clouds`.
 - Point clouds are vertex-only PLY files or ASCII and uncompressed binary PCD files of
   up to 64 MiB and two million points; the builder shows a sample of at most 250,000.
+- E57 laser scans of up to 64 GiB are uploaded too, with the `e57` extra
+  (`pip install -e 'packages/plugins/scene-builder[e57]'`, which adds pye57 and numpy).
+  The upload is written to disk as it arrives, every scan of the file is placed by its
+  pose, and the points are sampled and thinned on a voxel grid to at most two million,
+  kept with their colours (or their intensities as grey) as a PLY point cloud. Without
+  the extra, an E57 upload is answered with what to install.

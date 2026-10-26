@@ -517,7 +517,7 @@ class UnsupportedPointCloudFormat(SceneBuilderError):
         return HTTPStatus.NOT_FOUND
 
     def message(self) -> str:
-        return f"{self.given!r} is not a point cloud format: upload PLY or PCD."
+        return f"{self.given!r} is not a point cloud format: upload PLY, PCD or E57."
 
 
 class PointCloudProblem(StrEnum):
@@ -593,6 +593,88 @@ class TooManyPoints(SceneBuilderError):
 
     def message(self) -> str:
         return f"The point cloud declares {self.count} points; at most {self.limit} are read."
+
+
+# %% scans
+
+
+@dataclass
+class ScanConversionUnavailable(SceneBuilderError):
+    """
+    An uploaded scan while the modules that convert scans are not installed.
+    """
+
+    missing: List[str]
+    """
+    The modules that are missing.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_IMPLEMENTED
+
+    def message(self) -> str:
+        return (
+            f"Converting E57 scans needs {', '.join(self.missing)}: install "
+            f"cramera-scene-builder with its e57 extra, "
+            f"pip install 'cramera-scene-builder[e57]'."
+        )
+
+
+class ScanProblem(StrEnum):
+    """
+    Why a scan file is refused.
+    """
+
+    UNREADABLE = "The file is no E57 file the builder reads"
+    NO_COORDINATES = "A scan needs cartesian or spherical coordinates"
+    NO_POINTS = "The file holds no valid point"
+
+
+@dataclass
+class MalformedScan(SceneBuilderError):
+    """
+    A scan file the builder does not read.
+    """
+
+    problem: ScanProblem
+    """
+    Why the file is refused.
+    """
+
+    detail: str = ""
+    """
+    What the reader reported, if anything.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        detail = f": {self.detail.strip()}" if self.detail.strip() else ""
+        return f"The scan cannot be read. {self.problem.value}{detail}."
+
+
+@dataclass
+class IncompleteUpload(SceneBuilderError):
+    """
+    An upload whose client stopped sending before the declared length.
+    """
+
+    received: int
+    """
+    How many bytes arrived.
+    """
+
+    declared: int
+    """
+    How many bytes the request declared.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.BAD_REQUEST
+
+    def message(self) -> str:
+        return f"The upload ended after {self.received} of {self.declared} bytes."
 
 
 @dataclass

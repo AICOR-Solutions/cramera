@@ -1,7 +1,7 @@
 """
 Robot task demos the laboratory runs on request, such as the PR2 vessel transfer:
 
-whether one runs, how it ended, and the recording it saved.
+which demos there are, whether one runs, how it ended, and the recording it saved.
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ class LaboratoryTask(StrEnum):
     The bridge commands implementing the laboratory's native tasks.
     """
 
-    TRANSFER = "cramera_bridge.laboratory.command"
+    COMMAND = "cramera_bridge.laboratory.command"
     """
-    The PR2 vessel transfer, given the laboratory bundle's path.
+    Runs one of the laboratory's robot demos, given the laboratory bundle's path.
     """
 
 
@@ -57,6 +57,12 @@ class TransferOption(StrEnum):
     The live publisher's port; zero selects an available local port.
     """
 
+    DEMO = "--demo"
+    """
+    Which robot demo runs, a :class:`LaboratoryDemo` value; the vessel transfer by
+    default.
+    """
+
 
 class TaskRecording(StrEnum):
     """
@@ -67,6 +73,69 @@ class TaskRecording(StrEnum):
     """
     A PR2 carries the vessel from A1 to A3.
     """
+
+    WORKFLOW = "aicor_medical_lab_pr2_workflow"
+    """
+    A PR2 re-sorts the rack, stores a vessel in the refrigerator and loads a balanced
+    pair into the centrifuge.
+    """
+
+
+class DemoRoute(StrEnum):
+    """
+    The routes every robot demo answers, below the demo's name.
+    """
+
+    STATE = "state"
+    """
+    Whether the demo runs, and the recording it saved.
+    """
+
+    START = "start"
+    """
+    Runs the demo.
+    """
+
+    STOP = "stop"
+    """
+    Ends the running demo.
+    """
+
+    LIVE = "live/"
+    """
+    The viewer's local proxy for the running demo's live read routes.
+    """
+
+
+class LaboratoryDemo(StrEnum):
+    """
+    The robot demos the laboratory page offers; each value names the demo's routes.
+    """
+
+    TRANSFER = "transfer"
+    """
+    A PR2 carries a vessel from one rack slot to another.
+    """
+
+    WORKFLOW = "workflow"
+    """
+    A PR2 re-sorts the rack, stores a vessel in the refrigerator and loads a balanced
+    pair into the centrifuge, driving between them.
+    """
+
+    @property
+    def recording(self) -> TaskRecording:
+        """
+        The recording the demo saves.
+        """
+        return TaskRecording[self.name]
+
+    def route(self, route: DemoRoute) -> str:
+        """
+        :param route: One of the routes every demo answers.
+        :return: The demo's own route, below the laboratory's prefix.
+        """
+        return f"{self.value}/{route.value}"
 
 
 class TaskRunState(StrEnum):
