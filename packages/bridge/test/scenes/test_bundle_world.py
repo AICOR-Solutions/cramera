@@ -4,6 +4,7 @@ CRAM worlds built from scene bundles.
 
 from __future__ import annotations
 
+import os
 import shutil
 import xml.etree.ElementTree as ElementTree
 
@@ -39,6 +40,7 @@ from semantic_digital_twin.world_description.connections import (
 from semantic_digital_twin.world_description.geometry import Box, Mesh
 
 from ..dataset.bundles import SEMANTICS_WITH_MISSING_LINK, SHELF_WITH_TOTES_BUNDLE
+from ..dataset.worlds import CUP_MESH
 
 # %% converted bundles
 
@@ -187,6 +189,36 @@ def test_the_prims_an_object_carries_annotate_its_body(shelf_world, tote):
     }
     body = shelf_world.get_body_by_name(tote.identifier)
     assert carried and all(annotations[path].root is body for path in carried)
+
+
+def test_an_object_urdf_finds_its_meshes_wherever_the_process_runs(
+    tmp_path, monkeypatch
+):
+    bundle = tmp_path / SHELF_WITH_TOTES_BUNDLE.name
+    shutil.copytree(SHELF_WITH_TOTES_BUNDLE, bundle)
+    [tote] = BundleContents.of_directory(bundle).scene.objects
+    mesh_file = bundle / "meshes" / "objects" / CUP_MESH.name
+    mesh_file.parent.mkdir(parents=True)
+    shutil.copyfile(CUP_MESH, mesh_file)
+    urdf = ElementTree.parse(bundle / tote.urdf)
+    geometry = urdf.getroot().find("link/visual/geometry")
+    geometry.clear()
+    ElementTree.SubElement(
+        geometry,
+        "mesh",
+        filename=os.path.relpath(mesh_file, (bundle / tote.urdf).parent),
+    )
+    urdf.write(bundle / tote.urdf)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    world = BundleEnvironment(directory=bundle).create_world()
+    [mesh] = [
+        shape
+        for shape in world.get_body_by_name(tote.identifier).visual.shapes
+        if isinstance(shape, Mesh)
+    ]
+    assert mesh.filename == str(mesh_file)
 
 
 # %% bundles written from a world
