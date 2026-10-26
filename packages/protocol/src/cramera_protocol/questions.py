@@ -340,6 +340,45 @@ class QueryAnswerKey(StrEnum):
     The query read back as English.
     """
 
+    TRANSLATION = "translation"
+    """
+    The statement in another query language the query was answered by.
+    """
+
+
+class QueryTranslationKey(StrEnum):
+    """
+    The keys of a statement a query was translated into.
+    """
+
+    LANGUAGE = "language"
+    """
+    The language of the statement.
+    """
+
+    STATEMENT = "statement"
+    """
+    The statement.
+    """
+
+
+@dataclass(kw_only=True)
+class QueryTranslation(JsonDocument):
+    """
+    The statement in another query language a query was answered by, such as the SQL a
+    database ran for it.
+    """
+
+    language: str = document_field(QueryTranslationKey.LANGUAGE)
+    """
+    The name of the language, such as ``SQL``.
+    """
+
+    statement: str = document_field(QueryTranslationKey.STATEMENT)
+    """
+    The statement that was run.
+    """
+
 
 @dataclass(kw_only=True)
 class QueryAnswer(JsonDocument):
@@ -398,6 +437,14 @@ class QueryAnswer(JsonDocument):
     )
     """
     The query read back as English.
+    """
+
+    translation: Optional[QueryTranslation] = document_field(
+        QueryAnswerKey.TRANSLATION, default=None
+    )
+    """
+    The statement in another query language the query was answered by, or None for a
+    query answered in the entity query language itself.
     """
 
 

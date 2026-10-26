@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from importlib.metadata import distributions
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, Callable, List, Optional
+from typing_extensions import TYPE_CHECKING, Any, Callable, Iterable, List, Optional
 
 from cramera.locations import DataLocations
 from cramera_bridge.exceptions import (
@@ -40,14 +40,21 @@ from cramera_bridge.live.markers import MarkerBoard
 from cramera_bridge.live.objects import ObjectCatalogPublisher
 from cramera_bridge.live.perception_images import TakenImage
 from cramera_bridge.live.plan import PlanPublisher
+from cramera_bridge.live.query_steps import QueryStepBoard
 from cramera_bridge.live.recording import Recording
 from cramera_bridge.live.recording_storage import RecordingStorage
+from cramera_bridge.live.resolutions import ResolutionBoard
+from cramera_bridge.live.scene_highlights import SceneHighlighter
 from cramera_bridge.live.statechart import StatechartPublisher
 from cramera_bridge.live.teleoperation import TeleoperationDriver
 from cramera_bridge.live.transforms import TransformTracker
 from cramera_bridge.live.world_model import WorldModelView
 from cramera_bridge.live.world_state import WorldStatePublisher
-from cramera_bridge.questions.live import WorldKnowledge, WorldQuestionDesk
+from cramera_bridge.questions.live import (
+    WorldHighlightKeys,
+    WorldKnowledge,
+    WorldQuestionDesk,
+)
 from cramera_bridge.robots import RobotParts, RobotRoster
 from cramera_protocol.live import Capability, LiveInfo
 from cramera_protocol.live_messages import (
@@ -74,6 +81,7 @@ from cramera_protocol.live_messages import (
     TeleoperationRequest,
     TransformGraph,
 )
+from cramera_protocol.resolutions import SceneHighlight
 from cramera_protocol.questions import (
     Members,
     PresetCatalog,
@@ -238,6 +246,16 @@ class LivePublisher:
     desk: Optional[QuestionDesk] = field(default=None, init=False)
     """
     Answers questions about the world, once one is attached.
+    """
+
+    resolutions: ResolutionBoard = field(default_factory=ResolutionBoard, init=False)
+    """
+    How the open parts of the plans were resolved, as the process published it.
+    """
+
+    query_steps: QueryStepBoard = field(default_factory=QueryStepBoard, init=False)
+    """
+    The queries the process asked, as it published them.
     """
 
     bundle_writer: LiveBundleWriter = field(init=False)
@@ -418,6 +436,14 @@ class LivePublisher:
             and RobotParts(model.world, self.selected_robot).arms()
         ):
             offered.append(Capability.TELEOPERATION)
+        if self.resolutions.is_published():
+            offered.append(Capability.RESOLUTIONS)
+        if self.resolutions.offers_execution():
+            offered.append(Capability.RESOLUTION_EXECUTION)
+        if self.query_steps.is_published():
+            offered.append(Capability.QUERY_STEPS)
+        if self.query_steps.offers_stepping():
+            offered.append(Capability.QUERY_STEPPING)
         return offered
 
     def info(self) -> LiveInfo:
@@ -635,6 +661,20 @@ class LivePublisher:
         """
         with self.world_lock:
             return self.require_desk().answer_question(request)
+
+    def scene_highlight(
+        self, about: Iterable[Any], framed: Iterable[Any] = ()
+    ) -> SceneHighlight:
+        """
+        :param about: The bodies, annotations and regions of the world an answer is
+            about.
+        :param framed: The things the camera moves onto while the answer is shown.
+        :return: What the viewer lights up, outlines and frames for them.
+        """
+        with self.world_lock:
+            return SceneHighlighter(
+                self.require_world(), WorldHighlightKeys(self.current_objects)
+            ).highlight(about, framed)
 
     # %% changing the world
 

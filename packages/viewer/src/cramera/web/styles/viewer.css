@@ -525,6 +525,83 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .perception-seen button { padding: 3px 10px; font-size: 12px; border-color: var(--warning); color: var(--text); }
 .perception-reason, .perception-step .muted { margin: 4px 0 0; font-size: 12px; }
 
+/* %% how a plan's open parts were resolved, and the queries the robot asks */
+
+.resolutions, .queries { display: grid; gap: 8px; align-content: start; }
+.resolutions h3 { margin: 0; font-size: 14px; }
+.resolutions h4, .query-inspector h4 { margin: 8px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+.resolution-status, .query-step-heading { margin: 0; font: 12px var(--mono); color: var(--text-muted); }
+.backends { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.backend { padding: 2px 9px; font-size: 12px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--text-muted); }
+.backend.answered { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+.plan-lines { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); font: 12px var(--mono); }
+.plan-line { white-space: pre-wrap; }
+.part-mark { display: inline-block; min-width: 1.2em; padding: 0 4px; border-radius: var(--radius); text-align: center; color: var(--warning); background: rgb(255 182 72 / 0.12); }
+.part-mark.answered { color: var(--accent); background: var(--accent-soft); }
+.part-mark.asking { outline: 1px solid var(--warning); animation: fade-in 0.4s ease both; }
+.resolved-part { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--surface-sunken); }
+.resolved-part > p, .query-inspector p { margin: 0; }
+.statement, .question { font-weight: 600; }
+.answered-by { font-size: 12px; color: var(--text-muted); }
+.answers { font: 12px var(--mono); color: var(--accent); }
+.resolution-actions, .query-step-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.query-step-controls .switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+
+.reasoning { display: grid; gap: 6px; font-size: 12px; }
+.fades-in { animation: fade-in 0.45s ease both; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.reasoning-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.reasoning-image { margin: 0; display: grid; gap: 3px; }
+.reasoning-image img { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); }
+.reasoning-image figcaption { font-size: 11px; color: var(--text-muted); }
+.reasoning-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.reasoning-rows li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.reasoning-rows .tick { width: 1em; }
+.reasoning-rows .answers .tick { color: var(--success); }
+.reasoning-rows .rejected { opacity: 0.6; }
+.reasoning-rows .rejected .tick { color: var(--danger); }
+.reasoning-meter { position: relative; width: 80px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.reasoning-meter .reasoning-bar { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.reasoning-condition, .reasoning-case { font: 12px var(--mono); color: var(--text-muted); }
+.contact-drawing { width: 64px; height: 40px; }
+.contact-drawing .support { fill: var(--border-strong); }
+.contact-drawing .answers { fill: var(--success); }
+.contact-drawing .rejected { fill: var(--danger); }
+.rule-cascade { margin: 0; padding-left: 18px; display: grid; gap: 4px; font: 12px var(--mono); }
+.rule { display: grid; }
+.rule.fired { color: var(--accent); font-weight: 600; }
+.rule.tried { color: var(--text-muted); text-decoration: line-through; }
+.rule.untried { color: var(--text-faint); }
+.reasoning-layout { margin: 0; }
+.layout-drawing { width: 100%; max-height: 160px; }
+.layout-drawing .layout { fill: var(--surface-raised); stroke: var(--border-strong); }
+.layout-drawing .region { fill: var(--surface-sunken); stroke: var(--text-faint); }
+.layout-drawing .concluded { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.outcomes { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; }
+.outcome { display: grid; justify-items: center; gap: 2px; }
+.outcome-bar { position: relative; width: 22px; height: 60px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.outcome-bar .reasoning-bar { position: absolute; inset: auto 0 0 0; background: var(--accent-2); }
+.outcome.most-likely .reasoning-bar { background: var(--accent); }
+.reasoning-ranked { font: 12px var(--mono); }
+.reasoning-evidence { margin: 0; padding-left: 16px; }
+
+.query-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.query-step button { display: flex; width: 100%; gap: 6px; text-align: left; padding: 3px 8px; font-size: 12px; border-color: transparent; background: none; }
+.query-step button span:nth-child(2) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.query-step.held button { border-color: var(--warning); }
+.query-inspector { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--warning); border-radius: var(--radius); background: var(--surface-sunken); }
+.query-stack { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.stack-frame { display: grid; gap: 2px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius); }
+.stack-frame.asking { cursor: pointer; }
+.stack-frame.current { border-color: var(--warning); }
+.query-variables { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; font: 11px var(--mono); }
+.query-variables dt { color: var(--text-muted); }
+.query-variables dt[data-role="sought"], .query-variables dt[data-role="being answered"] { color: var(--warning); }
+.query-variables dd { margin: 0; overflow-wrap: anywhere; }
+.query-code { display: grid; margin: 0; padding: 6px 8px; overflow-x: auto; font: 11px var(--mono); border-radius: var(--radius); background: var(--surface); }
+.query-code code { white-space: pre; color: var(--text-muted); }
+.query-code code.focus { color: var(--text); background: var(--accent-soft); }
+
 /* %% live */
 
 .live { display: grid; gap: 10px; align-content: start; }

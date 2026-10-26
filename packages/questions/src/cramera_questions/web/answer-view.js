@@ -1,9 +1,10 @@
 /**
- * An answer to a query: the query read back as English, its rows as a table, and a
- * way to replay the moment a row is about.
+ * An answer to a query: the query read back as English, the statement in another
+ * query language it was answered by, its rows as a table, and a way to replay the
+ * moment a row is about.
  */
 
-import { AnswerColumn, QueryAnswerKey, ReplayWindowKey, VerbalizationKey } from '../../protocol.js';
+import { AnswerColumn, QueryAnswerKey, QueryTranslationKey, ReplayWindowKey, VerbalizationKey } from '../../protocol.js';
 
 /**
  * The columns that describe a row rather than hold a value, shown first.
@@ -57,6 +58,8 @@ export class AnswerView {
       reading.textContent = wording;
       parts.push(reading);
     }
+    const translation = answer[QueryAnswerKey.TRANSLATION];
+    if (translation) parts.push(this.#translation(translation));
     const rows = answer[QueryAnswerKey.ROWS] ?? [];
     const count = document.createElement('p');
     count.className = 'count';
@@ -64,6 +67,24 @@ export class AnswerView {
     parts.push(count);
     if (rows.length) parts.push(this.#table(rows, answer[QueryAnswerKey.REPLAY] ?? []));
     this.element.replaceChildren(...parts);
+  }
+
+  /**
+   * @param {Object} translation The statement in another query language the query was
+   *   answered by.
+   * @returns {HTMLElement} The statement under the language it is written in.
+   */
+  #translation(translation) {
+    const document = this.element.ownerDocument;
+    const language = document.createElement('p');
+    language.className = 'translation-language';
+    language.textContent = `answered in ${translation[QueryTranslationKey.LANGUAGE]}`;
+    const statement = document.createElement('pre');
+    statement.textContent = translation[QueryTranslationKey.STATEMENT];
+    const shown = document.createElement('div');
+    shown.className = 'translation';
+    shown.append(language, statement);
+    return shown;
   }
 
   /**

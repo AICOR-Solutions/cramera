@@ -5,6 +5,9 @@ Reading queries back as English.
 from __future__ import annotations
 
 from krrood.entity_query_language import factories
+from krrood.entity_query_language.backends import (
+    EntityQueryLanguageGenerativeBackend,
+)
 from krrood.entity_query_language.verbalization.fragments.source_reference import (
     SourceReference,
 )
@@ -28,6 +31,14 @@ def test_a_query_reads_back_as_text_and_escaped_html():
     assert ShelfItem.__name__ in verbalization.text
     assert "<b>" not in verbalization.html
     assert "&lt;b&gt;" in verbalization.html
+
+
+def test_a_query_opens_with_how_its_backend_answers_it():
+    item = factories.variable(ShelfItem, [ShelfItem(name="anvil")])
+    query = factories.an(factories.entity(item))
+    backend = EntityQueryLanguageGenerativeBackend()
+    verbalization = QueryVerbalizer().verbalize(query, backend)
+    assert verbalization.text.startswith(backend.opening_directive.value.text)
 
 
 # %% links

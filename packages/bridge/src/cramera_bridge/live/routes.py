@@ -26,6 +26,8 @@ from cramera_protocol.live_messages import (
     RobotSelection,
     TeleoperationRequest,
 )
+from cramera_protocol.query_steps import StepAdvance, SteppingRequest
+from cramera_protocol.resolutions import ExecutionRequest
 from cramera_protocol.questions import (
     QueryRequest,
     QueryScope,
@@ -137,6 +139,7 @@ class LiveRoutes:
             LiveRoute.MARKER_TOPICS: publisher.marker_topics,
             LiveRoute.PRESETS: publisher.presets,
             LiveRoute.RECORDING: publisher.recording_status,
+            LiveRoute.RESOLUTIONS: publisher.resolutions.current,
         }
         actions = {
             LiveRoute.RECORDING_STOP: publisher.finish_recording,
@@ -156,6 +159,15 @@ class LiveRoutes:
             LiveRoute.JOINT: (JointRequest, publisher.set_joint),
             LiveRoute.TELEOPERATION: (TeleoperationRequest, publisher.teleoperate),
             LiveRoute.MOVE: (MoveRequest, publisher.move),
+            LiveRoute.RESOLUTION_EXECUTION: (
+                ExecutionRequest,
+                publisher.resolutions.execute,
+            ),
+            LiveRoute.QUERY_STEPS_NEXT: (StepAdvance, publisher.query_steps.advance),
+            LiveRoute.QUERY_STEPS_MODE: (
+                SteppingRequest,
+                publisher.query_steps.change_stepping,
+            ),
         }
         router = Router()
         for route, read in reads.items():
@@ -180,6 +192,9 @@ class LiveRoutes:
             ExactRoute(HttpMethod.GET, LiveRoute.VOCABULARY, self.answer_vocabulary)
         )
         router.add(ExactRoute(HttpMethod.GET, LiveRoute.MEMBERS, self.answer_members))
+        router.add(
+            ExactRoute(HttpMethod.GET, LiveRoute.QUERY_STEPS, self.answer_query_steps)
+        )
         return router
 
     @staticmethod
@@ -233,6 +248,21 @@ class LiveRoutes:
         :return: The names a query of the scope may use.
         """
         return Response.of_json(self.publisher.vocabulary(LiveRequest(request).scope()))
+
+    def answer_query_steps(self, request: Request) -> Response:
+        """
+        :param request: A request optionally naming the revision the viewer shows.
+        :return: The query steps, or only their revision when the viewer shows it.
+        :raises InvalidParameter: For a revision that is no whole number.
+        """
+        revision = LiveRequest(request).parameter(LiveParameter.REVISION)
+        if revision is not None and not revision.isdigit():
+            raise InvalidParameter(LiveParameter.REVISION, revision)
+        return Response.of_json(
+            self.publisher.query_steps.current(
+                None if revision is None else int(revision)
+            )
+        )
 
     def answer_members(self, request: Request) -> Response:
         """

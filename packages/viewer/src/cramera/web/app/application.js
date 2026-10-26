@@ -10,6 +10,7 @@ import { layoutOf, liveAddressOf, panelOf, sceneAlone, sceneOf, withLive, withSc
 import { PageStatus } from '../core/page-status.js';
 import {
   Capability,
+  ExecutionRequestKey,
   LiveInfoKey,
   LiveRoute,
   RecordingState,
@@ -22,6 +23,8 @@ import { saveVideo, VideoRecording } from '../playback/video-recording.js';
 import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view.js';
 import { DetailsPanel } from '../panels/details-panel.js';
 import { PerceptionPanel } from '../panels/perception-panel.js';
+import { QueryStepActions, QueryStepsPanel } from '../panels/query-steps-panel.js';
+import { ResolutionActions, ResolutionsPanel } from '../panels/resolutions-panel.js';
 import { SceneGraphPanel } from '../panels/scene-graph-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
 import { SceneChoice } from '../panels/scene-choice.js';
@@ -38,6 +41,7 @@ import { SceneLoader } from '../scene/scene-loader.js';
 import { LiveClient } from '../live/live-client.js';
 import { LiveListener, LiveSession } from '../live/live-session.js';
 import { LiveActions, LiveBadge, LiveBadgeState, LivePanel } from '../panels/live-panel.js';
+import { CameraGlide, focusBounds, RegionOutlines } from '../scene/scene-focus.js';
 import { SceneHighlights } from '../scene/scene-highlights.js';
 import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
@@ -326,6 +330,30 @@ export class Application {
   #highlights = null;
 
   /**
+   * Draws the regions answers are about as boxes, once the 3D view exists.
+   * @type {RegionOutlines|null}
+   */
+  #regions = null;
+
+  /**
+   * Glides the camera onto what answers are about, once the 3D view exists.
+   * @type {CameraGlide|null}
+   */
+  #glide = null;
+
+  /**
+   * The Plan resolution panel.
+   * @type {ResolutionsPanel}
+   */
+  #resolutions;
+
+  /**
+   * The Queries panel.
+   * @type {QueryStepsPanel}
+   */
+  #querySteps;
+
+  /**
    * The Live panel.
    * @type {LivePanel}
    */
@@ -350,8 +378,8 @@ export class Application {
   #fetch;
 
   /**
-   * Starts and stops the live session's timers; `window` in the browser.
-   * @type {{setInterval: Function, clearInterval: Function}}
+   * Starts and stops the live session's and the panels' timers; `window` in the browser.
+   * @type {{setInterval: Function, clearInterval: Function, setTimeout: Function, clearTimeout: Function}}
    */
   #timers;
 
@@ -408,6 +436,23 @@ export class Application {
         () => this.#live.client.send(LiveRoute.RECORDING_DISCARD),
       ),
     );
+    this.#resolutions = new ResolutionsPanel(
+      elements.document,
+      this.bus,
+      new ResolutionActions((identifier) => this.#live.client.send(LiveRoute.RESOLUTION_EXECUTION, { [ExecutionRequestKey.RESOLUTION]: identifier })),
+      timers,
+      () => Date.now() / 1000,
+    );
+    this.#querySteps = new QueryStepsPanel(
+      elements.document,
+      this.bus,
+      new QueryStepActions(
+        (request) => this.#live.client.send(LiveRoute.QUERY_STEPS_NEXT, request),
+        (request) => this.#live.client.send(LiveRoute.QUERY_STEPS_MODE, request),
+      ),
+      timers,
+      (inspecting) => this.#resolutions.holdScene(inspecting),
+    );
     this.#liveBadge = new LiveBadge(elements.liveBadge, () => this.#panels.show(this.#livePanel.panel.identifier));
     this.bus.subscribe(ViewerEvent.LIVE_CONNECTED, (info) => this.#showLiveConnection(info));
     this.bus.subscribe(ViewerEvent.LIVE_DISCONNECTED, () => this.#showLiveConnection(null));
@@ -447,6 +492,10 @@ export class Application {
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.#highlights = new SceneHighlights(this.#view);
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
+    this.#regions = new RegionOutlines(this.#view);
+    this.#glide = new CameraGlide(this.#view);
+    this.bus.subscribe(ViewerEvent.REGIONS_OUTLINED, (outlines) => this.#regions.show(outlines ?? []));
+    this.bus.subscribe(ViewerEvent.FOCUS_REQUESTED, (keys) => this.#glide.glideTo(focusBounds(this.#view.content, this.#regions.group, keys ?? [])));
     this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => {
       this.#details.showSelection(selection);
       this.#sceneGraph.reveal(selection);
@@ -465,7 +514,7 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#sceneGraph, this.#perception, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    for (const part of [this.#sceneGraph, this.#perception, this.#resolutions, this.#querySteps, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
@@ -548,6 +597,9 @@ export class Application {
           this.#recordingState = status[RecordingStatusKey.STATE];
           this.#livePanel.showRecording(status);
         },
+        (resolutions) => this.#resolutions.show(resolutions, this.#live?.offers(Capability.RESOLUTION_EXECUTION) ?? false),
+        (steps) => this.#querySteps.show(steps),
+        () => this.#querySteps.revision,
       ),
     );
     this.#livePanel.showConnecting(true, null, address);
@@ -565,6 +617,8 @@ export class Application {
     if (!this.#live) return;
     this.#live.stop();
     this.#live = null;
+    this.#resolutions.stop();
+    this.#querySteps.stop();
     this.#livePanel.showConnecting(false, null);
     this.#elements.statusLine.dataset.live = 'false';
     this.#showLiveConnection(null);
@@ -626,9 +680,10 @@ export class Application {
    * @returns {boolean} Whether the shown frame changed.
    */
   #tick(seconds) {
-    if (!this.#clock) return false;
+    const glided = this.#glide?.advance(seconds) ?? false;
+    if (!this.#clock) return glided;
     this.#clock.speed = this.#timeline.speed * this.#cinematic.pace(this.#clock.time);
-    if (!this.#clock.advance(seconds)) return false;
+    if (!this.#clock.advance(seconds)) return glided;
     this.#showFrame();
     if (this.#filming && !this.#clock.playing) this.toggleVideo();
     return true;

@@ -51,6 +51,16 @@ class ViewerEvent(StrEnum):
     Entities should be highlighted in the 3D view; the payload lists them.
     """
 
+    REGIONS_OUTLINED = "regions:outlined"
+    """
+    Regions should be drawn as boxes in the 3D view; the payload lists their outlines.
+    """
+
+    FOCUS_REQUESTED = "focus:requested"
+    """
+    The camera should glide onto entities and regions; the payload lists their keys.
+    """
+
     QUESTION_ASKED = "question:asked"
     """
     A question or query was submitted.

@@ -8,7 +8,7 @@ import { Capability, LiveInfoKey, LiveRoute, LiveSceneKey, LiveStateKey, ViewerE
 /**
  * How often each part of the publisher is polled, in milliseconds.
  */
-export const PollInterval = Object.freeze({ INFO: 1000, STATE: 100, PLAN: 500, RECORDING: 1000 });
+export const PollInterval = Object.freeze({ INFO: 1000, STATE: 100, PLAN: 500, RECORDING: 1000, RESOLUTIONS: 400, QUERY_STEPS: 250 });
 
 // %% callbacks
 
@@ -22,8 +22,13 @@ export class LiveListener {
    * @param {function(Object): void} showPlan Shows the executing plan.
    * @param {function(Object): void} showStatechart Shows the ticked statechart.
    * @param {function(Object): void} showRecording Shows the recording's status.
+   * @param {function(Object): void} showResolutions Shows how the plans' open parts were
+   *   resolved.
+   * @param {function(Object): void} showQuerySteps Shows the queries the process asked.
+   * @param {function(): number|null} shownRevision The revision of the query steps
+   *   shown, so only a newer one is read whole.
    */
-  constructor(showScene, showState, showPlan, showStatechart, showRecording) {
+  constructor(showScene, showState, showPlan, showStatechart, showRecording, showResolutions = () => {}, showQuerySteps = () => {}, shownRevision = () => null) {
     /**
      * Shows the bundle of the publisher's world.
      * @type {function(string): void}
@@ -49,6 +54,21 @@ export class LiveListener {
      * @type {function(Object): void}
      */
     this.showRecording = showRecording;
+    /**
+     * Shows how the plans' open parts were resolved.
+     * @type {function(Object): void}
+     */
+    this.showResolutions = showResolutions;
+    /**
+     * Shows the queries the process asked.
+     * @type {function(Object): void}
+     */
+    this.showQuerySteps = showQuerySteps;
+    /**
+     * The revision of the query steps shown.
+     * @type {function(): number|null}
+     */
+    this.shownRevision = shownRevision;
   }
 }
 
@@ -137,6 +157,8 @@ export class LiveSession {
     this.#every(PollInterval.STATE, () => this.pollState());
     this.#every(PollInterval.PLAN, () => this.pollPlan());
     this.#every(PollInterval.RECORDING, () => this.pollRecording());
+    this.#every(PollInterval.RESOLUTIONS, () => this.pollResolutions());
+    this.#every(PollInterval.QUERY_STEPS, () => this.pollQuerySteps());
     this.pollInfo();
   }
 
@@ -229,14 +251,36 @@ export class LiveSession {
   }
 
   /**
+   * Read how the plans' open parts were resolved when the publisher publishes it.
+   * @returns {Promise<void>} Settles once read or failed.
+   */
+  async pollResolutions() {
+    if (!this.info || !this.offers(Capability.RESOLUTIONS)) return;
+    const resolutions = await this.#once(LiveRoute.RESOLUTIONS);
+    if (resolutions) this.#listener.showResolutions(resolutions);
+  }
+
+  /**
+   * Read the queries the process asked when the publisher publishes them, naming the
+   * revision shown so an unchanged one is not read whole.
+   * @returns {Promise<void>} Settles once read or failed.
+   */
+  async pollQuerySteps() {
+    if (!this.info || !this.offers(Capability.QUERY_STEPS)) return;
+    const steps = await this.#once(LiveRoute.QUERY_STEPS, () => this.client.readQuerySteps(this.#listener.shownRevision()));
+    if (steps) this.#listener.showQuerySteps(steps);
+  }
+
+  /**
    * @param {string} route A `LiveRoute` value.
+   * @param {function(): Promise<Object>} read Reads the route; a plain read by default.
    * @returns {Promise<Object|null|undefined>} The answer, null when the publisher did
    *   not answer, undefined when a request to the route is still in flight.
    */
-  async #once(route) {
+  async #once(route, read = () => this.client.read(route)) {
     if (this.#pending.has(route)) return undefined;
     this.#pending.add(route);
-    const answer = await this.client.read(route).catch(() => null);
+    const answer = await read().catch(() => null);
     this.#pending.delete(route);
     return answer;
   }

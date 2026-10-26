@@ -34,6 +34,7 @@ from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import LivePlan
 from cramera_protocol.version import CURRENT_VERSION
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
+from semantic_digital_twin.world_description.geometry import Mesh
 from semantic_digital_twin.world_description.world_entity import Body
 
 if TYPE_CHECKING:
@@ -82,7 +83,7 @@ The directory below ``meshes`` holding a recording's meshes.
 class WorldSignature:
     """
     The identity of what a live bundle shows: every body outside the free objects with
-    its parent and connection type, and the selected robot.
+    its parent, its connection type and how it is drawn, and the selected robot.
 
     Poses do not count.
     """
@@ -103,7 +104,7 @@ class WorldSignature:
         """
         objects = {body.id for body in self.model.objects}
         entries = sorted(
-            f"{body.id}<-{self.parent_of(body)}"
+            f"{body.id}<-{self.parent_of(body)}{self.drawing_of(body)}"
             for body in self.model.world.bodies
             if body.id not in objects
         )
@@ -114,6 +115,22 @@ class WorldSignature:
         )
         text = "|".join(entries) + f"|robot:{robot}"
         return hashlib.sha1(text.encode("utf-8")).hexdigest()[:SIGNATURE_LENGTH]
+
+    @staticmethod
+    def drawing_of(body: Body) -> str:
+        """
+        :param body: A body of the world.
+        :return: How it is drawn: the kind of each visual shape with its size, or the
+            file and scale of a mesh, whose size would need the file read.
+        """
+        return "".join(
+            (
+                f"[{type(shape).__name__} {shape.filename} {shape.scale}]"
+                if isinstance(shape, Mesh)
+                else f"[{type(shape).__name__} {shape.local_frame_bounding_box.dimensions}]"
+            )
+            for shape in body.visual.shapes
+        )
 
     @staticmethod
     def parent_of(body: Body) -> str:

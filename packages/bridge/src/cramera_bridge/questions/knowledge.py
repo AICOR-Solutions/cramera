@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from krrood.entity_query_language.evaluable import Evaluable
 from typing_extensions import Any, Dict, Iterable, List, Optional, Type
 
-from cramera_protocol.questions import QueryScope
+from cramera_protocol.questions import QueryScope, QueryTranslation
 
 SCOPE_HEADING_SUFFIX = "Queries"
 """
@@ -59,6 +59,20 @@ class QueryEvaluation(ABC):
         """
         :param expression: A query.
         :return: Its answer.
+        """
+
+
+class TranslatedEvaluation(QueryEvaluation, ABC):
+    """
+    Answers a query by translating it into another query language, such as SQL a
+    database runs.
+    """
+
+    @abstractmethod
+    def translate(self, expression: Evaluable) -> QueryTranslation:
+        """
+        :param expression: A query.
+        :return: The statement the query is answered by.
         """
 
 
