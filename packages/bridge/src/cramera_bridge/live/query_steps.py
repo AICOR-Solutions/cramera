@@ -98,6 +98,17 @@ class QueryStepBoard:
             return QuerySteps(revision=steps.revision, unchanged=True)
         return steps
 
+    def recorded(self) -> Optional[QuerySteps]:
+        """
+        :return: Every query asked, as a recording keeps them: held nowhere and by no
+            revision; None before any query was asked.
+        """
+        with self.lock:
+            steps = self.steps
+        if steps is None or not steps.steps:
+            return None
+        return QuerySteps(steps=steps.steps)
+
     def is_published(self) -> bool:
         """
         :return: Whether steps were published.

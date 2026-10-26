@@ -398,6 +398,42 @@ test('the inspector lingers on a step the process carried on from, then closes',
   assert.equal(panel.inspecting, false);
 });
 
+test('a recording is stepped through one query after the other without a process', () => {
+  const steps = { ...QUERY_STEPS(), [QueryStepsKey.HELD]: null, [QueryStepsKey.STEPPING]: false };
+  const numbers = steps[QueryStepsKey.STEPS].map((step) => step[QueryStepKey.NUMBER]);
+  const { panel, requests, inspecting } = openSteps();
+  panel.showRecorded(steps);
+  assert.equal(panel.recorded, true);
+  assert.equal(panel.stepping.parentElement.hidden, true);
+  assert.equal(panel.next.disabled, false);
+  const shown = numbers.map(() => {
+    panel.advance();
+    return panel.picked;
+  });
+  assert.deepEqual(shown, numbers);
+  assert.equal(panel.next.disabled, true);
+  assert.deepEqual(requests, []);
+  assert.deepEqual(inspecting, [true]);
+});
+
+test('a scene without recorded queries clears the steps shown before', () => {
+  const { panel } = openSteps();
+  panel.showRecorded(QUERY_STEPS());
+  panel.showRecorded(null);
+  assert.equal(panel.published, null);
+  assert.equal(panel.recorded, false);
+  assert.equal(panel.next.disabled, true);
+  assert.equal(panel.stepping.parentElement.hidden, false);
+});
+
+test('a running process brings back the controls that hold it', () => {
+  const { panel } = openSteps();
+  panel.showRecorded(QUERY_STEPS());
+  panel.show(QUERY_STEPS());
+  assert.equal(panel.recorded, false);
+  assert.equal(panel.stepping.parentElement.hidden, false);
+});
+
 // %% polling the publisher
 
 test('resolutions and query steps are read only where the publisher offers them', async () => {

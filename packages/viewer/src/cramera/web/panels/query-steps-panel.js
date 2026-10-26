@@ -4,7 +4,8 @@
  * person moves on. The inspector shows where a query is asked (the plan, actions and
  * queries it is asked inside, down to the query and its variables), the code that asks
  * it, the question in English, the backend answering it, its answers and how the
- * backend reasoned, while the scene lights up what the answers are about.
+ * backend reasoned, while the scene lights up what the answers are about. A recorded
+ * run's queries are stepped through the same way, Next showing one after the other.
  */
 
 import {
@@ -32,6 +33,16 @@ import { knowledgeSource, reasoningView } from './reasoning-view.js';
  * What the panel says before a query is published.
  */
 export const NO_QUERIES = 'The running process has published no queries yet.';
+
+/**
+ * What the panel says while a recording's queries wait to be stepped through.
+ */
+export const RECORDED_HINT = 'Recorded run · Next shows the following query.';
+
+/**
+ * What the panel says at the last query of a recording.
+ */
+export const LAST_RECORDED_HINT = 'The last query the recorded run asked.';
 
 /**
  * How many of the latest queries the list shows.
@@ -190,6 +201,12 @@ export class QueryStepsPanel {
   picked = null;
 
   /**
+   * Whether the steps are a recording's, stepped through without a process.
+   * @type {boolean}
+   */
+  recorded = false;
+
+  /**
    * Whether the inspector shows a step.
    * @type {boolean}
    */
@@ -218,6 +235,12 @@ export class QueryStepsPanel {
    * @type {HTMLButtonElement}
    */
   next;
+
+  /**
+   * The controls that hold a running process, which a recording has none of.
+   * @type {Array<HTMLElement>}
+   */
+  #processControls;
 
   /**
    * The list of the latest queries.
@@ -255,12 +278,12 @@ export class QueryStepsPanel {
     const runOn = element(document, 'button', '', 'Run to the end');
     runOn.type = 'button';
     runOn.addEventListener('click', () => this.runToTheEnd());
-    const controls = element(document, 'div', 'query-step-controls', null, [
+    this.#processControls = [
       element(document, 'label', 'switch', null, [this.stepping, 'Step through']),
       element(document, 'label', 'switch', null, [this.nested, 'into nested queries']),
-      this.next,
       runOn,
-    ]);
+    ];
+    const controls = element(document, 'div', 'query-step-controls', null, [...this.#processControls.slice(0, 2), this.next, runOn]);
     this.#list = element(document, 'ol', 'query-steps', null, [element(document, 'li', 'empty', NO_QUERIES)]);
     this.#inspector = element(document, 'div', 'query-inspector');
     this.#inspector.hidden = true;
@@ -291,6 +314,7 @@ export class QueryStepsPanel {
    */
   show(steps) {
     if (steps[QueryStepsKey.UNCHANGED] || !steps[QueryStepsKey.STEPS].length) return;
+    if (this.recorded) this.#showProcessControls(true);
     this.published = steps;
     const held = steps[QueryStepsKey.HELD];
     this.next.disabled = !held;
@@ -306,20 +330,59 @@ export class QueryStepsPanel {
   }
 
   /**
+   * Take a recording's steps to step through without a process, or clear the steps of
+   * a scene that has none.
+   * @param {Object|null} steps The recorded query steps, or null.
+   */
+  showRecorded(steps) {
+    this.stop();
+    this.published = steps?.[QueryStepsKey.STEPS]?.length ? steps : null;
+    this.#showProcessControls(!this.published);
+    this.next.disabled = !this.published;
+    if (this.published) this.#renderList();
+    else this.#list.replaceChildren(element(this.panel.element.ownerDocument, 'li', 'empty', NO_QUERIES));
+  }
+
+  /**
+   * @param {boolean} shown Whether the steps come from a running process, which the
+   *   switches and Run to the end hold.
+   */
+  #showProcessControls(shown) {
+    this.recorded = !shown;
+    for (const control of this.#processControls) control.hidden = !shown;
+  }
+
+  /**
+   * @returns {number|null} The number of a recording's last step, or null without one.
+   */
+  #lastRecorded() {
+    return this.published?.[QueryStepsKey.STEPS].at(-1)?.[QueryStepKey.NUMBER] ?? null;
+  }
+
+  /**
    * Inspect an earlier step.
    * @param {number} number The step's number.
    */
   pick(number) {
     this.picked = number;
+    if (this.recorded) this.next.disabled = number === this.#lastRecorded();
     this.#stopLingering();
     this.#inspect();
   }
 
   /**
-   * Let the process carry on from the step the viewer shows it held at.
-   * @returns {Promise<Object>|null} The request, or null while the process is not held.
+   * Let the process carry on from the step the viewer shows it held at; in a recording,
+   * show the following query.
+   * @returns {Promise<Object>|null} The request, or null while the process is not held
+   *   and in a recording.
    */
   advance() {
+    if (this.recorded) {
+      const steps = this.published[QueryStepsKey.STEPS];
+      const at = steps.findIndex((step) => step[QueryStepKey.NUMBER] === this.picked);
+      this.pick(steps[Math.min(at + 1, steps.length - 1)][QueryStepKey.NUMBER]);
+      return null;
+    }
     this.picked = null;
     const held = this.published?.[QueryStepsKey.HELD];
     if (!held) return null;
@@ -354,6 +417,7 @@ export class QueryStepsPanel {
    */
   closeInspector() {
     this.picked = null;
+    if (this.recorded) this.next.disabled = false;
     if (this.published?.[QueryStepsKey.HELD]) this.#inspect();
     else this.#close();
   }
@@ -461,6 +525,7 @@ export class QueryStepsPanel {
    * @returns {string} What moving on does.
    */
   #hint(step, held) {
+    if (this.recorded) return step[QueryStepKey.NUMBER] === this.#lastRecorded() ? LAST_RECORDED_HINT : RECORDED_HINT;
     if (!held) return 'Looking back at an earlier query.';
     return step[QueryStepKey.MOMENT] === StepMoment.ASKED ? 'The robot waits before answering · Next answers it.' : 'The robot waits with the answer · Next lets it go on.';
   }

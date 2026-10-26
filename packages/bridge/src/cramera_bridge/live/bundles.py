@@ -32,6 +32,7 @@ from cramera_protocol.bundle.scene import (
 )
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import LivePlan
+from cramera_protocol.query_steps import QuerySteps
 from cramera_protocol.version import CURRENT_VERSION
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 from semantic_digital_twin.world_description.geometry import Mesh
@@ -354,6 +355,7 @@ class LiveBundleWriter:
         selected_robot: Optional[AbstractRobot],
         frames: List[RecordedFrame],
         plans: List[PerformedPlan],
+        query_steps: Optional[QuerySteps] = None,
     ) -> str:
         """
         Write a recorded run as the ``__recording__`` bundle.
@@ -362,6 +364,7 @@ class LiveBundleWriter:
         :param selected_robot: The selected robot.
         :param frames: The recorded frames.
         :param plans: The plans the run performed, in the order each began.
+        :param query_steps: The queries the run asked, or None where it published none.
         :return: The bundle's name.
         :raises EmptyRecording: When there are no frames.
         """
@@ -385,6 +388,7 @@ class LiveBundleWriter:
                 frames_per_second=frames_per_second,
                 trajectory=BundleFile.TRAJECTORY,
                 statecharts=None if statecharts.is_empty() else BundleFile.STATECHARTS,
+                query_steps=None if query_steps is None else BundleFile.QUERY_STEPS,
                 models=models.models,
                 robot=models.robot,
                 objects=self.objects(model, frames, staging),
@@ -402,6 +406,8 @@ class LiveBundleWriter:
                 DocumentFile(staging / BundleFile.STATECHARTS).write(
                     statecharts.document()
                 )
+            if query_steps is not None:
+                DocumentFile(staging / BundleFile.QUERY_STEPS).write(query_steps)
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
         return ReservedSceneName.RECORDING

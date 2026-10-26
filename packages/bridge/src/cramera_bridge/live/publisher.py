@@ -786,6 +786,7 @@ class LivePublisher:
                 self.selected_robot,
                 frames,
                 self.plan.performed_plans(),
+                self.query_steps.recorded(),
             )
         self.recording.written(scene)
         return self.recording.status()
