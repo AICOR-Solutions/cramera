@@ -144,6 +144,7 @@ class ImportArguments:
         )
         arguments += self.optional(ImportOption.ROBOT, options.robot)
         arguments += [ImportOption.KEEP_ROBOTS] if options.keep_robots else []
+        arguments += [ImportOption.FREE_OBJECTS] if options.free_objects else []
         for selection in options.variant:
             arguments += [ImportOption.VARIANT, *selection]
         arguments += self.optional(ImportOption.RECORD, options.record)

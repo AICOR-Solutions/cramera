@@ -321,6 +321,45 @@ class LinkMesh:
     Whether both sides of every triangle are visible.
     """
 
+    def moved(self, pose: RigidTransform) -> LinkMesh:
+        """
+        :param pose: The mesh's current frame in another frame.
+        :return: The mesh in that frame.
+        """
+        return replace(
+            self, geometry=self.geometry.transformed(pose.matrix).single_precision()
+        )
+
+
+@dataclass(eq=False)
+class CollisionBox:
+    """
+    The collision box of one collider prim, in the frame of the link it belongs to: the
+    box that bounds the prim in its own frame, exact for a cube.
+    """
+
+    path: str
+    """
+    The USD path of the collider prim.
+    """
+
+    pose: RigidTransform
+    """
+    The box's centre and orientation in the link frame.
+    """
+
+    size: numpy.ndarray
+    """
+    The box's edge lengths along its own axes, in metres.
+    """
+
+    def moved(self, pose: RigidTransform) -> CollisionBox:
+        """
+        :param pose: The box's current frame in another frame.
+        :return: The box in that frame.
+        """
+        return replace(self, pose=pose @ self.pose)
+
 
 @dataclass(eq=False)
 class Link:
@@ -355,10 +394,22 @@ class Link:
     The visual geometry, in the link frame.
     """
 
+    collisions: List[CollisionBox] = field(default_factory=list)
+    """
+    The collision boxes, in the link frame.
+    """
+
     free: bool = False
     """
     Whether the link moves with a rigid body that no joint connects to the world; it is
     attached at its authored pose by a fixed joint.
+    """
+
+    standalone: bool = False
+    """
+    Whether the link is an object of its own that can be taken away whole: a simulated
+    rigid body that no authored joint touches, nor any body nested in it, and that is
+    not nested in another such body.
     """
 
     @property

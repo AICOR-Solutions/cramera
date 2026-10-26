@@ -41,11 +41,12 @@ from cramera_usd.export.lens import RenderLens
 from cramera_usd.export.screenshot import ViewerScreenshot
 from cramera_usd.export.staging import StagingName
 from cramera_usd.locations import DefaultDirectory, ScenesLocations
+from cramera_usd.names import PrimPath
 from cramera_protocol.viewer import EnvironmentVariable
 
 from .dataset.exports import ENVIRONMENT_NAME, environment, export
 from .dataset.runs import ARM, PHYSICS, RECORD, TRACE
-from .dataset.stages import Stage
+from .dataset.stages import Stage, read
 
 STAGE_ARGUMENTS = [
     str(Stage.ROBOT_MARKERS.path),
@@ -292,6 +293,26 @@ def test_a_twin_declared_without_robots_is_published(tmp_path):
         Stage.JOINTED_CABINET, tmp_path, "cabinet", ExportOption.NO_ROBOTS
     )
     assert exit_code is ExportExit.PUBLISHED
+
+
+def test_an_environment_export_keeps_its_free_objects(tmp_path):
+    exit_code = export(
+        Stage.SHELF_WITH_TOTES,
+        tmp_path,
+        "shelf",
+        ExportOption.NO_ROBOTS,
+        ImportOption.FREE_OBJECTS,
+    )
+    scene = SceneDescription.from_json(
+        JsonFile(tmp_path / "shelf" / BundleFile.SCENE).read()
+    )
+    standalone = [
+        PrimPath(link.path).name
+        for link in read(Stage.SHELF_WITH_TOTES).links
+        if link.standalone
+    ]
+    assert exit_code is ExportExit.PUBLISHED
+    assert [description.key for description in scene.objects] == standalone
 
 
 def test_a_robot_part_beside_the_marked_robot_fails_the_gate(tmp_path, capsys):

@@ -1,0 +1,122 @@
+#usda 1.0
+(
+    doc = "A shelf turned 90 degrees with a guide-purpose deck collider, a simulated tote standing on the deck with a can of goods (a rigid body of its own, visible and colliding) inside it, a stock tote whose rigid body is switched off, and a kinematic lift."
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "World"
+{
+    def Xform "Shelf" (
+        kind = "component"
+    )
+    {
+        custom string sdt:class = "Shelf"
+        double3 xformOp:translate = (1, 0, 0)
+        float xformOp:rotateZ = 90
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZ"]
+
+        def Cube "Deck"
+        {
+            double size = 1
+            double3 xformOp:translate = (0, 0, 0.39)
+            double3 xformOp:scale = (1, 0.3, 0.02)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        def Scope "Collision"
+        {
+            uniform token purpose = "guide"
+
+            def Cube "DeckCollider" (
+                prepend apiSchemas = ["PhysicsCollisionAPI"]
+            )
+            {
+                double size = 1
+                double3 xformOp:translate = (0, 0, 0.39)
+                double3 xformOp:scale = (1, 0.3, 0.02)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            }
+        }
+    }
+
+    def Xform "Totes"
+    {
+        def Xform "A08" (
+            prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+        )
+        {
+            custom string sdt:class = "Tote"
+            double3 xformOp:translate = (1, 0.2, 0.4)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+
+            def Cube "Body"
+            {
+                double size = 0.2
+                double3 xformOp:translate = (0, 0, 0.1)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+            }
+
+            def Scope "Collision"
+            {
+                uniform token purpose = "guide"
+
+                def Cube "BodyCollider" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI"]
+                )
+                {
+                    double size = 0.2
+                    double3 xformOp:translate = (0, 0, 0.1)
+                    uniform token[] xformOpOrder = ["xformOp:translate"]
+                }
+            }
+
+            def Xform "Goods0" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                custom string sdt:class = "Can"
+                double3 xformOp:translate = (0.03, 0, 0.05)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+
+                def Cube "Can" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI"]
+                )
+                {
+                    double size = 0.05
+                }
+            }
+        }
+
+        def Xform "Stock" (
+            prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+        )
+        {
+            bool physics:rigidBodyEnabled = 0
+            double3 xformOp:translate = (1, -0.2, 0.4)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+
+            def Cube "Body"
+            {
+                double size = 0.2
+                double3 xformOp:translate = (0, 0, 0.1)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+            }
+        }
+    }
+
+    def Xform "Lift" (
+        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+    )
+    {
+        bool physics:kinematicEnabled = 1
+        double3 xformOp:translate = (3, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+
+        def Cube "Platform"
+        {
+            double size = 0.5
+        }
+    }
+}

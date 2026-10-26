@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 
 from typing_extensions import Dict, List, Optional
@@ -15,18 +16,25 @@ from cramera_protocol.bundle.index import SceneName
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_usd.animation.animation import SceneAnimation
 from cramera_usd.animation.animator import ENVIRONMENT_MODEL
-from cramera_usd.animation.models import AnimatedObject, KinematicModel
+from cramera_usd.animation.models import (
+    AnimatedObject,
+    KinematicModel,
+    LinkPlacements,
+)
+from cramera_usd.bundle.free_objects import FreeObjects
 from cramera_usd.bundle.index import ScenesIndex
 from cramera_usd.bundle.json_file import JsonFile, JsonLayout
-from cramera_usd.bundle.layout import BundleLayout
+from cramera_usd.bundle.layout import BundleLayout, Decimals
 from cramera_usd.bundle.lighting import LightingSummary
 from cramera_usd.bundle.meshes import MeshFiles
+from cramera_usd.bundle.object_models import ObjectModelFiles
 from cramera_usd.bundle.report import ConversionDurations, ReportSummary
 from cramera_usd.bundle.scene import ScenePresentation, SceneSummary
 from cramera_usd.bundle.semantics import SemanticsSummary
 from cramera_usd.bundle.trajectory import AnimatedTrajectory, StaticTrajectory
 from cramera_usd.distribution import Distribution
 from cramera_usd.encoding import TEXT_ENCODING
+from cramera_usd.exceptions import FreeObjectsOfPlayback
 from cramera_usd.materials.mapper import MaterialMapper
 from cramera_usd.materials.physically_based import PhysicallyBasedMaterial
 from cramera_usd.scene.stage import ConvertedStage
@@ -77,6 +85,28 @@ class SceneBundle:
     The mapping of authored materials onto glTF materials.
     """
 
+    free_objects: bool = False
+    """
+    Whether the standalone rigid bodies of a static scene become free objects instead of
+    links of the environment.
+    """
+
+    def __post_init__(self) -> None:
+        """
+        :raises FreeObjectsOfPlayback: When free objects are asked of a playback.
+        """
+        if self.free_objects and self.animation is not None:
+            raise FreeObjectsOfPlayback(self.name)
+
+    @cached_property
+    def standalone_objects(self) -> Optional[FreeObjects]:
+        """
+        The free objects of a static scene, when asked for.
+        """
+        if not self.free_objects:
+            return None
+        return FreeObjects(self.stage)
+
     @property
     def layout(self) -> BundleLayout:
         """
@@ -104,6 +134,9 @@ class SceneBundle:
         layout.file(BundleFile.MESHES).mkdir(parents=True, exist_ok=True)
         materials = self.mapped_materials()
         self.write_meshes(materials)
+        object_models = ObjectModelFiles(layout)
+        object_models.write(self.objects())
+        object_models.remove_stale()
         for model in self.models():
             layout.file(BundleLayout.urdf_file(model)).write_bytes(
                 self.urdf(model).to_bytes()
@@ -117,7 +150,7 @@ class SceneBundle:
                 self.animation.residuals_table().to_text().encode(TEXT_ENCODING)
             )
         JsonFile(layout.file(BundleFile.SEMANTICS)).write(
-            SemanticsSummary(self.stage, self.animation).to_protocol(),
+            SemanticsSummary(self.stage, self.placements()).to_protocol(),
             JsonLayout.INDENTED,
         )
         JsonFile(layout.file(BundleFile.LIGHTING)).write(
@@ -183,18 +216,34 @@ class SceneBundle:
 
     def models(self) -> List[KinematicModel]:
         """
-        :return: The URDF models of the bundle: the playback's, else one environment
-            model of every link.
+        :return: The URDF models of the bundle: the playback's, else the environment
+            the free objects leave, else one environment model of every link.
         """
         if self.animation is not None:
             return self.animation.models
+        if self.standalone_objects is not None:
+            return [self.standalone_objects.environment]
         return [KinematicModel(ENVIRONMENT_MODEL, self.stage.links, self.stage.joints)]
 
     def objects(self) -> List[AnimatedObject]:
         """
-        :return: The objects played back by their poses.
+        :return: The objects played back by their poses, else the free objects of a
+            static scene.
         """
-        return [] if self.animation is None else self.animation.objects
+        if self.animation is not None:
+            return self.animation.objects
+        if self.standalone_objects is not None:
+            return self.standalone_objects.objects
+        return []
+
+    def placements(self) -> Optional[LinkPlacements]:
+        """
+        :return: Where the links ended up when the bundle moved them into several
+            models or objects, else None.
+        """
+        if self.animation is not None:
+            return self.animation
+        return self.standalone_objects
 
     def urdf(self, model: KinematicModel) -> UrdfDocument:
         """
@@ -219,7 +268,11 @@ class SceneBundle:
         if self.animation is not None:
             return AnimatedTrajectory(self.animation).to_protocol()
         return StaticTrajectory(
-            {joint.name: joint.initial_value for joint in self.stage.movable_joints}
+            {joint.name: joint.initial_value for joint in self.stage.movable_joints},
+            {
+                moving.key: moving.poses.poses(Decimals.POSE)[0]
+                for moving in self.objects()
+            },
         ).to_protocol()
 
     def scene(self) -> SceneSummary:
@@ -231,6 +284,7 @@ class SceneBundle:
             self.name,
             self.presentation,
             self.models(),
+            self.objects(),
             self.animation,
             Distribution.CONVERTER.version(),
         )

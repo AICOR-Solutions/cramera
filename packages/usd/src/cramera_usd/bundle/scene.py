@@ -110,9 +110,14 @@ class SceneSummary:
     The bundle's URDF models.
     """
 
+    objects: List[AnimatedObject]
+    """
+    The bundle's free objects.
+    """
+
     animation: Optional[SceneAnimation]
     """
-    The playback with its robot, objects and segments, or None.
+    The playback with its robot and segments, or None.
     """
 
     converter: str
@@ -126,7 +131,6 @@ class SceneSummary:
         :return: The content of ``scene.json``.
         """
         stage_name = self.stage.source.name
-        objects = [] if self.animation is None else self.animation.objects
         return SceneDescription(
             name=self.name,
             format_version=CURRENT_VERSION,
@@ -144,7 +148,7 @@ class SceneSummary:
             camera=self.camera().to_protocol(),
             models=[self.model(model) for model in self.models],
             robot=self.robot(),
-            objects=[self.object(moving, trajectory) for moving in objects],
+            objects=[self.object(moving, trajectory) for moving in self.objects],
             segments=self.segments(),
             missing_assets=list(self.stage.log.missing_textures),
             source=SceneSource(
@@ -213,14 +217,20 @@ class SceneSummary:
     @staticmethod
     def object(moving: AnimatedObject, trajectory: Trajectory) -> ObjectDescription:
         """
-        :param moving: An object of the playback.
+        :param moving: An object of the bundle.
         :param trajectory: The trajectory holding the object's poses.
-        :return: Its ``objects`` entry, spawned at its pose in the first frame.
+        :return: Its ``objects`` entry, spawned at its pose in the first frame, with
+            its URDF when it has collision boxes.
         """
         return ObjectDescription(
             identifier=moving.key,
             key=moving.key,
             mesh=BundleLayout.object_mesh(moving.key),
+            urdf=(
+                BundleLayout.object_model(moving.key)
+                if moving.link.collisions
+                else None
+            ),
             spawn=trajectory.objects[0][moving.key],
             color=OBJECT_LABEL_COLOR,
             height=round(moving.height, Decimals.POSITION),

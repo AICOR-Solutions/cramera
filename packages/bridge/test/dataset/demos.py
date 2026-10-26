@@ -8,6 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from typing_extensions import List
+
 from coraplex.datastructures.dataclasses import Context
 from coraplex.plans.factories import execute_single
 from coraplex.plans.plan import Plan
@@ -65,3 +67,20 @@ class TorsoDemo(RobotTaskDemo):
         return AcceptanceMetrics(
             measurements={TorsoMeasurement.TORSO_ERROR.value: error}
         )
+
+
+@dataclass
+class RaisedThenMovedTorsoDemo(TorsoDemo):
+    """
+    Raises the robot's torso in a plan of its own, then moves it to the given state in a
+    second plan.
+    """
+
+    torso_state: TorsoState = TorsoState.LOW
+    """
+    The state the second plan moves the torso to.
+    """
+
+    def build_plans(self, context: Context) -> List[Plan]:
+        raised = execute_single(MoveTorsoAction(TorsoState.HIGH), context=context).plan
+        return [raised, self.build_plan(context)]
