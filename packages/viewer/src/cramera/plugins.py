@@ -63,6 +63,11 @@ class RouteDeclaration(ABC):
     The method the route answers.
     """
 
+    streams_body: bool = field(default=False, kw_only=True)
+    """
+    Whether the route reads the request body itself, see :attr:`Route.streams_body`.
+    """
+
     @abstractmethod
     def route(self, plugin_prefix: str) -> Route:
         """
@@ -88,7 +93,12 @@ class PluginRoute(RouteDeclaration):
     """
 
     def route(self, plugin_prefix: str) -> Route:
-        return ExactRoute(self.method, f"{plugin_prefix}{self.path}", self.handler)
+        return ExactRoute(
+            self.method,
+            f"{plugin_prefix}{self.path}",
+            self.handler,
+            streams_body=self.streams_body,
+        )
 
 
 @dataclass(frozen=True)
@@ -110,7 +120,12 @@ class PluginPrefixRoute(RouteDeclaration):
     """
 
     def route(self, plugin_prefix: str) -> Route:
-        return PrefixRoute(self.method, f"{plugin_prefix}{self.prefix}", self.handler)
+        return PrefixRoute(
+            self.method,
+            f"{plugin_prefix}{self.prefix}",
+            self.handler,
+            streams_body=self.streams_body,
+        )
 
 
 @dataclass(frozen=True)

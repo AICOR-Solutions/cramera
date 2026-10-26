@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from http import HTTPStatus
 
-from typing_extensions import Callable, List
+from typing_extensions import Callable, List, Optional
 
 from cramera.http.messages import HttpMethod, Request, Response
 
@@ -34,6 +34,12 @@ class Route(ABC):
     method: HttpMethod
     """
     The method the route answers.
+    """
+
+    streams_body: bool = field(default=False, kw_only=True)
+    """
+    Whether the route reads the request body itself, from :attr:`Request.stream`,
+    instead of the server reading it into memory first; for uploads larger than memory.
     """
 
     @abstractmethod
@@ -117,21 +123,44 @@ class Router:
         """
         self.routes.append(route)
 
+    def route(self, method: HttpMethod, path: str) -> Optional[Route]:
+        """
+        :param method: A request's method.
+        :param path: A request's path.
+        :return: The route that answers such a request, or None.
+        """
+        wanted = HttpMethod.GET if method is HttpMethod.HEAD else method
+        return next(
+            (
+                route
+                for route in self.routes
+                if route.matches(path) and route.method is wanted
+            ),
+            None,
+        )
+
+    def streams_body(self, method: HttpMethod, path: str) -> bool:
+        """
+        :param method: A request's method.
+        :param path: A request's path.
+        :return: Whether the route answering such a request reads its body itself.
+        """
+        route = self.route(method, path)
+        return route is not None and route.streams_body
+
     def answer(self, request: Request) -> Response:
         """
         :param request: A request.
         :return: The matching route's response; 404 when no route matches the path,
             405 when routes match the path but not the method.
         """
-        method = HttpMethod.GET if request.method is HttpMethod.HEAD else request.method
-        matching = [route for route in self.routes if route.matches(request.path)]
-        if not matching:
+        if not any(route.matches(request.path) for route in self.routes):
             return Response.of_error(
                 HTTPStatus.NOT_FOUND, f"Nothing is served at {request.path}."
             )
-        for route in matching:
-            if route.method is method:
-                return route.answer(request)
+        route = self.route(request.method, request.path)
+        if route is not None:
+            return route.answer(request)
         return Response.of_error(
             HTTPStatus.METHOD_NOT_ALLOWED,
             f"{request.path} does not answer {request.method.value}.",

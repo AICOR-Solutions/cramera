@@ -12,6 +12,10 @@ authors = [{ name = "Vanessa Hassouna" }]
 dependencies = ["cramera==1.0.0", "cramera-protocol==1.0.0", "typing_extensions>=4.8"]
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
 
+[project.optional-dependencies]
+# Uploading E57 laser scans: pye57 reads them, numpy samples and thins the points.
+e57 = ["pye57>=0.4.19", "numpy>=1.26"]
+
 [project.entry-points."cramera.plugins"]
 scene-builder = "cramera_scene_builder.plugin:SceneBuilderPlugin"
 

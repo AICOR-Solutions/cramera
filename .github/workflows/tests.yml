@@ -60,7 +60,7 @@ jobs:
             install: -e './packages/plugins/laboratory[physics]' -e ./packages/bridge
           - package: plugins/scene-builder
             module: cramera_scene_builder
-            install: -e ./packages/plugins/scene-builder
+            install: -e './packages/plugins/scene-builder[e57]'
           # CI has no CRAM workspace, so the plan builder's tests against it are not
           # collected and the coverage is measured over the modules that need none.
           - package: plugins/plan-builder

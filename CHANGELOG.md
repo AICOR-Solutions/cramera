@@ -27,6 +27,18 @@ which this repository was mirrored until 22 Oct 2026.
 
 ### Added
 
+- **E57 laser scans in the scene builder.** **Load a point cloud** also takes `.e57`
+  files, the exchange format of terrestrial scanners, of up to 64 GiB
+  (`SceneBuilderLimits.maximum_scan_bytes`). The upload is written to disk as it
+  arrives, every scan is placed by its pose, and its points are sampled and thinned on
+  a voxel grid to the builder's two million, kept with their colours, or their
+  intensities as grey, as a PLY point cloud. Converting needs the scene builder's new
+  `e57` extra (pye57 and numpy); without it the upload is answered with what to
+  install. New are `ScanFormat` in the protocol and, in the viewer, routes that stream
+  their request body (`Route.streams_body`, `Request.stream`, `BodyStream`), so an
+  upload larger than memory is never read into it.
+
+
 - **A longer PR2 demo on the medical lab page.** **PR2 lab workflow (CRAM)** re-sorts
   the rack, stores a vessel in the refrigerator and loads a balanced pair into the
   centrifuge, opening and closing the refrigerator's door and the centrifuge's lid and
@@ -58,6 +70,7 @@ which this repository was mirrored until 22 Oct 2026.
   recorded answers, so `cramera --demo-scenes demo` shows it without CRAM.
 
   ![The PR2 lab workflow replayed from demo/standard_scenes](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/demo-standard-scenes/pr2_workflow_replay.png)
+
 
 - **The demo site is built for every pull request.** The site's build and screenshot
   run on pull requests too, without publishing, so a change that breaks the site fails

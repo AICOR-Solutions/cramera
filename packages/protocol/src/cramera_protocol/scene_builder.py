@@ -279,6 +279,25 @@ class PointCloudFormat(StrEnum):
         return f".{self.value}"
 
 
+class ScanFormat(StrEnum):
+    """
+    The scan file formats the scene builder turns into a point cloud when they are
+    uploaded: the scan is thinned to at most
+    :attr:`SceneBuilderLimits.maximum_points` points and kept as a PLY point cloud.
+    """
+
+    E57 = "e57"
+    """
+    ASTM E57 laser scan files, the exchange format of terrestrial scanners.
+    """
+
+    def suffix(self) -> str:
+        """
+        :return: The suffix files of this format carry.
+        """
+        return f".{self.value}"
+
+
 class PointCloudEncoding(StrEnum):
     """
     How a point cloud file stores its records.
@@ -915,6 +934,11 @@ class LimitsKey(StrEnum):
     How large an uploaded point cloud file is at most.
     """
 
+    MAXIMUM_SCAN_BYTES = "maximumScanBytes"
+    """
+    How large an uploaded scan file is at most.
+    """
+
     MAXIMUM_POINTS = "maximumPoints"
     """
     How many points an uploaded point cloud declares at most.
@@ -929,6 +953,11 @@ class LimitsKey(StrEnum):
 MEBIBYTE = 1024 * 1024
 """
 The number of bytes in a mebibyte.
+"""
+
+GIBIBYTE = 1024 * MEBIBYTE
+"""
+The number of bytes in a gibibyte.
 """
 
 
@@ -1022,6 +1051,14 @@ class SceneBuilderLimits(JsonDocument):
     )
     """
     How large an uploaded point cloud file is at most, in bytes.
+    """
+
+    maximum_scan_bytes: int = document_field(
+        LimitsKey.MAXIMUM_SCAN_BYTES, default=64 * GIBIBYTE
+    )
+    """
+    How large an uploaded scan file is at most, in bytes; the upload is streamed to a
+    temporary file, so this bounds the disk it takes, not the memory.
     """
 
     maximum_points: int = document_field(LimitsKey.MAXIMUM_POINTS, default=2_000_000)
