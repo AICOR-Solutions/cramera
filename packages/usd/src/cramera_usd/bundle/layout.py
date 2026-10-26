@@ -1,10 +1,11 @@
 """
 Where a bundle keeps its files: the URDF and mesh directory of each model, and the mesh
-of each object.
+and URDF of each object.
 """
 
 from __future__ import annotations
 
+import posixpath
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from pathlib import Path, PurePosixPath
@@ -126,6 +127,24 @@ class BundleLayout:
         :return: The object's GLB, relative to the bundle.
         """
         return str(PurePosixPath(BundleFile.OBJECT_MESHES) / f"{key}{MeshFormat.GLB}")
+
+    @staticmethod
+    def object_model(key: str) -> str:
+        """
+        :param key: An object's key.
+        :return: The object's URDF, relative to the bundle.
+        """
+        return str(PurePosixPath(BundleFile.OBJECT_MODELS) / f"{key}{FileSuffix.URDF}")
+
+    @classmethod
+    def object_model_mesh(cls, key: str) -> str:
+        """
+        :param key: An object's key.
+        :return: The object's GLB, relative to its URDF.
+        """
+        return posixpath.relpath(
+            cls.object_mesh(key), posixpath.dirname(cls.object_model(key))
+        )
 
     def size(self) -> int:
         """

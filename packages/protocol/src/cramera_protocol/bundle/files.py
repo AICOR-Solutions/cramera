@@ -44,6 +44,11 @@ class BundleFile(StrEnum):
     The directory holding one mesh per free object.
     """
 
+    OBJECT_MODELS = "objects"
+    """
+    The directory holding the URDF of each free object with collision geometry.
+    """
+
     SEMANTICS = "semantics.json"
     """
     The semantic attributes of converted stage prims.

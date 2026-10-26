@@ -236,6 +236,26 @@ class TraceIncomplete(ConversionError):
 
 
 @dataclass
+class FreeObjectsOfPlayback(ConversionError):
+    """
+    Free objects were asked of a scene that plays back a recording, whose objects the
+    recording decides.
+    """
+
+    name: str
+    """
+    The bundle that was to be written.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The bundle {self.name} plays back a body trace or the stage's time "
+            "samples, which decide its objects. Ask for free objects only of a static "
+            "scene, or convert without the playback."
+        )
+
+
+@dataclass
 class RobotRootNotFound(ConversionError):
     """
     The prim chosen as the robot holds no link, or several links none of which holds all

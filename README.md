@@ -252,6 +252,7 @@ viewer reads: `$CRAMERA_SCENES`, else `$CRAMERA_DATA/scenes`, else
 | `--prim PATH` | convert only this prim's subtree; repeatable |
 | `--exclude PRIM` | leave out this prim's subtree; repeatable |
 | `--keep-robots` | keep the robots the stage marks in the environment (left out by default) |
+| `--free-objects` | write the standalone rigid bodies of a static scene as free objects a CRAM world can pick up (see below) |
 | `--environment-name`, `--task` | the scene's labels in the viewer's picker |
 | `--exposure` | tone-mapping exposure (default 0.72) |
 | `--camera-position X Y Z`, `--camera-target X Y Z` | initial view, given together; `--camera-fov DEGREES` (vertical) only with both. Without them the stage's first camera is used, else a view framing the bulk of the geometry |
@@ -305,8 +306,20 @@ What carries over:
   recording and writes the differences to `residuals.csv`.
 - **Semantics**: `sdt:` and `ont:` attributes go to `semantics.json` and to the extras
   of the GLB nodes.
+- **Collisions**: every geometry prim with an enabled `PhysicsCollisionAPI`, whatever
+  its purpose or visibility (Isaac twins keep their colliders as guide cubes), becomes
+  a `<collision>` box of its link: the box that bounds the prim in its own frame, exact
+  for a cube. `conversion_report.json` counts them (`collisions`).
 
-Collision geometry is not carried over.
+**Free objects.** With `--free-objects`, every standalone rigid body of a scene without
+playback becomes a free object a CRAM world can pick up: a body the physics engine
+moves (rigid body enabled, not kinematic) that no authored joint touches, nor a body
+nested in it. It carries the bodies nested in it (the goods in a tote) and their
+collision boxes, and gets a URDF of its own, `objects/<key>.urdf`, holding its GLB and
+its boxes; the trajectory holds it at its spawn pose and `semantics.json` places the
+prims it carries on it. Switched-off and kinematic bodies and articulations stay fixed
+links of the environment. A playback decides its objects itself, so `--free-objects`
+with a trace or time samples is refused.
 
 ### Export a twin
 

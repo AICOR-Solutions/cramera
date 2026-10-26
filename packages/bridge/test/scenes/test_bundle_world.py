@@ -4,8 +4,11 @@ CRAM worlds built from scene bundles.
 
 from __future__ import annotations
 
+import os
 import shutil
+import xml.etree.ElementTree as ElementTree
 
+import numpy
 import pytest
 
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
@@ -36,7 +39,8 @@ from semantic_digital_twin.world_description.connections import (
 )
 from semantic_digital_twin.world_description.geometry import Box, Mesh
 
-from ..dataset.bundles import SEMANTICS_WITH_MISSING_LINK
+from ..dataset.bundles import SEMANTICS_WITH_MISSING_LINK, SHELF_WITH_TOTES_BUNDLE
+from ..dataset.worlds import CUP_MESH
 
 # %% converted bundles
 
@@ -134,6 +138,87 @@ def test_the_summary_counts_joints_and_annotations(world):
     prims = len(world.get_semantic_annotations_by_type(UsdPrimAnnotation))
     assert f"Movable joints: {WorldSummary(world).movable_joint_count()}" in text
     assert f"Prim annotations: {prims}" in text
+
+
+# %% free objects with a URDF of their own
+
+
+@pytest.fixture
+def shelf_world():
+    return BundleEnvironment(directory=SHELF_WITH_TOTES_BUNDLE).create_world()
+
+
+@pytest.fixture
+def tote():
+    [description] = BundleContents.of_directory(SHELF_WITH_TOTES_BUNDLE).scene.objects
+    return description
+
+
+def test_an_object_with_a_urdf_is_a_free_body_at_its_spawn_pose(shelf_world, tote):
+    body = shelf_world.get_body_by_name(tote.identifier)
+    assert isinstance(body.parent_connection, Connection6DoF)
+    assert body.parent_connection.parent is shelf_world.root
+    assert NumericPose.of_entity(shelf_world, body).published(4) == type(tote.spawn)(
+        *(round(value, 4) for value in tote.spawn.to_json())
+    )
+
+
+def test_an_object_with_a_urdf_collides_with_its_boxes(shelf_world, tote):
+    urdf = ElementTree.parse(SHELF_WITH_TOTES_BUNDLE / tote.urdf).getroot()
+    authored = sorted(
+        tuple(float(value) for value in box.get("size").split())
+        for box in urdf.iterfind("link/collision/geometry/box")
+    )
+    body = shelf_world.get_body_by_name(tote.identifier)
+    assert numpy.array(
+        sorted(
+            (shape.scale.x, shape.scale.y, shape.scale.z)
+            for shape in body.collision.shapes
+        )
+    ) == pytest.approx(numpy.array(authored))
+
+
+def test_the_prims_an_object_carries_annotate_its_body(shelf_world, tote):
+    prims = BundleContents.of_directory(SHELF_WITH_TOTES_BUNDLE).semantics.prims
+    carried = [path for path, entry in prims.items() if entry.model == tote.key]
+    annotations = {
+        annotation.prim_path: annotation
+        for annotation in shelf_world.get_semantic_annotations_by_type(
+            UsdPrimAnnotation
+        )
+    }
+    body = shelf_world.get_body_by_name(tote.identifier)
+    assert carried and all(annotations[path].root is body for path in carried)
+
+
+def test_an_object_urdf_finds_its_meshes_wherever_the_process_runs(
+    tmp_path, monkeypatch
+):
+    bundle = tmp_path / SHELF_WITH_TOTES_BUNDLE.name
+    shutil.copytree(SHELF_WITH_TOTES_BUNDLE, bundle)
+    [tote] = BundleContents.of_directory(bundle).scene.objects
+    mesh_file = bundle / "meshes" / "objects" / CUP_MESH.name
+    mesh_file.parent.mkdir(parents=True)
+    shutil.copyfile(CUP_MESH, mesh_file)
+    urdf = ElementTree.parse(bundle / tote.urdf)
+    geometry = urdf.getroot().find("link/visual/geometry")
+    geometry.clear()
+    ElementTree.SubElement(
+        geometry,
+        "mesh",
+        filename=os.path.relpath(mesh_file, (bundle / tote.urdf).parent),
+    )
+    urdf.write(bundle / tote.urdf)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    world = BundleEnvironment(directory=bundle).create_world()
+    [mesh] = [
+        shape
+        for shape in world.get_body_by_name(tote.identifier).visual.shapes
+        if isinstance(shape, Mesh)
+    ]
+    assert mesh.filename == str(mesh_file)
 
 
 # %% bundles written from a world

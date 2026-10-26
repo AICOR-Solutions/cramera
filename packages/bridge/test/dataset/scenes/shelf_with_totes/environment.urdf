@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="shelf_with_totes">
+  <link name="World" />
+  <link name="Shelf">
+    <collision>
+      <origin xyz="0 0 0.39" rpy="0 0 1.57079633" />
+      <geometry>
+        <box size="1 0.3 0.02" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Shelf__attachment" type="fixed">
+    <parent link="World" />
+    <child link="Shelf" />
+    <origin xyz="1 0 0" rpy="0 0 0" />
+  </joint>
+</robot>

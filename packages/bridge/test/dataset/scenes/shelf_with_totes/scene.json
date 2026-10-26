@@ -1,0 +1,33 @@
+{
+ "name": "shelf_with_totes",
+ "formatVersion": "1.0",
+ "environmentName": "Shelf with totes",
+ "task": "Static",
+ "framesPerSecond": 1.0,
+ "trajectory": "trajectory.json",
+ "models": [
+  {
+   "name": "environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 2,
+   "movableJoints": [],
+   "preserveMaterials": true
+  }
+ ],
+ "objects": [
+  {
+   "id": "A08",
+   "key": "A08",
+   "mesh": "meshes/objects/A08.glb",
+   "urdf": "objects/A08.urdf",
+   "spawn": [1.0, 0.2, 0.4, 0.0, 0.0, 0.0, 1.0],
+   "color": "#ffffff",
+   "height": 0.2,
+   "preserveMaterials": true
+  }
+ ],
+ "segments": [],
+ "missingAssets": []
+}

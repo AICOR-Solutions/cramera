@@ -31,7 +31,7 @@ from semantic_digital_twin.robots.pr2 import PR2
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, TaskArgument, TaskCommand
 
 from ..dataset.bundles import ANNOTATED_BUNDLE
-from ..dataset.demos import TorsoDemo, TorsoMeasurement
+from ..dataset.demos import RaisedThenMovedTorsoDemo, TorsoDemo, TorsoMeasurement
 
 SCENE_NAME = "barrier_pr2_torso"
 """
@@ -59,11 +59,14 @@ def locations(tmp_path) -> DataLocations:
     return DataLocations(data=tmp_path / "data", shared_scenes=tmp_path / "shared")
 
 
-def torso_demo(locations: DataLocations, **changes) -> TorsoDemo:
+def torso_demo(
+    locations: DataLocations, demo_type: type = TorsoDemo, **changes
+) -> TorsoDemo:
     """
     :param locations: Where the recording is saved.
+    :param demo_type: The demo class.
     :param changes: Fields that differ from the test task.
-    :return: A PR2 raising its torso.
+    :return: A PR2 moving its torso.
     """
     fields = dict(
         environment=BarrierEnvironment(distance=BARRIER_DISTANCE),
@@ -76,7 +79,7 @@ def torso_demo(locations: DataLocations, **changes) -> TorsoDemo:
         port=0,
     )
     fields.update(changes)
-    return TorsoDemo(**fields)
+    return demo_type(**fields)
 
 
 @pytest.fixture(scope="module")
@@ -105,6 +108,18 @@ def test_a_finished_task_is_saved_with_its_measurements(saved_run):
     assert scene.environment_name == demo.environment_name
     assert scene.camera == demo.camera
     assert TorsoMeasurement.TORSO_ERROR.value in metrics.measurements
+
+
+def test_the_plans_of_a_task_run_in_order_and_are_all_recorded(locations):
+    demo = torso_demo(locations, RaisedThenMovedTorsoDemo)
+    saved = demo.run()
+    bundle = locations.local_scenes / saved.scene
+    scene = DocumentFile(bundle / BundleFile.SCENE).read(SceneDescription)
+    plans = demo.build_plans(demo.build_context(demo.build_world()))
+    assert len(scene.plan_trees) == len(plans)
+    first, second = scene.plan_trees
+    assert first.start is not None and second.start is not None
+    assert first.end < second.start
 
 
 def test_the_saved_scene_is_listed(saved_run):

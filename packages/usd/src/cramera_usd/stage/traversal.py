@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from pxr import Sdf, Usd, UsdGeom
+from pxr import Sdf, Usd, UsdGeom, UsdPhysics
 from typing_extensions import List
 
 from cramera_protocol.bundle.conversion_report import ExcludedPrim, SkipReason
@@ -132,3 +132,17 @@ class StageTraversal:
             self.log.skip(SkipReason.INVISIBLE, path)
             return False
         return True
+
+    @staticmethod
+    def collides(prim: Usd.Prim) -> bool:
+        """
+        :param prim: A prim.
+        :return: Whether the prim is collision geometry: a geometry prim with an
+            enabled collision API, whatever its purpose or visibility.
+        """
+        return (
+            prim.IsA(UsdGeom.Gprim)
+            and prim.HasAPI(UsdPhysics.CollisionAPI)
+            and UsdPhysics.CollisionAPI(prim).GetCollisionEnabledAttr().Get()
+            is not False
+        )

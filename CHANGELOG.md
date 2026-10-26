@@ -26,6 +26,26 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+
+- **Collision boxes and free objects from USD stages.** `cramera-import` writes every
+  enabled USD collider as a `<collision>` box of its link (`ReportCount.COLLISIONS`),
+  and with `--free-objects` the standalone rigid bodies of a static scene become free
+  objects carrying the bodies nested in them, each with a URDF of its own in
+  `BundleFile.OBJECT_MODELS` (`ObjectDescription.urdf`); `cramera-export` passes
+  `--free-objects` on. `BundleEnvironment` builds an object with a URDF from it, free
+  on the world's root, its meshes found beside the URDF wherever the process runs
+  (`SceneEnvironment.parse_model`), and annotates the prims the object carries
+  (`PrimEntry.model`) on its body, so a CRAM plan can pick up an imported Isaac twin's
+  totes or plates.
+
+  ![CRAM's FR3 about to pick up a plate from an imported Isaac lab cell](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/collision-boxes-free-objects/fr3_pick_at_l09.png)
+  ![The FR3 carrying the plate on, every step with its recorded parameters](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/collision-boxes-free-objects/fr3_place_into_h4.png)
+
+- **Task demos of several plans.** `RobotTaskDemo.build_plans` returns the plans a task
+  performs one after another, the task's plan alone by default; `run` publishes and
+  records them all, so one robot carrying totes and another refilling them make one
+  recording with a plan tree each.
+
 - **How a plan's open parts were resolved, played beside the running robot.** A
   process that leaves parts of a plan open publishes each resolution through
   `LivePublisher.resolutions`: every open part asked as a statement, the backend that
@@ -52,6 +72,7 @@ which this repository was mirrored until 22 Oct 2026.
   `TranslatedEvaluation`, such as one running on a database, carries the statement in
   the other query language, and the questions panel shows it under the query. A query
   can also be read back opening with how its backend answers it ("Generate …").
+
 - **E57 laser scans in the scene builder.** **Load a point cloud** also takes `.e57`
   files, the exchange format of terrestrial scanners, of up to 64 GiB
   (`SceneBuilderLimits.maximum_scan_bytes`). The upload is written to disk as it

@@ -4,7 +4,7 @@ The frames a converted bundle plays back, as ``trajectory.json`` holds them.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from typing_extensions import Dict, List
 
@@ -27,12 +27,18 @@ The rate of the single frame of a static scene.
 @dataclass(frozen=True)
 class StaticTrajectory:
     """
-    One frame holding the initial value of every movable joint.
+    One frame holding the initial value of every movable joint and the spawn pose of
+    every free object.
     """
 
     joint_values: Dict[str, float]
     """
     The value of every movable joint, by trajectory key.
+    """
+
+    objects: Dict[str, Pose] = field(default_factory=dict)
+    """
+    The spawn pose of every free object, by key.
     """
 
     def to_protocol(self) -> Trajectory:
@@ -43,7 +49,7 @@ class StaticTrajectory:
             frames=[self.joint_values],
             frames_per_second=STATIC_FRAMES_PER_SECOND,
             base=[RigidTransform().to_protocol()],
-            objects=[{}],
+            objects=[self.objects],
         )
 
 
