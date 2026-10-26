@@ -103,8 +103,10 @@ takes the port over; pass `--keep-running` to fail instead.
 
 A scenes directory may hold other scenes directories: every child that is not a
 bundle but holds an `index.json` or bundles counts as a further directory of the same
-source, and so on below it. So `demo` holds `demo/standard_scenes`, the bundles of
-this repository, and any scenes repository cloned next to it, such as
+source, and so on below it. So `demo` holds `demo/standard_scenes`, this repository's
+recording of the PR2 working in the small medical lab
+(`aicor_medical_lab_pr2_workflow`), which replays without CRAM, and any scenes
+repository cloned next to it, such as
 `AICOR-Solutions/solutions-cramera-scenes`, is shown without being named. Clones under
 `demo` other than `standard_scenes` are ignored by git.
 
@@ -218,7 +220,7 @@ query boxes say why they are disabled. Record them in the CRAM environment with
 
 ```bash
 cramera-record-answers demo/standard_scenes            # every bundle of the directory
-cramera-record-answers demo/standard_scenes --scene pr2_warehouse_transport
+cramera-record-answers packages/plugins/laboratory/src/cramera_laboratory/resources --scene aicor_medical_lab
 ```
 
 which writes `recorded_answers.json` into each bundle; record again after a bundle

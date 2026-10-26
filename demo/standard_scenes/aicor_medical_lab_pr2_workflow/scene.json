@@ -1,0 +1,3054 @@
+{
+ "name": "aicor_medical_lab_pr2_workflow",
+ "formatVersion": "1.0",
+ "framesPerSecond": 20.0,
+ "trajectory": "trajectory.json",
+ "models": [
+  {
+   "name": "environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 21,
+   "movableJoints": [
+    "aicor_medical_lab/laboratory_refrigerator_door_joint",
+    "aicor_medical_lab/laboratory_centrifuge_lid_joint",
+    "aicor_medical_lab/laboratory_centrifuge_rotor_joint",
+    "aicor_medical_lab/laboratory_drawer_joint"
+   ],
+   "preserveMaterials": true,
+   "posedJoints": []
+  },
+  {
+   "name": "pr2",
+   "urdf": "pr2.urdf",
+   "prefix": "",
+   "robot": true,
+   "links": 105,
+   "movableJoints": [
+    "pr2/torso_lift_motor_screw_joint",
+    "pr2/torso_lift_joint",
+    "pr2/l_shoulder_pan_joint",
+    "pr2/l_shoulder_lift_joint",
+    "pr2/l_upper_arm_roll_joint",
+    "pr2/l_elbow_flex_joint",
+    "pr2/l_forearm_roll_joint",
+    "pr2/l_wrist_flex_joint",
+    "pr2/l_wrist_roll_joint",
+    "pr2/l_gripper_r_finger_joint",
+    "pr2/l_gripper_r_finger_tip_joint",
+    "pr2/l_gripper_joint",
+    "pr2/l_gripper_l_finger_joint",
+    "pr2/l_gripper_l_finger_tip_joint",
+    "pr2/l_gripper_motor_slider_joint",
+    "pr2/l_gripper_motor_screw_joint",
+    "pr2/r_shoulder_pan_joint",
+    "pr2/r_shoulder_lift_joint",
+    "pr2/r_upper_arm_roll_joint",
+    "pr2/r_elbow_flex_joint",
+    "pr2/r_forearm_roll_joint",
+    "pr2/r_wrist_flex_joint",
+    "pr2/r_wrist_roll_joint",
+    "pr2/r_gripper_r_finger_joint",
+    "pr2/r_gripper_r_finger_tip_joint",
+    "pr2/r_gripper_joint",
+    "pr2/r_gripper_l_finger_joint",
+    "pr2/r_gripper_l_finger_tip_joint",
+    "pr2/r_gripper_motor_slider_joint",
+    "pr2/r_gripper_motor_screw_joint",
+    "pr2/laser_tilt_mount_joint",
+    "pr2/head_pan_joint",
+    "pr2/head_tilt_joint",
+    "pr2/br_caster_rotation_joint",
+    "pr2/br_caster_r_wheel_joint",
+    "pr2/br_caster_l_wheel_joint",
+    "pr2/bl_caster_rotation_joint",
+    "pr2/bl_caster_r_wheel_joint",
+    "pr2/bl_caster_l_wheel_joint",
+    "pr2/fr_caster_rotation_joint",
+    "pr2/fr_caster_r_wheel_joint",
+    "pr2/fr_caster_l_wheel_joint",
+    "pr2/fl_caster_rotation_joint",
+    "pr2/fl_caster_r_wheel_joint",
+    "pr2/fl_caster_l_wheel_joint"
+   ],
+   "posedJoints": [],
+   "identifier": "59554995-aee9-4c53-88fa-264f245b5210",
+   "pose": [
+    0.39999,
+    -0.72,
+    0.0,
+    0.0,
+    0.0,
+    0.70714,
+    0.70707
+   ]
+  }
+ ],
+ "robot": {
+  "name": "pr2",
+  "prefix": "",
+  "baseBody": "pr2/base_footprint",
+  "parts": {
+   "PR2LeftArm": [
+    "pr2/l_elbow_flex_link",
+    "pr2/l_force_torque_adapter_link",
+    "pr2/l_force_torque_link",
+    "pr2/l_forearm_link",
+    "pr2/l_forearm_roll_link",
+    "pr2/l_shoulder_lift_link",
+    "pr2/l_shoulder_pan_link",
+    "pr2/l_upper_arm_link",
+    "pr2/l_upper_arm_roll_link",
+    "pr2/l_wrist_flex_link",
+    "pr2/l_wrist_roll_link",
+    "pr2/torso_lift_link"
+   ],
+   "PR2LeftGripper": [
+    "pr2/l_gripper_l_finger_link",
+    "pr2/l_gripper_l_finger_tip_frame",
+    "pr2/l_gripper_l_finger_tip_link",
+    "pr2/l_gripper_led_frame",
+    "pr2/l_gripper_motor_accelerometer_link",
+    "pr2/l_gripper_motor_screw_link",
+    "pr2/l_gripper_motor_slider_link",
+    "pr2/l_gripper_palm_link",
+    "pr2/l_gripper_r_finger_link",
+    "pr2/l_gripper_r_finger_tip_link",
+    "pr2/l_gripper_tool_frame"
+   ],
+   "PR2RightArm": [
+    "pr2/r_elbow_flex_link",
+    "pr2/r_forearm_link",
+    "pr2/r_forearm_roll_link",
+    "pr2/r_shoulder_lift_link",
+    "pr2/r_shoulder_pan_link",
+    "pr2/r_upper_arm_link",
+    "pr2/r_upper_arm_roll_link",
+    "pr2/r_wrist_flex_link",
+    "pr2/r_wrist_roll_link",
+    "pr2/torso_lift_link"
+   ],
+   "PR2RightGripper": [
+    "pr2/r_gripper_l_finger_link",
+    "pr2/r_gripper_l_finger_tip_frame",
+    "pr2/r_gripper_l_finger_tip_link",
+    "pr2/r_gripper_led_frame",
+    "pr2/r_gripper_motor_accelerometer_link",
+    "pr2/r_gripper_motor_screw_link",
+    "pr2/r_gripper_motor_slider_link",
+    "pr2/r_gripper_palm_link",
+    "pr2/r_gripper_r_finger_link",
+    "pr2/r_gripper_r_finger_tip_link",
+    "pr2/r_gripper_tool_frame"
+   ]
+  },
+  "partAnnotations": [
+   {
+    "name": "PR2LeftArm",
+    "role": "arm",
+    "side": "left",
+    "links": [
+     "pr2/l_elbow_flex_link",
+     "pr2/l_force_torque_adapter_link",
+     "pr2/l_force_torque_link",
+     "pr2/l_forearm_link",
+     "pr2/l_forearm_roll_link",
+     "pr2/l_shoulder_lift_link",
+     "pr2/l_shoulder_pan_link",
+     "pr2/l_upper_arm_link",
+     "pr2/l_upper_arm_roll_link",
+     "pr2/l_wrist_flex_link",
+     "pr2/l_wrist_roll_link",
+     "pr2/torso_lift_link"
+    ]
+   },
+   {
+    "name": "PR2LeftGripper",
+    "role": "end_effector",
+    "side": "left",
+    "links": [
+     "pr2/l_gripper_l_finger_link",
+     "pr2/l_gripper_l_finger_tip_frame",
+     "pr2/l_gripper_l_finger_tip_link",
+     "pr2/l_gripper_led_frame",
+     "pr2/l_gripper_motor_accelerometer_link",
+     "pr2/l_gripper_motor_screw_link",
+     "pr2/l_gripper_motor_slider_link",
+     "pr2/l_gripper_palm_link",
+     "pr2/l_gripper_r_finger_link",
+     "pr2/l_gripper_r_finger_tip_link",
+     "pr2/l_gripper_tool_frame"
+    ],
+    "attachedTo": "PR2LeftArm"
+   },
+   {
+    "name": "PR2RightArm",
+    "role": "arm",
+    "side": "right",
+    "links": [
+     "pr2/r_elbow_flex_link",
+     "pr2/r_forearm_link",
+     "pr2/r_forearm_roll_link",
+     "pr2/r_shoulder_lift_link",
+     "pr2/r_shoulder_pan_link",
+     "pr2/r_upper_arm_link",
+     "pr2/r_upper_arm_roll_link",
+     "pr2/r_wrist_flex_link",
+     "pr2/r_wrist_roll_link",
+     "pr2/torso_lift_link"
+    ]
+   },
+   {
+    "name": "PR2RightGripper",
+    "role": "end_effector",
+    "side": "right",
+    "links": [
+     "pr2/r_gripper_l_finger_link",
+     "pr2/r_gripper_l_finger_tip_frame",
+     "pr2/r_gripper_l_finger_tip_link",
+     "pr2/r_gripper_led_frame",
+     "pr2/r_gripper_motor_accelerometer_link",
+     "pr2/r_gripper_motor_screw_link",
+     "pr2/r_gripper_motor_slider_link",
+     "pr2/r_gripper_palm_link",
+     "pr2/r_gripper_r_finger_link",
+     "pr2/r_gripper_r_finger_tip_link",
+     "pr2/r_gripper_tool_frame"
+    ],
+    "attachedTo": "PR2RightArm"
+   }
+  ],
+  "identifier": "59554995-aee9-4c53-88fa-264f245b5210",
+  "label": "PR2"
+ },
+ "objects": [
+  {
+   "id": "laboratory_rack",
+   "key": "f1de1a12-6471-43ad-8b63-bf89e647235e",
+   "spawn": [
+    0.22,
+    -0.04,
+    0.9,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.0681,
+   "mesh": "meshes/objects/f1de1a12-6471-43ad-8b63-bf89e647235e/tube_rack.glb"
+  },
+  {
+   "id": "tube_clear",
+   "key": "2d49ea07-c5d4-459b-9e36-f7506b2b2f12",
+   "spawn": [
+    0.16,
+    -0.065,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/2d49ea07-c5d4-459b-9e36-f7506b2b2f12/tube_clear.glb"
+  },
+  {
+   "id": "tube_amber",
+   "key": "b3fa93d4-39af-477a-bbac-5feaee00ac3c",
+   "spawn": [
+    0.22,
+    -0.065,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/b3fa93d4-39af-477a-bbac-5feaee00ac3c/tube_amber.glb"
+  },
+  {
+   "id": "tube_teal",
+   "key": "0253b06a-129c-4735-815f-140a7a67df45",
+   "spawn": [
+    0.16,
+    -0.015,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/0253b06a-129c-4735-815f-140a7a67df45/tube_teal.glb"
+  },
+  {
+   "id": "tube_reserve",
+   "key": "e352f60e-62f3-460c-b5c5-fa863e7ff19f",
+   "spawn": [
+    0.28,
+    -0.015,
+    0.906,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.15,
+   "mesh": "meshes/objects/e352f60e-62f3-460c-b5c5-fa863e7ff19f/tube_clear.glb"
+  },
+  {
+   "id": "stopper",
+   "key": "c710b30a-ac12-40d4-98cf-21fb4d14f653",
+   "spawn": [
+    0.5,
+    -0.12,
+    0.9,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#ffffff",
+   "height": 0.021,
+   "mesh": "meshes/objects/c710b30a-ac12-40d4-98cf-21fb4d14f653/stopper.glb"
+  }
+ ],
+ "segments": [
+  {
+   "step": "run",
+   "start": 0,
+   "end": 330
+  },
+  {
+   "step": "VesselPickUpAction",
+   "start": 330,
+   "end": 788,
+   "picks": "2d49ea07-c5d4-459b-9e36-f7506b2b2f12",
+   "attach": 330,
+   "detach": 608
+  },
+  {
+   "step": "VesselPickUpAction",
+   "start": 788,
+   "end": 1236,
+   "picks": "b3fa93d4-39af-477a-bbac-5feaee00ac3c",
+   "attach": 788,
+   "detach": 1062
+  },
+  {
+   "step": "VesselPickUpAction",
+   "start": 1236,
+   "end": 6297,
+   "picks": "0253b06a-129c-4735-815f-140a7a67df45",
+   "attach": 1236,
+   "detach": 1494
+  }
+ ],
+ "planTrees": [
+  {
+   "kind": "sequence",
+   "label": "SequentialNode",
+   "status": "SUCCEEDED",
+   "children": [
+    {
+     "kind": "action",
+     "label": "VesselPickUpAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_50",
+       "parent": "plan_node_1",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "VesselReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_56",
+           "parent": "plan_node_44",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_52",
+             "parent": "plan_node_49",
+             "parameters": {
+              "max_linear_velocity": "0.12",
+              "target": "0.000, 0.000, 0.214",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_53",
+             "parent": "plan_node_49",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_54",
+             "parent": "plan_node_49",
+             "parameters": {
+              "max_linear_velocity": "0.025",
+              "target": "-0.000, -0.000, 0.105",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_49",
+           "parent": "plan_node_44",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_57",
+           "parent": "plan_node_44",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_44",
+         "parent": "plan_node_43",
+         "start": 1,
+         "end": 270,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "pre_approach_linear_velocity": "0.12",
+          "final_approach_linear_velocity": "0.025",
+          "approach_clearance": "0.109",
+          "retreat_distance": "0.16",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "PadContactNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_45",
+         "parent": "plan_node_43",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "PadContactMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "target": "2d49ea07-c5d4-459b-9e36-f7506b2b2f12",
+         "id": "plan_node_46",
+         "parent": "plan_node_43",
+         "parameters": {
+          "gripper": "PR2LeftGripper",
+          "object_designator": "2d49ea07-c5d4-459b-9e36-f7506b2b2f12",
+          "contact_clearance": "0.00025",
+          "joint_position_threshold": "0.0001",
+          "finger_velocity": "0.1"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_47",
+         "parent": "plan_node_43",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_48",
+         "parent": "plan_node_43",
+         "parameters": {
+          "max_linear_velocity": "0.04",
+          "target": "0.000, 0.000, 0.265",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "TRANSLATION"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_43",
+       "parent": "plan_node_1",
+       "start": 1,
+       "end": 270,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_51",
+       "parent": "plan_node_1",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_1",
+     "parent": "plan_node_0",
+     "start": 1,
+     "end": 333,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "pre_approach_linear_velocity": "0.12",
+      "final_approach_linear_velocity": "0.025",
+      "grasp_closing_velocity": "0.1",
+      "lift_linear_velocity": "0.04",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off",
+      "grasp_joint_position_threshold": "0.0001",
+      "contact_clearance": "0.00025"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "RackPlaceAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_64",
+       "parent": "plan_node_2",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_58",
+         "parent": "plan_node_55",
+         "parameters": {
+          "position_threshold": "0.003",
+          "max_linear_velocity": "0.08",
+          "target": "0.280, -0.065, 1.171",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_59",
+         "parent": "plan_node_55",
+         "parameters": {
+          "max_linear_velocity": "0.02",
+          "target": "0.280, -0.065, 1.011",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_60",
+         "parent": "plan_node_55",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "OPEN",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_61",
+         "parent": "plan_node_55",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_62",
+         "parent": "plan_node_55",
+         "parameters": {
+          "max_linear_velocity": "0.08",
+          "target": "0.280, -0.065, 1.120",
+          "arm": "PR2LeftArm",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_55",
+       "parent": "plan_node_2",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_65",
+       "parent": "plan_node_2",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_2",
+     "parent": "plan_node_0",
+     "start": 407,
+     "end": 635,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "placing_linear_velocity": "0.02",
+      "transport_linear_velocity": "0.08",
+      "retract_linear_velocity": "0.08",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "object_designator": "Container",
+      "target_location": "0.280, -0.065, 0.906",
+      "grasp_release_threshold": "0.1",
+      "approach_position_threshold": "0.003"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "VesselPickUpAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_72",
+       "parent": "plan_node_3",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "VesselReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_78",
+           "parent": "plan_node_66",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_74",
+             "parent": "plan_node_71",
+             "parameters": {
+              "max_linear_velocity": "0.12",
+              "target": "0.000, 0.000, 0.214",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_75",
+             "parent": "plan_node_71",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_76",
+             "parent": "plan_node_71",
+             "parameters": {
+              "max_linear_velocity": "0.025",
+              "target": "-0.000, -0.000, 0.105",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_71",
+           "parent": "plan_node_66",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_79",
+           "parent": "plan_node_66",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_66",
+         "parent": "plan_node_63",
+         "start": 640,
+         "end": 728,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "pre_approach_linear_velocity": "0.12",
+          "final_approach_linear_velocity": "0.025",
+          "approach_clearance": "0.109",
+          "retreat_distance": "0.16",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "PadContactNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_67",
+         "parent": "plan_node_63",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "PadContactMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "target": "b3fa93d4-39af-477a-bbac-5feaee00ac3c",
+         "id": "plan_node_68",
+         "parent": "plan_node_63",
+         "parameters": {
+          "gripper": "PR2LeftGripper",
+          "object_designator": "b3fa93d4-39af-477a-bbac-5feaee00ac3c",
+          "contact_clearance": "0.00025",
+          "joint_position_threshold": "0.0001",
+          "finger_velocity": "0.1"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_69",
+         "parent": "plan_node_63",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_70",
+         "parent": "plan_node_63",
+         "parameters": {
+          "max_linear_velocity": "0.04",
+          "target": "0.000, 0.000, 0.265",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "TRANSLATION"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_63",
+       "parent": "plan_node_3",
+       "start": 640,
+       "end": 728,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_73",
+       "parent": "plan_node_3",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_3",
+     "parent": "plan_node_0",
+     "start": 640,
+     "end": 791,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "pre_approach_linear_velocity": "0.12",
+      "final_approach_linear_velocity": "0.025",
+      "grasp_closing_velocity": "0.1",
+      "lift_linear_velocity": "0.04",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off",
+      "grasp_joint_position_threshold": "0.0001",
+      "contact_clearance": "0.00025"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "RackPlaceAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_86",
+       "parent": "plan_node_4",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_80",
+         "parent": "plan_node_77",
+         "parameters": {
+          "position_threshold": "0.003",
+          "max_linear_velocity": "0.08",
+          "target": "0.220, -0.015, 1.171",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_81",
+         "parent": "plan_node_77",
+         "parameters": {
+          "max_linear_velocity": "0.02",
+          "target": "0.220, -0.015, 1.011",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_82",
+         "parent": "plan_node_77",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "OPEN",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_83",
+         "parent": "plan_node_77",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_84",
+         "parent": "plan_node_77",
+         "parameters": {
+          "max_linear_velocity": "0.08",
+          "target": "0.220, -0.015, 1.120",
+          "arm": "PR2LeftArm",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_77",
+       "parent": "plan_node_4",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_87",
+       "parent": "plan_node_4",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_4",
+     "parent": "plan_node_0",
+     "start": 865,
+     "end": 1088,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "placing_linear_velocity": "0.02",
+      "transport_linear_velocity": "0.08",
+      "retract_linear_velocity": "0.08",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "object_designator": "Container",
+      "target_location": "0.220, -0.015, 0.906",
+      "grasp_release_threshold": "0.1",
+      "approach_position_threshold": "0.003"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "VesselPickUpAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_94",
+       "parent": "plan_node_5",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "VesselReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_100",
+           "parent": "plan_node_88",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_96",
+             "parent": "plan_node_93",
+             "parameters": {
+              "max_linear_velocity": "0.12",
+              "target": "0.000, 0.000, 0.214",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_97",
+             "parent": "plan_node_93",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_98",
+             "parent": "plan_node_93",
+             "parameters": {
+              "max_linear_velocity": "0.025",
+              "target": "-0.000, -0.000, 0.105",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_93",
+           "parent": "plan_node_88",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_101",
+           "parent": "plan_node_88",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_88",
+         "parent": "plan_node_85",
+         "start": 1093,
+         "end": 1176,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "pre_approach_linear_velocity": "0.12",
+          "final_approach_linear_velocity": "0.025",
+          "approach_clearance": "0.109",
+          "retreat_distance": "0.16",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "PadContactNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_89",
+         "parent": "plan_node_85",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "PadContactMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "target": "0253b06a-129c-4735-815f-140a7a67df45",
+         "id": "plan_node_90",
+         "parent": "plan_node_85",
+         "parameters": {
+          "gripper": "PR2LeftGripper",
+          "object_designator": "0253b06a-129c-4735-815f-140a7a67df45",
+          "contact_clearance": "0.00025",
+          "joint_position_threshold": "0.0001",
+          "finger_velocity": "0.1"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_91",
+         "parent": "plan_node_85",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_92",
+         "parent": "plan_node_85",
+         "parameters": {
+          "max_linear_velocity": "0.04",
+          "target": "0.000, -0.000, 0.265",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "TRANSLATION"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_85",
+       "parent": "plan_node_5",
+       "start": 1093,
+       "end": 1176,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_95",
+       "parent": "plan_node_5",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_5",
+     "parent": "plan_node_0",
+     "start": 1093,
+     "end": 1239,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "pre_approach_linear_velocity": "0.12",
+      "final_approach_linear_velocity": "0.025",
+      "grasp_closing_velocity": "0.1",
+      "lift_linear_velocity": "0.04",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off",
+      "grasp_joint_position_threshold": "0.0001",
+      "contact_clearance": "0.00025"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "RackPlaceAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_108",
+       "parent": "plan_node_6",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_102",
+         "parent": "plan_node_99",
+         "parameters": {
+          "position_threshold": "0.003",
+          "max_linear_velocity": "0.08",
+          "target": "0.160, -0.065, 1.171",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_103",
+         "parent": "plan_node_99",
+         "parameters": {
+          "max_linear_velocity": "0.02",
+          "target": "0.160, -0.065, 1.011",
+          "arm": "PR2LeftArm",
+          "allow_gripper_collision": "on",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_104",
+         "parent": "plan_node_99",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "OPEN",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "attachment",
+         "label": "ReAttachNode",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_105",
+         "parent": "plan_node_99",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveToolCenterPointMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_106",
+         "parent": "plan_node_99",
+         "parameters": {
+          "max_linear_velocity": "0.08",
+          "target": "0.160, -0.065, 1.120",
+          "arm": "PR2LeftArm",
+          "movement_type": "CARTESIAN"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_99",
+       "parent": "plan_node_6",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_109",
+       "parent": "plan_node_6",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_6",
+     "parent": "plan_node_0",
+     "start": 1312,
+     "end": 1520,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "placing_linear_velocity": "0.02",
+      "transport_linear_velocity": "0.08",
+      "retract_linear_velocity": "0.08",
+      "approach_clearance": "0.109",
+      "retreat_distance": "0.16",
+      "object_designator": "Container",
+      "target_location": "0.160, -0.065, 0.906",
+      "grasp_release_threshold": "0.1",
+      "approach_position_threshold": "0.003"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_110",
+       "parent": "plan_node_7",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_111",
+       "parent": "plan_node_7",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_112",
+       "parent": "plan_node_7",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_7",
+     "parent": "plan_node_0",
+     "start": 1525,
+     "end": 1696,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "DriveAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_117",
+       "parent": "plan_node_8",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_113",
+         "parent": "plan_node_107",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "DriveMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_114",
+         "parent": "plan_node_107",
+         "parameters": {
+          "target": "-0.950, -0.950, 0.000",
+          "linear_velocity": "0.25"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_115",
+         "parent": "plan_node_107",
+         "parameters": {},
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_107",
+       "parent": "plan_node_8",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_118",
+       "parent": "plan_node_8",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_8",
+     "parent": "plan_node_0",
+     "start": 1704,
+     "end": 1765,
+     "parameters": {
+      "target": "-0.950, -0.950, 0.000"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "GraspingAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_122",
+       "parent": "plan_node_9",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "ReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_128",
+           "parent": "plan_node_119",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_124",
+             "parent": "plan_node_121",
+             "parameters": {
+              "target": "-0.000, -0.060, 0.000",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_125",
+             "parent": "plan_node_121",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_126",
+             "parent": "plan_node_121",
+             "parameters": {
+              "target": "0.000, 0.000, 0.000",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_121",
+           "parent": "plan_node_119",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_129",
+           "parent": "plan_node_119",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_119",
+         "parent": "plan_node_116",
+         "start": 1772,
+         "end": 2041,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "approach_clearance": "0.06",
+          "retreat_distance": "0.1",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Handle, grasp_pose -0.000, -0.009, 0.000",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_120",
+         "parent": "plan_node_116",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "CLOSE",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_116",
+       "parent": "plan_node_9",
+       "start": 1772,
+       "end": 2041,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_123",
+       "parent": "plan_node_9",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_9",
+     "parent": "plan_node_0",
+     "start": 1772,
+     "end": 2043,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "approach_clearance": "0.06",
+      "retreat_distance": "0.1",
+      "grasp": "graspable Handle, grasp_pose -0.000, -0.009, 0.000",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MechanismMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "target": "laboratory_refrigerator_door_handle",
+     "arm": "PR2LeftArm",
+     "id": "plan_node_10",
+     "parent": "plan_node_0",
+     "parameters": {
+      "part": "laboratory_refrigerator_door_handle",
+      "arm": "PR2LeftArm",
+      "position": "1.45"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MechanismMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "target": "laboratory_refrigerator_door_handle",
+     "arm": "PR2LeftArm",
+     "id": "plan_node_11",
+     "parent": "plan_node_0",
+     "parameters": {
+      "part": "laboratory_refrigerator_door_handle",
+      "arm": "PR2LeftArm",
+      "position": "0"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveGripperMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "id": "plan_node_12",
+     "parent": "plan_node_0",
+     "parameters": {
+      "tolerate_stall": "off",
+      "motion": "OPEN",
+      "gripper": "PR2LeftGripper",
+      "allow_gripper_collision": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_13",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "-0.070, 0.000, 0.000",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_130",
+       "parent": "plan_node_14",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_131",
+       "parent": "plan_node_14",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint, torso_lift_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0, 0.325",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_132",
+       "parent": "plan_node_14",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_14",
+     "parent": "plan_node_0",
+     "start": 2710,
+     "end": 2969,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "DriveAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_137",
+       "parent": "plan_node_15",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_133",
+         "parent": "plan_node_127",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "DriveMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_134",
+         "parent": "plan_node_127",
+         "parameters": {
+          "target": "-0.220, -0.720, 0.000",
+          "linear_velocity": "0.25"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_135",
+         "parent": "plan_node_127",
+         "parameters": {},
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_127",
+       "parent": "plan_node_15",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_138",
+       "parent": "plan_node_15",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_15",
+     "parent": "plan_node_0",
+     "start": 2977,
+     "end": 3011,
+     "parameters": {
+      "target": "-0.220, -0.720, 0.000"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "GraspingAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_142",
+       "parent": "plan_node_16",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "ReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_148",
+           "parent": "plan_node_139",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_144",
+             "parent": "plan_node_141",
+             "parameters": {
+              "target": "-0.000, -0.060, 0.000",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_145",
+             "parent": "plan_node_141",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_146",
+             "parent": "plan_node_141",
+             "parameters": {
+              "target": "0.000, 0.000, 0.000",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_141",
+           "parent": "plan_node_139",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_149",
+           "parent": "plan_node_139",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_139",
+         "parent": "plan_node_136",
+         "start": 3018,
+         "end": 3348,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "approach_clearance": "0.06",
+          "retreat_distance": "0.1",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Handle, grasp_pose -0.000, -0.009, 0.000",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_140",
+         "parent": "plan_node_136",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "CLOSE",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_136",
+       "parent": "plan_node_16",
+       "start": 3018,
+       "end": 3348,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_143",
+       "parent": "plan_node_16",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_16",
+     "parent": "plan_node_0",
+     "start": 3018,
+     "end": 3350,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "approach_clearance": "0.06",
+      "retreat_distance": "0.1",
+      "grasp": "graspable Handle, grasp_pose -0.000, -0.009, 0.000",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MechanismMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "target": "laboratory_centrifuge_lid_handle",
+     "arm": "PR2LeftArm",
+     "id": "plan_node_17",
+     "parent": "plan_node_0",
+     "parameters": {
+      "part": "laboratory_centrifuge_lid_handle",
+      "arm": "PR2LeftArm",
+      "position": "0.6"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveGripperMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "id": "plan_node_18",
+     "parent": "plan_node_0",
+     "parameters": {
+      "tolerate_stall": "off",
+      "motion": "OPEN",
+      "gripper": "PR2LeftGripper",
+      "allow_gripper_collision": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_19",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "-0.070, 0.000, 0.000",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_150",
+       "parent": "plan_node_20",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_151",
+       "parent": "plan_node_20",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_152",
+       "parent": "plan_node_20",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_20",
+     "parent": "plan_node_0",
+     "start": 3630,
+     "end": 3766,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveGripperMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "id": "plan_node_21",
+     "parent": "plan_node_0",
+     "parameters": {
+      "tolerate_stall": "off",
+      "motion": "CLOSE",
+      "gripper": "PR2LeftGripper",
+      "allow_gripper_collision": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_22",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "0.000, -0.360, -0.070",
+      "arm": "PR2LeftArm",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_23",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "0.000, -0.290, -0.012",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MechanismMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "target": "laboratory_centrifuge_lid",
+     "arm": "PR2LeftArm",
+     "id": "plan_node_24",
+     "parent": "plan_node_0",
+     "parameters": {
+      "part": "laboratory_centrifuge_lid",
+      "arm": "PR2LeftArm",
+      "position": "1.3"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_25",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "-0.070, 0.000, 0.000",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_153",
+       "parent": "plan_node_26",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_154",
+       "parent": "plan_node_26",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_155",
+       "parent": "plan_node_26",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_26",
+     "parent": "plan_node_0",
+     "start": 4427,
+     "end": 4572,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_156",
+       "parent": "plan_node_27",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_157",
+       "parent": "plan_node_27",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_158",
+       "parent": "plan_node_27",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_27",
+     "parent": "plan_node_0",
+     "start": 4574,
+     "end": 4575,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveGripperMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "id": "plan_node_28",
+     "parent": "plan_node_0",
+     "parameters": {
+      "tolerate_stall": "off",
+      "motion": "CLOSE",
+      "gripper": "PR2LeftGripper",
+      "allow_gripper_collision": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_29",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "0.000, -0.360, -0.070",
+      "arm": "PR2LeftArm",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_30",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "0.000, -0.290, -0.012",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MechanismMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "target": "laboratory_centrifuge_lid",
+     "arm": "PR2LeftArm",
+     "id": "plan_node_31",
+     "parent": "plan_node_0",
+     "parameters": {
+      "part": "laboratory_centrifuge_lid",
+      "arm": "PR2LeftArm",
+      "position": "0.6"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_32",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "-0.070, 0.000, 0.000",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_159",
+       "parent": "plan_node_33",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_160",
+       "parent": "plan_node_33",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_161",
+       "parent": "plan_node_33",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_33",
+     "parent": "plan_node_0",
+     "start": 5106,
+     "end": 5194,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "DriveAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_166",
+       "parent": "plan_node_34",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_162",
+         "parent": "plan_node_147",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "DriveMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_163",
+         "parent": "plan_node_147",
+         "parameters": {
+          "target": "-0.220, -0.880, 0.000",
+          "linear_velocity": "0.25"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_164",
+         "parent": "plan_node_147",
+         "parameters": {},
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_147",
+       "parent": "plan_node_34",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_167",
+       "parent": "plan_node_34",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_34",
+     "parent": "plan_node_0",
+     "start": 5202,
+     "end": 5211,
+     "parameters": {
+      "target": "-0.220, -0.880, 0.000"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_168",
+       "parent": "plan_node_35",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_169",
+       "parent": "plan_node_35",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint, torso_lift_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0, 0.325",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_170",
+       "parent": "plan_node_35",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_35",
+     "parent": "plan_node_0",
+     "start": 5226,
+     "end": 5623,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "DriveAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_175",
+       "parent": "plan_node_36",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_171",
+         "parent": "plan_node_165",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "DriveMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_172",
+         "parent": "plan_node_165",
+         "parameters": {
+          "target": "-0.220, -0.720, 0.000",
+          "linear_velocity": "0.25"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_173",
+         "parent": "plan_node_165",
+         "parameters": {},
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_165",
+       "parent": "plan_node_36",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_176",
+       "parent": "plan_node_36",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_36",
+     "parent": "plan_node_0",
+     "start": 5632,
+     "end": 5641,
+     "parameters": {
+      "target": "-0.220, -0.720, 0.000"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "GraspingAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_180",
+       "parent": "plan_node_37",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "action",
+         "label": "ReachAction",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_186",
+           "parent": "plan_node_177",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "sequence",
+           "label": "SequentialNode",
+           "status": "CREATED",
+           "children": [
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_182",
+             "parent": "plan_node_179",
+             "parameters": {
+              "target": "-0.000, -0.060, 0.000",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveGripperMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "id": "plan_node_183",
+             "parent": "plan_node_179",
+             "parameters": {
+              "tolerate_stall": "off",
+              "motion": "OPEN",
+              "gripper": "PR2LeftGripper"
+             },
+             "constraints": []
+            },
+            {
+             "kind": "motion",
+             "label": "MoveToolCenterPointMotion",
+             "status": "SUCCEEDED",
+             "children": [],
+             "arm": "PR2LeftArm",
+             "id": "plan_node_184",
+             "parent": "plan_node_179",
+             "parameters": {
+              "target": "0.000, 0.000, 0.000",
+              "arm": "PR2LeftArm",
+              "allow_gripper_collision": "on",
+              "movement_type": "CARTESIAN"
+             },
+             "constraints": []
+            }
+           ],
+           "id": "plan_node_179",
+           "parent": "plan_node_177",
+           "parameters": {},
+           "constraints": []
+          },
+          {
+           "kind": "condition",
+           "label": "ConditionNode",
+           "status": "CREATED",
+           "children": [],
+           "id": "plan_node_187",
+           "parent": "plan_node_177",
+           "parameters": {},
+           "constraints": []
+          }
+         ],
+         "arm": "PR2LeftArm",
+         "id": "plan_node_177",
+         "parent": "plan_node_174",
+         "start": 5656,
+         "end": 5806,
+         "parameters": {
+          "grasp_detection_threshold": "0.9",
+          "approach_clearance": "0.06",
+          "retreat_distance": "0.1",
+          "arm": "PR2LeftArm",
+          "grasp": "graspable Handle, grasp_pose -0.000, -0.009, 0.000",
+          "reverse_reach_order": "off",
+          "open_gripper_at_pre_pose": "on"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "MoveGripperMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_178",
+         "parent": "plan_node_174",
+         "parameters": {
+          "tolerate_stall": "off",
+          "motion": "CLOSE",
+          "gripper": "PR2LeftGripper",
+          "allow_gripper_collision": "on"
+         },
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_174",
+       "parent": "plan_node_37",
+       "start": 5656,
+       "end": 5806,
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_181",
+       "parent": "plan_node_37",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_37",
+     "parent": "plan_node_0",
+     "start": 5656,
+     "end": 5808,
+     "parameters": {
+      "grasp_detection_threshold": "0.9",
+      "approach_clearance": "0.06",
+      "retreat_distance": "0.1",
+      "grasp": "graspable Handle, grasp_pose -0.000, -0.009, 0.000",
+      "arm": "PR2LeftArm",
+      "tolerate_grasp_stall": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MechanismMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "target": "laboratory_centrifuge_lid_handle",
+     "arm": "PR2LeftArm",
+     "id": "plan_node_38",
+     "parent": "plan_node_0",
+     "parameters": {
+      "part": "laboratory_centrifuge_lid_handle",
+      "arm": "PR2LeftArm",
+      "position": "0"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveGripperMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "id": "plan_node_39",
+     "parent": "plan_node_0",
+     "parameters": {
+      "tolerate_stall": "off",
+      "motion": "OPEN",
+      "gripper": "PR2LeftGripper",
+      "allow_gripper_collision": "on"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "motion",
+     "label": "MoveToolCenterPointMotion",
+     "status": "SUCCEEDED",
+     "children": [],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_40",
+     "parent": "plan_node_0",
+     "parameters": {
+      "target": "-0.070, 0.000, 0.000",
+      "arm": "PR2LeftArm",
+      "allow_gripper_collision": "on",
+      "movement_type": "CARTESIAN"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "TuckArmsAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_188",
+       "parent": "plan_node_41",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "motion",
+       "label": "HeldBaseJointsMotion",
+       "status": "SUCCEEDED",
+       "children": [],
+       "id": "plan_node_189",
+       "parent": "plan_node_41",
+       "parameters": {
+        "names": "l_shoulder_pan_joint, l_shoulder_lift_joint, l_upper_arm_roll_joint, l_elbow_flex_joint, l_forearm_roll_joint, l_wrist_flex_joint, l_wrist_roll_joint",
+        "positions": "1.712, -0.264, 1.38, -2.12, 4.2, -0.073, 0",
+        "align": "off"
+       },
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_190",
+       "parent": "plan_node_41",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "arm": "PR2LeftArm",
+     "id": "plan_node_41",
+     "parent": "plan_node_0",
+     "start": 6160,
+     "end": 6254,
+     "parameters": {
+      "arms": "PR2LeftArm",
+      "raise_torso": "off"
+     },
+     "constraints": []
+    },
+    {
+     "kind": "action",
+     "label": "DriveAction",
+     "status": "SUCCEEDED",
+     "children": [
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_195",
+       "parent": "plan_node_42",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "sequence",
+       "label": "SequentialNode",
+       "status": "CREATED",
+       "children": [
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_191",
+         "parent": "plan_node_185",
+         "parameters": {},
+         "constraints": []
+        },
+        {
+         "kind": "motion",
+         "label": "DriveMotion",
+         "status": "SUCCEEDED",
+         "children": [],
+         "id": "plan_node_192",
+         "parent": "plan_node_185",
+         "parameters": {
+          "target": "0.400, -0.720, 0.000",
+          "linear_velocity": "0.25"
+         },
+         "constraints": []
+        },
+        {
+         "kind": "other",
+         "label": "DriveControlNode",
+         "status": "CREATED",
+         "children": [],
+         "id": "plan_node_193",
+         "parent": "plan_node_185",
+         "parameters": {},
+         "constraints": []
+        }
+       ],
+       "id": "plan_node_185",
+       "parent": "plan_node_42",
+       "parameters": {},
+       "constraints": []
+      },
+      {
+       "kind": "condition",
+       "label": "ConditionNode",
+       "status": "CREATED",
+       "children": [],
+       "id": "plan_node_196",
+       "parent": "plan_node_42",
+       "parameters": {},
+       "constraints": []
+      }
+     ],
+     "id": "plan_node_42",
+     "parent": "plan_node_0",
+     "start": 6262,
+     "end": 6291,
+     "parameters": {
+      "target": "0.400, -0.720, 0.000"
+     },
+     "constraints": []
+    }
+   ],
+   "id": "plan_node_0",
+   "start": 1,
+   "end": 6291,
+   "robot": "PR2",
+   "parameters": {},
+   "constraints": []
+  }
+ ],
+ "actions": [],
+ "detectedEvents": [],
+ "missingAssets": [],
+ "task": "PR2: rack, refrigerator door and centrifuge lid",
+ "environmentName": "AICOR Laboratory",
+ "camera": {
+  "position": [
+   1.9,
+   -3.3,
+   2.4
+  ],
+  "target": [
+   -0.35,
+   -0.25,
+   0.8
+  ]
+ },
+ "rendering": {
+  "exposure": 0.65,
+  "ambientOcclusion": false
+ }
+}
