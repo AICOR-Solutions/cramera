@@ -76,7 +76,8 @@ class TaskRecording(StrEnum):
 
     WORKFLOW = "aicor_medical_lab_pr2_workflow"
     """
-    A PR2 re-sorts the rack and opens and closes the refrigerator and the centrifuge.
+    A PR2 re-sorts the rack, stores a vessel in the refrigerator and loads a balanced
+    pair into the centrifuge.
     """
 
 
@@ -118,8 +119,8 @@ class LaboratoryDemo(StrEnum):
 
     WORKFLOW = "workflow"
     """
-    A PR2 re-sorts the rack and opens and closes the refrigerator and the centrifuge,
-    driving between them.
+    A PR2 re-sorts the rack, stores a vessel in the refrigerator and loads a balanced
+    pair into the centrifuge, driving between them.
     """
 
     @property

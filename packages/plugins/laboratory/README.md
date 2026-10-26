@@ -30,8 +30,9 @@ page then reports as ended rather than failed. A failed run names the signal or
 exit code that ended its process before the end of its log.
 
 **PR2 lab workflow (CRAM)** is a second, longer demo beside it: the PR2 re-sorts the
-rack, opens and closes the refrigerator's door and opens and closes the centrifuge's
-lid, driving between its stands. One demo runs at a time.
+rack, stores a vessel in the refrigerator and loads a balanced pair into the
+centrifuge, opening and closing the refrigerator's door and the centrifuge's lid and
+driving between its stands. One demo runs at a time.
 
 The transfer's plan picks a vessel from A1, lifts it and places it in A3. It uses CRAM's
 kinematic simulation and saves the recording only after its action, motion and

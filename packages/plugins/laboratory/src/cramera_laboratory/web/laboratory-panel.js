@@ -140,7 +140,7 @@ export const Text = Object.freeze({
   EMPTY: '—',
   TRANSFER: 'PR2 vessel transfer (CRAM)',
   WORKFLOW: 'PR2 lab workflow (CRAM)',
-  WORKFLOW_ABOUT: 'Re-sorts the rack, then opens and closes the refrigerator door and the centrifuge lid, driving between them.',
+  WORKFLOW_ABOUT: 'Re-sorts the rack, stores a vessel in the refrigerator and loads a balanced pair into the centrifuge, driving between them.',
   PREVIEW: 'Show lab and PR2',
   PR2_SETUP: 'Set up the local PR2 demo',
   PR2_EXPLANATION: 'The PR2 preview and robot plan need the full CRAM stack in the same environment as the viewer. MuJoCo alone enables the manual workbench controls.',

@@ -65,17 +65,27 @@ the viewer also stops a transfer process it owns.
 ### The longer PR2 lab workflow
 
 **PR2 lab workflow (CRAM)** is a second demo on the same page, run, followed and
-replayed like the transfer. The PR2 re-sorts the rack (A1 → A3, A2 → B2, B1 → A1),
-drives to the sample refrigerator and opens and closes its door, then drives to the
-centrifuge and opens and closes its lid, driving between its stands at the bench. The
-lid's hinge sits too far back for the PR2 to open it fully by its handle from the
-bench, so it pulls the lid to about 0.6 rad by the handle and pushes it on to 1.3 rad
-from below, and closes it the same way in reverse. Only one PR2 demo runs at a time;
-while one runs, the other offers no **Run the demo**.
+replayed like the transfer. The PR2:
 
-The workflow measures every vessel it sets down (within a millimetre of its new
-slot), that the door and the lid were opened and are closed again, and the same grasp
-and collision checks as the transfer.
+1. re-sorts the rack (A1 → A3, B1 → A1, A2 → B1);
+2. opens the sample refrigerator's door, takes the vessel in A1 from the front with
+   level fingers, drives it to the refrigerator, pushes it in with the base and sets
+   it into holder R6 on the upper shelf, then closes the door;
+3. opens the centrifuge's lid and loads the vessels in A3 and B1 into the opposite
+   holders C4 and C2, taking each from above with the tool leaning 30° forwards so the
+   vessel's bottom clears the centrifuge's rim, then closes the lid.
+
+It drives smoothly between its stands at the bench. The lid's hinge sits too far back
+for the PR2 to open it fully by its handle from the bench, so it pulls the lid to about
+0.6 rad by the handle and pushes it on to 1.3 rad from below, and closes it the same
+way in reverse. The grips follow the MuJoCo laboratory's: a level grip for the
+refrigerator's open front and a grip leaning about the fingers' closing direction for
+the centrifuge's deep holders. Only one PR2 demo runs at a time; while one runs, the
+other offers no **Run the demo**.
+
+The workflow measures every vessel it sets down (within a millimetre of its slot in
+the rack, the centrifuge or the refrigerator), that the door and the lid were opened
+and are closed again, and the same grasp and collision checks as the transfer.
 
 These robot demos use CRAM's **kinematic simulation**, including motion and grasp
 checks. It is separate from the manual MuJoCo contact simulation below. Its saved

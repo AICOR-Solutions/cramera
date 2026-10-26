@@ -8,7 +8,11 @@ import numpy as np
 import pytest
 
 from cramera_protocol.laboratory.cabinet import CabinetStructure
-from cramera_bridge.laboratory.world import LaboratoryEnvironment, LaboratoryHandle
+from cramera_bridge.laboratory.world import (
+    LaboratoryEnvironment,
+    LaboratoryHandle,
+    LaboratoryLink,
+)
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle
@@ -86,3 +90,49 @@ def test_a_robot_joins_the_laboratory(environment):
     )
     assert world.get_semantic_annotations_by_type(PR2)
     assert world.get_body_by_name(environment.bench.tubes[0].key)
+
+
+# %% instrument holders
+
+
+def test_a_centrifuge_holder_pose_is_the_layout_in_the_rotor_frame(environment, world):
+    centrifuge = environment.bench.centrifuge
+    holder = centrifuge.slots[0]
+    pose = environment.centrifuge_holder_pose(holder.identifier, world)
+    assert pose.reference_frame is world.get_body_by_name(centrifuge.rotor_body)
+    np.testing.assert_allclose(
+        pose.to_np()[:3, 3],
+        [holder.position.x, holder.position.y, holder.position.z],
+    )
+    np.testing.assert_allclose(
+        world.transform(pose.homogeneous_matrix, world.root).to_np()[:3, 3],
+        [holder.world_position.x, holder.world_position.y, holder.world_position.z],
+        atol=1e-9,
+    )
+
+
+def test_a_refrigerator_holder_pose_is_the_layout_in_the_refrigerator_frame(
+    environment, world
+):
+    refrigerator = environment.bench.refrigerator
+    holder = refrigerator.slots[-1]
+    pose = environment.refrigerator_holder_pose(holder.identifier, world)
+    assert pose.reference_frame is world.get_body_by_name(refrigerator.body)
+    np.testing.assert_allclose(
+        world.transform(pose.homogeneous_matrix, world.root).to_np()[:3, 3],
+        [holder.position.x, holder.position.y, holder.position.z],
+        atol=1e-9,
+    )
+
+
+def test_vessels_may_rest_in_the_rack_the_rotor_and_the_refrigerator(environment):
+    allowing = LaboratoryEnvironment(
+        environment.directory, allow_support_contacts=True
+    ).create_world()
+    supports = allowing.collision_manager.ignore_collision_rules[-1].body_group_b
+    bench = environment.bench
+    assert {body.name.name for body in supports} == {
+        LaboratoryLink.RACK,
+        bench.centrifuge.rotor_body,
+        bench.refrigerator.body,
+    }

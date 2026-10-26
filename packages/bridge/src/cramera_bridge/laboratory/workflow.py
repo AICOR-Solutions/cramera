@@ -1,7 +1,8 @@
 """
-A PR2 works through the small laboratory: it re-sorts the rack, opens and closes the
-sample refrigerator's door, and opens and closes the centrifuge's lid, driving between
-its stands at the bench; the run is published, recorded and measured.
+A PR2 works through the small laboratory: it re-sorts the rack, stores a vessel in the
+sample refrigerator and loads a balanced pair into the centrifuge, opening and closing
+the refrigerator's door and the centrifuge's lid and driving between its stands at the
+bench; the run is published, recorded and measured.
 
 The measured outcome: every motion succeeds, every moved vessel was carried and set down
 within a millimetre of its new slot, the refrigerator's door and the centrifuge's lid
@@ -42,6 +43,7 @@ from semantic_digital_twin.spatial_types import (
     HomogeneousTransformationMatrix,
     Pose,
     Quaternion,
+    RotationMatrix,
 )
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
@@ -49,9 +51,10 @@ from semantic_digital_twin.world_description.world_entity import Body
 
 from cramera_bridge.exceptions import TaskFailed
 from cramera_bridge.laboratory.grasping import PadContact
-from cramera_bridge.laboratory.handling import VesselTaskDemo
+from cramera_bridge.laboratory.handling import VesselGrip, VesselTaskDemo
 from cramera_bridge.laboratory.mobility import (
     DriveAction,
+    HeldBaseJointsMotion,
     MechanismMotion,
     TuckArmsAction,
 )
@@ -64,7 +67,7 @@ from cramera_protocol.geometry import Vector3
 from cramera_protocol.laboratory.runs import TaskRecording
 from cramera_protocol.live_messages import SavedScene
 
-TASK = "PR2: rack, refrigerator door and centrifuge lid"
+TASK = "PR2: rack, refrigerator and centrifuge"
 """
 What the task does, as the scene picker labels it.
 """
@@ -136,25 +139,133 @@ A step back from :data:`CENTRIFUGE_STAND`, where the tucked arm is clear of the
 centrifuge's housing while the torso rises.
 """
 
+LOADING_STAND = Stand(-0.12, -0.72)
+"""
+In front of the centrifuge, where the left arm holds a vessel above every holder of the
+rotor, its bottom clear of the centrifuge's rim.
+"""
+
 DOOR_STAND = Stand(-0.95, -0.95)
 """
 In front of the refrigerator's door, clear of its swing, its left arm able to follow the
 handle until the door stands beside the refrigerator.
 """
 
+STORING_DEPTH = -1.05
+"""
+How far from the bench the base drives sideways with a vessel held out level, and stands
+while it lowers the vessel in front of the refrigerator, in metres along y.
+"""
+
 
 @dataclass(frozen=True)
-class RackMove:
+class StoringStands:
     """
-    One vessel moved between two rack slots.
+    Where the PR2 stands while it stores a vessel in the refrigerator, holding it out
+    level in front of its left shoulder.
+    """
+
+    pick: Stand
+    """
+    In front of the vessel's rack slot, the left shoulder behind the vessel.
+    """
+
+    back: Stand
+    """
+    Straight back from :attr:`pick`, the vessel in front of the bench's edge.
+    """
+
+    front: Stand
+    """
+    In front of the refrigerator, the vessel in front of its holder.
+    """
+
+    inside: Stand
+    """
+    Driven up to the refrigerator, the vessel above its holder.
+    """
+
+    def route(self) -> List[Stand]:
+        """
+        :return: The stands in the order the PR2 drives to them.
+        """
+        return [self.pick, self.back, self.front, self.inside]
+
+
+class Station(StrEnum):
+    """
+    What holds the vessels at the bench.
+    """
+
+    RACK = "rack"
+    """
+    The sample rack.
+    """
+
+    CENTRIFUGE = "centrifuge"
+    """
+    The centrifuge's rotor.
+    """
+
+    REFRIGERATOR = "refrigerator"
+    """
+    The refrigerator's shelves.
+    """
+
+    @property
+    def position_error(self) -> WorkflowMeasurement:
+        """
+        The measurement of how far the vessels set down here ended from their slots.
+        """
+        return {
+            Station.RACK: WorkflowMeasurement.RACK_POSITION_ERROR,
+            Station.CENTRIFUGE: WorkflowMeasurement.CENTRIFUGE_POSITION_ERROR,
+            Station.REFRIGERATOR: WorkflowMeasurement.REFRIGERATOR_POSITION_ERROR,
+        }[self]
+
+
+@dataclass(frozen=True)
+class Slot:
+    """
+    One place a vessel stands in.
+    """
+
+    station: Station
+    """
+    What holds the slot.
+    """
+
+    identifier: str
+    """
+    The slot's identifier in the bench's layout.
+    """
+
+    def pose(self, laboratory: LaboratoryEnvironment, world: World) -> Pose:
+        """
+        :param laboratory: The laboratory holding the slot.
+        :param world: A world holding the laboratory.
+        :return: Where a vessel's bottom rests in the slot.
+        """
+        pose_of = {
+            Station.RACK: laboratory.slot_pose,
+            Station.CENTRIFUGE: laboratory.centrifuge_holder_pose,
+            Station.REFRIGERATOR: laboratory.refrigerator_holder_pose,
+        }[self.station]
+        return pose_of(self.identifier, world)
+
+
+@dataclass(frozen=True)
+class VesselMove:
+    """
+    One vessel taken from the rack and set into a slot.
     """
 
     source: str
     """
-    The slot the vessel is taken from.
+    The rack slot the vessel is taken from.
     """
 
-    target: str
+    target: Slot
     """
     The slot it is set into.
     """
@@ -171,6 +282,18 @@ class WorkflowMeasurement(StrEnum):
     RACK_POSITION_ERROR = "rackPositionError"
     """
     The largest distance between a re-sorted vessel and its target slot, in metres.
+    """
+
+    CENTRIFUGE_POSITION_ERROR = "centrifugePositionError"
+    """
+    The largest distance between a vessel loaded into the centrifuge and its holder, in
+    metres.
+    """
+
+    REFRIGERATOR_POSITION_ERROR = "refrigeratorPositionError"
+    """
+    The largest distance between a vessel stored in the refrigerator and its holder, in
+    metres.
     """
 
     WIDEST_DOOR = "widestDoorAngle"
@@ -195,7 +318,8 @@ class WorkflowMeasurement(StrEnum):
 
     SMALLEST_PAD_CLEARANCE = "smallestPadClearance"
     """
-    The smallest clearance between a pad and a carried vessel, in metres.
+    The smallest clearance between a pad and the outer surface of a carried vessel's
+    glass, in metres.
     """
 
     SMALLEST_COLLISION_DISTANCE = "smallestCollisionDistance"
@@ -277,6 +401,11 @@ class VesselPlacing:
     Where the vessel's bottom ends.
     """
 
+    station: Station
+    """
+    What holds the vessel there.
+    """
+
     def error(self, world: World) -> float:
         """
         :param world: The world holding the vessel.
@@ -340,7 +469,7 @@ class WorkflowObservation(StateChangeCallback):
 
     smallest_pad_clearance: Optional[float] = field(init=False, default=None)
     """
-    The smallest pad clearance from a carried vessel, in metres.
+    The smallest pad clearance from a carried vessel's glass, in metres.
     """
 
     smallest_collision_distance: Optional[float] = field(init=False, default=None)
@@ -410,7 +539,7 @@ class WorkflowObservation(StateChangeCallback):
             if not self.carried(vessel):
                 continue
             self.carried_ticks[vessel] += 1
-            clearance = pads.clearances().smallest
+            clearance = pads.glass_clearances().smallest
             self.smallest_pad_clearance = (
                 clearance
                 if self.smallest_pad_clearance is None
@@ -451,17 +580,88 @@ class WorkflowObservation(StateChangeCallback):
 @dataclass
 class LaboratoryWorkflowDemo(VesselTaskDemo):
     """
-    A PR2 re-sorts the rack, opens and closes the refrigerator's door, and opens and
-    closes the centrifuge's lid, with its left arm.
+    A PR2 re-sorts the rack, stores a vessel in the refrigerator and loads a balanced
+    pair into the centrifuge, opening and closing the refrigerator's door and the
+    centrifuge's lid, with its left arm.
     """
 
-    rack_moves: Tuple[RackMove, ...] = (
-        RackMove("A1", "A3"),
-        RackMove("A2", "B2"),
-        RackMove("B1", "A1"),
+    moves: Tuple[VesselMove, ...] = (
+        VesselMove("A1", Slot(Station.RACK, "A3")),
+        VesselMove("B1", Slot(Station.RACK, "A1")),
+        VesselMove("A2", Slot(Station.RACK, "B1")),
+        VesselMove("A1", Slot(Station.REFRIGERATOR, "R6")),
+        VesselMove("A3", Slot(Station.CENTRIFUGE, "C4")),
+        VesselMove("B1", Slot(Station.CENTRIFUGE, "C2")),
     )
     """
-    The vessels moved within the rack, in order.
+    The vessels moved, in order: within the rack first, then into the refrigerator, then
+    into the centrifuge.
+
+    A vessel stored in the refrigerator is taken from the rack's front row, which the
+    level grip reaches; a vessel taken from above has no neighbour beside it, across
+    which the fingers open.
+    """
+
+    loading_tilt: float = math.radians(30)
+    """
+    How far the tool leans forwards about the fingers' closing direction while it takes
+    a vessel for the centrifuge from above, in radians: so the wrist bends less and the
+    vessel's bottom reaches over the centrifuge's rim.
+    """
+
+    loading_grasp_height: float = 0.135
+    """
+    How high above the vessel's bottom the tool takes a vessel for the centrifuge, in
+    metres: the fingers stay above the rotor holder's walls.
+    """
+
+    loading_lowering: float = 0.18
+    """
+    How far above its holder a vessel is lowered into the centrifuge from, in metres:
+
+    its bottom clear of the centrifuge's rim.
+    """
+
+    storing_grasp_height: float = 0.125
+    """
+    How high above the vessel's bottom the level tool takes a vessel for the
+    refrigerator, in metres: the wrist stays clear of the rack below it.
+    """
+
+    storing_approach_margin: float = 0.048
+    """
+    How far beyond a vessel's radius the level approach to it starts, in metres: as far
+    back as the arm reaches with its fingers level above the rack's front row.
+    """
+
+    centring_tolerance: float = 0.0001
+    """
+    How far the tool may stop from the grasp before the fingers close on a vessel for
+    the centrifuge or the refrigerator, in metres: well within the pads' clearance, as
+    the coupled fingers close about the tool.
+    """
+
+    storing_lowering: float = 0.045
+    """
+    How far above its holder a vessel is pushed into the refrigerator and lowered from,
+    in metres: its bottom just clear of the holder's collar.
+    """
+
+    level_posture: Dict[str, float] = field(
+        default_factory=lambda: {
+            "l_shoulder_pan_joint": 0.6621,
+            "l_shoulder_lift_joint": -0.0193,
+            "l_upper_arm_roll_joint": 1.5708,
+            "l_elbow_flex_joint": -2.0445,
+            "l_forearm_roll_joint": 3.1261,
+            "l_wrist_flex_joint": -1.3824,
+            "l_wrist_roll_joint": -1.5798,
+        }
+    )
+    """
+    The left arm's joint positions with level fingers held out in front of its shoulder
+    at the rack's height, elbow raised, from which the arm reaches into the rack's front
+    row with level fingers.
     """
 
     door_handle_orientation: Quaternion = field(
@@ -541,8 +741,14 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
 
     arm_clearance: float = 0.02
     """
-    How far the left arm, apart from its gripper, keeps from the centrifuge and the
-    refrigerator it works at, in metres.
+    How far the left arm, apart from its gripper, keeps from the centrifuge it works at,
+    in metres.
+    """
+
+    refrigerator_arm_clearance: float = 0.01
+    """
+    How far the left arm, apart from its gripper, keeps from the refrigerator it works
+    at, in metres: close enough to set a vessel into the upper compartment.
     """
 
     observation: Optional[WorkflowObservation] = field(init=False, default=None)
@@ -552,18 +758,130 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
 
     # %% vessels
 
+    def moved_vessels(self) -> List[str]:
+        """
+        :return: The vessel each move carries, in the order of :attr:`moves`: whatever
+            stands in its source slot once the moves before it are done.
+        """
+        occupied = {
+            placement.slot: placement.key for placement in self.laboratory.bench.tubes
+        }
+        keys = []
+        for move in self.moves:
+            key = occupied.pop(move.source)
+            if move.target.station is Station.RACK:
+                occupied[move.target.identifier] = key
+            keys.append(key)
+        return keys
+
     def handled(self) -> List[str]:
         """
         :return: The vessels the workflow picks up at least once.
         """
-        keys = [self.vessel_in(move.source) for move in self.rack_moves]
-        return list(dict.fromkeys(keys))
+        return list(dict.fromkeys(self.moved_vessels()))
 
-    def stands(self) -> List[Stand]:
+    def moves_to(self, station: Station) -> List[Tuple[VesselMove, str]]:
         """
+        :param station: What holds the vessels at their targets.
+        :return: The moves into the station, in order, each with the vessel it carries.
+        """
+        return [
+            (move, key)
+            for move, key in zip(self.moves, self.moved_vessels())
+            if move.target.station is station
+        ]
+
+    def stands(self, context: Context) -> List[Stand]:
+        """
+        :param context: The world and the robot.
         :return: Where the PR2 stands at its stations.
         """
-        return [RACK_STAND, CENTRIFUGE_STAND, CENTRIFUGE_STEP_BACK, DOOR_STAND]
+        stands = [
+            RACK_STAND,
+            CENTRIFUGE_STAND,
+            CENTRIFUGE_STEP_BACK,
+            LOADING_STAND,
+            DOOR_STAND,
+        ]
+        for move, _ in self.moves_to(Station.REFRIGERATOR):
+            stands += self.storing_stands(context, move).route()
+        return stands
+
+    @staticmethod
+    def shoulder_offset(context: Context) -> float:
+        """
+        :param context: The world and the robot.
+        :return: How far the left shoulder sits left of the base's centre, in metres.
+        """
+        shoulder = context.robot.left_arm.active_connections[0].child
+        return float(
+            context.world.compute_forward_kinematics_np(context.robot.root, shoulder)[
+                1, 3
+            ]
+        )
+
+    def storing_stands(self, context: Context, move: VesselMove) -> StoringStands:
+        """
+        :param context: The world and the robot.
+        :param move: A move into the refrigerator.
+        :return: Where the PR2 stands for it: the vessel stays as far ahead of the base
+            as it was taken.
+        """
+        world = context.world
+        shoulder = self.shoulder_offset(context)
+        source = world.transform(
+            self.laboratory.slot_pose(move.source, world).homogeneous_matrix, world.root
+        ).to_np()[:3, 3]
+        holder = world.transform(
+            move.target.pose(self.laboratory, world).homogeneous_matrix, world.root
+        ).to_np()[:3, 3]
+        reach = source[1] - RACK_STAND.y
+        pick = Stand(float(source[0]) + shoulder, RACK_STAND.y)
+        return StoringStands(
+            pick=pick,
+            back=Stand(pick.x, STORING_DEPTH),
+            front=Stand(float(holder[0]) + shoulder, STORING_DEPTH),
+            inside=Stand(float(holder[0]) + shoulder, float(holder[1]) - reach),
+        )
+
+    # %% grips
+
+    @property
+    def loading_grip(self) -> VesselGrip:
+        """
+        Taking a vessel for the centrifuge from above, the fingers closing across the
+        bench and the tool leaning forwards by :attr:`loading_tilt`, and lifting it
+        upright.
+        """
+        top = RotationMatrix.from_rpy(0, math.pi / 2, -math.pi / 2)
+        return VesselGrip(
+            orientation=(
+                RotationMatrix.from_rpy(self.loading_tilt, 0, 0) @ top
+            ).quaternion,
+            height=self.loading_grasp_height,
+            approach_clearance=self.approach_clearance,
+            grasp_tolerance=self.centring_tolerance,
+            lift=self.lift,
+            lowering=self.loading_lowering,
+            upright=True,
+        )
+
+    @property
+    def storing_grip(self) -> VesselGrip:
+        """
+        Taking a vessel for the refrigerator from the front with level fingers closing
+        across the bench, and lifting it upright.
+        """
+        return VesselGrip(
+            orientation=Quaternion.from_rpy(math.pi, 0, math.pi / 2),
+            height=self.storing_grasp_height,
+            approach_clearance=self.laboratory.vessels.outer_radius
+            + self.storing_approach_margin,
+            grasp_tolerance=self.centring_tolerance,
+            lift=self.lift,
+            lowering=self.storing_lowering,
+            upright=True,
+        )
 
     # %% context
 
@@ -584,45 +902,51 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
 
     def reach_into_instruments(self, world: World, robot: PR2) -> None:
         """
-        Let the left arm come within :attr:`arm_clearance` of the centrifuge and the
-        refrigerator, so it reaches under the centrifuge's lid.
+        Let the left arm come within :attr:`arm_clearance` of the centrifuge, so it
+        reaches under the centrifuge's lid, and within
+        :attr:`refrigerator_arm_clearance` of the refrigerator, so it sets a vessel into
+        the upper compartment.
 
         :param world: The world built for the task.
         :param robot: The robot.
         """
         arm = robot.left_arm
         bench = self.laboratory.bench
-        instruments = [
-            world.get_body_by_name(name)
-            for name in (
-                bench.centrifuge.body,
-                bench.centrifuge.lid_body,
-                bench.centrifuge.rotor_body,
-                bench.refrigerator.body,
-                bench.refrigerator.door_body,
-            )
+        links = [
+            body
+            for body in arm.bodies_with_collision
+            if body not in arm.end_effector.bodies_with_collision
         ]
-        with world.modify_world():
-            world.collision_manager.add_default_rule(
-                AvoidCollisionBetweenGroups(
-                    body_group_a=[
-                        body
-                        for body in arm.bodies_with_collision
-                        if body not in arm.end_effector.bodies_with_collision
-                    ],
-                    body_group_b=instruments,
-                    buffer_zone_distance=self.arm_clearance,
-                    violated_distance=0.0,
+        for names, clearance in (
+            (
+                (
+                    bench.centrifuge.body,
+                    bench.centrifuge.lid_body,
+                    bench.centrifuge.rotor_body,
+                ),
+                self.arm_clearance,
+            ),
+            (
+                (bench.refrigerator.body, bench.refrigerator.door_body),
+                self.refrigerator_arm_clearance,
+            ),
+        ):
+            with world.modify_world():
+                world.collision_manager.add_default_rule(
+                    AvoidCollisionBetweenGroups(
+                        body_group_a=links,
+                        body_group_b=[world.get_body_by_name(name) for name in names],
+                        buffer_zone_distance=clearance,
+                        violated_distance=0.0,
+                    )
                 )
-            )
 
     # %% plan
 
     def build_plan(self, context: Context) -> Plan:
         """
         :param context: The world and the robot.
-        :return: The rack moves, the refrigerator's door and the centrifuge's lid, in
-            order.
+        :return: The rack moves, the refrigerator and the centrifuge, in order.
         """
         world = context.world
         bench = self.laboratory.bench
@@ -668,27 +992,23 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
     def rack_stage(self, context: Context) -> List[PlanNode]:
         """
         :param context: The world and the robot.
-        :return: Every rack move, picked from and set into the rack.
+        :return: Every move within the rack, picked from and set into the rack.
         """
         steps = []
-        for move in self.rack_moves:
-            grasp = self.grasp(
-                context, context.world.get_body_by_name(self.vessel_in(move.source))
-            )
+        for move, key in self.moves_to(Station.RACK):
+            grasp = self.grasp(context, context.world.get_body_by_name(key))
             steps += [
                 self.pick_up(context, grasp),
-                self.place(
-                    grasp, self.laboratory.slot_pose(move.target, context.world)
-                ),
+                self.place(grasp, move.target.pose(self.laboratory, context.world)),
             ]
         return steps
 
     def refrigerator_stage(self, context: Context) -> List[PlanNode]:
         """
         :param context: The world and the robot.
-        :return: Open the refrigerator's door by its handle and close it again, then
-            tuck the arm in and raise the torso, so the centrifuge starts from the same
-            posture as the PR2 did.
+        :return: Open the refrigerator's door by its handle, store the vessels, and close
+            the door again, then tuck the arm in and raise the torso, so the centrifuge
+            starts from the same posture as the PR2 did.
         """
         handle = self.handle(context.world, LaboratoryHandle.REFRIGERATOR_DOOR)
         door_grasp = self.grasp_at(
@@ -702,23 +1022,97 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
                 reference_frame=handle.root,
             ),
         )
-        arm = context.robot.left_arm
-        return [
+        steps = [
             self.park(context),
             self.drive(context, DOOR_STAND),
-            GraspingAction(door_grasp, arm, approach_clearance=self.handle_clearance),
-            MechanismMotion(handle.root, arm, self.door_open),
-            MechanismMotion(handle.root, arm, 0.0),
-            *self.let_go(context),
+            *self.operate(context, door_grasp, self.door_open),
             self.park(context, raise_torso=True),
+        ]
+        for move, key in self.moves_to(Station.REFRIGERATOR):
+            steps += self.store(context, move, context.world.get_body_by_name(key))
+        return [
+            *steps,
+            self.drive(context, DOOR_STAND),
+            *self.operate(context, door_grasp, 0.0),
+            self.park(context, raise_torso=True),
+        ]
+
+    def store(self, context: Context, move: VesselMove, vessel: Body) -> List[PlanNode]:
+        """
+        :param context: The world and the robot.
+        :param move: A move into the refrigerator.
+        :param vessel: The vessel it carries.
+        :return: Take the vessel from the front with level fingers, back away from the
+            bench, drive to the refrigerator, lower the vessel in front of its holder,
+            drive it in above the holder and set it into the holder, then drive back.
+        """
+        world = context.world
+        arm = context.robot.left_arm
+        grip = self.storing_grip
+        grasp = self.grasp(context, vessel, grip)
+        stands = self.storing_stands(context, move)
+        holder = world.transform(
+            move.target.pose(self.laboratory, world).homogeneous_matrix, world.root
+        ).to_np()[:3, 3]
+        source = world.transform(
+            self.laboratory.slot_pose(move.source, world).homogeneous_matrix, world.root
+        ).to_np()[:3, 3]
+        in_front = Pose.from_xyz_quaternion(
+            holder[0],
+            stands.front.y + source[1] - RACK_STAND.y,
+            holder[2] + grip.lowering + grip.height,
+            *grip.orientation.to_np(),
+            reference_frame=world.root,
+        )
+        torso = context.robot.torso.active_connections[0]
+        return [
+            self.park(context),
+            self.drive(context, stands.pick),
+            HeldBaseJointsMotion(
+                names=[
+                    world.get_connection_by_name(name).name.name
+                    for name in self.level_posture
+                ],
+                positions=list(self.level_posture.values()),
+            ),
+            self.pick_up(context, grasp, grip),
+            self.drive(context, stands.back),
+            self.drive(context, stands.front),
+            HeldBaseJointsMotion(
+                names=[torso.name.name], positions=[torso.dof.limits.lower.position]
+            ),
+            MoveToolCenterPointMotion(in_front, arm),
+            self.drive(context, stands.inside),
+            self.place(grasp, move.target.pose(self.laboratory, world), grip),
+            self.drive(context, stands.front),
+            self.park(context, raise_torso=True),
+        ]
+
+    def load(self, context: Context, move: VesselMove, vessel: Body) -> List[PlanNode]:
+        """
+        :param context: The world and the robot.
+        :param move: A move into the centrifuge.
+        :param vessel: The vessel it carries.
+        :return: Take the vessel from above, leaning forwards, carry it to the
+            centrifuge and lower it into its holder.
+        """
+        grip = self.loading_grip
+        grasp = self.grasp(context, vessel, grip)
+        return [
+            self.park(context),
+            self.drive(context, RACK_STAND),
+            self.pick_up(context, grasp, grip),
+            self.drive(context, LOADING_STAND),
+            self.place(grasp, move.target.pose(self.laboratory, context.world), grip),
         ]
 
     def centrifuge_stage(self, context: Context) -> List[PlanNode]:
         """
         :param context: The world and the robot.
-        :return: Open the lid, by its handle and then from below, and close it again
-            the same way; before it takes the handle again, the PR2 steps back to raise
-            its torso, so it closes the lid from the posture it opened it from.
+        :return: Open the lid, by its handle and then from below, load the vessels, and
+            close the lid again the same way; before it takes the handle again, the PR2
+            steps back to raise its torso, so it closes the lid from the posture it
+            opened it from.
         """
         world = context.world
         handle = self.handle(world, LaboratoryHandle.CENTRIFUGE_LID)
@@ -734,10 +1128,16 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             ),
         )
         lid = world.get_body_by_name(self.laboratory.bench.centrifuge.lid_body)
+        loading = []
+        for move, key in self.moves_to(Station.CENTRIFUGE):
+            loading += self.load(context, move, world.get_body_by_name(key))
         return [
             self.drive(context, CENTRIFUGE_STAND),
             *self.operate(context, lid_grasp, self.lid_pulled),
             *self.support_lid(context, lid, self.lid_pushed),
+            *loading,
+            self.park(context),
+            self.drive(context, CENTRIFUGE_STAND),
             *self.support_lid(context, lid, self.lid_pulled),
             self.drive(context, CENTRIFUGE_STEP_BACK),
             self.park(context, raise_torso=True),
@@ -871,10 +1271,11 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         """
         return [
             VesselPlacing(
-                world.get_body_by_name(self.vessel_in(move.source)),
-                self.laboratory.slot_pose(move.target, world),
+                world.get_body_by_name(key),
+                move.target.pose(self.laboratory, world),
+                move.target.station,
             )
-            for move in self.rack_moves
+            for move, key in zip(self.moves, self.moved_vessels())
         ]
 
     def measure(self, context: Context) -> AcceptanceMetrics:
@@ -906,16 +1307,23 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
                     released=[vessel.name.name for vessel, _ in observation.released]
                 )
             )
-        largest_error = 0.0
+        largest_errors = {placing.station.position_error: 0.0 for placing in placings}
+        final = {placing.vessel: placing for placing in placings}
         for placing, (vessel, released) in zip(placings, observation.released):
-            for error in (released, placing.error(world)):
+            errors = (
+                (released, placing.error(world))
+                if final[vessel] is placing
+                else (released,)
+            )
+            for error in errors:
                 if error > 2 * self.position_tolerance:
                     raise TaskFailed(
                         WorkflowFailure.MISPLACED.value.format(
                             vessel=vessel.name.name, error=error
                         )
                     )
-            largest_error = max(largest_error, released)
+            measurement = placing.station.position_error
+            largest_errors[measurement] = max(largest_errors[measurement], released)
         bench = self.laboratory.bench
         for part, widest, goal, joint in (
             (
@@ -957,7 +1365,10 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             )
         return AcceptanceMetrics(
             measurements={
-                WorkflowMeasurement.RACK_POSITION_ERROR.value: largest_error,
+                **{
+                    measurement.value: error
+                    for measurement, error in largest_errors.items()
+                },
                 WorkflowMeasurement.WIDEST_DOOR.value: observation.widest_door,
                 WorkflowMeasurement.WIDEST_LID.value: observation.widest_lid,
                 WorkflowMeasurement.DOOR.value: float(observation.door.position),

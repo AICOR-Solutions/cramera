@@ -18,6 +18,7 @@ from cramera_bridge.laboratory.workflow import (
     RACK_STAND,
     TASK,
     LaboratoryWorkflowDemo,
+    Station,
     WorkflowMeasurement,
 )
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
@@ -51,12 +52,12 @@ def measurements(workflow):
     ).measurements
 
 
-def test_every_moved_vessel_is_set_down_in_its_new_slot(workflow, measurements):
+@pytest.mark.parametrize("station", list(Station))
+def test_every_moved_vessel_is_set_down_in_its_new_slot(
+    workflow, measurements, station
+):
     demo, _ = workflow
-    assert (
-        measurements[WorkflowMeasurement.RACK_POSITION_ERROR]
-        <= 2 * demo.position_tolerance
-    )
+    assert measurements[station.position_error] <= 2 * demo.position_tolerance
 
 
 def test_the_door_and_the_lid_were_opened_and_are_closed_again(workflow, measurements):

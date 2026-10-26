@@ -14,6 +14,7 @@ from pathlib import Path
 from typing_extensions import List, Optional
 
 from coraplex.datastructures.dataclasses import Context, MotionToleranceConfig
+from coraplex.datastructures.enums import MovementType
 from coraplex.plans.plan import Plan
 from semantic_digital_twin.collision_checking.collision_rules import (
     AllowCollisionBetweenGroups,
@@ -75,6 +76,54 @@ class TransferSpeeds:
     retract: float = 0.08
     """
     Moving away after letting go.
+    """
+
+
+# %% grips
+
+
+@dataclass(frozen=True)
+class VesselGrip:
+    """
+    How the left gripper takes a vessel, lifts it out of where it stands and sets it
+    down: suited to the opening the vessel is set into.
+    """
+
+    orientation: Quaternion
+    """
+    The tool's orientation relative to the upright vessel.
+    """
+
+    height: float
+    """
+    How high above the vessel's bottom the tool takes it, in metres.
+    """
+
+    approach_clearance: float
+    """
+    How far from the vessel's axis the approach to it starts, in metres.
+    """
+
+    grasp_tolerance: float
+    """
+    How far the tool may stop from the grasp before the fingers close, in metres: the
+    coupled fingers close about the tool, so this offset takes from one pad's clearance.
+    """
+
+    lift: float
+    """
+    How far the vessel is lifted out of where it stood, in metres.
+    """
+
+    lowering: float
+    """
+    How far above its target the vessel is lowered from, in metres.
+    """
+
+    upright: bool = False
+    """
+    Whether the lift keeps the vessel upright; CRAM's pickup lifts by the tool's
+    position only and lets the vessel tilt.
     """
 
 
@@ -245,22 +294,36 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
 
     # %% handling
 
-    def grasp(self, context: Context, body: Body) -> GraspCandidate:
+    @property
+    def top_grip(self) -> VesselGrip:
+        """
+        Taking a vessel from above at its grasp height, the tool at
+        :attr:`tool_orientation`, lifting and lowering it by :attr:`lift`.
+        """
+        return VesselGrip(
+            orientation=self.tool_orientation,
+            height=self.laboratory.vessels.grasp_height,
+            approach_clearance=self.approach_clearance,
+            grasp_tolerance=self.position_tolerance,
+            lift=self.lift,
+            lowering=self.lift,
+        )
+
+    def grasp(
+        self, context: Context, body: Body, grip: Optional[VesselGrip] = None
+    ) -> GraspCandidate:
         """
         :param context: The world and the robot.
         :param body: The upright vessel.
-        :return: The left gripper's grasp on the vessel at its grasp height, the tool at
-            :attr:`tool_orientation`.
+        :param grip: How the vessel is taken; :attr:`top_grip` by default.
+        :return: The left gripper's grasp on the vessel.
         """
+        grip = self.top_grip if grip is None else grip
         return self.grasp_at(
             context,
             Container(root=body),
             Pose.from_xyz_quaternion(
-                0,
-                0,
-                self.laboratory.vessels.grasp_height,
-                *self.tool_orientation.to_np(),
-                reference_frame=body,
+                0, 0, grip.height, *grip.orientation.to_np(), reference_frame=body
             ),
         )
 
@@ -294,37 +357,54 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
         """
         return self.laboratory.vessels.outer_radius + self.approach_margin
 
-    def pick_up(self, context: Context, grasp: GraspCandidate) -> VesselPickUpAction:
+    def pick_up(
+        self,
+        context: Context,
+        grasp: GraspCandidate,
+        grip: Optional[VesselGrip] = None,
+    ) -> VesselPickUpAction:
         """
         :param context: The world and the robot.
         :param grasp: The left gripper's grasp on a vessel.
-        :return: Taking the vessel and lifting it by :attr:`lift`.
+        :param grip: How the vessel is taken; :attr:`top_grip` by default.
+        :return: Taking the vessel and lifting it out of where it stands.
         """
+        grip = self.top_grip if grip is None else grip
         return VesselPickUpAction(
             grasp=grasp,
             arm=context.robot.left_arm,
-            approach_clearance=self.approach_clearance,
-            retreat_distance=self.lift,
+            approach_clearance=grip.approach_clearance,
+            retreat_distance=grip.lift,
             pre_approach_linear_velocity=self.speeds.approach,
             final_approach_linear_velocity=self.speeds.final_approach,
             lift_linear_velocity=self.speeds.lift,
             grasp_closing_velocity=self.closing_velocity,
             grasp_joint_position_threshold=self.finger_tolerance,
             contact_clearance=self.pad_clearance,
+            grasp_position_threshold=grip.grasp_tolerance,
+            lift_movement=(
+                MovementType.CARTESIAN if grip.upright else MovementType.TRANSLATION
+            ),
         )
 
-    def place(self, grasp: GraspCandidate, target: Pose) -> RackPlaceAction:
+    def place(
+        self,
+        grasp: GraspCandidate,
+        target: Pose,
+        grip: Optional[VesselGrip] = None,
+    ) -> RackPlaceAction:
         """
         :param grasp: The grasp the vessel is held by.
         :param target: Where the vessel's bottom ends.
-        :return: Lowering the vessel into its slot from :attr:`lift` above it and letting
-            go.
+        :param grip: How the vessel was taken; :attr:`top_grip` by default.
+        :return: Lowering the vessel into its target and letting go.
         """
+        grip = self.top_grip if grip is None else grip
         return RackPlaceAction(
             grasp.graspable,
             target,
-            approach_clearance=self.approach_clearance,
-            retreat_distance=self.lift,
+            approach_clearance=grip.approach_clearance,
+            retreat_distance=grip.lowering,
             transport_linear_velocity=self.speeds.transport,
             placing_linear_velocity=self.speeds.placing,
             retract_linear_velocity=self.speeds.retract,
