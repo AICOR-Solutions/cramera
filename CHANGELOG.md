@@ -26,6 +26,7 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+
 - **A longer PR2 demo on the medical lab page.** **PR2 lab workflow (CRAM)** re-sorts
   the rack, stores a vessel in the refrigerator and loads a balanced pair into the
   centrifuge, opening and closing the refrigerator's door and the centrifuge's lid and
@@ -49,6 +50,15 @@ which this repository was mirrored until 22 Oct 2026.
   ![A vessel stored in the refrigerator's upper shelf](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/refrigerator_storing.png)
   ![The PR2 lowering a vessel into a centrifuge holder](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/centrifuge_loading.png)
   ![The gripper above the centrifuge's rotor, leaning forwards](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/centrifuge_holders.png)
+
+- **A recorded PR2 run in the medical lab as the repository's demo scene.**
+  `demo/standard_scenes/aicor_medical_lab_pr2_workflow` replays the PR2 re-sorting
+  the rack and opening and closing the refrigerator door and the centrifuge lid,
+  5 min 15 s at the simulation's 20 frames per second, with its plan steps and
+  recorded answers, so `cramera --demo-scenes demo` shows it without CRAM.
+
+  ![The PR2 lab workflow replayed from demo/standard_scenes](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/demo-standard-scenes/pr2_workflow_replay.png)
+
 - **The demo site is built for every pull request.** The site's build and screenshot
   run on pull requests too, without publishing, so a change that breaks the site fails
   before it is merged; a pull request's build never cancels the publishing of `main`.
