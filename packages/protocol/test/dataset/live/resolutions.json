@@ -1,0 +1,90 @@
+{
+  "backends": [
+    {"name": "PerceptionBackend", "source": "perception"},
+    {"name": "WorkingMemoryBackend", "source": "working memory"},
+    {"name": "GraspSamplingBackend", "source": "probabilistic"},
+    {"name": "HoleRulesBackend", "source": "rules"}
+  ],
+  "presentation": {"beforeMilliseconds": 800, "partMilliseconds": 2100, "afterMilliseconds": 1200},
+  "resolutions": [
+    {
+      "id": "0",
+      "title": "Sort the cylinder",
+      "underspecified": [
+        {"text": "piece = a(SeenPiece)(kind=⟦piece⟧)", "part": "piece"},
+        {"text": "a(SortPieceAction)(piece=piece, side=⟦side⟧, hole=⟦hole⟧)"}
+      ],
+      "resolved": [
+        {"text": "piece = ⟦piece⟧", "part": "piece"},
+        {"text": "SortPieceAction(piece=piece, side=⟦side⟧, hole=⟦hole⟧)"}
+      ],
+      "done": true,
+      "executable": true,
+      "parts": [
+        {
+          "part": "piece", "id": "piece", "statement": "a seen piece of kind cylinder",
+          "backend": {"name": "PerceptionBackend", "source": "perception"},
+          "answers": ["cylinder_1"], "evidence": ["outline fits 0.93"],
+          "reasoning": {
+            "source": "perception",
+            "images": [{"image": "data:image/png;base64,iVBORw0KGgo=", "caption": "the table, rectified"}],
+            "candidates": [
+              {"name": "cylinder_1", "kind": "cylinder", "fit": 0.93, "selected": true},
+              {"name": "cube_1", "kind": "cube", "fit": 0.12, "selected": false}
+            ]
+          },
+          "highlight": {"keys": ["cylinder_1"], "regions": [], "framed": ["cylinder_1"]},
+          "milliseconds": 12.5, "answeredAt": 1792000000.0
+        },
+        {
+          "part": "support", "id": "piece.support", "statement": "a seen piece supported by the table",
+          "backend": {"name": "WorkingMemoryBackend", "source": "working memory"},
+          "answers": ["cylinder_1"],
+          "reasoning": {
+            "source": "working memory",
+            "condition": "SupportedBy(piece, table)",
+            "readings": [
+              {"name": "cylinder_1", "selected": true, "relation": "rests on table", "support": "table", "gap": 0.001, "size": [0.04, 0.04, 0.05]},
+              {"name": "cube_1", "selected": false, "relation": "held by the gripper"}
+            ]
+          },
+          "milliseconds": 3.0, "answeredAt": 1792000001.0
+        },
+        {
+          "part": "side", "id": "side", "statement": "a side to grasp cylinder_1 from",
+          "backend": {"name": "GraspSamplingBackend", "source": "probabilistic"},
+          "answers": ["FRONT", "BACK"],
+          "reasoning": {
+            "source": "probabilistic",
+            "subject": "cylinder_1",
+            "prior": [{"outcome": "FRONT", "probability": 0.4}, {"outcome": "BACK", "probability": 0.3}],
+            "samples": ["FRONT", "BACK", "FRONT"]
+          },
+          "milliseconds": 1.5, "answeredAt": 1792000002.0
+        },
+        {
+          "part": "hole", "id": "hole", "statement": "a hole cylinder_1 fits into",
+          "backend": {"name": "HoleRulesBackend", "source": "rules"},
+          "answers": ["cylinder_hole"],
+          "reasoning": {
+            "source": "rules",
+            "case": "cylinder_1", "caseKind": "Cylinder",
+            "rules": [
+              {"condition": "case.kind == Cube", "conclusion": "hole.kind = Cube", "tried": true, "fired": false},
+              {"condition": "case.kind == Cylinder", "conclusion": "hole.kind = Cylinder", "tried": true, "fired": true}
+            ],
+            "layout": {
+              "width": 0.2, "length": 0.4,
+              "regions": [
+                {"kind": "cylinder", "center": [0.0, 0.1], "outline": [[-0.02, 0.08], [0.02, 0.08], [0.02, 0.12], [-0.02, 0.12]], "concluded": true},
+                {"kind": "cube", "center": [0.0, -0.1], "outline": [[-0.02, -0.12], [0.02, -0.12], [0.02, -0.08], [-0.02, -0.08]]}
+              ]
+            }
+          },
+          "highlight": {"keys": [], "regions": [{"id": "cylinder_hole", "pose": [0.5, 0.1, 0.75, 0.0, 0.0, 0.0, 1.0], "size": [0.04, 0.04, 0.02]}], "framed": []},
+          "milliseconds": 4.0, "answeredAt": 1792000003.0
+        }
+      ]
+    }
+  ]
+}

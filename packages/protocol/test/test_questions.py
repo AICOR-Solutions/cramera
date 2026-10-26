@@ -21,6 +21,7 @@ from cramera_protocol.questions import (
     PresetCatalog,
     QueryAnswer,
     QueryAnswerKey,
+    QueryTranslation,
     QueryRequest,
     QueryScope,
     QuestionMatch,
@@ -40,6 +41,7 @@ from cramera_protocol.questions import (
         (QueryAnswer, "questions/query_answer.json"),
         (QueryAnswer, "questions/failed_query_answer.json"),
         (QueryAnswer, "questions/event_answer.json"),
+        (QueryAnswer, "questions/translated_query_answer.json"),
         (PresetCatalog, "questions/preset_catalog.json"),
         (QuestionMatch, "questions/question_match.json"),
         (QuestionMatch, "questions/unmatched_question.json"),
@@ -69,6 +71,19 @@ def test_an_answer_reads_replay_windows(read_json):
     data = read_json("questions/event_answer.json")
     answer = QueryAnswer.from_json(data)
     assert answer.replay[0] == ReplayWindow.from_json(data[QueryAnswerKey.REPLAY][0])
+
+
+def test_an_answer_keeps_the_statement_it_was_translated_into(read_json):
+    data = read_json("questions/translated_query_answer.json")
+    answer = QueryAnswer.from_json(data)
+    assert answer.translation == QueryTranslation.from_json(
+        data[QueryAnswerKey.TRANSLATION]
+    )
+
+
+def test_an_answer_in_the_entity_query_language_has_no_translation(read_json):
+    answer = QueryAnswer.from_json(read_json("questions/query_answer.json"))
+    assert answer.translation is None
 
 
 def test_a_failed_answer_has_no_rows(read_json):
