@@ -1,0 +1,35 @@
+{
+  "revision": 3,
+  "stepping": true,
+  "holdsNested": false,
+  "held": {"number": 1, "moment": "answered"},
+  "steps": [
+    {
+      "number": 0, "depth": 0, "phase": "resolution", "during": "Sort the cylinder", "moment": "answered",
+      "question": {"text": "Find a seen piece.", "html": "Find <span class=\"entity\">a seen piece</span>."},
+      "code": {"file": "demo/sorting.py", "function": "sort", "firstLine": 10, "lines": ["def sort(self):", "    piece = a(SeenPiece)", "    return piece"], "focusFirstLine": 11, "focusLastLine": 11},
+      "caller": {"function": "resolve", "module": "demo.resolution", "line": 42},
+      "backend": {"name": "PerceptionBackend", "source": "perception"},
+      "answers": ["cylinder_1"],
+      "highlight": {"keys": ["cylinder_1"], "regions": [], "framed": ["cylinder_1"]},
+      "reasoning": {"source": "perception", "candidates": [{"name": "cylinder_1", "kind": "cylinder", "fit": 0.93, "selected": true}]},
+      "variables": [
+        {"name": "piece", "role": "sought", "type": "SeenPiece", "values": ["cylinder_1"]},
+        {"name": "kind", "role": "given", "values": ["Cylinder"]},
+        {"name": "body", "role": "ranges over", "lookedAt": 7}
+      ],
+      "enclosing": [
+        {"kind": "plan being resolved", "title": "Sort the cylinder", "statement": "a sort piece action",
+         "parts": [{"name": "piece", "role": "being answered"}, {"name": "side", "role": "open"}]}
+      ],
+      "milliseconds": 12.5
+    },
+    {
+      "number": 1, "asker": 0, "depth": 1, "phase": "execution", "during": "PickUpAction", "moment": "answered",
+      "backend": {"name": "EntityQueryLanguageBackend", "source": "working memory"},
+      "generates": true,
+      "answers": [],
+      "enclosing": [{"kind": "action", "title": "PickUpAction", "parts": [{"name": "arm", "role": "given", "values": ["left"]}]}]
+    }
+  ]
+}

@@ -165,6 +165,31 @@ class LiveRoute(StrEnum):
     Moves a free object.
     """
 
+    RESOLUTIONS = "/resolutions"
+    """
+    How the open parts of the plans were resolved.
+    """
+
+    RESOLUTION_EXECUTION = "/resolutions/execute"
+    """
+    Carries out the plan a resolution resolved.
+    """
+
+    QUERY_STEPS = "/query_steps"
+    """
+    The queries the process asked, and the one it is held at.
+    """
+
+    QUERY_STEPS_NEXT = "/query_steps/next"
+    """
+    Lets the process carry on from the query it is held at.
+    """
+
+    QUERY_STEPS_MODE = "/query_steps/mode"
+    """
+    Chooses whether the process is held at every query it asks.
+    """
+
 
 # %% address
 
@@ -236,6 +261,26 @@ class Capability(StrEnum):
     ROBOT_SELECTION = "robot_selection"
     """
     One of several robots can be selected.
+    """
+
+    RESOLUTIONS = "resolutions"
+    """
+    How the open parts of the plans were resolved is published.
+    """
+
+    RESOLUTION_EXECUTION = "resolution_execution"
+    """
+    A resolved plan can be carried out on request.
+    """
+
+    QUERY_STEPS = "query_steps"
+    """
+    The queries the process asks are published.
+    """
+
+    QUERY_STEPPING = "query_stepping"
+    """
+    The process can be held at every query it asks until a person moves on.
     """
 
 

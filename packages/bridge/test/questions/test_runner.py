@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from cramera_protocol.questions import AnswerColumn, AnswerKind
+from cramera_protocol.questions import AnswerColumn, AnswerKind, QueryTranslation
 from cramera_bridge.questions.exceptions import EmptyQuery
 from cramera_bridge.questions.highlights import EntityNameKeys
 from cramera_bridge.questions.knowledge import QueryDomain
@@ -25,6 +25,7 @@ from .dataset.entities import (
     GrowingShelf,
     ShelfItem,
 )
+from .dataset.evaluations import RecitedEvaluation
 from .dataset.files import QueryFile, QuerySource
 
 LIGHT = ShelfItem(name="feather", size=0.1, shelf="top")
@@ -103,6 +104,20 @@ def test_a_query_is_read_back_as_english():
     verbalization = runner_over([LIGHT]).verbalize("an(entity(item))")
     assert ShelfItem.__name__ in verbalization.text
     assert runner_over([LIGHT]).verbalize("1 + 1") is None
+
+
+def test_a_translated_query_is_answered_with_the_statement_it_was_answered_by():
+    evaluation = RecitedEvaluation(
+        QueryTranslation(language="SQL", statement="SELECT * FROM shelf_item")
+    )
+    runner = QueryRunner(
+        domains=[QueryDomain("item", ShelfItem, [LIGHT])], evaluation=evaluation
+    )
+    assert answer(runner, "an(entity(item))").translation == evaluation.translation
+
+
+def test_a_query_answered_in_memory_has_no_translation():
+    assert answer(runner_over([LIGHT]), "an(entity(item))").translation is None
 
 
 # %% rendering

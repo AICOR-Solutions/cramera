@@ -41,6 +41,16 @@ export class LiveClient {
   }
 
   /**
+   * @param {number|null} revision The revision of the query steps shown, or null.
+   * @returns {Promise<Object>} The query steps, or only their revision when the one
+   *   named is the newest.
+   */
+  readQuerySteps(revision) {
+    const route = this.#api.url(LiveRoute.QUERY_STEPS);
+    return this.#api.json(revision === null ? route : `${route}?${LiveParameter.REVISION}=${revision}`);
+  }
+
+  /**
    * @param {string} key The key of an image a perception step took.
    * @returns {string} The image's URL.
    */

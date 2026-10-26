@@ -9,6 +9,7 @@ import html
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from krrood.entity_query_language.backends import QueryBackend
 from krrood.entity_query_language.verbalization.exceptions import (
     UnverbalizableExpressionError,
 )
@@ -125,14 +126,21 @@ class QueryVerbalizer:
     Where the words of the HTML rendering link to.
     """
 
-    def verbalize(self, expression: Any) -> Optional[Verbalization]:
+    def verbalize(
+        self, expression: Any, backend: Optional[QueryBackend] = None
+    ) -> Optional[Verbalization]:
         """
         :param expression: A query expression.
+        :param backend: The backend answering the query, whose way of answering opens
+            the sentence; None opens it as the kind of query does.
         :return: The query in plain text and as HTML, or None when krrood has no
             wording for it; wording leaves the expression evaluable.
         """
         try:
-            fragment = EQLVerbalizer().build(expression)
+            fragment = EQLVerbalizer().build(
+                expression,
+                performative=None if backend is None else backend.opening_directive,
+            )
         except UnverbalizableExpressionError:
             # krrood offers no way to ask whether an expression can be worded other
             # than wording it; a query without a wording is still answered.

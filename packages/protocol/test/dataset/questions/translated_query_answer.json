@@ -1,0 +1,3 @@
+{"ok": true, "kind": "entities", "rows": [{"__entity__": "run_1", "__type__": "Run"}],
+ "count": 1, "more": false, "highlight": [], "replay": [null],
+ "translation": {"language": "SQL", "statement": "SELECT run.id FROM run WHERE run.succeeded"}}

@@ -49,6 +49,13 @@ the scene name and the protocol request to `cramera_bridge.questions.scenes`, wh
 evaluates the query with krrood and returns `PresetCatalog`, `Vocabulary`, `Members`,
 `GraphView`, `QueryAnswer` or `QuestionMatch` documents.
 
+A process that resolves the open parts of its plans hands the live publisher
+`PlanResolutions` and `QuerySteps` documents (`cramera_protocol.resolutions`,
+`cramera_protocol.query_steps`), building what each answer lights up from native
+bodies, annotations and regions with `LivePublisher.scene_highlight`. The viewer's
+requests to carry out a resolved plan or to move a held process on reach the process
+through the `ResolutionExecution` and `QueryStepControl` it publishes them with.
+
 ## Protocol
 
 - Every fixed name that crosses a boundary is a `StrEnum` member in
