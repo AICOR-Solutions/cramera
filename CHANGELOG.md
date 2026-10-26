@@ -26,6 +26,32 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **How a plan's open parts were resolved, played beside the running robot.** A
+  process that leaves parts of a plan open publishes each resolution through
+  `LivePublisher.resolutions`: every open part asked as a statement, the backend that
+  answered it (perception, working memory, rules or a probabilistic model), its
+  answers and how the backend reasoned. The new **Plan resolution** panel plays each
+  one part by part: the plan as stated, the backend's reasoning drawn (the images
+  seen and how well each outline fits, the contacts tested, the cascade of rules
+  walked to the one that fires with the layout it picks from, the distribution
+  sampled), and the answer filling the resolved plan, while the scene lights up what
+  the answers are about, draws regions as boxes and glides the camera onto them.
+  Where the process offers it (`ResolutionExecution`), **Carry it out** has the robot
+  perform a resolved plan.
+- **Stepping through every query the robot asks.** A process publishes the queries
+  it asks while it sets up, resolves, expands and carries out its plans through
+  `LivePublisher.query_steps`, and, with a `QueryStepControl`, can be held at each
+  query until a person moves on. The new **Queries** panel lists the latest queries
+  and inspects one: where it is asked (the plan, actions and queries it is asked
+  inside, down to its variables), the code that asks it, the question in English, the
+  backend answering it, its answers and the backend's reasoning. **Next** moves the
+  robot on only from the step the viewer saw, so a second click cannot skip one.
+  `LivePublisher.scene_highlight` turns the bodies, annotations and regions an answer
+  is about into what the viewer lights up.
+- **The statement a query was answered by.** A query answered by a
+  `TranslatedEvaluation`, such as one running on a database, carries the statement in
+  the other query language, and the questions panel shows it under the query. A query
+  can also be read back opening with how its backend answers it ("Generate …").
 - **The demo site is built for every pull request.** The site's build and screenshot
   run on pull requests too, without publishing, so a change that breaks the site fails
   before it is merged; a pull request's build never cancels the publishing of `main`.
@@ -189,6 +215,9 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **A live body drawn anew is bundled again.** The live bundle's signature now counts
+  each body's shapes, so a body whose shapes change while the run goes on is shown
+  with its new shapes instead of the old ones.
 - **The demo site is published again.** Since the demo scenes left the repository,
   every build of `main` exported a site without scenes and failed its screenshot
   check, so the site kept the build of 23 Oct. It now shows the small medical
