@@ -88,3 +88,7 @@
 .series-4 { --series-color: var(--series-4); } .series-5 { --series-color: var(--series-5); }
 .series-6 { --series-color: var(--series-6); } .series-7 { --series-color: var(--series-7); }
 .graph-node circle { fill: var(--series-color); }
+
+.answer .translation { display: grid; gap: 2px; margin: 4px 0; }
+.answer .translation-language { margin: 0; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+.answer .translation pre { margin: 0; padding: 6px 8px; overflow-x: auto; font: 11px var(--mono); border-radius: var(--radius); background: var(--surface-sunken); }

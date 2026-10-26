@@ -16,6 +16,7 @@ import {
   QueryAnswerKey,
   QueryRequestKey,
   QueryScope,
+  QueryTranslationKey,
   QuestionMatchKey,
   QuestionRequestKey,
   QuestionsParameter,
@@ -112,6 +113,16 @@ test('an answer shows its English reading as text, describing columns first, and
   const button = table.children[1].children[3].children[0];
   button.dispatch('click');
   assert.deepEqual(replayed, [ANSWER[QueryAnswerKey.REPLAY][0]]);
+});
+
+test('an answer shows the statement it was translated into under its reading', () => {
+  const translation = { [QueryTranslationKey.LANGUAGE]: 'SQL', [QueryTranslationKey.STATEMENT]: 'SELECT * FROM robot' };
+  const view = new AnswerView(new FakeDocument(), () => {});
+  view.show({ ...ANSWER, [QueryAnswerKey.TRANSLATION]: translation });
+  const [, shown] = view.element.children;
+  const [language, statement] = shown.children;
+  assert.equal(language.textContent, `answered in ${translation[QueryTranslationKey.LANGUAGE]}`);
+  assert.equal(statement.textContent, translation[QueryTranslationKey.STATEMENT]);
 });
 
 test('a failed answer shows its reason', () => {
