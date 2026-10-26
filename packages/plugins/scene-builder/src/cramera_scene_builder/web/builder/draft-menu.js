@@ -4,7 +4,7 @@
  * room, and the view's toolbar.
  */
 
-import { DraftSummaryKey, IndexEntryKey, PointCloudFormat } from '../../../protocol.js';
+import { DraftSummaryKey, IndexEntryKey, PointCloudFormat, ScanFormat } from '../../../protocol.js';
 import { BuilderAction } from './elements.js';
 import { TransformMode } from './draft-view.js';
 
@@ -40,6 +40,12 @@ const NOTHING = '';
  * The file types the draft import accepts.
  */
 const DRAFT_FILES = '.json,application/json';
+
+/**
+ * The formats a scanned room may be uploaded in: point clouds, kept as they are, and
+ * scans, which the server turns into a point cloud.
+ */
+export const UPLOAD_FORMATS = Object.freeze([...Object.values(PointCloudFormat), ...Object.values(ScanFormat)]);
 
 // %% actions
 
@@ -247,7 +253,7 @@ export class DraftMenu {
       if (cloudFile.files[0]) actions.upload(cloudFile.files[0], Number(units.value));
       cloudFile.value = '';
     });
-    cloudFile.accept = Object.values(PointCloudFormat).map((format) => `.${format}`).join(',');
+    cloudFile.accept = UPLOAD_FORMATS.map((format) => `.${format}`).join(',');
     cloudFile.hidden = true;
     const draftButtons = elements.create('div', 'button-row');
     draftButtons.append(

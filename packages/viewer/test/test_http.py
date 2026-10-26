@@ -250,6 +250,81 @@ def test_the_url_brackets_an_ipv6_host(answerer):
         assert server.url().startswith("http://[::1]:")
 
 
+# %% streamed bodies
+
+
+def counted(request: Request) -> Response:
+    """
+    :return: The number of bytes of the streamed body and of its read chunks.
+    """
+    chunks = list(request.body_stream().chunks(size=4))
+    return Response.of_text(
+        f"{len(request.body)} {sum(map(len, chunks))} {len(chunks)}"
+    )
+
+
+def first_byte(request: Request) -> Response:
+    """
+    :return: The first byte of the body, leaving the rest unread.
+    """
+    return Response(body=next(request.body_stream().chunks(size=1)))
+
+
+def streaming_answerer() -> RequestAnswerer:
+    """
+    :return: Answers a streaming route, a streaming route that stops reading early and a
+        route that has its body read for it.
+    """
+    router = Router(
+        [
+            ExactRoute(HttpMethod.POST, "/streamed", counted, streams_body=True),
+            ExactRoute(HttpMethod.POST, "/early", first_byte, streams_body=True),
+            ExactRoute(HttpMethod.POST, "/read", counted),
+        ]
+    )
+    return RequestAnswerer(router=router, policy=OriginPolicy())
+
+
+def test_the_router_names_the_routes_that_stream_their_body():
+    router = streaming_answerer().router
+    assert router.streams_body(HttpMethod.POST, "/streamed")
+    assert not router.streams_body(HttpMethod.POST, "/read")
+    assert not router.streams_body(HttpMethod.GET, "/streamed")
+    assert not router.streams_body(HttpMethod.POST, "/elsewhere")
+
+
+def test_a_body_read_into_memory_is_streamed_from_there():
+    stream = Request(method=HttpMethod.POST, path="/", body=b"0123456789").body_stream()
+    assert [len(chunk) for chunk in stream.chunks(size=4)] == [4, 4, 2]
+    assert stream.remaining() == 0
+    assert stream.read() == b""
+
+
+def test_a_streaming_route_reads_the_body_from_the_socket():
+    with HttpServer(answerer=streaming_answerer()) as server:
+        for route, expected in (("/streamed", b"0 10 3"), ("/read", b"10 10 3")):
+            posted = urllib.request.Request(
+                server.url() + route, method=HttpMethod.POST, data=b"0123456789"
+            )
+            with urllib.request.urlopen(posted) as answer:
+                assert answer.read() == expected
+
+
+def test_a_body_left_unread_ends_the_connection_after_the_answer():
+    with HttpServer(answerer=streaming_answerer()) as server:
+        host, port = server.server.server_address[:2]
+        with socket.create_connection((host, port)) as connection:
+            connection.sendall(
+                b"POST /early HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 10\r\n\r\n"
+                b"0123456789"
+            )
+            received = b""
+            while chunk := connection.recv(4096):
+                received += chunk
+        assert received.startswith(b"HTTP/1.1 200")
+        assert received.endswith(b"\r\n\r\n0")
+
+
 # %% dropped connections
 
 

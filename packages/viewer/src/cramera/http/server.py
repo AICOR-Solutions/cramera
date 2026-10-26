@@ -16,7 +16,14 @@ from urllib.parse import unquote, urlsplit
 from typing_extensions import Callable, List, Optional, Self, Tuple, Type
 
 from cramera.exceptions import ViewerError
-from cramera.http.messages import CacheDirective, Header, HttpMethod, Request, Response
+from cramera.http.messages import (
+    BodyStream,
+    CacheDirective,
+    Header,
+    HttpMethod,
+    Request,
+    Response,
+)
 from cramera.http.origin import OriginPolicy
 from cramera.http.routing import Router
 from cramera_protocol.exceptions import ProtocolError
@@ -57,6 +64,14 @@ class RequestAnswerer:
         if request.method is HttpMethod.OPTIONS:
             return self.policy.preflight(request)
         return self.policy.addressed(request, self.routed(request))
+
+    def streams_body(self, method: HttpMethod, path: str) -> bool:
+        """
+        :param method: A request's method.
+        :param path: A request's path.
+        :return: Whether the route answering such a request reads its body itself.
+        """
+        return self.router.streams_body(method, path)
 
     def routed(self, request: Request) -> Response:
         """
@@ -108,15 +123,23 @@ class RequestHandler(BaseHTTPRequestHandler):
         :param method: The request's method.
         """
         target = urlsplit(self.path)
+        path = unquote(target.path)
         length = int(self.headers.get(Header.CONTENT_LENGTH, "0") or "0")
+        stream = None
+        if length and self.answerer.streams_body(method, path):
+            stream = BodyStream(source=self.rfile, length=length)
         request = Request(
             method=method,
-            path=unquote(target.path),
+            path=path,
             query=target.query,
             headers=dict(self.headers.items()),
-            body=self.rfile.read(length) if length else b"",
+            body=self.rfile.read(length) if length and stream is None else b"",
+            stream=stream,
         )
         response = self.answerer.answer(request)
+        if stream is not None and stream.remaining() > 0:
+            # the unread rest of the body would be taken for the next request
+            self.close_connection = True
         self.send_response(response.status)
         self.send_header(Header.CONTENT_TYPE, response.media_type)
         self.send_header(Header.CONTENT_LENGTH, str(len(response.body)))

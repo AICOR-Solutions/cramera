@@ -102,7 +102,7 @@ export class BuilderApi {
 
   /**
    * @param {Blob} file A point cloud file.
-   * @param {string} format Its `PointCloudFormat` value.
+   * @param {string} format Its `PointCloudFormat` or `ScanFormat` value.
    * @returns {Promise<Object>} The kept point cloud as the catalog lists it.
    */
   upload(file, format) {

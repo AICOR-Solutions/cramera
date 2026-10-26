@@ -11,13 +11,13 @@ import {
   DraftRecordKey,
   DraftKey,
   InstanceKey,
-  PointCloudFormat,
   ResourceKey,
   ResourceKind,
+  ScanFormat,
 } from '../../../protocol.js';
 import { PageStatus } from '../../../core/page-status.js';
 import { DraftCheck } from './draft-check.js';
-import { BuilderHeader, DraftMenu, MenuActions, ViewToolbar } from './draft-menu.js';
+import { BuilderHeader, DraftMenu, MenuActions, UPLOAD_FORMATS, ViewToolbar } from './draft-menu.js';
 import { DraftRecovery } from './draft-recovery.js';
 import { DraftState } from './draft-state.js';
 import { DraftViewListeners, Selection, TransformMode } from './draft-view.js';
@@ -66,7 +66,7 @@ export class UnsupportedPointCloudFile extends Error {
    * @param {string} name The file's name.
    */
   constructor(name) {
-    super(`${name} is no ${Object.values(PointCloudFormat).join(' or ').toUpperCase()} file.`);
+    super(`${name} is no ${UPLOAD_FORMATS.join(', ').toUpperCase()} file.`);
     /**
      * The file's name.
      * @type {string}
@@ -392,8 +392,12 @@ export class BuilderPage {
    */
   async #upload(file, metres) {
     const format = file.name.split(SUFFIX_SEPARATOR).pop().toLowerCase();
-    if (!Object.values(PointCloudFormat).includes(format)) throw new UnsupportedPointCloudFile(file.name);
-    this.#status(`Checking and storing ${file.name}…`);
+    if (!UPLOAD_FORMATS.includes(format)) throw new UnsupportedPointCloudFile(file.name);
+    this.#status(
+      Object.values(ScanFormat).includes(format)
+        ? `Uploading ${file.name} and turning it into a point cloud; a large scan takes a few minutes…`
+        : `Checking and storing ${file.name}…`,
+    );
     const revision = this.#revision;
     const resource = await this.#environment.api.upload(file, format);
     const catalog = await this.#environment.api.catalog();
