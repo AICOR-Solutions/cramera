@@ -3,15 +3,16 @@ import { test } from 'node:test';
 
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 import { ViewerApi } from 'cramera-viewer/core/viewer-api.js';
-import { LaboratoryRoute, LiveInfoKey, LiveRoute, LiveStateKey, TaskRunKey, TaskRunState } from 'cramera-viewer/protocol.js';
-import { LaboratoryPage, viewerRootOf } from '../../src/cramera_laboratory/web/laboratory-page.js';
+import { DemoRoute, LaboratoryDemo, LaboratoryRoute, LiveInfoKey, LiveRoute, LiveStateKey, TaskRunKey, TaskRunState } from 'cramera-viewer/protocol.js';
+import { demoRoute } from '../../src/cramera_laboratory/web/laboratory-client.js';
+import { FollowingText, LaboratoryPage, viewerRootOf } from '../../src/cramera_laboratory/web/laboratory-page.js';
 import { Text } from '../../src/cramera_laboratory/web/laboratory-panel.js';
 import { FakeTimer, FakeView } from './fakes.mjs';
 
 const PAGE = 'http://viewer/demo/plugins/laboratory/laboratory.html';
 const PREVIEW = 'aicor_medical_lab_pr2';
 
-function environment({ previewAvailable = true, transfer = TaskRunState.UNAVAILABLE } = {}) {
+function environment({ previewAvailable = true, transfer = TaskRunState.UNAVAILABLE, workflow = TaskRunState.UNAVAILABLE } = {}) {
   const document = new FakeDocument();
   const root = document.createElement('main');
   const requested = [];
@@ -27,8 +28,8 @@ function environment({ previewAvailable = true, transfer = TaskRunState.UNAVAILA
   view.dispose = () => { view.disposed = true; };
   const fetch = async (url, options = {}) => {
     requested.push({ url, options });
-    if (url.includes('/transfer/live/')) {
-      const route = url.split('/transfer/live')[1];
+    if (url.includes(`/${DemoRoute.LIVE}`)) {
+      const route = url.split(`/${DemoRoute.LIVE}`)[1].replace(/^/, '/');
       const answer = route === LiveRoute.INFO
         ? { [LiveInfoKey.BUNDLE_SIGNATURE]: 'pr2-live-world', [LiveInfoKey.SCENE]: 'pr2-live', [LiveInfoKey.CAPABILITIES]: [] }
         : { [LiveStateKey.SEQUENCE_NUMBER]: 1, joints: { shoulder: 0.5 } };
@@ -38,7 +39,8 @@ function environment({ previewAvailable = true, transfer = TaskRunState.UNAVAILA
     const answers = {
       [LaboratoryRoute.LABORATORIES]: { laboratories: [{ name: 'aicor_medical_lab', title: 'Small lab' }], physicsAvailable: false },
       [LaboratoryRoute.DEVICES]: { devices: [] },
-      [LaboratoryRoute.TRANSFER_STATE]: { state: transfer, scene: 'aicor_medical_lab_pr2_transfer', liveUrl: transfer === TaskRunState.RUNNING ? '/api/plugins/laboratory/transfer/live/' : null },
+      [demoRoute(LaboratoryDemo.TRANSFER, DemoRoute.STATE)]: { state: transfer, scene: 'aicor_medical_lab_pr2_transfer', liveUrl: transfer === TaskRunState.RUNNING ? '/api/plugins/laboratory/transfer/live/' : null },
+      [demoRoute(LaboratoryDemo.WORKFLOW, DemoRoute.STATE)]: { state: workflow, scene: 'aicor_medical_lab_pr2_workflow', liveUrl: workflow === TaskRunState.RUNNING ? '/api/plugins/laboratory/workflow/live/' : null },
       [LaboratoryRoute.PREVIEW]: { scene: PREVIEW },
       [LaboratoryRoute.INSTALL]: { scene: 'aicor_medical_lab' },
       [LaboratoryRoute.START]: { scene: 'aicor_medical_lab_contact_physics' },
@@ -95,7 +97,7 @@ test('a running PR2 follows live poses through the prefixed local proxy, then op
   await intervals.get(100)();
   assert.equal(states.length, 1);
   assert.ok(root.innerText.includes('Following the local PR2'));
-  page.followTransfer({ [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: 'recorded-pr2' });
+  page.followDemo(LaboratoryDemo.TRANSFER, { [TaskRunKey.STATE]: TaskRunState.RECORDED, [TaskRunKey.SCENE]: 'recorded-pr2' });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(scenes.at(-1), 'recorded-pr2');
   assert.equal(intervals.size, 0);
@@ -126,5 +128,27 @@ test('the saved PR2 recording plays and seeks through the dedicated page timelin
   slider.value = '45';
   slider.dispatch('input');
   assert.equal(frames.at(-1), 45);
+  page.dispose();
+});
+
+test('an idle second demo does not end following the running one', async () => {
+  const { page, root, intervals } = environment({ transfer: TaskRunState.RUNNING, workflow: TaskRunState.IDLE });
+  await page.start();
+  await new Promise((resolve) => setImmediate(resolve));
+  const following = intervals.size;
+  page.followDemo(LaboratoryDemo.WORKFLOW, { [TaskRunKey.STATE]: TaskRunState.IDLE, [TaskRunKey.SCENE]: 'aicor_medical_lab_pr2_workflow' });
+  assert.ok(following > 0);
+  assert.equal(intervals.size, following);
+  assert.ok(root.innerText.includes(FollowingText[LaboratoryDemo.TRANSFER]));
+  page.dispose();
+});
+
+test('a running workflow is followed through its own live route', async () => {
+  const { page, root, scenes, requested } = environment({ workflow: TaskRunState.RUNNING });
+  await page.start();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(scenes, [PREVIEW, 'pr2-live']);
+  assert.ok(requested.some(({ url }) => url === 'http://viewer/demo/api/plugins/laboratory/workflow/live/info'));
+  assert.ok(root.innerText.includes(FollowingText[LaboratoryDemo.WORKFLOW]));
   page.dispose();
 });

@@ -19,14 +19,23 @@ from cramera_laboratory.task_runs import (
     LaboratoryTask,
     ProcessEnding,
     TaskProcess,
-    TaskRecording,
 )
-from cramera_protocol.laboratory.runs import TaskRunState, TransferOption
+from cramera_protocol.laboratory.runs import (
+    DemoRoute,
+    LaboratoryDemo,
+    TaskRunState,
+    TransferOption,
+)
 from cramera_protocol.bundle.files import BundleFile
 
 from .conftest import DATASET
 
-SCENE = TaskRecording.TRANSFER.value
+DEMO = LaboratoryDemo.TRANSFER
+"""
+The demo the stand-ins stand in for.
+"""
+
+SCENE = DEMO.recording.value
 """
 The recording the stand-in demos save.
 """
@@ -61,7 +70,7 @@ def stand_in(locations, script: str, packages=()) -> TaskProcess:
     """
     return TaskProcess(
         command=[sys.executable, str(DATASET / "tasks" / script), SCENE],
-        scene=SCENE,
+        demo=DEMO,
         locations=locations,
         packages=packages,
     )
@@ -122,26 +131,30 @@ def test_a_demo_without_its_packages_is_unavailable(locations):
     assert process.start().state is TaskRunState.UNAVAILABLE
 
 
-def test_the_laboratory_runs_its_transfer_as_a_module(locations):
-    process = TaskProcess.of_task(
-        LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, locations
-    )
+@pytest.mark.parametrize("demo", list(LaboratoryDemo))
+def test_the_laboratory_runs_each_demo_through_its_bridge_command(locations, demo):
+    process = TaskProcess.of_demo(demo, locations)
     assert process.command == [
         sys.executable,
         "-m",
-        LaboratoryTask.TRANSFER,
+        LaboratoryTask.COMMAND,
         TransferOption.BUNDLE,
         str(RESOURCES_DIRECTORY / LaboratoryResource.BENCH),
+        TransferOption.DEMO,
+        demo.value,
     ]
-    assert process.scene == TaskRecording.TRANSFER
+    assert process.scene == demo.recording
     assert process.log.parent.parent == locations.data
+
+
+def test_every_demo_keeps_a_log_of_its_own(locations):
+    logs = {TaskProcess.of_demo(demo, locations).log for demo in LaboratoryDemo}
+    assert len(logs) == len(LaboratoryDemo)
 
 
 def test_missing_bridge_leaves_the_transfer_unavailable(locations, monkeypatch):
     monkeypatch.setattr(task_runs.importlib.util, "find_spec", lambda package: None)
-    process = TaskProcess.of_task(
-        LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, locations
-    )
+    process = TaskProcess.of_demo(LaboratoryDemo.TRANSFER, locations)
     assert process.start().state is TaskRunState.UNAVAILABLE
     assert process.process is None
 
@@ -163,10 +176,10 @@ def test_an_older_bridge_without_the_laboratory_is_unavailable(tmp_path):
             "-c",
             "from pathlib import Path; "
             "from cramera.locations import DataLocations; "
-            "from cramera_laboratory.task_runs import "
-            "LaboratoryTask, TaskProcess, TaskRecording; "
-            "print(TaskProcess.of_task(LaboratoryTask.TRANSFER, "
-            "TaskRecording.TRANSFER, DataLocations(Path('data'), None)).state().state)",
+            "from cramera_laboratory.task_runs import TaskProcess; "
+            "from cramera_protocol.laboratory.runs import LaboratoryDemo; "
+            "print(TaskProcess.of_demo(LaboratoryDemo.TRANSFER, "
+            "DataLocations(Path('data'), None)).state().state)",
         ],
         cwd=tmp_path,
         env={**os.environ, "PYTHONPATH": os.pathsep.join(map(str, paths))},
@@ -185,13 +198,32 @@ def test_the_previous_bridge_cannot_start_a_run_with_unsupported_options(
     monkeypatch.setattr(task_runs.importlib.util, "find_spec", lambda package: object())
     monkeypatch.setattr(command, "missing_libraries", lambda: [])
     monkeypatch.delattr(command, "prepare_preview")
-    process = TaskProcess.of_task(
-        LaboratoryTask.TRANSFER, TaskRecording.TRANSFER, locations
-    )
+    process = TaskProcess.of_demo(LaboratoryDemo.TRANSFER, locations)
     state = process.start()
     assert state.state is TaskRunState.UNAVAILABLE
     assert state.can_run is False
     assert process.process is None
+
+
+@pytest.mark.parametrize("demo", list(LaboratoryDemo))
+def test_a_bridge_that_cannot_choose_the_demo_leaves_it_unavailable(
+    locations, monkeypatch, demo
+):
+    from cramera_bridge.laboratory import command
+
+    monkeypatch.setattr(task_runs.importlib.util, "find_spec", lambda package: object())
+    monkeypatch.setattr(command, "missing_libraries", lambda: [])
+    monkeypatch.delattr(command, "runner")
+    process = TaskProcess.of_demo(demo, locations)
+    assert process.start().state is TaskRunState.UNAVAILABLE
+    assert process.process is None
+
+
+def test_each_demo_is_followed_live_on_its_own_route(locations):
+    routes = {
+        TaskProcess.of_demo(demo, locations).live_route for demo in LaboratoryDemo
+    }
+    assert routes == {demo.route(DemoRoute.LIVE) for demo in LaboratoryDemo}
 
 
 def test_shutdown_kills_a_child_that_ignores_termination(locations, monkeypatch):
@@ -294,7 +326,7 @@ def native_stand_in(locations, *arguments) -> TaskProcess:
             str(DATASET / "tasks" / "native_recording_task.py"),
             *arguments,
         ],
-        scene=SCENE,
+        demo=DEMO,
         locations=locations,
         packages=(),
         fresh_recording=True,

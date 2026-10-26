@@ -26,6 +26,31 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+
+- **A longer PR2 demo on the medical lab page.** **PR2 lab workflow (CRAM)** re-sorts
+  the rack, stores a vessel in the refrigerator and loads a balanced pair into the
+  centrifuge, opening and closing the refrigerator's door and the centrifuge's lid and
+  driving smoothly between its stands at the bench; the page runs, follows and records
+  it like the vessel transfer, one demo at a time. Like the MuJoCo laboratory, it takes
+  a vessel for the refrigerator from the front with level fingers and pushes it in
+  with the base, and a vessel for the centrifuge from above with the tool leaning 30°
+  forwards about the fingers' closing direction, so the vessel's bottom clears the
+  rim. It pulls the lid open by its handle and pushes it on from below, since the
+  lid's hinge sits too far back for the PR2 to open it by the handle alone. Each robot
+  demo answers on its own routes, `LaboratoryDemo.route(DemoRoute…)`
+  (`transfer/state`, `workflow/state`, …), replacing `LaboratoryRoute.TRANSFER_*`;
+  `LaboratoryTask.TRANSFER` is now `LaboratoryTask.COMMAND`, which takes `--demo`.
+  The vessel handling the two demos share is `cramera_bridge.laboratory.handling`,
+  where a `VesselGrip` says how a vessel is taken, lifted and set down; driving,
+  tucking the arms with the base held and moving a door or a lid are
+  `cramera_bridge.laboratory.mobility`.
+
+  ![The medical lab page offering both PR2 demos](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/lab_page_two_demos.png)
+  ![The PR2 setting a vessel into its new rack slot](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/rack_re_sort.png)
+  ![A vessel stored in the refrigerator's upper shelf](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/refrigerator_storing.png)
+  ![The PR2 lowering a vessel into a centrifuge holder](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/centrifuge_loading.png)
+  ![The gripper above the centrifuge's rotor, leaning forwards](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/pr2-lab-workflow/centrifuge_holders.png)
+
 - **A recorded PR2 run in the medical lab as the repository's demo scene.**
   `demo/standard_scenes/aicor_medical_lab_pr2_workflow` replays the PR2 re-sorting
   the rack and opening and closing the refrigerator door and the centrifuge lid,
@@ -33,6 +58,7 @@ which this repository was mirrored until 22 Oct 2026.
   recorded answers, so `cramera --demo-scenes demo` shows it without CRAM.
 
   ![The PR2 lab workflow replayed from demo/standard_scenes](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/demo-standard-scenes/pr2_workflow_replay.png)
+
 - **The demo site is built for every pull request.** The site's build and screenshot
   run on pull requests too, without publishing, so a change that breaks the site fails
   before it is merged; a pull request's build never cancels the publishing of `main`.

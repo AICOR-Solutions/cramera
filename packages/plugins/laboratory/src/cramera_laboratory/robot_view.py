@@ -57,9 +57,9 @@ class RobotLaboratoryView:
     Prepares the real robot's initial view and reads its owned live publisher.
     """
 
-    transfer: TaskProcess
+    task: TaskProcess
     """
-    The task whose local environment, scene directory and publisher are used.
+    The demo whose local environment, scene directory and live publisher are used.
     """
 
     shelf: LaboratoryShelf
@@ -77,7 +77,7 @@ class RobotLaboratoryView:
         :return: The prepared initial scene containing the small lab and its PR2.
         :raises RobotDemoUnavailable: When this environment lacks the current bridge.
         """
-        if not self.transfer.available():
+        if not self.task.available():
             raise RobotDemoUnavailable(ROBOT_SETUP)
         from cramera_bridge.laboratory import command
 
@@ -87,7 +87,7 @@ class RobotLaboratoryView:
             try:
                 saved = command.prepare_preview(
                     str(self.shelf.laboratory(LaboratoryResource.BENCH).directory),
-                    str(self.transfer.locations.local_scenes),
+                    str(self.task.locations.local_scenes),
                 )
             except (ImportError, OSError) as error:
                 raise RobotDemoUnavailable(
@@ -104,7 +104,7 @@ class RobotLaboratoryView:
         """
         if path not in LIVE_READS:
             raise UnknownLiveRead(path)
-        address = self.transfer.live_address()
+        address = self.task.live_address()
         if address is None:
             raise RobotDemoUnavailable("The local PR2 demo is not publishing yet.")
         try:

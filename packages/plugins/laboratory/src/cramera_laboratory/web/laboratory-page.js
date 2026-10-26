@@ -14,13 +14,21 @@ import { saveVideo, VideoRecording } from '../../playback/video-recording.js';
 import { SceneLighting } from '../../scene/scene-lighting.js';
 import { SceneLoader } from '../../scene/scene-loader.js';
 import { SceneView } from '../../scene/scene-view.js';
-import { InstalledLaboratoryKey, LaboratoryChoiceKey, LaboratoryRoute, SceneKey, TaskRunKey, TaskRunState, ViewerEvent } from '../../protocol.js';
+import { InstalledLaboratoryKey, LaboratoryChoiceKey, LaboratoryDemo, LaboratoryRoute, SceneKey, TaskRunKey, TaskRunState, ViewerEvent } from '../../protocol.js';
 import { connectLaboratory } from './index.js';
 import { LaboratoryClient } from './laboratory-client.js';
 import { BrowserTimer } from './simulation-follower.js';
 
 /** The sole workbench offered by this page. */
 const BENCH = 'aicor_medical_lab';
+
+/**
+ * What the timeline says while it follows a robot demo, by `LaboratoryDemo` value.
+ */
+export const FollowingText = Object.freeze({
+  [LaboratoryDemo.TRANSFER]: 'Following the local PR2 vessel transfer. The recording appears here when it finishes.',
+  [LaboratoryDemo.WORKFLOW]: 'Following the local PR2 lab workflow. The recording appears here when it finishes.',
+});
 
 /** @returns {string} The viewer root, preserving a reverse proxy's path prefix. */
 export function viewerRootOf(page) {
@@ -58,9 +66,11 @@ export class LaboratoryPage {
   #live = null;
   /** The live endpoint followed, or null. */
   #liveUrl = null;
-  /** The most recent transfer state. */
-  #transfer = null;
-  /** Whether the initial view is ready for transfer updates. */
+  /** The most recent state of every robot demo, by `LaboratoryDemo` value. */
+  #runs = new Map();
+  /** The robot demo whose live run the view follows, or null. */
+  #followed = null;
+  /** Whether the initial view is ready for robot demo updates. */
   #started = false;
   /** Whether the page has been left. */
   #disposed = false;
@@ -113,7 +123,7 @@ export class LaboratoryPage {
     this.#parts = await connectLaboratory(
       { bus: this.bus, api: environment.api, view: this.#view },
       (name) => { this.disconnectLive(); return this.show(name); },
-      this.#document, environment.timer, environment.fetch, () => {}, (run) => this.followTransfer(run),
+      this.#document, environment.timer, environment.fetch, () => {}, (demo, run) => this.followDemo(demo, run),
     );
     if (this.#disposed) { this.#parts.dispose(); return; }
     this.#controls.replaceChildren(this.#parts.panel.panel.element);
@@ -128,7 +138,7 @@ export class LaboratoryPage {
     }
     await this.show(sceneOf(environment.location.href) ?? prepared[InstalledLaboratoryKey.SCENE]);
     this.#started = true;
-    if (this.#transfer) this.followTransfer(this.#transfer);
+    for (const [demo, run] of this.#runs) this.followDemo(demo, run);
   }
 
   /** Load any lab bundle in place, without restarting the page or losing controls. */
@@ -162,10 +172,14 @@ export class LaboratoryPage {
     }
   }
 
-  /** Follow a running local PR2 and automatically open its completed recording. */
-  followTransfer(run) {
-    const previous = this.#transfer;
-    this.#transfer = run;
+  /**
+   * Follow a robot demo's local PR2 while it runs and open its completed recording.
+   * @param {string} demo A `LaboratoryDemo` value.
+   * @param {Object} run The demo's state, keyed by `TaskRunKey`.
+   */
+  followDemo(demo, run) {
+    const previous = this.#runs.get(demo);
+    this.#runs.set(demo, run);
     if (!this.#started || this.#disposed) return;
     const state = run[TaskRunKey.STATE];
     const liveUrl = run[TaskRunKey.LIVE_URL];
@@ -173,6 +187,7 @@ export class LaboratoryPage {
       if (liveUrl === this.#liveUrl) return;
       this.disconnectLive();
       this.#liveUrl = liveUrl;
+      this.#followed = demo;
       const environment = this.#environment;
       const session = new LiveSession(new LiveClient(environment.fetch, environment.api.url(liveUrl)), environment.timers, this.bus,
         new LiveListener(
@@ -188,10 +203,10 @@ export class LaboratoryPage {
           () => {}, () => {}, () => {},
         ));
       this.#live = session;
-      this.#timeline.setLive(true, 'Following the local PR2 vessel transfer. The recording appears here when it finishes.');
+      this.#timeline.setLive(true, FollowingText[demo]);
       session.start();
     } else if (state !== TaskRunState.RUNNING) {
-      this.disconnectLive();
+      if (this.#followed === demo) this.disconnectLive();
       if (state === TaskRunState.RECORDED && previous?.[TaskRunKey.STATE] === TaskRunState.RUNNING) this.show(run[TaskRunKey.SCENE]);
     }
   }
@@ -201,6 +216,7 @@ export class LaboratoryPage {
     this.#live?.stop();
     this.#live = null;
     this.#liveUrl = null;
+    this.#followed = null;
     this.#timeline.setLive(false);
   }
 

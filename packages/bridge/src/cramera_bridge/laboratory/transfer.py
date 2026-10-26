@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 from typing_extensions import Dict, List, Optional
 
-from coraplex.datastructures.dataclasses import Context, MotionToleranceConfig
+from coraplex.datastructures.dataclasses import Context
 from coraplex.plans.factories import sequential
 from coraplex.plans.plan import Plan
 from coraplex.plans.plan_node import MotionNode
@@ -26,33 +26,14 @@ from coraplex.robot_plans.actions.core.placing import PlaceAction
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.callbacks.callback import StateChangeCallback
 from semantic_digital_twin.specifications.robots import RobotSpecification
-from semantic_digital_twin.collision_checking.collision_rules import (
-    AllowCollisionBetweenGroups,
-    AvoidCollisionBetweenGroups,
-)
-from semantic_digital_twin.datastructures.definitions import (
-    StaticJointState,
-    TorsoState,
-)
 from semantic_digital_twin.robots.pr2 import PR2
-from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
-from semantic_digital_twin.semantic_annotations.semantic_annotations import Container
-from semantic_digital_twin.spatial_types import (
-    HomogeneousTransformationMatrix,
-    Quaternion,
-    Pose,
-)
+from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world_description.world_entity import Body
 
 from cramera_bridge.exceptions import TaskFailed
-from cramera_bridge.robot_task import RobotTaskDemo
-from cramera_bridge.visualization import LiveVisualization
 from cramera_bridge.scenes.presentation import ScenePresentation
-from cramera_bridge.laboratory.grasping import (
-    PadContact,
-    RackPlaceAction,
-    VesselPickUpAction,
-)
+from cramera_bridge.laboratory.grasping import PadContact
+from cramera_bridge.laboratory.handling import VesselTaskDemo
 from cramera_protocol.laboratory.runs import TaskRecording
 from cramera_bridge.laboratory.world import LaboratoryEnvironment
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
@@ -307,53 +288,10 @@ class TransferObservation(StateChangeCallback):
 # %% demo
 
 
-@dataclass(frozen=True)
-class TransferSpeeds:
-    """
-    How fast the tool moves in each stage of the transfer, in metres per second: slow
-    near the glass and the rack's openings.
-    """
-
-    approach: float = 0.12
-    """
-    Towards the vessel.
-    """
-
-    final_approach: float = 0.025
-    """
-    The last part of the way to the grasp.
-    """
-
-    lift: float = 0.04
-    """
-    Lifting the vessel out of its slot.
-    """
-
-    transport: float = 0.08
-    """
-    Carrying the vessel above the target.
-    """
-
-    placing: float = 0.02
-    """
-    Lowering the vessel into its slot.
-    """
-
-    retract: float = 0.08
-    """
-    Moving away after letting go.
-    """
-
-
 @dataclass
-class VesselTransferDemo(RobotTaskDemo):
+class VesselTransferDemo(VesselTaskDemo):
     """
     A PR2 at the bench moves a vessel between two rack slots with its left arm.
-    """
-
-    live_url_file: Optional[Path] = None
-    """
-    Where the owning viewer reads this run's live address, or None for standalone use.
     """
 
     source_slot: str = "A1"
@@ -366,83 +304,16 @@ class VesselTransferDemo(RobotTaskDemo):
     The slot the vessel is placed in.
     """
 
-    lift: float = 0.16
-    """
-    How high the vessel is lifted out of the rack, clear of its neighbours, in metres.
-    """
-
-    position_tolerance: float = 0.0005
-    """
-    The tool's position tolerance at the rack, in metres.
-    """
-
-    orientation_tolerance: float = 0.003
-    """
-    The tool's orientation tolerance at the rack, in radians.
-    """
-
-    obstacle_clearance: float = 0.003
-    """
-    How far the gripper and the carried vessel keep from the laboratory, in metres.
-    """
-
-    closing_velocity: float = 0.1
-    """
-    How fast the fingers close, in radians per second.
-    """
-
-    finger_tolerance: float = 0.0001
-    """
-    How close the fingers come to their stop, in radians.
-    """
-
-    pad_clearance: float = 0.00025
-    """
-    The clearance each pad keeps from the glass, in metres.
-    """
-
-    approach_margin: float = 0.1
-    """
-    How far beyond the vessel's radius the approach starts, in metres.
-    """
-
-    tool_orientation: Quaternion = field(
-        default_factory=lambda: Quaternion.from_rpy(0, math.pi / 2, -math.pi / 4)
-    )
-    """
-    The tool's orientation relative to the upright vessel: from above, diagonal to the
-    rack's rows.
-    """
-
-    speeds: TransferSpeeds = field(default_factory=lambda: TransferSpeeds())
-    """
-    How fast the tool moves in each stage.
-    """
-
     observation: Optional[TransferObservation] = field(init=False, default=None)
     """
     The measurements of the current run, once its plan is built.
     """
 
-    plan: Optional[Plan] = field(init=False, default=None)
-    """
-    The current run's plan, once it is built.
-    """
-
-    @property
-    def laboratory(self) -> LaboratoryEnvironment:
-        """
-        The laboratory environment.
-        """
-        return self.environment
-
     def vessel_key(self) -> str:
         """
         :return: The vessel starting in the source slot.
         """
-        return {
-            placement.slot: placement.key for placement in self.laboratory.bench.tubes
-        }[self.source_slot]
+        return self.vessel_in(self.source_slot)
 
     def build_context(self, world) -> Context:
         """
@@ -455,43 +326,9 @@ class VesselTransferDemo(RobotTaskDemo):
         :param world: The world built for the task.
         :return: The context with tight tolerances at the rack.
         """
-        robot = world.get_semantic_annotations_by_type(PR2)[0]
-        robot.mobile_base.full_body_controlled = False
-        with world.modify_world():
-            world.set_dofs_has_hardware_interface(robot.drive.active_dofs, False)
-        for arm in (robot.left_arm, robot.right_arm):
-            arm.get_joint_state_by_type(StaticJointState.PARK).apply_to(world)
-        robot.torso.get_joint_state_by_type(TorsoState.HIGH).apply_to(world)
-        for connection in robot.torso.active_connections:
-            connection.position = connection.dof.limits.upper.position
-        body = world.get_body_by_name(self.vessel_key())
-        gripper = robot.left_arm.end_effector.bodies_with_collision
-        obstacles = [
-            item
-            for item in world.bodies
-            if item not in robot.bodies and item is not body and item.collision
-        ]
-        with world.modify_world():
-            world.collision_manager.add_ignore_collision_rule(
-                AllowCollisionBetweenGroups(body_group_a=gripper, body_group_b=[body])
-            )
-            for group in (gripper, [body]):
-                world.collision_manager.add_default_rule(
-                    AvoidCollisionBetweenGroups(
-                        body_group_a=group,
-                        body_group_b=obstacles,
-                        buffer_zone_distance=self.obstacle_clearance,
-                        violated_distance=0.0,
-                    )
-                )
-        return Context(
-            world=world,
-            robot=robot,
-            motion_tolerances=MotionToleranceConfig(
-                default_tcp_position_threshold=self.position_tolerance,
-                tool_orientation_threshold=self.orientation_tolerance,
-            ),
-        )
+        robot = self.posture(world)
+        self.keep_clear(world, robot, [world.get_body_by_name(self.vessel_key())])
+        return self.tight_context(world, robot)
 
     def build_plan(self, context: Context) -> Plan:
         """
@@ -501,25 +338,7 @@ class VesselTransferDemo(RobotTaskDemo):
         key = self.vessel_key()
         body = context.world.get_body_by_name(key)
         bench = self.laboratory.bench
-        tool_pose = Pose.from_xyz_quaternion(
-            0,
-            0,
-            self.laboratory.vessels.grasp_height,
-            *self.tool_orientation.to_np(),
-            reference_frame=body,
-        )
-        gripper = context.robot.left_arm.end_effector
-        grasp = GraspCandidate(
-            Container(root=body),
-            Pose(
-                position=tool_pose.homogeneous_matrix
-                @ gripper.tool_P_grasp_when_closed,
-                orientation=(
-                    tool_pose.rotation_matrix @ gripper.tool_R_grasp
-                ).quaternion,
-                reference_frame=body,
-            ),
-        )
+        grasp = self.grasp(context, body)
         others = [
             context.world.get_body_by_name(placement.key)
             for placement in bench.tubes
@@ -529,28 +348,9 @@ class VesselTransferDemo(RobotTaskDemo):
             others.append(context.world.get_body_by_name(bench.stopper.key))
         plan = sequential(
             [
-                VesselPickUpAction(
-                    grasp=grasp,
-                    arm=context.robot.left_arm,
-                    approach_clearance=self.laboratory.vessels.outer_radius
-                    + self.approach_margin,
-                    retreat_distance=self.lift,
-                    pre_approach_linear_velocity=self.speeds.approach,
-                    final_approach_linear_velocity=self.speeds.final_approach,
-                    lift_linear_velocity=self.speeds.lift,
-                    grasp_closing_velocity=self.closing_velocity,
-                    grasp_joint_position_threshold=self.finger_tolerance,
-                    contact_clearance=self.pad_clearance,
-                ),
-                RackPlaceAction(
-                    grasp.graspable,
-                    self.laboratory.slot_pose(self.target_slot, context.world),
-                    approach_clearance=self.laboratory.vessels.outer_radius
-                    + self.approach_margin,
-                    retreat_distance=self.lift,
-                    transport_linear_velocity=self.speeds.transport,
-                    placing_linear_velocity=self.speeds.placing,
-                    retract_linear_velocity=self.speeds.retract,
+                self.pick_up(context, grasp),
+                self.place(
+                    grasp, self.laboratory.slot_pose(self.target_slot, context.world)
                 ),
             ],
             context=context,
@@ -572,28 +372,16 @@ class VesselTransferDemo(RobotTaskDemo):
         self.plan = plan
         return plan
 
-    def on_live_started(self, visualization: LiveVisualization) -> None:
-        """
-        :param visualization: The started server whose real port the viewer needs.
-        """
-        if self.live_url_file is not None:
-            self.live_url_file.parent.mkdir(parents=True, exist_ok=True)
-            self.live_url_file.write_text(visualization.url(), encoding="utf-8")
-
     def run(self) -> SavedScene:
         """
-        :return: The measured recording; release observation and announcement on failure
-            as well as success.
+        :return: The measured recording; release observation on failure as well as
+            success.
         """
-        if self.live_url_file is not None:
-            self.live_url_file.unlink(missing_ok=True)
         try:
             return super().run()
         finally:
             if self.observation is not None:
                 self.observation.stop()
-            if self.live_url_file is not None:
-                self.live_url_file.unlink(missing_ok=True)
 
     def measure(self, context: Context) -> AcceptanceMetrics:
         """

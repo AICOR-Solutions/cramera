@@ -4,7 +4,7 @@
  */
 
 import { RequestFailed } from '../../core/viewer-api.js';
-import { ErrorKey, LaboratoryName, LaboratoryRoute, ViewerRoute } from '../../protocol.js';
+import { DemoRoute, ErrorKey, LaboratoryName, LaboratoryRoute, ViewerRoute } from '../../protocol.js';
 
 /**
  * The media type of the JSON bodies the routes take and answer.
@@ -15,6 +15,15 @@ const JSON_MEDIA_TYPE = 'application/json';
  * The HTTP method of the routes that change something.
  */
 const POST = 'POST';
+
+/**
+ * @param {string} demo A `LaboratoryDemo` value.
+ * @param {string} route A `DemoRoute` value.
+ * @returns {string} The demo's own route, below the laboratory's prefix.
+ */
+export function demoRoute(demo, route) {
+  return `${demo}/${route}`;
+}
 
 // %% client
 
@@ -72,10 +81,11 @@ export class LaboratoryClient {
   }
 
   /**
-   * @returns {Promise<Object>} The PR2 vessel transfer demo's state.
+   * @param {string} demo A `LaboratoryDemo` value.
+   * @returns {Promise<Object>} The robot demo's state, keyed by `TaskRunKey`.
    */
-  transfer() {
-    return this.#api.json(this.url(LaboratoryRoute.TRANSFER_STATE));
+  demo(demo) {
+    return this.#api.json(this.url(demoRoute(demo, DemoRoute.STATE)));
   }
 
   /**

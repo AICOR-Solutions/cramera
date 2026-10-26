@@ -12,6 +12,7 @@ from pathlib import Path
 from typing_extensions import List
 
 from cramera.exceptions import ViewerError
+from cramera_protocol.laboratory.runs import LaboratoryDemo
 
 # %% base
 
@@ -42,6 +43,24 @@ class RobotDemoUnavailable(LaboratoryError):
 
     def message(self) -> str:
         return self.reason
+
+
+@dataclass
+class DemoBusy(LaboratoryError):
+    """
+    Another robot demo runs; the laboratory runs one at a time.
+    """
+
+    running: LaboratoryDemo
+    """
+    The demo that runs.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.CONFLICT
+
+    def message(self) -> str:
+        return f"The {self.running.value} demo runs; end it before starting another."
 
 
 @dataclass
