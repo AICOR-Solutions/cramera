@@ -97,6 +97,12 @@ class LiveParameter(StrEnum):
     A file beside the served mesh, such as its material library.
     """
 
+    REVISION = "revision"
+    """
+    The revision of the query steps the viewer shows, for
+    :attr:`~cramera_protocol.live.LiveRoute.QUERY_STEPS`.
+    """
+
 
 # %% state
 

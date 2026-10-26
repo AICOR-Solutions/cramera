@@ -35,6 +35,7 @@ from cramera_bridge.questions.knowledge import (
     InMemoryEvaluation,
     QueryDomain,
     QueryEvaluation,
+    TranslatedEvaluation,
 )
 from cramera_bridge.questions.replay import ReplayMoment
 from cramera_bridge.questions.verbalization import QueryVerbalizer
@@ -377,4 +378,7 @@ class QueryRunner:
         if not isinstance(built, Evaluable):
             return renderer.answer(built)
         verbalization = self.verbalizer.verbalize(built)
-        return renderer.answer(self.evaluation.evaluate(built), verbalization)
+        answer = renderer.answer(self.evaluation.evaluate(built), verbalization)
+        if isinstance(self.evaluation, TranslatedEvaluation):
+            answer.translation = self.evaluation.translate(built)
+        return answer

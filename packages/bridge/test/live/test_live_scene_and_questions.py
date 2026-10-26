@@ -33,6 +33,7 @@ from cramera_protocol.questions import (
 from cramera_bridge.questions.presets import RobotQuestion
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Point3
+from semantic_digital_twin.world_description.geometry import Box, Scale
 
 from .conftest import dataset_body, live_request
 
@@ -58,6 +59,13 @@ def test_a_model_change_changes_the_signature(publisher, kitchen):
     with kitchen.world.modify_world():
         kitchen.world.remove_connection(kitchen.table.parent_connection)
         kitchen.world.remove_kinematic_structure_entity(kitchen.table)
+    assert WorldSignature(publisher.model, None).digest() != before
+
+
+def test_a_body_drawn_anew_changes_the_signature(publisher, kitchen):
+    before = WorldSignature(publisher.model, None).digest()
+    with kitchen.world.modify_world():
+        kitchen.table.visual.shapes[0] = Box(scale=Scale(2.0, 0.6, 0.05))
     assert WorldSignature(publisher.model, None).digest() != before
 
 

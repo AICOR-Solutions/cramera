@@ -327,6 +327,62 @@ class UnknownPerceptionImage(CramPublisherError):
 
 
 @dataclass
+class NoResolutionExecution(Conflict):
+    """
+    A request to carry out a resolved plan in a process that carries out none on
+    request.
+    """
+
+    def message(self) -> str:
+        return "This process carries out no resolved plans on request."
+
+
+@dataclass
+class UnknownResolution(CramPublisherError):
+    """
+    A resolution identity no published resolution carries.
+    """
+
+    identifier: str
+    """
+    The identity that was given.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return f"No resolution {self.identifier!r} was published."
+
+
+@dataclass
+class ResolutionNotExecutable(Conflict):
+    """
+    A request to carry out a resolution whose plan cannot be carried out.
+    """
+
+    identifier: str
+    """
+    The identity of the resolution.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The plan resolution {self.identifier!r} resolved cannot be carried out."
+        )
+
+
+@dataclass
+class NoQueryStepping(Conflict):
+    """
+    A request to step through the queries of a process that cannot be held at them.
+    """
+
+    def message(self) -> str:
+        return "This process cannot be held at the queries it asks."
+
+
+@dataclass
 class MarkersUnavailable(Conflict):
     """
     A marker topic change in a process that reads no markers from ROS.
