@@ -5,7 +5,8 @@ The transfer finds its robot, the bench's handles and the vessel it carries with
 queries, and every query asked on the run's thread, the plan's own included, is
 published as a query step and holds the run until the viewer's **Next** moves it on.
 
-``python -m cramera_bridge.demos.query_stepping --bundle ~/.cramera/scenes/aicor_medical_lab``
+``python -m cramera_bridge.demos.query_stepping --bundle DIR``, where ``DIR`` is a scene
+bundle such as ``~/.cramera/scenes/aicor_medical_lab``.
 """
 
 from __future__ import annotations
