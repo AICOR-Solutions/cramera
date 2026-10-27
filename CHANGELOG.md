@@ -313,6 +313,9 @@ which this repository was mirrored until 22 Oct 2026.
   meshes are now found beside the URDF.
 
 ### Changed
+- **The Medical lab page is called Physical lab.** Its top-bar link, page title,
+  heading and panel say **Physical lab**; the page stays at
+  `/plugins/laboratory/laboratory.html` and the scenes keep their names.
 - **A new plan starts without a robot.** The plan builder no longer adds one to a new
   plan; the Robots section asks for one and its **Add** picks the model used last, else
   the one offering the most actions. The last robot can be removed again.

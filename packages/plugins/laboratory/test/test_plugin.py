@@ -200,7 +200,7 @@ def test_the_viewer_lists_the_laboratory_as_its_own_page(answerer):
     assert plugin.name == LaboratoryName.PLUGIN
     assert plugin.module is None
     assert plugin.navigation.page == "/plugins/laboratory/laboratory.html"
-    assert plugin.navigation.title == "Medical lab"
+    assert plugin.navigation.title == "Physical lab"
 
 
 def test_the_plugin_has_its_own_laboratory_navigation_entry():
