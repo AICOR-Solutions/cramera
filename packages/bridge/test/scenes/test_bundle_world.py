@@ -71,7 +71,7 @@ def test_the_robot_of_a_bundle_is_left_to_the_caller(world, scene):
 def test_joints_start_at_the_first_recorded_values(world, annotated_bundle, scene):
     first = DocumentFile(annotated_bundle / scene.trajectory).read(Trajectory).frames[0]
     joints = {
-        str(connection.name): connection.position
+        connection.name.name: connection.position
         for connection in world.connections
         if isinstance(connection, ActiveConnection1DOF)
     }

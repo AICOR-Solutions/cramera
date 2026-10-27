@@ -293,7 +293,9 @@ class BundleEnvironment(SceneEnvironment):
             connection = body.parent_connection
             if not isinstance(connection, ActiveConnection1DOF):
                 continue
-            value = self.contents.initial_joint_values.get(str(connection.name))
+            # The trajectory names a joint as the URDF writes it; the parser prefixes
+            # it with the model's name.
+            value = self.contents.initial_joint_values.get(connection.name.name)
             if value is not None:
                 connection.position = value
         return {body.name.name: body for body in bodies}

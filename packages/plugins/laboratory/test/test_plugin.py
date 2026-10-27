@@ -17,6 +17,7 @@ from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_laboratory.devices import DeviceFile, LaboratoryDevice
 from cramera_laboratory.plugin import COMMAND_ROUTES, LaboratoryPlugin
 from cramera_laboratory.resources import LaboratoryResource
+from cramera_laboratory.task_runs import TaskProcess
 from cramera_protocol.laboratory.runs import (
     DemoRoute,
     LaboratoryDemo,
@@ -122,7 +123,11 @@ def test_every_demo_names_its_recording_on_its_own_route(get, demo):
     assert run.scene == demo.recording
 
 
-def test_an_existing_recording_is_not_run_again(post, locations):
+def test_a_demo_that_cannot_run_offers_its_existing_recording(
+    post, locations, monkeypatch
+):
+    # A demo that can run records anew beside the earlier recordings instead.
+    monkeypatch.setattr(TaskProcess, "available", lambda self: False)
     demo = LaboratoryDemo.TRANSFER
     bundle = locations.local_scenes / demo.recording
     bundle.mkdir(parents=True)

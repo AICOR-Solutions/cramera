@@ -22,8 +22,8 @@ from cramera_bridge.export.urdf import (
     UrdfElement,
     UrdfJointType,
 )
+from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.files import BundleFile
-from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.spatial_types import Vector3
 from semantic_digital_twin.world_description.connections import (
@@ -70,7 +70,7 @@ def links_of(path):
 def test_a_kitchen_round_trips_through_its_urdf(kitchen, tmp_path):
     bodies = kitchen.world.bodies_topologically_sorted
     report = document(kitchen.world, tmp_path).write(bodies, "kitchen")
-    parsed = URDFParser.from_file(str(tmp_path / report.urdf), prefix="").parse()
+    parsed = SceneEnvironment.parse_model(tmp_path / report.urdf, prefix="")
     assert {str(body.name) for body in parsed.bodies} == {ROOT_LINK} | {
         str(body.name) for body in bodies
     }
@@ -174,15 +174,17 @@ def test_a_robot_keeps_its_joints_and_limits(robot_world, tmp_path):
     report = document(world, tmp_path).write(
         world.bodies_topologically_sorted, "pr2", identity_root=robot_world.robot.root
     )
-    parsed = URDFParser.from_file(str(tmp_path / report.urdf), prefix="").parse()
+    parsed = SceneEnvironment.parse_model(tmp_path / report.urdf, prefix="")
     original = {
         str(connection.name): type(connection).__name__
         for connection in world.connections
     }
+    # The parser prefixes every joint with the robot's name; the bare name is the
+    # joint's name as the URDF writes it.
     written = {
-        str(connection.name): type(connection).__name__
+        connection.name.name: type(connection).__name__
         for connection in parsed.connections
-        if str(connection.name) in original
+        if connection.name.name in original
     }
     assert written == original
     assert "pr2/torso_lift_joint" in report.movable_joints

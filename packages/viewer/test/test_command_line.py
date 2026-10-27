@@ -184,7 +184,10 @@ def test_the_viewer_command_serves_until_terminated(tmp_path):
         text=True,
         env=environment,
     )
-    announced = process.stderr.readline()
+    # Plugins may warn while they load, before the viewer announces its address.
+    announced = next(
+        line for line in iter(process.stderr.readline, "") if "cramera serves" in line
+    )
     url = announced.strip().rsplit(" ", 1)[-1]
     with urllib.request.urlopen(url + ViewerRoute.INFO) as answer:
         assert answer.status == HTTPStatus.OK
