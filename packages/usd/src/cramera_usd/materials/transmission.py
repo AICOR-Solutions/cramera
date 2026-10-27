@@ -42,6 +42,11 @@ The normalization of the cosine-weighted hemisphere, ``2 * cosine`` integrating 
 over cosines from 0 to 1.
 """
 
+NORMAL_INCIDENCE = 1.0
+"""
+The cosine of the angle of incidence of light falling straight onto a surface.
+"""
+
 # %% blending
 
 

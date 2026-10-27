@@ -28,11 +28,13 @@ from cramera_usd.materials.omni_pbr import (
 )
 from cramera_usd.materials.omni_surface import OmniSurfaceInput, OmniSurfaceMapping
 from cramera_usd.materials.physically_based import (
+    BLACK,
     AlphaMode,
     PhysicallyBasedMaterial,
     TextureTransform,
 )
 from cramera_usd.materials.preview_surface import PreviewSurfaceInput
+from cramera_usd.materials.transmission import NORMAL_INCIDENCE
 from cramera_usd.materials.transmission import TransmissionBlending
 from cramera_usd.scene.materials import (
     AuthoredMaterial,
@@ -653,6 +655,41 @@ def test_preview_surface_opacity_blends_and_texture_replaces_colour():
     assert material.base_color_factor == (1.0, 1.0, 1.0, 0.4)
     assert material.alpha_mode is AlphaMode.BLEND
     assert material.metallic_factor == 0.2
+
+
+def test_preview_surface_specular_workflow_scales_the_reflectance_of_the_index_of_refraction():
+    specular = (0.02, 0.04, 0.08)
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Glaze",
+            MaterialSource.PREVIEW_SURFACE,
+            {
+                PreviewSurfaceInput.USE_SPECULAR_WORKFLOW: 1,
+                PreviewSurfaceInput.SPECULAR_COLOR: specular,
+                PreviewSurfaceInput.METALLIC: 0.7,
+            },
+        )
+    )
+    reflectance = TransmissionBlending.fresnel_reflectance(
+        NORMAL_INCIDENCE, material.index_of_refraction
+    )
+    assert material.specular_color_factor == pytest.approx(
+        tuple(channel / reflectance for channel in specular)
+    )
+    assert material.metallic_factor == 0.0
+    assert material.unmapped_inputs == ()
+
+
+def test_preview_surface_specular_workflow_without_specular_colour_reflects_nothing_head_on():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Cup",
+            MaterialSource.PREVIEW_SURFACE,
+            {PreviewSurfaceInput.USE_SPECULAR_WORKFLOW: 1},
+        )
+    )
+    assert material.specular_color_factor == BLACK
+    assert material.unmapped_inputs == ()
 
 
 def test_unbound_geometry_without_display_colour_is_fallback_grey():
