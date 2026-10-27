@@ -1,0 +1,251 @@
+{
+ "name": "garmi_pick_place",
+ "formatVersion": "1.0",
+ "framesPerSecond": 186.21,
+ "trajectory": "trajectory.json",
+ "models": [
+  {
+   "name": "environment",
+   "urdf": "environment.urdf",
+   "prefix": "",
+   "robot": false,
+   "links": 81,
+   "movableJoints": [
+    "map_T_world",
+    "cabinet_door_4_joint",
+    "cabinet_door_3_joint",
+    "cabinet_door_2_joint",
+    "cabinet_door_1_joint",
+    "drawer_4_joint",
+    "drawer_3_joint",
+    "drawer_2_joint",
+    "drawer_1_joint",
+    "world_T_book_10",
+    "world_T_book_9",
+    "world_T_book_8",
+    "world_T_book_7",
+    "world_T_book_6",
+    "world_T_book_5",
+    "world_T_book_4",
+    "world_T_book_3",
+    "world_T_book_2",
+    "world_T_book_1",
+    "world_T_book_0",
+    "world_T_chair_1",
+    "world_T_chair_0",
+    "world_T_dining_table_0",
+    "world_T_floor_lamp_0",
+    "door_2_leaf",
+    "door_1_leaf",
+    "door_0_leaf",
+    "map_T_odom_combined"
+   ],
+   "posedJoints": []
+  },
+  {
+   "name": "garmi",
+   "urdf": "garmi.urdf",
+   "prefix": "",
+   "robot": true,
+   "links": 64,
+   "movableJoints": [
+    "r100-0603/lift_0_lower_joint",
+    "r100-0603/lift_0_upper_joint",
+    "r100-0603/o1_motor_1",
+    "r100-0603/o1_motor_2",
+    "r100-0603/right_fr3_joint1",
+    "r100-0603/right_fr3_joint2",
+    "r100-0603/right_fr3_joint3",
+    "r100-0603/right_fr3_joint4",
+    "r100-0603/right_fr3_joint5",
+    "r100-0603/right_fr3_joint6",
+    "r100-0603/right_fr3_joint7",
+    "r100-0603/right_fr3_finger_joint2",
+    "r100-0603/right_fr3_finger_joint1",
+    "r100-0603/left_fr3_joint1",
+    "r100-0603/left_fr3_joint2",
+    "r100-0603/left_fr3_joint3",
+    "r100-0603/left_fr3_joint4",
+    "r100-0603/left_fr3_joint5",
+    "r100-0603/left_fr3_joint6",
+    "r100-0603/left_fr3_joint7",
+    "r100-0603/left_fr3_finger_joint2",
+    "r100-0603/left_fr3_finger_joint1",
+    "r100-0603/rear_right_wheel_joint",
+    "r100-0603/rear_left_wheel_joint",
+    "r100-0603/front_right_wheel_joint",
+    "r100-0603/front_left_wheel_joint"
+   ],
+   "posedJoints": []
+  }
+ ],
+ "robot": {
+  "name": "garmi",
+  "prefix": "r100-0603",
+  "baseBody": "base_link",
+  "parts": {
+   "GarmiLeftArm": [
+    "arm_mount_left_link",
+    "left_fr3_link0",
+    "left_fr3_link1",
+    "left_fr3_link2",
+    "left_fr3_link3",
+    "left_fr3_link4",
+    "left_fr3_link5",
+    "left_fr3_link6",
+    "left_fr3_link7",
+    "left_fr3_link8"
+   ],
+   "GarmiLeftGripper": [
+    "left_fr3_hand",
+    "left_fr3_hand_tcp",
+    "left_fr3_leftfinger",
+    "left_fr3_rightfinger"
+   ],
+   "GarmiRightArm": [
+    "arm_mount_right_link",
+    "right_fr3_link0",
+    "right_fr3_link1",
+    "right_fr3_link2",
+    "right_fr3_link3",
+    "right_fr3_link4",
+    "right_fr3_link5",
+    "right_fr3_link6",
+    "right_fr3_link7",
+    "right_fr3_link8"
+   ],
+   "GarmiRightGripper": [
+    "right_fr3_hand",
+    "right_fr3_hand_tcp",
+    "right_fr3_leftfinger",
+    "right_fr3_rightfinger"
+   ]
+  },
+  "partAnnotations": [
+   {
+    "name": "GarmiLeftArm",
+    "role": "arm",
+    "side": "left",
+    "links": [
+     "arm_mount_left_link",
+     "left_fr3_link0",
+     "left_fr3_link1",
+     "left_fr3_link2",
+     "left_fr3_link3",
+     "left_fr3_link4",
+     "left_fr3_link5",
+     "left_fr3_link6",
+     "left_fr3_link7",
+     "left_fr3_link8"
+    ]
+   },
+   {
+    "name": "GarmiLeftGripper",
+    "role": "end_effector",
+    "side": "left",
+    "links": [
+     "left_fr3_hand",
+     "left_fr3_hand_tcp",
+     "left_fr3_leftfinger",
+     "left_fr3_rightfinger"
+    ],
+    "attachedTo": "GarmiLeftArm"
+   },
+   {
+    "name": "GarmiRightArm",
+    "role": "arm",
+    "side": "right",
+    "links": [
+     "arm_mount_right_link",
+     "right_fr3_link0",
+     "right_fr3_link1",
+     "right_fr3_link2",
+     "right_fr3_link3",
+     "right_fr3_link4",
+     "right_fr3_link5",
+     "right_fr3_link6",
+     "right_fr3_link7",
+     "right_fr3_link8"
+    ]
+   },
+   {
+    "name": "GarmiRightGripper",
+    "role": "end_effector",
+    "side": "right",
+    "links": [
+     "right_fr3_hand",
+     "right_fr3_hand_tcp",
+     "right_fr3_leftfinger",
+     "right_fr3_rightfinger"
+    ],
+    "attachedTo": "GarmiRightArm"
+   }
+  ]
+ },
+ "objects": [
+  {
+   "id": "spoon",
+   "key": "spoon.stl",
+   "spawn": [
+    -0.09,
+    7.28304,
+    0.8,
+    0.0,
+    0.0,
+    0.70711,
+    0.70711
+   ],
+   "color": "#f3f0ea",
+   "height": 0.01891,
+   "mesh": "meshes/objects/spoon.stl.stl"
+  },
+  {
+   "id": "bowl",
+   "key": "bowl.stl",
+   "spawn": [
+    0.0,
+    7.2,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "color": "#cf5b3a",
+   "height": 0.06713,
+   "mesh": "meshes/objects/bowl.stl.stl"
+  }
+ ],
+ "segments": [
+  {
+   "step": "run",
+   "start": 0,
+   "end": 1491
+  },
+  {
+   "step": "PickUpAction",
+   "start": 1491,
+   "end": 5579,
+   "picks": "bowl.stl",
+   "attach": 1491,
+   "detach": 4127
+  },
+  {
+   "step": "GraspingAction",
+   "start": 5579,
+   "end": 12586,
+   "picks": "spoon.stl",
+   "attach": 5579,
+   "detach": 11687
+  }
+ ],
+ "planTrees": [],
+ "actions": [],
+ "detectedEvents": [],
+ "missingAssets": [],
+ "task": "GARMI: picks up a bowl and a spoon",
+ "robotName": "GARMI",
+ "environmentName": "Apartment",
+ "bundleSignature": "world-4e2cdfa86be5f783-robot-garmi",
+ "worldBound": true
+}

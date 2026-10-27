@@ -26,6 +26,15 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **GARMI's pick and place in an apartment as a demo scene.**
+  `demo/standard_scenes/garmi_pick_place` replays GARMI picking up a bowl and then a
+  spoon, 1 min 8 s, taken from the pre-1.0 viewer at cramera.informatik.uni-bremen.de
+  and rewritten by `cramera-upgrade-bundle`, with recorded answers, so
+  `cramera --demo-scenes demo` shows it without CRAM. The recording has its steps on
+  the timeline but no plan or statechart.
+
+  ![GARMI in the apartment, replayed from demo/standard_scenes](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/garmi-pick-place/garmi_pick_place_replay.png)
+
 - **A recorded run's queries, stepped through in its replay.** A recording keeps the
   query steps its run published in `query_steps.json`, named by the scene's
   `querySteps`, and the Queries panel of its replay steps through them with **Next**,
