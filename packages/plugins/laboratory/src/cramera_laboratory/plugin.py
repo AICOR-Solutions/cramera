@@ -447,7 +447,9 @@ class LaboratoryPlugin(ViewerPlugin):
         return None
 
     def navigation(self) -> PageEntry:
-        return PageEntry("Medical lab", NavigationGroup.LABORATORY, LaboratoryFile.PAGE)
+        return PageEntry(
+            "Physical lab", NavigationGroup.LABORATORY, LaboratoryFile.PAGE
+        )
 
     def close(self) -> None:
         """

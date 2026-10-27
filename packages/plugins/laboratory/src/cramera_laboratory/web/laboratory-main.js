@@ -1,4 +1,4 @@
-/** Starts the dedicated medical laboratory page. */
+/** Starts the dedicated physical lab page. */
 
 import { ViewerApi } from '../../core/viewer-api.js';
 import { LaboratoryPage, viewerRootOf } from './laboratory-page.js';

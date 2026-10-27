@@ -41,7 +41,7 @@ async function open(parts) {
 
 test('the page connects its controls without needing a viewer panel host', async () => {
   const { parts } = await connected();
-  assert.equal(parts.panel.panel.title, 'Medical lab');
+  assert.equal(parts.panel.panel.title, 'Physical lab');
   assert.ok(parts.panel.laboratories.innerText.includes(Text.LABORATORIES));
   parts.dispose();
 });

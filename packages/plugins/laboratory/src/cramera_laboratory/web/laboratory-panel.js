@@ -89,7 +89,7 @@ const Decimals = Object.freeze({ VOLUME: 2, MASS: 3, FORCE: 3, TIME: 1, SPEED: 0
  * The texts the panel shows.
  */
 export const Text = Object.freeze({
-  TITLE: 'Medical lab',
+  TITLE: 'Physical lab',
   LABORATORIES: 'Small medical laboratory',
   OPEN: 'Open',
   SIMULATE: 'Simulate with contact physics',

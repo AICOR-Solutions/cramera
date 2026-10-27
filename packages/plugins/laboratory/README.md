@@ -1,6 +1,6 @@
 # cramera-laboratory
 
-**Medical lab** is a dedicated page in cramera's top bar, with its own 3D view,
+**Physical lab** is a dedicated page in cramera's top bar, with its own 3D view,
 controls and playback timeline. It opens the compact AICOR workbench with the
 real PR2, runs the complete vessel-transfer demo locally, follows its live motion
 and replays its recording. The small scene and five device bundles are shipped;
@@ -21,7 +21,7 @@ source .venv/bin/activate
 cramera --no-browser --keep-running
 ```
 
-Open [Medical lab](http://127.0.0.1:8711/plugins/laboratory/laboratory.html).
+Open [Physical lab](http://127.0.0.1:8711/plugins/laboratory/laboratory.html).
 **Run the demo** starts a fresh local transfer, follows it live and opens its
 recording on completion. Further runs preserve previous recordings under unused
 names. **Open the recording** and the timeline provide replay; **Show lab and PR2**

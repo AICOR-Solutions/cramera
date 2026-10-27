@@ -24,7 +24,7 @@ The interactive physics session controls the door, observes supported samples,
 and models cabinet temperature approaching the cooling target or room temperature
 according to the door state. This is a reduced temperature simulation.
 
-In the **Medical lab** tab, choose **Simulate with contact physics**, then
+In the **Physical lab** tab, choose **Simulate with contact physics**, then
 **Sample refrigerator → Open door**. Use the object selector and movement controls
 to guide a glass, and **Let go** to release it. Storage observations report
 supported samples; the PR2 transfer does not execute a refrigerator plan.

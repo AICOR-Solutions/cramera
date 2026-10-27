@@ -90,12 +90,12 @@ export class LaboratoryPage {
     this.#document = root.ownerDocument;
     const element = (tag, className, text = '') => Object.assign(this.#document.createElement(tag), { className, textContent: text });
     const scene = element('section', 'card laboratory-scene');
-    scene.setAttribute('aria-label', 'Small medical lab and PR2');
+    scene.setAttribute('aria-label', 'Small physical lab and PR2');
     const heading = element('div', 'card-head');
-    heading.append(element('h2', '', 'Medical lab · small workbench and PR2'));
+    heading.append(element('h2', '', 'Physical lab · small workbench and PR2'));
     this.#stage = element('section', 'stage');
-    this.#stage.setAttribute('aria-label', 'Medical laboratory 3D view');
-    const status = element('p', 'viewer-status status-line', 'Loading medical lab…');
+    this.#stage.setAttribute('aria-label', 'Physical lab 3D view');
+    const status = element('p', 'viewer-status status-line', 'Loading physical lab…');
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     this.#status = new PageStatus(this.#document.documentElement, status);
@@ -130,7 +130,7 @@ export class LaboratoryPage {
     const client = new LaboratoryClient(environment.fetch, environment.api);
     let prepared;
     try {
-      this.#status.loading('Preparing the PR2 and small medical lab…');
+      this.#status.loading('Preparing the PR2 and small physical lab…');
       prepared = await client.send(LaboratoryRoute.PREVIEW);
     } catch (error) {
       this.#parts.panel.showMessage(error.reason ?? error.message, true);
@@ -264,7 +264,7 @@ export class LaboratoryPage {
 
   /** Show a scene-loading or startup error on the dedicated page. */
   fail(message) {
-    this.#status.failed(`The medical lab could not load: ${message}`);
+    this.#status.failed(`The physical lab could not load: ${message}`);
   }
 
   /** Release browser resources when leaving the dedicated laboratory page. */

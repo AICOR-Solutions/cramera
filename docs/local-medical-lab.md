@@ -1,6 +1,6 @@
 # Run the small medical lab and PR2 locally
 
-**Medical lab** in the viewer's top bar opens a dedicated page with its own 3D
+**Physical lab** in the viewer's top bar opens a dedicated page with its own 3D
 view, controls and playback timeline:
 [/plugins/laboratory/laboratory.html](http://127.0.0.1:8711/plugins/laboratory/laboratory.html).
 It loads the compact `aicor_medical_lab` workbench with the real PR2 in its starting
@@ -43,8 +43,8 @@ separate processes, but the demo runs on the machine hosting the Python viewer.
 
 ## Run, follow and replay
 
-Open [Medical lab](http://127.0.0.1:8711/plugins/laboratory/laboratory.html), or
-choose **Medical lab** in the top bar. Initial preparation loads the real PR2
+Open [Physical lab](http://127.0.0.1:8711/plugins/laboratory/laboratory.html), or
+choose **Physical lab** in the top bar. Initial preparation loads the real PR2
 meshes with its parked arms and raised torso beside the small workbench.
 
 Choose **Run the demo**. A local CRAM process picks the vessel from rack slot A1,
@@ -150,7 +150,7 @@ that scene's assets. Original packaged assets stay unchanged. Keep `LICENSE.txt`
 
 ## Troubleshooting
 
-- **No Medical lab link:** activate the environment containing the plugin,
+- **No Physical lab link:** activate the environment containing the plugin,
   restart `cramera`, and check that `/api/info` lists `laboratory`.
 - **Workbench appears without PR2:** follow **Set up the local PR2 demo** on the
   page. Install the full stack, source ROS and the robot-resource workspace, and
