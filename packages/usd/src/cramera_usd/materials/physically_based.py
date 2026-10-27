@@ -182,6 +182,12 @@ class PhysicallyBasedMaterial:
     The index of refraction (``KHR_materials_ior``).
     """
 
+    specular_color_factor: LinearColor = WHITE
+    """
+    Scales, per channel, the reflectance at normal incidence that the index of
+    refraction gives a non-metallic surface (``KHR_materials_specular``).
+    """
+
     clearcoat: float = 0.0
     """
     The strength of a clear coat layer (``KHR_materials_clearcoat``).

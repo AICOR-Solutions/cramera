@@ -11,6 +11,7 @@ from typing_extensions import TYPE_CHECKING, Any, Dict, List, Union
 from cramera_usd.gltf.format import GltfExtension, GltfKey, MaterialKey
 from cramera_usd.materials.physically_based import (
     DEFAULT_INDEX_OF_REFRACTION,
+    WHITE,
     AlphaMode,
     PhysicallyBasedMaterial,
 )
@@ -117,14 +118,14 @@ class GltfMaterial:
             MaterialKey.METALLIC_FACTOR: float(material.metallic_factor),
         }
 
-    def extensions(self) -> Dict[GltfExtension, Dict[str, float]]:
+    def extensions(self) -> Dict[GltfExtension, Dict[str, Union[float, List[float]]]]:
         """
         :return: The material extensions whose values differ from glTF's defaults; the
             index of refraction of a transmissive surface is kept with its
             :meth:`physical_properties`.
         """
         material = self.material
-        extensions: Dict[GltfExtension, Dict[str, float]] = {}
+        extensions: Dict[GltfExtension, Dict[str, Union[float, List[float]]]] = {}
         if (
             not material.transmissive
             and material.index_of_refraction != DEFAULT_INDEX_OF_REFRACTION
@@ -146,5 +147,11 @@ class GltfMaterial:
         if material.anisotropy > 0.0:
             extensions[GltfExtension.ANISOTROPY] = {
                 MaterialKey.ANISOTROPY_STRENGTH: float(material.anisotropy)
+            }
+        if material.specular_color_factor != WHITE:
+            extensions[GltfExtension.SPECULAR] = {
+                MaterialKey.SPECULAR_COLOR_FACTOR: [
+                    float(value) for value in material.specular_color_factor
+                ]
             }
         return extensions

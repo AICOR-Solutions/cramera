@@ -254,6 +254,32 @@ def test_opaque_material_writes_its_index_of_refraction_as_an_extension():
     assert GltfKey.EXTRAS not in material
 
 
+def test_material_without_specular_reflection_writes_its_specular_colour():
+    matte = PhysicallyBasedMaterial("matte", specular_color_factor=(0.0, 0.0, 0.0))
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Sofa/Cover", "matte")), {"matte": matte}
+        ).encode()
+    )
+    material = content.document[GltfKey.MATERIALS][0]
+    assert material[GltfKey.EXTENSIONS] == {
+        GltfExtension.SPECULAR: {
+            MaterialKey.SPECULAR_COLOR_FACTOR: list(matte.specular_color_factor)
+        }
+    }
+    assert GltfExtension.SPECULAR in content.document[GltfKey.EXTENSIONS_USED]
+
+
+def test_default_specular_colour_writes_no_extension():
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Sofa/Cover", "plain")),
+            {"plain": PhysicallyBasedMaterial("plain")},
+        ).encode()
+    )
+    assert GltfKey.EXTENSIONS not in content.document[GltfKey.MATERIALS][0]
+
+
 def test_textures_are_embedded_once_with_their_transform():
     transform = TextureTransform(offset=(0.0, -1.0), scale=(2.0, 2.0))
     material = PhysicallyBasedMaterial(

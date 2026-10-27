@@ -177,6 +177,39 @@ class TestOmniPhysicallyBasedMapping:
             offset=(0.25, 1.0 - 2.0 - 0.5), scale=(4.0, 2.0)
         )
 
+    def test_specular_level_scales_the_reflectance_at_normal_incidence(self):
+        mapping = OmniPhysicallyBasedMapping()
+        level = mapping.neutral_specular_level / 4.0
+        material = mapping.map(
+            AuthoredMaterial(
+                "/Looks/Matte",
+                MaterialSource.OMNI_PBR,
+                {OmniPhysicallyBasedInput.SPECULAR_LEVEL: level},
+            )
+        )
+        assert material.specular_color_factor == (0.25, 0.25, 0.25)
+        assert material.unmapped_inputs == ()
+
+    def test_neutral_specular_level_keeps_the_reflectance_of_the_index_of_refraction(
+        self,
+    ):
+        mapping = OmniPhysicallyBasedMapping()
+        material = mapping.map(
+            AuthoredMaterial(
+                "/Looks/Plastic",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.SPECULAR_LEVEL: (
+                        mapping.neutral_specular_level
+                    )
+                },
+            )
+        )
+        assert (
+            material.specular_color_factor
+            == PhysicallyBasedMaterial("default").specular_color_factor
+        )
+
     def test_unknown_authored_inputs_are_listed(self):
         material = OmniPhysicallyBasedMapping().map(
             AuthoredMaterial(

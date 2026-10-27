@@ -228,9 +228,14 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
     The conversion of emission intensities.
     """
 
+    neutral_specular_level: float = 0.5
+    """
+    OmniPBR's default ``specular_level``: a reflectance at normal incidence of
+    ``0.08 * specular_level``, the 4 % that glTF's default index of refraction gives.
+    """
+
     neutral_inputs: Dict[str, ShaderInputValue] = field(
         default_factory=lambda: {
-            OmniPhysicallyBasedInput.SPECULAR_LEVEL: 0.5,
             OmniPhysicallyBasedInput.PROJECT_COORDINATES: False,
             OmniPhysicallyBasedInput.WORLD_OR_OBJECT: False,
             OmniPhysicallyBasedInput.ALBEDO_DESATURATION: 0.0,
@@ -270,10 +275,23 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
             normal_scale=inputs.number(input_name.BUMP_FACTOR, 1.0),
             alpha_mode=self.alpha_mode(enable_opacity, threshold),
             alpha_cutoff=threshold if threshold > 0.0 else DEFAULT_ALPHA_CUTOFF,
+            specular_color_factor=self.specular_color_factor(inputs),
             texture_transform=self.texture_transform(inputs),
         )
         material = self.roughness_metallic(inputs).apply(material)
         return self.with_emission(material, inputs)
+
+    def specular_color_factor(self, inputs: ShaderInputs) -> LinearColor:
+        """
+        :param inputs: The authored inputs.
+        :return: The scale of the reflectance at normal incidence that
+            ``specular_level`` gives, relative to the neutral level's.
+        """
+        level = inputs.number(
+            OmniPhysicallyBasedInput.SPECULAR_LEVEL, self.neutral_specular_level
+        )
+        scale = level / self.neutral_specular_level
+        return scale, scale, scale
 
     @staticmethod
     def alpha_mode(enable_opacity: bool, threshold: float) -> AlphaMode:
