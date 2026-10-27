@@ -9,7 +9,7 @@ from enum import StrEnum
 
 from typing_extensions import Dict, Optional
 
-from cramera_usd.materials.channels import ScalarChannel
+from cramera_usd.materials.channels import ColorOpacityTexture, ScalarChannel
 from cramera_usd.materials.emission import EmissionScale
 from cramera_usd.materials.inputs import ShaderInputs
 from cramera_usd.materials.mapping import RoughnessMetallicPacking, ShaderMapping
@@ -21,7 +21,7 @@ from cramera_usd.materials.physically_based import (
     PhysicallyBasedMaterial,
     TextureTransform,
 )
-from cramera_usd.scene.materials import ShaderInputValue, TextureChannel
+from cramera_usd.scene.materials import ShaderInputValue, TextureChannel, TextureFile
 
 # %% inputs
 
@@ -125,6 +125,16 @@ class OmniPhysicallyBasedInput(StrEnum):
     OPACITY = "opacity_constant"
     """
     The opacity without a texture.
+    """
+
+    ENABLE_OPACITY_TEXTURE = "enable_opacity_texture"
+    """
+    Whether the opacity is read from a texture rather than the constant.
+    """
+
+    OPACITY_TEXTURE = "opacity_texture"
+    """
+    The opacity texture.
     """
 
     OPACITY_THRESHOLD = "opacity_threshold"
@@ -259,7 +269,12 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
             else inputs.color(input_name.DIFFUSE_COLOR, self.diffuse_color)
         )
         enable_opacity = inputs.flag(input_name.ENABLE_OPACITY, False)
-        opacity = inputs.number(input_name.OPACITY, 1.0) if enable_opacity else 1.0
+        opacity_texture = self.opacity_texture(inputs, enable_opacity)
+        opacity = (
+            inputs.number(input_name.OPACITY, 1.0)
+            if enable_opacity and opacity_texture is None
+            else 1.0
+        )
         threshold = inputs.number(input_name.OPACITY_THRESHOLD, 0.0)
         material = PhysicallyBasedMaterial(
             name="",
@@ -270,7 +285,11 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
                 ),
                 opacity,
             ),
-            base_color_texture=diffuse_texture,
+            base_color_texture=(
+                diffuse_texture
+                if opacity_texture is None
+                else ColorOpacityTexture(diffuse_texture, opacity_texture)
+            ),
             normal_texture=inputs.texture(input_name.NORMAL_TEXTURE),
             normal_scale=inputs.number(input_name.BUMP_FACTOR, 1.0),
             alpha_mode=self.alpha_mode(enable_opacity, threshold),
@@ -280,6 +299,20 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
         )
         material = self.roughness_metallic(inputs).apply(material)
         return self.with_emission(material, inputs)
+
+    @staticmethod
+    def opacity_texture(
+        inputs: ShaderInputs, enable_opacity: bool
+    ) -> Optional[TextureFile]:
+        """
+        :param inputs: The authored inputs.
+        :param enable_opacity: Whether the material enables its opacity.
+        :return: The texture the opacity is read from, or None when the opacity or its
+            texture is not enabled.
+        """
+        texture = inputs.texture(OmniPhysicallyBasedInput.OPACITY_TEXTURE)
+        textured = inputs.flag(OmniPhysicallyBasedInput.ENABLE_OPACITY_TEXTURE, False)
+        return texture if enable_opacity and textured else None
 
     def specular_color_factor(self, inputs: ShaderInputs) -> LinearColor:
         """

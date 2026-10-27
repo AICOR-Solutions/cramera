@@ -10,9 +10,10 @@ from dataclasses import dataclass, field, replace
 import numpy
 from PIL import Image
 from scipy.integrate import quad
-from typing_extensions import Optional
+from typing_extensions import Optional, Union
 
 from cramera_usd.materials.channels import (
+    ColorOpacityTexture,
     ScalarChannel,
     SrgbTransfer,
     TextureChannelReader,
@@ -64,8 +65,8 @@ class TransmissionBlending:
     factor times the average colour of the base colour texture, and the frosting is the
     roughness averaged over the surface. Its colour is chosen so that, in front of
     surroundings as bright as what it reflects, the blend shows what the interface
-    sends towards the eye: the reflection ``R`` plus the tinted rest ``(1 - R) *
-    tint``. The transmitted share of the surface reflects without diffusing, so it is
+    sends towards the eye: the reflection ``R``, scaled by the specular colour factor,
+    plus the tinted rest ``(1 - R) * tint``. The transmitted share of the surface reflects without diffusing, so it is
     drawn metallic.
 
     .. note:: A closed solid such as a pane is drawn with its front and back faces, so
@@ -104,11 +105,12 @@ class TransmissionBlending:
             * texture_color
         )
         reflectance = self.reflectance(material.index_of_refraction)
+        reflected = reflectance * numpy.asarray(material.specular_color_factor)
         see_through = self.see_through(material, tint)
         shown = (
             tint
             if see_through >= 1.0
-            else (reflectance + (1.0 - reflectance) * tint - see_through)
+            else (reflected + (1.0 - reflectance) * tint - see_through)
             / (1.0 - see_through)
         )
         factor = numpy.minimum(
@@ -161,12 +163,16 @@ class TransmissionBlending:
             return material.roughness_factor
         return material.roughness_factor * texture.roughness.average()
 
-    def texture_color(self, texture: Optional[TextureFile]) -> numpy.ndarray:
+    def texture_color(
+        self, texture: Optional[Union[TextureFile, ColorOpacityTexture]]
+    ) -> numpy.ndarray:
         """
         :param texture: A base colour texture, or None.
         :return: Its average linear colour, decoded from sRGB as glTF viewers decode
             it, or white without a texture.
         """
+        if isinstance(texture, ColorOpacityTexture):
+            texture = texture.color
         if texture is None:
             return numpy.ones(len(COLOR_CHANNELS))
         reader = TextureChannelReader(Image.open(texture.path))

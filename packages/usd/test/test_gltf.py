@@ -10,6 +10,7 @@ import json
 
 import numpy
 import trimesh
+from PIL import Image
 
 from cramera_usd.gltf.document import GltfDocument
 from cramera_usd.gltf.format import (
@@ -21,7 +22,11 @@ from cramera_usd.gltf.format import (
 )
 from cramera_usd.gltf.link import LinkGltf
 from cramera_usd.gltf.material import GltfMaterial
-from cramera_usd.materials.channels import RoughnessMetallicTexture, ScalarChannel
+from cramera_usd.materials.channels import (
+    ColorOpacityTexture,
+    RoughnessMetallicTexture,
+    ScalarChannel,
+)
 from cramera_usd.materials.physically_based import (
     AlphaMode,
     PhysicallyBasedMaterial,
@@ -204,6 +209,55 @@ def test_glass_is_drawn_blended_and_keeps_its_physical_values_in_extras():
     }
     assert GltfKey.EXTENSIONS not in material
     assert GltfKey.EXTENSIONS_USED not in content.document
+
+
+def test_glass_keeps_its_specular_colour_in_extras_rather_than_as_an_extension():
+    glass = PhysicallyBasedMaterial(
+        "glass",
+        transmission=1.0,
+        specular_color_factor=(0.1, 0.1, 0.1),
+        alpha_mode=AlphaMode.BLEND,
+        double_sided=True,
+    )
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Window/Pane", "glass")), {"glass": glass}
+        ).encode()
+    )
+    material = content.document[GltfKey.MATERIALS][0]
+    assert material[GltfKey.EXTRAS][MaterialKey.SPECULAR_COLOR_FACTOR] == list(
+        glass.specular_color_factor
+    )
+    assert GltfKey.EXTENSIONS not in material
+
+
+def test_colour_with_opacity_texture_is_embedded_with_the_opacity_as_alpha():
+    texture_files = {
+        name: TextureFile(TEXTURES / f"{name}.png", color_space)
+        for name, color_space in (
+            ("albedo", ColorSpace.SRGB),
+            ("roughness", ColorSpace.RAW),
+        )
+    }
+    leaf = PhysicallyBasedMaterial(
+        "leaf",
+        base_color_texture=ColorOpacityTexture(
+            texture_files["albedo"], texture_files["roughness"]
+        ),
+        alpha_mode=AlphaMode.BLEND,
+    )
+    content = GlbContent.of_bytes(
+        LinkGltf(link_with(quad("/World/Plant/Leaf", "leaf")), {"leaf": leaf}).encode()
+    )
+    image = numpy.asarray(Image.open(io.BytesIO(content.embedded(0))))
+    assert (
+        image[..., :3].tolist()
+        == numpy.asarray(Image.open(texture_files["albedo"].path)).tolist()
+    )
+    assert (
+        image[..., 3].tolist()
+        == numpy.asarray(Image.open(texture_files["roughness"].path)).tolist()
+    )
 
 
 def test_glass_with_only_a_metalness_texture_is_written_with_factors():

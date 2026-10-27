@@ -13,6 +13,7 @@ from PIL import Image
 from typing_extensions import Any
 
 from cramera_usd.materials.channels import (
+    ColorOpacityTexture,
     RoughnessMetallicTexture,
     ScalarChannel,
     SrgbTransfer,
@@ -212,6 +213,43 @@ class TestOmniPhysicallyBasedMapping:
             == PhysicallyBasedMaterial("default").specular_color_factor
         )
 
+    def test_opacity_texture_becomes_the_alpha_of_the_diffuse_texture(self):
+        albedo = texture("albedo.png", ColorSpace.SRGB)
+        opacity = texture("roughness.png")
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Leaf",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.DIFFUSE_TEXTURE: albedo,
+                    OmniPhysicallyBasedInput.ENABLE_OPACITY: True,
+                    OmniPhysicallyBasedInput.ENABLE_OPACITY_TEXTURE: True,
+                    OmniPhysicallyBasedInput.OPACITY_TEXTURE: opacity,
+                },
+            )
+        )
+        assert material.base_color_texture == ColorOpacityTexture(albedo, opacity)
+        assert material.base_color_factor[3] == 1.0
+        assert material.alpha_mode is AlphaMode.BLEND
+        assert material.unmapped_inputs == ()
+
+    def test_opacity_texture_of_disabled_opacity_is_not_drawn(self):
+        albedo = texture("albedo.png", ColorSpace.SRGB)
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Leaf",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.DIFFUSE_TEXTURE: albedo,
+                    OmniPhysicallyBasedInput.ENABLE_OPACITY_TEXTURE: True,
+                    OmniPhysicallyBasedInput.OPACITY_TEXTURE: texture("roughness.png"),
+                },
+            )
+        )
+        assert material.base_color_texture == albedo
+        assert material.alpha_mode is AlphaMode.OPAQUE
+        assert material.unmapped_inputs == ()
+
     def test_unknown_authored_inputs_are_listed(self):
         material = OmniPhysicallyBasedMapping().map(
             AuthoredMaterial(
@@ -340,6 +378,23 @@ class TestTransmissionBlending:
             transmissive(base_color_factor=(0.5, 0.8, 1.0, 1.0))
         )
         assert blended.base_color_factor[3] == pytest.approx(0.5)
+
+    def test_specular_colour_scales_the_reflected_share_of_the_drawn_colour(self):
+        blending = TransmissionBlending()
+        tint = numpy.array([0.5, 0.8, 1.0])
+        specular = numpy.array([0.1, 0.2, 0.3])
+        glass = transmissive(
+            base_color_factor=(*tint, 1.0),
+            index_of_refraction=1.5,
+            specular_color_factor=tuple(specular),
+        )
+        blended = blending.approximate(glass)
+        reflectance = blending.reflectance(glass.index_of_refraction)
+        see_through = blending.see_through(glass, tint)
+        assert blended.base_color_factor[:3] == pytest.approx(
+            (specular * reflectance + (1.0 - reflectance) * tint - see_through)
+            / (1.0 - see_through)
+        )
 
     def test_frosting_scatters_its_share_out_of_the_line_of_sight(self):
         blended = TransmissionBlending(frosted_scattering=0.5).approximate(
@@ -622,6 +677,54 @@ def test_omniglass_colour_texture_replaces_the_glass_colour():
     )
     assert material.base_color_texture == smoke
     assert material.base_color_factor == (1.0, 1.0, 1.0, 1.0)
+
+
+def test_omniglass_reflection_colour_scales_its_reflection():
+    reflection = (0.1, 0.2, 0.3)
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.REFLECTION_COLOR: reflection},
+        )
+    )
+    assert material.specular_color_factor == reflection
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_cut_out_opacity_scales_its_coverage():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.ENABLE_OPACITY: True, OmniGlassInput.CUTOUT_OPACITY: 0.4},
+        )
+    )
+    assert material.base_color_factor[3] == 0.4
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_enabled_opacity_without_a_cut_out_keeps_the_whole_pane():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.ENABLE_OPACITY: True},
+        )
+    )
+    assert material.base_color_factor[3] == 1.0
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_unscaled_texture_coordinates_are_not_reported():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.TEXTURE_SCALE: (1.0, 1.0)},
+        )
+    )
+    assert material.unmapped_inputs == ()
 
 
 def test_omniglass_hidden_texture_switch_is_not_reported():
