@@ -1,0 +1,936 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="garmi">
+  <link name="world_root" />
+  <link name="r100-0603/base_link" />
+  <joint name="world_root_to_r100-0603/base_link" type="fixed">
+    <parent link="world_root" />
+    <child link="r100-0603/base_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/chassis_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/body.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/base_link_joint" type="fixed">
+    <parent link="r100-0603/base_link" />
+    <child link="r100-0603/chassis_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/mounting_plate_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/mounting_plate.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/mounting_plate_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/mounting_plate_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 1.5708" />
+  </joint>
+  <link name="r100-0603/cover_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/cover.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/cover_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/cover_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="1.5708 0.0 1.5708" />
+  </joint>
+  <link name="r100-0603/lidar2d_1_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/hokuyo_ust.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.2 0.2 0.2 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/lidar2d_1_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/lidar2d_1_link" />
+    <origin xyz="-0.3922 -0.0 0.1856" rpy="0.0 0.0 3.14159" />
+  </joint>
+  <link name="r100-0603/lidar2d_1_laser" />
+  <joint name="r100-0603/lidar2d_1_laser_joint" type="fixed">
+    <parent link="r100-0603/lidar2d_1_link" />
+    <child link="r100-0603/lidar2d_1_laser" />
+    <origin xyz="0.0 0.0 0.0474" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/lidar2d_0_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/hokuyo_ust.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.2 0.2 0.2 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/lidar2d_0_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/lidar2d_0_link" />
+    <origin xyz="0.3922 0.0 0.1856" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/lidar2d_0_laser" />
+  <joint name="r100-0603/lidar2d_0_laser_joint" type="fixed">
+    <parent link="r100-0603/lidar2d_0_link" />
+    <child link="r100-0603/lidar2d_0_laser" />
+    <origin xyz="0.0 -0.0 0.0474" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/imu_0_link" />
+  <joint name="r100-0603/imu_0_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/imu_0_link" />
+    <origin xyz="0.2085 -0.2902 0.1681" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/riser_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0275" rpy="0.0 0.0 0.785398" />
+      <geometry>
+        <box size="0.493 0.493 0.055" />
+      </geometry>
+      <material name="">
+        <color rgba="0.8 0.8 0.8 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/riser_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/riser_link" />
+    <origin xyz="0.0 0.0 0.21865" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/default_mount" />
+  <joint name="r100-0603/default_mount_joint" type="fixed">
+    <parent link="r100-0603/riser_link" />
+    <child link="r100-0603/default_mount" />
+    <origin xyz="0.0 0.0 0.06135" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/lift_0_plate_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/plate.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/lift_0_plate_joint" type="fixed">
+    <parent link="r100-0603/default_mount" />
+    <child link="r100-0603/lift_0_plate_link" />
+    <origin xyz="0.1115 0.0 -0.0037" rpy="0.0 0.0 0.785398" />
+  </joint>
+  <link name="r100-0603/lift_0_base_link">
+    <visual>
+      <origin xyz="0.0 0.0 -0.0179" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/base.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/lift_0_base_joint" type="fixed">
+    <parent link="r100-0603/lift_0_plate_link" />
+    <child link="r100-0603/lift_0_base_link" />
+    <origin xyz="0.0 0.0 0.018" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/lift_0_lower_link">
+    <visual>
+      <origin xyz="0.0 0.0 -0.467" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/lower.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/lift_0_lower_joint" type="prismatic">
+    <parent link="r100-0603/lift_0_base_link" />
+    <child link="r100-0603/lift_0_lower_link" />
+    <origin xyz="0.0 0.0 0.027" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0" upper="0.4" velocity="0.088" effort="0.0" />
+  </joint>
+  <link name="r100-0603/lift_0_upper_link">
+    <visual>
+      <origin xyz="0.0 0.0 -0.847" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/upper.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/lift_0_upper_joint" type="prismatic">
+    <parent link="r100-0603/lift_0_lower_link" />
+    <child link="r100-0603/lift_0_upper_link" />
+    <origin xyz="0.0 0.0 0.007" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.0" upper="0.4" velocity="0.088" effort="0.0" />
+  </joint>
+  <link name="r100-0603/lift_0_mount" />
+  <joint name="r100-0603/lift_0_mount_joint" type="fixed">
+    <parent link="r100-0603/lift_0_upper_link" />
+    <child link="r100-0603/lift_0_mount" />
+    <origin xyz="0.0 0.0 0.838" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/lift_0_mount_rotated_link" />
+  <joint name="r100-0603/lift_0_mount_rotated_joint" type="fixed">
+    <parent link="r100-0603/lift_0_mount" />
+    <child link="r100-0603/lift_0_mount_rotated_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 -0.7854" />
+  </joint>
+  <link name="r100-0603/neck_1">
+    <visual>
+      <origin xyz="-0.1109 0.0 -1.1663" rpy="1.5707 0.0 1.5707" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/neck_1.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/head_fixed_joint" type="fixed">
+    <parent link="r100-0603/lift_0_mount_rotated_link" />
+    <child link="r100-0603/neck_1" />
+    <origin xyz="-0.0 0.0 0.015" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/neck_2">
+    <visual>
+      <origin xyz="-0.1388 0.0 -1.1782" rpy="1.5707 0.0 1.5707" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/neck_2.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/o1_motor_1" type="revolute">
+    <parent link="r100-0603/neck_1" />
+    <child link="r100-0603/neck_2" />
+    <origin xyz="0.0279 0.0 0.0119" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-1.5707" upper="1.5707" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="r100-0603/head">
+    <visual>
+      <origin xyz="-0.1388 0.034 -1.3303" rpy="1.5707 0.0 1.5707" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/head.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/o1_motor_2" type="revolute">
+    <parent link="r100-0603/neck_2" />
+    <child link="r100-0603/head" />
+    <origin xyz="0.0 -0.034 0.1521" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 -1.0 0.0" />
+    <limit lower="-0.7853" upper="0.7853" velocity="1.0" effort="0.0" />
+  </joint>
+  <link name="r100-0603/body_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/body.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/body_joint" type="fixed">
+    <parent link="r100-0603/lift_0_mount_rotated_link" />
+    <child link="r100-0603/body_link" />
+    <origin xyz="-0.1109 -0.0 -1.1663" rpy="1.5708 0.0 1.5708" />
+  </joint>
+  <link name="r100-0603/arm_mount_right_link" />
+  <joint name="r100-0603/arm_mount_right_joint" type="fixed">
+    <parent link="r100-0603/lift_0_mount_rotated_link" />
+    <child link="r100-0603/arm_mount_right_link" />
+    <origin xyz="0.1452 -0.0611 -0.5157" rpy="1.0389 0.1675 0.6876" />
+  </joint>
+  <link name="r100-0603/right_fr3_link0">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link0.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint0" type="fixed">
+    <parent link="r100-0603/arm_mount_right_link" />
+    <child link="r100-0603/right_fr3_link0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link1">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link1.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint1" type="revolute">
+    <parent link="r100-0603/right_fr3_link0" />
+    <child link="r100-0603/right_fr3_link1" />
+    <origin xyz="0.0 0.0 0.333" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.9007" upper="2.9007" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link2">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link2.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint2" type="revolute">
+    <parent link="r100-0603/right_fr3_link1" />
+    <child link="r100-0603/right_fr3_link2" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-1.8361" upper="1.8361" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link3">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link3.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint3" type="revolute">
+    <parent link="r100-0603/right_fr3_link2" />
+    <child link="r100-0603/right_fr3_link3" />
+    <origin xyz="0.0 -0.316 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.9007" upper="2.9007" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link4">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link4.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint4" type="revolute">
+    <parent link="r100-0603/right_fr3_link3" />
+    <child link="r100-0603/right_fr3_link4" />
+    <origin xyz="0.0825 0.0 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-3.077" upper="-0.1169" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link5">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link5.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint5" type="revolute">
+    <parent link="r100-0603/right_fr3_link4" />
+    <child link="r100-0603/right_fr3_link5" />
+    <origin xyz="-0.0825 0.384 0.0" rpy="-1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.8763" upper="2.8763" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link6">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link6.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint6" type="revolute">
+    <parent link="r100-0603/right_fr3_link5" />
+    <child link="r100-0603/right_fr3_link6" />
+    <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.4398" upper="4.6216" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link7">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link7.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_joint7" type="revolute">
+    <parent link="r100-0603/right_fr3_link6" />
+    <child link="r100-0603/right_fr3_link7" />
+    <origin xyz="0.088 0.0 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-3.0508" upper="3.0508" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_link8" />
+  <joint name="r100-0603/right_fr3_joint8" type="fixed">
+    <parent link="r100-0603/right_fr3_link7" />
+    <child link="r100-0603/right_fr3_link8" />
+    <origin xyz="0.0 0.0 0.107" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_hand">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/hand.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_hand_joint" type="fixed">
+    <parent link="r100-0603/right_fr3_link8" />
+    <child link="r100-0603/right_fr3_hand" />
+    <origin xyz="0.0 0.0 -0.0" rpy="0.0 0.0 -0.785398" />
+  </joint>
+  <link name="r100-0603/right_fr3_rightfinger">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_finger_joint2" type="prismatic">
+    <parent link="r100-0603/right_fr3_hand" />
+    <child link="r100-0603/right_fr3_rightfinger" />
+    <origin xyz="0.0 0.0 0.0584" rpy="0.0 0.0 3.141593" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.04" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_leftfinger">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_fr3_finger_joint1" type="prismatic">
+    <parent link="r100-0603/right_fr3_hand" />
+    <child link="r100-0603/right_fr3_leftfinger" />
+    <origin xyz="0.0 0.0 0.0584" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.04" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/right_fr3_hand_tcp" />
+  <joint name="r100-0603/right_fr3_hand_tcp_joint" type="fixed">
+    <parent link="r100-0603/right_fr3_hand" />
+    <child link="r100-0603/right_fr3_hand_tcp" />
+    <origin xyz="-0.0 0.0 0.1034" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/arm_mount_left_link" />
+  <joint name="r100-0603/arm_mount_left_joint" type="fixed">
+    <parent link="r100-0603/lift_0_mount_rotated_link" />
+    <child link="r100-0603/arm_mount_left_link" />
+    <origin xyz="0.1452 0.0611 -0.5157" rpy="-1.0389 0.1675 -0.6876" />
+  </joint>
+  <link name="r100-0603/left_fr3_link0">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link0.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint0" type="fixed">
+    <parent link="r100-0603/arm_mount_left_link" />
+    <child link="r100-0603/left_fr3_link0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link1">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link1.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint1" type="revolute">
+    <parent link="r100-0603/left_fr3_link0" />
+    <child link="r100-0603/left_fr3_link1" />
+    <origin xyz="0.0 0.0 0.333" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.9007" upper="2.9007" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link2">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link2.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint2" type="revolute">
+    <parent link="r100-0603/left_fr3_link1" />
+    <child link="r100-0603/left_fr3_link2" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-1.8361" upper="1.8361" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link3">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link3.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint3" type="revolute">
+    <parent link="r100-0603/left_fr3_link2" />
+    <child link="r100-0603/left_fr3_link3" />
+    <origin xyz="0.0 -0.316 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.9007" upper="2.9007" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link4">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link4.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint4" type="revolute">
+    <parent link="r100-0603/left_fr3_link3" />
+    <child link="r100-0603/left_fr3_link4" />
+    <origin xyz="0.0825 0.0 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-3.077" upper="-0.1169" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link5">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link5.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint5" type="revolute">
+    <parent link="r100-0603/left_fr3_link4" />
+    <child link="r100-0603/left_fr3_link5" />
+    <origin xyz="-0.0825 0.384 0.0" rpy="-1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-2.8763" upper="2.8763" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link6">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link6.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint6" type="revolute">
+    <parent link="r100-0603/left_fr3_link5" />
+    <child link="r100-0603/left_fr3_link6" />
+    <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="0.4398" upper="4.6216" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link7">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/link7.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_joint7" type="revolute">
+    <parent link="r100-0603/left_fr3_link6" />
+    <child link="r100-0603/left_fr3_link7" />
+    <origin xyz="0.088 0.0 0.0" rpy="1.570796 0.0 0.0" />
+    <axis xyz="0.0 0.0 1.0" />
+    <limit lower="-3.0508" upper="3.0508" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_link8" />
+  <joint name="r100-0603/left_fr3_joint8" type="fixed">
+    <parent link="r100-0603/left_fr3_link7" />
+    <child link="r100-0603/left_fr3_link8" />
+    <origin xyz="0.0 0.0 0.107" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_hand">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/hand.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_hand_joint" type="fixed">
+    <parent link="r100-0603/left_fr3_link8" />
+    <child link="r100-0603/left_fr3_hand" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 -0.785398" />
+  </joint>
+  <link name="r100-0603/left_fr3_rightfinger">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_finger_joint2" type="prismatic">
+    <parent link="r100-0603/left_fr3_hand" />
+    <child link="r100-0603/left_fr3_rightfinger" />
+    <origin xyz="0.0 0.0 0.0584" rpy="0.0 0.0 3.141593" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.04" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_leftfinger">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/finger.dae" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_fr3_finger_joint1" type="prismatic">
+    <parent link="r100-0603/left_fr3_hand" />
+    <child link="r100-0603/left_fr3_leftfinger" />
+    <origin xyz="0.0 0.0 0.0584" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+    <limit lower="0.0" upper="0.04" velocity="0.2" effort="0.0" />
+  </joint>
+  <link name="r100-0603/left_fr3_hand_tcp" />
+  <joint name="r100-0603/left_fr3_hand_tcp_joint" type="fixed">
+    <parent link="r100-0603/left_fr3_hand" />
+    <child link="r100-0603/left_fr3_hand_tcp" />
+    <origin xyz="0.0 -0.0 0.1034" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/imu_1_base_link" />
+  <joint name="r100-0603/imu_1_base_joint" type="fixed">
+    <parent link="r100-0603/default_mount" />
+    <child link="r100-0603/imu_1_base_link" />
+    <origin xyz="0.0 -0.136 0.0" rpy="0.0 0.0 3.14" />
+  </joint>
+  <link name="r100-0603/imu_1_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.02 0.02 0.005" />
+      </geometry>
+      <material name="">
+        <color rgba="0.2 0.2 0.2 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/imu_1_joint" type="fixed">
+    <parent link="r100-0603/imu_1_base_link" />
+    <child link="r100-0603/imu_1_link" />
+    <origin xyz="0.0 0.0 0.0025" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/axle_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="-0.0 1.570796 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/axle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/axle_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/axle_link" />
+    <origin xyz="0.0 0.0 0.05" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/rear_rocker_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 1.570796" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/rocker.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/rear_rocker" type="fixed">
+    <parent link="r100-0603/axle_link" />
+    <child link="r100-0603/rear_rocker_link" />
+    <origin xyz="-0.319 -0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/rear_right_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/mecanum.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/rear_right_wheel_joint" type="continuous">
+    <parent link="r100-0603/rear_rocker_link" />
+    <child link="r100-0603/rear_right_wheel_link" />
+    <origin xyz="0.0 -0.2755 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="r100-0603/rear_left_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/mecanum.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/rear_left_wheel_joint" type="continuous">
+    <parent link="r100-0603/rear_rocker_link" />
+    <child link="r100-0603/rear_left_wheel_link" />
+    <origin xyz="0.0 0.2755 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="r100-0603/front_rocker_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 1.570796" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/rocker.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/front_rocker" type="fixed">
+    <parent link="r100-0603/axle_link" />
+    <child link="r100-0603/front_rocker_link" />
+    <origin xyz="0.319 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/front_right_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/mecanum.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/front_right_wheel_joint" type="continuous">
+    <parent link="r100-0603/front_rocker_link" />
+    <child link="r100-0603/front_right_wheel_link" />
+    <origin xyz="0.0 -0.2755 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="r100-0603/front_left_wheel_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/mecanum.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/front_left_wheel_joint" type="continuous">
+    <parent link="r100-0603/front_rocker_link" />
+    <child link="r100-0603/front_left_wheel_link" />
+    <origin xyz="0.0 0.2755 0.0" rpy="0.0 0.0 0.0" />
+    <axis xyz="0.0 1.0 0.0" />
+  </joint>
+  <link name="r100-0603/rear_lights_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/lights.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 0.0 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/rear_lights_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/rear_lights_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/front_lights_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/lights.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="1.0 1.0 1.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/front_lights_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/front_lights_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/rear_cover_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/end-cover.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/rear_cover_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/rear_cover_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/front_cover_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/end-cover.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.15 0.15 0.15 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/front_cover_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/front_cover_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/left_side_cover_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/side-cover.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.8 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/left_side_cover_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/left_side_cover_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="r100-0603/right_side_cover_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/meshes/side-cover.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.8 0.8 0.0 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="r100-0603/right_side_cover_link_joint" type="fixed">
+    <parent link="r100-0603/chassis_link" />
+    <child link="r100-0603/right_side_cover_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+</robot>

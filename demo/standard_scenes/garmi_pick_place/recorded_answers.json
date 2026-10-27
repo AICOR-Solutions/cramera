@@ -1,0 +1,1611 @@
+{
+ "formatVersion": "1.0",
+ "scene": "garmi_pick_place",
+ "recordedAt": "2026-10-27T16:39:26Z",
+ "presets": {
+  "ok": true,
+  "title": "garmi_pick_place",
+  "presets": [
+   {
+    "text": "which robot is this?",
+    "code": "the(entity(robot))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "Find the unique RecordedRobot",
+     "html": "<span style=\"color:#eded18\">Find</span> the unique <span style=\"color:cornflowerblue\">RecordedRobot</span>"
+    }
+   },
+   {
+    "text": "which arm does it have?",
+    "code": "an(entity(arm))",
+    "requires_live": false,
+    "scope": "current_state",
+    "verbalization": {
+     "text": "Find a RecordedArm",
+     "html": "<span style=\"color:#eded18\">Find</span> a <span style=\"color:cornflowerblue\">RecordedArm</span>"
+    }
+   }
+  ],
+  "scopes": [
+   {
+    "name": "current_state",
+    "label": "Current State Queries",
+    "variables": [
+     "robot",
+     "arm",
+     "gripper",
+     "scene_object",
+     "episode",
+     "joint",
+     "plan_node"
+    ]
+   }
+  ]
+ },
+ "answers": [
+  {
+   "code": "the(entity(robot))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "entities",
+    "rows": [
+     {
+      "__entity__": "garmi",
+      "__type__": "RecordedRobot",
+      "arm_count": 2
+     }
+    ],
+    "count": 1,
+    "more": false,
+    "highlight": [
+     "garmi"
+    ],
+    "replay": [
+     null
+    ],
+    "verbalization": {
+     "text": "Find the unique RecordedRobot",
+     "html": "<span style=\"color:#eded18\">Find</span> the unique <span style=\"color:cornflowerblue\">RecordedRobot</span>"
+    }
+   }
+  },
+  {
+   "code": "an(entity(arm))",
+   "scope": "current_state",
+   "answer": {
+    "ok": true,
+    "kind": "entities",
+    "rows": [
+     {
+      "__entity__": "GarmiLeftArm",
+      "__type__": "RecordedArm",
+      "side": "left",
+      "robot": "garmi",
+      "gripper": "GarmiLeftGripper"
+     },
+     {
+      "__entity__": "GarmiRightArm",
+      "__type__": "RecordedArm",
+      "side": "right",
+      "robot": "garmi",
+      "gripper": "GarmiRightGripper"
+     }
+    ],
+    "count": 2,
+    "more": false,
+    "highlight": [
+     "GarmiLeftArm",
+     "GarmiLeftGripper",
+     "GarmiRightArm",
+     "GarmiRightGripper"
+    ],
+    "replay": [
+     null,
+     null
+    ],
+    "verbalization": {
+     "text": "Find a RecordedArm",
+     "html": "<span style=\"color:#eded18\">Find</span> a <span style=\"color:cornflowerblue\">RecordedArm</span>"
+    }
+   }
+  }
+ ],
+ "graphs": [
+  {
+   "key": "knowledge",
+   "ok": true,
+   "nodes": [
+    {
+     "id": "garmi",
+     "label": "garmi",
+     "group": "robot",
+     "title": "garmi\n2 arms"
+    },
+    {
+     "id": "GarmiLeftArm",
+     "label": "GarmiLeftArm",
+     "group": "arm",
+     "title": "GarmiLeftArm\nleft"
+    },
+    {
+     "id": "GarmiLeftGripper",
+     "label": "GarmiLeftGripper",
+     "group": "gripper",
+     "title": "GarmiLeftGripper"
+    },
+    {
+     "id": "GarmiRightArm",
+     "label": "GarmiRightArm",
+     "group": "arm",
+     "title": "GarmiRightArm\nright"
+    },
+    {
+     "id": "GarmiRightGripper",
+     "label": "GarmiRightGripper",
+     "group": "gripper",
+     "title": "GarmiRightGripper"
+    },
+    {
+     "id": "spoon.stl",
+     "label": "spoon",
+     "group": "object",
+     "title": "spoon\nspoon.stl"
+    },
+    {
+     "id": "bowl.stl",
+     "label": "bowl",
+     "group": "object",
+     "title": "bowl\nbowl.stl"
+    },
+    {
+     "id": "step/0",
+     "label": "run",
+     "group": "step",
+     "title": "run"
+    },
+    {
+     "id": "step/1",
+     "label": "PickUpAction",
+     "group": "step",
+     "title": "PickUpAction"
+    },
+    {
+     "id": "step/2",
+     "label": "GraspingAction",
+     "group": "step",
+     "title": "GraspingAction"
+    }
+   ],
+   "edges": [
+    {
+     "from": "garmi",
+     "to": "GarmiLeftArm",
+     "kind": "property",
+     "label": "has arm"
+    },
+    {
+     "from": "GarmiLeftArm",
+     "to": "GarmiLeftGripper",
+     "kind": "property",
+     "label": "carries"
+    },
+    {
+     "from": "garmi",
+     "to": "GarmiRightArm",
+     "kind": "property",
+     "label": "has arm"
+    },
+    {
+     "from": "GarmiRightArm",
+     "to": "GarmiRightGripper",
+     "kind": "property",
+     "label": "carries"
+    },
+    {
+     "from": "step/1",
+     "to": "bowl.stl",
+     "kind": "property",
+     "label": "picks"
+    },
+    {
+     "from": "step/2",
+     "to": "spoon.stl",
+     "kind": "property",
+     "label": "picks"
+    }
+   ],
+   "details": {
+    "garmi": {
+     "label": "garmi",
+     "group": "robot",
+     "lines": [
+      "2 arms"
+     ]
+    },
+    "GarmiLeftArm": {
+     "label": "GarmiLeftArm",
+     "group": "arm",
+     "lines": [
+      "left"
+     ]
+    },
+    "GarmiLeftGripper": {
+     "label": "GarmiLeftGripper",
+     "group": "gripper",
+     "lines": []
+    },
+    "GarmiRightArm": {
+     "label": "GarmiRightArm",
+     "group": "arm",
+     "lines": [
+      "right"
+     ]
+    },
+    "GarmiRightGripper": {
+     "label": "GarmiRightGripper",
+     "group": "gripper",
+     "lines": []
+    },
+    "spoon.stl": {
+     "label": "spoon",
+     "group": "object",
+     "lines": [
+      "spoon.stl"
+     ]
+    },
+    "bowl.stl": {
+     "label": "bowl",
+     "group": "object",
+     "lines": [
+      "bowl.stl"
+     ]
+    },
+    "step/0": {
+     "label": "run",
+     "group": "step",
+     "lines": []
+    },
+    "step/1": {
+     "label": "PickUpAction",
+     "group": "step",
+     "lines": []
+    },
+    "step/2": {
+     "label": "GraspingAction",
+     "group": "step",
+     "lines": []
+    }
+   },
+   "legend": [
+    {
+     "group": "robot",
+     "label": "Robot"
+    },
+    {
+     "group": "arm",
+     "label": "Arm"
+    },
+    {
+     "group": "gripper",
+     "label": "Gripper"
+    },
+    {
+     "group": "object",
+     "label": "Object"
+    },
+    {
+     "group": "step",
+     "label": "Step"
+    },
+    {
+     "group": "event",
+     "label": "Event"
+    }
+   ],
+   "layout": "free"
+  },
+  {
+   "key": "plan",
+   "ok": true,
+   "nodes": [],
+   "edges": [],
+   "details": {},
+   "legend": [
+    {
+     "group": "action",
+     "label": "Action"
+    },
+    {
+     "group": "motion",
+     "label": "Motion"
+    },
+    {
+     "group": "condition",
+     "label": "Condition"
+    },
+    {
+     "group": "attachment",
+     "label": "Attachment"
+    },
+    {
+     "group": "other_plan_node",
+     "label": "Other plan node"
+    }
+   ],
+   "layout": "hier",
+   "empty": "This scene holds no recorded plan. A live run's plan shows here once the run is saved and opened from the scene picker."
+  },
+  {
+   "key": "chart",
+   "ok": true,
+   "nodes": [],
+   "edges": [],
+   "details": {},
+   "legend": [],
+   "layout": "hier",
+   "empty": "This scene holds no recorded motion statechart. A live run's statechart shows here once the run is saved and opened from the scene picker."
+  },
+  {
+   "key": "kinematics",
+   "ok": true,
+   "nodes": [
+    {
+     "id": "world_root",
+     "label": "world_root",
+     "group": "base",
+     "title": "world_root"
+    },
+    {
+     "id": "r100-0603/base_link",
+     "label": "r100-0603/base_link",
+     "group": "base",
+     "title": "r100-0603/base_link\nworld_root_to_r100-0603/base_link (fixed)"
+    },
+    {
+     "id": "r100-0603/chassis_link",
+     "label": "r100-0603/chassis_link",
+     "group": "base",
+     "title": "r100-0603/chassis_link\nr100-0603/base_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/mounting_plate_link",
+     "label": "r100-0603/mounting_plate_link",
+     "group": "base",
+     "title": "r100-0603/mounting_plate_link\nr100-0603/mounting_plate_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/cover_link",
+     "label": "r100-0603/cover_link",
+     "group": "base",
+     "title": "r100-0603/cover_link\nr100-0603/cover_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lidar2d_1_link",
+     "label": "r100-0603/lidar2d_1_link",
+     "group": "base",
+     "title": "r100-0603/lidar2d_1_link\nr100-0603/lidar2d_1_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lidar2d_1_laser",
+     "label": "r100-0603/lidar2d_1_laser",
+     "group": "base",
+     "title": "r100-0603/lidar2d_1_laser\nr100-0603/lidar2d_1_laser_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lidar2d_0_link",
+     "label": "r100-0603/lidar2d_0_link",
+     "group": "base",
+     "title": "r100-0603/lidar2d_0_link\nr100-0603/lidar2d_0_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lidar2d_0_laser",
+     "label": "r100-0603/lidar2d_0_laser",
+     "group": "base",
+     "title": "r100-0603/lidar2d_0_laser\nr100-0603/lidar2d_0_laser_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/imu_0_link",
+     "label": "r100-0603/imu_0_link",
+     "group": "base",
+     "title": "r100-0603/imu_0_link\nr100-0603/imu_0_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/riser_link",
+     "label": "r100-0603/riser_link",
+     "group": "base",
+     "title": "r100-0603/riser_link\nr100-0603/riser_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/default_mount",
+     "label": "r100-0603/default_mount",
+     "group": "base",
+     "title": "r100-0603/default_mount\nr100-0603/default_mount_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lift_0_plate_link",
+     "label": "r100-0603/lift_0_plate_link",
+     "group": "base",
+     "title": "r100-0603/lift_0_plate_link\nr100-0603/lift_0_plate_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lift_0_base_link",
+     "label": "r100-0603/lift_0_base_link",
+     "group": "base",
+     "title": "r100-0603/lift_0_base_link\nr100-0603/lift_0_base_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lift_0_lower_link",
+     "label": "r100-0603/lift_0_lower_link",
+     "group": "base",
+     "title": "r100-0603/lift_0_lower_link\nr100-0603/lift_0_lower_joint (prismatic)"
+    },
+    {
+     "id": "r100-0603/lift_0_upper_link",
+     "label": "r100-0603/lift_0_upper_link",
+     "group": "base",
+     "title": "r100-0603/lift_0_upper_link\nr100-0603/lift_0_upper_joint (prismatic)"
+    },
+    {
+     "id": "r100-0603/lift_0_mount",
+     "label": "r100-0603/lift_0_mount",
+     "group": "base",
+     "title": "r100-0603/lift_0_mount\nr100-0603/lift_0_mount_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/lift_0_mount_rotated_link",
+     "label": "r100-0603/lift_0_mount_rotated_link",
+     "group": "base",
+     "title": "r100-0603/lift_0_mount_rotated_link\nr100-0603/lift_0_mount_rotated_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/neck_1",
+     "label": "r100-0603/neck_1",
+     "group": "base",
+     "title": "r100-0603/neck_1\nr100-0603/head_fixed_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/neck_2",
+     "label": "r100-0603/neck_2",
+     "group": "base",
+     "title": "r100-0603/neck_2\nr100-0603/o1_motor_1 (revolute)"
+    },
+    {
+     "id": "r100-0603/head",
+     "label": "r100-0603/head",
+     "group": "base",
+     "title": "r100-0603/head\nr100-0603/o1_motor_2 (revolute)"
+    },
+    {
+     "id": "r100-0603/body_link",
+     "label": "r100-0603/body_link",
+     "group": "base",
+     "title": "r100-0603/body_link\nr100-0603/body_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/arm_mount_right_link",
+     "label": "r100-0603/arm_mount_right_link",
+     "group": "right_arm",
+     "title": "r100-0603/arm_mount_right_link\nr100-0603/arm_mount_right_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link0",
+     "label": "r100-0603/right_fr3_link0",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link0\nr100-0603/right_fr3_joint0 (fixed)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link1",
+     "label": "r100-0603/right_fr3_link1",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link1\nr100-0603/right_fr3_joint1 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link2",
+     "label": "r100-0603/right_fr3_link2",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link2\nr100-0603/right_fr3_joint2 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link3",
+     "label": "r100-0603/right_fr3_link3",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link3\nr100-0603/right_fr3_joint3 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link4",
+     "label": "r100-0603/right_fr3_link4",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link4\nr100-0603/right_fr3_joint4 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link5",
+     "label": "r100-0603/right_fr3_link5",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link5\nr100-0603/right_fr3_joint5 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link6",
+     "label": "r100-0603/right_fr3_link6",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link6\nr100-0603/right_fr3_joint6 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link7",
+     "label": "r100-0603/right_fr3_link7",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link7\nr100-0603/right_fr3_joint7 (revolute)"
+    },
+    {
+     "id": "r100-0603/right_fr3_link8",
+     "label": "r100-0603/right_fr3_link8",
+     "group": "right_arm",
+     "title": "r100-0603/right_fr3_link8\nr100-0603/right_fr3_joint8 (fixed)"
+    },
+    {
+     "id": "r100-0603/right_fr3_hand",
+     "label": "r100-0603/right_fr3_hand",
+     "group": "gripper",
+     "title": "r100-0603/right_fr3_hand\nr100-0603/right_fr3_hand_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/right_fr3_rightfinger",
+     "label": "r100-0603/right_fr3_rightfinger",
+     "group": "gripper",
+     "title": "r100-0603/right_fr3_rightfinger\nr100-0603/right_fr3_finger_joint2 (prismatic)"
+    },
+    {
+     "id": "r100-0603/right_fr3_leftfinger",
+     "label": "r100-0603/right_fr3_leftfinger",
+     "group": "gripper",
+     "title": "r100-0603/right_fr3_leftfinger\nr100-0603/right_fr3_finger_joint1 (prismatic)"
+    },
+    {
+     "id": "r100-0603/right_fr3_hand_tcp",
+     "label": "r100-0603/right_fr3_hand_tcp",
+     "group": "gripper",
+     "title": "r100-0603/right_fr3_hand_tcp\nr100-0603/right_fr3_hand_tcp_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/arm_mount_left_link",
+     "label": "r100-0603/arm_mount_left_link",
+     "group": "left_arm",
+     "title": "r100-0603/arm_mount_left_link\nr100-0603/arm_mount_left_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link0",
+     "label": "r100-0603/left_fr3_link0",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link0\nr100-0603/left_fr3_joint0 (fixed)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link1",
+     "label": "r100-0603/left_fr3_link1",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link1\nr100-0603/left_fr3_joint1 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link2",
+     "label": "r100-0603/left_fr3_link2",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link2\nr100-0603/left_fr3_joint2 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link3",
+     "label": "r100-0603/left_fr3_link3",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link3\nr100-0603/left_fr3_joint3 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link4",
+     "label": "r100-0603/left_fr3_link4",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link4\nr100-0603/left_fr3_joint4 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link5",
+     "label": "r100-0603/left_fr3_link5",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link5\nr100-0603/left_fr3_joint5 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link6",
+     "label": "r100-0603/left_fr3_link6",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link6\nr100-0603/left_fr3_joint6 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link7",
+     "label": "r100-0603/left_fr3_link7",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link7\nr100-0603/left_fr3_joint7 (revolute)"
+    },
+    {
+     "id": "r100-0603/left_fr3_link8",
+     "label": "r100-0603/left_fr3_link8",
+     "group": "left_arm",
+     "title": "r100-0603/left_fr3_link8\nr100-0603/left_fr3_joint8 (fixed)"
+    },
+    {
+     "id": "r100-0603/left_fr3_hand",
+     "label": "r100-0603/left_fr3_hand",
+     "group": "gripper",
+     "title": "r100-0603/left_fr3_hand\nr100-0603/left_fr3_hand_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/left_fr3_rightfinger",
+     "label": "r100-0603/left_fr3_rightfinger",
+     "group": "gripper",
+     "title": "r100-0603/left_fr3_rightfinger\nr100-0603/left_fr3_finger_joint2 (prismatic)"
+    },
+    {
+     "id": "r100-0603/left_fr3_leftfinger",
+     "label": "r100-0603/left_fr3_leftfinger",
+     "group": "gripper",
+     "title": "r100-0603/left_fr3_leftfinger\nr100-0603/left_fr3_finger_joint1 (prismatic)"
+    },
+    {
+     "id": "r100-0603/left_fr3_hand_tcp",
+     "label": "r100-0603/left_fr3_hand_tcp",
+     "group": "gripper",
+     "title": "r100-0603/left_fr3_hand_tcp\nr100-0603/left_fr3_hand_tcp_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/imu_1_base_link",
+     "label": "r100-0603/imu_1_base_link",
+     "group": "base",
+     "title": "r100-0603/imu_1_base_link\nr100-0603/imu_1_base_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/imu_1_link",
+     "label": "r100-0603/imu_1_link",
+     "group": "base",
+     "title": "r100-0603/imu_1_link\nr100-0603/imu_1_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/axle_link",
+     "label": "r100-0603/axle_link",
+     "group": "base",
+     "title": "r100-0603/axle_link\nr100-0603/axle_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/rear_rocker_link",
+     "label": "r100-0603/rear_rocker_link",
+     "group": "base",
+     "title": "r100-0603/rear_rocker_link\nr100-0603/rear_rocker (fixed)"
+    },
+    {
+     "id": "r100-0603/rear_right_wheel_link",
+     "label": "r100-0603/rear_right_wheel_link",
+     "group": "base",
+     "title": "r100-0603/rear_right_wheel_link\nr100-0603/rear_right_wheel_joint (continuous)"
+    },
+    {
+     "id": "r100-0603/rear_left_wheel_link",
+     "label": "r100-0603/rear_left_wheel_link",
+     "group": "base",
+     "title": "r100-0603/rear_left_wheel_link\nr100-0603/rear_left_wheel_joint (continuous)"
+    },
+    {
+     "id": "r100-0603/front_rocker_link",
+     "label": "r100-0603/front_rocker_link",
+     "group": "base",
+     "title": "r100-0603/front_rocker_link\nr100-0603/front_rocker (fixed)"
+    },
+    {
+     "id": "r100-0603/front_right_wheel_link",
+     "label": "r100-0603/front_right_wheel_link",
+     "group": "base",
+     "title": "r100-0603/front_right_wheel_link\nr100-0603/front_right_wheel_joint (continuous)"
+    },
+    {
+     "id": "r100-0603/front_left_wheel_link",
+     "label": "r100-0603/front_left_wheel_link",
+     "group": "base",
+     "title": "r100-0603/front_left_wheel_link\nr100-0603/front_left_wheel_joint (continuous)"
+    },
+    {
+     "id": "r100-0603/rear_lights_link",
+     "label": "r100-0603/rear_lights_link",
+     "group": "base",
+     "title": "r100-0603/rear_lights_link\nr100-0603/rear_lights_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/front_lights_link",
+     "label": "r100-0603/front_lights_link",
+     "group": "base",
+     "title": "r100-0603/front_lights_link\nr100-0603/front_lights_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/rear_cover_link",
+     "label": "r100-0603/rear_cover_link",
+     "group": "base",
+     "title": "r100-0603/rear_cover_link\nr100-0603/rear_cover_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/front_cover_link",
+     "label": "r100-0603/front_cover_link",
+     "group": "base",
+     "title": "r100-0603/front_cover_link\nr100-0603/front_cover_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/left_side_cover_link",
+     "label": "r100-0603/left_side_cover_link",
+     "group": "base",
+     "title": "r100-0603/left_side_cover_link\nr100-0603/left_side_cover_link_joint (fixed)"
+    },
+    {
+     "id": "r100-0603/right_side_cover_link",
+     "label": "r100-0603/right_side_cover_link",
+     "group": "base",
+     "title": "r100-0603/right_side_cover_link\nr100-0603/right_side_cover_link_joint (fixed)"
+    }
+   ],
+   "edges": [
+    {
+     "from": "world_root",
+     "to": "r100-0603/base_link",
+     "kind": "type",
+     "label": "world_root_to_r100-0603/base_link (fixed)"
+    },
+    {
+     "from": "r100-0603/base_link",
+     "to": "r100-0603/chassis_link",
+     "kind": "type",
+     "label": "r100-0603/base_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/mounting_plate_link",
+     "kind": "type",
+     "label": "r100-0603/mounting_plate_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/cover_link",
+     "kind": "type",
+     "label": "r100-0603/cover_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/lidar2d_1_link",
+     "kind": "type",
+     "label": "r100-0603/lidar2d_1_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lidar2d_1_link",
+     "to": "r100-0603/lidar2d_1_laser",
+     "kind": "type",
+     "label": "r100-0603/lidar2d_1_laser_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/lidar2d_0_link",
+     "kind": "type",
+     "label": "r100-0603/lidar2d_0_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lidar2d_0_link",
+     "to": "r100-0603/lidar2d_0_laser",
+     "kind": "type",
+     "label": "r100-0603/lidar2d_0_laser_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/imu_0_link",
+     "kind": "type",
+     "label": "r100-0603/imu_0_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/riser_link",
+     "kind": "type",
+     "label": "r100-0603/riser_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/riser_link",
+     "to": "r100-0603/default_mount",
+     "kind": "type",
+     "label": "r100-0603/default_mount_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/default_mount",
+     "to": "r100-0603/lift_0_plate_link",
+     "kind": "type",
+     "label": "r100-0603/lift_0_plate_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lift_0_plate_link",
+     "to": "r100-0603/lift_0_base_link",
+     "kind": "type",
+     "label": "r100-0603/lift_0_base_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lift_0_base_link",
+     "to": "r100-0603/lift_0_lower_link",
+     "kind": "property",
+     "label": "r100-0603/lift_0_lower_joint (prismatic)"
+    },
+    {
+     "from": "r100-0603/lift_0_lower_link",
+     "to": "r100-0603/lift_0_upper_link",
+     "kind": "property",
+     "label": "r100-0603/lift_0_upper_joint (prismatic)"
+    },
+    {
+     "from": "r100-0603/lift_0_upper_link",
+     "to": "r100-0603/lift_0_mount",
+     "kind": "type",
+     "label": "r100-0603/lift_0_mount_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lift_0_mount",
+     "to": "r100-0603/lift_0_mount_rotated_link",
+     "kind": "type",
+     "label": "r100-0603/lift_0_mount_rotated_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lift_0_mount_rotated_link",
+     "to": "r100-0603/neck_1",
+     "kind": "type",
+     "label": "r100-0603/head_fixed_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/neck_1",
+     "to": "r100-0603/neck_2",
+     "kind": "property",
+     "label": "r100-0603/o1_motor_1 (revolute)"
+    },
+    {
+     "from": "r100-0603/neck_2",
+     "to": "r100-0603/head",
+     "kind": "property",
+     "label": "r100-0603/o1_motor_2 (revolute)"
+    },
+    {
+     "from": "r100-0603/lift_0_mount_rotated_link",
+     "to": "r100-0603/body_link",
+     "kind": "type",
+     "label": "r100-0603/body_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lift_0_mount_rotated_link",
+     "to": "r100-0603/arm_mount_right_link",
+     "kind": "type",
+     "label": "r100-0603/arm_mount_right_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/arm_mount_right_link",
+     "to": "r100-0603/right_fr3_link0",
+     "kind": "type",
+     "label": "r100-0603/right_fr3_joint0 (fixed)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link0",
+     "to": "r100-0603/right_fr3_link1",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint1 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link1",
+     "to": "r100-0603/right_fr3_link2",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint2 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link2",
+     "to": "r100-0603/right_fr3_link3",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint3 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link3",
+     "to": "r100-0603/right_fr3_link4",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint4 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link4",
+     "to": "r100-0603/right_fr3_link5",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint5 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link5",
+     "to": "r100-0603/right_fr3_link6",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint6 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link6",
+     "to": "r100-0603/right_fr3_link7",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_joint7 (revolute)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link7",
+     "to": "r100-0603/right_fr3_link8",
+     "kind": "type",
+     "label": "r100-0603/right_fr3_joint8 (fixed)"
+    },
+    {
+     "from": "r100-0603/right_fr3_link8",
+     "to": "r100-0603/right_fr3_hand",
+     "kind": "type",
+     "label": "r100-0603/right_fr3_hand_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/right_fr3_hand",
+     "to": "r100-0603/right_fr3_rightfinger",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_finger_joint2 (prismatic)"
+    },
+    {
+     "from": "r100-0603/right_fr3_hand",
+     "to": "r100-0603/right_fr3_leftfinger",
+     "kind": "property",
+     "label": "r100-0603/right_fr3_finger_joint1 (prismatic)"
+    },
+    {
+     "from": "r100-0603/right_fr3_hand",
+     "to": "r100-0603/right_fr3_hand_tcp",
+     "kind": "type",
+     "label": "r100-0603/right_fr3_hand_tcp_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/lift_0_mount_rotated_link",
+     "to": "r100-0603/arm_mount_left_link",
+     "kind": "type",
+     "label": "r100-0603/arm_mount_left_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/arm_mount_left_link",
+     "to": "r100-0603/left_fr3_link0",
+     "kind": "type",
+     "label": "r100-0603/left_fr3_joint0 (fixed)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link0",
+     "to": "r100-0603/left_fr3_link1",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint1 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link1",
+     "to": "r100-0603/left_fr3_link2",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint2 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link2",
+     "to": "r100-0603/left_fr3_link3",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint3 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link3",
+     "to": "r100-0603/left_fr3_link4",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint4 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link4",
+     "to": "r100-0603/left_fr3_link5",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint5 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link5",
+     "to": "r100-0603/left_fr3_link6",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint6 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link6",
+     "to": "r100-0603/left_fr3_link7",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_joint7 (revolute)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link7",
+     "to": "r100-0603/left_fr3_link8",
+     "kind": "type",
+     "label": "r100-0603/left_fr3_joint8 (fixed)"
+    },
+    {
+     "from": "r100-0603/left_fr3_link8",
+     "to": "r100-0603/left_fr3_hand",
+     "kind": "type",
+     "label": "r100-0603/left_fr3_hand_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/left_fr3_hand",
+     "to": "r100-0603/left_fr3_rightfinger",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_finger_joint2 (prismatic)"
+    },
+    {
+     "from": "r100-0603/left_fr3_hand",
+     "to": "r100-0603/left_fr3_leftfinger",
+     "kind": "property",
+     "label": "r100-0603/left_fr3_finger_joint1 (prismatic)"
+    },
+    {
+     "from": "r100-0603/left_fr3_hand",
+     "to": "r100-0603/left_fr3_hand_tcp",
+     "kind": "type",
+     "label": "r100-0603/left_fr3_hand_tcp_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/default_mount",
+     "to": "r100-0603/imu_1_base_link",
+     "kind": "type",
+     "label": "r100-0603/imu_1_base_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/imu_1_base_link",
+     "to": "r100-0603/imu_1_link",
+     "kind": "type",
+     "label": "r100-0603/imu_1_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/axle_link",
+     "kind": "type",
+     "label": "r100-0603/axle_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/axle_link",
+     "to": "r100-0603/rear_rocker_link",
+     "kind": "type",
+     "label": "r100-0603/rear_rocker (fixed)"
+    },
+    {
+     "from": "r100-0603/rear_rocker_link",
+     "to": "r100-0603/rear_right_wheel_link",
+     "kind": "property",
+     "label": "r100-0603/rear_right_wheel_joint (continuous)"
+    },
+    {
+     "from": "r100-0603/rear_rocker_link",
+     "to": "r100-0603/rear_left_wheel_link",
+     "kind": "property",
+     "label": "r100-0603/rear_left_wheel_joint (continuous)"
+    },
+    {
+     "from": "r100-0603/axle_link",
+     "to": "r100-0603/front_rocker_link",
+     "kind": "type",
+     "label": "r100-0603/front_rocker (fixed)"
+    },
+    {
+     "from": "r100-0603/front_rocker_link",
+     "to": "r100-0603/front_right_wheel_link",
+     "kind": "property",
+     "label": "r100-0603/front_right_wheel_joint (continuous)"
+    },
+    {
+     "from": "r100-0603/front_rocker_link",
+     "to": "r100-0603/front_left_wheel_link",
+     "kind": "property",
+     "label": "r100-0603/front_left_wheel_joint (continuous)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/rear_lights_link",
+     "kind": "type",
+     "label": "r100-0603/rear_lights_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/front_lights_link",
+     "kind": "type",
+     "label": "r100-0603/front_lights_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/rear_cover_link",
+     "kind": "type",
+     "label": "r100-0603/rear_cover_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/front_cover_link",
+     "kind": "type",
+     "label": "r100-0603/front_cover_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/left_side_cover_link",
+     "kind": "type",
+     "label": "r100-0603/left_side_cover_link_joint (fixed)"
+    },
+    {
+     "from": "r100-0603/chassis_link",
+     "to": "r100-0603/right_side_cover_link",
+     "kind": "type",
+     "label": "r100-0603/right_side_cover_link_joint (fixed)"
+    }
+   ],
+   "details": {
+    "world_root": {
+     "label": "world_root",
+     "group": "base",
+     "lines": []
+    },
+    "r100-0603/base_link": {
+     "label": "r100-0603/base_link",
+     "group": "base",
+     "lines": [
+      "world_root_to_r100-0603/base_link (fixed)"
+     ]
+    },
+    "r100-0603/chassis_link": {
+     "label": "r100-0603/chassis_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/base_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/mounting_plate_link": {
+     "label": "r100-0603/mounting_plate_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/mounting_plate_joint (fixed)"
+     ]
+    },
+    "r100-0603/cover_link": {
+     "label": "r100-0603/cover_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/cover_joint (fixed)"
+     ]
+    },
+    "r100-0603/lidar2d_1_link": {
+     "label": "r100-0603/lidar2d_1_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lidar2d_1_joint (fixed)"
+     ]
+    },
+    "r100-0603/lidar2d_1_laser": {
+     "label": "r100-0603/lidar2d_1_laser",
+     "group": "base",
+     "lines": [
+      "r100-0603/lidar2d_1_laser_joint (fixed)"
+     ]
+    },
+    "r100-0603/lidar2d_0_link": {
+     "label": "r100-0603/lidar2d_0_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lidar2d_0_joint (fixed)"
+     ]
+    },
+    "r100-0603/lidar2d_0_laser": {
+     "label": "r100-0603/lidar2d_0_laser",
+     "group": "base",
+     "lines": [
+      "r100-0603/lidar2d_0_laser_joint (fixed)"
+     ]
+    },
+    "r100-0603/imu_0_link": {
+     "label": "r100-0603/imu_0_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/imu_0_joint (fixed)"
+     ]
+    },
+    "r100-0603/riser_link": {
+     "label": "r100-0603/riser_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/riser_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/default_mount": {
+     "label": "r100-0603/default_mount",
+     "group": "base",
+     "lines": [
+      "r100-0603/default_mount_joint (fixed)"
+     ]
+    },
+    "r100-0603/lift_0_plate_link": {
+     "label": "r100-0603/lift_0_plate_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lift_0_plate_joint (fixed)"
+     ]
+    },
+    "r100-0603/lift_0_base_link": {
+     "label": "r100-0603/lift_0_base_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lift_0_base_joint (fixed)"
+     ]
+    },
+    "r100-0603/lift_0_lower_link": {
+     "label": "r100-0603/lift_0_lower_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lift_0_lower_joint (prismatic)"
+     ]
+    },
+    "r100-0603/lift_0_upper_link": {
+     "label": "r100-0603/lift_0_upper_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lift_0_upper_joint (prismatic)"
+     ]
+    },
+    "r100-0603/lift_0_mount": {
+     "label": "r100-0603/lift_0_mount",
+     "group": "base",
+     "lines": [
+      "r100-0603/lift_0_mount_joint (fixed)"
+     ]
+    },
+    "r100-0603/lift_0_mount_rotated_link": {
+     "label": "r100-0603/lift_0_mount_rotated_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/lift_0_mount_rotated_joint (fixed)"
+     ]
+    },
+    "r100-0603/neck_1": {
+     "label": "r100-0603/neck_1",
+     "group": "base",
+     "lines": [
+      "r100-0603/head_fixed_joint (fixed)"
+     ]
+    },
+    "r100-0603/neck_2": {
+     "label": "r100-0603/neck_2",
+     "group": "base",
+     "lines": [
+      "r100-0603/o1_motor_1 (revolute)"
+     ]
+    },
+    "r100-0603/head": {
+     "label": "r100-0603/head",
+     "group": "base",
+     "lines": [
+      "r100-0603/o1_motor_2 (revolute)"
+     ]
+    },
+    "r100-0603/body_link": {
+     "label": "r100-0603/body_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/body_joint (fixed)"
+     ]
+    },
+    "r100-0603/arm_mount_right_link": {
+     "label": "r100-0603/arm_mount_right_link",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/arm_mount_right_joint (fixed)"
+     ]
+    },
+    "r100-0603/right_fr3_link0": {
+     "label": "r100-0603/right_fr3_link0",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint0 (fixed)"
+     ]
+    },
+    "r100-0603/right_fr3_link1": {
+     "label": "r100-0603/right_fr3_link1",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint1 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link2": {
+     "label": "r100-0603/right_fr3_link2",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint2 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link3": {
+     "label": "r100-0603/right_fr3_link3",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint3 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link4": {
+     "label": "r100-0603/right_fr3_link4",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint4 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link5": {
+     "label": "r100-0603/right_fr3_link5",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint5 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link6": {
+     "label": "r100-0603/right_fr3_link6",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint6 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link7": {
+     "label": "r100-0603/right_fr3_link7",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint7 (revolute)"
+     ]
+    },
+    "r100-0603/right_fr3_link8": {
+     "label": "r100-0603/right_fr3_link8",
+     "group": "right_arm",
+     "lines": [
+      "r100-0603/right_fr3_joint8 (fixed)"
+     ]
+    },
+    "r100-0603/right_fr3_hand": {
+     "label": "r100-0603/right_fr3_hand",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/right_fr3_hand_joint (fixed)"
+     ]
+    },
+    "r100-0603/right_fr3_rightfinger": {
+     "label": "r100-0603/right_fr3_rightfinger",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/right_fr3_finger_joint2 (prismatic)"
+     ]
+    },
+    "r100-0603/right_fr3_leftfinger": {
+     "label": "r100-0603/right_fr3_leftfinger",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/right_fr3_finger_joint1 (prismatic)"
+     ]
+    },
+    "r100-0603/right_fr3_hand_tcp": {
+     "label": "r100-0603/right_fr3_hand_tcp",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/right_fr3_hand_tcp_joint (fixed)"
+     ]
+    },
+    "r100-0603/arm_mount_left_link": {
+     "label": "r100-0603/arm_mount_left_link",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/arm_mount_left_joint (fixed)"
+     ]
+    },
+    "r100-0603/left_fr3_link0": {
+     "label": "r100-0603/left_fr3_link0",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint0 (fixed)"
+     ]
+    },
+    "r100-0603/left_fr3_link1": {
+     "label": "r100-0603/left_fr3_link1",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint1 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link2": {
+     "label": "r100-0603/left_fr3_link2",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint2 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link3": {
+     "label": "r100-0603/left_fr3_link3",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint3 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link4": {
+     "label": "r100-0603/left_fr3_link4",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint4 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link5": {
+     "label": "r100-0603/left_fr3_link5",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint5 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link6": {
+     "label": "r100-0603/left_fr3_link6",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint6 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link7": {
+     "label": "r100-0603/left_fr3_link7",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint7 (revolute)"
+     ]
+    },
+    "r100-0603/left_fr3_link8": {
+     "label": "r100-0603/left_fr3_link8",
+     "group": "left_arm",
+     "lines": [
+      "r100-0603/left_fr3_joint8 (fixed)"
+     ]
+    },
+    "r100-0603/left_fr3_hand": {
+     "label": "r100-0603/left_fr3_hand",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/left_fr3_hand_joint (fixed)"
+     ]
+    },
+    "r100-0603/left_fr3_rightfinger": {
+     "label": "r100-0603/left_fr3_rightfinger",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/left_fr3_finger_joint2 (prismatic)"
+     ]
+    },
+    "r100-0603/left_fr3_leftfinger": {
+     "label": "r100-0603/left_fr3_leftfinger",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/left_fr3_finger_joint1 (prismatic)"
+     ]
+    },
+    "r100-0603/left_fr3_hand_tcp": {
+     "label": "r100-0603/left_fr3_hand_tcp",
+     "group": "gripper",
+     "lines": [
+      "r100-0603/left_fr3_hand_tcp_joint (fixed)"
+     ]
+    },
+    "r100-0603/imu_1_base_link": {
+     "label": "r100-0603/imu_1_base_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/imu_1_base_joint (fixed)"
+     ]
+    },
+    "r100-0603/imu_1_link": {
+     "label": "r100-0603/imu_1_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/imu_1_joint (fixed)"
+     ]
+    },
+    "r100-0603/axle_link": {
+     "label": "r100-0603/axle_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/axle_joint (fixed)"
+     ]
+    },
+    "r100-0603/rear_rocker_link": {
+     "label": "r100-0603/rear_rocker_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/rear_rocker (fixed)"
+     ]
+    },
+    "r100-0603/rear_right_wheel_link": {
+     "label": "r100-0603/rear_right_wheel_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/rear_right_wheel_joint (continuous)"
+     ]
+    },
+    "r100-0603/rear_left_wheel_link": {
+     "label": "r100-0603/rear_left_wheel_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/rear_left_wheel_joint (continuous)"
+     ]
+    },
+    "r100-0603/front_rocker_link": {
+     "label": "r100-0603/front_rocker_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/front_rocker (fixed)"
+     ]
+    },
+    "r100-0603/front_right_wheel_link": {
+     "label": "r100-0603/front_right_wheel_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/front_right_wheel_joint (continuous)"
+     ]
+    },
+    "r100-0603/front_left_wheel_link": {
+     "label": "r100-0603/front_left_wheel_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/front_left_wheel_joint (continuous)"
+     ]
+    },
+    "r100-0603/rear_lights_link": {
+     "label": "r100-0603/rear_lights_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/rear_lights_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/front_lights_link": {
+     "label": "r100-0603/front_lights_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/front_lights_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/rear_cover_link": {
+     "label": "r100-0603/rear_cover_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/rear_cover_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/front_cover_link": {
+     "label": "r100-0603/front_cover_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/front_cover_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/left_side_cover_link": {
+     "label": "r100-0603/left_side_cover_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/left_side_cover_link_joint (fixed)"
+     ]
+    },
+    "r100-0603/right_side_cover_link": {
+     "label": "r100-0603/right_side_cover_link",
+     "group": "base",
+     "lines": [
+      "r100-0603/right_side_cover_link_joint (fixed)"
+     ]
+    }
+   },
+   "legend": [
+    {
+     "group": "base",
+     "label": "Base"
+    },
+    {
+     "group": "left_arm",
+     "label": "Left arm"
+    },
+    {
+     "group": "right_arm",
+     "label": "Right arm"
+    },
+    {
+     "group": "arm",
+     "label": "Arm"
+    },
+    {
+     "group": "gripper",
+     "label": "Gripper"
+    }
+   ],
+   "layout": "hier"
+  }
+ ]
+}
