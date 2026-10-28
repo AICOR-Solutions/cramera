@@ -214,6 +214,33 @@ resolutions, the query steps and the perception images of the publisher at
 `127.0.0.1:8765`, and nothing that changes the run. Stopping and saving the recording
 stay with the machine.
 
+### Serve behind a proxy
+
+A server reached over the internet serves the viewer through a reverse proxy on the
+same machine that checks a password, such as nginx with Basic auth:
+
+```bash
+cramera --no-browser --port 8724 --public-origin https://cramera.example.org
+```
+
+```nginx
+location = /phone { return 301 /phone/; }
+location /phone/ {
+    auth_basic "cramera";
+    auth_basic_user_file /etc/cramera-phone/htpasswd;
+    proxy_pass http://127.0.0.1:8724/;
+    proxy_set_header Host $host;
+    proxy_buffering off;
+}
+```
+
+The viewer then listens on a loopback address only and counts every request as another
+device's that the proxy let in, so none needs the key. Besides reading, such devices
+make only the changes a route offers them: stepping through a live run's queries,
+relayed below `/api/live/`, and starting and stopping the runs a plugin offers.
+Asking questions, building and running plans and saving stay with the machine, and the
+plan builder's folder listing is not offered over the network.
+
 ### Scene graph and ontology
 
 The **Scene graph** tab shows the shown world as a tree: the models with their links
@@ -240,7 +267,7 @@ cramera-record-classes ~/.cramera/scenes --scene my_recording
 
 | Command | What it does |
 | --- | --- |
-| `cramera` | Serve the viewer. `--lan` serves the network too (see [Watch from a phone](#watch-from-a-phone)). `--logo FILE` (or `CRAMERA_LOGO`) shows another `.png`, `.svg` or `.jpg` instead of the AICOR logo in every page's top bar, `--logo-text TEXT` says what it shows. |
+| `cramera` | Serve the viewer. `--lan` serves the network too (see [Watch from a phone](#watch-from-a-phone)), `--public-origin ORIGIN` a password-checking proxy (see [Serve behind a proxy](#serve-behind-a-proxy)). `--logo FILE` (or `CRAMERA_LOGO`) shows another `.png`, `.svg` or `.jpg` instead of the AICOR logo in every page's top bar, `--logo-text TEXT` says what it shows. |
 | `cramera-shot URL OUT.png` | Take a screenshot in headless Chrome (`--browser chrome`, needs `chromedriver`) or Firefox (`--browser firefox`, needs `geckodriver`) once the page reports its scene as shown; exits 1 when it fails. |
 | `cramera-export-site OUT --scenes DIR [--plugin NAME] [--logo FILE]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins and the given logo. |
 | `cramera-upgrade-bundle SRC DST` | Copy a bundle and rewrite its documents in the current format, optionally with new labels for the scene picker. |

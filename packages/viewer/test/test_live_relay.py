@@ -19,7 +19,7 @@ from cramera.http.messages import Header, HttpMethod, MediaType, Request, Respon
 from cramera.http.origin import KEY_COOKIE, KEY_PARAMETER, OriginPolicy
 from cramera.http.routing import ExactRoute, Router
 from cramera.http.server import HttpServer, RequestAnswerer, ViewerHttpServer
-from cramera.live_relay import RELAYED_READS, LiveRelay
+from cramera.live_relay import RELAYED_CHANGES, RELAYED_READS, LiveRelay
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT, LiveRoute
 from cramera_protocol.live_messages import LiveParameter
 from cramera_protocol.viewer import ErrorKey, ViewerRoute
@@ -62,6 +62,7 @@ def echo(request: Request) -> Response:
             "route": request.path,
             "query": request.query,
             "host": request.header(Header.HOST),
+            "body": request.body.decode(),
         }
     )
 
@@ -178,6 +179,7 @@ def test_a_phone_reads_each_observation_through_the_viewer(
         "route": route,
         "query": "",
         "host": f"{LIVE_HOST}:{publisher.bound_port()}",
+        "body": "",
     }
 
 
@@ -274,6 +276,80 @@ def test_a_phone_without_the_key_reads_nothing_through_the_relay(
     del request.headers[Header.COOKIE]
     answer = viewer(catalog, locations, relay).answer(request)
     assert answer.status is HTTPStatus.FORBIDDEN
+
+
+# %% control behind a proxy
+
+PROXY_POLICY = OriginPolicy(
+    allowed_hosts=frozenset({LIVE_HOST, "localhost", "::1", "cramera.example.org"}),
+    proxied=True,
+)
+"""
+The policy of a viewer behind a password-checking proxy on this machine.
+"""
+
+
+def through_proxy(route: str, body: bytes = b"") -> Request:
+    """
+    :param route: A live route.
+    :return: A POST for the route through the relay, as the proxy forwards it.
+    """
+    return Request(
+        method=HttpMethod.POST,
+        path=f"{ViewerRoute.LIVE_RELAY}{route.lstrip('/')}",
+        headers={
+            Header.HOST: "cramera.example.org",
+            Header.ORIGIN: "https://cramera.example.org",
+            Header.CONTENT_TYPE: MediaType.JSON,
+        },
+        body=body,
+    )
+
+
+def test_the_relay_carries_only_the_query_steps_controls():
+    assert RELAYED_CHANGES == {LiveRoute.QUERY_STEPS_NEXT, LiveRoute.QUERY_STEPS_MODE}
+
+
+@pytest.mark.parametrize("route", sorted(RELAYED_CHANGES))
+def test_a_page_behind_the_proxy_steps_the_run_through_the_relay(
+    catalog, locations, relay, route
+):
+    body = b'{"stepping": false}'
+    answer = viewer(catalog, locations, relay, PROXY_POLICY).answer(
+        through_proxy(route, body)
+    )
+    assert answer.status is HTTPStatus.OK
+    assert json.loads(answer.body)["route"] == route
+    assert json.loads(answer.body)["body"] == body.decode()
+
+
+@pytest.mark.parametrize(
+    "route", [LiveRoute.QUERY, LiveRoute.RECORDING_SAVE, LiveRoute.MOVE]
+)
+def test_a_page_behind_the_proxy_changes_nothing_else_through_the_relay(
+    catalog, locations, relay, route
+):
+    answer = viewer(catalog, locations, relay, PROXY_POLICY).answer(
+        through_proxy(route)
+    )
+    assert answer.status is HTTPStatus.FORBIDDEN
+
+
+def test_a_phone_of_the_network_does_not_step_the_run(catalog, locations, relay):
+    answer = viewer(catalog, locations, relay).answer(
+        relayed(LiveRoute.QUERY_STEPS_NEXT, method=HttpMethod.POST)
+    )
+    assert answer.status is HTTPStatus.FORBIDDEN
+
+
+def test_stepping_without_a_publisher_is_a_service_unavailable(
+    catalog, locations, closed_port
+):
+    relay = LiveRelay(port=closed_port)
+    answer = viewer(catalog, locations, relay, PROXY_POLICY).answer(
+        through_proxy(LiveRoute.QUERY_STEPS_NEXT, b"{}")
+    )
+    assert answer.status is HTTPStatus.SERVICE_UNAVAILABLE
 
 
 # %% no publisher

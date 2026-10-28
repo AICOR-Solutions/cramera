@@ -19,7 +19,7 @@ from cramera import screenshot
 from cramera.command_line import DEFAULT_PORT, Option, ViewerConfiguration
 from cramera.http import server as server_module
 from cramera.http.addresses import EVERY_ADDRESS
-from cramera.http.origin import KEY_PARAMETER
+from cramera.http.origin import KEY_PARAMETER, OriginPolicy
 from cramera.http.server import HttpServer
 from cramera.network_key import NetworkKey
 from cramera.http.messages import HttpMethod
@@ -80,6 +80,55 @@ def test_the_lan_option_and_a_host_exclude_each_other(locations):
         ViewerConfiguration.from_arguments(
             [Option.LAN, Option.HOST, "127.0.0.1"], locations
         )
+
+
+PUBLIC_ORIGIN = "https://cramera.example.org"
+"""
+The origin a password-checking proxy serves the viewer at in the tests.
+"""
+
+
+def test_a_public_origin_serves_the_viewer_to_a_proxy_on_this_machine(locations):
+    configuration = ViewerConfiguration.from_arguments(
+        [Option.PUBLIC_ORIGIN, PUBLIC_ORIGIN, Option.PORT, "8724"], locations
+    )
+    policy = configuration.policy()
+    assert configuration.host == "127.0.0.1"
+    assert policy.proxied and policy.key is None
+    assert "cramera.example.org" in policy.allowed_hosts
+
+
+def test_a_viewer_without_a_public_origin_keeps_its_policy(locations):
+    assert ViewerConfiguration(locations=locations).policy() == OriginPolicy()
+    network = ViewerConfiguration(locations=locations, host=EVERY_ADDRESS).policy()
+    assert network.key and not network.proxied
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        [Option.PUBLIC_ORIGIN, PUBLIC_ORIGIN, Option.LAN],
+        [Option.PUBLIC_ORIGIN, PUBLIC_ORIGIN, Option.HOST, EVERY_ADDRESS],
+        [Option.PUBLIC_ORIGIN, "cramera.example.org"],
+        [Option.PUBLIC_ORIGIN, "ftp://cramera.example.org"],
+        [Option.PUBLIC_ORIGIN, f"{PUBLIC_ORIGIN}/phone/"],
+    ],
+)
+def test_a_public_origin_is_an_origin_a_proxy_on_this_machine_serves(
+    locations, arguments
+):
+    with pytest.raises(SystemExit):
+        ViewerConfiguration.from_arguments(arguments, locations)
+
+
+def test_a_viewer_behind_a_proxy_names_its_public_origin(locations, answerer, caplog):
+    configuration = ViewerConfiguration(
+        locations=locations, public_origin=PUBLIC_ORIGIN
+    )
+    caplog.set_level(logging.INFO)
+    with HttpServer(answerer=answerer) as server:
+        configuration.announce_network(server)
+    assert PUBLIC_ORIGIN in caplog.text
 
 
 def test_a_viewer_on_the_network_names_its_network_address(

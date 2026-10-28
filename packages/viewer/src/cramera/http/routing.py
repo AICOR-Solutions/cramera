@@ -42,6 +42,18 @@ class Route(ABC):
     instead of the server reading it into memory first; for uploads larger than memory.
     """
 
+    remote_changes: bool = field(default=False, kw_only=True)
+    """
+    Whether other devices may make this change when the viewer lets them control it,
+    behind a password-checking proxy; other changes stay with this machine.
+    """
+
+    local_only: bool = field(default=False, kw_only=True)
+    """
+    Whether only this machine may make the request, even to read, such as one that lists
+    this machine's folders.
+    """
+
     @abstractmethod
     def matches(self, path: str) -> bool:
         """

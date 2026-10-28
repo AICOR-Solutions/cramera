@@ -86,6 +86,12 @@ class ViewerEvent(StrEnum):
     A new live state arrived.
     """
 
+    LIVE_REQUESTED = "live:requested"
+    """
+    A part or plugin asks the application to follow a live publisher; the payload is its
+    address, or null for the address a publisher listens on unless told otherwise.
+    """
+
     LAYOUT_CHANGED = "layout:changed"
     """
     Panels were shown, hidden or resized.

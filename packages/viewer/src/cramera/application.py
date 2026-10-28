@@ -94,9 +94,8 @@ class ViewerApplication:
                 HttpMethod.GET, ViewerRoute.PLUGIN_FILES, self.answer_plugin_file
             )
         )
-        router.add(
-            PrefixRoute(HttpMethod.GET, ViewerRoute.LIVE_RELAY, self.live_relay.answer)
-        )
+        for route in self.live_relay.routes():
+            router.add(route)
         self.add_plugin_routes(router)
         router.add(PrefixRoute(HttpMethod.GET, "/", self.answer_web_file))
         return router

@@ -39,7 +39,7 @@ import { FrameAxes, framesOf } from '../scene/frame-axes.js';
 import { ObjectLabels } from '../scene/object-labels.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
-import { LiveClient, readAddressOf } from '../live/live-client.js';
+import { DEFAULT_LIVE_ADDRESS, LiveClient, readAddressOf } from '../live/live-client.js';
 import { LiveListener, LiveSession } from '../live/live-session.js';
 import { LiveActions, LiveBadge, LiveBadgeState, LivePanel } from '../panels/live-panel.js';
 import { CameraGlide, focusBounds, RegionOutlines } from '../scene/scene-focus.js';
@@ -504,6 +504,7 @@ export class Application {
     });
     this.bus.subscribe(ViewerEvent.SCENE_REQUESTED, (name) => this.showRequested(name));
     this.bus.subscribe(ViewerEvent.FRAME_REQUESTED, (frame) => this.seek(frame));
+    this.bus.subscribe(ViewerEvent.LIVE_REQUESTED, (address) => this.connectLive(address ?? DEFAULT_LIVE_ADDRESS));
     this.bus.subscribe(ViewerEvent.PLAYBACK_REQUESTED, (playing) => this.#timeline.setPlaying(playing));
     new KeyboardShortcuts(
       this.#elements.document,

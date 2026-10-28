@@ -165,8 +165,12 @@ class PlanBuilderRoutes:
             PluginRoute(
                 HttpMethod.POST, PlanBuilderRoute.ENVIRONMENTS, self.answer_environment
             ),
+            # the listing names any folder of this machine, so other devices may not ask
             PluginRoute(
-                HttpMethod.GET, PlanBuilderRoute.URDF_FOLDER, self.answer_urdf_folder
+                HttpMethod.GET,
+                PlanBuilderRoute.URDF_FOLDER,
+                self.answer_urdf_folder,
+                local_only=True,
             ),
             PluginRoute(
                 HttpMethod.GET,
