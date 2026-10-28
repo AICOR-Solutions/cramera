@@ -19,9 +19,9 @@ from semantic_digital_twin.world_description.world_entity import SemanticAnnotat
 
 UNNAMED_ANNOTATIONS = (AbstractRobot, AbstractRobotPart, UsdPrimAnnotation)
 """
-The annotations a scene does not list among its annotations: the robots and their
-parts, which the scene's robot describes, and the prim annotations carrying a converted
-stage's attributes, whose class is no class of the ontology.
+The annotations a scene does not list among its annotations: the robots and their parts,
+which the scene's robot describes, and the prim annotations carrying a converted stage's
+attributes, whose class is no class of the ontology.
 """
 
 

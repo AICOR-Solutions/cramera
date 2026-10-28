@@ -119,8 +119,8 @@ class WorldModels:
 
         :param objects: The free objects, written separately by :class:`ObjectFiles`.
         :param selected_robot: The robot the bundle's ``robot`` describes, or None.
-        :return: The models, the selected robot, and the classes and annotations of
-            what they show.
+        :return: The models, the selected robot, and the classes and annotations of what
+            they show.
         """
         self.output_directory.mkdir(parents=True, exist_ok=True)
         roster = RobotRoster(self.world)

@@ -39,8 +39,8 @@ class InferredAnnotations:
         Infer the world's annotations and keep those of the environment: an annotation
         rooted in another body, such as a robot's, is removed again. Each kept
         annotation with a root is named after it, since the reasoner names every
-        annotation after its class. Bodies drawn without collision geometry are read
-        by their visual shapes, see :meth:`colliding_as_drawn`.
+        annotation after its class. Bodies drawn without collision geometry are read by
+        their visual shapes, see :meth:`colliding_as_drawn`.
 
         :param environment: The environment's bodies.
         :return: The kept annotations.

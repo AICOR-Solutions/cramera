@@ -1758,8 +1758,8 @@ class SceneDescription(JsonDocument):
         SceneKey.ANNOTATIONS, default=None
     )
     """
-    The semantic annotations of the scene's world other than its robots and their
-    parts, or None for a scene recorded without them.
+    The semantic annotations of the scene's world other than its robots and their parts,
+    or None for a scene recorded without them.
     """
 
     extensions: Dict[str, Any] = extension_field()
