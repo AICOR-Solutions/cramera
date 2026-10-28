@@ -57,6 +57,23 @@ which this repository was mirrored until 22 Oct 2026.
   only the observation routes the page reads, each with its own query parameters,
   answers 503 when no publisher runs, and relays nothing that changes the run; the
   publisher still listens on this machine only.
+- **Starting runs from a phone.** The new plugin `cramera-scene-runs` adds a **Runs**
+  tab when `CRAMERA_SCENE_RUNS` names a file of runs (`SceneRunCatalog`: each run's
+  identifier, label, command and an optional recording to replay). The tab starts one
+  run at a time as a process of its own, with `{recording}` in its command naming a new
+  recording, has the page follow it live, stops it with its whole process group, shows
+  whether it recorded, failed or was stopped with the end of its output, and replays the
+  recording. Its start and stop may be used by the pages behind a password-checking
+  proxy.
+- **Serving behind a password-checking proxy.** `cramera --public-origin ORIGIN`
+  serves the viewer to a reverse proxy on the same machine, such as nginx with Basic
+  auth at `/phone/`: every request counts as another device's that the proxy let in,
+  so none needs the key. Routes say what such devices may do (`Route.remote_changes`,
+  `Route.local_only`, also on plugin route declarations): behind the proxy they step a
+  live run's queries through the relay (`/api/live/query_steps/next` and `/mode`) and
+  use the routes a plugin offers them; everything else that changes something stays
+  refused, and the plan builder's folder listing is for this machine only.
+  `ViewerEvent.LIVE_REQUESTED` lets a plugin have the page follow a live publisher.
 - **The scene graph lights up what it names and links it to the ontology.** Choosing
   a node in the Scene graph tab makes the meshes it stands for glow in the 3D view,
   inside one box per model and one per free object instead of a box per link: a

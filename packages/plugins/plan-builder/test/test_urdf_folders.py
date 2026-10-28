@@ -12,6 +12,8 @@ from urllib.parse import urlencode
 import pytest
 
 from cramera.http.messages import HttpMethod, Request
+from cramera.http.origin import OriginPolicy
+from cramera.http.server import RequestAnswerer
 from cramera_plan_builder.exceptions import FolderNotReadable, NotAFolder
 from cramera_plan_builder.urdf_folders import UrdfFolders
 from cramera_protocol.plan_builder import (
@@ -99,3 +101,9 @@ def test_the_route_lists_the_named_folder(answerer, worlds):
 def test_the_route_refuses_a_path_that_is_no_folder(answerer, worlds):
     query = urlencode({UrdfFolderParameter.PATH: worlds / "kitchen.urdf"})
     assert folder_request(answerer, query).status == HTTPStatus.NOT_FOUND
+
+
+def test_other_devices_do_not_list_this_machine_s_folders(answerer, worlds):
+    proxied = RequestAnswerer(router=answerer.router, policy=OriginPolicy(proxied=True))
+    query = urlencode({UrdfFolderParameter.PATH: worlds})
+    assert folder_request(proxied, query).status == HTTPStatus.FORBIDDEN

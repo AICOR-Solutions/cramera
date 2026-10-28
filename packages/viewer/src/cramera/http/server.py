@@ -66,7 +66,9 @@ class RequestAnswerer:
         :param request: A request.
         :return: The response to send.
         """
-        refusal = self.policy.refusal(request)
+        refusal = self.policy.refusal(
+            request, self.router.route(request.method, request.path)
+        )
         if refusal is not None:
             return refusal
         if request.method is HttpMethod.OPTIONS:
