@@ -14,11 +14,12 @@ import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, List, Optional, Self, Sequence
+from typing_extensions import Any, Iterator, List, Optional, Self, Sequence, Tuple
 
 from coraplex.datastructures.dataclasses import Context
 from coraplex.execution_environment import ExecutionEnvironment
@@ -33,7 +34,9 @@ from cramera_bridge.exceptions import (
     SceneNameTaken,
 )
 from cramera_bridge.export.scene_index import SceneIndexFile
+from cramera_bridge.live.query_steps import HeldQueries
 from cramera_bridge.live.server import LIVE_PORT
+from cramera_bridge.query_stepping import QueryStepper
 from cramera_bridge.scenes.bundle_world import BundleEnvironment
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_bridge.scenes.presentation import ScenePresentation
@@ -47,6 +50,7 @@ from cramera_protocol.live_messages import (
     SavedScene,
     SceneDestination,
 )
+from cramera_protocol.query_steps import StepPhase
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.world import World
 
@@ -138,6 +142,23 @@ class RobotTaskDemo(ABC):
     collision_avoidance: bool = False
     """
     Whether every motion avoids collisions with the environment.
+    """
+
+    step_queries: bool = False
+    """
+    Whether the run publishes each query of its own as a query step, from the world's
+    setup on, and can be held at it until the viewer moves it on.
+    """
+
+    holds_at_queries: bool = True
+    """
+    Whether a run stepping through its queries starts held at each; the viewer can
+    change it while the run goes on.
+    """
+
+    stepper: Optional[QueryStepper] = field(init=False, default=None)
+    """
+    Steps through the current run's queries, once a run stepping through them started.
     """
 
     @abstractmethod
@@ -243,6 +264,9 @@ class RobotTaskDemo(ABC):
         Perform the task while it is published and recorded, measure the outcome and
         save the recording with its measurements.
 
+        A run stepping through its queries is published from before its setup, so it can
+        be held at the first query it asks.
+
         :return: The saved bundle.
         :raises InvalidSceneName: When the name is no bundle name.
         :raises SceneNameTaken: When the local scenes directory already holds the name.
@@ -252,21 +276,28 @@ class RobotTaskDemo(ABC):
         name = self.scene_name()
         if (self.locations.local_scenes / name).exists():
             raise SceneNameTaken(name)
+        self.stepper = None
         world = self.build_world()
-        context = self.build_context(world)
-        plans = self.build_plans(context)
+        prepared = None if self.step_queries else self.prepare(world)
         visualization = LiveVisualization(
             world=world, port=self.port, locations=self.locations
         ).start()
         try:
             self.on_live_started(visualization)
-            with ExecutionEnvironment(
-                execution_type=self.execution_type,
-                collision_avoidance=self.collision_avoidance,
-            ):
-                for plan in plans:
-                    plan.node_callbacks.append(visualization.plan_callback(plan))
-                    plan.perform()
+            with self.stepping(visualization):
+                if prepared is None:
+                    prepared = self.prepare(world)
+                context, plans = prepared
+                self.enter_phase(StepPhase.EXECUTION)
+                with ExecutionEnvironment(
+                    execution_type=self.execution_type,
+                    collision_avoidance=self.collision_avoidance,
+                ):
+                    for plan in plans:
+                        plan.node_callbacks.append(visualization.plan_callback(plan))
+                        if self.stepper is not None:
+                            plan.node_callbacks.append(self.stepper.progress(plan))
+                        plan.perform()
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
             saved = visualization.publisher.save_recording(
@@ -281,6 +312,50 @@ class RobotTaskDemo(ABC):
             visualization.stop()
         self.complete(self.locations.local_scenes / saved.scene, metrics)
         return saved
+
+    def prepare(self, world: World) -> Tuple[Context, List[Plan]]:
+        """
+        Set the task up in its world and build its plans; while the run steps through
+        its queries, the plans' open parts are grounded step by step.
+
+        :param world: The world built for the task.
+        :return: The context and the plans to perform.
+        """
+        self.enter_phase(StepPhase.SETUP)
+        context = self.build_context(world)
+        if self.stepper is not None:
+            context.query_backend = self.stepper.resolving(context.query_backend)
+        self.enter_phase(StepPhase.EXPANSION)
+        return context, self.build_plans(context)
+
+    @contextmanager
+    def stepping(self, visualization: LiveVisualization) -> Iterator[None]:
+        """
+        Step through the queries the run asks until the block ends, when it steps
+        through them. The recording's clock stands still while the run is held, and the
+        queries it is held at are let go when the visualization stops.
+
+        :param visualization: The started visualization publishing this run.
+        """
+        if not self.step_queries:
+            yield
+            return
+        self.stepper = QueryStepper(
+            publisher=visualization.publisher,
+            task=self.task,
+            control=HeldQueries(stepping=self.holds_at_queries),
+        )
+        visualization.publisher.recording.clock = self.stepper.control.running_time
+        visualization.when_stopped(self.stepper.control.release)
+        with self.stepper.watching():
+            yield
+
+    def enter_phase(self, phase: StepPhase) -> None:
+        """
+        :param phase: What the run does from now on, said of the queries it asks.
+        """
+        if self.stepper is not None:
+            self.stepper.phase = phase
 
     def complete(self, bundle: Path, metrics: AcceptanceMetrics) -> None:
         """
@@ -357,6 +432,22 @@ class TaskArgument(StrEnum):
     The port the run is published on.
     """
 
+    NAME = "--name"
+    """
+    The name the recording is saved under, instead of the demo's own.
+    """
+
+    STEP_QUERIES = "--step-queries"
+    """
+    Publish each query the run asks of its own as a query step, held at it until the
+    viewer moves it on.
+    """
+
+    NO_HOLD = "--no-hold"
+    """
+    With query steps, start the run without holding it at its queries.
+    """
+
 
 @dataclass(frozen=True)
 class TaskCommand:
@@ -387,8 +478,29 @@ class TaskCommand:
             default=self.demo.port,
             help="the port the run is published on",
         )
+        parser.add_argument(
+            TaskArgument.NAME,
+            default=self.demo.name,
+            help="the name the recording is saved under",
+        )
+        parser.add_argument(
+            TaskArgument.STEP_QUERIES,
+            action="store_true",
+            default=self.demo.step_queries,
+            help="publish each query the run asks as a step, held until moved on",
+        )
+        parser.add_argument(
+            TaskArgument.NO_HOLD,
+            action="store_false",
+            dest="holds_at_queries",
+            default=self.demo.holds_at_queries,
+            help="with query steps, start without holding at the queries",
+        )
         options = parser.parse_args(list(arguments))
+        self.demo.name = options.name
         if options.publish is not None:
             return self.demo.publish(options.publish)
         self.demo.port = options.port
+        self.demo.step_queries = options.step_queries
+        self.demo.holds_at_queries = options.holds_at_queries
         return self.demo.run()

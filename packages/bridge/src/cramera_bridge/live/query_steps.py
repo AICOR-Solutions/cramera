@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import dataclasses
 import threading
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from typing_extensions import Optional
+from typing_extensions import Callable, Optional
 
 from cramera_bridge.exceptions import NoQueryStepping
 from cramera_protocol.live_messages import Acknowledgement
@@ -44,6 +45,95 @@ class QueryStepControl(ABC):
         :param request: Whether the process is held at every query it asks, and at the
             queries asked while another is answered.
         """
+
+
+@dataclass
+class HeldQueries(QueryStepControl):
+    """
+    Holds the process's thread at a query until the viewer moves it on.
+    """
+
+    stepping: bool = True
+    """
+    Whether the process is held at every query.
+    """
+
+    holds_nested: bool = True
+    """
+    Whether it is also held at queries asked while another is answered.
+    """
+
+    held: Optional[HeldStep] = None
+    """
+    The step the process is held at, or None while it runs on.
+    """
+
+    condition: threading.Condition = field(default_factory=threading.Condition)
+    """
+    Wakes the held process when the viewer moves it on.
+    """
+
+    held_seconds: float = 0.0
+    """
+    How long the process was held so far, in seconds.
+    """
+
+    def advance(self, held: Optional[HeldStep]) -> None:
+        with self.condition:
+            if held is None or held == self.held:
+                self.held = None
+                self.condition.notify_all()
+
+    def change_stepping(self, request: SteppingRequest) -> None:
+        with self.condition:
+            self.stepping = request.stepping
+            self.holds_nested = request.holds_nested
+            if not self.stepping:
+                self.held = None
+            self.condition.notify_all()
+
+    def release(self) -> None:
+        """
+        Let the process carry on from any step and hold it at no further query.
+        """
+        self.change_stepping(SteppingRequest(stepping=False))
+
+    def holds_at(self, depth: int) -> bool:
+        """
+        :param depth: How many queries a query is asked inside.
+        :return: Whether the process is held at it.
+        """
+        return self.stepping and (depth == 0 or self.holds_nested)
+
+    def hold(self, step: HeldStep, depth: int, publish: Callable[[], None]) -> None:
+        """
+        Hold the calling thread at a step until the viewer moves it on, unless the
+        process is not held at it.
+
+        :param step: The step the process reached.
+        :param depth: How many queries the step's query is asked inside.
+        :param publish: Publishes the steps, called once it is decided whether the
+            process is held, so the viewer sees where it waits.
+        """
+        with self.condition:
+            if self.holds_at(depth):
+                self.held = step
+            publish()
+            waiting = time.monotonic()
+            while self.held is not None:
+                self.condition.wait()
+            self.held_seconds += time.monotonic() - waiting
+
+    def running_time(self) -> float:
+        """
+        A clock that stands still while the process is held, so a recording stamped with
+        it replays the run at the pace it ran, however long a person looked at each
+        query.
+
+        :return: The wall-clock time less the time the process was held, in seconds
+            since the epoch.
+        """
+        return time.time() - self.held_seconds
 
 
 # %% board

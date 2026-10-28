@@ -16,6 +16,7 @@ from typing_extensions import List, Optional
 from coraplex.datastructures.dataclasses import Context, MotionToleranceConfig
 from coraplex.datastructures.enums import MovementType
 from coraplex.plans.plan import Plan
+from krrood.entity_query_language.factories import entity, the, variable
 from semantic_digital_twin.collision_checking.collision_rules import (
     AllowCollisionBetweenGroups,
     AvoidCollisionBetweenGroups,
@@ -218,6 +219,14 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
 
     # %% context
 
+    def the_robot(self, world: World) -> PR2:
+        """
+        :param world: The world built for the task.
+        :return: The PR2 in it, found by an entity query.
+        """
+        robot = variable(PR2, world.semantic_annotations)
+        return the(entity(robot)).first()
+
     def posture(self, world: World) -> PR2:
         """
         Park the arms, raise the torso and take the drive out of the controller; the arm
@@ -226,7 +235,7 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
         :param world: The world built for the task.
         :return: The robot.
         """
-        robot = world.get_semantic_annotations_by_type(PR2)[0]
+        robot = self.the_robot(world)
         robot.mobile_base.full_body_controlled = False
         with world.modify_world():
             world.set_dofs_has_hardware_interface(robot.drive.active_dofs, False)

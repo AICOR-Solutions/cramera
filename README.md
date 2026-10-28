@@ -219,6 +219,16 @@ publisher, stops and saves the recording as a bundle, and replays it.
 `cramera-onboard demo.py --name NAME` runs a demo and saves its run as a bundle
 without keeping a publisher up.
 
+A robot task demo started with `--step-queries` is held at each query it asks of its
+own until **Next** in the **Queries** panel moves it on, and saves its recording with
+the queries (`--name` names it, `--no-hold` runs on). The PR2's vessel transfer and
+GARMI carrying a bowl and a spoon across the apartment ship as such demos:
+
+```bash
+python -m cramera_bridge.demos.query_stepping --bundle ~/.cramera/scenes/aicor_medical_lab
+python -m cramera_bridge.demos.garmi_apartment --step-queries
+```
+
 ## Ask the scene
 
 With `cramera-questions` installed, the viewer's right column gets:

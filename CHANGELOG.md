@@ -26,6 +26,23 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Every robot task demo steps through its queries.** `RobotTaskDemo` and its
+  `TaskCommand` take `--step-queries`: the run is published from before its setup and
+  held at each query of its own (`--no-hold` runs on) until **Next** moves it on, and
+  `--name` names the recording. A task's own queries are those its code asks outside
+  the CRAM workspace and the parts its plan leaves open, which coraplex grounds
+  through the context's `query_backend`; what CRAM asks for itself, such as a robot
+  part finding its robot or the world reasoner's rules, holds nothing. A step names
+  the action under way, and a stepped recording is stamped with a clock that stands
+  still while the run is held, so its replay keeps the run's pace. The stepping moved
+  from the PR2 demo into `cramera_bridge.query_stepping` (`QueryStepper`,
+  `SteppedBackend`, `ActionProgress`) and `HeldQueries`
+  (`cramera_bridge.live.query_steps`). `VesselTransferDemo` finds its robot, the
+  bench's handles and its vessel by entity queries, and
+  `python -m cramera_bridge.demos.query_stepping --bundle DIR` runs it with
+  `--step-queries`. `cramera_bridge.demos.garmi_apartment` is CRAM's GARMI
+  demonstration as a task demo: GARMI carries a bowl and a spoon across the apartment,
+  each transport grounded by a query.
 - **The scene graph lights up what it names and links it to the ontology.** Choosing
   a node in the Scene graph tab makes the meshes it stands for glow in the 3D view,
   inside one box per model and one per free object instead of a box per link: a

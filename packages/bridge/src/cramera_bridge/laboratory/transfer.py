@@ -24,10 +24,13 @@ from coraplex.plans.plan_node import MotionNode
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
 from giskardpy.motion_statechart.data_types import LifeCycleValues
+from krrood.entity_query_language.factories import an, entity, the, variable
 from semantic_digital_twin.callbacks.callback import StateChangeCallback
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.robots.pr2 import PR2
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle
 from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
 from cramera_bridge.exceptions import TaskFailed
@@ -309,16 +312,45 @@ class VesselTransferDemo(VesselTaskDemo):
     The measurements of the current run, once its plan is built.
     """
 
+    handles: List[Handle] = field(init=False, default_factory=list)
+    """
+    The handles at the bench, once a query found them.
+    """
+
+    vessel: Optional[Body] = field(init=False, default=None)
+    """
+    The vessel the run carries, once a query found it.
+    """
+
+    def the_handles(self, world: World) -> List[Handle]:
+        """
+        :param world: The world built for the task.
+        :return: Every handle at the bench, found by an entity query; the transfer
+            opens none of them, so their answers only show where they are.
+        """
+        handle = variable(Handle, world.semantic_annotations)
+        return an(entity(handle)).tolist()
+
+    def the_vessel(self, world: World) -> Body:
+        """
+        :param world: The world built for the task.
+        :return: The vessel standing in the source slot, found by an entity query.
+        """
+        key = self.vessel_in(self.source_slot)
+        body = variable(Body, world.bodies)
+        return the(entity(body).where(body.name.name == key)).first()
+
     def vessel_key(self) -> str:
         """
         :return: The vessel starting in the source slot.
         """
-        return self.vessel_in(self.source_slot)
+        return str(self.vessel.name.name)
 
-    def build_context(self, world) -> Context:
+    def build_context(self, world: World) -> Context:
         """
-        Park the arms, raise the torso, and keep the gripper and the vessel clear of the
-        laboratory, except for the intended contacts of the grasp.
+        Find the robot, the handles and the vessel with entity queries, park the arms,
+        raise the torso, and keep the gripper and the vessel clear of the laboratory,
+        except for the intended contacts of the grasp.
 
         This arm-only task excludes the drive from the controller, so collision
         avoidance cannot move the base between approach, closing and attachment.
@@ -327,7 +359,9 @@ class VesselTransferDemo(VesselTaskDemo):
         :return: The context with tight tolerances at the rack.
         """
         robot = self.posture(world)
-        self.keep_clear(world, robot, [world.get_body_by_name(self.vessel_key())])
+        self.handles = self.the_handles(world)
+        self.vessel = self.the_vessel(world)
+        self.keep_clear(world, robot, [self.vessel])
         return self.tight_context(world, robot)
 
     def build_plan(self, context: Context) -> Plan:
@@ -336,7 +370,7 @@ class VesselTransferDemo(VesselTaskDemo):
         :return: Pickup from the source slot and placing into the target slot.
         """
         key = self.vessel_key()
-        body = context.world.get_body_by_name(key)
+        body = self.vessel
         bench = self.laboratory.bench
         grasp = self.grasp(context, body)
         others = [
