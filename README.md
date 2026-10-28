@@ -36,6 +36,7 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-laboratory`](packages/plugins/laboratory) | A dedicated Physical lab page with the small workbench, real PR2 preview, local robot demo and replay, plus manual MuJoCo controls and setup help. | done |
+| [`cramera-scene-runs`](packages/plugins/scene-runs) | A Runs tab that starts the robot runs a server offers, one at a time, follows each live and replays its recording; for a viewer behind a password-checking proxy. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
@@ -240,6 +241,11 @@ make only the changes a route offers them: stepping through a live run's queries
 relayed below `/api/live/`, and starting and stopping the runs a plugin offers.
 Asking questions, building and running plans and saving stay with the machine, and the
 plan builder's folder listing is not offered over the network.
+
+With [`cramera-scene-runs`](packages/plugins/scene-runs) installed and
+`CRAMERA_SCENE_RUNS` naming a file of runs, the page gets a **Runs** tab: it starts one
+of the offered runs at a time, such as a robot demo held at each of its queries, follows
+it live, stops it and replays its recording.
 
 ### Scene graph and ontology
 

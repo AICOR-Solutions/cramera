@@ -40,6 +40,14 @@ which this repository was mirrored until 22 Oct 2026.
   only the observation routes the page reads, each with its own query parameters,
   answers 503 when no publisher runs, and relays nothing that changes the run; the
   publisher still listens on this machine only.
+- **Starting runs from a phone.** The new plugin `cramera-scene-runs` adds a **Runs**
+  tab when `CRAMERA_SCENE_RUNS` names a file of runs (`SceneRunCatalog`: each run's
+  identifier, label, command and an optional recording to replay). The tab starts one
+  run at a time as a process of its own, with `{recording}` in its command naming a new
+  recording, has the page follow it live, stops it with its whole process group, shows
+  whether it recorded, failed or was stopped with the end of its output, and replays the
+  recording. Its start and stop may be used by the pages behind a password-checking
+  proxy.
 - **Serving behind a password-checking proxy.** `cramera --public-origin ORIGIN`
   serves the viewer to a reverse proxy on the same machine, such as nginx with Basic
   auth at `/phone/`: every request counts as another device's that the proxy let in,
