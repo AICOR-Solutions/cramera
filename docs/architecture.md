@@ -55,7 +55,11 @@ A process that resolves the open parts of its plans hands the live publisher
 `cramera_protocol.query_steps`), building what each answer lights up from native
 bodies, annotations and regions with `LivePublisher.scene_highlight`. The viewer's
 requests to carry out a resolved plan or to move a held process on reach the process
-through the `ResolutionExecution` and `QueryStepControl` it publishes them with.
+through the `ResolutionExecution` and `QueryStepControl` it publishes them with. Every
+`RobotTaskDemo` run with `--step-queries` does so through
+`cramera_bridge.query_stepping.QueryStepper`, which replaces krrood's
+`Evaluable.evaluate` while the run lasts and wraps the context's `query_backend`, and
+holds the run's thread with `HeldQueries`.
 
 ## Protocol
 

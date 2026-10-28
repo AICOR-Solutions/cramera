@@ -296,3 +296,27 @@ def test_the_command_runs_on_the_given_port(locations):
     demo = torso_demo(locations)
     saved = TaskCommand(demo).main([TaskArgument.PORT, "0"])
     assert saved.scene == SCENE_NAME
+
+
+def test_the_command_saves_under_the_given_name(locations):
+    demo = torso_demo(locations)
+    saved = TaskCommand(demo).main(
+        [TaskArgument.PORT, "0", TaskArgument.NAME, "barrier_pr2_named"]
+    )
+    assert saved.scene == "barrier_pr2_named"
+    assert (locations.local_scenes / "barrier_pr2_named").is_dir()
+
+
+def test_the_command_steps_through_the_queries_without_holding(locations):
+    demo = torso_demo(locations)
+    TaskCommand(demo).main(
+        [
+            TaskArgument.PORT,
+            "0",
+            TaskArgument.STEP_QUERIES,
+            TaskArgument.NO_HOLD,
+        ]
+    )
+    assert demo.step_queries
+    assert not demo.holds_at_queries
+    assert demo.stepper is not None

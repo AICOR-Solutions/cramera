@@ -16,6 +16,7 @@ from cramera_bridge.laboratory.grasping import (
     GraspProblem,
     PadContact,
 )
+from cramera_bridge.laboratory.world import LaboratoryHandle
 from cramera_bridge.laboratory.transfer import (
     TASK,
     TransferMeasurement,
@@ -144,3 +145,10 @@ def test_transfer_clears_an_old_live_address_even_if_start_fails(
     with pytest.raises(SceneNameTaken):
         demo.run()
     assert not announcement.exists()
+
+
+def test_the_transfer_finds_the_handles_and_its_vessel_by_queries(transfer):
+    demo, _ = transfer
+    assert demo.vessel.name.name == demo.vessel_in(demo.source_slot)
+    found = {handle.root.name.name for handle in demo.handles}
+    assert found and found <= {handle.value for handle in LaboratoryHandle}

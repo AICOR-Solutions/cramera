@@ -11,13 +11,18 @@ from enum import StrEnum
 from typing_extensions import List
 
 from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import execute_single
+from coraplex.plans.factories import execute_single, sequential
 from coraplex.plans.plan import Plan
+from coraplex.plans.plan_node import PlanNode
+from coraplex.robot_plans.actions.base import ActionDescription
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from cramera_bridge.exceptions import TaskFailed
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_bridge.robot_task import RobotTaskDemo
+from krrood.entity_query_language.factories import a, entity, the, variable
 from semantic_digital_twin.datastructures.definitions import TorsoState
+from semantic_digital_twin.robots.pr2 import PR2
+from semantic_digital_twin.world import World
 
 TORSO_TOLERANCE = 0.01
 """
@@ -84,3 +89,36 @@ class RaisedThenMovedTorsoDemo(TorsoDemo):
     def build_plans(self, context: Context) -> List[Plan]:
         raised = execute_single(MoveTorsoAction(TorsoState.HIGH), context=context).plan
         return [raised, self.build_plan(context)]
+
+
+@dataclass
+class GroundedTorsoAction(ActionDescription):
+    """
+    Moves the torso by a move the plan grounds once it reaches it.
+    """
+
+    torso_state: TorsoState
+    """
+    The state the torso is moved to.
+    """
+
+    @property
+    def _action_plan(self) -> PlanNode:
+        return sequential([a(MoveTorsoAction)(torso_state=self.torso_state)])
+
+
+@dataclass
+class QueryingTorsoDemo(TorsoDemo):
+    """
+    Finds its robot with an entity query, and raises the torso by an action whose move
+    the plan grounds.
+    """
+
+    def build_context(self, world: World) -> Context:
+        robot = variable(PR2, world.semantic_annotations)
+        return Context(world=world, robot=the(entity(robot)).first())
+
+    def build_plan(self, context: Context) -> Plan:
+        return execute_single(
+            GroundedTorsoAction(self.torso_state), context=context
+        ).plan
