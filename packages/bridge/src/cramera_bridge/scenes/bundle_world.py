@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from uuid import UUID
 
 from typing_extensions import Dict, List
 
@@ -261,16 +262,31 @@ class BundleEnvironment(SceneEnvironment):
 
         :param world: The world receiving the scene.
         """
+        self.add_scene(world)
+
+    def add_scene(self, world: World) -> Dict[UUID, str]:
+        """
+        Add the scene as :meth:`populate` does.
+
+        :param world: The world receiving the scene.
+        :return: The name the bundle gives each added model body and free object, its
+            link name or the object's identifier, by the body's identity.
+        """
         links: Dict[str, Body] = {}
         for model in self.contents.environment_models():
             links.update(self.add_model(world, model))
+        descriptions = self.contents.scene.objects
         objects = {
             description.key: self.add_object(world, description)
-            for description in self.contents.scene.objects
+            for description in descriptions
         }
         self.annotate(world, links, objects)
         if not self.contents.semantics.prims:
             InferredAnnotations(world).add(links.values())
+        names = {body.id: name for name, body in links.items()}
+        for description in descriptions:
+            names[objects[description.key].id] = description.identifier
+        return names
 
     def add_model(self, world: World, model: ModelDescription) -> Dict[str, Body]:
         """

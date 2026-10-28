@@ -42,6 +42,21 @@ which this repository was mirrored until 22 Oct 2026.
   ![The PR2's right gripper chosen in the scene graph, glowing, with its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-part-focused.png)
   ![GarmiLeftGripper opened on the Ontology page from its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-ontology-class.png)
 
+- **The scene graph shows the world's semantic annotations.** A **Semantic
+  annotations** group lists the annotations of the scene's world other than its
+  robots and their parts, such as `Drawer`, `Handle`, `Door`, `Cabinet` or `Fridge`.
+  Choosing one makes its bodies glow in the 3D view; its node refers to the link and
+  free object nodes of those bodies and links its class to the Ontology page. A scene
+  names them in `SceneDescription.annotations` (`SceneAnnotation`: its name, its
+  class, `module.Class`, and its bodies by link name or free object identifier; None
+  for a scene recorded without them). `cramera-bridge` names them when it writes a
+  bundle; `cramera-record-classes` names them in bundles written before, from the
+  world CRAM builds from each bundle. The demo scenes carry them: the GARMI
+  apartment's kitchen cabinet with its four drawers, four doors and their handles, a
+  sofa, a coffee table and a wall, and the medical lab's drawer.
+
+  ![The GARMI apartment's kitchen cabinet chosen in the scene graph, glowing with its drawers, doors and handles](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-annotations/garmi-kitchen-cabinet.png)
+
 - **GARMI's pick and place in an apartment as a demo scene.**
   `demo/standard_scenes/garmi_pick_place` replays GARMI picking up a bowl and then a
   spoon, 1 min 8 s, taken from the pre-1.0 viewer at cramera.informatik.uni-bremen.de
@@ -314,6 +329,12 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **An environment drawn without collision geometry gets its annotations.** CRAM's
+  world reasoner takes a body without collision geometry for one that only carries a
+  joint, so the world built from a bundle whose environment has visual shapes only,
+  such as the GARMI apartment the pre-1.0 viewer recorded, got no handles, drawers or
+  doors. While the reasoner reads the world, such bodies now collide by their visual
+  shapes (`InferredAnnotations`); afterwards they keep their own collision geometry.
 - **Free objects whose bodies share a prim name are told apart.** `--free-objects`
   keyed every object by its rigid body's prim name, so the GARMI apartment, whose
   chairs, books and dining table each keep their rigid body in a `Geom/body`, listed

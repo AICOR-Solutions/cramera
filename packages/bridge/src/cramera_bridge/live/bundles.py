@@ -345,6 +345,7 @@ class LiveBundleWriter:
                 bundle_signature=signature,
                 world_bound=True,
                 classes=models.classes,
+                annotations=models.annotations,
             )
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
@@ -399,6 +400,7 @@ class LiveBundleWriter:
                 bundle_signature=WorldSignature(model, selected_robot).digest(),
                 world_bound=True,
                 classes=models.classes,
+                annotations=models.annotations,
             )
             DocumentFile(staging / BundleFile.TRAJECTORY).write(
                 self.trajectory(frames, frames_per_second)

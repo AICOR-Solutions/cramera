@@ -1,7 +1,8 @@
 """
 ``cramera-record-classes``: names the class of every entity of bundles recorded before
-scenes named them, as CRAM reads each bundle, and writes the classes into the bundle's
-``scene.json``, so the viewer can link each entity to its class in the ontology.
+scenes named them, and the semantic annotations of their environments, as CRAM reads
+each bundle, and writes them into the bundle's ``scene.json``, so the viewer can link
+each entity and annotation to its class in the ontology.
 """
 
 from __future__ import annotations
@@ -16,12 +17,15 @@ from typing_extensions import Dict, List, Optional, Sequence
 
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_bridge.documents import DocumentFile
+from cramera_bridge.export.world_annotations import WorldAnnotations
 from cramera_bridge.names import ROBOTS, class_path
 from cramera_bridge.robots import RobotParts, RobotRoster
+from cramera_bridge.scenes.bundle_world import BundleEnvironment
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     ModelDescription,
+    SceneAnnotation,
     SceneClasses,
     SceneDescription,
 )
@@ -36,8 +40,9 @@ from semantic_digital_twin.world_description.world_entity import Body
 class BundleClasses:
     """
     The classes of a bundle's entities as CRAM reads the bundle: the bodies and
-    connections of its models parsed from their URDFs, its free objects as bodies, and
-    its robot with the parts the robot's own description gives it.
+    connections of its models parsed from their URDFs, its free objects as bodies, its
+    robot with the parts the robot's own description gives it, and the semantic
+    annotations of the world CRAM builds from the bundle.
     """
 
     directory: Path
@@ -113,15 +118,26 @@ class BundleClasses:
             for part in RobotParts(world, robot).annotations()
         }
 
+    def annotations(self) -> List[SceneAnnotation]:
+        """
+        :return: The semantic annotations of the world :class:`BundleEnvironment`
+            builds from the bundle without robots: those of the classes its prims stand
+            for, or those CRAM's reasoner infers for an environment without prims.
+        """
+        world = WorldSpecification(robots=[]).to_domain_object()
+        names = BundleEnvironment(self.directory).add_scene(world)
+        return WorldAnnotations(world).descriptions(names)
+
     def write(self) -> Path:
         """
-        Name the classes in the bundle's ``scene.json``.
+        Name the classes and the semantic annotations in the bundle's ``scene.json``.
 
         :return: The file written.
         """
         scene_file = self.scene_file()
         scene = scene_file.read(SceneDescription)
         scene.classes = self.classes(scene)
+        scene.annotations = self.annotations()
         scene_file.write(scene)
         return scene_file.path
 

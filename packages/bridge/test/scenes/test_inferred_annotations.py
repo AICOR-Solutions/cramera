@@ -5,6 +5,7 @@ annotations CRAM's world reasoner infers for an environment without prims.
 
 from __future__ import annotations
 
+import re
 import shutil
 
 from cramera_bridge.export.urdf_environment import UrdfEnvironmentBundle
@@ -82,6 +83,27 @@ def test_an_annotation_rooted_outside_the_environment_is_removed():
     kept = InferredAnnotations(world).add(environment)
     assert world.get_semantic_annotations_by_type(Handle) == []
     assert {str(annotation.name) for annotation in kept} >= {"cabinet1_drawer_top"}
+
+
+def test_an_environment_drawn_without_collision_geometry_gets_its_annotations(
+    tmp_path,
+):
+    drawn_only = tmp_path / "drawn_only.urdf"
+    drawn_only.write_text(
+        re.sub(
+            r"<collision>.*?</collision>",
+            "",
+            DRAWER_CABINET_URDF.read_text(encoding="utf-8"),
+        ),
+        encoding="utf-8",
+    )
+    world = URDFParser.from_file(str(drawn_only)).parse()
+    kept = InferredAnnotations(world).add(world.bodies)
+    assert {str(annotation.name) for annotation in kept} >= {
+        "cabinet1_drawer_top",
+        "handle_cab1_drawer_top",
+    }
+    assert all(not body.collision.shapes for body in world.bodies)
 
 
 def test_the_workspace_lists_an_environments_annotations(tmp_path):
