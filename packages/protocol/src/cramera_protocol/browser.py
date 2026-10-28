@@ -197,6 +197,14 @@ from cramera_protocol.plan_builder import (
     RunStatusKey,
 )
 from cramera_protocol.plugins import PluginName
+from cramera_protocol.scene_runs import (
+    SceneRunKey,
+    SceneRunsName,
+    SceneRunsRoute,
+    SceneRunsStateKey,
+    SceneRunState,
+    SceneRunStatusKey,
+)
 from cramera_protocol.scene_builder import (
     AppearanceKey,
     BuilderPageParameter,
@@ -518,6 +526,12 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     SelectionKind,
     SelectionKey,
     PluginName,
+    SceneRunsName,
+    SceneRunsRoute,
+    SceneRunState,
+    SceneRunKey,
+    SceneRunStatusKey,
+    SceneRunsStateKey,
     OfflineRoute,
     OfflineParameter,
     StoryboardKey,

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cramera-scene-runs"
+version = "1.0.0"
+description = "Start the robot runs a server offers from the viewer, one at a time, follow them live and replay their recordings."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Vanessa Hassouna" }]
+dependencies = ["cramera==1.0.0", "cramera-protocol==1.0.0", "typing_extensions>=4.8"]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.entry-points."cramera.plugins"]
+scene-runs = "cramera_scene_runs.plugin:SceneRunsPlugin"
+
+[project.urls]
+Source = "https://github.com/AICOR-Solutions/cramera"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cramera_scene_runs = ["web/*"]
