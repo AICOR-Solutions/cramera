@@ -37,6 +37,7 @@ from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.version import CURRENT_VERSION
 from cramera_usd.animation.animator import ENVIRONMENT_MODEL
 from cramera_usd.bundle.camera import SceneCamera
+from cramera_usd.bundle.free_objects import FreeObjects
 from cramera_usd.bundle.layout import Decimals, FileSuffix
 from cramera_usd.bundle.scene import DEFAULT_EXPOSURE
 from cramera_usd.commands.import_scene import ImportOption, main
@@ -47,6 +48,7 @@ from cramera_usd.materials.mapper import MaterialMapper
 from cramera_usd.materials.omni_pbr import OmniPhysicallyBasedInput
 from cramera_usd.materials.physically_based import AlphaMode
 from cramera_usd.materials.transmission import TransmissionBlending
+from cramera_usd.names import NameSeparator, PrimPath
 from cramera_usd.stage.reader import StageReader
 from cramera_usd.stage.robots import PrimExclusion
 from cramera_usd.urdf import UrdfAttribute, UrdfTag
@@ -616,6 +618,40 @@ class TestShelfWithTotesBundle:
     def test_the_prims_a_free_object_carries_are_placed_on_it(self, bundle, tote, path):
         prim = Semantics.from_json(load(bundle / BundleFile.SEMANTICS)).prims[path]
         assert (prim.model, prim.link) == (tote.key, tote.key)
+
+
+class TestSameNamedBodies:
+    """
+    The free objects of furniture whose rigid bodies share one prim name.
+    """
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def object_names(cls) -> dict:
+        objects = FreeObjects(read(Stage.SAME_NAMED_BODIES))
+        return {
+            link.path: objects.placement_of(link.name).model
+            for link in objects.stage.links
+            if link.standalone
+        }
+
+    def test_same_named_bodies_are_named_after_the_path_elements_that_differ(
+        self, object_names
+    ):
+        joined = NameSeparator.OBJECT_NAME.join
+        assert {
+            path: name
+            for path, name in object_names.items()
+            if PrimPath(path).name == "body"
+        } == {
+            "/World/Assets/chair/Actor_0000/Geom/body": joined(["chair", "Actor_0000"]),
+            "/World/Assets/chair/Actor_0001/Geom/body": joined(["chair", "Actor_0001"]),
+            "/World/Assets/book/Actor_0000/Geom/body": joined(["book", "Actor_0000"]),
+        }
+
+    def test_a_body_whose_name_no_other_body_has_keeps_it(self, object_names):
+        path = "/World/Kitchen/bowl_right"
+        assert object_names[path] == PrimPath(path).name
 
 
 def test_without_free_objects_standalone_bodies_stay_environment_links(tmp_path):

@@ -23,6 +23,7 @@ from cramera_usd.names import (
     FIRST_REPEAT_NUMBER,
     GeneratedName,
     NameSeparator,
+    ObjectNames,
     PrimNames,
     UniqueNames,
 )
@@ -296,3 +297,20 @@ def test_prim_names_drop_the_default_prim_and_flatten_the_path():
 
 def test_the_pseudo_root_is_named_the_world():
     assert PrimNames("").name_of("/") == GeneratedName.WORLD
+
+
+def test_a_prim_on_a_path_another_same_named_prim_extends_keeps_its_name():
+    names = ObjectNames(["/World/Shelf/bowl", "/World/Shelf/Left/bowl"])
+    assert names.by_path == {
+        "/World/Shelf/bowl": "bowl",
+        "/World/Shelf/Left/bowl": NameSeparator.OBJECT_NAME.join(["Left", "bowl"]),
+    }
+
+
+def test_object_names_that_meet_once_joined_are_numbered():
+    names = ObjectNames(["/World/a_b/c/body", "/World/a/b_c/body"])
+    joined = NameSeparator.OBJECT_NAME.join(["a_b", "c"])
+    assert names.by_path == {
+        "/World/a_b/c/body": joined,
+        "/World/a/b_c/body": f"{joined}{NameSeparator.NUMBER}{FIRST_REPEAT_NUMBER}",
+    }
