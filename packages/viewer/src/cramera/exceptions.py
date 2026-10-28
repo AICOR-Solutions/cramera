@@ -110,6 +110,57 @@ class MalformedRequestBody(ViewerError):
         return f"The request body is not JSON: {self.reason}"
 
 
+# %% live relay
+
+
+@dataclass
+class UnknownLiveRead(ViewerError):
+    """
+    A route below the live relay that is not one the page reads from a live publisher.
+    """
+
+    route: str
+    """
+    The requested route, relative to the relay's prefix.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.NOT_FOUND
+
+    def message(self) -> str:
+        return (
+            f"The viewer relays only what its page reads from a live publisher, not "
+            f"{self.route!r}."
+        )
+
+
+@dataclass
+class LivePublisherUnreachable(ViewerError):
+    """
+    A live publisher on this machine the relay could not read from.
+    """
+
+    address: str
+    """
+    The publisher's address.
+    """
+
+    reason: str
+    """
+    Why it could not be read.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.SERVICE_UNAVAILABLE
+
+    def message(self) -> str:
+        return (
+            f"No live publisher answers at {self.address}: {self.reason}. Start a run "
+            f"with cramera-live, or a plan in the Plan Builder, on the machine that "
+            f"serves the viewer."
+        )
+
+
 # %% plugins
 
 

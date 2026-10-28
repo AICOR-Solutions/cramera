@@ -26,6 +26,20 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Watching from a phone.** `cramera --lan` listens on every address and names the
+  address, with a key, that other devices of the network open; they need the key, kept
+  in `~/.cramera/network_key` and then in a cookie, and may only read, so asking,
+  running and saving stay with the machine that serves the viewer. On touch screens
+  the 3D view names its gestures, the scrubber and its marks are larger and **Pop
+  out** is gone; the scene picker wraps on phones, and a phone on its side stacks the
+  columns and fits the 3D view and the playback controls onto its screen.
+- **Following a run from a phone.** A page opened at the viewer's network address
+  reads the live publisher on `127.0.0.1:8765` through the viewer's relay below
+  `/api/live/` (`ViewerRoute.LIVE_RELAY`), so `?live=http://127.0.0.1:8765` and the
+  Live tab's default address work from a phone of `cramera --lan`. The relay forwards
+  only the observation routes the page reads, each with its own query parameters,
+  answers 503 when no publisher runs, and relays nothing that changes the run; the
+  publisher still listens on this machine only.
 - **The scene graph lights up what it names and links it to the ontology.** Choosing
   a node in the Scene graph tab makes the meshes it stands for glow in the 3D view,
   inside one box per model and one per free object instead of a box per link: a

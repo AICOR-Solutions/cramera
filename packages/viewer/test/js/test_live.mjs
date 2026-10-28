@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { EventBus } from '../../src/cramera/web/core/event-bus.js';
 import { liveAddressOf, sceneOf, withLive } from '../../src/cramera/web/core/scene-address.js';
-import { LiveClient } from '../../src/cramera/web/live/live-client.js';
+import { LiveClient, readAddressOf } from '../../src/cramera/web/live/live-client.js';
 import { LiveListener, LiveSession, PollInterval } from '../../src/cramera/web/live/live-session.js';
 import { DEFAULT_LIVE_ADDRESS, LiveActions, LiveBadge, LiveBadgeState, LivePanel, offeredText, recordingText } from '../../src/cramera/web/panels/live-panel.js';
 import {
@@ -252,6 +252,39 @@ test('a page address can follow a live publisher instead of naming a bundle', ()
   assert.equal(liveAddressOf(live.href), 'http://127.0.0.1:8765');
   assert.equal(sceneOf(live.href), null);
   assert.equal(liveAddressOf('http://localhost:8711/'), null);
+});
+
+test('a page of this machine reads the publisher at the address it names', () => {
+  const relay = 'http://127.0.0.1:8711/api/live/';
+  for (const page of ['http://127.0.0.1:8711/', 'http://localhost:8711/?live=x', 'http://[::1]:8711/']) {
+    assert.equal(readAddressOf(page, DEFAULT_LIVE_ADDRESS, relay), DEFAULT_LIVE_ADDRESS);
+  }
+});
+
+test('a page opened from another device reads the default publisher through the viewer', () => {
+  const page = 'http://192.168.1.23:8711/?live=http://127.0.0.1:8765';
+  const relay = 'http://192.168.1.23:8711/api/live/';
+  for (const address of [DEFAULT_LIVE_ADDRESS, 'http://localhost:8765', 'http://[::1]:8765/']) {
+    assert.equal(readAddressOf(page, address, relay), relay);
+  }
+});
+
+test('another device reads any other publisher at the address it names', () => {
+  const page = 'http://192.168.1.23:8711/';
+  const relay = 'http://192.168.1.23:8711/api/live/';
+  for (const address of ['http://127.0.0.1:18765', 'http://192.168.1.23:8765', 'not an address']) {
+    assert.equal(readAddressOf(page, address, relay), address);
+  }
+});
+
+test('the live client reads through the relay as from the publisher', async () => {
+  const requests = [];
+  const fetch = async (url) => { requests.push(url); return { ok: true, headers: new Map(), json: async () => ({}) }; };
+  const client = new LiveClient(fetch, 'http://192.168.1.23:8711/api/live/');
+  await client.read(LiveRoute.STATE);
+  await client.readQuerySteps(4);
+  assert.deepEqual(requests, ['http://192.168.1.23:8711/api/live/state', 'http://192.168.1.23:8711/api/live/query_steps?revision=4']);
+  assert.equal(client.perceptionImageUrl('a b'), 'http://192.168.1.23:8711/api/live/perception_image?key=a%20b');
 });
 
 test('a publisher that names no bundle yet is asked to bundle its world', async () => {

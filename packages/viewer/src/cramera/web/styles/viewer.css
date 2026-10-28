@@ -81,7 +81,7 @@
 
 html, body { height: 100%; margin: 0; }
 
-html { scrollbar-color: var(--border-strong) transparent; }
+html { scrollbar-color: var(--border-strong) transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 body {
   background: var(--page);
@@ -287,6 +287,7 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 :root[data-viewer-state="failed"] .viewer-status { display: none; }
 
 .stage-hint { position: absolute; left: 14px; bottom: 12px; z-index: 4; margin: 0; font-size: 11px; color: var(--text-faint); letter-spacing: 0.4px; pointer-events: none; }
+.touch-hint { display: none; }
 
 .pop-out {
   position: absolute;
@@ -626,9 +627,9 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 :root[data-layout="scene"] .split { grid-template-columns: minmax(0, 1fr); padding: 0; }
 :root[data-layout="scene"] .scene-card { border: none; border-radius: 0; }
 
-/* %% narrow screens: the columns stack */
+/* %% narrow and low screens, such as a phone upright or on its side: the columns stack */
 
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 540px) {
   body.scene-page { overflow: auto; height: auto; min-height: 100%; }
   .topbar { flex-wrap: wrap; padding: 10px 16px; }
   .topbar .logo { height: 28px; }
@@ -646,4 +647,29 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
   .workflow-buttons { flex-wrap: wrap; }
   .play-button, .save-button { padding: 9px 16px; }
   .stage-hint { display: none; }
+}
+
+/* %% phones: the pickers wrap, a phone on its side gives the stage the screen's height */
+
+@media (max-width: 560px) {
+  .scene-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scene-picker > .picker:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  .stage { height: calc(100vh - 120px); height: calc(100svh - 120px); min-height: 220px; }
+}
+
+/* %% touch screens: gestures instead of a mouse, larger targets, no windows to pop out */
+
+@media (hover: none) and (pointer: coarse) {
+  .stage-hint { display: block; right: 14px; }
+  .pointer-hint { display: none; }
+  .touch-hint { display: inline; }
+  .pop-out { display: none; }
+  .track { height: 32px; }
+  .track input[type="range"]::-webkit-slider-thumb { width: 22px; height: 22px; }
+  .track input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; }
+  .marks { left: 11px; right: 11px; }
+  .mark { width: 13px; height: 13px; }
 }
