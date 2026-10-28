@@ -240,8 +240,10 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
 
     neutral_specular_level: float = 0.5
     """
-    OmniPBR's default ``specular_level``: a reflectance at normal incidence of
-    ``0.08 * specular_level``, the 4 % that glTF's default index of refraction gives.
+    OmniPBR's default ``specular_level``.
+
+    The reflectance at normal incidence is ``0.08 * specular_level``, so the default
+    gives the 4 % of glTF's default index of refraction.
     """
 
     neutral_inputs: Dict[str, ShaderInputValue] = field(
