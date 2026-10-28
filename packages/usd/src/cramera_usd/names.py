@@ -59,6 +59,11 @@ class NameSeparator(StrEnum):
     Between a model's prefix and a joint name in the trajectory.
     """
 
+    OBJECT_NAME = "_"
+    """
+    Between the prim path elements an object's name is made of.
+    """
+
 
 FIRST_REPEAT_NUMBER = 2
 """
@@ -189,3 +194,96 @@ class PrimPath:
         :return: The path of the child of that name.
         """
         return f"{self.text}{NameSeparator.PRIM_PATH}{name}"
+
+
+# %% object names
+
+
+@dataclass
+class SameNamedPrims:
+    """
+    Prims that share their name, each told apart by the elements of its path that lie
+    between the leading and the trailing elements all of them share.
+    """
+
+    paths: List[PrimPath]
+    """
+    The prims' paths.
+    """
+
+    start: int = field(init=False)
+    """
+    The number of leading path elements all prims share, leaving each prim at least one
+    element.
+    """
+
+    end: int = field(init=False)
+    """
+    The number of trailing path elements all prims share, leaving each prim at least one
+    element after :attr:`start`.
+    """
+
+    def __post_init__(self) -> None:
+        shortest = min(len(path.elements) for path in self.paths)
+        self.start = self.shared_length(
+            [path.elements for path in self.paths], shortest - 1
+        )
+        self.end = self.shared_length(
+            [path.elements[::-1] for path in self.paths], shortest - self.start - 1
+        )
+
+    @staticmethod
+    def shared_length(sequences: List[List[str]], limit: int) -> int:
+        """
+        :param sequences: Sequences of path elements.
+        :param limit: The most elements to count.
+        :return: The number of leading elements all sequences share, at most the limit.
+        """
+        length = 0
+        while length < limit and len({sequence[length] for sequence in sequences}) == 1:
+            length += 1
+        return length
+
+    def distinguishing_name(self, path: PrimPath) -> str:
+        """
+        :param path: The path of one of the prims.
+        :return: The elements of its path between those all prims share, joined; the
+            prim's own name when it is the only prim.
+        """
+        elements = path.elements
+        return NameSeparator.OBJECT_NAME.join(
+            elements[self.start : len(elements) - self.end]
+        )
+
+
+@dataclass
+class ObjectNames:
+    """
+    Unique names for the objects prims stand for.
+
+    An object takes its prim's name where no other object's prim has that name; prims of
+    one name are told apart by the elements of their paths that differ, so
+    ``/World/Assets/chair/Actor_0000/Geom/body`` beside
+    ``/World/Assets/book/Actor_0003/Geom/body`` becomes ``chair_Actor_0000``. A name
+    taken already gets a number appended.
+    """
+
+    paths: List[str]
+    """
+    The prim paths of the objects, in the order their names are claimed.
+    """
+
+    by_path: Dict[str, str] = field(init=False)
+    """
+    The name of each object, by its prim path.
+    """
+
+    def __post_init__(self) -> None:
+        prims = [PrimPath(path) for path in self.paths]
+        by_name: Dict[str, List[PrimPath]] = {}
+        for prim in prims:
+            by_name.setdefault(prim.name, []).append(prim)
+        groups = {name: SameNamedPrims(paths) for name, paths in by_name.items()}
+        self.by_path = UniqueNames().claim_each(
+            {prim.text: groups[prim.name].distinguishing_name(prim) for prim in prims}
+        )

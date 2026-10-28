@@ -1,0 +1,91 @@
+#usda 1.0
+(
+    doc = "Furniture assets laid out as in Isaac's asset packs, each instance's rigid body a Geom/body prim: two chairs and a book whose instance prims repeat across the asset kinds. Beside them a bowl whose rigid body has a name of its own."
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "World"
+{
+    def Scope "Assets"
+    {
+        def Scope "chair"
+        {
+            def Xform "Actor_0000" (
+                kind = "component"
+            )
+            {
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+
+                def Scope "Geom"
+                {
+                    def Cube "body" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsCollisionAPI"]
+                    )
+                    {
+                        double size = 0.4
+                        double3 xformOp:translate = (0, 0, 0.2)
+                        uniform token[] xformOpOrder = ["xformOp:translate"]
+                    }
+                }
+            }
+
+            def Xform "Actor_0001" (
+                kind = "component"
+            )
+            {
+                double3 xformOp:translate = (1, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+
+                def Scope "Geom"
+                {
+                    def Cube "body" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsCollisionAPI"]
+                    )
+                    {
+                        double size = 0.4
+                        double3 xformOp:translate = (0, 0, 0.2)
+                        uniform token[] xformOpOrder = ["xformOp:translate"]
+                    }
+                }
+            }
+        }
+
+        def Scope "book"
+        {
+            def Xform "Actor_0000" (
+                kind = "component"
+            )
+            {
+                double3 xformOp:translate = (2, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+
+                def Scope "Geom"
+                {
+                    def Cube "body" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsCollisionAPI"]
+                    )
+                    {
+                        double size = 0.05
+                        double3 xformOp:translate = (0, 0, 0.025)
+                        uniform token[] xformOpOrder = ["xformOp:translate"]
+                    }
+                }
+            }
+        }
+    }
+
+    def Xform "Kitchen"
+    {
+        def Cube "bowl_right" (
+            prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsCollisionAPI"]
+        )
+        {
+            double size = 0.1
+            double3 xformOp:translate = (3, 0, 0.05)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+}
