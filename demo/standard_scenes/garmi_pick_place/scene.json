@@ -556,5 +556,171 @@
    "GarmiRightArm": "semantic_digital_twin.robots.garmi.GarmiRightArm",
    "GarmiRightGripper": "semantic_digital_twin.robots.garmi.GarmiRightGripper"
   }
- }
+ },
+ "annotations": [
+  {
+   "name": "cabinet_door_1",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Door",
+   "bodies": [
+    "cabinet_door_1",
+    "cabinet_door_1_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_1_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "cabinet_door_1_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_2",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Door",
+   "bodies": [
+    "cabinet_door_2",
+    "cabinet_door_2_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_2_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "cabinet_door_2_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_3",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Door",
+   "bodies": [
+    "cabinet_door_3",
+    "cabinet_door_3_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_3_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "cabinet_door_3_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_4",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Door",
+   "bodies": [
+    "cabinet_door_4",
+    "cabinet_door_4_handle"
+   ]
+  },
+  {
+   "name": "cabinet_door_4_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "cabinet_door_4_handle"
+   ]
+  },
+  {
+   "name": "coffee_table_0",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.CoffeeTable",
+   "bodies": [
+    "coffee_table_0"
+   ]
+  },
+  {
+   "name": "drawer_1",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+   "bodies": [
+    "drawer_1",
+    "drawer_1_handle"
+   ]
+  },
+  {
+   "name": "drawer_1_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "drawer_1_handle"
+   ]
+  },
+  {
+   "name": "drawer_2",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+   "bodies": [
+    "drawer_2",
+    "drawer_2_handle"
+   ]
+  },
+  {
+   "name": "drawer_2_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "drawer_2_handle"
+   ]
+  },
+  {
+   "name": "drawer_3",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+   "bodies": [
+    "drawer_3",
+    "drawer_3_handle"
+   ]
+  },
+  {
+   "name": "drawer_3_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "drawer_3_handle"
+   ]
+  },
+  {
+   "name": "drawer_4",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+   "bodies": [
+    "drawer_4",
+    "drawer_4_handle"
+   ]
+  },
+  {
+   "name": "drawer_4_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "drawer_4_handle"
+   ]
+  },
+  {
+   "name": "kitchen_cabinet",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Cabinet",
+   "bodies": [
+    "kitchen_cabinet",
+    "cabinet_door_4",
+    "cabinet_door_4_handle",
+    "cabinet_door_3",
+    "cabinet_door_3_handle",
+    "cabinet_door_2",
+    "cabinet_door_2_handle",
+    "cabinet_door_1",
+    "cabinet_door_1_handle",
+    "drawer_4",
+    "drawer_4_handle",
+    "drawer_3",
+    "drawer_3_handle",
+    "drawer_2",
+    "drawer_2_handle",
+    "drawer_1",
+    "drawer_1_handle"
+   ]
+  },
+  {
+   "name": "sofa_0",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Sofa",
+   "bodies": [
+    "sofa_0"
+   ]
+  },
+  {
+   "name": "wall_0",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Wall",
+   "bodies": [
+    "wall_0"
+   ]
+  }
+ ]
 }
