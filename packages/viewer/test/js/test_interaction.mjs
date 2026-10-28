@@ -131,7 +131,7 @@ test('a link\'s box encloses its own meshes, not the links below it', () => {
 
 // %% highlights
 
-import { boxedGroups, GLOW_INTENSITY, highlightedParts, SceneHighlights } from '../../src/cramera/web/scene/scene-highlights.js';
+import { boxedGroups, GLOW_INTENSITY, HIGHLIGHT_COLOR, highlightedParts, SceneHighlights } from '../../src/cramera/web/scene/scene-highlights.js';
 
 test('highlight keys name links by their URDF name and objects by their key', () => {
   const content = new THREE.Group();
@@ -187,7 +187,7 @@ test('highlighted meshes glow and get their own material back when cleared', () 
   assert.equal(highlights.show(['shoulder', 'elbow', 'cup']), 3);
   for (const mesh of meshes) {
     assert.notEqual(mesh.material, material);
-    assert.equal(mesh.material.emissive.getHex(), 0xf59e0b);
+    assert.equal(mesh.material.emissive.getHex(), HIGHLIGHT_COLOR);
     assert.equal(mesh.material.emissiveIntensity, GLOW_INTENSITY);
   }
   const boxes = view.scene.children.filter((child) => child instanceof THREE.Box3Helper);

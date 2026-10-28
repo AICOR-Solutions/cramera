@@ -9,9 +9,10 @@ import * as THREE from 'three';
 import { ownBounds } from './scene-picking.js';
 
 /**
- * The colour of the glow and of the boxes around highlighted links and objects.
+ * The colour of the glow and of the boxes around highlighted links and objects: a light
+ * neon blue, apart from the teal box of the part clicked in the 3D view.
  */
-const HIGHLIGHT_COLOR = 0xf59e0b;
+export const HIGHLIGHT_COLOR = 0x00c8ff;
 
 /**
  * How strongly a highlighted mesh glows in the highlight colour.
