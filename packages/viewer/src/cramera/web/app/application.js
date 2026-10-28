@@ -47,7 +47,8 @@ import { ScenePicking } from '../scene/scene-picking.js';
 import { SceneView } from '../scene/scene-view.js';
 import { KeyboardShortcuts, PlaybackActions } from './keyboard-shortcuts.js';
 import { PluginContext, PluginModules } from './plugin-modules.js';
-import { SCENE_PAGE, SiteHeader, ThemeSetting } from './site-header.js';
+import { ontologyAddress } from './ontology-page.js';
+import { ONTOLOGY_ROUTE, SCENE_PAGE, SiteHeader, ThemeSetting } from './site-header.js';
 
 /**
  * The screens on which the columns stack, as `styles/viewer.css` declares them; there
@@ -424,7 +425,7 @@ export class Application {
     this.#panels.onShow((panel) => this.#header.markCurrent(panel && !this.#panels.tabbed(panel) ? panel : SCENE_PAGE));
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#details = new DetailsPanel(elements.document);
-    this.#sceneGraph = new SceneGraphPanel(elements.document, this.bus);
+    this.#sceneGraph = new SceneGraphPanel(elements.document, this.bus, (path) => ontologyAddress(api.url(ONTOLOGY_ROUTE), path));
     this.#perception = new PerceptionPanel(elements.document, this.bus);
     this.#livePanel = new LivePanel(
       elements.document,
@@ -539,10 +540,10 @@ export class Application {
       return null;
     });
     if (!loaded) return;
+    this.#highlights.clear();
     this.#scene?.dispose();
     this.#scene = loaded;
     this.#picking.select(null);
-    this.#highlights.clear();
     loaded.objects.group.visible = this.#objectsShown;
     this.#layers.showObjects(loaded.objects.named().map(({ key, name }) => new LayerObject(key, name)));
     this.#labels.show(loaded.objects.named().map(({ key, name }) => ({ name, frame: loaded.objects.holderOf(key) })));
