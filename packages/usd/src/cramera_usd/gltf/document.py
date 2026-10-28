@@ -33,7 +33,11 @@ from cramera_usd.gltf.format import (
 )
 from cramera_usd.gltf.material import GltfMaterial
 from cramera_usd.gltf.merged import MergedMesh
-from cramera_usd.materials.channels import ImageFormat, RoughnessMetallicTexture
+from cramera_usd.materials.channels import (
+    ColorOpacityTexture,
+    ImageFormat,
+    RoughnessMetallicTexture,
+)
 from cramera_usd.materials.physically_based import (
     PhysicallyBasedMaterial,
     TextureTransform,
@@ -43,10 +47,10 @@ from cramera_usd.scene.materials import TextureFile
 
 # %% images
 
-TextureSource = Union[TextureFile, RoughnessMetallicTexture]
+TextureSource = Union[TextureFile, RoughnessMetallicTexture, ColorOpacityTexture]
 """
-What a texture is made from: an image file, or roughness and metalness packed into one
-image.
+What a texture is made from: an image file, roughness and metalness packed into one
+image, or a colour image composed with an opacity image.
 """
 
 
@@ -215,7 +219,7 @@ class GltfDocument:
             return self.texture_indices[source]
         data, image_type = (
             (source.encode(), ImageType.PNG)
-            if isinstance(source, RoughnessMetallicTexture)
+            if isinstance(source, (RoughnessMetallicTexture, ColorOpacityTexture))
             else EmbeddedImage(source.path).encoded()
         )
         image = self.appended(

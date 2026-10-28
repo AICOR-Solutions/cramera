@@ -298,6 +298,19 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Isaac apartments pass the export gate with their materials carried over.**
+  `cramera-export` refused cram-vrb-lab's GARMI apartment for inputs it neither mapped
+  nor kept. They now reach the GLB: OmniPBR's `specular_level` and UsdPreviewSurface's
+  specular workflow become `KHR_materials_specular`'s `specularColorFactor`
+  (`PhysicallyBasedMaterial.specular_color_factor`), which the viewer renders;
+  OmniGlass's `reflection_color` scales the reflected share of the blended glass and
+  is kept in its extras; OmniGlass's cut-out opacity scales its coverage; and an
+  OmniPBR opacity texture becomes the alpha of the base colour texture
+  (`ColorOpacityTexture`), so leaves and petals are cut out.
+
+  ![The GARMI apartment's kitchen exported with its materials](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/apartment-materials/garmi_apartment_kitchen.png)
+  ![Flowers cut out by their opacity texture in a glass vase](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/apartment-materials/garmi_apartment_flowers.png)
+
 - **Free objects whose bodies share a prim name are told apart.** `--free-objects`
   keyed every object by its rigid body's prim name, so the GARMI apartment, whose
   chairs, books and dining table each keep their rigid body in a `Geom/body`, listed
