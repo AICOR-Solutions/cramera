@@ -121,6 +121,12 @@ class Stage(StrEnum):
     tote whose rigid body is switched off and a kinematic lift.
     """
 
+    SAME_NAMED_BODIES = "same_named_bodies.usda"
+    """
+    Two chairs and a book whose rigid bodies share one prim name, and a bowl whose rigid
+    body has a name of its own.
+    """
+
     @property
     def path(self) -> Path:
         """

@@ -319,7 +319,10 @@ moves (rigid body enabled, not kinematic) that no authored joint touches, nor a 
 nested in it. It carries the bodies nested in it (the goods in a tote) and their
 collision boxes, and gets a URDF of its own, `objects/<key>.urdf`, holding its GLB and
 its boxes; the trajectory holds it at its spawn pose and `semantics.json` places the
-prims it carries on it. Switched-off and kinematic bodies and articulations stay fixed
+prims it carries on it. Its key is its body's prim name; bodies that share a prim name,
+such as chairs and books whose bodies are all `Geom/body`, are named after the elements
+of their paths that differ (`/Root/Assets/chair/Actor_0000/Geom/body` becomes
+`chair_Actor_0000`). Switched-off and kinematic bodies and articulations stay fixed
 links of the environment. A playback decides its objects itself, so `--free-objects`
 with a trace or time samples is refused.
 

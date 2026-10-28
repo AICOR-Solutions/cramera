@@ -298,6 +298,15 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Free objects whose bodies share a prim name are told apart.** `--free-objects`
+  keyed every object by its rigid body's prim name, so the GARMI apartment, whose
+  chairs, books and dining table each keep their rigid body in a `Geom/body`, listed
+  them as `body`, `body_2`, ... `body_14`. Bodies of one name are now named after the
+  elements of their paths that differ (`ObjectNames`):
+  `/Root/Meshes/Assets/chair/Actor_0000/Geom/body` becomes `chair_Actor_0000`; a body
+  whose name no other has keeps it.
+
+  ![The GARMI apartment's free objects named after their assets](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/free-object-names/apartment_object_names.png)
 - **A live body drawn anew is bundled again.** The live bundle's signature now counts
   each body's shapes, so a body whose shapes change while the run goes on is shown
   with its new shapes instead of the old ones.
