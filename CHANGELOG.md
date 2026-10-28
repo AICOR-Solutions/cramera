@@ -26,6 +26,13 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Watching from a phone.** `cramera --lan` listens on every address and names the
+  address, with a key, that other devices of the network open; they need the key, kept
+  in `~/.cramera/network_key` and then in a cookie, and may only read, so asking,
+  running and saving stay with the machine that serves the viewer. On touch screens
+  the 3D view names its gestures, the scrubber and its marks are larger and **Pop
+  out** is gone; the scene picker wraps on phones, and a phone on its side stacks the
+  columns and fits the 3D view and the playback controls onto its screen.
 - **GARMI's pick and place in an apartment as a demo scene.**
   `demo/standard_scenes/garmi_pick_place` replays GARMI picking up a bowl and then a
   spoon, 1 min 8 s, taken from the pre-1.0 viewer at cramera.informatik.uni-bremen.de

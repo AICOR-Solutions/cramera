@@ -25,6 +25,7 @@ from typing_extensions import (
 )
 
 from cramera.exceptions import MalformedRequestBody
+from cramera.http.addresses import LOOPBACK
 from cramera_protocol.document import JsonDocument, JsonValue
 from cramera_protocol.viewer import ErrorKey
 
@@ -65,6 +66,13 @@ class HttpMethod(StrEnum):
     """
     Removes a resource.
     """
+
+    def changes(self) -> bool:
+        """
+        :return: Whether a request of this method may change something, which only
+            this machine may ask for.
+        """
+        return self not in (HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS)
 
 
 class Header(StrEnum):
@@ -115,6 +123,16 @@ class Header(StrEnum):
     VARY = "Vary"
     """
     The request headers the answer depends on.
+    """
+
+    COOKIE = "Cookie"
+    """
+    The cookies the client keeps for the viewer.
+    """
+
+    SET_COOKIE = "Set-Cookie"
+    """
+    A cookie the client is to keep.
     """
 
 
@@ -351,6 +369,16 @@ class Request:
     :attr:`body`.
     """
 
+    server_address: str = LOOPBACK
+    """
+    The address of this machine the request arrived at.
+    """
+
+    client_address: str = LOOPBACK
+    """
+    The address of the device that sent the request.
+    """
+
     def body_stream(self) -> BodyStream:
         """
         :return: The body as a stream: :attr:`stream`, or one over :attr:`body`.
@@ -369,6 +397,17 @@ class Request:
             (value for key, value in self.headers.items() if key.lower() == wanted),
             None,
         )
+
+    def cookie(self, name: str) -> Optional[str]:
+        """
+        :param name: A cookie's name.
+        :return: The value of the cookie of that name the request carries, or None.
+        """
+        for pair in (self.header(Header.COOKIE) or "").split(";"):
+            key, separator, value = pair.strip().partition("=")
+            if separator and key == name:
+                return value
+        return None
 
     def parameters(self) -> Dict[str, List[str]]:
         """

@@ -82,7 +82,10 @@ outside the class: dataclasses with a `from_json` classmethod.
   ends. Routes are `Route` objects collected by a `Router`; plugins contribute routes
   of their own.
 - Every request passes an `OriginPolicy`. The server binds to `127.0.0.1` by default
-  and answers only requests whose origin is the local machine.
+  and answers only requests whose origin is the local machine. With `--lan` it binds
+  to every address and also answers requests addressed to the address they arrived
+  at; one from another device must carry the viewer's key (in the query, then in a
+  cookie) and may only read: a method that changes something is refused for it.
 - A `SceneCatalog` merges several `SceneDirectory` instances: the shared folder, the
   local recordings and the demo scenes, each with the scenes directories nested in
   it, so a scenes repository cloned into one of them is found without being named. Every file request is confined to its bundle
