@@ -344,6 +344,7 @@ class LiveBundleWriter:
                 missing_assets=models.missing_assets,
                 bundle_signature=signature,
                 world_bound=True,
+                classes=models.classes,
             )
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
@@ -397,6 +398,7 @@ class LiveBundleWriter:
                 missing_assets=models.missing_assets,
                 bundle_signature=WorldSignature(model, selected_robot).digest(),
                 world_bound=True,
+                classes=models.classes,
             )
             DocumentFile(staging / BundleFile.TRAJECTORY).write(
                 self.trajectory(frames, frames_per_second)

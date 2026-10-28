@@ -71,6 +71,12 @@ class RobotParts:
                 return arm
         raise UnknownArm(name)
 
+    def annotations(self) -> List[SemanticAnnotation]:
+        """
+        :return: Every arm, then its end effector.
+        """
+        return [part for arm in self.arms() for part in (arm, arm.end_effector)]
+
     def descriptions(self) -> List[RobotPart]:
         """
         :return: Every arm, then its end effector, with the links of each; an arm's
@@ -163,10 +169,18 @@ class RobotRoster:
         :param robot: A robot of the world.
         :return: A name of letters, digits and ``_``.
         """
-        name = re.sub(r"[^A-Za-z0-9_]", "_", type(robot).__name__.lower())
+        name = self.class_model_name(type(robot))
         if len(self.robots()) == 1:
             return name
         return f"{name}_{robot.id.hex}"
+
+    @staticmethod
+    def class_model_name(robot_class: type) -> str:
+        """
+        :param robot_class: A robot class.
+        :return: The model name of the only robot of a world being of that class.
+        """
+        return re.sub(r"[^A-Za-z0-9_]", "_", robot_class.__name__.lower())
 
     def instance(self, robot: AbstractRobot) -> RobotInstance:
         """
