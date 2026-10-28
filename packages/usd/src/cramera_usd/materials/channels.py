@@ -241,6 +241,70 @@ class RoughnessMetallicTexture:
         )
 
 
+# %% colour with opacity
+
+
+@dataclass(frozen=True)
+class ColorOpacityTexture:
+    """
+    The glTF base colour texture composed from a colour image and a separate opacity
+    image: the colour in the red, green and blue channels, the opacity in alpha.
+    """
+
+    color: Optional[TextureFile]
+    """
+    The colour image, or None for white.
+    """
+
+    opacity: TextureFile
+    """
+    The opacity image; the average of its red, green and blue channels is the opacity,
+    as OmniPBR's default opacity mode reads it.
+    """
+
+    def encode(self) -> bytes:
+        """
+        :return: The composed texture as PNG bytes, sized like the colour image (or the
+            opacity image without one).
+        """
+        opacity_image = Image.open(self.opacity.path)
+        size = (
+            opacity_image.size
+            if self.color is None
+            else Image.open(self.color.path).size
+        )
+        width, height = size
+        color = (
+            numpy.full(
+                (height, width, len(OPACITY_SOURCE_CHANNELS)), ChannelScale.EIGHT_BIT
+            )
+            if self.color is None
+            else numpy.asarray(Image.open(self.color.path).convert(ImageMode.RGB))
+        )
+        reader = TextureChannelReader(opacity_image.resize(size))
+        opacity = numpy.mean(
+            [reader.values(channel) for channel in OPACITY_SOURCE_CHANNELS], axis=0
+        )
+        composed = numpy.dstack(
+            [color, numpy.round(opacity * ChannelScale.EIGHT_BIT)]
+        ).astype(numpy.uint8)
+        stream = io.BytesIO()
+        Image.fromarray(composed, mode=ImageMode.RGBA).save(
+            stream, format=ImageFormat.PNG
+        )
+        return stream.getvalue()
+
+
+OPACITY_SOURCE_CHANNELS = (
+    TextureChannel.RED,
+    TextureChannel.GREEN,
+    TextureChannel.BLUE,
+)
+"""
+The channels of an opacity image that are averaged into the opacity.
+"""
+
+
 # %% colour decoding
 
 

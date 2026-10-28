@@ -244,5 +244,21 @@
  "statecharts": "statecharts.json",
  "robotName": "pr2",
  "environmentName": "Warehouse Hall",
- "task": "transport"
+ "task": "transport",
+ "classes": {
+  "world": "semantic_digital_twin.world.World",
+  "models": {
+   "pr2": "semantic_digital_twin.robots.pr2.PR2"
+  },
+  "bodies": {
+   "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
+   "milk": "semantic_digital_twin.world_description.world_entity.Body"
+  },
+  "connections": {
+   "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection"
+  },
+  "annotations": {
+   "PR2LeftArm": "semantic_digital_twin.robots.pr2.PR2LeftArm"
+  }
+ }
 }

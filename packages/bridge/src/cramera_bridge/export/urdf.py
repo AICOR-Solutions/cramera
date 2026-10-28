@@ -19,6 +19,7 @@ from uuid import UUID
 
 from cramera_bridge.exceptions import UnrepresentableJointLimits, UrdfSourceNotFound
 from cramera_bridge.export.assets import BundledAssets, MeshFormat, MeshReference
+from cramera_bridge.names import class_path
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (
@@ -390,6 +391,16 @@ class ModelReport:
     The mesh files that could not be copied.
     """
 
+    body_classes: Dict[str, str] = field(default_factory=dict)
+    """
+    The class of every written body, by link name.
+    """
+
+    connection_classes: Dict[str, str] = field(default_factory=dict)
+    """
+    The class of every connection written as a joint, by joint name.
+    """
+
 
 @dataclass
 class UrdfDocument:
@@ -433,6 +444,16 @@ class UrdfDocument:
     posed_joints: List[str] = field(default_factory=list)
     """
     The floating joints, in document order.
+    """
+
+    body_classes: Dict[str, str] = field(default_factory=dict)
+    """
+    The class of every written body, by link name.
+    """
+
+    connection_classes: Dict[str, str] = field(default_factory=dict)
+    """
+    The class of every connection written as a joint, by joint name.
     """
 
     def write(
@@ -480,6 +501,8 @@ class UrdfDocument:
             movable_joints=list(self.movable_joints),
             posed_joints=list(self.posed_joints),
             missing=list(self.assets.missing),
+            body_classes=dict(self.body_classes),
+            connection_classes=dict(self.connection_classes),
         )
 
     # %% links
@@ -496,6 +519,7 @@ class UrdfDocument:
             UrdfElement.LINK,
             {UrdfAttribute.NAME: self.link_names.name_of(body)},
         )
+        self.body_classes[self.link_names.name_of(body)] = class_path(type(body))
         for index, shape in enumerate(body.visual.shapes):
             visual = self.add_shape(link, UrdfElement.VISUAL, shape)
             material = ElementTree.SubElement(
@@ -603,6 +627,7 @@ class UrdfDocument:
         """
         joint_type = self.joint_type(connection)
         name = str(connection.name)
+        self.connection_classes[name] = class_path(type(connection))
         joint = ElementTree.SubElement(
             self.root,
             UrdfElement.JOINT,

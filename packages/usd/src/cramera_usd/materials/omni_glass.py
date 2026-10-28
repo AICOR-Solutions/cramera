@@ -12,6 +12,7 @@ from typing_extensions import Dict
 from cramera_usd.materials.channels import ScalarChannel
 from cramera_usd.materials.inputs import ShaderInputs
 from cramera_usd.materials.mapping import RoughnessMetallicPacking, ShaderMapping
+from cramera_usd.materials.omni_pbr import NO_SCALING
 from cramera_usd.materials.physically_based import (
     WHITE,
     AlphaMode,
@@ -104,6 +105,11 @@ class OmniGlassInput(StrEnum):
     Turns the texture coordinates.
     """
 
+    TEXTURE_SCALE = "texture_scale"
+    """
+    Repeats the texture.
+    """
+
 
 # %% mapping
 
@@ -113,7 +119,8 @@ class OmniGlassMapping(ShaderMapping):
     """
     OmniGlass: a fully transmissive, blended, double-sided surface tinted with the glass
     colour, or with the glass colour texture which replaces it; frosting becomes
-    roughness.
+    roughness, the reflection colour scales the reflection, and an enabled cut-out keeps
+    its opacity's share of the surface.
     """
 
     index_of_refraction: float = 1.491
@@ -131,10 +138,8 @@ class OmniGlassMapping(ShaderMapping):
             OmniGlassInput.USE_COLOR_TEXTURE: True,
             OmniGlassInput.THIN_WALLED: False,
             OmniGlassInput.DEPTH: 0.001,
-            OmniGlassInput.REFLECTION_COLOR: WHITE,
-            OmniGlassInput.ENABLE_OPACITY: False,
-            OmniGlassInput.CUTOUT_OPACITY: 1.0,
             OmniGlassInput.TEXTURE_ROTATE: 0.0,
+            OmniGlassInput.TEXTURE_SCALE: NO_SCALING,
         }
     )
     """
@@ -156,7 +161,7 @@ class OmniGlassMapping(ShaderMapping):
         ).apply(
             PhysicallyBasedMaterial(
                 name="",
-                base_color_factor=(*color.factor, 1.0),
+                base_color_factor=(*color.factor, self.cut_out_opacity(inputs)),
                 base_color_texture=color.texture,
                 normal_texture=inputs.texture(input_name.NORMAL_TEXTURE),
                 normal_scale=inputs.number(input_name.NORMAL_STRENGTH, 1.0),
@@ -164,7 +169,19 @@ class OmniGlassMapping(ShaderMapping):
                 index_of_refraction=inputs.number(
                     input_name.INDEX_OF_REFRACTION, self.index_of_refraction
                 ),
+                specular_color_factor=inputs.color(input_name.REFLECTION_COLOR, WHITE),
                 alpha_mode=AlphaMode.BLEND,
                 double_sided=True,
             )
         )
+
+    @staticmethod
+    def cut_out_opacity(inputs: ShaderInputs) -> float:
+        """
+        :param inputs: The authored inputs.
+        :return: The share of the surface the cut-out keeps: its opacity when it is
+            enabled, else the whole surface.
+        """
+        enabled = inputs.flag(OmniGlassInput.ENABLE_OPACITY, False)
+        opacity = inputs.number(OmniGlassInput.CUTOUT_OPACITY, 1.0)
+        return opacity if enabled else 1.0

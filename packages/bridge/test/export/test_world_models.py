@@ -13,9 +13,11 @@ from cramera_bridge.export.world_models import (
     WorldModels,
 )
 from cramera_bridge.geometry import NumericPose, PublishedColor, PublishedScale
+from cramera_bridge.names import class_path
 from cramera_bridge.robots import RobotParts, RobotRoster
 from cramera_bridge.world_objects import WorldObjects
 from cramera_protocol.bundle.files import BundleFile
+from semantic_digital_twin.world_description.connections import PrismaticConnection
 
 from ..dataset.worlds import CUP_MESH
 
@@ -60,6 +62,33 @@ def test_the_selected_robot_carries_its_parts(robot_world, robot_bundle):
     assert robot_bundle.robot.part_annotations == parts
     assert robot_bundle.robot.base_body == str(robot_world.robot.root.name)
     assert robot_bundle.robot.parts == {part.name: part.links for part in parts}
+
+
+def test_the_bundle_names_the_class_of_each_entity(robot_world, robot_bundle):
+    classes = robot_bundle.classes
+    [robot_model] = [model for model in robot_bundle.models if model.robot]
+    parts = RobotParts(robot_world.world, robot_world.robot).annotations()
+    assert classes.world == class_path(type(robot_world.world))
+    assert classes.models == {robot_model.name: class_path(type(robot_world.robot))}
+    assert classes.bodies[str(robot_world.robot.root.name)] == class_path(
+        type(robot_world.robot.root)
+    )
+    assert classes.connections["pr2/torso_lift_joint"] == class_path(
+        PrismaticConnection
+    )
+    assert classes.annotations == {
+        str(part.name): class_path(type(part)) for part in parts
+    }
+    assert set(classes.annotations) == {
+        part.name for part in robot_bundle.robot.part_annotations
+    }
+
+
+def test_a_free_object_is_named_with_its_class(kitchen, tmp_path):
+    objects = WorldObjects(kitchen.world).objects()
+    bundle = WorldModels(kitchen.world, tmp_path, MESH_DIRECTORY).write(objects, None)
+    assert bundle.classes.bodies[str(kitchen.cup.name)] == class_path(type(kitchen.cup))
+    assert bundle.classes.annotations == {}
 
 
 def test_the_robot_alone_leaves_no_environment(robot_bundle):

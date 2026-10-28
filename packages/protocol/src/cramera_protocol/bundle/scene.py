@@ -1300,6 +1300,78 @@ class SourceKey(StrEnum):
     """
 
 
+# %% classes
+
+
+class ClassesKey(StrEnum):
+    """
+    The keys of the classes of a scene's entities.
+    """
+
+    WORLD = "world"
+    """
+    The class of the world.
+    """
+
+    MODELS = "models"
+    """
+    The classes of the models standing for an entity of their own, such as a robot.
+    """
+
+    BODIES = "bodies"
+    """
+    The classes of the bodies: the models' links and the free objects.
+    """
+
+    CONNECTIONS = "connections"
+    """
+    The classes of the connections: the models' joints.
+    """
+
+    ANNOTATIONS = "annotations"
+    """
+    The classes of the semantic annotations, such as the robot's parts.
+    """
+
+
+@dataclass(kw_only=True)
+class SceneClasses(JsonDocument):
+    """
+    The class of each entity of a scene in the world it was recorded from, named by its
+    module and name, ``module.Class``, so that people can look the class up in the
+    ontology generated from those classes.
+    """
+
+    world: Optional[str] = document_field(ClassesKey.WORLD, default=None)
+    """
+    The class of the world.
+    """
+
+    models: Dict[str, str] = document_field(ClassesKey.MODELS, default_factory=dict)
+    """
+    The classes of the models standing for an entity of their own, by model name.
+    """
+
+    bodies: Dict[str, str] = document_field(ClassesKey.BODIES, default_factory=dict)
+    """
+    The classes of the bodies, by link name or free object identifier.
+    """
+
+    connections: Dict[str, str] = document_field(
+        ClassesKey.CONNECTIONS, default_factory=dict
+    )
+    """
+    The classes of the connections, by joint name.
+    """
+
+    annotations: Dict[str, str] = document_field(
+        ClassesKey.ANNOTATIONS, default_factory=dict
+    )
+    """
+    The classes of the semantic annotations, by annotation name.
+    """
+
+
 @dataclass(kw_only=True)
 class SceneSource(JsonDocument):
     """
@@ -1460,6 +1532,11 @@ class SceneKey(StrEnum):
     Whether a live bundle follows a running world.
     """
 
+    CLASSES = "classes"
+    """
+    The classes of the scene's entities.
+    """
+
 
 @dataclass(kw_only=True)
 class SceneDescription(JsonDocument):
@@ -1617,6 +1694,11 @@ class SceneDescription(JsonDocument):
     world_bound: Optional[bool] = document_field(SceneKey.WORLD_BOUND, default=None)
     """
     Whether a live bundle follows a running world.
+    """
+
+    classes: Optional[SceneClasses] = document_field(SceneKey.CLASSES, default=None)
+    """
+    The classes of the scene's entities, or None for a scene recorded without them.
     """
 
     extensions: Dict[str, Any] = extension_field()

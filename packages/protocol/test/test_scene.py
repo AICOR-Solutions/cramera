@@ -8,6 +8,7 @@ import pytest
 
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
+    ClassesKey,
     LegacyPlanNodeKind,
     PartRole,
     PartSide,
@@ -77,6 +78,24 @@ def test_a_robot_recording_carries_parts_objects_steps_and_plans(read_json):
     assert len(scene.segments) == len(data[SceneKey.SEGMENTS])
     assert scene.statecharts == BundleFile.STATECHARTS
     assert len(scene.plan_trees) == len(data.get(SceneKey.PLAN_TREES, []))
+
+
+def test_a_recording_names_the_class_of_each_entity(read_json):
+    data = read_json("recorded_warehouse_scene.json")
+    classes = SceneDescription.from_json(data).classes
+    written = data[SceneKey.CLASSES]
+    assert classes.world == written[ClassesKey.WORLD]
+    assert classes.models == written[ClassesKey.MODELS]
+    assert classes.bodies["milk"] == written[ClassesKey.BODIES]["milk"]
+    assert classes.connections == written[ClassesKey.CONNECTIONS]
+    assert classes.annotations == written[ClassesKey.ANNOTATIONS]
+
+
+def test_a_scene_recorded_without_classes_names_none(read_json):
+    assert (
+        SceneDescription.from_json(read_json("recorded_cell/scene.json")).classes
+        is None
+    )
 
 
 def test_a_recording_round_trips(read_json):

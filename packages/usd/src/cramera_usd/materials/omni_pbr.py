@@ -9,7 +9,7 @@ from enum import StrEnum
 
 from typing_extensions import Dict, Optional
 
-from cramera_usd.materials.channels import ScalarChannel
+from cramera_usd.materials.channels import ColorOpacityTexture, ScalarChannel
 from cramera_usd.materials.emission import EmissionScale
 from cramera_usd.materials.inputs import ShaderInputs
 from cramera_usd.materials.mapping import RoughnessMetallicPacking, ShaderMapping
@@ -21,7 +21,7 @@ from cramera_usd.materials.physically_based import (
     PhysicallyBasedMaterial,
     TextureTransform,
 )
-from cramera_usd.scene.materials import ShaderInputValue, TextureChannel
+from cramera_usd.scene.materials import ShaderInputValue, TextureChannel, TextureFile
 
 # %% inputs
 
@@ -127,6 +127,16 @@ class OmniPhysicallyBasedInput(StrEnum):
     The opacity without a texture.
     """
 
+    ENABLE_OPACITY_TEXTURE = "enable_opacity_texture"
+    """
+    Whether the opacity is read from a texture rather than the constant.
+    """
+
+    OPACITY_TEXTURE = "opacity_texture"
+    """
+    The opacity texture.
+    """
+
     OPACITY_THRESHOLD = "opacity_threshold"
     """
     The opacity below which the surface is cut out.
@@ -228,9 +238,16 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
     The conversion of emission intensities.
     """
 
+    neutral_specular_level: float = 0.5
+    """
+    OmniPBR's default ``specular_level``.
+
+    The reflectance at normal incidence is ``0.08 * specular_level``, so the default
+    gives the 4 % of glTF's default index of refraction.
+    """
+
     neutral_inputs: Dict[str, ShaderInputValue] = field(
         default_factory=lambda: {
-            OmniPhysicallyBasedInput.SPECULAR_LEVEL: 0.5,
             OmniPhysicallyBasedInput.PROJECT_COORDINATES: False,
             OmniPhysicallyBasedInput.WORLD_OR_OBJECT: False,
             OmniPhysicallyBasedInput.ALBEDO_DESATURATION: 0.0,
@@ -254,7 +271,12 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
             else inputs.color(input_name.DIFFUSE_COLOR, self.diffuse_color)
         )
         enable_opacity = inputs.flag(input_name.ENABLE_OPACITY, False)
-        opacity = inputs.number(input_name.OPACITY, 1.0) if enable_opacity else 1.0
+        opacity_texture = self.opacity_texture(inputs, enable_opacity)
+        opacity = (
+            inputs.number(input_name.OPACITY, 1.0)
+            if enable_opacity and opacity_texture is None
+            else 1.0
+        )
         threshold = inputs.number(input_name.OPACITY_THRESHOLD, 0.0)
         material = PhysicallyBasedMaterial(
             name="",
@@ -265,15 +287,46 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
                 ),
                 opacity,
             ),
-            base_color_texture=diffuse_texture,
+            base_color_texture=(
+                diffuse_texture
+                if opacity_texture is None
+                else ColorOpacityTexture(diffuse_texture, opacity_texture)
+            ),
             normal_texture=inputs.texture(input_name.NORMAL_TEXTURE),
             normal_scale=inputs.number(input_name.BUMP_FACTOR, 1.0),
             alpha_mode=self.alpha_mode(enable_opacity, threshold),
             alpha_cutoff=threshold if threshold > 0.0 else DEFAULT_ALPHA_CUTOFF,
+            specular_color_factor=self.specular_color_factor(inputs),
             texture_transform=self.texture_transform(inputs),
         )
         material = self.roughness_metallic(inputs).apply(material)
         return self.with_emission(material, inputs)
+
+    @staticmethod
+    def opacity_texture(
+        inputs: ShaderInputs, enable_opacity: bool
+    ) -> Optional[TextureFile]:
+        """
+        :param inputs: The authored inputs.
+        :param enable_opacity: Whether the material enables its opacity.
+        :return: The texture the opacity is read from, or None when the opacity or its
+            texture is not enabled.
+        """
+        texture = inputs.texture(OmniPhysicallyBasedInput.OPACITY_TEXTURE)
+        textured = inputs.flag(OmniPhysicallyBasedInput.ENABLE_OPACITY_TEXTURE, False)
+        return texture if enable_opacity and textured else None
+
+    def specular_color_factor(self, inputs: ShaderInputs) -> LinearColor:
+        """
+        :param inputs: The authored inputs.
+        :return: The scale of the reflectance at normal incidence that
+            ``specular_level`` gives, relative to the neutral level's.
+        """
+        level = inputs.number(
+            OmniPhysicallyBasedInput.SPECULAR_LEVEL, self.neutral_specular_level
+        )
+        scale = level / self.neutral_specular_level
+        return scale, scale, scale
 
     @staticmethod
     def alpha_mode(enable_opacity: bool, threshold: float) -> AlphaMode:

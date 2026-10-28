@@ -214,6 +214,24 @@ resolutions, the query steps and the perception images of the publisher at
 `127.0.0.1:8765`, and nothing that changes the run. Stopping and saving the recording
 stay with the machine.
 
+### Scene graph and ontology
+
+The **Scene graph** tab shows the shown world as a tree: the models with their links
+nested by their joints, the free objects and the robot's parts. Choosing a node makes
+what it stands for glow in the 3D view, a model all its links and a group all its
+members, and **Focus** moves the camera onto it. Where the scene names the classes of
+its entities, a node links each class, such as `PR2LeftArm`, `Body` or the joint's
+`RevoluteConnection`, to the **Ontology** page, which opens cram_owlviz at that class
+in a tab of its own; every further class link shows its class in the same tab.
+
+Recordings name the classes of their entities. Name them in bundles recorded before,
+in the CRAM environment with ROS and the robot descriptions sourced, with
+
+```bash
+cramera-record-classes demo/standard_scenes            # every bundle of the directory
+cramera-record-classes ~/.cramera/scenes --scene my_recording
+```
+
 ### Commands
 
 | Command | What it does |
@@ -359,7 +377,10 @@ moves (rigid body enabled, not kinematic) that no authored joint touches, nor a 
 nested in it. It carries the bodies nested in it (the goods in a tote) and their
 collision boxes, and gets a URDF of its own, `objects/<key>.urdf`, holding its GLB and
 its boxes; the trajectory holds it at its spawn pose and `semantics.json` places the
-prims it carries on it. Switched-off and kinematic bodies and articulations stay fixed
+prims it carries on it. Its key is its body's prim name; bodies that share a prim name,
+such as chairs and books whose bodies are all `Geom/body`, are named after the elements
+of their paths that differ (`/Root/Assets/chair/Actor_0000/Geom/body` becomes
+`chair_Actor_0000`). Switched-off and kinematic bodies and articulations stay fixed
 links of the environment. A playback decides its objects itself, so `--free-objects`
 with a trace or time samples is refused.
 

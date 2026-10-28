@@ -131,7 +131,7 @@ test('a link\'s box encloses its own meshes, not the links below it', () => {
 
 // %% highlights
 
-import { highlightedParts } from '../../src/cramera/web/scene/scene-highlights.js';
+import { boxedGroups, GLOW_INTENSITY, HIGHLIGHT_COLOR, highlightedParts, SceneHighlights } from '../../src/cramera/web/scene/scene-highlights.js';
 
 test('highlight keys name links by their URDF name and objects by their key', () => {
   const content = new THREE.Group();
@@ -144,4 +144,64 @@ test('highlight keys name links by their URDF name and objects by their key', ()
   content.add(robot, cup);
   assert.deepEqual(highlightedParts(content, ['cup', 'l_gripper_palm_link', 'missing']), [link, cup]);
   assert.deepEqual(highlightedParts(content, []), []);
+});
+
+/**
+ * @returns {Object} A robot with an arm of two links, each with a mesh, and a free
+ *   object with a mesh, in a view's content.
+ */
+function highlightedScene() {
+  const content = new THREE.Group();
+  const robot = Object.assign(new THREE.Group(), { isURDFRobot: true });
+  const shoulder = Object.assign(new THREE.Group(), { isURDFLink: true, urdfName: 'shoulder' });
+  const elbow = Object.assign(new THREE.Group(), { isURDFLink: true, urdfName: 'elbow' });
+  const joint = Object.assign(new THREE.Group(), { isURDFJoint: true });
+  joint.position.set(2, 0, 0);
+  const material = new THREE.MeshStandardMaterial({ color: 0x808080 });
+  const shoulderMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+  const elbowMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+  shoulder.add(shoulderMesh, joint);
+  joint.add(elbow);
+  elbow.add(elbowMesh);
+  robot.add(shoulder);
+  const cup = new THREE.Group();
+  cup.userData.objectKey = 'cup';
+  const cupMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+  cup.position.set(0, 5, 0);
+  cup.add(cupMesh);
+  content.add(robot, cup);
+  const scene = new THREE.Scene();
+  scene.add(content);
+  const view = { content, scene, renders: 0, requestRender() { this.renders += 1; } };
+  return { view, shoulder, elbow, cup, material, meshes: [shoulderMesh, elbowMesh, cupMesh] };
+}
+
+test('the links of one model share a box, and each free object has its own', () => {
+  const { shoulder, elbow, cup } = highlightedScene();
+  assert.deepEqual(boxedGroups([shoulder, cup, elbow]), [[shoulder, elbow], [cup]]);
+});
+
+test('highlighted meshes glow and get their own material back when cleared', () => {
+  const { view, material, meshes } = highlightedScene();
+  const highlights = new SceneHighlights(view);
+  assert.equal(highlights.show(['shoulder', 'elbow', 'cup']), 3);
+  for (const mesh of meshes) {
+    assert.notEqual(mesh.material, material);
+    assert.equal(mesh.material.emissive.getHex(), HIGHLIGHT_COLOR);
+    assert.equal(mesh.material.emissiveIntensity, GLOW_INTENSITY);
+  }
+  const boxes = view.scene.children.filter((child) => child instanceof THREE.Box3Helper);
+  assert.equal(boxes.length, 2, 'one box for the arm, one for the cup');
+  assert.deepEqual(boxes[0].box.min.toArray(), [-0.5, -0.5, -0.5]);
+  assert.deepEqual(boxes[0].box.max.toArray(), [2.5, 0.5, 0.5]);
+  highlights.clear();
+  for (const mesh of meshes) assert.equal(mesh.material, material);
+  assert.deepEqual(view.scene.children.filter((child) => child instanceof THREE.Box3Helper), []);
+});
+
+test('a link\'s glow leaves the links below it as they are', () => {
+  const { view, material, meshes } = highlightedScene();
+  new SceneHighlights(view).show(['shoulder']);
+  assert.notEqual(meshes[0].material, material);
+  assert.equal(meshes[1].material, material);
 });

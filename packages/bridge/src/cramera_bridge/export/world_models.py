@@ -20,12 +20,14 @@ from cramera_bridge.geometry import (
     PublishedScale,
     SIZE_PRECISION,
 )
+from cramera_bridge.names import class_path
 from cramera_bridge.robots import RobotParts, RobotRoster
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     ModelDescription,
     ObjectDescription,
     RobotDescription,
+    SceneClasses,
 )
 from cramera_protocol.geometry import Pose
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
@@ -66,6 +68,12 @@ class WorldModelsBundle:
     missing_assets: List[str] = field(default_factory=list)
     """
     The mesh files no model could copy, sorted.
+    """
+
+    classes: SceneClasses = field(default_factory=SceneClasses)
+    """
+    The classes of the world, its robots, the written bodies and connections, the free
+    objects and the selected robot's parts.
     """
 
 
@@ -119,6 +127,7 @@ class WorldModels:
             body.id for bodies in robot_bodies.values() for body in bodies
         }
         bundle = WorldModelsBundle()
+        bundle.classes.world = class_path(type(self.world))
         environment = [
             body
             for body in self.world.bodies_topologically_sorted
@@ -128,6 +137,7 @@ class WorldModels:
             report = self.document().write(environment, ENVIRONMENT_MODEL_NAME)
             bundle.models.append(self.description(report, robot=False))
             bundle.missing_assets.extend(report.missing)
+            self.add_classes(bundle.classes, report)
         for robot in roster.robots():
             bodies = robot_bodies[roster.identifier(robot)]
             if not bodies:
@@ -140,10 +150,27 @@ class WorldModels:
             model.pose = NumericPose.of_entity(self.world, robot.root).published()
             bundle.models.append(model)
             bundle.missing_assets.extend(report.missing)
+            self.add_classes(bundle.classes, report)
+            bundle.classes.models[model.name] = class_path(type(robot))
         bundle.missing_assets = sorted(set(bundle.missing_assets))
+        for body in objects:
+            bundle.classes.bodies[str(body.name)] = class_path(type(body))
         if selected_robot is not None:
             bundle.robot = self.robot_description(selected_robot)
+            bundle.classes.annotations = {
+                str(part.name): class_path(type(part))
+                for part in RobotParts(self.world, selected_robot).annotations()
+            }
         return bundle
+
+    @staticmethod
+    def add_classes(classes: SceneClasses, report: ModelReport) -> None:
+        """
+        :param classes: The classes of a bundle's entities.
+        :param report: What a document wrote, whose bodies and connections are added.
+        """
+        classes.bodies.update(report.body_classes)
+        classes.connections.update(report.connection_classes)
 
     def document(self) -> UrdfDocument:
         """

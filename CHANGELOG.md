@@ -40,6 +40,22 @@ which this repository was mirrored until 22 Oct 2026.
   only the observation routes the page reads, each with its own query parameters,
   answers 503 when no publisher runs, and relays nothing that changes the run; the
   publisher still listens on this machine only.
+- **The scene graph lights up what it names and links it to the ontology.** Choosing
+  a node in the Scene graph tab makes the meshes it stands for glow in the 3D view,
+  inside one box per model and one per free object instead of a box per link: a
+  model lights up all its links, the Free objects and Robot parts groups all their
+  members. **Focus** moves the camera onto the node. A scene names the class of each
+  entity in the world it was recorded from (`SceneDescription.classes`: the world,
+  each robot model, body, connection and robot part, such as `PR2LeftArm`, `Body` or
+  `RevoluteConnection`), and the node links each class to the Ontology page, which
+  opens cram_owlviz at the class its fragment names (`ontology.html#package:Class`).
+  `cramera-bridge` names the classes when it writes a bundle; `cramera-record-classes`
+  names them in bundles written before, as CRAM reads each bundle, and the demo
+  scenes carry them.
+
+  ![The PR2's right gripper chosen in the scene graph, glowing, with its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-part-focused.png)
+  ![GarmiLeftGripper opened on the Ontology page from its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-ontology-class.png)
+
 - **GARMI's pick and place in an apartment as a demo scene.**
   `demo/standard_scenes/garmi_pick_place` replays GARMI picking up a bowl and then a
   spoon, 1 min 8 s, taken from the pre-1.0 viewer at cramera.informatik.uni-bremen.de
@@ -312,6 +328,28 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Isaac apartments pass the export gate with their materials carried over.**
+  `cramera-export` refused cram-vrb-lab's GARMI apartment for inputs it neither mapped
+  nor kept. They now reach the GLB: OmniPBR's `specular_level` and UsdPreviewSurface's
+  specular workflow become `KHR_materials_specular`'s `specularColorFactor`
+  (`PhysicallyBasedMaterial.specular_color_factor`), which the viewer renders;
+  OmniGlass's `reflection_color` scales the reflected share of the blended glass and
+  is kept in its extras; OmniGlass's cut-out opacity scales its coverage; and an
+  OmniPBR opacity texture becomes the alpha of the base colour texture
+  (`ColorOpacityTexture`), so leaves and petals are cut out.
+
+  ![The GARMI apartment's kitchen exported with its materials](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/apartment-materials/garmi_apartment_kitchen.png)
+  ![Flowers cut out by their opacity texture in a glass vase](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/apartment-materials/garmi_apartment_flowers.png)
+
+- **Free objects whose bodies share a prim name are told apart.** `--free-objects`
+  keyed every object by its rigid body's prim name, so the GARMI apartment, whose
+  chairs, books and dining table each keep their rigid body in a `Geom/body`, listed
+  them as `body`, `body_2`, ... `body_14`. Bodies of one name are now named after the
+  elements of their paths that differ (`ObjectNames`):
+  `/Root/Meshes/Assets/chair/Actor_0000/Geom/body` becomes `chair_Actor_0000`; a body
+  whose name no other has keeps it.
+
+  ![The GARMI apartment's free objects named after their assets](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/free-object-names/apartment_object_names.png)
 - **A live body drawn anew is bundled again.** The live bundle's signature now counts
   each body's shapes, so a body whose shapes change while the run goes on is shown
   with its new shapes instead of the old ones.

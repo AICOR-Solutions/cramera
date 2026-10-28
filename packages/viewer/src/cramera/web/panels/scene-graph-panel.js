@@ -1,10 +1,12 @@
 /**
  * The Scene graph panel: the shown world as a tree to browse, the way the ontology
- * browser shows classes. A node shows what is known about it, the nodes it depends on
- * and the nodes that depend on it, each a click away; choosing a node lights it up in
- * the 3D view, and choosing a part in the 3D view chooses its node.
+ * browser shows classes. A node shows what is known about it, the classes of its entity,
+ * each linked to the class on the ontology page, the nodes it depends on and the nodes
+ * that depend on it, each a click away; choosing a node lights it up in the 3D view,
+ * and choosing a part in the 3D view chooses its node.
  */
 
+import { ONTOLOGY_WINDOW } from '../app/ontology-page.js';
 import { ModelKey, PartKey, RobotKey, SceneKey, SelectionKey, ViewerEvent } from '../protocol.js';
 import { FixedNode, KIND_TITLES, SceneGraph } from '../scene/scene-graph.js';
 import { SidePanel } from './panel-host.js';
@@ -25,6 +27,8 @@ const PanelClass = Object.freeze({
   TOGGLE: 'graph-toggle',
   TAG: 'kind-tag',
   DETAILS: 'graph-details',
+  CLASS: 'graph-class',
+  FOCUS: 'graph-focus',
   CHIPS: 'graph-chips',
   EMPTY: 'empty',
 });
@@ -66,7 +70,7 @@ export function sceneFactsOf(scene) {
     links: part[PartKey.LINKS] ?? [],
     attachedTo: part[PartKey.ATTACHED_TO] ?? null,
   }));
-  return { name: scene.name, models, objects: scene.objects.named(), parts };
+  return { name: scene.name, models, objects: scene.objects.named(), parts, classes: description[SceneKey.CLASSES] ?? null };
 }
 
 // %% panel
@@ -83,6 +87,12 @@ export class SceneGraphPanel {
    * @type {import('../core/event-bus.js').EventBus}
    */
   #bus;
+
+  /**
+   * The address of the ontology page showing a class.
+   * @type {function(string): string}
+   */
+  #classAddress;
 
   /**
    * The graph shown, or null before a scene is.
@@ -136,9 +146,12 @@ export class SceneGraphPanel {
    * @param {Document} document The page.
    * @param {import('../core/event-bus.js').EventBus} bus The bus the panel lights entities
    *   up on.
+   * @param {function(string): string} classAddress The address of the ontology page
+   *   showing a class, named by its module and name.
    */
-  constructor(document, bus) {
+  constructor(document, bus, classAddress) {
     this.#bus = bus;
+    this.#classAddress = classAddress;
     this.panel = new SidePanel('scene-graph', 'Scene graph', document.createElement('section'));
     this.panel.element.classList.add('scene-graph');
     this.#counts = document.createElement('p');
@@ -286,7 +299,13 @@ export class SceneGraphPanel {
     }
     const heading = this.#element(document, 'h3');
     heading.append(this.#tag(document, node.kind), ` ${node.label}`);
+    if (node.keys.length) heading.append(this.#focusButton(document, node));
     const facts = this.#element(document, 'dl');
+    for (const nodeClass of node.classes) {
+      const value = this.#element(document, 'dd');
+      value.append(this.#classLink(document, nodeClass));
+      facts.append(this.#element(document, 'dt', '', nodeClass.field), value);
+    }
     for (const [name, value] of node.fields) facts.append(this.#element(document, 'dt', '', name), this.#element(document, 'dd', '', value));
     const parts = [heading, facts];
     const dependsOn = node.references.map((reference) => ({ field: reference.field, node: this.graph.node(reference.target) })).filter((entry) => entry.node);
@@ -294,6 +313,34 @@ export class SceneGraphPanel {
     const usedBy = this.graph.referencedBy(node.identifier).map((entry) => ({ field: entry.field, node: entry.source }));
     if (usedBy.length) parts.push(this.#element(document, 'h4', '', 'Referenced by'), this.#chips(document, usedBy));
     this.#details.replaceChildren(...parts);
+  }
+
+  /**
+   * @param {Document} document The page.
+   * @param {import('../scene/scene-graph.js').NodeClass} nodeClass A class of a node's
+   *   entity.
+   * @returns {HTMLAnchorElement} A link showing the class on the ontology page.
+   */
+  #classLink(document, nodeClass) {
+    const link = this.#element(document, 'a', PanelClass.CLASS, nodeClass.name);
+    link.href = this.#classAddress(nodeClass.path);
+    link.target = ONTOLOGY_WINDOW;
+    link.title = `${nodeClass.path}: show the class on the ontology page`;
+    return link;
+  }
+
+  /**
+   * @param {Document} document The page.
+   * @param {import('../scene/scene-graph.js').GraphNode} node A node lighting something up.
+   * @returns {HTMLButtonElement} A button moving the 3D view's camera onto what the node
+   *   lights up.
+   */
+  #focusButton(document, node) {
+    const button = this.#element(document, 'button', PanelClass.FOCUS, 'Focus');
+    button.type = 'button';
+    button.title = `Move the camera onto ${node.label}`;
+    button.addEventListener('click', () => this.#bus.publish(ViewerEvent.FOCUS_REQUESTED, node.keys));
+    return button;
   }
 
   /**
