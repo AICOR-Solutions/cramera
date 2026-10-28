@@ -86,6 +86,12 @@ outside the class: dataclasses with a `from_json` classmethod.
   to every address and also answers requests addressed to the address they arrived
   at; one from another device must carry the viewer's key (in the query, then in a
   cookie) and may only read: a method that changes something is refused for it.
+- A live publisher listens on `127.0.0.1` only, since a query runs code. A page opened
+  at another address, as a phone opens the viewer, reads it through the viewer's
+  `LiveRelay` below `/api/live/`: the observation routes the page follows a run by,
+  with the query parameters each takes, from the publisher at `127.0.0.1:8765`.
+  Nothing that changes the run is relayed, and a publisher that does not answer is a
+  503.
 - A `SceneCatalog` merges several `SceneDirectory` instances: the shared folder, the
   local recordings and the demo scenes, each with the scenes directories nested in
   it, so a scenes repository cloned into one of them is found without being named. Every file request is confined to its bundle

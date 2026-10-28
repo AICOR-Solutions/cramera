@@ -203,8 +203,16 @@ opens on a phone as it is.
 The phone and the machine must reach each other: a firewall has to let the port
 through (`sudo ufw allow 8711/tcp` where ufw runs), and networks that keep their
 devices apart, as many public and university networks do, need the phone's hotspot or
-another network. Following a running plan from the phone is not yet possible, since
-the live publisher answers this machine only.
+another network.
+
+A running plan is followed from the phone as on the machine: open
+`http://192.168.1.23:8711/?live=http://127.0.0.1:8765`, or connect in the **Live** tab
+with its default address. The live publisher keeps answering this machine only, so a
+page opened at the network address reads it through the viewer, below `/api/live/`:
+the world, its states, the plan, the statecharts, the recording's status, the
+resolutions, the query steps and the perception images of the publisher at
+`127.0.0.1:8765`, and nothing that changes the run. Stopping and saving the recording
+stay with the machine.
 
 ### Commands
 
