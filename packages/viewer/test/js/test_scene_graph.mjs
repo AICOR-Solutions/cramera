@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { EventBus } from '../../src/cramera/web/core/event-bus.js';
 import { SceneGraphPanel, UNFOLDED_DEPTH } from '../../src/cramera/web/panels/scene-graph-panel.js';
 import { SelectionKey, SelectionKind, ViewerEvent } from '../../src/cramera/web/protocol.js';
-import { FixedNode, NodeKind, SceneGraph } from '../../src/cramera/web/scene/scene-graph.js';
+import { ClassField, FixedNode, NodeKind, SceneGraph } from '../../src/cramera/web/scene/scene-graph.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
 /**
@@ -33,7 +33,19 @@ const FACTS = Object.freeze({
   ],
 });
 
+/**
+ * The classes the recorded world held the cell's entities as.
+ */
+const CLASSES = Object.freeze({
+  world: 'semantic_digital_twin.world.World',
+  models: { arm: 'semantic_digital_twin.robots.cell.CellArm' },
+  bodies: { base: 'semantic_digital_twin.world_description.world_entity.Body', 'milk': 'semantic_digital_twin.world_description.world_entity.Body' },
+  connections: { shoulder: 'semantic_digital_twin.world_description.connections.RevoluteConnection' },
+  annotations: { left_arm: 'semantic_digital_twin.robots.cell.CellLeftArm' },
+});
+
 const labels = (nodes) => nodes.map((node) => node.label);
+const classesOf = (node) => node.classes.map((nodeClass) => [nodeClass.field, nodeClass.name]);
 
 // %% graph
 
@@ -71,6 +83,27 @@ test('the graph counts its entities, filters them and finds what the 3D view sel
   assert.deepEqual(graph.ancestors('link:arm/gripper'), ['world', 'model:arm', 'link:arm/base', 'link:arm/upper']);
 });
 
+test('a node names the classes the recorded world held its entity as', () => {
+  const graph = SceneGraph.of({ ...FACTS, classes: CLASSES });
+  assert.deepEqual(classesOf(graph.node(FixedNode.WORLD)), [[ClassField.OWN, 'World']]);
+  assert.deepEqual(classesOf(graph.node('model:arm')), [[ClassField.OWN, 'CellArm']]);
+  assert.deepEqual(classesOf(graph.node('model:environment')), []);
+  assert.deepEqual(classesOf(graph.node('link:arm/base')), [[ClassField.OWN, 'Body']]);
+  assert.deepEqual(classesOf(graph.node('link:arm/upper')), [[ClassField.JOINT, 'RevoluteConnection']]);
+  assert.deepEqual(classesOf(graph.node('object:k-milk')), [[ClassField.OWN, 'Body']]);
+  assert.deepEqual(classesOf(graph.node('part:left_arm')), [[ClassField.OWN, 'CellLeftArm']]);
+  assert.equal(graph.node('part:left_arm').classes[0].path, CLASSES.annotations.left_arm);
+  assert.deepEqual(classesOf(SceneGraph.of(FACTS).node(FixedNode.WORLD)), []);
+});
+
+test('a model and a group light up everything they hold', () => {
+  const graph = SceneGraph.of(FACTS);
+  assert.deepEqual(graph.node('model:arm').keys, ['base', 'gripper', 'upper']);
+  assert.deepEqual(graph.node(FixedNode.OBJECTS).keys, ['k-milk']);
+  assert.deepEqual(graph.node(FixedNode.PARTS).keys, ['base', 'upper', 'gripper']);
+  assert.deepEqual(graph.node(FixedNode.WORLD).keys, []);
+});
+
 test('a scene without objects or parts has no groups for them', () => {
   const graph = SceneGraph.of({ name: 'bare', models: [], objects: [], parts: [] });
   assert.deepEqual(graph.children(FixedNode.WORLD), []);
@@ -78,13 +111,20 @@ test('a scene without objects or parts has no groups for them', () => {
 
 // %% panel
 
+/**
+ * Where the panel's class links lead in the tests.
+ */
+const classAddress = (path) => `ontology.html#${path}`;
+
 function openPanel() {
   const bus = new EventBus();
   const highlighted = [];
+  const focused = [];
   bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => highlighted.push(keys));
-  const panel = new SceneGraphPanel(new FakeDocument(), bus);
-  panel.showGraph(SceneGraph.of(FACTS));
-  return { panel, highlighted, root: panel.panel.element };
+  bus.subscribe(ViewerEvent.FOCUS_REQUESTED, (keys) => focused.push(keys));
+  const panel = new SceneGraphPanel(new FakeDocument(), bus, classAddress);
+  panel.showGraph(SceneGraph.of({ ...FACTS, classes: CLASSES }));
+  return { panel, highlighted, focused, root: panel.panel.element };
 }
 
 const labelButtons = (root) => root.findAll((element) => element.className === 'graph-label');
@@ -108,6 +148,26 @@ test('choosing a node unfolds the tree to it, shows its relations and lights it 
   details.findAll((element) => element.className === 'graph-label')[0].dispatch('click');
   assert.equal(panel.chosen, 'link:arm/gripper');
   assert.ok(shownNodes(root).includes('link:arm/gripper'), 'the tree unfolds down to the chosen link');
+});
+
+test('a chosen node links each of its classes to the ontology page', () => {
+  const { panel, root } = openPanel();
+  panel.choose('link:arm/upper');
+  const [link] = root.findAll((element) => element.className === 'graph-class');
+  assert.equal(link.textContent, 'RevoluteConnection');
+  assert.equal(link.href, classAddress(CLASSES.connections.shoulder));
+  assert.equal(link.target, 'cramera-ontology');
+  panel.choose('model:environment');
+  assert.deepEqual(root.findAll((element) => element.className === 'graph-class'), []);
+});
+
+test('the camera moves onto a chosen node on request', () => {
+  const { panel, focused, root } = openPanel();
+  panel.choose('part:left_arm');
+  root.findAll((element) => element.className === 'graph-focus')[0].dispatch('click');
+  assert.deepEqual(focused, [['base', 'upper']]);
+  panel.choose(FixedNode.WORLD);
+  assert.deepEqual(root.findAll((element) => element.className === 'graph-focus'), [], 'the world lights nothing up to move onto');
 });
 
 test('a selection in the 3D view chooses its node', () => {

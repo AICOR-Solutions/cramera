@@ -2,11 +2,14 @@
  * The scene graph of a shown world: its models with their links nested by the joints
  * that connect them, its free objects, and the robot's part annotations with the links
  * they depend on, as the ontology browser shows classes with the classes their fields
- * refer to.
+ * refer to. A node names the classes the recorded world held its entity as, for a scene
+ * that names them.
  *
  * The graph is built from plain facts about the scene, so it does not depend on how the
  * 3D view loaded the models.
  */
+
+import { ClassesKey } from '../protocol.js';
 
 // %% nodes
 
@@ -61,12 +64,46 @@ export class NodeReference {
   }
 }
 
+/**
+ * A class of the entity a node stands for, named by the field that holds it.
+ */
+export class NodeClass {
+  /**
+   * @param {string} field The field holding the class, such as `Class`.
+   * @param {string} path The class, by its module and name, `module.Class`.
+   */
+  constructor(field, path) {
+    /**
+     * The field holding the class.
+     * @type {string}
+     */
+    this.field = field;
+    /**
+     * The class, by its module and name.
+     * @type {string}
+     */
+    this.path = path;
+  }
+
+  /**
+   * @returns {string} The class's own name.
+   */
+  get name() {
+    return this.path.slice(this.path.lastIndexOf('.') + 1);
+  }
+}
+
+/**
+ * The fields holding a node's classes.
+ */
+export const ClassField = Object.freeze({ OWN: 'Class', JOINT: 'Joint class' });
+
 export class GraphNode {
   /**
    * @param {Object} parts The node's parts: `identifier`, `kind` (a `NodeKind` value),
    *   `label`, `parent` (the identity of its parent in the tree, or null), `fields`
-   *   (`[name, value]` pairs), `references` (`NodeReference`s) and `keys` (the viewer
-   *   keys the node lights up).
+   *   (`[name, value]` pairs), `references` (`NodeReference`s), `classes`
+   *   (`NodeClass`es) and `keys` (the viewer keys the node lights up).
    */
   constructor(parts) {
     /**
@@ -99,6 +136,11 @@ export class GraphNode {
      * @type {Array<NodeReference>}
      */
     this.references = parts.references ?? [];
+    /**
+     * The classes of its entity.
+     * @type {Array<NodeClass>}
+     */
+    this.classes = parts.classes ?? [];
     /**
      * The viewer keys it lights up in the 3D view.
      * @type {Array<string>}
@@ -134,6 +176,15 @@ function given(fields) {
   return fields.filter(([, value]) => value !== undefined && value !== null && value !== '');
 }
 
+/**
+ * @param {Array<[string, string|undefined]>} classes Fields with the class each holds,
+ *   some without one.
+ * @returns {Array<NodeClass>} The classes that are named.
+ */
+function namedClasses(classes) {
+  return classes.filter(([, path]) => path).map(([field, path]) => new NodeClass(field, path));
+}
+
 // %% graph
 
 export class SceneGraph {
@@ -154,11 +205,22 @@ export class SceneGraph {
    * @param {Object} facts What the scene holds: `name`; `models`, each `{name, robot,
    *   urdf, links}` with links `{name, parent, joint}` and a joint `{name, type, axis,
    *   lower, upper}` or null for the root; `objects`, each `{key, name}`; and `parts`,
-   *   each `{name, role, side, links, attachedTo}`.
+   *   each `{name, role, side, links, attachedTo}`; and optionally `classes`, the
+   *   scene's `classes` entry naming the class of each entity.
    * @returns {SceneGraph} The graph of the scene.
    */
   static of(facts) {
-    const nodes = [new GraphNode({ identifier: FixedNode.WORLD, kind: NodeKind.WORLD, label: facts.name || 'World', fields: [['Scene', facts.name]] })];
+    const classes = facts.classes ?? {};
+    const classOf = (entry, name) => classes[entry]?.[name];
+    const nodes = [
+      new GraphNode({
+        identifier: FixedNode.WORLD,
+        kind: NodeKind.WORLD,
+        label: facts.name || 'World',
+        fields: [['Scene', facts.name]],
+        classes: namedClasses([[ClassField.OWN, classes[ClassesKey.WORLD]]]),
+      }),
+    ];
     const linkNodes = new Map();
     for (const model of facts.models) {
       const identifier = `model:${model.name}`;
@@ -171,7 +233,8 @@ export class SceneGraph {
           parent: FixedNode.WORLD,
           fields: given([['Kind', model.robot ? 'robot' : 'environment'], ['Description', model.urdf], ['Links', String(model.links.length)]]),
           references: root ? [new NodeReference('root link', `link:${model.name}/${root.name}`)] : [],
-          keys: root ? [root.name] : [],
+          classes: namedClasses([[ClassField.OWN, classOf(ClassesKey.MODELS, model.name)]]),
+          keys: model.links.map((link) => link.name),
         }),
       );
       for (const link of SceneGraph.#parentsFirst(model.links)) {
@@ -191,13 +254,21 @@ export class SceneGraph {
               ['Range', joint ? rangeText(joint.lower, joint.upper) : ''],
             ]),
             references: link.parent ? [new NodeReference('parent link', `link:${model.name}/${link.parent}`)] : [],
+            classes: namedClasses([
+              [ClassField.OWN, classOf(ClassesKey.BODIES, link.name)],
+              [ClassField.JOINT, joint ? classOf(ClassesKey.CONNECTIONS, joint.name) : undefined],
+            ]),
             keys: [link.name],
           }),
         );
         if (!linkNodes.has(link.name) || model.robot) linkNodes.set(link.name, linkIdentifier);
       }
     }
-    if (facts.objects.length) nodes.push(new GraphNode({ identifier: FixedNode.OBJECTS, kind: NodeKind.GROUP, label: 'Free objects', parent: FixedNode.WORLD }));
+    if (facts.objects.length) {
+      nodes.push(
+        new GraphNode({ identifier: FixedNode.OBJECTS, kind: NodeKind.GROUP, label: 'Free objects', parent: FixedNode.WORLD, keys: facts.objects.map((object) => object.key) }),
+      );
+    }
     for (const object of facts.objects) {
       nodes.push(
         new GraphNode({
@@ -206,11 +277,16 @@ export class SceneGraph {
           label: object.name,
           parent: FixedNode.OBJECTS,
           fields: given([['Key', object.key]]),
+          classes: namedClasses([[ClassField.OWN, classOf(ClassesKey.BODIES, object.name)]]),
           keys: [object.key],
         }),
       );
     }
-    if (facts.parts.length) nodes.push(new GraphNode({ identifier: FixedNode.PARTS, kind: NodeKind.GROUP, label: 'Robot parts', parent: FixedNode.WORLD }));
+    if (facts.parts.length) {
+      nodes.push(
+        new GraphNode({ identifier: FixedNode.PARTS, kind: NodeKind.GROUP, label: 'Robot parts', parent: FixedNode.WORLD, keys: [...new Set(facts.parts.flatMap((part) => part.links))] }),
+      );
+    }
     const partNames = new Set(facts.parts.map((part) => part.name));
     for (const part of facts.parts) {
       const references = part.links.filter((link) => linkNodes.has(link)).map((link) => new NodeReference('link', linkNodes.get(link)));
@@ -223,6 +299,7 @@ export class SceneGraph {
           parent: FixedNode.PARTS,
           fields: given([['Role', part.role?.replace('_', ' ')], ['Side', part.side], ['Links', String(part.links.length)]]),
           references,
+          classes: namedClasses([[ClassField.OWN, classOf(ClassesKey.ANNOTATIONS, part.name)]]),
           keys: part.links,
         }),
       );

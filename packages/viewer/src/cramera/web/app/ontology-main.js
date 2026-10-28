@@ -4,4 +4,4 @@
 
 import { OntologyPage } from './ontology-page.js';
 
-new OntologyPage(document.getElementById('ontology'));
+new OntologyPage(document.getElementById('ontology'), window);

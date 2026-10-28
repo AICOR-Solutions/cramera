@@ -26,6 +26,22 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **The scene graph lights up what it names and links it to the ontology.** Choosing
+  a node in the Scene graph tab makes the meshes it stands for glow in the 3D view,
+  inside one box per model and one per free object instead of a box per link: a
+  model lights up all its links, the Free objects and Robot parts groups all their
+  members. **Focus** moves the camera onto the node. A scene names the class of each
+  entity in the world it was recorded from (`SceneDescription.classes`: the world,
+  each robot model, body, connection and robot part, such as `PR2LeftArm`, `Body` or
+  `RevoluteConnection`), and the node links each class to the Ontology page, which
+  opens cram_owlviz at the class its fragment names (`ontology.html#package:Class`).
+  `cramera-bridge` names the classes when it writes a bundle; `cramera-record-classes`
+  names them in bundles written before, as CRAM reads each bundle, and the demo
+  scenes carry them.
+
+  ![The PR2's right gripper chosen in the scene graph, glowing, with its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-part-focused.png)
+  ![GarmiLeftGripper opened on the Ontology page from its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-ontology-class.png)
+
 - **GARMI's pick and place in an apartment as a demo scene.**
   `demo/standard_scenes/garmi_pick_place` replays GARMI picking up a bowl and then a
   spoon, 1 min 8 s, taken from the pre-1.0 viewer at cramera.informatik.uni-bremen.de

@@ -25,6 +25,14 @@ from cramera_protocol.bundle.scene import PlanNodeKind
 # %% pinned classes
 
 
+def class_path(cls: type) -> str:
+    """
+    :param cls: A class.
+    :return: Where it is defined: its module and name, ``module.Class``.
+    """
+    return f"{cls.__module__}.{cls.__qualname__}"
+
+
 @dataclass(frozen=True)
 class PinnedClass:
     """
@@ -763,7 +771,7 @@ class ClassNames:
         :param cls: A CRAM class.
         :return: Its pinned entry, or None when it is not pinned.
         """
-        path = f"{cls.__module__}.{cls.__name__}"
+        path = class_path(cls)
         return next((entry for entry in self.pinned if entry.path == path), None)
 
     def identifier_of(self, cls: type) -> str:
