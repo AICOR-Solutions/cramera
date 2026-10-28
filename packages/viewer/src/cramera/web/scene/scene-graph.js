@@ -1,9 +1,10 @@
 /**
  * The scene graph of a shown world: its models with their links nested by the joints
- * that connect them, its free objects, and the robot's part annotations with the links
- * they depend on, as the ontology browser shows classes with the classes their fields
- * refer to. A node names the classes the recorded world held its entity as, for a scene
- * that names them.
+ * that connect them, its free objects, the robot's part annotations with the links they
+ * depend on, and the world's other semantic annotations, such as drawers and handles,
+ * with the links and objects they give a meaning to, as the ontology browser shows
+ * classes with the classes their fields refer to. A node names the classes the recorded
+ * world held its entity as, for a scene that names them.
  *
  * The graph is built from plain facts about the scene, so it does not depend on how the
  * 3D view loaded the models.
@@ -23,6 +24,7 @@ export const NodeKind = Object.freeze({
   GROUP: 'group',
   OBJECT: 'object',
   PART: 'part',
+  ANNOTATION: 'annotation',
 });
 
 /**
@@ -35,12 +37,13 @@ export const KIND_TITLES = Object.freeze({
   [NodeKind.GROUP]: 'Group',
   [NodeKind.OBJECT]: 'Object',
   [NodeKind.PART]: 'Part annotation',
+  [NodeKind.ANNOTATION]: 'Semantic annotation',
 });
 
 /**
  * The identities of the nodes every graph has.
  */
-export const FixedNode = Object.freeze({ WORLD: 'world', OBJECTS: 'group:objects', PARTS: 'group:parts' });
+export const FixedNode = Object.freeze({ WORLD: 'world', OBJECTS: 'group:objects', PARTS: 'group:parts', ANNOTATIONS: 'group:annotations' });
 
 /**
  * One reference of a node to another, named by the field that holds it.
@@ -206,7 +209,8 @@ export class SceneGraph {
    *   urdf, links}` with links `{name, parent, joint}` and a joint `{name, type, axis,
    *   lower, upper}` or null for the root; `objects`, each `{key, name}`; and `parts`,
    *   each `{name, role, side, links, attachedTo}`; and optionally `classes`, the
-   *   scene's `classes` entry naming the class of each entity.
+   *   scene's `classes` entry naming the class of each entity, and `annotations`, each
+   *   `{name, classPath, bodies}` with bodies named by link name or object name.
    * @returns {SceneGraph} The graph of the scene.
    */
   static of(facts) {
@@ -304,7 +308,53 @@ export class SceneGraph {
         }),
       );
     }
+    nodes.push(...SceneGraph.#annotationNodes(facts.annotations ?? [], linkNodes, facts.objects));
     return new SceneGraph(nodes);
+  }
+
+  /**
+   * @param {Array<Object>} annotations The world's semantic annotations, each `{name,
+   *   classPath, bodies}`.
+   * @param {Map<string, string>} linkNodes The node of each link, by link name.
+   * @param {Array<Object>} objects The free objects, each `{key, name}`.
+   * @returns {Array<GraphNode>} The group of the annotations, when there are any, and a
+   *   node for each, lighting up its bodies: a link by its name, a free object by its
+   *   key.
+   */
+  static #annotationNodes(annotations, linkNodes, objects) {
+    if (!annotations.length) return [];
+    const objectKeys = new Map(objects.map((object) => [object.name, object.key]));
+    const nodes = annotations.map((annotation) => {
+      const references = [];
+      const keys = [];
+      for (const body of annotation.bodies) {
+        if (objectKeys.has(body)) {
+          keys.push(objectKeys.get(body));
+          references.push(new NodeReference('body', `object:${objectKeys.get(body)}`));
+          continue;
+        }
+        keys.push(body);
+        if (linkNodes.has(body)) references.push(new NodeReference('body', linkNodes.get(body)));
+      }
+      return new GraphNode({
+        identifier: `annotation:${annotation.classPath}:${annotation.name}`,
+        kind: NodeKind.ANNOTATION,
+        label: annotation.name,
+        parent: FixedNode.ANNOTATIONS,
+        fields: [['Bodies', String(annotation.bodies.length)]],
+        references,
+        classes: namedClasses([[ClassField.OWN, annotation.classPath]]),
+        keys,
+      });
+    });
+    const group = new GraphNode({
+      identifier: FixedNode.ANNOTATIONS,
+      kind: NodeKind.GROUP,
+      label: 'Semantic annotations',
+      parent: FixedNode.WORLD,
+      keys: [...new Set(nodes.flatMap((node) => node.keys))],
+    });
+    return [group, ...nodes];
   }
 
   /**

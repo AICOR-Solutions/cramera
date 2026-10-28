@@ -401,6 +401,11 @@ class ModelReport:
     The class of every connection written as a joint, by joint name.
     """
 
+    body_links: Dict[UUID, str] = field(default_factory=dict)
+    """
+    The link name of every written body, by the body's identity.
+    """
+
 
 @dataclass
 class UrdfDocument:
@@ -503,6 +508,7 @@ class UrdfDocument:
             missing=list(self.assets.missing),
             body_classes=dict(self.body_classes),
             connection_classes=dict(self.connection_classes),
+            body_links=dict(self.link_names.names),
         )
 
     # %% links

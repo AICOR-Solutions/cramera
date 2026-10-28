@@ -491,6 +491,7 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .kind-tag[data-kind="link"] { background: var(--accent); }
 .kind-tag[data-kind="object"] { background: var(--warning); }
 .kind-tag[data-kind="part"] { background: var(--play); }
+.kind-tag[data-kind="annotation"] { background: var(--success); }
 .kind-tag[data-kind="group"] { background: transparent; border: 1px solid var(--text-faint); }
 .graph-details { max-height: 32vh; overflow: auto; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
 .graph-details h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 600 13px var(--mono); }

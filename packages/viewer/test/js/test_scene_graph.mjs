@@ -44,6 +44,24 @@ const CLASSES = Object.freeze({
   annotations: { left_arm: 'semantic_digital_twin.robots.cell.CellLeftArm' },
 });
 
+/**
+ * The module of the semantic annotations' classes.
+ */
+const ANNOTATIONS_MODULE = 'semantic_digital_twin.semantic_annotations.semantic_annotations';
+
+/**
+ * The cell with its table and the milk annotated, and a shelf whose board the scene
+ * does not show.
+ */
+const ANNOTATED = Object.freeze({
+  ...FACTS,
+  annotations: [
+    { name: 'milk', classPath: `${ANNOTATIONS_MODULE}.Milk`, bodies: ['milk'] },
+    { name: 'shelf', classPath: `${ANNOTATIONS_MODULE}.Shelf`, bodies: ['shelf_board'] },
+    { name: 'table', classPath: `${ANNOTATIONS_MODULE}.Table`, bodies: ['table', 'milk'] },
+  ],
+});
+
 const labels = (nodes) => nodes.map((node) => node.label);
 const classesOf = (node) => node.classes.map((nodeClass) => [nodeClass.field, nodeClass.name]);
 
@@ -107,6 +125,26 @@ test('a model and a group light up everything they hold', () => {
 test('a scene without objects or parts has no groups for them', () => {
   const graph = SceneGraph.of({ name: 'bare', models: [], objects: [], parts: [] });
   assert.deepEqual(graph.children(FixedNode.WORLD), []);
+  assert.equal(SceneGraph.of({ ...FACTS, annotations: [] }).node(FixedNode.ANNOTATIONS), undefined);
+});
+
+test('a semantic annotation lights up its links and objects and names its class', () => {
+  const graph = SceneGraph.of(ANNOTATED);
+  assert.deepEqual(labels(graph.children(FixedNode.WORLD)), ['arm', 'environment', 'Free objects', 'Robot parts', 'Semantic annotations']);
+  assert.deepEqual(labels(graph.children(FixedNode.ANNOTATIONS)), ['milk', 'shelf', 'table']);
+  const [milk, shelf, table] = graph.children(FixedNode.ANNOTATIONS);
+  assert.equal(table.kind, NodeKind.ANNOTATION);
+  assert.deepEqual(table.keys, ['table', 'k-milk']);
+  assert.deepEqual(table.references.map((reference) => [reference.field, reference.target]), [['body', 'link:environment/table'], ['body', 'object:k-milk']]);
+  assert.deepEqual(table.fields, [['Bodies', '2']]);
+  assert.deepEqual(classesOf(table), [[ClassField.OWN, 'Table']]);
+  assert.equal(table.classes[0].path, `${ANNOTATIONS_MODULE}.Table`);
+  assert.deepEqual(milk.keys, ['k-milk']);
+  assert.deepEqual(shelf.keys, ['shelf_board'], 'a body the scene does not show is still lit up by name');
+  assert.deepEqual(shelf.references, []);
+  assert.deepEqual(graph.referencedBy('object:k-milk').map((entry) => entry.source.label), ['milk', 'table']);
+  assert.deepEqual(graph.node(FixedNode.ANNOTATIONS).keys, ['k-milk', 'shelf_board', 'table']);
+  assert.deepEqual(graph.counts().get(NodeKind.ANNOTATION), 3);
 });
 
 // %% panel
@@ -177,6 +215,24 @@ test('a selection in the 3D view chooses its node', () => {
   assert.deepEqual(highlighted, [['upper']]);
   panel.reveal(null);
   assert.equal(panel.chosen, 'link:arm/upper');
+});
+
+test('choosing a semantic annotation lights up its bodies and links its class', () => {
+  const bus = new EventBus();
+  const highlighted = [];
+  bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => highlighted.push(keys));
+  const panel = new SceneGraphPanel(new FakeDocument(), bus, classAddress);
+  panel.showGraph(SceneGraph.of(ANNOTATED));
+  const root = panel.panel.element;
+  assert.equal(root.children[0].textContent, '2 models · 4 links · 1 object · 2 part annotations · 3 semantic annotations');
+  assert.ok(shownNodes(root).includes(`annotation:${ANNOTATIONS_MODULE}.Table:table`), 'the annotations show unfolded');
+  labelButtons(root).find((button) => button.dataset.node === `annotation:${ANNOTATIONS_MODULE}.Table:table`).dispatch('click');
+  assert.deepEqual(highlighted, [['table', 'k-milk']]);
+  const [link] = root.findAll((element) => element.className === 'graph-class');
+  assert.equal(link.textContent, 'Table');
+  assert.equal(link.href, classAddress(`${ANNOTATIONS_MODULE}.Table`));
+  const related = root.children[3].findAll((element) => element.className === 'graph-label').map((element) => element.dataset.node);
+  assert.deepEqual(related, ['link:environment/table', 'object:k-milk']);
 });
 
 test('the filter shows the matching nodes with the way down to them', () => {

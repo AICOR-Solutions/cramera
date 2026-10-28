@@ -15,6 +15,7 @@ from cramera_protocol.bundle.files import BundleFile, MeshFormat, ScenesDirector
 from cramera_protocol.bundle.index import IndexEntryKey, IndexKey, ReservedSceneName
 from cramera_protocol.bundle.lighting import LightingKey, LightKey
 from cramera_protocol.bundle.scene import (
+    AnnotationKey,
     CameraKey,
     ClassesKey,
     DetectedEventKey,
@@ -369,6 +370,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     PartSide,
     ObjectKey,
     ClassesKey,
+    AnnotationKey,
     SegmentKey,
     PlanNodeKey,
     PlanNodeKind,

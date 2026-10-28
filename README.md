@@ -177,15 +177,19 @@ machine.
 ### Scene graph and ontology
 
 The **Scene graph** tab shows the shown world as a tree: the models with their links
-nested by their joints, the free objects and the robot's parts. Choosing a node makes
-what it stands for glow in the 3D view, a model all its links and a group all its
-members, and **Focus** moves the camera onto it. Where the scene names the classes of
-its entities, a node links each class, such as `PR2LeftArm`, `Body` or the joint's
-`RevoluteConnection`, to the **Ontology** page, which opens cram_owlviz at that class
-in a tab of its own; every further class link shows its class in the same tab.
+nested by their joints, the free objects, the robot's parts and the world's other
+semantic annotations, such as a drawer with its handle or a cabinet with its doors,
+each referring to the links and objects it gives a meaning to. Choosing a node makes
+what it stands for glow in the 3D view, a model all its links, an annotation all its
+bodies and a group all its members, and **Focus** moves the camera onto it. Where the
+scene names the classes of its entities, a node links each class, such as
+`PR2LeftArm`, `Drawer`, `Body` or the joint's `RevoluteConnection`, to the
+**Ontology** page, which opens cram_owlviz at that class in a tab of its own; every
+further class link shows its class in the same tab.
 
-Recordings name the classes of their entities. Name them in bundles recorded before,
-in the CRAM environment with ROS and the robot descriptions sourced, with
+Recordings name the classes of their entities and their world's semantic annotations.
+Name them in bundles recorded before, in the CRAM environment with ROS and the robot
+descriptions sourced, with
 
 ```bash
 cramera-record-classes demo/standard_scenes            # every bundle of the directory

@@ -9,9 +9,11 @@ import shutil
 import pytest
 
 from cramera_bridge.documents import DocumentFile
+from cramera_bridge.export.urdf_environment import UrdfEnvironmentBundle
 from cramera_bridge.export.world_models import WorldModels
 from cramera_bridge.names import class_path
 from cramera_bridge.scenes.bundle_classes import BundleClasses, main
+from cramera_bridge.scenes.semantics import UsdPrimAnnotation
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     ObjectDescription,
@@ -19,7 +21,14 @@ from cramera_protocol.bundle.scene import (
 )
 from cramera_protocol.geometry import Pose
 from cramera_protocol.version import CURRENT_VERSION
+from semantic_digital_twin.semantic_annotations.semantic_annotations import (
+    Drawer,
+    Fridge,
+    Handle,
+)
 from semantic_digital_twin.world_description.world_entity import Body
+
+from ..dataset.bundles import DRAWER_CABINET_URDF
 
 BUNDLE_NAME = "pr2_alone"
 """
@@ -80,6 +89,39 @@ def test_writing_names_the_classes_in_the_scene(scenes):
     scene = DocumentFile(path).read(SceneDescription)
     assert scene.classes.annotations
     assert scene.robot.name in scene.classes.models
+    assert scene.annotations == []
+
+
+def test_an_environment_bundle_names_the_annotations_cram_infers(tmp_path):
+    loaded = UrdfEnvironmentBundle(tmp_path).write(DRAWER_CABINET_URDF, set())
+    bundle = BundleClasses(tmp_path / loaded.entry.name)
+    annotations = {annotation.name: annotation for annotation in bundle.annotations()}
+    drawer = annotations["cabinet1_drawer_top"]
+    assert drawer.class_path == class_path(Drawer)
+    assert drawer.bodies == ["cabinet1_drawer_top", "handle_cab1_drawer_top"]
+    handle = annotations["handle_cab1_drawer_top"]
+    assert (handle.class_path, handle.bodies) == (
+        class_path(Handle),
+        ["handle_cab1_drawer_top"],
+    )
+    bundle.write()
+    scene = bundle.scene_file().read(SceneDescription)
+    assert scene.annotations == bundle.annotations()
+
+
+def test_a_converted_bundle_names_the_annotations_its_prims_stand_for(
+    annotated_bundle,
+):
+    annotations = BundleClasses(annotated_bundle).annotations()
+    [fridge] = [
+        annotation
+        for annotation in annotations
+        if annotation.class_path == class_path(Fridge)
+    ]
+    assert fridge.bodies == ["Storage__Fridge", "Storage__Fridge__Door"]
+    assert class_path(UsdPrimAnnotation) not in {
+        annotation.class_path for annotation in annotations
+    }
 
 
 def test_the_command_names_the_classes_of_every_bundle(scenes, capsys, monkeypatch):
