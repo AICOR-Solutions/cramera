@@ -174,6 +174,24 @@ The page address names the shown bundle, `?scene=<name>`, so a view can be share
 The server listens on `127.0.0.1` and answers only pages served from the same
 machine.
 
+### Scene graph and ontology
+
+The **Scene graph** tab shows the shown world as a tree: the models with their links
+nested by their joints, the free objects and the robot's parts. Choosing a node makes
+what it stands for glow in the 3D view, a model all its links and a group all its
+members, and **Focus** moves the camera onto it. Where the scene names the classes of
+its entities, a node links each class, such as `PR2LeftArm`, `Body` or the joint's
+`RevoluteConnection`, to the **Ontology** page, which opens cram_owlviz at that class
+in a tab of its own; every further class link shows its class in the same tab.
+
+Recordings name the classes of their entities. Name them in bundles recorded before,
+in the CRAM environment with ROS and the robot descriptions sourced, with
+
+```bash
+cramera-record-classes demo/standard_scenes            # every bundle of the directory
+cramera-record-classes ~/.cramera/scenes --scene my_recording
+```
+
 ### Commands
 
 | Command | What it does |
