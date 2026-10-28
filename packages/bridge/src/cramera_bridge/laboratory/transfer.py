@@ -336,7 +336,7 @@ class VesselTransferDemo(VesselTaskDemo):
         :param world: The world built for the task.
         :return: The vessel standing in the source slot, found by an entity query.
         """
-        key = self.vessel_in(self.source_slot)
+        key = self.vessel_key()
         body = variable(Body, world.bodies)
         return the(entity(body).where(body.name.name == key)).first()
 
@@ -344,7 +344,7 @@ class VesselTransferDemo(VesselTaskDemo):
         """
         :return: The vessel starting in the source slot.
         """
-        return str(self.vessel.name.name)
+        return self.vessel_in(self.source_slot)
 
     def build_context(self, world: World) -> Context:
         """
@@ -370,7 +370,7 @@ class VesselTransferDemo(VesselTaskDemo):
         :return: Pickup from the source slot and placing into the target slot.
         """
         key = self.vessel_key()
-        body = self.vessel
+        body = context.world.get_body_by_name(key)
         bench = self.laboratory.bench
         grasp = self.grasp(context, body)
         others = [
