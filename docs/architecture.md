@@ -92,6 +92,13 @@ outside the class: dataclasses with a `from_json` classmethod.
   with the query parameters each takes, from the publisher at `127.0.0.1:8765`.
   Nothing that changes the run is relayed, and a publisher that does not answer is a
   503.
+- With `--public-origin` the viewer is served by a password-checking reverse proxy on
+  the same machine: `OriginPolicy.proxied` counts every request as another device's,
+  admitted without the key. A route says what other devices may do with two flags:
+  `remote_changes` lets them make the change behind the proxy (the relayed query step
+  controls, a launcher's start and stop), `local_only` refuses them even a read (the
+  plan builder's folder listing). The answerer hands the policy the route that answers
+  each request.
 - A `SceneCatalog` merges several `SceneDirectory` instances: the shared folder, the
   local recordings and the demo scenes, each with the scenes directories nested in
   it, so a scenes repository cloned into one of them is found without being named. Every file request is confined to its bundle

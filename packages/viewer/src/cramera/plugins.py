@@ -68,6 +68,16 @@ class RouteDeclaration(ABC):
     Whether the route reads the request body itself, see :attr:`Route.streams_body`.
     """
 
+    remote_changes: bool = field(default=False, kw_only=True)
+    """
+    Whether other devices may make this change, see :attr:`Route.remote_changes`.
+    """
+
+    local_only: bool = field(default=False, kw_only=True)
+    """
+    Whether only this machine may make the request, see :attr:`Route.local_only`.
+    """
+
     @abstractmethod
     def route(self, plugin_prefix: str) -> Route:
         """
@@ -98,6 +108,8 @@ class PluginRoute(RouteDeclaration):
             f"{plugin_prefix}{self.path}",
             self.handler,
             streams_body=self.streams_body,
+            remote_changes=self.remote_changes,
+            local_only=self.local_only,
         )
 
 
@@ -125,6 +137,8 @@ class PluginPrefixRoute(RouteDeclaration):
             f"{plugin_prefix}{self.prefix}",
             self.handler,
             streams_body=self.streams_body,
+            remote_changes=self.remote_changes,
+            local_only=self.local_only,
         )
 
 
