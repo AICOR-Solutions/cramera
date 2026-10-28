@@ -19,6 +19,7 @@ from pathlib import Path
 
 from typing_extensions import Iterator, Optional, Sequence
 
+from cramera.http.addresses import local_host, url_of
 from cramera_protocol.viewer import ViewerInfoKey, ViewerRoute
 
 logger = logging.getLogger(__name__)
@@ -76,10 +77,9 @@ class PortOccupant:
 
     def url(self) -> str:
         """
-        :return: The base URL of the occupant.
+        :return: The base URL this machine reaches the occupant at.
         """
-        host = f"[{self.host}]" if ":" in self.host else self.host
-        return f"http://{host}:{self.port}"
+        return url_of(local_host(self.host), self.port)
 
     def is_viewer(self, timeout: float = 2.0) -> bool:
         """
@@ -160,7 +160,7 @@ class PortOccupant:
         family = socket.AF_INET6 if ":" in self.host else socket.AF_INET
         with socket.socket(family, socket.SOCK_STREAM) as probe:
             probe.settimeout(0.2)
-            return probe.connect_ex((self.host, self.port)) != 0
+            return probe.connect_ex((local_host(self.host), self.port)) != 0
 
     def replace_viewer(self, timeout: float = 10.0) -> Optional[int]:
         """

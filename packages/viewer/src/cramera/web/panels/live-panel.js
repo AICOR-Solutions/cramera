@@ -12,12 +12,10 @@ import {
   SavedSceneKey,
   SceneDestination,
 } from '../protocol.js';
+import { DEFAULT_LIVE_ADDRESS } from '../live/live-client.js';
 import { SidePanel } from './panel-host.js';
 
-/**
- * The address a live publisher listens on unless told otherwise.
- */
-export const DEFAULT_LIVE_ADDRESS = 'http://127.0.0.1:8765';
+export { DEFAULT_LIVE_ADDRESS };
 
 /**
  * How people read each capability a publisher offers.

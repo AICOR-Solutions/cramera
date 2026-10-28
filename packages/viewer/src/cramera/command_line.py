@@ -20,9 +20,11 @@ from typing_extensions import List, Mapping, Optional, Sequence
 from cramera.application import ViewerApplication
 from cramera.branding import Branding
 from cramera.exceptions import LogoNotFound, UnsupportedLogo
-from cramera.http.origin import OriginPolicy
+from cramera.http.addresses import EVERY_ADDRESS, LOOPBACK
+from cramera.http.origin import KEY_PARAMETER, LOCAL_HOSTS, OriginPolicy
 from cramera.http.server import HttpServer, RequestAnswerer
 from cramera.locations import DataLocations
+from cramera.network_key import NetworkKey
 from cramera.occupant import PortOccupant
 from cramera.plugins import PluginLoader
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
@@ -41,6 +43,12 @@ class Option(StrEnum):
     HOST = "--host"
     """
     The address to listen on.
+    """
+
+    LAN = "--lan"
+    """
+    Listen on every address of this machine, so other devices of its network, such as a
+    phone, can watch.
     """
 
     PORT = "--port"
@@ -98,7 +106,7 @@ class ViewerConfiguration:
     Where cramera keeps its data.
     """
 
-    host: str = "127.0.0.1"
+    host: str = LOOPBACK
     """
     The address to listen on.
     """
@@ -150,7 +158,9 @@ class ViewerConfiguration:
         parser = argparse.ArgumentParser(
             prog="cramera", description="Serve the cramera viewer."
         )
-        parser.add_argument(Option.HOST, default="127.0.0.1")
+        address = parser.add_mutually_exclusive_group()
+        address.add_argument(Option.HOST, default=LOOPBACK)
+        address.add_argument(Option.LAN, action="store_true")
         parser.add_argument(Option.PORT, type=int, default=DEFAULT_PORT)
         parser.add_argument(Option.SCENES, type=Path, action="append", default=[])
         parser.add_argument(Option.DEMO_SCENES, type=Path, default=None)
@@ -166,7 +176,7 @@ class ViewerConfiguration:
             parser.error(error.message())
         return cls(
             locations=locations,
-            host=parsed.host,
+            host=EVERY_ADDRESS if parsed.lan else parsed.host,
             port=parsed.port,
             extra_scenes=parsed.scenes,
             demo_scenes=parsed.demo_scenes,
@@ -200,13 +210,46 @@ class ViewerConfiguration:
             plugins=PluginLoader().load(),
             branding=self.branding,
         )
-        answerer = RequestAnswerer(router=application.router(), policy=OriginPolicy())
+        answerer = RequestAnswerer(
+            router=application.router(), policy=OriginPolicy(key=self.network_key())
+        )
         return HttpServer(
             answerer=answerer,
             host=self.host,
             port=self.port,
             on_stop=[application.close],
         )
+
+    def network_key(self) -> Optional[str]:
+        """
+        :return: The key other devices carry, when the viewer listens beyond this
+            machine; None otherwise.
+        """
+        if self.host in LOCAL_HOSTS:
+            return None
+        return NetworkKey.of(self.locations).value()
+
+    def announce_network(self, server: HttpServer) -> None:
+        """
+        Say where other devices of the network open the started server, with its key,
+        when it listens beyond this machine.
+
+        :param server: The started server.
+        """
+        network = server.network_url()
+        key = self.network_key()
+        if network is not None and key is not None:
+            logger.info(
+                "other devices of this network open %s/?%s=%s; they may watch, but "
+                "change nothing",
+                network,
+                KEY_PARAMETER,
+                key,
+            )
+        elif self.host == EVERY_ADDRESS:
+            logger.warning(
+                "this machine has no network address other devices could open"
+            )
 
     def start_server(self) -> HttpServer:
         """
@@ -255,6 +298,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
         sys.exit(1)
     try:
         logger.info("cramera serves %s", server.url())
+        configuration.announce_network(server)
         if configuration.open_browser:
             webbrowser.open(server.url())
         signal.sigwait(stop_signals)

@@ -26,7 +26,7 @@ through a plugin.
 | `cramera-protocol` | `cramera_protocol` | standard library, `typing_extensions` | Scene bundle files, scene index, live messages, HTTP routes, capabilities, protocol version. The single definition both Python and the browser read. |
 | `cramera` | `cramera` | `cramera-protocol` | The viewer: HTTP server, scene catalog, plugin loading, the browser application, screenshots. Installs and runs without CRAM. |
 | `cramera-usd` | `cramera_usd` | `cramera-protocol`, `usd-core`, `numpy` | Converting a USD stage into a scene bundle, the export gate, the robot separation audit. |
-| `cramera-bridge` | `cramera_bridge` | `cramera`, CRAM packages | The only package that imports the CRAM workspace: live publishing from a running plan, recording into bundles (with the class of each entity, which `cramera-record-classes` adds to bundles recorded before), demo onboarding, task demos, the question engine (`cramera_bridge.questions`: queries in the entity query language about a live world or a recorded scene, presets, plain-language matching, graph views, `cramera-record-answers`), and the plan builder's CRAM side (`cramera_bridge.plans`: the catalog of robots, objects, surfaces and native actions, and the demo a generated plan runs). |
+| `cramera-bridge` | `cramera_bridge` | `cramera`, CRAM packages | The only package that imports the CRAM workspace: live publishing from a running plan, recording into bundles (with the class of each entity and the world's semantic annotations, which `cramera-record-classes` adds to bundles recorded before), demo onboarding, task demos, the question engine (`cramera_bridge.questions`: queries in the entity query language about a live world or a recorded scene, presets, plain-language matching, graph views, `cramera-record-answers`), and the plan builder's CRAM side (`cramera_bridge.plans`: the catalog of robots, objects, surfaces and native actions, and the demo a generated plan runs). |
 | `cramera-questions` | `cramera_questions` | `cramera`; `cramera-bridge` optionally | The questions plugin of the viewer: its browser module and its routes over recorded scenes, which hand each request to `cramera_bridge.questions.scenes` and answer with the protocol documents it returns. Without `cramera-bridge` and krrood the routes answer what is missing and the browser module shows the bundles' recorded answers. |
 | `cramera-offline` | `cramera_offline` | `cramera` | The storyboard and bundle check routes, `cramera-check-bundle`, and `cramera-offline`, which prepares, checks, serves (optionally from a network namespace without routes) and exports a presentation of recorded bundles. |
 | `cramera-plan-builder` | `cramera_plan_builder` | `cramera`; `cramera-bridge` optionally | The Plan View panel and the builder page: the panel shows a replayed recording's plan as step cards with every recorded parameter and constraint; the page composes a robot plan by drag and drop from the native actions `cramera-bridge` discovers in the CRAM workspace, each step's form built from its action's fields, places its robots, objects and targets over an environment bundle, compiles constraints written in plain language into live monitors, and generates, writes and runs the plan's demo, which `cramera-bridge` performs, as an owned child process. It imports nothing of the CRAM workspace: the catalog arrives as protocol documents and the demo carries its plan as a `DemoDocument`. Without the CRAM workspace its catalog names the missing modules. |
@@ -86,7 +86,16 @@ outside the class: dataclasses with a `from_json` classmethod.
   ends. Routes are `Route` objects collected by a `Router`; plugins contribute routes
   of their own.
 - Every request passes an `OriginPolicy`. The server binds to `127.0.0.1` by default
-  and answers only requests whose origin is the local machine.
+  and answers only requests whose origin is the local machine. With `--lan` it binds
+  to every address and also answers requests addressed to the address they arrived
+  at; one from another device must carry the viewer's key (in the query, then in a
+  cookie) and may only read: a method that changes something is refused for it.
+- A live publisher listens on `127.0.0.1` only, since a query runs code. A page opened
+  at another address, as a phone opens the viewer, reads it through the viewer's
+  `LiveRelay` below `/api/live/`: the observation routes the page follows a run by,
+  with the query parameters each takes, from the publisher at `127.0.0.1:8765`.
+  Nothing that changes the run is relayed, and a publisher that does not answer is a
+  503.
 - A `SceneCatalog` merges several `SceneDirectory` instances: the shared folder, the
   local recordings and the demo scenes, each with the scenes directories nested in
   it, so a scenes repository cloned into one of them is found without being named. Every file request is confined to its bundle

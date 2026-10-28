@@ -5,6 +5,35 @@
 import { LiveParameter, LiveRoute } from '../protocol.js';
 import { ViewerApi } from '../core/viewer-api.js';
 
+/**
+ * The address a live publisher listens on unless told otherwise.
+ */
+export const DEFAULT_LIVE_ADDRESS = 'http://127.0.0.1:8765';
+
+/**
+ * The names of this machine's loopback address, as a URL's host names them.
+ */
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+// %% addresses
+
+/**
+ * A publisher answers pages of this machine's loopback names only, so a page opened at
+ * another address, as a phone opens the viewer, reads the publisher at the default
+ * address through the viewer, which relays what the page reads and nothing that
+ * changes the run.
+ * @param {string} page The address of the page.
+ * @param {string} address A live publisher's address, as the page or the Live panel names it.
+ * @param {string} relay The address of the viewer's relay of the publisher.
+ * @returns {string} The address the page reads the publisher at.
+ */
+export function readAddressOf(page, address, relay) {
+  if (LOOPBACK_HOSTS.has(new URL(page).hostname) || !URL.canParse(address)) return address;
+  const publisher = new URL(address);
+  const relayed = LOOPBACK_HOSTS.has(publisher.hostname) && publisher.port === new URL(DEFAULT_LIVE_ADDRESS).port;
+  return relayed ? relay : address;
+}
+
 // %% client
 
 export class LiveClient {

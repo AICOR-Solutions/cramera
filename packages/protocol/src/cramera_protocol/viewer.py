@@ -57,6 +57,13 @@ class ViewerRoute(StrEnum):
     another.
     """
 
+    LIVE_RELAY = "/api/live/"
+    """
+    The prefix of what the page reads from the live publisher on this machine,
+    ``/api/live/<route>``, relayed for pages that cannot reach the publisher themselves,
+    such as a phone's.
+    """
+
 
 # %% answers
 

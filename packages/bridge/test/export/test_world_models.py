@@ -17,6 +17,11 @@ from cramera_bridge.names import class_path
 from cramera_bridge.robots import RobotParts, RobotRoster
 from cramera_bridge.world_objects import WorldObjects
 from cramera_protocol.bundle.files import BundleFile
+from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
+from semantic_digital_twin.semantic_annotations.semantic_annotations import (
+    Milk,
+    Table,
+)
 from semantic_digital_twin.world_description.connections import PrismaticConnection
 
 from ..dataset.worlds import CUP_MESH
@@ -89,6 +94,29 @@ def test_a_free_object_is_named_with_its_class(kitchen, tmp_path):
     bundle = WorldModels(kitchen.world, tmp_path, MESH_DIRECTORY).write(objects, None)
     assert bundle.classes.bodies[str(kitchen.cup.name)] == class_path(type(kitchen.cup))
     assert bundle.classes.annotations == {}
+
+
+def test_the_bundle_names_the_annotations_of_the_environment(kitchen, tmp_path):
+    with kitchen.world.modify_world():
+        kitchen.world.add_semantic_annotation(
+            Table(name=PrefixedName("kitchen_table"), root=kitchen.table)
+        )
+        kitchen.world.add_semantic_annotation(
+            Milk(name=PrefixedName("milk_carton"), root=kitchen.milk)
+        )
+    objects = WorldObjects(kitchen.world).objects()
+    bundle = WorldModels(kitchen.world, tmp_path, MESH_DIRECTORY).write(objects, None)
+    [table, milk] = bundle.annotations
+    assert (table.name, table.class_path) == ("kitchen_table", class_path(Table))
+    assert table.bodies == [str(kitchen.table.name)]
+    assert (milk.name, milk.class_path) == ("milk_carton", class_path(Milk))
+    assert milk.bodies == [str(kitchen.milk.name)]
+    assert str(kitchen.milk.name) in {str(body.name) for body in objects}
+
+
+def test_the_robot_and_its_parts_are_no_annotations_of_the_scene(robot_bundle):
+    assert robot_bundle.classes.annotations
+    assert robot_bundle.annotations == []
 
 
 def test_the_robot_alone_leaves_no_environment(robot_bundle):
