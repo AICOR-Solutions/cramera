@@ -22,6 +22,7 @@ from cramera_usd.materials.physically_based import (
     LinearColor,
     PhysicallyBasedMaterial,
 )
+from cramera_usd.materials.transmission import NORMAL_INCIDENCE, TransmissionBlending
 from cramera_usd.scene.materials import ShaderInputValue
 
 # %% inputs
@@ -110,8 +111,9 @@ class PreviewSurfaceInput(StrEnum):
 @dataclass
 class PreviewSurfaceMapping(ShaderMapping):
     """
-    UsdPreviewSurface, whose metallic workflow is glTF's model; a connected texture
-    replaces the constant of its input.
+    UsdPreviewSurface, whose metallic workflow is glTF's model and whose specular
+    workflow becomes glTF's specular colour; a connected texture replaces the constant
+    of its input.
     """
 
     diffuse_color: LinearColor = (0.18, 0.18, 0.18)
@@ -126,7 +128,6 @@ class PreviewSurfaceMapping(ShaderMapping):
 
     neutral_inputs: Dict[str, ShaderInputValue] = field(
         default_factory=lambda: {
-            PreviewSurfaceInput.USE_SPECULAR_WORKFLOW: 0,
             PreviewSurfaceInput.SPECULAR_COLOR: BLACK,
             PreviewSurfaceInput.DISPLACEMENT: 0.0,
             PreviewSurfaceInput.OCCLUSION: 1.0,
@@ -142,15 +143,20 @@ class PreviewSurfaceMapping(ShaderMapping):
         emissive_texture = inputs.texture(input_name.EMISSIVE_COLOR)
         opacity = inputs.number(input_name.OPACITY, 1.0)
         threshold = inputs.number(input_name.OPACITY_THRESHOLD, 0.0)
+        index_of_refraction = inputs.number(
+            input_name.INDEX_OF_REFRACTION, DEFAULT_INDEX_OF_REFRACTION
+        )
+        specular_workflow = inputs.flag(input_name.USE_SPECULAR_WORKFLOW, False)
+        metallic = ScalarChannel(
+            inputs.number(input_name.METALLIC, 0.0),
+            inputs.texture(input_name.METALLIC),
+        )
         return RoughnessMetallicPacking(
             ScalarChannel(
                 inputs.number(input_name.ROUGHNESS, DEFAULT_ROUGHNESS),
                 inputs.texture(input_name.ROUGHNESS),
             ),
-            ScalarChannel(
-                inputs.number(input_name.METALLIC, 0.0),
-                inputs.texture(input_name.METALLIC),
-            ),
+            ScalarChannel(0.0) if specular_workflow else metallic,
         ).apply(
             PhysicallyBasedMaterial(
                 name="",
@@ -170,8 +176,11 @@ class PreviewSurfaceMapping(ShaderMapping):
                 ),
                 emissive_texture=emissive_texture,
                 normal_texture=inputs.texture(input_name.NORMAL),
-                index_of_refraction=inputs.number(
-                    input_name.INDEX_OF_REFRACTION, DEFAULT_INDEX_OF_REFRACTION
+                index_of_refraction=index_of_refraction,
+                specular_color_factor=(
+                    self.specular_color_factor(inputs, index_of_refraction)
+                    if specular_workflow
+                    else WHITE
                 ),
                 clearcoat=inputs.number(input_name.CLEARCOAT, 0.0),
                 clearcoat_roughness=inputs.number(
@@ -180,6 +189,26 @@ class PreviewSurfaceMapping(ShaderMapping):
                 alpha_mode=self.alpha_mode(opacity, threshold),
                 alpha_cutoff=threshold if threshold > 0.0 else DEFAULT_ALPHA_CUTOFF,
             )
+        )
+
+    @staticmethod
+    def specular_color_factor(
+        inputs: ShaderInputs, index_of_refraction: float
+    ) -> LinearColor:
+        """
+        :param inputs: The authored inputs of a material in the specular workflow.
+        :param index_of_refraction: The material's index of refraction.
+        :return: The specular colour, the reflectance at normal incidence, relative to
+            the reflectance the index of refraction gives.
+        """
+        reflectance = TransmissionBlending.fresnel_reflectance(
+            NORMAL_INCIDENCE, index_of_refraction
+        )
+        specular = inputs.color(PreviewSurfaceInput.SPECULAR_COLOR, BLACK)
+        return (
+            specular[0] / reflectance,
+            specular[1] / reflectance,
+            specular[2] / reflectance,
         )
 
     @staticmethod

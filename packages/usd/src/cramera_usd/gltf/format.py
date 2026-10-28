@@ -143,6 +143,11 @@ class GltfExtension(StrEnum):
     Anisotropic reflection.
     """
 
+    SPECULAR = "KHR_materials_specular"
+    """
+    The strength and colour of the reflection of a non-metallic surface.
+    """
+
     TEXTURE_TRANSFORM = "KHR_texture_transform"
     """
     Offset and scale of texture coordinates.
@@ -509,6 +514,11 @@ class MaterialKey(StrEnum):
     ANISOTROPY_STRENGTH = "anisotropyStrength"
     """
     The strength of the anisotropic reflection.
+    """
+
+    SPECULAR_COLOR_FACTOR = "specularColorFactor"
+    """
+    The per-channel scale of the reflectance at normal incidence.
     """
 
 

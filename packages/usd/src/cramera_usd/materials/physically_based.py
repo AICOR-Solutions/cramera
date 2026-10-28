@@ -7,9 +7,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 
-from typing_extensions import Optional, Self, Tuple
+from typing_extensions import Optional, Self, Tuple, Union
 
-from cramera_usd.materials.channels import RoughnessMetallicTexture
+from cramera_usd.materials.channels import ColorOpacityTexture, RoughnessMetallicTexture
 from cramera_usd.scene.materials import TextureFile
 
 # %% vocabulary
@@ -111,9 +111,10 @@ class PhysicallyBasedMaterial:
     Linear base colour and alpha, multiplied with the base colour texture.
     """
 
-    base_color_texture: Optional[TextureFile] = None
+    base_color_texture: Optional[Union[TextureFile, ColorOpacityTexture]] = None
     """
-    The sRGB base colour texture.
+    The sRGB base colour texture, its alpha the opacity when it is composed with an
+    opacity image.
     """
 
     metallic_factor: float = 0.0
@@ -180,6 +181,12 @@ class PhysicallyBasedMaterial:
     index_of_refraction: float = DEFAULT_INDEX_OF_REFRACTION
     """
     The index of refraction (``KHR_materials_ior``).
+    """
+
+    specular_color_factor: LinearColor = WHITE
+    """
+    Scales, per channel, the reflectance at normal incidence that the index of
+    refraction gives a non-metallic surface (``KHR_materials_specular``).
     """
 
     clearcoat: float = 0.0

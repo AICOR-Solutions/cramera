@@ -11,6 +11,7 @@ from typing_extensions import TYPE_CHECKING, Any, Dict, List, Union
 from cramera_usd.gltf.format import GltfExtension, GltfKey, MaterialKey
 from cramera_usd.materials.physically_based import (
     DEFAULT_INDEX_OF_REFRACTION,
+    WHITE,
     AlphaMode,
     PhysicallyBasedMaterial,
 )
@@ -103,12 +104,12 @@ class GltfMaterial:
         """
         :return: The authored values of a transmissive surface that a renderer which
             refracts needs and the blended approximation replaces: transmission, index
-            of refraction, base colour and metalness, named as glTF and its
-            ``KHR_materials_transmission`` and ``KHR_materials_ior`` extensions name
-            them.
+            of refraction, base colour, metalness and a specular colour other than
+            white, named as glTF and its ``KHR_materials_transmission``,
+            ``KHR_materials_ior`` and ``KHR_materials_specular`` extensions name them.
         """
         material = self.material
-        return {
+        properties: Dict[MaterialKey, Union[float, List[float]]] = {
             MaterialKey.TRANSMISSION_FACTOR: float(material.transmission),
             MaterialKey.INDEX_OF_REFRACTION: float(material.index_of_refraction),
             MaterialKey.BASE_COLOR_FACTOR: [
@@ -116,15 +117,20 @@ class GltfMaterial:
             ],
             MaterialKey.METALLIC_FACTOR: float(material.metallic_factor),
         }
+        if material.specular_color_factor != WHITE:
+            properties[MaterialKey.SPECULAR_COLOR_FACTOR] = [
+                float(value) for value in material.specular_color_factor
+            ]
+        return properties
 
-    def extensions(self) -> Dict[GltfExtension, Dict[str, float]]:
+    def extensions(self) -> Dict[GltfExtension, Dict[str, Union[float, List[float]]]]:
         """
         :return: The material extensions whose values differ from glTF's defaults; the
-            index of refraction of a transmissive surface is kept with its
-            :meth:`physical_properties`.
+            index of refraction and the specular colour of a transmissive surface are
+            kept with its :meth:`physical_properties`.
         """
         material = self.material
-        extensions: Dict[GltfExtension, Dict[str, float]] = {}
+        extensions: Dict[GltfExtension, Dict[str, Union[float, List[float]]]] = {}
         if (
             not material.transmissive
             and material.index_of_refraction != DEFAULT_INDEX_OF_REFRACTION
@@ -146,5 +152,11 @@ class GltfMaterial:
         if material.anisotropy > 0.0:
             extensions[GltfExtension.ANISOTROPY] = {
                 MaterialKey.ANISOTROPY_STRENGTH: float(material.anisotropy)
+            }
+        if not material.transmissive and material.specular_color_factor != WHITE:
+            extensions[GltfExtension.SPECULAR] = {
+                MaterialKey.SPECULAR_COLOR_FACTOR: [
+                    float(value) for value in material.specular_color_factor
+                ]
             }
         return extensions

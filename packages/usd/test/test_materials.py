@@ -13,6 +13,7 @@ from PIL import Image
 from typing_extensions import Any
 
 from cramera_usd.materials.channels import (
+    ColorOpacityTexture,
     RoughnessMetallicTexture,
     ScalarChannel,
     SrgbTransfer,
@@ -28,11 +29,13 @@ from cramera_usd.materials.omni_pbr import (
 )
 from cramera_usd.materials.omni_surface import OmniSurfaceInput, OmniSurfaceMapping
 from cramera_usd.materials.physically_based import (
+    BLACK,
     AlphaMode,
     PhysicallyBasedMaterial,
     TextureTransform,
 )
 from cramera_usd.materials.preview_surface import PreviewSurfaceInput
+from cramera_usd.materials.transmission import NORMAL_INCIDENCE
 from cramera_usd.materials.transmission import TransmissionBlending
 from cramera_usd.scene.materials import (
     AuthoredMaterial,
@@ -177,6 +180,76 @@ class TestOmniPhysicallyBasedMapping:
             offset=(0.25, 1.0 - 2.0 - 0.5), scale=(4.0, 2.0)
         )
 
+    def test_specular_level_scales_the_reflectance_at_normal_incidence(self):
+        mapping = OmniPhysicallyBasedMapping()
+        level = mapping.neutral_specular_level / 4.0
+        material = mapping.map(
+            AuthoredMaterial(
+                "/Looks/Matte",
+                MaterialSource.OMNI_PBR,
+                {OmniPhysicallyBasedInput.SPECULAR_LEVEL: level},
+            )
+        )
+        assert material.specular_color_factor == (0.25, 0.25, 0.25)
+        assert material.unmapped_inputs == ()
+
+    def test_neutral_specular_level_keeps_the_reflectance_of_the_index_of_refraction(
+        self,
+    ):
+        mapping = OmniPhysicallyBasedMapping()
+        material = mapping.map(
+            AuthoredMaterial(
+                "/Looks/Plastic",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.SPECULAR_LEVEL: (
+                        mapping.neutral_specular_level
+                    )
+                },
+            )
+        )
+        assert (
+            material.specular_color_factor
+            == PhysicallyBasedMaterial("default").specular_color_factor
+        )
+
+    def test_opacity_texture_becomes_the_alpha_of_the_diffuse_texture(self):
+        albedo = texture("albedo.png", ColorSpace.SRGB)
+        opacity = texture("roughness.png")
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Leaf",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.DIFFUSE_TEXTURE: albedo,
+                    OmniPhysicallyBasedInput.ENABLE_OPACITY: True,
+                    OmniPhysicallyBasedInput.ENABLE_OPACITY_TEXTURE: True,
+                    OmniPhysicallyBasedInput.OPACITY_TEXTURE: opacity,
+                },
+            )
+        )
+        assert material.base_color_texture == ColorOpacityTexture(albedo, opacity)
+        assert material.base_color_factor[3] == 1.0
+        assert material.alpha_mode is AlphaMode.BLEND
+        assert material.unmapped_inputs == ()
+
+    def test_opacity_texture_of_disabled_opacity_is_not_drawn(self):
+        albedo = texture("albedo.png", ColorSpace.SRGB)
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Leaf",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.DIFFUSE_TEXTURE: albedo,
+                    OmniPhysicallyBasedInput.ENABLE_OPACITY_TEXTURE: True,
+                    OmniPhysicallyBasedInput.OPACITY_TEXTURE: texture("roughness.png"),
+                },
+            )
+        )
+        assert material.base_color_texture == albedo
+        assert material.alpha_mode is AlphaMode.OPAQUE
+        assert material.unmapped_inputs == ()
+
     def test_unknown_authored_inputs_are_listed(self):
         material = OmniPhysicallyBasedMapping().map(
             AuthoredMaterial(
@@ -305,6 +378,23 @@ class TestTransmissionBlending:
             transmissive(base_color_factor=(0.5, 0.8, 1.0, 1.0))
         )
         assert blended.base_color_factor[3] == pytest.approx(0.5)
+
+    def test_specular_colour_scales_the_reflected_share_of_the_drawn_colour(self):
+        blending = TransmissionBlending()
+        tint = numpy.array([0.5, 0.8, 1.0])
+        specular = numpy.array([0.1, 0.2, 0.3])
+        glass = transmissive(
+            base_color_factor=(*tint, 1.0),
+            index_of_refraction=1.5,
+            specular_color_factor=tuple(specular),
+        )
+        blended = blending.approximate(glass)
+        reflectance = blending.reflectance(glass.index_of_refraction)
+        see_through = blending.see_through(glass, tint)
+        assert blended.base_color_factor[:3] == pytest.approx(
+            (specular * reflectance + (1.0 - reflectance) * tint - see_through)
+            / (1.0 - see_through)
+        )
 
     def test_frosting_scatters_its_share_out_of_the_line_of_sight(self):
         blended = TransmissionBlending(frosted_scattering=0.5).approximate(
@@ -589,6 +679,54 @@ def test_omniglass_colour_texture_replaces_the_glass_colour():
     assert material.base_color_factor == (1.0, 1.0, 1.0, 1.0)
 
 
+def test_omniglass_reflection_colour_scales_its_reflection():
+    reflection = (0.1, 0.2, 0.3)
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.REFLECTION_COLOR: reflection},
+        )
+    )
+    assert material.specular_color_factor == reflection
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_cut_out_opacity_scales_its_coverage():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.ENABLE_OPACITY: True, OmniGlassInput.CUTOUT_OPACITY: 0.4},
+        )
+    )
+    assert material.base_color_factor[3] == 0.4
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_enabled_opacity_without_a_cut_out_keeps_the_whole_pane():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.ENABLE_OPACITY: True},
+        )
+    )
+    assert material.base_color_factor[3] == 1.0
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_unscaled_texture_coordinates_are_not_reported():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Pane",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.TEXTURE_SCALE: (1.0, 1.0)},
+        )
+    )
+    assert material.unmapped_inputs == ()
+
+
 def test_omniglass_hidden_texture_switch_is_not_reported():
     material = MaterialMapper().map(
         AuthoredMaterial(
@@ -620,6 +758,41 @@ def test_preview_surface_opacity_blends_and_texture_replaces_colour():
     assert material.base_color_factor == (1.0, 1.0, 1.0, 0.4)
     assert material.alpha_mode is AlphaMode.BLEND
     assert material.metallic_factor == 0.2
+
+
+def test_preview_surface_specular_workflow_scales_the_reflectance_of_the_index_of_refraction():
+    specular = (0.02, 0.04, 0.08)
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Glaze",
+            MaterialSource.PREVIEW_SURFACE,
+            {
+                PreviewSurfaceInput.USE_SPECULAR_WORKFLOW: 1,
+                PreviewSurfaceInput.SPECULAR_COLOR: specular,
+                PreviewSurfaceInput.METALLIC: 0.7,
+            },
+        )
+    )
+    reflectance = TransmissionBlending.fresnel_reflectance(
+        NORMAL_INCIDENCE, material.index_of_refraction
+    )
+    assert material.specular_color_factor == pytest.approx(
+        tuple(channel / reflectance for channel in specular)
+    )
+    assert material.metallic_factor == 0.0
+    assert material.unmapped_inputs == ()
+
+
+def test_preview_surface_specular_workflow_without_specular_colour_reflects_nothing_head_on():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Cup",
+            MaterialSource.PREVIEW_SURFACE,
+            {PreviewSurfaceInput.USE_SPECULAR_WORKFLOW: 1},
+        )
+    )
+    assert material.specular_color_factor == BLACK
+    assert material.unmapped_inputs == ()
 
 
 def test_unbound_geometry_without_display_colour_is_fallback_grey():
