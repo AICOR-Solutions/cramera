@@ -24,6 +24,7 @@ from cramera_protocol.live_messages import (
     MoveRequest,
     RecordingSaveRequest,
     RobotSelection,
+    SavedScene,
     TeleoperationRequest,
 )
 from cramera_protocol.query_steps import StepAdvance, SteppingRequest
@@ -154,7 +155,12 @@ class LiveRoutes:
             ),
             LiveRoute.QUERY: (QueryRequest, publisher.answer_query),
             LiveRoute.QUESTION: (QuestionRequest, publisher.answer_question),
-            LiveRoute.RECORDING_SAVE: (RecordingSaveRequest, publisher.save_recording),
+            LiveRoute.RECORDING_SAVE: (
+                RecordingSaveRequest,
+                lambda request: SavedScene(
+                    scene=publisher.save_recording(request).scene
+                ),
+            ),
             LiveRoute.CONSTRAINT: (ConstraintRequest, publisher.attach_constraint),
             LiveRoute.JOINT: (JointRequest, publisher.set_joint),
             LiveRoute.TELEOPERATION: (TeleoperationRequest, publisher.teleoperate),

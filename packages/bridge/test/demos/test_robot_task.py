@@ -162,8 +162,7 @@ def test_a_task_run_keeps_its_measurements_in_the_plan_database(saved_run):
     with Session(database.engine()) as session:
         kept = session.scalar(
             select(RunDocument.content).where(
-                RunDocument.run_identifier == database.latest_run(),
-                RunDocument.file == BundleFile.ACCEPTANCE_METRICS.value,
+                RunDocument.file == BundleFile.ACCEPTANCE_METRICS.value
             )
         )
 

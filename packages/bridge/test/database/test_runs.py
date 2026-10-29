@@ -4,6 +4,8 @@ The SQLite database a scene bundle keeps of every run recorded into it.
 
 from __future__ import annotations
 
+import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -171,7 +173,23 @@ def test_a_further_run_joins_the_earlier_ones(bundle):
         (first, "first run"),
         (second, "second run"),
     ]
-    assert database.latest_run() == second
+
+
+def test_a_copy_keeps_the_committed_runs_and_not_a_readers_unsaved_edits(
+    bundle, tmp_path
+):
+    database = PlanDatabase(bundle)
+    run = database.add_run(FIRST_SAVE)
+    other_bundle = tmp_path / "other"
+    other_bundle.mkdir()
+    with closing(sqlite3.connect(database.path)) as reader:
+        reader.execute("BEGIN IMMEDIATE")
+        reader.execute("UPDATE saved_run SET task = 'edited'")
+
+        copy = database.copy_into(other_bundle)
+
+    assert copy.bundle == other_bundle
+    assert [(kept.identifier, kept.task) for kept in runs(copy)] == [(run, "first run")]
 
 
 def test_refreshing_a_run_keeps_what_was_written_after_it_was_saved(bundle):

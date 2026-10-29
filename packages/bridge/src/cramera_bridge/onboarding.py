@@ -17,7 +17,6 @@ from typing_extensions import List, Optional
 from cramera.locations import DataLocations
 from cramera_bridge.coraplex_backend import CoraplexBackendRegistration
 from cramera_bridge.database.native_plans import NativePlans
-from cramera_bridge.database.runs import PlanDatabase
 from cramera_bridge.demo_script import DemoScript
 from cramera_bridge.detections import DetectionRecorder
 from cramera_bridge.documents import DocumentFile
@@ -98,7 +97,8 @@ class DemoOnboarding:
 
     performed_plans: List[PerformedPlan] = field(default_factory=list, init=False)
     """
-    The plans the demo's visualizations saw performed, gathered as they stop.
+    The plans performed in the visualization stopped last, whose recording is the one
+    saved.
     """
 
     def visualization(self, world: World) -> LiveVisualization:
@@ -148,7 +148,7 @@ class DemoOnboarding:
                 self.demo.run()
         if not self.visualizations:
             raise DemoStartedNoWorld(self.demo.path)
-        saved = storage.save(
+        run = storage.save(
             RecordingSaveRequest(
                 name=name,
                 destination=self.destination,
@@ -156,31 +156,20 @@ class DemoOnboarding:
                 adds_a_run=self.adds_a_run,
             )
         )
-        self.add_detected_events(destination / saved.scene)
-        self.keep_the_run(PlanDatabase(destination / saved.scene))
-        return saved
-
-    def keep_the_run(self, database: PlanDatabase) -> None:
-        """
-        Keep the bundle's documents as the detected events left them, and the plans the
-        demo's visualizations saw performed, with the run saved last.
-
-        :param database: The saved bundle's plan database.
-        """
-        run = database.latest_run()
-        database.refresh_documents(run)
-        NativePlans(database, run).store(self.performed_plans)
+        self.add_detected_events(run.database.bundle)
+        run.database.refresh_documents(run.identifier)
+        NativePlans(run).store(self.performed_plans)
+        return SavedScene(scene=run.scene)
 
     def stop_watching(self) -> None:
         """
-        Stop the demo's visualizations, which writes their recordings, and its
-        detectors; stopping what already stopped changes nothing.
+        Stop the demo's visualizations, which writes their recordings, keeping the plans
+        performed in the last one, and its detectors; stopping what already stopped
+        changes nothing.
         """
         for visualization in self.visualizations:
             if visualization.publisher is not None:
-                self.performed_plans.extend(
-                    visualization.publisher.plan.performed_plans()
-                )
+                self.performed_plans = visualization.publisher.plan.performed_plans()
             visualization.stop()
         for recorder in self.recorders:
             recorder.stop()

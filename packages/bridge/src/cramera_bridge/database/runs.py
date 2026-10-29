@@ -9,6 +9,8 @@ the meshes and the URDFs, is kept once, as the bundle's files.
 
 from __future__ import annotations
 
+import sqlite3
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -362,6 +364,22 @@ class PlanDatabase:
         RunTable.metadata.create_all(engine)
         return engine
 
+    def copy_into(self, bundle: Path) -> PlanDatabase:
+        """
+        Copy the database, as last committed, into another bundle directory; edits a
+        reader holds open are not copied.
+
+        :param bundle: The other bundle directory.
+        :return: The copy.
+        """
+        copy = PlanDatabase(bundle, self.run_documents)
+        with (
+            closing(sqlite3.connect(self.path)) as source,
+            closing(sqlite3.connect(copy.path)) as destination,
+        ):
+            source.backup(destination)
+        return copy
+
     def add_run(self, recorded_at: datetime) -> int:
         """
         Keep the run the bundle's files now hold.
@@ -393,13 +411,6 @@ class PlanDatabase:
         """
         with Session(self.engine()) as session, session.begin():
             session.get(SavedRun, run).documents = self.documents()
-
-    def latest_run(self) -> int:
-        """
-        :return: The number of the run kept last.
-        """
-        with Session(self.engine()) as session:
-            return session.scalar(select(func.max(SavedRun.identifier)))
 
     def documents(self) -> List[RunDocument]:
         """
@@ -442,3 +453,27 @@ class PlanDatabase:
                 ],
             )
         ] + [step for child in node.children for step in self.steps(child)]
+
+
+@dataclass(frozen=True)
+class StoredRun:
+    """
+    A run kept in a bundle's plan database.
+    """
+
+    database: PlanDatabase
+    """
+    The plan database of the bundle the run was saved into.
+    """
+
+    identifier: int
+    """
+    The run's number in the database.
+    """
+
+    @property
+    def scene(self) -> str:
+        """
+        The name of the bundle the run was saved into.
+        """
+        return self.database.bundle.name

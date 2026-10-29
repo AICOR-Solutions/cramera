@@ -4,9 +4,12 @@ Onboarding a coraplex demo into a scene bundle, and its command.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from typing_extensions import List, Optional
 
 from cramera_bridge.command_line import OnboardArgument, OnboardCommand, onboard
 from cramera_bridge.database.runs import PlanDatabase, RunDocument, SavedRun
@@ -175,6 +178,74 @@ def test_a_run_keeps_the_events_detected_after_it_was_saved(
             )
         )
     assert kept == (locations.local_scenes / SCENE_NAME / BundleFile.SCENE).read_text()
+
+
+@dataclass
+class PlansSeen:
+    """
+    What a publisher reports of the plans it saw performed.
+    """
+
+    plans: List[str]
+    """
+    Stand-ins for the performed plans.
+    """
+
+    def performed_plans(self) -> List[str]:
+        """
+        :return: The stand-ins.
+        """
+        return self.plans
+
+
+@dataclass
+class RunningPublisher:
+    """
+    A publisher with the plans it saw performed.
+    """
+
+    plan: PlansSeen
+    """
+    The plans it saw performed.
+    """
+
+
+@dataclass
+class PublishingVisualization:
+    """
+    A visualization that publishes plans until it is stopped.
+    """
+
+    plans: List[str]
+    """
+    Stand-ins for the plans its publisher saw performed.
+    """
+
+    publisher: Optional[RunningPublisher] = None
+    """
+    Its publisher while it runs.
+    """
+
+    def __post_init__(self) -> None:
+        self.publisher = RunningPublisher(PlansSeen(self.plans))
+
+    def stop(self) -> None:
+        """
+        Stop publishing.
+        """
+        self.publisher = None
+
+
+def test_only_the_plans_of_the_saved_recording_are_kept(locations):
+    demo = onboarding(locations)
+    demo.visualizations.extend(
+        [PublishingVisualization(["first"]), PublishingVisualization(["second"])]
+    )
+
+    demo.stop_watching()
+    demo.stop_watching()
+
+    assert demo.performed_plans == ["second"]
 
 
 # %% refusals before the demo runs

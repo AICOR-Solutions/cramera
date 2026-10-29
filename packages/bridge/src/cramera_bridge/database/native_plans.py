@@ -21,7 +21,7 @@ from typing_extensions import List
 from krrood.ormatic.data_access_objects.helper import to_dao
 from krrood.ormatic.utils import create_engine
 
-from cramera_bridge.database.runs import PlanDatabase, RecordedPlan, RunTable
+from cramera_bridge.database.runs import RecordedPlan, RunTable, StoredRun
 from cramera_bridge.live.plan import PerformedPlan
 
 # %% CRAM's mapping
@@ -47,14 +47,9 @@ class NativePlans:
     The plans of one run, to be stored in a bundle's plan database.
     """
 
-    database: PlanDatabase
+    run: StoredRun
     """
-    The database the run is kept in.
-    """
-
-    run: int
-    """
-    The run's number in the database.
+    The run, kept in the bundle's plan database.
     """
 
     @staticmethod
@@ -83,7 +78,7 @@ class NativePlans:
             )
             return
         mapping = importlib.import_module(GeneratedMapping.PLANS)
-        engine = create_engine(f"sqlite:///{self.database.path}")
+        engine = create_engine(f"sqlite:///{self.run.database.path}")
         RunTable.metadata.create_all(engine)
         mapping.Base.metadata.create_all(engine)
         with Session(engine) as session, session.begin():
@@ -93,7 +88,7 @@ class NativePlans:
                 session.flush()
                 session.add(
                     RecordedPlan(
-                        run_identifier=self.run,
+                        run_identifier=self.run.identifier,
                         number=performed.number,
                         robot=performed.robot,
                         stored_plan=stored.database_id,

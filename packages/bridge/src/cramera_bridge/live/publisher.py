@@ -19,7 +19,7 @@ from typing_extensions import TYPE_CHECKING, Any, Callable, Iterable, List, Opti
 
 from cramera.locations import DataLocations
 from cramera_bridge.database.native_plans import NativePlans
-from cramera_bridge.database.runs import PlanDatabase
+from cramera_bridge.database.runs import StoredRun
 from cramera_bridge.exceptions import (
     EmptyRecording,
     MarkersUnavailable,
@@ -793,23 +793,21 @@ class LivePublisher:
         self.recording.written(scene)
         return self.recording.status()
 
-    def save_recording(self, request: RecordingSaveRequest) -> SavedScene:
+    def save_recording(self, request: RecordingSaveRequest) -> StoredRun:
         """
-        Save the finished recording, and store the plans it performed in the saved
-        bundle's plan database; a refused save changes nothing.
+        Save the finished recording, and store the plans it performed with its run in
+        the saved bundle's plan database; a refused save changes nothing.
 
         :param request: The save request.
-        :return: The saved bundle.
+        :return: The saved run.
         :raises NoRecording: While no finished recording waits to be saved.
         """
         if self.recording.status().state is not RecordingState.FINALIZED:
             raise NoRecording(RecordingState.FINALIZED)
-        storage = RecordingStorage(self.locations)
-        saved = storage.save(request)
-        database = PlanDatabase(storage.destination(request.destination) / saved.scene)
-        NativePlans(database, database.latest_run()).store(self.plan.performed_plans())
+        run = RecordingStorage(self.locations).save(request)
+        NativePlans(run).store(self.plan.performed_plans())
         self.recording.discard()
-        return saved
+        return run
 
     def discard_recording(self) -> Acknowledgement:
         """

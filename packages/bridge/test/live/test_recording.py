@@ -5,6 +5,8 @@ Recording a run, writing it as a bundle, and saving, trimming or discarding it.
 from __future__ import annotations
 
 import importlib
+import sqlite3
+from contextlib import closing
 
 import pytest
 from sqlalchemy import select
@@ -308,6 +310,59 @@ def test_a_further_run_replaces_the_bundle_and_joins_its_runs(
     assert [run.task for run in saved_runs(bundle)] == ["first", "second"]
 
 
+def test_a_saved_recording_names_the_run_it_kept(publisher, kitchen, locations):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+
+    saved = publisher.save_recording(RecordingSaveRequest(name="carry"))
+
+    [run] = saved_runs(locations.local_scenes / "carry")
+    assert (saved.scene, saved.identifier) == ("carry", run.identifier)
+
+
+def test_a_further_run_is_kept_while_a_reader_holds_unsaved_edits(
+    publisher, kitchen, locations
+):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    publisher.save_recording(RecordingSaveRequest(name="carry", task="first"))
+    bundle = locations.local_scenes / "carry"
+    with closing(sqlite3.connect(PlanDatabase(bundle).path)) as reader:
+        reader.execute("BEGIN IMMEDIATE")
+        reader.execute("UPDATE saved_run SET task = 'edited'")
+        publisher.attach(kitchen.world)
+        carry_milk(kitchen, publisher)
+        publisher.finish_recording()
+
+        publisher.save_recording(
+            RecordingSaveRequest(name="carry", task="second", adds_a_run=True)
+        )
+
+    assert [run.task for run in saved_runs(bundle)] == ["first", "second"]
+
+
+def test_a_refused_further_run_leaves_the_earlier_runs(publisher, kitchen, locations):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    publisher.save_recording(RecordingSaveRequest(name="carry", task="first"))
+    publisher.attach(kitchen.world)
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    bundle = locations.local_scenes / "carry"
+    PlanDatabase(bundle).path.chmod(0o000)
+
+    with pytest.raises(sqlite3.DatabaseError):
+        publisher.save_recording(
+            RecordingSaveRequest(name="carry", task="second", adds_a_run=True)
+        )
+
+    PlanDatabase(bundle).path.chmod(0o644)
+    assert [run.task for run in saved_runs(bundle)] == ["first"]
+    assert DocumentFile(bundle / BundleFile.SCENE).read(SceneDescription).task == (
+        "first"
+    )
+
+
 def test_a_further_run_is_refused_where_another_directory_holds_the_name(
     publisher, kitchen, locations
 ):
@@ -331,12 +386,11 @@ def test_the_plans_a_run_performed_are_stored_with_crams_mapping(
 
     saved = publisher.save_recording(RecordingSaveRequest(name="steps"))
 
-    database = PlanDatabase(locations.local_scenes / saved.scene)
     mapping = importlib.import_module(GeneratedMapping.PLANS)
-    with Session(database.engine()) as session:
+    with Session(saved.database.engine()) as session:
         [plan] = session.scalars(select(RecordedPlan)).all()
         stored = session.scalars(select(mapping.PlanMappingDAO.database_id)).all()
-    assert (plan.run_identifier, plan.number) == (database.latest_run(), 1)
+    assert (plan.run_identifier, plan.number) == (saved.identifier, 1)
     assert stored == [plan.stored_plan]
 
 

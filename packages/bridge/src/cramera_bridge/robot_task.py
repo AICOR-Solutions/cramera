@@ -27,7 +27,7 @@ from coraplex.datastructures.enums import ExecutionType
 from coraplex.plans.plan import Plan
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
-from cramera_bridge.database.runs import PlanDatabase
+from cramera_bridge.database.runs import StoredRun
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
     EnvironmentBundleHoldsRobot,
@@ -318,7 +318,7 @@ class RobotTaskDemo(ABC):
                         plan.perform()
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
-            saved = visualization.publisher.save_recording(
+            run = visualization.publisher.save_recording(
                 RecordingSaveRequest(
                     name=name,
                     destination=SceneDestination.LOCAL,
@@ -329,8 +329,8 @@ class RobotTaskDemo(ABC):
             )
         finally:
             visualization.stop()
-        self.complete(self.locations.local_scenes / saved.scene, metrics)
-        return saved
+        self.complete(run, metrics)
+        return SavedScene(scene=run.scene)
 
     def prepare(self, world: World) -> Tuple[Context, List[Plan]]:
         """
@@ -376,15 +376,16 @@ class RobotTaskDemo(ABC):
         if self.stepper is not None:
             self.stepper.phase = phase
 
-    def complete(self, bundle: Path, metrics: AcceptanceMetrics) -> None:
+    def complete(self, run: StoredRun, metrics: AcceptanceMetrics) -> None:
         """
         Give the saved bundle the demo's view and the environment's appearance, store
         the measurements beside it, and keep the documents as they end up with the run
         in the bundle's plan database.
 
-        :param bundle: The saved bundle's directory.
+        :param run: The saved run.
         :param metrics: The measured outcome.
         """
+        bundle = run.database.bundle
         scene_file = DocumentFile(bundle / BundleFile.SCENE)
         scene = scene_file.read(SceneDescription)
         if self.presentation is not None:
@@ -393,8 +394,7 @@ class RobotTaskDemo(ABC):
             scene.camera = self.camera
         scene_file.write(scene)
         DocumentFile(bundle / BundleFile.ACCEPTANCE_METRICS).write(metrics)
-        database = PlanDatabase(bundle)
-        database.refresh_documents(database.latest_run())
+        run.database.refresh_documents(run.identifier)
 
     # %% publishing
 
