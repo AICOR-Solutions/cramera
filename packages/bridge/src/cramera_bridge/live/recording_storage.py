@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import shutil
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 from typing_extensions import List, Optional
 
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
+from cramera_bridge.database.runs import PlanDatabase
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
     NoRecording,
@@ -88,14 +90,19 @@ class RecordingStorage:
 
     def save(self, request: RecordingSaveRequest) -> SavedScene:
         """
-        Save the bundle under a name, trimmed to the requested frames.
+        Save the bundle under a name, trimmed to the requested frames, and keep the run
+        in the saved bundle's plan database.
+
+        A request that adds a run replaces the destination's bundle of the same name,
+        whose plan database the run joins.
 
         :param request: The save request.
         :return: The saved bundle's name.
         :raises InvalidSceneName: When the name is no valid bundle name.
         :raises SharedScenesUnavailable: For an unconfigured shared directory.
         :raises NoRecording: When there is no bundle to save.
-        :raises SceneNameTaken: When a scenes directory holds the name already.
+        :raises SceneNameTaken: When a scenes directory holds the name already, other
+            than the destination for a request that adds a run.
         :raises InvalidFrameRange: When the frames lie outside the recording.
         """
         name = SceneName(request.name).text
@@ -105,7 +112,11 @@ class RecordingStorage:
         )
         if trajectory is None:
             raise NoRecording(RecordingState.FINALIZED)
-        if any((directory / name).exists() for directory in self.directories()):
+        if any(
+            (directory / name).exists()
+            and not (request.adds_a_run and directory == target_directory)
+            for directory in self.directories()
+        ):
             raise SceneNameTaken(name)
         frame_range = FrameRange(
             first=0 if request.first_frame is None else request.first_frame,
@@ -121,7 +132,13 @@ class RecordingStorage:
             shutil.rmtree(staging)
         shutil.copytree(self.bundle, staging)
         scene = SavedBundle(staging, frame_range).rewrite(name, request)
-        staging.rename(target_directory / name)
+        bundle = target_directory / name
+        if bundle.exists():
+            earlier_runs = PlanDatabase(bundle).path
+            if earlier_runs.exists():
+                earlier_runs.rename(PlanDatabase(staging).path)
+            shutil.rmtree(bundle)
+        staging.rename(bundle)
         SceneIndexFile(
             target_directory,
             (
@@ -138,6 +155,7 @@ class RecordingStorage:
                 task=scene.task,
             )
         )
+        PlanDatabase(bundle).add_run(datetime.now(timezone.utc))
         self.discard()
         return SavedScene(scene=name)
 

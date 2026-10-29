@@ -43,6 +43,16 @@ which this repository was mirrored until 22 Oct 2026.
   `--step-queries`. `cramera_bridge.demos.garmi_apartment` is CRAM's GARMI
   demonstration as a task demo: GARMI carries a bowl and a spoon across the apartment,
   each transport grounded by a query.
+- **A plan database in every recorded bundle.** Saving a recording keeps the run in
+  the bundle's `plans.sqlite` (`BundleFile.PLAN_DATABASE`): the documents that change
+  from run to run (scene, trajectory, statecharts, query steps, acceptance metrics and
+  recorded answers), every plan step with the parameters and constraints the plan view
+  shows, and the performed coraplex plans as CRAM's own database mapping stores them,
+  where the workspace has generated it. Meshes and URDFs stay the bundle's files, kept
+  once. A save with `addsARun`, and `cramera-onboard`, the task demos and the query
+  stepper with `--add-run`, record a further run into the bundle of the same name: its
+  files show the newest run, and its database keeps every run. The database is not
+  committed.
 - **Watching from a phone.** `cramera --lan` listens on every address and names the
   address, with a key, that other devices of the network open; they need the key, kept
   in `~/.cramera/network_key` and then in a cookie, and may only read, so asking,

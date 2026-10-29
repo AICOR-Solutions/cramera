@@ -4,9 +4,15 @@ Recording a run, writing it as a bundle, and saving, trimming or discarding it.
 
 from __future__ import annotations
 
+import importlib
+
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from typing_extensions import List
 
+from cramera_bridge.database.native_plans import GeneratedMapping, NativePlans
+from cramera_bridge.database.runs import PlanDatabase, RecordedPlan, SavedRun
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
     EmptyRecording,
@@ -254,6 +260,84 @@ def test_discarding_drops_frames_and_bundle(publisher, kitchen, locations):
     publisher.discard_recording()
     assert publisher.recording_status().frame_count == 0
     assert not (locations.local_scenes / ReservedSceneName.RECORDING).exists()
+
+
+# %% the plan database
+
+
+def saved_runs(bundle) -> List[SavedRun]:
+    """
+    :return: Every run the bundle's plan database keeps, in the order they were saved.
+    """
+    with Session(PlanDatabase(bundle).engine()) as session:
+        return list(
+            session.scalars(select(SavedRun).order_by(SavedRun.identifier)).all()
+        )
+
+
+def test_a_saved_recording_keeps_its_run_in_the_plan_database(
+    publisher, kitchen, locations
+):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+
+    saved = publisher.save_recording(RecordingSaveRequest(name="carry", task="carry"))
+
+    [run] = saved_runs(locations.local_scenes / saved.scene)
+    assert (run.scene, run.task) == (saved.scene, "carry")
+
+
+def test_a_further_run_replaces_the_bundle_and_joins_its_runs(
+    publisher, kitchen, locations
+):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    publisher.save_recording(RecordingSaveRequest(name="carry", task="first"))
+    publisher.attach(kitchen.world)
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+
+    saved = publisher.save_recording(
+        RecordingSaveRequest(name="carry", task="second", adds_a_run=True)
+    )
+
+    bundle = locations.local_scenes / saved.scene
+    assert DocumentFile(bundle / BundleFile.SCENE).read(SceneDescription).task == (
+        "second"
+    )
+    assert [run.task for run in saved_runs(bundle)] == ["first", "second"]
+
+
+def test_a_further_run_is_refused_where_another_directory_holds_the_name(
+    publisher, kitchen, locations
+):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    (locations.shared_scenes / "carry").mkdir(parents=True)
+
+    with pytest.raises(SceneNameTaken):
+        publisher.save_recording(RecordingSaveRequest(name="carry", adds_a_run=True))
+
+
+@pytest.mark.skipif(
+    not NativePlans.mapping_is_built(),
+    reason="CRAM's database mapping is not generated in this workspace",
+)
+def test_the_plans_a_run_performed_are_stored_with_crams_mapping(
+    publisher, kitchen, small_plan, locations
+):
+    run_the_small_plan(kitchen, publisher, small_plan)
+    publisher.finish_recording()
+
+    saved = publisher.save_recording(RecordingSaveRequest(name="steps"))
+
+    database = PlanDatabase(locations.local_scenes / saved.scene)
+    mapping = importlib.import_module(GeneratedMapping.PLANS)
+    with Session(database.engine()) as session:
+        [plan] = session.scalars(select(RecordedPlan)).all()
+        stored = session.scalars(select(mapping.PlanMappingDAO.database_id)).all()
+    assert (plan.run_identifier, plan.number) == (database.latest_run(), 1)
+    assert stored == [plan.stored_plan]
 
 
 # %% plan steps

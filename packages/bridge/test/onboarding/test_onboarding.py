@@ -5,8 +5,11 @@ Onboarding a coraplex demo into a scene bundle, and its command.
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from cramera_bridge.command_line import OnboardArgument, OnboardCommand, onboard
+from cramera_bridge.database.runs import PlanDatabase, RunDocument, SavedRun
 from cramera_bridge.demo_script import DemoScript
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
@@ -126,6 +129,54 @@ def test_a_failing_demo_releases_its_visualizations(locations, coraplex_visualiz
     assert not (locations.local_scenes / SCENE_NAME).exists()
 
 
+# %% runs kept in the plan database
+
+
+def saved_run_tasks(directory, name: str = SCENE_NAME) -> list:
+    """
+    :param directory: A scenes directory.
+    :param name: The bundle's name.
+    :return: The task of every run the bundle's plan database keeps, oldest first.
+    """
+    database = PlanDatabase(directory / name)
+    with Session(database.engine()) as session:
+        return list(
+            session.scalars(select(SavedRun.task).order_by(SavedRun.identifier)).all()
+        )
+
+
+def test_an_onboarded_run_is_kept_in_the_plan_database(
+    locations, coraplex_visualization
+):
+    onboarding(locations).run()
+
+    assert saved_run_tasks(locations.local_scenes) == [TASK]
+
+
+def test_onboarding_again_adds_a_run_to_the_bundle(locations, coraplex_visualization):
+    onboarding(locations).run()
+
+    onboarding(locations, task="again", adds_a_run=True).run()
+
+    assert saved_scene(locations.local_scenes).task == "again"
+    assert saved_run_tasks(locations.local_scenes) == [TASK, "again"]
+
+
+def test_a_run_keeps_the_events_detected_after_it_was_saved(
+    locations, coraplex_visualization
+):
+    onboarding(locations, detect_events=True).run()
+
+    database = PlanDatabase(locations.local_scenes / SCENE_NAME)
+    with Session(database.engine()) as session:
+        kept = session.scalar(
+            select(RunDocument.content).where(
+                RunDocument.file == BundleFile.SCENE.value
+            )
+        )
+    assert kept == (locations.local_scenes / SCENE_NAME / BundleFile.SCENE).read_text()
+
+
 # %% refusals before the demo runs
 
 
@@ -171,6 +222,7 @@ def test_the_command_describes_the_onboarding(locations):
             OnboardArgument.TASK,
             TASK,
             OnboardArgument.DETECT_EVENTS,
+            OnboardArgument.ADD_RUN,
             "--",
             FAILURE_ARGUMENT,
         ],
@@ -183,6 +235,7 @@ def test_the_command_describes_the_onboarding(locations):
         destination=SceneDestination.SHARED,
         task=TASK,
         detect_events=True,
+        adds_a_run=True,
     )
 
 

@@ -16,10 +16,13 @@ from typing_extensions import List, Optional
 
 from cramera.locations import DataLocations
 from cramera_bridge.coraplex_backend import CoraplexBackendRegistration
+from cramera_bridge.database.native_plans import NativePlans
+from cramera_bridge.database.runs import PlanDatabase
 from cramera_bridge.demo_script import DemoScript
 from cramera_bridge.detections import DetectionRecorder
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import DemoStartedNoWorld, SceneNameTaken
+from cramera_bridge.live.plan import PerformedPlan
 from cramera_bridge.live.recording_storage import RecordingStorage
 from cramera_bridge.visualization import LiveVisualization
 from cramera_protocol.bundle.files import BundleFile
@@ -77,6 +80,12 @@ class DemoOnboarding:
     Whether segmind's detectors watch the run and the bundle lists what they saw.
     """
 
+    adds_a_run: bool = False
+    """
+    Whether the run joins the runs of a bundle that already holds the name in the
+    destination, replacing its files, instead of the name being refused.
+    """
+
     visualizations: List[LiveVisualization] = field(default_factory=list, init=False)
     """
     The visualizations the demo started.
@@ -85,6 +94,11 @@ class DemoOnboarding:
     recorders: List[DetectionRecorder] = field(default_factory=list, init=False)
     """
     The detectors watching the demo's worlds.
+    """
+
+    performed_plans: List[PerformedPlan] = field(default_factory=list, init=False)
+    """
+    The plans the demo's visualizations saw performed, gathered as they stop.
     """
 
     def visualization(self, world: World) -> LiveVisualization:
@@ -114,14 +128,19 @@ class DemoOnboarding:
         :return: The saved bundle.
         :raises InvalidSceneName: When the name is no bundle name.
         :raises SharedScenesUnavailable: For an unconfigured shared directory.
-        :raises SceneNameTaken: When a scenes directory already holds the name; checked
-            before the demo runs.
+        :raises SceneNameTaken: When a scenes directory already holds the name, other
+            than the destination for a run that :attr:`adds_a_run`; checked before the
+            demo runs.
         :raises DemoStartedNoWorld: When the demo started no visualization.
         """
         storage = RecordingStorage(self.locations)
         name = SceneName(self.name).text
         destination = storage.destination(self.destination)
-        if any((directory / name).exists() for directory in storage.directories()):
+        if any(
+            (directory / name).exists()
+            and not (self.adds_a_run and directory == destination)
+            for directory in storage.directories()
+        ):
             raise SceneNameTaken(name)
         with ExitStack() as running:
             running.callback(self.stop_watching)
@@ -131,11 +150,26 @@ class DemoOnboarding:
             raise DemoStartedNoWorld(self.demo.path)
         saved = storage.save(
             RecordingSaveRequest(
-                name=name, destination=self.destination, task=self.task
+                name=name,
+                destination=self.destination,
+                task=self.task,
+                adds_a_run=self.adds_a_run,
             )
         )
         self.add_detected_events(destination / saved.scene)
+        self.keep_the_run(PlanDatabase(destination / saved.scene))
         return saved
+
+    def keep_the_run(self, database: PlanDatabase) -> None:
+        """
+        Keep the bundle's documents as the detected events left them, and the plans the
+        demo's visualizations saw performed, with the run saved last.
+
+        :param database: The saved bundle's plan database.
+        """
+        run = database.latest_run()
+        database.refresh_documents(run)
+        NativePlans(database, run).store(self.performed_plans)
 
     def stop_watching(self) -> None:
         """
@@ -143,6 +177,10 @@ class DemoOnboarding:
         detectors; stopping what already stopped changes nothing.
         """
         for visualization in self.visualizations:
+            if visualization.publisher is not None:
+                self.performed_plans.extend(
+                    visualization.publisher.plan.performed_plans()
+                )
             visualization.stop()
         for recorder in self.recorders:
             recorder.stop()

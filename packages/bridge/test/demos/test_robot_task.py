@@ -8,8 +8,17 @@ import shutil
 from dataclasses import replace
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from cramera.locations import DataLocations
+from cramera_bridge.database.native_plans import NativePlans
+from cramera_bridge.database.runs import (
+    PlanDatabase,
+    RecordedPlan,
+    RunDocument,
+    SavedRun,
+)
 from cramera_bridge.demos.navigation import BarrierEnvironment
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
@@ -134,6 +143,56 @@ def test_a_saved_name_is_not_run_again(saved_run):
     demo, _ = saved_run
     with pytest.raises(SceneNameTaken):
         demo.run()
+
+
+def saved_run_count(locations: DataLocations) -> int:
+    """
+    :return: How many runs the saved bundle's plan database keeps.
+    """
+    database = PlanDatabase(locations.local_scenes / SCENE_NAME)
+    with Session(database.engine()) as session:
+        return len(session.scalars(select(SavedRun)).all())
+
+
+def test_a_task_run_keeps_its_measurements_in_the_plan_database(saved_run):
+    demo, saved = saved_run
+    bundle = demo.locations.local_scenes / saved.scene
+    database = PlanDatabase(bundle)
+
+    with Session(database.engine()) as session:
+        kept = session.scalar(
+            select(RunDocument.content).where(
+                RunDocument.run_identifier == database.latest_run(),
+                RunDocument.file == BundleFile.ACCEPTANCE_METRICS.value,
+            )
+        )
+
+    assert kept == (bundle / BundleFile.ACCEPTANCE_METRICS).read_text()
+
+
+@pytest.mark.skipif(
+    not NativePlans.mapping_is_built(),
+    reason="CRAM's database mapping is not generated in this workspace",
+)
+def test_a_task_run_keeps_the_plans_it_performed(saved_run):
+    demo, saved = saved_run
+    database = PlanDatabase(demo.locations.local_scenes / saved.scene)
+    performed = demo.build_plans(demo.build_context(demo.build_world()))
+
+    with Session(database.engine()) as session:
+        numbers = session.scalars(
+            select(RecordedPlan.number).order_by(RecordedPlan.number)
+        ).all()
+
+    assert numbers == list(range(1, len(performed) + 1))
+
+
+def test_a_saved_task_runs_again_as_a_further_run(locations):
+    torso_demo(locations).run()
+
+    torso_demo(locations, adds_a_run=True).run()
+
+    assert saved_run_count(locations) == 2
 
 
 def test_a_saved_run_is_published_whole(saved_run, tmp_path):
@@ -320,3 +379,13 @@ def test_the_command_steps_through_the_queries_without_holding(locations):
     assert demo.step_queries
     assert not demo.holds_at_queries
     assert demo.stepper is not None
+
+
+def test_the_command_adds_a_further_run(locations):
+    torso_demo(locations).run()
+
+    TaskCommand(torso_demo(locations)).main(
+        [TaskArgument.PORT, "0", TaskArgument.ADD_RUN]
+    )
+
+    assert saved_run_count(locations) == 2

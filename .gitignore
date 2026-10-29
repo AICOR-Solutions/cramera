@@ -11,3 +11,6 @@ MUJOCO_LOG.TXT
 # `cramera --demo-scenes demo` but belong to their own repositories.
 /demo/*
 !/demo/standard_scenes/
+# Every bundle keeps the runs recorded into it in its own plan database, which grows
+# with each run and stays out of the repository.
+plans.sqlite

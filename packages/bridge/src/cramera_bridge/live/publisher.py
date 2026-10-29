@@ -18,6 +18,8 @@ from pathlib import Path
 from typing_extensions import TYPE_CHECKING, Any, Callable, Iterable, List, Optional
 
 from cramera.locations import DataLocations
+from cramera_bridge.database.native_plans import NativePlans
+from cramera_bridge.database.runs import PlanDatabase
 from cramera_bridge.exceptions import (
     EmptyRecording,
     MarkersUnavailable,
@@ -793,7 +795,8 @@ class LivePublisher:
 
     def save_recording(self, request: RecordingSaveRequest) -> SavedScene:
         """
-        Save the finished recording; a refused save changes nothing.
+        Save the finished recording, and store the plans it performed in the saved
+        bundle's plan database; a refused save changes nothing.
 
         :param request: The save request.
         :return: The saved bundle.
@@ -801,7 +804,10 @@ class LivePublisher:
         """
         if self.recording.status().state is not RecordingState.FINALIZED:
             raise NoRecording(RecordingState.FINALIZED)
-        saved = RecordingStorage(self.locations).save(request)
+        storage = RecordingStorage(self.locations)
+        saved = storage.save(request)
+        database = PlanDatabase(storage.destination(request.destination) / saved.scene)
+        NativePlans(database, database.latest_run()).store(self.plan.performed_plans())
         self.recording.discard()
         return saved
 

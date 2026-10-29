@@ -27,6 +27,7 @@ from coraplex.datastructures.enums import ExecutionType
 from coraplex.plans.plan import Plan
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
+from cramera_bridge.database.runs import PlanDatabase
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
     EnvironmentBundleHoldsRobot,
@@ -161,6 +162,12 @@ class RobotTaskDemo(ABC):
     Steps through the current run's queries, once a run stepping through them started.
     """
 
+    adds_a_run: bool = False
+    """
+    Whether the run joins the runs of the local bundle that already holds the name,
+    replacing its files, instead of the name being refused.
+    """
+
     @abstractmethod
     def build_plan(self, context: Context) -> Plan:
         """
@@ -236,6 +243,18 @@ class RobotTaskDemo(ABC):
         """
         return SceneName(self.name).text
 
+    def name_to_record_under(self) -> str:
+        """
+        :return: The validated name the run is saved under, checked before it runs.
+        :raises InvalidSceneName: When the name is no bundle name.
+        :raises SceneNameTaken: When the local scenes directory already holds the name
+            and the run does not :attr:`adds_a_run`.
+        """
+        name = self.scene_name()
+        if (self.locations.local_scenes / name).exists() and not self.adds_a_run:
+            raise SceneNameTaken(name)
+        return name
+
     def build_world(self) -> World:
         """
         :return: A new world holding the environment and the robot.
@@ -269,13 +288,12 @@ class RobotTaskDemo(ABC):
 
         :return: The saved bundle.
         :raises InvalidSceneName: When the name is no bundle name.
-        :raises SceneNameTaken: When the local scenes directory already holds the name.
+        :raises SceneNameTaken: When the local scenes directory already holds the name
+            and the run does not :attr:`adds_a_run`.
         :raises TaskFailed: When the measured outcome is not the task's; nothing is
             saved then.
         """
-        name = self.scene_name()
-        if (self.locations.local_scenes / name).exists():
-            raise SceneNameTaken(name)
+        name = self.name_to_record_under()
         self.stepper = None
         world = self.build_world()
         prepared = None if self.step_queries else self.prepare(world)
@@ -306,6 +324,7 @@ class RobotTaskDemo(ABC):
                     destination=SceneDestination.LOCAL,
                     environment=self.environment_name,
                     task=self.task,
+                    adds_a_run=self.adds_a_run,
                 )
             )
         finally:
@@ -359,8 +378,9 @@ class RobotTaskDemo(ABC):
 
     def complete(self, bundle: Path, metrics: AcceptanceMetrics) -> None:
         """
-        Give the saved bundle the demo's view and the environment's appearance, and
-        store the measurements beside it.
+        Give the saved bundle the demo's view and the environment's appearance, store
+        the measurements beside it, and keep the documents as they end up with the run
+        in the bundle's plan database.
 
         :param bundle: The saved bundle's directory.
         :param metrics: The measured outcome.
@@ -373,6 +393,8 @@ class RobotTaskDemo(ABC):
             scene.camera = self.camera
         scene_file.write(scene)
         DocumentFile(bundle / BundleFile.ACCEPTANCE_METRICS).write(metrics)
+        database = PlanDatabase(bundle)
+        database.refresh_documents(database.latest_run())
 
     # %% publishing
 
@@ -448,6 +470,12 @@ class TaskArgument(StrEnum):
     With query steps, start the run without holding it at its queries.
     """
 
+    ADD_RUN = "--add-run"
+    """
+    Record the task again into the saved bundle of the same name, adding the run to its
+    plan database.
+    """
+
 
 @dataclass(frozen=True)
 class TaskCommand:
@@ -496,6 +524,11 @@ class TaskCommand:
             default=self.demo.holds_at_queries,
             help="with query steps, start without holding at the queries",
         )
+        parser.add_argument(
+            TaskArgument.ADD_RUN,
+            action="store_true",
+            help="record a further run into the saved bundle of the same name",
+        )
         options = parser.parse_args(list(arguments))
         self.demo.name = options.name
         if options.publish is not None:
@@ -503,4 +536,5 @@ class TaskCommand:
         self.demo.port = options.port
         self.demo.step_queries = options.step_queries
         self.demo.holds_at_queries = options.holds_at_queries
+        self.demo.adds_a_run = options.add_run
         return self.demo.run()
