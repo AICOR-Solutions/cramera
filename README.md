@@ -219,6 +219,18 @@ publisher, stops and saves the recording as a bundle, and replays it.
 `cramera-onboard demo.py --name NAME` runs a demo and saves its run as a bundle
 without keeping a publisher up.
 
+### Segment a run with segmind
+
+With `cramera-onboard demo.py --name NAME --detect-events`, or `CRAMERA_DETECT_EVENTS=1`
+for a demo that publishes live, segmind watches the run's objects with its detectors of
+every kind, as it watches a run of its own: contacts, motions, support, containment,
+grasps, pick-ups and placings. The recording lists every event on the frame it happened
+at, and the **Segmind** tab shows them in order, live as they are detected and in the
+replay: choosing one lights its objects up and jumps to its moment, the event the
+playback passed last is marked (**Light up events during playback** lights up its
+objects as well), the sorts of event can be switched on and off, and the timeline ticks
+each event shown under the slider.
+
 ## Ask the scene
 
 With `cramera-questions` installed, the viewer's right column gets:
