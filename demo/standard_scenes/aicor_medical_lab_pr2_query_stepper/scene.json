@@ -1,7 +1,7 @@
 {
  "name": "aicor_medical_lab_pr2_query_stepper",
  "formatVersion": "1.0",
- "framesPerSecond": 15.17,
+ "framesPerSecond": 22.12,
  "trajectory": "trajectory.json",
  "querySteps": "query_steps.json",
  "models": [
@@ -74,7 +74,7 @@
     "pr2/fl_caster_l_wheel_joint"
    ],
    "posedJoints": [],
-   "identifier": "8429be12-20a0-41a5-a0e2-e84e9abd5605",
+   "identifier": "88f42ef2-b41a-41e3-a2be-b37c7a966539",
    "pose": [
     0.4,
     -0.72,
@@ -220,13 +220,13 @@
     "attachedTo": "PR2RightArm"
    }
   ],
-  "identifier": "8429be12-20a0-41a5-a0e2-e84e9abd5605",
+  "identifier": "88f42ef2-b41a-41e3-a2be-b37c7a966539",
   "label": "PR2"
  },
  "objects": [
   {
    "id": "laboratory_rack",
-   "key": "aa5f8555-2efe-4144-8141-eedcfe32d8d4",
+   "key": "2e4bf72c-aa0f-4dd4-80c6-0cb36252b730",
    "spawn": [
     0.22,
     -0.04,
@@ -238,11 +238,11 @@
    ],
    "color": "#ffffff",
    "height": 0.0681,
-   "mesh": "meshes/objects/aa5f8555-2efe-4144-8141-eedcfe32d8d4/tube_rack.glb"
+   "mesh": "meshes/objects/2e4bf72c-aa0f-4dd4-80c6-0cb36252b730/tube_rack.glb"
   },
   {
    "id": "tube_clear",
-   "key": "5431bf50-f9ba-445a-b901-a64de0873798",
+   "key": "12a0911d-c71f-48ba-8447-2e430284f34e",
    "spawn": [
     0.16,
     -0.065,
@@ -254,11 +254,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/5431bf50-f9ba-445a-b901-a64de0873798/tube_clear.glb"
+   "mesh": "meshes/objects/12a0911d-c71f-48ba-8447-2e430284f34e/tube_clear.glb"
   },
   {
    "id": "tube_amber",
-   "key": "a35bc513-309c-41b8-b54c-5091595f08a0",
+   "key": "ab68427c-1307-4da8-b3f4-85810f9fc149",
    "spawn": [
     0.22,
     -0.065,
@@ -270,11 +270,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/a35bc513-309c-41b8-b54c-5091595f08a0/tube_amber.glb"
+   "mesh": "meshes/objects/ab68427c-1307-4da8-b3f4-85810f9fc149/tube_amber.glb"
   },
   {
    "id": "tube_teal",
-   "key": "d908533a-cb5f-4783-bdf8-58419cf08374",
+   "key": "4e37e567-946a-42e4-9de6-e8600d8b617c",
    "spawn": [
     0.16,
     -0.015,
@@ -286,11 +286,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/d908533a-cb5f-4783-bdf8-58419cf08374/tube_teal.glb"
+   "mesh": "meshes/objects/4e37e567-946a-42e4-9de6-e8600d8b617c/tube_teal.glb"
   },
   {
    "id": "tube_reserve",
-   "key": "1d51e14b-0b6c-487c-a557-6d80715593e2",
+   "key": "a04a10e7-8167-435d-b71d-7f85fec924d2",
    "spawn": [
     0.28,
     -0.015,
@@ -302,11 +302,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/1d51e14b-0b6c-487c-a557-6d80715593e2/tube_clear.glb"
+   "mesh": "meshes/objects/a04a10e7-8167-435d-b71d-7f85fec924d2/tube_clear.glb"
   },
   {
    "id": "stopper",
-   "key": "f6be5930-f266-4f05-a0a4-c9bd593a1a1d",
+   "key": "a3686ac0-a951-4f88-83f5-5d1264e81771",
    "spawn": [
     0.5,
     -0.12,
@@ -318,7 +318,7 @@
    ],
    "color": "#ffffff",
    "height": 0.021,
-   "mesh": "meshes/objects/f6be5930-f266-4f05-a0a4-c9bd593a1a1d/stopper.glb"
+   "mesh": "meshes/objects/a3686ac0-a951-4f88-83f5-5d1264e81771/stopper.glb"
   }
  ],
  "segments": [
@@ -331,7 +331,7 @@
    "step": "VesselPickUpAction",
    "start": 341,
    "end": 651,
-   "picks": "5431bf50-f9ba-445a-b901-a64de0873798",
+   "picks": "12a0911d-c71f-48ba-8447-2e430284f34e",
    "attach": 341,
    "detach": 620
   }
@@ -392,6 +392,8 @@
              "arm": "PR2LeftArm",
              "id": "plan_node_12",
              "parent": "plan_node_9",
+             "start": 11,
+             "end": 183,
              "parameters": {
               "max_linear_velocity": "0.12",
               "target": "0.000, 0.000, 0.214",
@@ -409,7 +411,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "5431bf50-f9ba-445a-b901-a64de0873798"
+                 "12a0911d-c71f-48ba-8447-2e430284f34e"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
@@ -461,6 +463,8 @@
              "children": [],
              "id": "plan_node_13",
              "parent": "plan_node_9",
+             "start": 184,
+             "end": 205,
              "parameters": {
               "tolerate_stall": "off",
               "motion": "OPEN",
@@ -503,6 +507,8 @@
              "arm": "PR2LeftArm",
              "id": "plan_node_14",
              "parent": "plan_node_9",
+             "start": 206,
+             "end": 280,
              "parameters": {
               "position_threshold": "0.0005",
               "max_linear_velocity": "0.025",
@@ -521,7 +527,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "5431bf50-f9ba-445a-b901-a64de0873798"
+                 "12a0911d-c71f-48ba-8447-2e430284f34e"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
@@ -569,6 +575,8 @@
            ],
            "id": "plan_node_9",
            "parent": "plan_node_4",
+           "start": 11,
+           "end": 280,
            "parameters": {},
            "constraints": [],
            "roles": []
@@ -767,7 +775,7 @@
            "entities": [
             {
              "keys": [
-              "5431bf50-f9ba-445a-b901-a64de0873798"
+              "12a0911d-c71f-48ba-8447-2e430284f34e"
              ],
              "name": "Container \u00b7 tube_clear",
              "type": "Container"
@@ -792,12 +800,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "5431bf50-f9ba-445a-b901-a64de0873798",
+         "target": "12a0911d-c71f-48ba-8447-2e430284f34e",
          "id": "plan_node_6",
          "parent": "plan_node_3",
+         "start": 287,
+         "end": 336,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "5431bf50-f9ba-445a-b901-a64de0873798",
+          "object_designator": "12a0911d-c71f-48ba-8447-2e430284f34e",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -833,11 +843,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "5431bf50-f9ba-445a-b901-a64de0873798",
+           "value": "12a0911d-c71f-48ba-8447-2e430284f34e",
            "entities": [
             {
              "keys": [
-              "5431bf50-f9ba-445a-b901-a64de0873798"
+              "12a0911d-c71f-48ba-8447-2e430284f34e"
              ],
              "name": "tube_clear",
              "type": "Body"
@@ -865,6 +875,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_8",
          "parent": "plan_node_3",
+         "start": 345,
+         "end": 413,
          "parameters": {
           "max_linear_velocity": "0.04",
           "target": "0.000, 0.000, 0.265",
@@ -882,7 +894,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "5431bf50-f9ba-445a-b901-a64de0873798"
+             "12a0911d-c71f-48ba-8447-2e430284f34e"
             ],
             "name": "tube_clear",
             "type": "Body"
@@ -931,7 +943,7 @@
        "id": "plan_node_3",
        "parent": "plan_node_1",
        "start": 11,
-       "end": 280,
+       "end": 413,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -952,7 +964,7 @@
      "id": "plan_node_1",
      "parent": "plan_node_0",
      "start": 11,
-     "end": 344,
+     "end": 413,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "pre_approach_linear_velocity": "0.12",
@@ -1097,7 +1109,7 @@
        "entities": [
         {
          "keys": [
-          "5431bf50-f9ba-445a-b901-a64de0873798"
+          "12a0911d-c71f-48ba-8447-2e430284f34e"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1172,6 +1184,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_18",
          "parent": "plan_node_15",
+         "start": 418,
+         "end": 456,
          "parameters": {
           "position_threshold": "0.003",
           "max_linear_velocity": "0.08",
@@ -1190,7 +1204,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "aa5f8555-2efe-4144-8141-eedcfe32d8d4"
+             "2e4bf72c-aa0f-4dd4-80c6-0cb36252b730"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -1243,6 +1257,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_19",
          "parent": "plan_node_15",
+         "start": 457,
+         "end": 594,
          "parameters": {
           "max_linear_velocity": "0.02",
           "target": "0.060, -0.025, 0.111",
@@ -1260,7 +1276,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "aa5f8555-2efe-4144-8141-eedcfe32d8d4"
+             "2e4bf72c-aa0f-4dd4-80c6-0cb36252b730"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -1312,6 +1328,8 @@
          "children": [],
          "id": "plan_node_20",
          "parent": "plan_node_15",
+         "start": 595,
+         "end": 613,
          "parameters": {
           "tolerate_stall": "off",
           "motion": "OPEN",
@@ -1366,6 +1384,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_22",
          "parent": "plan_node_15",
+         "start": 622,
+         "end": 647,
          "parameters": {
           "max_linear_velocity": "0.08",
           "target": "0.060, -0.025, 0.220",
@@ -1382,7 +1402,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "aa5f8555-2efe-4144-8141-eedcfe32d8d4"
+             "2e4bf72c-aa0f-4dd4-80c6-0cb36252b730"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -1430,6 +1450,8 @@
        ],
        "id": "plan_node_15",
        "parent": "plan_node_2",
+       "start": 418,
+       "end": 647,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -1590,7 +1612,7 @@
        "entities": [
         {
          "keys": [
-          "5431bf50-f9ba-445a-b901-a64de0873798"
+          "12a0911d-c71f-48ba-8447-2e430284f34e"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1605,7 +1627,7 @@
        "entities": [],
        "reference": {
         "keys": [
-         "aa5f8555-2efe-4144-8141-eedcfe32d8d4"
+         "2e4bf72c-aa0f-4dd4-80c6-0cb36252b730"
         ],
         "name": "laboratory_rack",
         "type": "Body"
@@ -1670,7 +1692,7 @@
    "laboratory_cabinet_right_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_middle_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_lower_handle": "semantic_digital_twin.world_description.world_entity.Body",
-   "7f1cc62a-140a-4bcb-bad1-60de8f61831c/odom": "semantic_digital_twin.world_description.world_entity.Body",
+   "f1a8be4e-bc86-410a-a9cc-f184cfbd99dd/odom": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_link": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/torso_lift_motor_screw_link": "semantic_digital_twin.world_description.world_entity.Body",
@@ -1800,7 +1822,7 @@
    "aicor_medical_lab/laboratory_cabinet_right_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_middle_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_lower_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "7f1cc62a-140a-4bcb-bad1-60de8f61831c/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
+   "f1a8be4e-bc86-410a-a9cc-f184cfbd99dd/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/base_footprint_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/torso_lift_motor_screw_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",

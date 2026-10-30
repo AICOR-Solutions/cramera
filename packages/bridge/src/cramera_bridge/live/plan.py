@@ -742,6 +742,21 @@ class PerformedPlan:
         root = self.root()
         return root is not None and root.status in FINISHED_LIFE_CYCLES
 
+    def running_motion(self) -> Optional[str]:
+        """
+        :return: The identity of the plan's motion that coraplex reports running, the
+            one that started last when several do, or None while none runs.
+        """
+        root = self.root()
+        if root is None:
+            return None
+        running = [
+            node
+            for node in root.descendants
+            if isinstance(node, MotionNode) and node.status is LifeCycleValues.RUNNING
+        ]
+        return None if not running else self.identifier(running[-1])
+
     def running(self) -> Optional[RunningAction]:
         """
         :return: The plan's deepest running action, or None between actions.
@@ -917,6 +932,15 @@ class PlanPublisher:
         """
         running = self.running()
         return None if running is None else running.label
+
+    def running_motion(self) -> Optional[str]:
+        """
+        :return: The identity of the motion of the plan being performed that runs, or
+            None while none runs.
+        """
+        with self.lock:
+            active_plan = self.active_plan
+        return None if active_plan is None else active_plan.running_motion()
 
     def running(self) -> Optional[RunningAction]:
         """

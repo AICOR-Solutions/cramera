@@ -233,3 +233,22 @@ test('a location the task named carries the place’s name into its row, its slo
   const places = panel.panel.element.findAll((each) => each.className === 'role-place').map((each) => each.textContent);
   assert.deepEqual(places, ['centrifuge C4', 'centrifuge C4', 'centrifuge C4']);
 });
+
+test('motions with frames of their own show their own phase, and the running one is current', () => {
+  const reach = node('n_reach', PlanNodeKind.MOTION, 'MoveToolCenterPointMotion', 10, 19);
+  const close = node('n_close', PlanNodeKind.MOTION, 'MoveGripperMotion', 20, 25);
+  const attach = node('n_attach', PlanNodeKind.ATTACHMENT, 'ReAttachNode', null, null);
+  const steps = node('n_steps', PlanNodeKind.SEQUENCE, 'SequentialNode', 10, 25, [], [reach, close, attach], 'CREATED');
+  const pick = node('n_pick', PlanNodeKind.ACTION, 'VesselPickUpAction', 10, 25, [], [steps]);
+  const during = nodeAtFrame(pick, 22);
+  const [stepsAt] = during.children;
+  assert.deepEqual(stepsAt.children.map((each) => [each.phase, each.inferred]), [
+    [NodePhase.SUCCEEDED, false],
+    [NodePhase.RUNNING, false],
+    [NodePhase.RUNNING, true],
+  ]);
+  assert.equal(runningNode(during).identifier, 'n_close');
+  const after = nodeAtFrame(pick, 30);
+  assert.equal(after.children[0].phase, NodePhase.ENDED, 'a sequence that ran has no status of its own');
+  assert.equal(after.children[0].inferred, false);
+});

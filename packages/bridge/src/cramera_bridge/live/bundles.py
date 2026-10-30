@@ -194,7 +194,8 @@ class BundleDirectory:
 class PlanNodeFrames:
     """
     The frames each node of a plan ran in, read from the recorded frames: a node runs in
-    every frame in which it, or one of its descendants, is the deepest running action.
+    every frame in which it, or one of its descendants, is the deepest running action or
+    the running motion.
     """
 
     plan: LivePlan
@@ -215,11 +216,11 @@ class PlanNodeFrames:
         first: Dict[str, int] = {}
         last: Dict[str, int] = {}
         for index, frame in enumerate(self.frames):
-            identifier = frame.action_node
-            while identifier in parents:
-                first.setdefault(identifier, index)
-                last[identifier] = index
-                identifier = parents[identifier]
+            for identifier in (frame.action_node, frame.motion_node):
+                while identifier in parents:
+                    first.setdefault(identifier, index)
+                    last[identifier] = index
+                    identifier = parents[identifier]
         return {
             identifier: FrameRange(first[identifier], last[identifier])
             for identifier in first

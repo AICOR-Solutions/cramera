@@ -31,7 +31,10 @@ which this repository was mirrored until 22 Oct 2026.
   action at the playback frame: the twin's entities that fill a role in it (selecting
   a row lights the body up; clicking a body marks its row), the action designator as
   a tree with its role slots and each node pending, running, succeeded or failed
-  (motions, which have no frames of their own, take their action's phase, dashed),
+  (each motion from the frames it ran in, which every recorded frame now names as
+  `RecordedFrame.motion_node`; a sequence that ran but whose status coraplex never set
+  shows as ended; a condition or an attachment, which take no time, takes its
+  parent's phase, dashed),
   and how each role was filled: by an entity query whose answer is the same entity,
   from the plan's context, or written or computed by the plan's code. Every answer is
   marked RECORDED when replayed from the bundle and LIVE only when a running process

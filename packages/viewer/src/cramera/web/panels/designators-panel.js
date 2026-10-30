@@ -271,7 +271,8 @@ export class DesignatorsPanel {
   #treeNode(document, at, running) {
     const node = at.node;
     const phase = element(document, 'span', `designator-phase phase-${at.phase.replace(' ', '-')}${at.inferred ? ' inferred' : ''}`, at.phase);
-    if (at.inferred) phase.title = 'No frames of its own were recorded; read from the enclosing action';
+    if (at.inferred) phase.title = 'No frames of its own were recorded; read from the enclosing node';
+    else if (at.phase === NodePhase.ENDED) phase.title = 'Ran in these frames; coraplex recorded no outcome of its own for it';
     const line = element(document, 'div', running === at ? 'designator-line current' : 'designator-line', null, [
       element(document, 'span', 'designator-kind', node[PlanNodeKey.KIND]),
       element(document, 'strong', '', node[PlanNodeKey.LABEL]),

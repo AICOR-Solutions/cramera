@@ -33,6 +33,7 @@ export const NodePhase = Object.freeze({
   FAILED: 'failed',
   INTERRUPTED: 'interrupted',
   NOT_RUN: 'not run',
+  ENDED: 'ended',
 });
 
 /**
@@ -73,7 +74,7 @@ export class NodeAtFrame {
    * @param {Object} node The plan node, as the scene's plan trees hold it.
    * @param {string} phase Its phase, one of {@link NodePhase}.
    * @param {boolean} inferred Whether the phase is read from the node's ancestors, as
-   *   for motions, which the recording gives no frames of their own.
+   *   for a node the recording gives no frames of its own.
    * @param {Array<NodeAtFrame>} children Its children.
    */
   constructor(node, phase, inferred, children) {
@@ -97,8 +98,10 @@ export class NodeAtFrame {
  * @param {string|null} inherited The phase of the nearest ancestor with frames, or
  *   null for none.
  * @returns {{phase: string, inferred: boolean}} The node's phase: from its own frames
- *   where it has them; otherwise pending or running with its ancestor, and once the
- *   ancestor ended, the status the recording ended with.
+ *   where it has them, a node that ran but whose own status coraplex never set, such as
+ *   a sequence, ending as ended; otherwise pending or running with its ancestor, as a
+ *   condition or an attachment, which take no time of their own, and once the ancestor
+ *   ended, the status the recording ended with.
  */
 export function phaseOf(node, frame, inherited) {
   const start = node[PlanNodeKey.START];
@@ -110,7 +113,7 @@ export function phaseOf(node, frame, inherited) {
   }
   if (frame < start) return { phase: NodePhase.PENDING, inferred: false };
   if (frame <= end) return { phase: NodePhase.RUNNING, inferred: false };
-  return { phase: ended, inferred: false };
+  return { phase: ended === NodePhase.NOT_RUN ? NodePhase.ENDED : ended, inferred: false };
 }
 
 /**
