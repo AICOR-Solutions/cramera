@@ -5,6 +5,7 @@ The cramera command's configuration and screenshot command.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import signal
 import subprocess
@@ -16,6 +17,11 @@ import pytest
 
 from cramera import screenshot
 from cramera.command_line import DEFAULT_PORT, Option, ViewerConfiguration
+from cramera.http import server as server_module
+from cramera.http.addresses import EVERY_ADDRESS
+from cramera.http.origin import KEY_PARAMETER, OriginPolicy
+from cramera.http.server import HttpServer
+from cramera.network_key import NetworkKey
 from cramera.http.messages import HttpMethod
 from cramera.scenes import SceneSource
 from cramera.screenshot import (
@@ -62,6 +68,115 @@ def test_the_configuration_reads_every_option(locations, tmp_path):
         SceneSource.DEMO,
     ]
     assert configuration.port == 9000 and not configuration.open_browser
+
+
+def test_the_lan_option_listens_on_every_address(locations):
+    configuration = ViewerConfiguration.from_arguments([Option.LAN], locations)
+    assert configuration.host == EVERY_ADDRESS
+
+
+def test_the_lan_option_and_a_host_exclude_each_other(locations):
+    with pytest.raises(SystemExit):
+        ViewerConfiguration.from_arguments(
+            [Option.LAN, Option.HOST, "127.0.0.1"], locations
+        )
+
+
+PUBLIC_ORIGIN = "https://cramera.example.org"
+"""
+The origin a password-checking proxy serves the viewer at in the tests.
+"""
+
+
+def test_a_public_origin_serves_the_viewer_to_a_proxy_on_this_machine(locations):
+    configuration = ViewerConfiguration.from_arguments(
+        [Option.PUBLIC_ORIGIN, PUBLIC_ORIGIN, Option.PORT, "8724"], locations
+    )
+    policy = configuration.policy()
+    assert configuration.host == "127.0.0.1"
+    assert policy.proxied and policy.key is None
+    assert "cramera.example.org" in policy.allowed_hosts
+
+
+def test_a_viewer_without_a_public_origin_keeps_its_policy(locations):
+    assert ViewerConfiguration(locations=locations).policy() == OriginPolicy()
+    network = ViewerConfiguration(locations=locations, host=EVERY_ADDRESS).policy()
+    assert network.key and not network.proxied
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        [Option.PUBLIC_ORIGIN, PUBLIC_ORIGIN, Option.LAN],
+        [Option.PUBLIC_ORIGIN, PUBLIC_ORIGIN, Option.HOST, EVERY_ADDRESS],
+        [Option.PUBLIC_ORIGIN, "cramera.example.org"],
+        [Option.PUBLIC_ORIGIN, "ftp://cramera.example.org"],
+        [Option.PUBLIC_ORIGIN, f"{PUBLIC_ORIGIN}/phone/"],
+    ],
+)
+def test_a_public_origin_is_an_origin_a_proxy_on_this_machine_serves(
+    locations, arguments
+):
+    with pytest.raises(SystemExit):
+        ViewerConfiguration.from_arguments(arguments, locations)
+
+
+def test_a_viewer_behind_a_proxy_names_its_public_origin(locations, answerer, caplog):
+    configuration = ViewerConfiguration(
+        locations=locations, public_origin=PUBLIC_ORIGIN
+    )
+    caplog.set_level(logging.INFO)
+    with HttpServer(answerer=answerer) as server:
+        configuration.announce_network(server)
+    assert PUBLIC_ORIGIN in caplog.text
+
+
+def test_a_viewer_on_the_network_names_its_network_address(
+    locations, answerer, monkeypatch, caplog
+):
+    monkeypatch.setattr(server_module, "network_address", lambda: "192.0.2.7")
+    configuration = ViewerConfiguration(locations=locations, host=EVERY_ADDRESS)
+    caplog.set_level(logging.INFO)
+    with HttpServer(answerer=answerer, host=EVERY_ADDRESS) as server:
+        configuration.announce_network(server)
+        key = NetworkKey.of(locations).value()
+        address = f"http://192.0.2.7:{server.bound_port()}/?{KEY_PARAMETER}={key};"
+        assert f"open {address}" in caplog.text
+
+
+def test_a_viewer_on_every_address_without_a_network_says_so(
+    locations, answerer, monkeypatch, caplog
+):
+    monkeypatch.setattr(server_module, "network_address", lambda: None)
+    configuration = ViewerConfiguration(locations=locations, host=EVERY_ADDRESS)
+    with HttpServer(answerer=answerer, host=EVERY_ADDRESS) as server:
+        configuration.announce_network(server)
+    assert "no network address" in caplog.text
+
+
+def test_a_viewer_on_this_machine_only_names_no_network_address(
+    locations, answerer, caplog
+):
+    configuration = ViewerConfiguration(locations=locations)
+    caplog.set_level(logging.INFO)
+    with HttpServer(answerer=answerer) as server:
+        configuration.announce_network(server)
+    assert caplog.text == ""
+
+
+def test_a_viewer_on_the_network_keeps_its_key_from_one_start_to_the_next(locations):
+    configuration = ViewerConfiguration(locations=locations, host=EVERY_ADDRESS)
+    key = configuration.network_key()
+    assert key and configuration.network_key() == key
+    assert NetworkKey.of(locations).path.stat().st_mode & 0o777 == 0o600
+    assert ViewerConfiguration(locations=locations).network_key() is None
+
+
+def test_an_empty_key_file_gets_a_new_key(locations):
+    key = NetworkKey.of(locations)
+    key.path.parent.mkdir(parents=True, exist_ok=True)
+    key.path.write_text("\n")
+    assert key.value() and key.value() == key.path.read_text()
 
 
 def test_the_configured_server_serves_the_viewer(locations):

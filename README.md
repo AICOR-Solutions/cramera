@@ -36,6 +36,7 @@ the branch [`archive/pre-v1`](https://github.com/AICOR-Solutions/cramera/tree/ar
 | [`cramera-scene-builder`](packages/plugins/scene-builder) | Compose scenes from bundles, meshes and reference scans in a full-window builder. | done |
 | [`cramera-offline`](packages/plugins/offline) | Guided presentations without a robot or network, and `cramera-check-bundle`. | done |
 | [`cramera-laboratory`](packages/plugins/laboratory) | A dedicated Physical lab page with the small workbench, real PR2 preview, local robot demo and replay, plus manual MuJoCo controls and setup help. | done |
+| [`cramera-scene-runs`](packages/plugins/scene-runs) | A Runs tab that starts the robot runs a server offers, one at a time, follows each live and replays its recording; for a viewer behind a password-checking proxy. | done |
 | [`cramera-plan-builder`](packages/plugins/plan-builder) | Compose a plan from the CRAM actions it discovers, objects and plain-language constraints, write it as a CRAM demo, and run it live from the page. | done |
 
 Recordings made with earlier versions open unchanged: a document without a
@@ -172,20 +173,96 @@ alone in a window of its own.
 The page address names the shown bundle, `?scene=<name>`, so a view can be shared;
 `?panel=<name>` opens a panel first.
 The server listens on `127.0.0.1` and answers only pages served from the same
-machine.
+machine, unless `--lan` lets a phone watch.
+
+### Watch from a phone
+
+```bash
+cramera --lan --demo-scenes demo
+```
+
+listens on every address of the machine and names the address other devices of its
+network open, with a key:
+
+```text
+cramera serves http://127.0.0.1:8711
+other devices of this network open http://192.168.1.23:8711/?key=…; they may watch, but change nothing
+```
+
+Open that address on the phone; it keeps the key in a cookie, so the page's own
+requests and an address without the key work from then on. The key stays in
+`~/.cramera/network_key` (`$CRAMERA_DATA`), so a bookmark outlives a restart; delete
+the file for a new key. Other devices need the key for every request, and with it they
+only read: replaying and switching scenes work, while asking questions, running plans
+and saving are refused for them and stay with the machine that serves the viewer.
+
+On a phone the columns stack, the scene picker wraps, a phone on its side fits the 3D
+view and the playback controls onto its screen, and the 3D view takes one finger to
+orbit, two to zoom and pan, and a tap to select. The demo site needs no `--lan`; it
+opens on a phone as it is.
+
+The phone and the machine must reach each other: a firewall has to let the port
+through (`sudo ufw allow 8711/tcp` where ufw runs), and networks that keep their
+devices apart, as many public and university networks do, need the phone's hotspot or
+another network.
+
+A running plan is followed from the phone as on the machine: open
+`http://192.168.1.23:8711/?live=http://127.0.0.1:8765`, or connect in the **Live** tab
+with its default address. The live publisher keeps answering this machine only, so a
+page opened at the network address reads it through the viewer, below `/api/live/`:
+the world, its states, the plan, the statecharts, the recording's status, the
+resolutions, the query steps and the perception images of the publisher at
+`127.0.0.1:8765`, and nothing that changes the run. Stopping and saving the recording
+stay with the machine.
+
+### Serve behind a proxy
+
+A server reached over the internet serves the viewer through a reverse proxy on the
+same machine that checks a password, such as nginx with Basic auth:
+
+```bash
+cramera --no-browser --port 8724 --public-origin https://cramera.example.org
+```
+
+```nginx
+location = /phone { return 301 /phone/; }
+location /phone/ {
+    auth_basic "cramera";
+    auth_basic_user_file /etc/cramera-phone/htpasswd;
+    proxy_pass http://127.0.0.1:8724/;
+    proxy_set_header Host $host;
+    proxy_buffering off;
+}
+```
+
+The viewer then listens on a loopback address only and counts every request as another
+device's that the proxy let in, so none needs the key. Besides reading, such devices
+make only the changes a route offers them: stepping through a live run's queries,
+relayed below `/api/live/`, and starting and stopping the runs a plugin offers.
+Asking questions, building and running plans and saving stay with the machine, and the
+plan builder's folder listing is not offered over the network.
+
+With [`cramera-scene-runs`](packages/plugins/scene-runs) installed and
+`CRAMERA_SCENE_RUNS` naming a file of runs, the page gets a **Runs** tab: it starts one
+of the offered runs at a time, such as a robot demo held at each of its queries, follows
+it live, stops it and replays its recording.
 
 ### Scene graph and ontology
 
 The **Scene graph** tab shows the shown world as a tree: the models with their links
-nested by their joints, the free objects and the robot's parts. Choosing a node makes
-what it stands for glow in the 3D view, a model all its links and a group all its
-members, and **Focus** moves the camera onto it. Where the scene names the classes of
-its entities, a node links each class, such as `PR2LeftArm`, `Body` or the joint's
-`RevoluteConnection`, to the **Ontology** page, which opens cram_owlviz at that class
-in a tab of its own; every further class link shows its class in the same tab.
+nested by their joints, the free objects, the robot's parts and the world's other
+semantic annotations, such as a drawer with its handle or a cabinet with its doors,
+each referring to the links and objects it gives a meaning to. Choosing a node makes
+what it stands for glow in the 3D view, a model all its links, an annotation all its
+bodies and a group all its members, and **Focus** moves the camera onto it. Where the
+scene names the classes of its entities, a node links each class, such as
+`PR2LeftArm`, `Drawer`, `Body` or the joint's `RevoluteConnection`, to the
+**Ontology** page, which opens cram_owlviz at that class in a tab of its own; every
+further class link shows its class in the same tab.
 
-Recordings name the classes of their entities. Name them in bundles recorded before,
-in the CRAM environment with ROS and the robot descriptions sourced, with
+Recordings name the classes of their entities and their world's semantic annotations.
+Name them in bundles recorded before, in the CRAM environment with ROS and the robot
+descriptions sourced, with
 
 ```bash
 cramera-record-classes demo/standard_scenes            # every bundle of the directory
@@ -196,7 +273,7 @@ cramera-record-classes ~/.cramera/scenes --scene my_recording
 
 | Command | What it does |
 | --- | --- |
-| `cramera` | Serve the viewer. `--logo FILE` (or `CRAMERA_LOGO`) shows another `.png`, `.svg` or `.jpg` instead of the AICOR logo in every page's top bar, `--logo-text TEXT` says what it shows. |
+| `cramera` | Serve the viewer. `--lan` serves the network too (see [Watch from a phone](#watch-from-a-phone)), `--public-origin ORIGIN` a password-checking proxy (see [Serve behind a proxy](#serve-behind-a-proxy)). `--logo FILE` (or `CRAMERA_LOGO`) shows another `.png`, `.svg` or `.jpg` instead of the AICOR logo in every page's top bar, `--logo-text TEXT` says what it shows. |
 | `cramera-shot URL OUT.png` | Take a screenshot in headless Chrome (`--browser chrome`, needs `chromedriver`) or Firefox (`--browser firefox`, needs `geckodriver`) once the page reports its scene as shown; exits 1 when it fails. |
 | `cramera-export-site OUT --scenes DIR [--plugin NAME] [--logo FILE]` | Write the viewer and the bundles of a directory as a static site, for any web server, with the browser files of the named installed plugins and the given logo. |
 | `cramera-upgrade-bundle SRC DST` | Copy a bundle and rewrite its documents in the current format, optionally with new labels for the scene picker. |
@@ -219,6 +296,16 @@ publisher, stops and saves the recording as a bundle, and replays it.
 `cramera-onboard demo.py --name NAME` runs a demo and saves its run as a bundle
 without keeping a publisher up.
 
+A robot task demo started with `--step-queries` is held at each query it asks of its
+own until **Next** in the **Queries** panel moves it on, and saves its recording with
+the queries (`--name` names it, `--no-hold` runs on). The PR2's vessel transfer and
+GARMI carrying a bowl and a spoon across the apartment ship as such demos:
+
+```bash
+python -m cramera_bridge.demos.query_stepping --bundle ~/.cramera/scenes/aicor_medical_lab
+python -m cramera_bridge.demos.garmi_apartment --step-queries
+```
+
 ### Segment a run with segmind
 
 With `cramera-onboard demo.py --name NAME --detect-events`, or `CRAMERA_DETECT_EVENTS=1`
@@ -238,7 +325,7 @@ With `cramera-questions` installed, the viewer's right column gets:
 - **EQL · entity query language**, which offers the presets of the shown scene and
   takes questions in plain English or in CRAM's entity query language. The question
   is read back in English; an answer is a table whose entities light up in the 3D
-  view, and **Replay** jumps to the moment an answer is about.
+  view, and **Play NEEM** jumps to the moment an answer is about.
 - **Plan**, **Statechart** and **Kinematics** tabs, which draw the scene's plan,
   statechart and robot kinematics as graphs. Clicking a node
   shows its details and lights it up in the 3D view; drag to pan, scroll or use the

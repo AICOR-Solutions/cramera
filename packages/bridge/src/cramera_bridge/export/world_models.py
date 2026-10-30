@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from uuid import UUID
 
 import numpy
 from typing_extensions import Dict, List, Optional, Sequence
@@ -14,6 +15,7 @@ from typing_extensions import Dict, List, Optional, Sequence
 from cramera_bridge.exceptions import MissingMeshFile
 from cramera_bridge.export.assets import BundledAssets, MaterialLibrary, MeshFormat
 from cramera_bridge.export.urdf import ModelReport, UrdfDocument
+from cramera_bridge.export.world_annotations import WorldAnnotations
 from cramera_bridge.geometry import (
     NumericPose,
     PublishedColor,
@@ -27,6 +29,7 @@ from cramera_protocol.bundle.scene import (
     ModelDescription,
     ObjectDescription,
     RobotDescription,
+    SceneAnnotation,
     SceneClasses,
 )
 from cramera_protocol.geometry import Pose
@@ -76,6 +79,12 @@ class WorldModelsBundle:
     objects and the selected robot's parts.
     """
 
+    annotations: List[SceneAnnotation] = field(default_factory=list)
+    """
+    The world's semantic annotations other than its robots and their parts, each naming
+    the written bodies and free objects it gives a meaning to.
+    """
+
 
 @dataclass(frozen=True)
 class WorldModels:
@@ -110,7 +119,8 @@ class WorldModels:
 
         :param objects: The free objects, written separately by :class:`ObjectFiles`.
         :param selected_robot: The robot the bundle's ``robot`` describes, or None.
-        :return: The models and the selected robot.
+        :return: The models, the selected robot, and the classes and annotations of what
+            they show.
         """
         self.output_directory.mkdir(parents=True, exist_ok=True)
         roster = RobotRoster(self.world)
@@ -128,6 +138,7 @@ class WorldModels:
         }
         bundle = WorldModelsBundle()
         bundle.classes.world = class_path(type(self.world))
+        body_names: Dict[UUID, str] = {body.id: str(body.name) for body in objects}
         environment = [
             body
             for body in self.world.bodies_topologically_sorted
@@ -138,6 +149,7 @@ class WorldModels:
             bundle.models.append(self.description(report, robot=False))
             bundle.missing_assets.extend(report.missing)
             self.add_classes(bundle.classes, report)
+            body_names.update(report.body_links)
         for robot in roster.robots():
             bodies = robot_bodies[roster.identifier(robot)]
             if not bodies:
@@ -151,10 +163,12 @@ class WorldModels:
             bundle.models.append(model)
             bundle.missing_assets.extend(report.missing)
             self.add_classes(bundle.classes, report)
+            body_names.update(report.body_links)
             bundle.classes.models[model.name] = class_path(type(robot))
         bundle.missing_assets = sorted(set(bundle.missing_assets))
         for body in objects:
             bundle.classes.bodies[str(body.name)] = class_path(type(body))
+        bundle.annotations = WorldAnnotations(self.world).descriptions(body_names)
         if selected_robot is not None:
             bundle.robot = self.robot_description(selected_robot)
             bundle.classes.annotations = {

@@ -42,6 +42,7 @@ from cramera_bridge.questions.recorded.entities import (
     RecordedStep,
 )
 from cramera_bridge.questions.recorded.urdf import UrdfStructure
+from cramera_bridge.questions.replay import FrameTimeline
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 
 RECORDED_PRECISION = 3
@@ -472,7 +473,7 @@ class RecordedKnowledge:
         """
         :param class_index: The workspace classes a query may name.
         :return: The desk answering questions about the scene; answers light objects up
-            under their keys.
+            under their keys and replay moments in the frames of the scene's trajectory.
         """
         return QuestionDesk(
             title=self.bundle.name,
@@ -484,4 +485,5 @@ class RecordedKnowledge:
                 known_keys=frozenset(entity.key for entity in self.objects),
             ),
             class_index=class_index,
+            timeline=FrameTimeline.of_trajectory(self.bundle.trajectory),
         )

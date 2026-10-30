@@ -16,6 +16,7 @@ from cramera.confinement import ConfinedDirectory
 from cramera.exceptions import FileNotInDirectory
 from cramera.http.messages import HttpMethod, MediaType, Request, Response
 from cramera.http.routing import ExactRoute, PrefixRoute, Router
+from cramera.live_relay import LiveRelay
 from cramera.locations import DataLocations
 from cramera.plugins import PluginContext, ViewerPlugin
 from cramera.scenes import SceneCatalog
@@ -66,6 +67,11 @@ class ViewerApplication:
     Which logo the pages show.
     """
 
+    live_relay: LiveRelay = field(default_factory=LiveRelay)
+    """
+    Reads the live publisher on this machine for pages of other devices.
+    """
+
     def router(self) -> Router:
         """
         :return: The router of every viewer and plugin route; the browser files come
@@ -88,6 +94,8 @@ class ViewerApplication:
                 HttpMethod.GET, ViewerRoute.PLUGIN_FILES, self.answer_plugin_file
             )
         )
+        for route in self.live_relay.routes():
+            router.add(route)
         self.add_plugin_routes(router)
         router.add(PrefixRoute(HttpMethod.GET, "/", self.answer_web_file))
         return router

@@ -33,12 +33,14 @@ jobs:
           - package: bridge
             install: -e ./packages/bridge
             coverage: >-
+              --cov=cramera_bridge.database.runs
               --cov=cramera_bridge.demo_script
               --cov=cramera_bridge.documents
               --cov=cramera_bridge.laboratory.command
               --cov=cramera_bridge.export.scene_index
               --cov=cramera_bridge.live.activity
               --cov=cramera_bridge.live.marker_topics
+              --cov=cramera_bridge.live.query_steps
               --cov=cramera_bridge.live.recording
               --cov=cramera_bridge.live.segments
               --cov=cramera_bridge.plans.objects
@@ -55,6 +57,9 @@ jobs:
           - package: plugins/offline
             module: cramera_offline
             install: -e ./packages/plugins/offline
+          - package: plugins/scene-runs
+            module: cramera_scene_runs
+            install: -e ./packages/plugins/scene-runs
           - package: plugins/laboratory
             module: cramera_laboratory
             install: -e './packages/plugins/laboratory[physics]' -e ./packages/bridge

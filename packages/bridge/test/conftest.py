@@ -22,6 +22,7 @@ TESTS_WITHOUT_CRAM = (
     "test_documents.py",
     "test_cram_boundary.py",
     "test_demo_script.py",
+    "database/test_runs.py",
     "laboratory/test_command.py",
     "export/test_scene_index.py",
     "plans/test_objects.py",
@@ -34,6 +35,7 @@ TESTS_WITHOUT_CRAM = (
     "recording/test_recording.py",
     "recording/test_segments.py",
     "scenes/test_presentation.py",
+    "stepping/test_held_queries.py",
 )
 """
 The test modules that import nothing of the CRAM workspace, relative to this directory.

@@ -4,15 +4,21 @@ Building, evaluating and rendering queries.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from cramera_protocol.questions import AnswerColumn, AnswerKind, QueryTranslation
+from cramera_protocol.bundle.trajectory import Trajectory
+from cramera_protocol.questions import (
+    AnswerColumn,
+    AnswerKind,
+    QueryTranslation,
+    ReplayWindow,
+)
 from cramera_bridge.questions.exceptions import EmptyQuery
 from cramera_bridge.questions.highlights import EntityNameKeys
 from cramera_bridge.questions.knowledge import QueryDomain
-from cramera_bridge.questions.replay import REPLAY_LEAD_SECONDS, REPLAY_TAIL_SECONDS
+from cramera_bridge.questions.replay import MOMENT_TOLERANCE_SECONDS, FrameTimeline
 from cramera_bridge.questions.runner import (
     VALUE_PRECISION,
     AnswerRenderer,
@@ -31,6 +37,12 @@ from .dataset.files import QueryFile, QuerySource
 LIGHT = ShelfItem(name="feather", size=0.1, shelf="top")
 HEAVY = ShelfItem(name="anvil", size=9.0, shelf="bottom")
 MOMENT = datetime(2026, 10, 1, 10, 0, tzinfo=timezone.utc)
+RECORDING = FrameTimeline(
+    [MOMENT.timestamp() + offset for offset in (-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5)]
+)
+"""
+A recording of seven frames at two frames per second, ``MOMENT`` on its fourth.
+"""
 
 
 def runner_over(shelf, **names) -> QueryRunner:
@@ -188,15 +200,15 @@ def test_a_text_naming_nothing_shown_is_left_alone():
 # %% replay
 
 
-def test_a_row_with_a_moment_carries_its_replay_window():
+def test_a_row_with_a_moment_replays_the_frames_around_it():
     delivery = Delivery(name="parcel", timestamp=MOMENT)
     runner = QueryRunner(domains=[QueryDomain("delivery", Delivery, [delivery])])
-    entity_answer = answer(runner, "an(entity(delivery))")
-    selection_answer = answer(runner, QuerySource(QueryFile.DELIVERY_TIMES).text())
+    entity_answer = answer(runner, "an(entity(delivery))", timeline=RECORDING)
+    selection_answer = answer(
+        runner, QuerySource(QueryFile.DELIVERY_TIMES).text(), timeline=RECORDING
+    )
     for result in (entity_answer, selection_answer):
-        window = result.replay[0]
-        assert window.start == MOMENT.timestamp() - REPLAY_LEAD_SECONDS
-        assert window.end == MOMENT.timestamp() + REPLAY_TAIL_SECONDS
+        assert result.replay == [ReplayWindow(first_frame=1, last_frame=5)]
     assert selection_answer.rows[0]["timestamp"] == MOMENT.isoformat(
         sep=" ", timespec="seconds"
     )
@@ -204,3 +216,38 @@ def test_a_row_with_a_moment_carries_its_replay_window():
 
 def test_a_row_without_a_moment_offers_no_replay():
     assert answer(runner_over([LIGHT]), "an(entity(item))").replay == [None]
+
+
+def test_an_answer_without_a_recording_offers_no_replay():
+    delivery = Delivery(name="parcel", timestamp=MOMENT)
+    runner = QueryRunner(domains=[QueryDomain("delivery", Delivery, [delivery])])
+    assert answer(runner, "an(entity(delivery))").replay == [None]
+
+
+def test_a_window_near_the_ends_of_the_recording_stays_within_its_frames():
+    first, last = RECORDING.frame_times[0], RECORDING.frame_times[-1]
+    start = datetime.fromtimestamp(first, timezone.utc)
+    end = datetime.fromtimestamp(last, timezone.utc)
+    assert RECORDING.window_around(start) == ReplayWindow(first_frame=0, last_frame=2)
+    assert RECORDING.window_around(end) == ReplayWindow(first_frame=4, last_frame=6)
+
+
+def test_a_moment_outside_the_recording_offers_no_replay():
+    beyond = timedelta(seconds=MOMENT_TOLERANCE_SECONDS + 1.0)
+    end = datetime.fromtimestamp(RECORDING.frame_times[-1], timezone.utc)
+    start = datetime.fromtimestamp(RECORDING.frame_times[0], timezone.utc)
+    assert RECORDING.window_around(end + beyond) is None
+    assert RECORDING.window_around(start - beyond) is None
+    assert RECORDING.window_around(end + beyond / 2) is not None
+
+
+def test_a_moment_between_two_frames_is_on_the_earlier_one():
+    assert RECORDING.nearest_frame(MOMENT.timestamp() + 0.25) == 3
+
+
+def test_the_timeline_of_a_bundle_without_a_trajectory_is_empty():
+    assert FrameTimeline.of_trajectory(None).frame_times == ()
+    assert (
+        FrameTimeline.of_trajectory(Trajectory(frames=[{}])).window_around(MOMENT)
+        is None
+    )

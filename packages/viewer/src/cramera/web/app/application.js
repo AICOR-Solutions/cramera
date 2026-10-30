@@ -17,6 +17,7 @@ import {
   RecordingStatusKey,
   SceneKey,
   ViewerEvent,
+  ViewerRoute,
 } from '../protocol.js';
 import { PlaybackClock } from '../playback/playback-clock.js';
 import { saveVideo, VideoRecording } from '../playback/video-recording.js';
@@ -39,7 +40,7 @@ import { FrameAxes, framesOf } from '../scene/frame-axes.js';
 import { ObjectLabels } from '../scene/object-labels.js';
 import { SceneLighting } from '../scene/scene-lighting.js';
 import { SceneLoader } from '../scene/scene-loader.js';
-import { LiveClient } from '../live/live-client.js';
+import { DEFAULT_LIVE_ADDRESS, LiveClient, readAddressOf } from '../live/live-client.js';
 import { LiveListener, LiveSession } from '../live/live-session.js';
 import { LiveActions, LiveBadge, LiveBadgeState, LivePanel } from '../panels/live-panel.js';
 import { CameraGlide, focusBounds, RegionOutlines } from '../scene/scene-focus.js';
@@ -511,6 +512,7 @@ export class Application {
     });
     this.bus.subscribe(ViewerEvent.SCENE_REQUESTED, (name) => this.showRequested(name));
     this.bus.subscribe(ViewerEvent.FRAME_REQUESTED, (frame) => this.seek(frame));
+    this.bus.subscribe(ViewerEvent.LIVE_REQUESTED, (address) => this.connectLive(address ?? DEFAULT_LIVE_ADDRESS));
     this.bus.subscribe(ViewerEvent.PLAYBACK_REQUESTED, (playing) => this.#timeline.setPlaying(playing));
     new KeyboardShortcuts(
       this.#elements.document,
@@ -561,6 +563,7 @@ export class Application {
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
     this.#cinematic.plan(ShotPlan.of(segments, loaded.frames.framesPerSecond, this.#clock.duration));
+    this.#cinematic.setObstacles(loaded.models.environmentModels());
     this.#timeline.show(this.#clock, segments);
     this.#details.show(loaded);
     this.#sceneGraph.show(loaded);
@@ -589,12 +592,13 @@ export class Application {
   }
 
   /**
-   * Follow a live publisher: show its world and apply its states as they arrive.
+   * Follow a live publisher: show its world and apply its states as they arrive; a page
+   * of another device reads the publisher on this machine through the viewer.
    * @param {string} address The publisher's address.
    */
   connectLive(address) {
     this.disconnectLive();
-    const client = new LiveClient(this.#fetch, address);
+    const client = new LiveClient(this.#fetch, readAddressOf(this.#location.href, address, this.#api.url(ViewerRoute.LIVE_RELAY)));
     this.#live = new LiveSession(
       client,
       this.#timers,

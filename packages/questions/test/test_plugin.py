@@ -15,7 +15,11 @@ from cramera.http.messages import Header, HttpMethod, Request
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
-from cramera_bridge.questions.presets import QueryVariable, RobotQuestion
+from cramera_bridge.questions.presets import (
+    DetectedEventQuestion,
+    QueryVariable,
+    RobotQuestion,
+)
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.live import Capability
@@ -31,6 +35,7 @@ from cramera_protocol.questions import (
     QuestionRequest,
     QuestionsParameter,
     QuestionsRoute,
+    ReplayWindow,
     Vocabulary,
 )
 from cramera_protocol.viewer import ViewerRoute
@@ -166,6 +171,31 @@ def test_a_query_and_a_question_are_answered(answerer):
         QuestionMatch,
     )
     assert match.matched
+
+
+def test_a_detection_is_replayed_in_the_frames_of_its_scene(answerer):
+    scene = {QuestionsParameter.SCENE: SceneName.ANNOTATED}
+    catalog = read(get(answerer, QuestionsRoute.PRESETS, **scene), PresetCatalog)
+    preset = next(
+        preset
+        for preset in catalog.presets
+        if preset.text == DetectedEventQuestion.WHAT_AND_WHEN
+    )
+    answer = read(
+        post(
+            answerer,
+            QuestionsRoute.QUERY,
+            QueryRequest(
+                code=preset.code, scope=preset.scope, scene=SceneName.ANNOTATED
+            ),
+        ),
+        QueryAnswer,
+    )
+    windows = {row["name"]: window for row, window in zip(answer.rows, answer.replay)}
+    assert windows == {
+        "milk PickUpEvent": ReplayWindow(first_frame=0, last_frame=3),
+        "milk PlacingEvent": ReplayWindow(first_frame=7, last_frame=9),
+    }
 
 
 def test_vocabulary_and_members_are_offered(answerer):

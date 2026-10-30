@@ -175,6 +175,12 @@ class OnboardArgument(StrEnum):
     Let segmind's detectors watch the run.
     """
 
+    ADD_RUN = "--add-run"
+    """
+    Record the demo again into the bundle of the same name, adding the run to its plan
+    database.
+    """
+
     DEMO_ARGUMENTS = "arguments"
     """
     The arguments handed to the demo.
@@ -219,6 +225,11 @@ class OnboardCommand:
             help="let segmind's detectors watch the run",
         )
         parser.add_argument(
+            OnboardArgument.ADD_RUN,
+            action="store_true",
+            help="record a further run into the bundle of the same name",
+        )
+        parser.add_argument(
             OnboardArgument.DEMO_ARGUMENTS, nargs="*", help="arguments for the demo"
         )
         command_line = CommandLine.split(arguments)
@@ -237,6 +248,7 @@ class OnboardCommand:
                 ),
                 task=options.task,
                 detect_events=options.detect_events,
+                adds_a_run=options.add_run,
             )
         )
 
@@ -244,7 +256,8 @@ class OnboardCommand:
 def onboard(arguments: Optional[Sequence[str]] = None) -> None:
     """
     ``cramera-onboard demo.py --name NAME [--shared] [--task TEXT] [--detect-events]
-    [arguments] [-- demo options]``: run a demo and save its run as a scene bundle.
+    [--add-run] [arguments] [-- demo options]``: run a demo and save its run as a scene
+    bundle.
 
     :param arguments: The arguments, or None for the process's.
     """

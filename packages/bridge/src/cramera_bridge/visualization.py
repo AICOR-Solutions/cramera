@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, Any, Optional
+from typing_extensions import TYPE_CHECKING, Any, Callable, Optional
 
 from cramera.locations import DataLocations
 from cramera_bridge.detections import DetectionRecorder
@@ -304,6 +304,13 @@ class LiveVisualization:
         :return: The base URL of the live routes.
         """
         return self.server.url()
+
+    def when_stopped(self, callback: Callable[[], Any]) -> None:
+        """
+        :param callback: Called when the visualization stops, before what :meth:`start`
+            acquired is released.
+        """
+        self.resources.callback(callback)
 
     def stop(self) -> None:
         """

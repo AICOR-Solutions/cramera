@@ -1376,6 +1376,54 @@ class SourceKey(StrEnum):
     """
 
 
+# %% semantic annotations
+
+
+class AnnotationKey(StrEnum):
+    """
+    The keys of one semantic annotation of a scene.
+    """
+
+    NAME = "name"
+    """
+    The annotation's name.
+    """
+
+    CLASS = "class"
+    """
+    The annotation's class.
+    """
+
+    BODIES = "bodies"
+    """
+    The bodies the annotation gives a meaning to.
+    """
+
+
+@dataclass(kw_only=True)
+class SceneAnnotation(JsonDocument):
+    """
+    One semantic annotation of a scene's world other than a robot or a robot's part,
+    such as a drawer, a handle or a table: what the bodies it names are, by its class.
+    """
+
+    name: str = document_field(AnnotationKey.NAME)
+    """
+    The annotation's name; annotations of different classes may share one.
+    """
+
+    class_path: str = document_field(AnnotationKey.CLASS)
+    """
+    The annotation's class, named by its module and name, ``module.Class``.
+    """
+
+    bodies: List[str] = document_field(AnnotationKey.BODIES, default_factory=list)
+    """
+    The bodies it gives a meaning to, those of the annotations it is made of included,
+    each by its link name or free object identifier.
+    """
+
+
 # %% classes
 
 
@@ -1613,6 +1661,11 @@ class SceneKey(StrEnum):
     The classes of the scene's entities.
     """
 
+    ANNOTATIONS = "annotations"
+    """
+    The semantic annotations of the scene's world other than its robots and their parts.
+    """
+
 
 @dataclass(kw_only=True)
 class SceneDescription(JsonDocument):
@@ -1775,6 +1828,14 @@ class SceneDescription(JsonDocument):
     classes: Optional[SceneClasses] = document_field(SceneKey.CLASSES, default=None)
     """
     The classes of the scene's entities, or None for a scene recorded without them.
+    """
+
+    annotations: Optional[List[SceneAnnotation]] = document_field(
+        SceneKey.ANNOTATIONS, default=None
+    )
+    """
+    The semantic annotations of the scene's world other than its robots and their parts,
+    or None for a scene recorded without them.
     """
 
     extensions: Dict[str, Any] = extension_field()

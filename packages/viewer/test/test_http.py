@@ -14,6 +14,15 @@ from pathlib import Path
 import pytest
 
 from cramera.exceptions import MalformedRequestBody, UnknownScene
+from cramera.http import server as server_module
+from cramera.http.addresses import (
+    EVERY_ADDRESS,
+    is_loopback,
+    local_host,
+    network_address,
+    own_address,
+    url_of,
+)
 from cramera.http.messages import (
     Header,
     HttpMethod,
@@ -21,7 +30,7 @@ from cramera.http.messages import (
     Request,
     Response,
 )
-from cramera.http.origin import OriginPolicy
+from cramera.http.origin import KEY_COOKIE, KEY_PARAMETER, OriginPolicy
 from cramera.http.routing import ExactRoute, PrefixRoute, Router
 from cramera.http.server import (
     HttpServer,
@@ -38,9 +47,50 @@ LOCAL_HOST = {Header.HOST: "127.0.0.1:8711"}
 The headers of a request addressed to this machine.
 """
 
+NETWORK_ADDRESS = "192.0.2.7"
+"""
+The network address of the machine serving the viewer in the tests.
+"""
+
+PHONE_ADDRESS = "192.0.2.50"
+"""
+The address of another device of that network.
+"""
+
+KEY = "s3cret-Key_1"
+"""
+The key other devices carry in the tests.
+"""
+
+NETWORK_POLICY = OriginPolicy(key=KEY)
+"""
+The policy of a viewer that other devices of the network may watch.
+"""
+
 
 def request(method=HttpMethod.GET, path="/", **headers) -> Request:
     return Request(method=method, path=path, headers={**LOCAL_HOST, **headers})
+
+
+def network_request(
+    method=HttpMethod.GET, client_address=PHONE_ADDRESS, query="", **headers
+) -> Request:
+    """
+    :return: A request that arrived at the network address, from a phone that keeps
+        the key in its cookie by default.
+    """
+    return Request(
+        method=method,
+        path="/",
+        query=query,
+        headers={
+            Header.HOST: f"{NETWORK_ADDRESS}:8711",
+            Header.COOKIE: f"theme=dark; {KEY_COOKIE}={KEY}",
+            **headers,
+        },
+        server_address=NETWORK_ADDRESS,
+        client_address=client_address,
+    )
 
 
 # %% router
@@ -153,6 +203,88 @@ def test_other_origins_are_refused(origin):
 def test_requests_addressed_to_other_hosts_are_refused(headers):
     incoming = Request(method=HttpMethod.GET, path="/", headers=headers)
     assert OriginPolicy().refusal(incoming).status is HTTPStatus.FORBIDDEN
+
+
+def test_a_page_served_from_the_address_a_request_arrived_at_is_answered():
+    origin = {Header.ORIGIN: f"http://{NETWORK_ADDRESS}:8711"}
+    assert NETWORK_POLICY.refusal(network_request(**origin)) is None
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {Header.HOST: "evil.example:8711"},
+        {Header.ORIGIN: "https://evil.example"},
+        {Header.ORIGIN: f"http://{PHONE_ADDRESS}:8711"},
+    ],
+)
+def test_other_names_and_pages_of_other_devices_stay_refused_on_the_network(headers):
+    refusal = NETWORK_POLICY.refusal(network_request(**headers))
+    assert refusal.status is HTTPStatus.FORBIDDEN
+
+
+@pytest.mark.parametrize(
+    "policy, cookie",
+    [
+        (NETWORK_POLICY, ""),
+        (NETWORK_POLICY, f"{KEY_COOKIE}=wrong"),
+        (NETWORK_POLICY, f"other_{KEY_COOKIE}={KEY}"),
+        (OriginPolicy(), f"{KEY_COOKIE}={KEY}"),
+        (OriginPolicy(key=""), f"{KEY_COOKIE}="),
+    ],
+)
+def test_another_device_without_the_key_is_refused(policy, cookie):
+    refusal = policy.refusal(network_request(**{Header.COOKIE: cookie}))
+    assert refusal.status is HTTPStatus.FORBIDDEN
+    assert "key" in json.loads(refusal.body)[ErrorKey.ERROR]
+
+
+def test_the_key_in_the_query_admits_another_device_and_is_kept_in_a_cookie():
+    incoming = network_request(
+        query=f"scene=lab&{KEY_PARAMETER}={KEY}", **{Header.COOKIE: ""}
+    )
+    assert NETWORK_POLICY.refusal(incoming) is None
+    cookie = NETWORK_POLICY.addressed(incoming, Response()).headers[Header.SET_COOKIE]
+    assert cookie.startswith(f"{KEY_COOKIE}={KEY};")
+    assert "HttpOnly" in cookie and "SameSite=Strict" in cookie
+
+
+def test_an_answer_without_the_key_in_its_query_sets_no_cookie():
+    answered = NETWORK_POLICY.addressed(
+        network_request(query=f"{KEY_PARAMETER}=wrong"), Response()
+    )
+    assert Header.SET_COOKIE not in answered.headers
+
+
+@pytest.mark.parametrize(
+    "method", [HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS]
+)
+def test_another_device_with_the_key_may_read(method):
+    assert NETWORK_POLICY.refusal(network_request(method)) is None
+
+
+@pytest.mark.parametrize("method", [HttpMethod.POST, HttpMethod.DELETE])
+def test_another_device_may_not_change_anything(method):
+    refusal = NETWORK_POLICY.refusal(network_request(method))
+    assert refusal.status is HTTPStatus.FORBIDDEN
+    assert "only watch" in json.loads(refusal.body)[ErrorKey.ERROR]
+
+
+@pytest.mark.parametrize("client_address", [NETWORK_ADDRESS, "127.0.0.1", "::1"])
+def test_this_machine_needs_no_key_and_may_change_things(client_address):
+    incoming = network_request(
+        HttpMethod.POST, client_address=client_address, **{Header.COOKIE: ""}
+    )
+    assert NETWORK_POLICY.refusal(incoming) is None
+
+
+def test_a_request_reads_its_cookies():
+    incoming = request(**{Header.COOKIE: "a=1; b=x=y;c"})
+    assert (incoming.cookie("a"), incoming.cookie("b"), incoming.cookie("c")) == (
+        "1",
+        "x=y",
+        None,
+    )
 
 
 def test_a_preflight_allows_the_viewer_methods():
@@ -346,6 +478,68 @@ def test_other_errors_while_answering_are_still_reported(capsys):
         server.handle_error(None, ("127.0.0.1", 1))
     server.server_close()
     assert "ValueError: a real fault" in capsys.readouterr().err
+
+
+def test_a_server_on_this_machine_only_has_no_network_url(answerer):
+    with HttpServer(answerer=answerer) as server:
+        assert server.network_url() is None
+
+
+def test_a_server_on_every_address_is_reached_here_and_from_the_network(
+    answerer, monkeypatch
+):
+    monkeypatch.setattr(server_module, "network_address", lambda: NETWORK_ADDRESS)
+    with HttpServer(answerer=answerer, host=EVERY_ADDRESS) as server:
+        assert server.url() == url_of("127.0.0.1", server.bound_port())
+        assert server.network_url() == url_of(NETWORK_ADDRESS, server.bound_port())
+        with urllib.request.urlopen(server.url() + ViewerRoute.INFO) as answer:
+            assert answer.status == HTTPStatus.OK
+
+
+def test_a_server_on_every_address_without_a_network_has_no_network_url(
+    answerer, monkeypatch
+):
+    monkeypatch.setattr(server_module, "network_address", lambda: None)
+    with HttpServer(answerer=answerer, host=EVERY_ADDRESS) as server:
+        assert server.network_url() is None
+
+
+def test_the_server_answers_this_machine_through_its_network_address(answerer):
+    address = network_address()
+    if address is None:
+        pytest.skip("this machine has no network address")
+    with HttpServer(answerer=answerer, host=EVERY_ADDRESS) as server:
+        url = url_of(address, server.bound_port())
+        with urllib.request.urlopen(url + ViewerRoute.INFO) as answer:
+            assert answer.status == HTTPStatus.OK
+        posted = urllib.request.Request(
+            url + ViewerRoute.SCENES, method=HttpMethod.POST, data=b"{}"
+        )
+        with pytest.raises(urllib.error.HTTPError) as refused:
+            urllib.request.urlopen(posted)
+        # routed, so not refused as another device's change
+        assert refused.value.code == HTTPStatus.METHOD_NOT_ALLOWED
+
+
+@pytest.mark.parametrize(
+    "address, own",
+    [("::ffff:192.0.2.7", "192.0.2.7"), ("192.0.2.7", "192.0.2.7"), ("::1", "::1")],
+)
+def test_an_ipv4_address_mapped_into_ipv6_is_the_ipv4_address(address, own):
+    assert own_address(address) == own
+
+
+def test_loopback_addresses_are_this_machine():
+    assert is_loopback("127.0.0.1") and is_loopback("::1")
+    assert is_loopback("::ffff:127.0.0.1") and not is_loopback(NETWORK_ADDRESS)
+
+
+@pytest.mark.parametrize(
+    "host, local",
+    [("0.0.0.0", "127.0.0.1"), ("::", "::1"), (NETWORK_ADDRESS, NETWORK_ADDRESS)],
+)
+def test_a_wildcard_address_is_reached_here_through_loopback(host, local):
+    assert local_host(host) == local
 
 
 def test_an_ipv6_host_gets_an_ipv6_socket():

@@ -8,6 +8,7 @@ import pytest
 
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
+    AnnotationKey,
     ClassesKey,
     DetectedEvent,
     DetectedEventKey,
@@ -99,6 +100,35 @@ def test_a_scene_recorded_without_classes_names_none(read_json):
         SceneDescription.from_json(read_json("recorded_cell/scene.json")).classes
         is None
     )
+
+
+def test_a_recording_names_its_semantic_annotations_with_their_bodies(read_json):
+    data = read_json("recorded_warehouse_scene.json")
+    annotations = SceneDescription.from_json(data).annotations
+    written = data[SceneKey.ANNOTATIONS]
+    assert [annotation.name for annotation in annotations] == [
+        entry[AnnotationKey.NAME] for entry in written
+    ]
+    assert [annotation.class_path for annotation in annotations] == [
+        entry[AnnotationKey.CLASS] for entry in written
+    ]
+    drawer = annotations[0]
+    assert drawer.bodies == ["shelf_drawer", "shelf_drawer_handle"]
+    assert annotations[-1].bodies == ["milk"]
+
+
+def test_a_scene_recorded_without_annotations_names_none(read_json):
+    scene = SceneDescription.from_json(read_json("recorded_cell/scene.json"))
+    assert scene.annotations is None
+    assert SceneKey.ANNOTATIONS not in scene.to_json()
+
+
+def test_a_scene_naming_no_annotations_keeps_saying_so(read_json):
+    data = read_json("recorded_cell/scene.json")
+    data[SceneKey.ANNOTATIONS] = []
+    scene = SceneDescription.from_json(data)
+    assert scene.annotations == []
+    assert SceneDescription.from_json(scene.to_json()).annotations == []
 
 
 def test_a_recording_round_trips(read_json):

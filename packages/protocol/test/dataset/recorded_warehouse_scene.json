@@ -260,5 +260,29 @@
   "annotations": {
    "PR2LeftArm": "semantic_digital_twin.robots.pr2.PR2LeftArm"
   }
- }
+ },
+ "annotations": [
+  {
+   "name": "shelf_drawer",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+   "bodies": [
+    "shelf_drawer",
+    "shelf_drawer_handle"
+   ]
+  },
+  {
+   "name": "shelf_drawer_handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "shelf_drawer_handle"
+   ]
+  },
+  {
+   "name": "milk",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Milk",
+   "bodies": [
+    "milk"
+   ]
+  }
+ ]
 }

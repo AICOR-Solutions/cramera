@@ -1,6 +1,6 @@
 /**
- * A copy of the draft being edited in the browser's storage, so a reload does not lose
- * unsaved work.
+ * A copy of the draft being edited in the tab's storage, so a reload does not lose
+ * unsaved work; a builder page opened anew starts without it.
  */
 
 import { DraftRecordKey } from '../../../protocol.js';
@@ -14,13 +14,13 @@ export const RECOVERY_KEY = 'cramera.scene-builder.recovery';
 
 export class DraftRecovery {
   /**
-   * The browser's storage, `window.localStorage`.
+   * The tab's storage, `window.sessionStorage`.
    * @type {Storage}
    */
   #storage;
 
   /**
-   * @param {Storage} storage The browser's storage.
+   * @param {Storage} storage The tab's storage.
    */
   constructor(storage) {
     this.#storage = storage;

@@ -1,13 +1,13 @@
 /**
  * The Scene graph panel: the shown world as a tree to browse, the way the ontology
- * browser shows classes. A node shows what is known about it, the classes of its entity,
+ * browser shows classes, its semantic annotations included. A node shows what is known about it, the classes of its entity,
  * each linked to the class on the ontology page, the nodes it depends on and the nodes
  * that depend on it, each a click away; choosing a node lights it up in the 3D view,
  * and choosing a part in the 3D view chooses its node.
  */
 
 import { ONTOLOGY_WINDOW } from '../app/ontology-page.js';
-import { ModelKey, PartKey, RobotKey, SceneKey, SelectionKey, ViewerEvent } from '../protocol.js';
+import { AnnotationKey, ModelKey, PartKey, RobotKey, SceneKey, SelectionKey, ViewerEvent } from '../protocol.js';
 import { FixedNode, KIND_TITLES, SceneGraph } from '../scene/scene-graph.js';
 import { SidePanel } from './panel-host.js';
 
@@ -70,7 +70,12 @@ export function sceneFactsOf(scene) {
     links: part[PartKey.LINKS] ?? [],
     attachedTo: part[PartKey.ATTACHED_TO] ?? null,
   }));
-  return { name: scene.name, models, objects: scene.objects.named(), parts, classes: description[SceneKey.CLASSES] ?? null };
+  const annotations = (description[SceneKey.ANNOTATIONS] ?? []).map((annotation) => ({
+    name: annotation[AnnotationKey.NAME],
+    classPath: annotation[AnnotationKey.CLASS],
+    bodies: annotation[AnnotationKey.BODIES] ?? [],
+  }));
+  return { name: scene.name, models, objects: scene.objects.named(), parts, annotations, classes: description[SceneKey.CLASSES] ?? null };
 }
 
 // %% panel

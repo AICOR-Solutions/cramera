@@ -41,6 +41,64 @@ which this repository was mirrored until 22 Oct 2026.
   pick-ups, placings and containments too; its own attachment detector is gone, since
   segmind reads pick-ups from grasps. A trimmed recording keeps the events of its
   frames. segmind's event classes are pinned to their sorts in `cramera_bridge.names`.
+- **Every robot task demo steps through its queries.** `RobotTaskDemo` and its
+  `TaskCommand` take `--step-queries`: the run is published from before its setup and
+  held at each query of its own (`--no-hold` runs on) until **Next** moves it on, and
+  `--name` names the recording. A task's own queries are those its code asks outside
+  the CRAM workspace and the parts its plan leaves open, which coraplex grounds
+  through the context's `query_backend`; what CRAM asks for itself, such as a robot
+  part finding its robot or the world reasoner's rules, holds nothing. A step names
+  the action under way, and a stepped recording is stamped with a clock that stands
+  still while the run is held, so its replay keeps the run's pace. The stepping moved
+  from the PR2 demo into `cramera_bridge.query_stepping` (`QueryStepper`,
+  `SteppedBackend`, `ActionProgress`) and `HeldQueries`
+  (`cramera_bridge.live.query_steps`). `VesselTransferDemo` finds its robot, the
+  bench's handles and its vessel by entity queries, and
+  `python -m cramera_bridge.demos.query_stepping --bundle DIR` runs it with
+  `--step-queries`. `cramera_bridge.demos.garmi_apartment` is CRAM's GARMI
+  demonstration as a task demo: GARMI carries a bowl and a spoon across the apartment,
+  each transport grounded by a query.
+- **A plan database in every recorded bundle.** Saving a recording keeps the run in
+  the bundle's `plans.sqlite` (`BundleFile.PLAN_DATABASE`): the documents that change
+  from run to run (scene, trajectory, statecharts, query steps, acceptance metrics and
+  recorded answers), every plan step with the parameters and constraints the plan view
+  shows, and the performed coraplex plans as CRAM's own database mapping stores them,
+  where the workspace has generated it. Meshes and URDFs stay the bundle's files, kept
+  once. A save with `addsARun`, and `cramera-onboard`, the task demos and the query
+  stepper with `--add-run`, record a further run into the bundle of the same name: its
+  files show the newest run, and its database keeps every run. The database is not
+  committed.
+- **Watching from a phone.** `cramera --lan` listens on every address and names the
+  address, with a key, that other devices of the network open; they need the key, kept
+  in `~/.cramera/network_key` and then in a cookie, and may only read, so asking,
+  running and saving stay with the machine that serves the viewer. On touch screens
+  the 3D view names its gestures, the scrubber and its marks are larger and **Pop
+  out** is gone; the scene picker wraps on phones, and a phone on its side stacks the
+  columns and fits the 3D view and the playback controls onto its screen.
+- **Following a run from a phone.** A page opened at the viewer's network address
+  reads the live publisher on `127.0.0.1:8765` through the viewer's relay below
+  `/api/live/` (`ViewerRoute.LIVE_RELAY`), so `?live=http://127.0.0.1:8765` and the
+  Live tab's default address work from a phone of `cramera --lan`. The relay forwards
+  only the observation routes the page reads, each with its own query parameters,
+  answers 503 when no publisher runs, and relays nothing that changes the run; the
+  publisher still listens on this machine only.
+- **Starting runs from a phone.** The new plugin `cramera-scene-runs` adds a **Runs**
+  tab when `CRAMERA_SCENE_RUNS` names a file of runs (`SceneRunCatalog`: each run's
+  identifier, label, command and an optional recording to replay). The tab starts one
+  run at a time as a process of its own, with `{recording}` in its command naming a new
+  recording, has the page follow it live, stops it with its whole process group, shows
+  whether it recorded, failed or was stopped with the end of its output, and replays the
+  recording. Its start and stop may be used by the pages behind a password-checking
+  proxy.
+- **Serving behind a password-checking proxy.** `cramera --public-origin ORIGIN`
+  serves the viewer to a reverse proxy on the same machine, such as nginx with Basic
+  auth at `/phone/`: every request counts as another device's that the proxy let in,
+  so none needs the key. Routes say what such devices may do (`Route.remote_changes`,
+  `Route.local_only`, also on plugin route declarations): behind the proxy they step a
+  live run's queries through the relay (`/api/live/query_steps/next` and `/mode`) and
+  use the routes a plugin offers them; everything else that changes something stays
+  refused, and the plan builder's folder listing is for this machine only.
+  `ViewerEvent.LIVE_REQUESTED` lets a plugin have the page follow a live publisher.
 - **The scene graph lights up what it names and links it to the ontology.** Choosing
   a node in the Scene graph tab makes the meshes it stands for glow in the 3D view,
   inside one box per model and one per free object instead of a box per link: a
@@ -56,6 +114,21 @@ which this repository was mirrored until 22 Oct 2026.
 
   ![The PR2's right gripper chosen in the scene graph, glowing, with its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-part-focused.png)
   ![GarmiLeftGripper opened on the Ontology page from its class link](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-ontology/scene-graph-ontology-class.png)
+
+- **The scene graph shows the world's semantic annotations.** A **Semantic
+  annotations** group lists the annotations of the scene's world other than its
+  robots and their parts, such as `Drawer`, `Handle`, `Door`, `Cabinet` or `Fridge`.
+  Choosing one makes its bodies glow in the 3D view; its node refers to the link and
+  free object nodes of those bodies and links its class to the Ontology page. A scene
+  names them in `SceneDescription.annotations` (`SceneAnnotation`: its name, its
+  class, `module.Class`, and its bodies by link name or free object identifier; None
+  for a scene recorded without them). `cramera-bridge` names them when it writes a
+  bundle; `cramera-record-classes` names them in bundles written before, from the
+  world CRAM builds from each bundle. The demo scenes carry them: the GARMI
+  apartment's kitchen cabinet with its four drawers, four doors and their handles, a
+  sofa, a coffee table and a wall, and the medical lab's drawer.
+
+  ![The GARMI apartment's kitchen cabinet chosen in the scene graph, glowing with its drawers, doors and handles](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/scene-graph-annotations/garmi-kitchen-cabinet.png)
 
 - **GARMI's pick and place in an apartment as a demo scene.**
   `demo/standard_scenes/garmi_pick_place` replays GARMI picking up a bowl and then a
@@ -329,6 +402,41 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Nothing comes between the cinematic camera and what it films.** The film's wide
+  orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
+  so the picture showed that and not the robot. The camera now casts rays against the
+  environment (`LineOfSight`; the robots and the free objects are what it films):
+  a blocked or crowded angle, one whose picture a near surface mostly hides, films from
+  another one, the wide orbit turns back where a wall would come between and looks from
+  higher up when it has to, a close-up films its object from the other side or from
+  above, and a camera with nowhere clear to go stands in front of what is in the way.
+  The camera eases round what it films rather than through it, moves in front of a
+  surface at once rather than easing behind it, and cuts to the shot when easing would
+  lose the robot behind a wall, as when it moves faster than the camera follows. A mesh
+  of many triangles, such as an oven, stands in the way as its box, and a ray that starts
+  inside that box, as at a spoon in a drawer, tests the mesh's triangles through a tree
+  of nested boxes built the first time; in the PR2 apartment the camera then takes a
+  millisecond or two a frame.
+
+  ![Before and after in the PR2 apartment](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/cinematic-occlusion/cinematic_camera_occlusion.png)
+- **Play NEEM jumps to the moment an answer is about.** An answer's replay windows
+  named seconds since the epoch, which the questions panel took for frame numbers, so
+  every replay, such as one of "what was detected, and when?", landed on the last
+  frame. `ReplayWindow` now names the first and last frame of the recorded scene
+  (`first_frame`, `last_frame`): the frames recorded nearest to a second before and a
+  second after the moment, found from the wall-clock time of each frame of its
+  trajectory (`FrameTimeline`). A moment outside the recording, an answer about a
+  running world and a recording without frame times offer no replay. Windows recorded
+  before in seconds offer none either; record the answers again with
+  `cramera-record-answers` to replay them. The answer's button, **Replay** before, is
+  called **Play NEEM**.
+
+- **An environment drawn without collision geometry gets its annotations.** CRAM's
+  world reasoner takes a body without collision geometry for one that only carries a
+  joint, so the world built from a bundle whose environment has visual shapes only,
+  such as the GARMI apartment the pre-1.0 viewer recorded, got no handles, drawers or
+  doors. While the reasoner reads the world, such bodies now collide by their visual
+  shapes (`InferredAnnotations`); afterwards they keep their own collision geometry.
 - **Isaac apartments pass the export gate with their materials carried over.**
   `cramera-export` refused cram-vrb-lab's GARMI apartment for inputs it neither mapped
   nor kept. They now reach the GLB: OmniPBR's `specular_level` and UsdPreviewSurface's
@@ -375,6 +483,12 @@ which this repository was mirrored until 22 Oct 2026.
   meshes are now found beside the URDF.
 
 ### Changed
+- **The scene builder opens with an empty draft.** It no longer restores the draft of
+  the last visit, so it starts without the scene opened before; only a reload, or the
+  browser's back and forward buttons, continue the draft the tab was editing. The copy
+  lives in the tab's `sessionStorage` instead of `localStorage`, so two builder tabs no
+  longer overwrite each other's, and reloading a page that names a scene keeps its
+  edits instead of starting the scene again. `BuilderEnvironment` takes `returning`.
 - **The Medical lab page is called Physical lab.** Its top-bar link, page title,
   heading and panel say **Physical lab**; the page stays at
   `/plugins/laboratory/laboratory.html` and the scenes keep their names.

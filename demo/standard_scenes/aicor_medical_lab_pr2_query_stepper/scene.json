@@ -994,5 +994,15 @@
    "PR2RightArm": "semantic_digital_twin.robots.pr2.PR2RightArm",
    "PR2RightGripper": "semantic_digital_twin.robots.pr2.PR2RightGripper"
   }
- }
+ },
+ "annotations": [
+  {
+   "name": "laboratory_drawer",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",
+   "bodies": [
+    "laboratory_drawer",
+    "laboratory_drawer_handle"
+   ]
+  }
+ ]
 }

@@ -14,15 +14,18 @@ import webbrowser
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from typing_extensions import List, Mapping, Optional, Sequence
 
 from cramera.application import ViewerApplication
 from cramera.branding import Branding
 from cramera.exceptions import LogoNotFound, UnsupportedLogo
-from cramera.http.origin import OriginPolicy
+from cramera.http.addresses import EVERY_ADDRESS, LOOPBACK
+from cramera.http.origin import KEY_PARAMETER, LOCAL_HOSTS, OriginPolicy
 from cramera.http.server import HttpServer, RequestAnswerer
 from cramera.locations import DataLocations
+from cramera.network_key import NetworkKey
 from cramera.occupant import PortOccupant
 from cramera.plugins import PluginLoader
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
@@ -41,6 +44,19 @@ class Option(StrEnum):
     HOST = "--host"
     """
     The address to listen on.
+    """
+
+    LAN = "--lan"
+    """
+    Listen on every address of this machine, so other devices of its network, such as a
+    phone, can watch.
+    """
+
+    PUBLIC_ORIGIN = "--public-origin"
+    """
+    The origin a password-checking reverse proxy on this machine serves the viewer at,
+    such as ``https://cramera.informatik.uni-bremen.de``; its pages may start, stop and
+    step runs.
     """
 
     PORT = "--port"
@@ -98,7 +114,7 @@ class ViewerConfiguration:
     Where cramera keeps its data.
     """
 
-    host: str = "127.0.0.1"
+    host: str = LOOPBACK
     """
     The address to listen on.
     """
@@ -133,6 +149,12 @@ class ViewerConfiguration:
     Which logo the pages show.
     """
 
+    public_origin: Optional[str] = None
+    """
+    The origin a password-checking reverse proxy on this machine serves the viewer at;
+    None when pages reach the viewer directly.
+    """
+
     @classmethod
     def from_arguments(
         cls,
@@ -150,7 +172,10 @@ class ViewerConfiguration:
         parser = argparse.ArgumentParser(
             prog="cramera", description="Serve the cramera viewer."
         )
-        parser.add_argument(Option.HOST, default="127.0.0.1")
+        address = parser.add_mutually_exclusive_group()
+        address.add_argument(Option.HOST, default=LOOPBACK)
+        address.add_argument(Option.LAN, action="store_true")
+        parser.add_argument(Option.PUBLIC_ORIGIN, default=None)
         parser.add_argument(Option.PORT, type=int, default=DEFAULT_PORT)
         parser.add_argument(Option.SCENES, type=Path, action="append", default=[])
         parser.add_argument(Option.DEMO_SCENES, type=Path, default=None)
@@ -164,15 +189,30 @@ class ViewerConfiguration:
             branding = Branding.of(parsed.logo, parsed.logo_text, environment or {})
         except (LogoNotFound, UnsupportedLogo) as error:
             parser.error(error.message())
+        host = EVERY_ADDRESS if parsed.lan else parsed.host
+        public_origin = None
+        if parsed.public_origin is not None:
+            public_origin = origin_of(parsed.public_origin)
+            if public_origin is None:
+                parser.error(
+                    f"{Option.PUBLIC_ORIGIN} takes an origin such as "
+                    f"https://cramera.example.org, not {parsed.public_origin!r}"
+                )
+            if host not in LOCAL_HOSTS:
+                parser.error(
+                    f"{Option.PUBLIC_ORIGIN} serves the proxy on this machine, so the "
+                    f"viewer listens on a loopback address only"
+                )
         return cls(
             locations=locations,
-            host=parsed.host,
+            host=host,
             port=parsed.port,
             extra_scenes=parsed.scenes,
             demo_scenes=parsed.demo_scenes,
             open_browser=not parsed.no_browser,
             replace_viewer=not parsed.keep_running,
             branding=branding,
+            public_origin=public_origin,
         )
 
     def scene_directories(self) -> List[SceneDirectory]:
@@ -200,13 +240,64 @@ class ViewerConfiguration:
             plugins=PluginLoader().load(),
             branding=self.branding,
         )
-        answerer = RequestAnswerer(router=application.router(), policy=OriginPolicy())
+        answerer = RequestAnswerer(router=application.router(), policy=self.policy())
         return HttpServer(
             answerer=answerer,
             host=self.host,
             port=self.port,
             on_stop=[application.close],
         )
+
+    def policy(self) -> OriginPolicy:
+        """
+        :return: Which pages and host names the viewer answers: behind a proxy those of
+            its public origin, every request as another device's that may control runs;
+            on the network other devices with the key; else this machine's only.
+        """
+        if self.public_origin is not None:
+            return OriginPolicy(
+                allowed_hosts=LOCAL_HOSTS | {urlsplit(self.public_origin).hostname},
+                proxied=True,
+            )
+        return OriginPolicy(key=self.network_key())
+
+    def network_key(self) -> Optional[str]:
+        """
+        :return: The key other devices carry, when the viewer listens beyond this
+            machine; None otherwise.
+        """
+        if self.host in LOCAL_HOSTS:
+            return None
+        return NetworkKey.of(self.locations).value()
+
+    def announce_network(self, server: HttpServer) -> None:
+        """
+        Say where other devices of the network open the started server, with its key,
+        when it listens beyond this machine.
+
+        :param server: The started server.
+        """
+        if self.public_origin is not None:
+            logger.info(
+                "pages of %s reach this viewer through its proxy; they may watch, "
+                "start, stop and step runs",
+                self.public_origin,
+            )
+            return
+        network = server.network_url()
+        key = self.network_key()
+        if network is not None and key is not None:
+            logger.info(
+                "other devices of this network open %s/?%s=%s; they may watch, but "
+                "change nothing",
+                network,
+                KEY_PARAMETER,
+                key,
+            )
+        elif self.host == EVERY_ADDRESS:
+            logger.warning(
+                "this machine has no network address other devices could open"
+            )
 
     def start_server(self) -> HttpServer:
         """
@@ -224,6 +315,23 @@ class ViewerConfiguration:
                 raise
         PortOccupant(self.host, self.port).replace_viewer()
         return server.start()
+
+
+# %% origins
+
+
+def origin_of(address: str) -> Optional[str]:
+    """
+    :param address: An address naming an origin, such as ``https://example.org``.
+    :return: The origin, scheme and host with its port; None when the address is no
+        http or https origin, or names a path, a query or a fragment.
+    """
+    parts = urlsplit(address)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return None
+    if parts.path not in ("", "/") or parts.query or parts.fragment:
+        return None
+    return f"{parts.scheme}://{parts.netloc}"
 
 
 # %% command
@@ -255,6 +363,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> None:
         sys.exit(1)
     try:
         logger.info("cramera serves %s", server.url())
+        configuration.announce_network(server)
         if configuration.open_browser:
             webbrowser.open(server.url())
         signal.sigwait(stop_signals)

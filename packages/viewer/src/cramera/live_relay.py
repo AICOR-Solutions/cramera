@@ -1,0 +1,191 @@
+"""
+What the viewer's page reads from the live publisher on this machine, relayed through
+the viewer's own origin.
+
+The publisher answers this machine only, since a query runs code. A page opened from
+another device of the network, such as a phone, reaches only the viewer, so the viewer
+reads the publisher for it: the observations the page follows a run by. Of the changes,
+only stepping through the run's queries is relayed, and only for devices the viewer lets
+control runs.
+"""
+
+from __future__ import annotations
+
+from contextlib import closing
+from dataclasses import dataclass
+from http import HTTPStatus
+from http.client import HTTPConnection, HTTPException
+from urllib.parse import urlencode
+
+from typing_extensions import FrozenSet, List, Mapping, Optional
+
+from cramera.exceptions import LivePublisherUnreachable, UnknownLiveRead
+from cramera.http.addresses import url_of
+from cramera.http.messages import Header, HttpMethod, MediaType, Request, Response
+from cramera.http.routing import ExactRoute, PrefixRoute, Route
+from cramera_protocol.live import LIVE_HOST, LIVE_PORT, LiveRoute
+from cramera_protocol.live_messages import LiveParameter
+from cramera_protocol.viewer import ViewerRoute
+
+RELAYED_READS: Mapping[LiveRoute, FrozenSet[LiveParameter]] = {
+    LiveRoute.INFO: frozenset(),
+    LiveRoute.STATE: frozenset(),
+    LiveRoute.PLAN: frozenset(),
+    LiveRoute.STATECHART: frozenset(),
+    LiveRoute.RECORDING: frozenset(),
+    LiveRoute.LIVE_SCENE: frozenset(),
+    LiveRoute.RESOLUTIONS: frozenset(),
+    LiveRoute.QUERY_STEPS: frozenset({LiveParameter.REVISION}),
+    LiveRoute.DETECTED_EVENTS: frozenset(),
+    LiveRoute.PERCEPTION_IMAGE: frozenset({LiveParameter.KEY}),
+}
+"""
+The routes the page reads to follow a run, each with the query parameters it takes; no
+other route, and no other parameter, is relayed.
+"""
+
+RELAYED_CHANGES: FrozenSet[LiveRoute] = frozenset(
+    {LiveRoute.QUERY_STEPS_NEXT, LiveRoute.QUERY_STEPS_MODE}
+)
+"""
+The changes relayed with their body: letting a held run carry on and choosing whether it
+is held at every query.
+
+Other devices make them only where the viewer lets them control runs.
+"""
+
+RELAY_TIMEOUT = 30.0
+"""
+Seconds to wait for the publisher's answer, which includes bundling its world the first
+time the page asks for the live scene.
+"""
+
+MEDIA_TYPES: Mapping[str, MediaType] = {
+    media_type.value: media_type for media_type in MediaType
+}
+"""
+The media types the viewer answers in, by the ``Content-Type`` that names them.
+"""
+
+# %% relay
+
+
+@dataclass(frozen=True)
+class LiveRelay:
+    """
+    Reads the live publisher on this machine for pages that cannot reach it themselves.
+    """
+
+    host: str = LIVE_HOST
+    """
+    The address the publisher listens on, one of this machine's own.
+    """
+
+    port: int = LIVE_PORT
+    """
+    The port the publisher listens on.
+    """
+
+    timeout: float = RELAY_TIMEOUT
+    """
+    Seconds to wait for the publisher's answer.
+    """
+
+    def address(self) -> str:
+        """
+        :return: The publisher's base URL.
+        """
+        return url_of(self.host, self.port)
+
+    def routes(self) -> List[Route]:
+        """
+        :return: The viewer's routes of the relay: every read below its prefix, and one
+            route for each relayed change, which other devices may make.
+        """
+        reads: List[Route] = [
+            PrefixRoute(HttpMethod.GET, ViewerRoute.LIVE_RELAY, self.answer)
+        ]
+        changes = [
+            ExactRoute(
+                HttpMethod.POST,
+                f"{ViewerRoute.LIVE_RELAY}{route.lstrip('/')}",
+                self.change,
+                remote_changes=True,
+            )
+            for route in sorted(RELAYED_CHANGES)
+        ]
+        return reads + changes
+
+    def answer(self, request: Request, route: str) -> Response:
+        """
+        :param request: A read below the relay's prefix.
+        :param route: The publisher's route, relative to the prefix.
+        :return: The publisher's answer, as it gave it.
+        :raises UnknownLiveRead: When the page does not read the route.
+        :raises LivePublisherUnreachable: When no live publisher answers.
+        """
+        path = f"/{route}"
+        if path not in RELAYED_READS:
+            raise UnknownLiveRead(route)
+        pairs = [
+            (name, value)
+            for name, values in request.parameters().items()
+            if name in RELAYED_READS[path]
+            for value in values
+        ]
+        return self.forward(
+            HttpMethod.GET, f"{path}?{urlencode(pairs)}" if pairs else path
+        )
+
+    def change(self, request: Request) -> Response:
+        """
+        :param request: A relayed change, one of :data:`RELAYED_CHANGES` below the
+            relay's prefix.
+        :return: The publisher's answer, as it gave it.
+        :raises LivePublisherUnreachable: When no live publisher answers.
+        """
+        path = f"/{request.path.removeprefix(ViewerRoute.LIVE_RELAY)}"
+        return self.forward(
+            HttpMethod.POST,
+            path,
+            request.body,
+            request.header(Header.CONTENT_TYPE) or MediaType.JSON,
+        )
+
+    def forward(
+        self,
+        method: HttpMethod,
+        target: str,
+        body: bytes = b"",
+        media_type: Optional[str] = None,
+    ) -> Response:
+        """
+        The relay is where a publisher that does not answer becomes an answer, so this
+        is where connection errors are caught.
+
+        :param method: The request's method.
+        :param target: The path and query of the request.
+        :param body: The request's body, for a change.
+        :param media_type: The body's media type, for a change.
+        :return: The publisher's answer.
+        :raises LivePublisherUnreachable: When no live publisher answers.
+        """
+        headers = {} if media_type is None else {Header.CONTENT_TYPE: media_type}
+        connection = HTTPConnection(self.host, self.port, timeout=self.timeout)
+        try:
+            with closing(connection):
+                connection.request(method, target, body or None, headers)
+                answer = connection.getresponse()
+                body = answer.read()
+        except (OSError, HTTPException) as error:
+            raise LivePublisherUnreachable(
+                self.address(), str(error) or type(error).__name__
+            ) from error
+        media_type = MEDIA_TYPES.get(answer.getheader(Header.CONTENT_TYPE, ""))
+        if media_type is None:
+            raise LivePublisherUnreachable(
+                self.address(), "the service answering there is no live publisher"
+            )
+        return Response(
+            status=HTTPStatus(answer.status), body=body, media_type=media_type
+        )

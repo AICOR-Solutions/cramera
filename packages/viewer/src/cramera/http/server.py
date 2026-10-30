@@ -16,6 +16,14 @@ from urllib.parse import unquote, urlsplit
 from typing_extensions import Callable, List, Optional, Self, Tuple, Type
 
 from cramera.exceptions import ViewerError
+from cramera.http.addresses import (
+    WILDCARD_HOSTS,
+    is_loopback,
+    local_host,
+    network_address,
+    own_address,
+    url_of,
+)
 from cramera.http.messages import (
     BodyStream,
     CacheDirective,
@@ -58,7 +66,9 @@ class RequestAnswerer:
         :param request: A request.
         :return: The response to send.
         """
-        refusal = self.policy.refusal(request)
+        refusal = self.policy.refusal(
+            request, self.router.route(request.method, request.path)
+        )
         if refusal is not None:
             return refusal
         if request.method is HttpMethod.OPTIONS:
@@ -135,6 +145,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             headers=dict(self.headers.items()),
             body=self.rfile.read(length) if length and stream is None else b"",
             stream=stream,
+            server_address=own_address(self.connection.getsockname()[0]),
+            client_address=own_address(self.client_address[0]),
         )
         response = self.answerer.answer(request)
         if stream is not None and stream.remaining() > 0:
@@ -258,10 +270,22 @@ class HttpServer:
 
     def url(self) -> str:
         """
-        :return: The base URL of the started server.
+        :return: The base URL this machine reaches the started server at.
         """
-        host = f"[{self.host}]" if ":" in self.host else self.host
-        return f"http://{host}:{self.bound_port()}"
+        return url_of(local_host(self.host), self.bound_port())
+
+    def network_url(self) -> Optional[str]:
+        """
+        :return: The base URL other devices of the network reach the started server
+            at; None when it listens on this machine only, or this machine has no
+            network.
+        """
+        bound = own_address(self.server.server_address[0])
+        if bound in WILDCARD_HOSTS:
+            address = network_address()
+        else:
+            address = None if is_loopback(bound) else bound
+        return None if address is None else url_of(address, self.bound_port())
 
     def __enter__(self) -> Self:
         return self.start()

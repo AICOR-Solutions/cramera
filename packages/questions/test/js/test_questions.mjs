@@ -55,7 +55,7 @@ const ANSWER = {
   [QueryAnswerKey.ROWS]: [{ x: 1, [AnswerColumn.TYPE]: 'Robot', [AnswerColumn.ENTITY]: 'pr2' }],
   [QueryAnswerKey.COUNT]: 1,
   [QueryAnswerKey.HIGHLIGHT]: ['base_link'],
-  [QueryAnswerKey.REPLAY]: [{ [ReplayWindowKey.START]: 12, [ReplayWindowKey.END]: 40 }],
+  [QueryAnswerKey.REPLAY]: [{ [ReplayWindowKey.FIRST_FRAME]: 12, [ReplayWindowKey.LAST_FRAME]: 40 }],
   [QueryAnswerKey.VERBALIZATION]: { [VerbalizationKey.TEXT]: 'the robot', [VerbalizationKey.HTML]: '<b>the robot</b>' },
 };
 
@@ -101,7 +101,7 @@ test('the client calls the plugin routes below the page base', async () => {
 
 // %% answers
 
-test('an answer shows its English reading as text, describing columns first, and replay buttons', () => {
+test('an answer shows its English reading as text, describing columns first, and Play NEEM buttons', () => {
   const replayed = [];
   const view = new AnswerView(new FakeDocument(), (window) => replayed.push(window));
   view.show(ANSWER);
@@ -111,8 +111,17 @@ test('an answer shows its English reading as text, describing columns first, and
   const headings = table.children[0].children.map((cell) => cell.textContent);
   assert.deepEqual(headings, ['Entity', 'Type', 'x', '']);
   const button = table.children[1].children[3].children[0];
+  assert.equal(button.textContent, 'Play NEEM');
+  assert.equal(button.title, 'Frames 12 to 40');
   button.dispatch('click');
   assert.deepEqual(replayed, [ANSWER[QueryAnswerKey.REPLAY][0]]);
+});
+
+test('a replay window recorded in seconds since the epoch offers no replay', () => {
+  const view = new AnswerView(new FakeDocument(), () => {});
+  view.show({ ...ANSWER, [QueryAnswerKey.REPLAY]: [{ start: 1790848799.0, end: 1790848801.0 }] });
+  const [, , table] = view.element.children;
+  assert.deepEqual(table.children[1].children[3].children, []);
 });
 
 test('an answer shows the statement it was translated into under its reading', () => {
