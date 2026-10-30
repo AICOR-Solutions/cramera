@@ -17,13 +17,20 @@ const VIEWER_PAGE = '../../';
  */
 const DOWNLOAD_ADDRESS_LIFETIME = 0;
 
+/**
+ * The ways into a page that return to it rather than open it anew: a reload, and the
+ * browser's back and forward buttons.
+ */
+const RETURNING_NAVIGATIONS = Object.freeze(['reload', 'back_forward']);
+
 const viewer = new URL(VIEWER_PAGE, window.location.href).href;
 const api = new BuilderApi(window.fetch.bind(window), viewer);
 const environment = new BuilderEnvironment({
   document,
   api,
-  storage: window.localStorage,
+  storage: window.sessionStorage,
   query: new URLSearchParams(window.location.search),
+  returning: RETURNING_NAVIGATIONS.includes(performance.getEntriesByType('navigation')[0]?.type),
   viewerUrl: viewer,
   createView: DraftView.isAvailable(document)
     ? (container, listeners) => new DraftView(container, new ResourceLoading(api, (missing) => listeners.onError(missing)), listeners)
