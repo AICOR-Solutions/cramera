@@ -85,6 +85,12 @@ class BundleFile(StrEnum):
     viewers that cannot answer them.
     """
 
+    PLAN_DATABASE = "plans.sqlite"
+    """
+    The SQLite database of every recorded run of the bundle: each run's plans with their
+    parameters and the documents that change from one run to the next.
+    """
+
 
 class ScenesDirectoryFile(StrEnum):
     """

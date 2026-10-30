@@ -22,6 +22,7 @@ TESTS_WITHOUT_CRAM = (
     "test_documents.py",
     "test_cram_boundary.py",
     "test_demo_script.py",
+    "database/test_runs.py",
     "laboratory/test_command.py",
     "export/test_scene_index.py",
     "plans/test_objects.py",
