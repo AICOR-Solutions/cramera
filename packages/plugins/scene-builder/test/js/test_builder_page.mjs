@@ -118,7 +118,7 @@ class RecordingView {
   }
 }
 
-async function started({ query = '', storage = new FakeStorage(), withView = true } = {}) {
+async function started({ query = '', storage = new FakeStorage(), returning = false, withView = true } = {}) {
   const document = new FakeDocument();
   const root = document.createElement('div');
   const api = new FakeApi();
@@ -131,6 +131,7 @@ async function started({ query = '', storage = new FakeStorage(), withView = tru
       api,
       storage,
       query: new URLSearchParams(query),
+      returning,
       viewerUrl: '../../',
       createView: withView ? (container, listeners) => (view = new RecordingView(listeners)) : null,
       download: (blob, name) => downloads.push([blob, name]),
@@ -342,19 +343,39 @@ test('a file of another format is not uploaded', async () => {
 
 // %% recovery
 
-test('the draft of the last visit is restored', async () => {
+test('a reload continues the draft the tab kept', async () => {
   const storage = new FakeStorage();
   const first = await started({ storage });
   byAction(first.root, BuilderAction.ADD)[0].dispatch(DomEvent.CLICK);
   await settled();
+  const second = await started({ storage, returning: true });
+  assert.deepEqual(second.page.state.draft, first.page.state.draft);
+});
+
+test('a page opened anew starts an empty draft although the tab kept one', async () => {
+  const storage = new FakeStorage();
+  const first = await started({ storage, query: `${BuilderPageParameter.SCENE}=cell` });
+  assert.notDeepEqual(first.page.state.draft[DraftKey.INSTANCES], []);
   const second = await started({ storage });
+  assert.deepEqual(second.page.state.draft[DraftKey.INSTANCES], []);
+  assert.equal(second.page.draftIdentifier, null);
+});
+
+test('a reload of a page naming a scene keeps the edits rather than starting again', async () => {
+  const storage = new FakeStorage();
+  const query = `${BuilderPageParameter.SCENE}=cell`;
+  const first = await started({ storage, query });
+  byAction(first.root, BuilderAction.ADD)[0].dispatch(DomEvent.CLICK);
+  await settled();
+  const second = await started({ storage, query, returning: true });
+  assert.deepEqual(second.api.templates, []);
   assert.deepEqual(second.page.state.draft, first.page.state.draft);
 });
 
 test('an unreadable kept draft is forgotten and reported', async () => {
   const storage = new FakeStorage();
   storage.setItem(RECOVERY_KEY, '{');
-  const { root, page } = await started({ storage });
+  const { root, page } = await started({ storage, returning: true });
   assert.deepEqual(page.state.draft[DraftKey.INSTANCES], []);
   assert.notEqual(storage.getItem(RECOVERY_KEY), '{');
   assert.equal(status(root).dataset.state, PageState.FAILED);

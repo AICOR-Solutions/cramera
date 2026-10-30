@@ -429,6 +429,12 @@ which this repository was mirrored until 22 Oct 2026.
   meshes are now found beside the URDF.
 
 ### Changed
+- **The scene builder opens with an empty draft.** It no longer restores the draft of
+  the last visit, so it starts without the scene opened before; only a reload, or the
+  browser's back and forward buttons, continue the draft the tab was editing. The copy
+  lives in the tab's `sessionStorage` instead of `localStorage`, so two builder tabs no
+  longer overwrite each other's, and reloading a page that names a scene keeps its
+  edits instead of starting the scene again. `BuilderEnvironment` takes `returning`.
 - **The Medical lab page is called Physical lab.** Its top-bar link, page title,
   heading and panel say **Physical lab**; the page stays at
   `/plugins/laboratory/laboratory.html` and the scenes keep their names.
