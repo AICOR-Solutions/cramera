@@ -101,7 +101,7 @@ test('the client calls the plugin routes below the page base', async () => {
 
 // %% answers
 
-test('an answer shows its English reading as text, describing columns first, and replay buttons', () => {
+test('an answer shows its English reading as text, describing columns first, and Play NEEM buttons', () => {
   const replayed = [];
   const view = new AnswerView(new FakeDocument(), (window) => replayed.push(window));
   view.show(ANSWER);
@@ -111,6 +111,7 @@ test('an answer shows its English reading as text, describing columns first, and
   const headings = table.children[0].children.map((cell) => cell.textContent);
   assert.deepEqual(headings, ['Entity', 'Type', 'x', '']);
   const button = table.children[1].children[3].children[0];
+  assert.equal(button.textContent, 'Play NEEM');
   assert.equal(button.title, 'Frames 12 to 40');
   button.dispatch('click');
   assert.deepEqual(replayed, [ANSWER[QueryAnswerKey.REPLAY][0]]);

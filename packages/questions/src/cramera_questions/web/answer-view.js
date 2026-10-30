@@ -137,7 +137,7 @@ export class AnswerView {
       const window = replay[position];
       if (namesFrames(window)) {
         const button = document.createElement('button');
-        button.textContent = 'Replay';
+        button.textContent = 'Play NEEM';
         button.title = `Frames ${window[ReplayWindowKey.FIRST_FRAME]} to ${window[ReplayWindowKey.LAST_FRAME]}`;
         button.addEventListener('click', () => this.#onReplay(window));
         action.append(button);
