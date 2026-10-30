@@ -6,6 +6,8 @@ there fails here, in the bridge, and nowhere else.
 from __future__ import annotations
 
 import dataclasses
+import inspect
+from abc import ABC
 
 import pytest
 
@@ -16,6 +18,7 @@ from cramera_bridge.names import (
     ACTIONS,
     ANNOTATION_NAMES,
     ANNOTATIONS,
+    DETECTED_EVENT_KINDS,
     ENUM_NAMES,
     ENUMS,
     FIELD_NAMES,
@@ -28,12 +31,16 @@ from cramera_bridge.names import (
     ROBOTS,
     PinnedClass,
     derived_identifier,
+    detected_event_classes,
+    detected_event_kind,
     plan_node_kind,
     plan_node_classes,
 )
 from cramera_bridge.plans.actions import ActionDiscovery
 from cramera_bridge.plans.workspace import RobotAnnotations, SurfaceAnnotations
-from cramera_protocol.bundle.scene import PlanNodeKind
+from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
+from segmind.datastructures import events
+from segmind.datastructures.events import LossOfSupportEvent, PickUpEvent
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.pr2 import PR2
 
@@ -76,6 +83,30 @@ def test_every_plan_node_class_of_the_table_exists():
     assert len(plan_node_classes()) == len(PLAN_NODE_KINDS)
 
 
+def test_every_detected_event_class_of_the_table_exists():
+    assert len(detected_event_classes()) == len(DETECTED_EVENT_KINDS)
+
+
+def concrete_event_classes() -> list:
+    """
+    :return: Every event class segmind defines that it does not declare abstract.
+    """
+    return [
+        cls
+        for _, cls in inspect.getmembers(events, inspect.isclass)
+        if cls.__module__ == events.__name__
+        and issubclass(cls, events.DetectionEvent)
+        and ABC not in cls.__bases__
+    ]
+
+
+@pytest.mark.parametrize(
+    "event_class", concrete_event_classes(), ids=lambda cls: cls.__name__
+)
+def test_every_event_segmind_detects_has_a_kind(event_class: type):
+    assert any(issubclass(event_class, cls) for cls, _ in detected_event_classes())
+
+
 # %% translating
 
 
@@ -103,6 +134,20 @@ def test_plan_nodes_are_named_by_the_protocols_kinds(small_plan):
     assert plan_node_kind(small_plan.action) is PlanNodeKind.ACTION
     assert plan_node_kind(small_plan.motion) is PlanNodeKind.MOTION
     assert plan_node_kind(PlanNode()) is PlanNodeKind.OTHER
+
+
+def test_detected_events_are_named_by_the_protocols_kinds(kitchen):
+    assert (
+        detected_event_kind(PickUpEvent(tracked_object=kitchen.milk))
+        is DetectedEventKind.PICK_AND_PLACE
+    )
+    assert (
+        detected_event_kind(
+            LossOfSupportEvent(tracked_object=kitchen.milk, with_object=kitchen.table)
+        )
+        is DetectedEventKind.SUPPORT
+    )
+    assert detected_event_kind(object()) is DetectedEventKind.OTHER
 
 
 # %% enumerations, fields and annotations

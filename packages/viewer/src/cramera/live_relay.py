@@ -36,6 +36,7 @@ RELAYED_READS: Mapping[LiveRoute, FrozenSet[LiveParameter]] = {
     LiveRoute.LIVE_SCENE: frozenset(),
     LiveRoute.RESOLUTIONS: frozenset(),
     LiveRoute.QUERY_STEPS: frozenset({LiveParameter.REVISION}),
+    LiveRoute.DETECTED_EVENTS: frozenset(),
     LiveRoute.PERCEPTION_IMAGE: frozenset({LiveParameter.KEY}),
 }
 """

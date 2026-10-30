@@ -26,7 +26,7 @@ through a plugin.
 | `cramera-protocol` | `cramera_protocol` | standard library, `typing_extensions` | Scene bundle files, scene index, live messages, HTTP routes, capabilities, protocol version. The single definition both Python and the browser read. |
 | `cramera` | `cramera` | `cramera-protocol` | The viewer: HTTP server, scene catalog, plugin loading, the browser application, screenshots. Installs and runs without CRAM. |
 | `cramera-usd` | `cramera_usd` | `cramera-protocol`, `usd-core`, `numpy` | Converting a USD stage into a scene bundle, the export gate, the robot separation audit. |
-| `cramera-bridge` | `cramera_bridge` | `cramera`, CRAM packages | The only package that imports the CRAM workspace: live publishing from a running plan, recording into bundles (with the class of each entity and the world's semantic annotations, which `cramera-record-classes` adds to bundles recorded before), demo onboarding, task demos, the question engine (`cramera_bridge.questions`: queries in the entity query language about a live world or a recorded scene, presets, plain-language matching, graph views, `cramera-record-answers`), and the plan builder's CRAM side (`cramera_bridge.plans`: the catalog of robots, objects, surfaces and native actions, and the demo a generated plan runs). |
+| `cramera-bridge` | `cramera_bridge` | `cramera`, CRAM packages | The only package that imports the CRAM workspace: live publishing from a running plan, recording into bundles (with the class of each entity and the world's semantic annotations, which `cramera-record-classes` adds to bundles recorded before, and the events segmind detected, `cramera_bridge.detections`), demo onboarding, task demos, the question engine (`cramera_bridge.questions`: queries in the entity query language about a live world or a recorded scene, presets, plain-language matching, graph views, `cramera-record-answers`), and the plan builder's CRAM side (`cramera_bridge.plans`: the catalog of robots, objects, surfaces and native actions, and the demo a generated plan runs). |
 | `cramera-questions` | `cramera_questions` | `cramera`; `cramera-bridge` optionally | The questions plugin of the viewer: its browser module and its routes over recorded scenes, which hand each request to `cramera_bridge.questions.scenes` and answer with the protocol documents it returns. Without `cramera-bridge` and krrood the routes answer what is missing and the browser module shows the bundles' recorded answers. |
 | `cramera-offline` | `cramera_offline` | `cramera` | The storyboard and bundle check routes, `cramera-check-bundle`, and `cramera-offline`, which prepares, checks, serves (optionally from a network namespace without routes) and exports a presentation of recorded bundles. |
 | `cramera-scene-runs` | `cramera_scene_runs` | `cramera` | The Runs panel: starts the runs a server's catalog file (`CRAMERA_SCENE_RUNS`) offers as processes of their own, one at a time, stops them with their process group, and says whether each recorded; its start and stop are routes other devices may use behind the proxy. It imports nothing of CRAM: a run is a command. |
@@ -49,6 +49,15 @@ message. The questions plugin works the same way: its routes parse the request a
 the scene name and the protocol request to `cramera_bridge.questions.scenes`, which
 evaluates the query with krrood and returns `PresetCatalog`, `Vocabulary`, `Members`,
 `GraphView`, `QueryAnswer` or `QuestionMatch` documents.
+
+segmind reaches the viewer the same way. `cramera_bridge.detections` runs segmind's
+detectors of every kind over a run's objects, as segmind segments a run of its own, and
+hands each event over as a `DetectedEvent`: its sort as a `DetectedEventKind` that
+`cramera_bridge.names` pins to segmind's event classes, the frame of the recording it
+happened at and the keys of the links and free objects it is about. The live publisher
+serves them on `LiveRoute.DETECTED_EVENTS` while `Capability.DETECTED_EVENTS` is
+offered, and the recording lists them in `scene.json`. The viewer's Segmind tab and the
+timeline read nothing but these documents.
 
 A process that resolves the open parts of its plans hands the live publisher
 `PlanResolutions` and `QuerySteps` documents (`cramera_protocol.resolutions`,

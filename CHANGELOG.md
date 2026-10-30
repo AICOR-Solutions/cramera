@@ -26,6 +26,21 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **The Segmind tab: what segmind saw, annotated in the replay.** A run recorded with
+  segmind watching (`cramera-onboard --detect-events`, or `CRAMERA_DETECT_EVENTS=1` for
+  a live run) lists every event with its sort, the frame it happened at and the keys
+  of its objects (`DetectedEvent.kind`, `frame` and `keys`). The new Segmind tab lists
+  them in order, live as they are detected (`LiveRoute.DETECTED_EVENTS`,
+  `Capability.DETECTED_EVENTS`) and in the replay: choosing one lights its objects up
+  and shows its moment, the event the playback passed last is marked and, on request,
+  lights its objects up, sorts of event can be switched off, and the timeline ticks
+  each event shown under the slider.
+  `cramera-bridge` now runs segmind the way segmind segments a run of its own, over the
+  run's objects with its detectors of every kind, so a demo whose objects hang from
+  fixed connections, such as the PR2 laying a place setting, records its grasps,
+  pick-ups, placings and containments too; its own attachment detector is gone, since
+  segmind reads pick-ups from grasps. A trimmed recording keeps the events of its
+  frames. segmind's event classes are pinned to their sorts in `cramera_bridge.names`.
 - **Every robot task demo steps through its queries.** `RobotTaskDemo` and its
   `TaskCommand` take `--step-queries`: the run is published from before its setup and
   held at each query of its own (`--no-hold` runs on) until **Next** moves it on, and

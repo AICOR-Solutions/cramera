@@ -251,6 +251,13 @@ class Recording:
         with self.lock:
             return len(self.frames)
 
+    def frame_times(self) -> List[float]:
+        """
+        :return: The wall-clock time of every frame recorded, in recording order.
+        """
+        with self.lock:
+            return [frame.time for frame in self.frames]
+
     def status(self) -> RecordingStatus:
         """
         :return: The recording's state, length and measured frame rate.

@@ -1,6 +1,7 @@
 /**
- * A connection to a live publisher: polls its information, state, plan, statechart
- * and recording, keeps only the newest answers, and reports them to the application.
+ * A connection to a live publisher: polls its information, state, plan, statechart,
+ * recording and the events its detectors saw, keeps only the newest answers, and reports
+ * them to the application.
  */
 
 import { Capability, LiveInfoKey, LiveRoute, LiveSceneKey, LiveStateKey, ViewerEvent } from '../protocol.js';
@@ -8,7 +9,7 @@ import { Capability, LiveInfoKey, LiveRoute, LiveSceneKey, LiveStateKey, ViewerE
 /**
  * How often each part of the publisher is polled, in milliseconds.
  */
-export const PollInterval = Object.freeze({ INFO: 1000, STATE: 100, PLAN: 500, RECORDING: 1000, RESOLUTIONS: 400, QUERY_STEPS: 250 });
+export const PollInterval = Object.freeze({ INFO: 1000, STATE: 100, PLAN: 500, RECORDING: 1000, RESOLUTIONS: 400, QUERY_STEPS: 250, DETECTED_EVENTS: 500 });
 
 // %% callbacks
 
@@ -27,8 +28,10 @@ export class LiveListener {
    * @param {function(Object): void} showQuerySteps Shows the queries the process asked.
    * @param {function(): number|null} shownRevision The revision of the query steps
    *   shown, so only a newer one is read whole.
+   * @param {function(Object): void} showDetectedEvents Shows the events the detectors
+   *   saw so far.
    */
-  constructor(showScene, showState, showPlan, showStatechart, showRecording, showResolutions = () => {}, showQuerySteps = () => {}, shownRevision = () => null) {
+  constructor(showScene, showState, showPlan, showStatechart, showRecording, showResolutions = () => {}, showQuerySteps = () => {}, shownRevision = () => null, showDetectedEvents = () => {}) {
     /**
      * Shows the bundle of the publisher's world.
      * @type {function(string): void}
@@ -69,6 +72,11 @@ export class LiveListener {
      * @type {function(): number|null}
      */
     this.shownRevision = shownRevision;
+    /**
+     * Shows the events the detectors saw so far.
+     * @type {function(Object): void}
+     */
+    this.showDetectedEvents = showDetectedEvents;
   }
 }
 
@@ -159,6 +167,7 @@ export class LiveSession {
     this.#every(PollInterval.RECORDING, () => this.pollRecording());
     this.#every(PollInterval.RESOLUTIONS, () => this.pollResolutions());
     this.#every(PollInterval.QUERY_STEPS, () => this.pollQuerySteps());
+    this.#every(PollInterval.DETECTED_EVENTS, () => this.pollDetectedEvents());
     this.pollInfo();
   }
 
@@ -269,6 +278,16 @@ export class LiveSession {
     if (!this.info || !this.offers(Capability.QUERY_STEPS)) return;
     const steps = await this.#once(LiveRoute.QUERY_STEPS, () => this.client.readQuerySteps(this.#listener.shownRevision()));
     if (steps) this.#listener.showQuerySteps(steps);
+  }
+
+  /**
+   * Read the events the detectors saw when the publisher's detectors watch the run.
+   * @returns {Promise<void>} Settles once read or failed.
+   */
+  async pollDetectedEvents() {
+    if (!this.info || !this.offers(Capability.DETECTED_EVENTS)) return;
+    const detected = await this.#once(LiveRoute.DETECTED_EVENTS);
+    if (detected) this.#listener.showDetectedEvents(detected);
   }
 
   /**

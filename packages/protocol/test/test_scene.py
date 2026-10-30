@@ -10,6 +10,9 @@ from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import (
     AnnotationKey,
     ClassesKey,
+    DetectedEvent,
+    DetectedEventKey,
+    DetectedEventKind,
     LegacyPlanNodeKind,
     PartRole,
     PartSide,
@@ -221,6 +224,49 @@ def test_a_later_minor_version_is_read(read_json):
 def test_a_new_scene_declares_the_current_version():
     scene = SceneDescription(name="new", format_version=CURRENT_VERSION)
     assert scene.to_json()[SceneKey.FORMAT_VERSION] == CURRENT_VERSION.to_json()
+
+
+# %% detected events
+
+EARLY_DETECTED_EVENT = {
+    DetectedEventKey.NAME: "box SupportEvent",
+    DetectedEventKey.EVENT_TYPE: "SupportEvent",
+    DetectedEventKey.TIMESTAMP: "2026-09-02T10:15:00.500000",
+    DetectedEventKey.TRACKED_OBJECT: "box",
+    DetectedEventKey.WITH_OBJECT: "table",
+}
+"""
+An event as recordings listed them before they placed it on a frame.
+"""
+
+
+def test_an_event_recorded_before_kinds_and_frames_is_other_and_unplaced():
+    event = DetectedEvent.from_json(EARLY_DETECTED_EVENT)
+    assert event.kind is DetectedEventKind.OTHER
+    assert event.frame is None
+    assert event.keys == []
+
+
+def test_an_event_reads_its_kind_frame_and_keys():
+    event = DetectedEvent.from_json(
+        {
+            **EARLY_DETECTED_EVENT,
+            DetectedEventKey.KIND: DetectedEventKind.SUPPORT.value,
+            DetectedEventKey.FRAME: 12,
+            DetectedEventKey.KEYS: ["box", "table"],
+        }
+    )
+    assert event.kind is DetectedEventKind.SUPPORT
+    assert event.frame == 12
+    assert event.keys == ["box", "table"]
+    assert DetectedEvent.from_json(event.to_json()) == event
+
+
+def test_an_event_of_an_unknown_kind_is_refused():
+    with pytest.raises(InvalidDocumentValue):
+        DetectedEvent.from_json(
+            {**EARLY_DETECTED_EVENT, DetectedEventKey.KIND: "teleportation"}
+        )
 
 
 # %% refusals

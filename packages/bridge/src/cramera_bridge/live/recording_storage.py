@@ -26,7 +26,11 @@ from cramera_bridge.exceptions import (
 from cramera_bridge.export.scene_index import SceneIndexFile
 from cramera_bridge.live.bundles import BundleDirectory
 from cramera_bridge.live.recording import FrameRange
-from cramera_bridge.live.segments import PlanNodeClipping, SegmentClipping
+from cramera_bridge.live.segments import (
+    DetectedEventClipping,
+    PlanNodeClipping,
+    SegmentClipping,
+)
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import ReservedSceneName, SceneIndexEntry, SceneName
 from cramera_protocol.bundle.scene import SceneDescription
@@ -178,8 +182,8 @@ class SavedBundle:
 
     def rewrite(self, name: str, request: RecordingSaveRequest) -> SceneDescription:
         """
-        Trim the copy's trajectory, statecharts, segments and plan steps to the kept
-        frames, and name it.
+        Trim the copy's trajectory, statecharts, segments, plan steps and detected
+        events to the kept frames, and name it.
 
         :param name: The saved name.
         :param request: The save request with the labels a person gave.
@@ -210,6 +214,9 @@ class SavedBundle:
             name=name,
             segments=SegmentClipping(self.frame_range).clip(scene.segments),
             plan_trees=PlanNodeClipping(self.frame_range).clip(scene.plan_trees),
+            detected_events=DetectedEventClipping(self.frame_range).clip(
+                scene.detected_events
+            ),
             objects=[
                 replace(entry, spawn=first_poses.get(entry.key, entry.spawn))
                 for entry in scene.objects

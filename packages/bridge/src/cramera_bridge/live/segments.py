@@ -12,7 +12,7 @@ from enum import StrEnum
 from typing_extensions import List, Optional
 
 from cramera_bridge.live.recording import FrameRange, RecordedFrame
-from cramera_protocol.bundle.scene import PlanNode, Segment
+from cramera_protocol.bundle.scene import DetectedEvent, PlanNode, Segment
 from cramera_protocol.geometry import Pose
 
 TRANSPORT_TOLERANCE_METRES = 0.02
@@ -307,3 +307,33 @@ class PlanNodeClipping:
             end=frames.frame(node.end),
             children=children,
         )
+
+
+@dataclass(frozen=True)
+class DetectedEventClipping:
+    """
+    Keeps the detected events that happened within a kept stretch of the run and counts
+    their frames from its start.
+    """
+
+    frame_range: FrameRange
+    """
+    The stretch kept.
+    """
+
+    def clip(self, events: List[DetectedEvent]) -> List[DetectedEvent]:
+        """
+        :param events: Events placed on the frames of the whole run.
+        :return: The events placed within the stretch, rebased; an event placed on no
+            frame cannot be told apart and is kept as it is.
+        """
+        return [
+            (
+                event
+                if event.frame is None
+                else replace(event, frame=event.frame - self.frame_range.first)
+            )
+            for event in events
+            if event.frame is None
+            or self.frame_range.first <= event.frame <= self.frame_range.last
+        ]

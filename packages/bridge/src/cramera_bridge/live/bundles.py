@@ -11,7 +11,7 @@ import threading
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-from typing_extensions import TYPE_CHECKING, Dict, List, Optional
+from typing_extensions import TYPE_CHECKING, Dict, List, Optional, Sequence
 
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import EmptyRecording
@@ -25,6 +25,7 @@ from cramera_bridge.robots import RobotRoster
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import ReservedSceneName
 from cramera_protocol.bundle.scene import (
+    DetectedEvent,
     ObjectDescription,
     PlanConstraint,
     PlanNode,
@@ -358,6 +359,7 @@ class LiveBundleWriter:
         frames: List[RecordedFrame],
         plans: List[PerformedPlan],
         query_steps: Optional[QuerySteps] = None,
+        detected_events: Sequence[DetectedEvent] = (),
     ) -> str:
         """
         Write a recorded run as the ``__recording__`` bundle.
@@ -367,6 +369,7 @@ class LiveBundleWriter:
         :param frames: The recorded frames.
         :param plans: The plans the run performed, in the order each began.
         :param query_steps: The queries the run asked, or None where it published none.
+        :param detected_events: What detectors saw during the run, placed on its frames.
         :return: The bundle's name.
         :raises EmptyRecording: When there are no frames.
         """
@@ -396,6 +399,7 @@ class LiveBundleWriter:
                 objects=self.objects(model, frames, staging),
                 segments=RecordedRun(frames).segments(),
                 plan_trees=self.plan_trees(plans, frames),
+                detected_events=list(detected_events),
                 missing_assets=models.missing_assets,
                 bundle_signature=WorldSignature(model, selected_robot).digest(),
                 world_bound=True,

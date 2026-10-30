@@ -8,6 +8,7 @@ import { LiveListener, LiveSession, PollInterval } from '../../src/cramera/web/l
 import { DEFAULT_LIVE_ADDRESS, LiveActions, LiveBadge, LiveBadgeState, LivePanel, offeredText, recordingText } from '../../src/cramera/web/panels/live-panel.js';
 import {
   Capability,
+  DetectedEventsKey,
   LiveInfoKey,
   LiveRoute,
   LiveSceneKey,
@@ -74,6 +75,10 @@ function recordingListener() {
     (plan) => calls.push(['plan', plan]),
     (chart) => calls.push(['chart', chart]),
     (status) => calls.push(['recording', status]),
+    undefined,
+    undefined,
+    undefined,
+    (detected) => calls.push(['events', detected]),
   );
   return { calls, listener };
 }
@@ -163,6 +168,21 @@ test('plan, statechart and recording are read only when offered', async () => {
   await quiet.pollInfo();
   await quiet.pollPlan();
   await quiet.pollRecording();
+  assert.deepEqual(bare.reads, [LiveRoute.INFO]);
+});
+
+test('the detected events are read only when the publisher\'s detectors watch the run', async () => {
+  const detected = { [DetectedEventsKey.EVENTS]: [] };
+  const watching = fakeClient({ [LiveRoute.INFO]: { ...INFO, [LiveInfoKey.CAPABILITIES]: [Capability.DETECTED_EVENTS] }, [LiveRoute.DETECTED_EVENTS]: detected });
+  const { calls, listener } = recordingListener();
+  const session = new LiveSession(watching.client, new ManualTimers(), new EventBus(), listener);
+  await session.pollInfo();
+  await session.pollDetectedEvents();
+  assert.deepEqual(calls.slice(1), [['events', detected]]);
+  const bare = fakeClient({ [LiveRoute.INFO]: INFO });
+  const quiet = new LiveSession(bare.client, new ManualTimers(), new EventBus(), recordingListener().listener);
+  await quiet.pollInfo();
+  await quiet.pollDetectedEvents();
   assert.deepEqual(bare.reads, [LiveRoute.INFO]);
 });
 

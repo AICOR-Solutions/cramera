@@ -162,6 +162,7 @@ def test_the_relay_reads_what_the_page_reads_and_nothing_else():
         LiveRoute.LIVE_SCENE,
         LiveRoute.RESOLUTIONS,
         LiveRoute.QUERY_STEPS,
+        LiveRoute.DETECTED_EVENTS,
         LiveRoute.PERCEPTION_IMAGE,
     }
 

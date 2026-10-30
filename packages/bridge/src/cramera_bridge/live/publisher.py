@@ -36,6 +36,7 @@ from cramera_bridge.live.constraints import (
     ConstraintBoard,
     ConstraintMonitorFactory,
 )
+from cramera_bridge.live.detected_events import DetectedEventSource, EventPlacement
 from cramera_bridge.live.manipulation import WorldEdits, WorldSurfaces
 from cramera_bridge.live.marker_topics import MarkerTopicSource
 from cramera_bridge.live.markers import MarkerBoard
@@ -62,6 +63,7 @@ from cramera_protocol.live import Capability, LiveInfo
 from cramera_protocol.live_messages import (
     Acknowledgement,
     ConstraintRequest,
+    DetectedEvents,
     JointRequest,
     LivePlan,
     LiveScene,
@@ -143,6 +145,11 @@ class LivePublisher:
     marker_source: Optional[MarkerTopicSource] = None
     """
     Delivers ROS markers, when ROS is available.
+    """
+
+    detections: Optional[DetectedEventSource] = None
+    """
+    The detectors watching the run, when its events are detected.
     """
 
     clock: Callable[[], float] = time.monotonic
@@ -446,6 +453,8 @@ class LivePublisher:
             offered.append(Capability.QUERY_STEPS)
         if self.query_steps.offers_stepping():
             offered.append(Capability.QUERY_STEPPING)
+        if self.detections is not None:
+            offered.append(Capability.DETECTED_EVENTS)
         return offered
 
     def info(self) -> LiveInfo:
@@ -768,6 +777,17 @@ class LivePublisher:
         """
         return self.recording.status()
 
+    def detected_events(self) -> DetectedEvents:
+        """
+        :return: The events detected so far, each on the frame of the running recording
+            it happened at; none when no detectors watch the run.
+        """
+        with self.world_lock:
+            events = [] if self.detections is None else self.detections.events()
+        return DetectedEvents(
+            events=EventPlacement(self.recording.frame_times()).placed(events)
+        )
+
     def finish_recording(self) -> RecordingStatus:
         """
         End the recording and write it as the ``__recording__`` bundle; finishing it
@@ -783,12 +803,14 @@ class LivePublisher:
         if not frames:
             raise EmptyRecording()
         with self.world_lock:
+            events = [] if self.detections is None else self.detections.events()
             scene = self.bundle_writer.recording(
                 self.require_model(),
                 self.selected_robot,
                 frames,
                 self.plan.performed_plans(),
                 self.query_steps.recorded(),
+                EventPlacement([frame.time for frame in frames]).within(events),
             )
         self.recording.written(scene)
         return self.recording.status()

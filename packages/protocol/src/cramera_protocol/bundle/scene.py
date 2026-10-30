@@ -1049,6 +1049,63 @@ class DetectedEventKey(StrEnum):
     The second object of a relation event.
     """
 
+    KIND = "kind"
+    """
+    What sort of event it is.
+    """
+
+    FRAME = "frame"
+    """
+    The trajectory frame the event happened at.
+    """
+
+    KEYS = "keys"
+    """
+    The keys of the links and free objects the event is about.
+    """
+
+
+class DetectedEventKind(StrEnum):
+    """
+    The sorts of event a reader of a recording tells apart; the bridge translates the
+    detectors' event classes into them.
+    """
+
+    CONTACT = "contact"
+    """
+    Two bodies start or stop touching.
+    """
+
+    MOTION = "motion"
+    """
+    A body starts or stops moving or turning.
+    """
+
+    SUPPORT = "support"
+    """
+    A body comes to rest on another or leaves it.
+    """
+
+    CONTAINMENT = "containment"
+    """
+    A body gets into another or out of it.
+    """
+
+    GRASP = "grasp"
+    """
+    A hand takes hold of a body or lets go of it.
+    """
+
+    PICK_AND_PLACE = "pick_and_place"
+    """
+    A body is picked up or put down.
+    """
+
+    OTHER = "other"
+    """
+    Any other event.
+    """
+
 
 @dataclass(kw_only=True)
 class DetectedEvent(JsonDocument):
@@ -1083,6 +1140,25 @@ class DetectedEvent(JsonDocument):
     )
     """
     The second object of a relation event.
+    """
+
+    kind: DetectedEventKind = document_field(
+        DetectedEventKey.KIND, default=DetectedEventKind.OTHER
+    )
+    """
+    What sort of event it is.
+    """
+
+    frame: Optional[int] = document_field(DetectedEventKey.FRAME, default=None)
+    """
+    The trajectory frame the event happened at, or None for an event outside the
+    recorded frames and in recordings that did not place their events.
+    """
+
+    keys: List[str] = document_field(DetectedEventKey.KEYS, default_factory=list)
+    """
+    The keys of the links and free objects the event is about, the tracked object first,
+    as the viewer lights them up.
     """
 
 

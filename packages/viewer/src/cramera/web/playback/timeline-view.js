@@ -1,7 +1,7 @@
 /**
  * The controls under the 3D view: play and pause, saving a live episode, the speed,
  * and a slider with the recorded steps marked on it, coloured by what happens there,
- * next to the current time.
+ * and the detected events ticked under it, next to the current time.
  */
 
 import { SegmentKey } from '../protocol.js';
@@ -85,6 +85,34 @@ export class TimelineMark {
 }
 
 /**
+ * One detected event ticked under the slider.
+ */
+export class EventMark {
+  /**
+   * @param {number} frame The frame it happened at.
+   * @param {string} kind A `DetectedEventKind` value, which colours it.
+   * @param {string} text What happened.
+   */
+  constructor(frame, kind, text) {
+    /**
+     * The frame it happened at.
+     * @type {number}
+     */
+    this.frame = frame;
+    /**
+     * A `DetectedEventKind` value.
+     * @type {string}
+     */
+    this.kind = kind;
+    /**
+     * What happened.
+     * @type {string}
+     */
+    this.text = text;
+  }
+}
+
+/**
  * @param {Array<Object>} segments The recorded steps.
  * @returns {Array<TimelineMark>} A mark where each step starts, and where it picks an
  *   object up and lets it go.
@@ -136,6 +164,12 @@ export class TimelineView {
    * @type {HTMLElement}
    */
   #marks;
+
+  /**
+   * The ticks of the detected events under the slider.
+   * @type {HTMLElement}
+   */
+  #eventMarks;
 
   /**
    * The current time.
@@ -225,7 +259,9 @@ export class TimelineView {
     this.#slider.addEventListener('input', () => this.#onSeek(Number(this.#slider.value)));
     this.#marks = document.createElement('div');
     this.#marks.className = 'marks';
-    track.append(this.#slider, this.#marks);
+    this.#eventMarks = document.createElement('div');
+    this.#eventMarks.className = 'event-marks';
+    track.append(this.#slider, this.#marks, this.#eventMarks);
     this.#clockText = document.createElement('span');
     this.#clockText.className = 'clock';
     const scrub = document.createElement('div');
@@ -239,8 +275,8 @@ export class TimelineView {
   }
 
   /**
-   * Show a recording's clock and steps; a still scene, or none, leaves the controls
-   * disabled.
+   * Show a recording's clock and steps, without detected events until they are shown; a
+   * still scene, or none, leaves the controls disabled.
    * @param {import('./playback-clock.js').PlaybackClock|null} clock The recording's clock.
    * @param {Array<Object>} segments The recording's steps.
    */
@@ -270,7 +306,32 @@ export class TimelineView {
         return element;
       }),
     );
+    this.showEventMarks([]);
     this.update(-1);
+  }
+
+  /**
+   * Tick detected events under the slider of the recording shown; a still scene, or
+   * none, shows no ticks.
+   * @param {Array<EventMark>} marks The events.
+   */
+  showEventMarks(marks) {
+    const lastFrame = this.#clock?.lastFrame ?? 0;
+    const document = this.#root.ownerDocument;
+    this.#eventMarks.replaceChildren(
+      ...(lastFrame ? marks : []).map((mark) => {
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'event-mark';
+        element.dataset.kind = mark.kind;
+        element.style.left = `${(100 * mark.frame) / lastFrame}%`;
+        element.title = mark.text;
+        element.setAttribute('aria-label', mark.text);
+        element.addEventListener('click', () => this.#onSeek(mark.frame));
+        return element;
+      }),
+    );
+    this.#root.dataset.events = String(this.#eventMarks.children.length > 0);
   }
 
   /**
