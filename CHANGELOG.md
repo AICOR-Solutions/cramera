@@ -37,7 +37,9 @@ which this repository was mirrored until 22 Oct 2026.
   marked RECORDED when replayed from the bundle and LIVE only when a running process
   published it. The queries are EQL over the twin's working memory; none is KnowRob.
   The bridge records, for every plan node, its `roles` (`RoleSlot`, field, role,
-  value, entities with their scene keys, the reference body of a pose), read through
+  value, entities with their scene keys, the reference body of a pose and, for a pose
+  the task built for a place of its layout, the place's name such as `centrifuge C4`,
+  from `RobotTaskDemo.named_places`), read through
   `FIELD_ROLES` in `cramera_bridge/names.py`, cramera's reading of CRAM's fields
   (agent from the context, object, effector, location, instrument for a tool); every
   query step records the `frame` it was asked at, the `planNode` under way and the

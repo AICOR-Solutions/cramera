@@ -19,7 +19,12 @@ from coraplex.robot_plans.actions.composite.transporting import MoveAndPickUpAct
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from cramera_protocol.designator_roles import DesignatorRole
-from cramera_bridge.live.plan import DesignatorSummary, PLAN_NODE_PREFIX, PlanNodeStatus
+from cramera_bridge.live.plan import (
+    DesignatorSummary,
+    NamedPlace,
+    PLAN_NODE_PREFIX,
+    PlanNodeStatus,
+)
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
     ConstraintActivation,
@@ -394,3 +399,18 @@ def test_a_node_names_the_entities_its_designator_fields_fill_roles_with(
     assert roles["object_part"].role is DesignatorRole.OBJECT
     assert roles["object_part"].entities[0].keys == [str(kitchen.milk.id)]
     assert "robot" not in roles, "a motion takes no agent of its own"
+
+
+def test_a_pose_is_named_by_the_place_whose_pose_it_is_and_no_other(kitchen):
+    milk = kitchen.milk
+    holder = NamedPlace(
+        "centrifuge C4", Pose.from_xyz_rpy(0.0, -0.072, 0.008, reference_frame=milk)
+    )
+    same = Pose.from_xyz_rpy(0.0, -0.072, 0.008, reference_frame=milk)
+    above = Pose.from_xyz_rpy(0.0, -0.072, 0.188, reference_frame=milk)
+    elsewhere = Pose.from_xyz_rpy(
+        0.0, -0.072, 0.008, reference_frame=kitchen.world.root
+    )
+    assert holder.names(same)
+    assert not holder.names(above), "a pose above the holder is not the holder"
+    assert not holder.names(elsewhere), "the same numbers in another frame"

@@ -146,6 +146,11 @@ class RoleSlotKey(StrEnum):
     The entity a pose is given relative to.
     """
 
+    PLACE = "place"
+    """
+    The name the task gives the place a pose stands for.
+    """
+
 
 @dataclass(kw_only=True)
 class RoleSlot(JsonDocument):
@@ -188,4 +193,12 @@ class RoleSlot(JsonDocument):
     )
     """
     The body a pose is expressed in, or None for a value that is no pose.
+    """
+
+    place: Optional[str] = document_field(RoleSlotKey.PLACE, default=None)
+    """
+    The name the task gave the place the pose stands for, such as ``centrifuge C4``
+    for a holder of the centrifuge's rotor, when the pose is one the task named; None
+    for any other value. The name is the task's, from its layout, not a name CRAM or
+    the semantic digital twin defines.
     """

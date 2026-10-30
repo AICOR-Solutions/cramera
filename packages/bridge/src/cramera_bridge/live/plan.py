@@ -5,10 +5,21 @@ The executing plan as the viewer shows it: every node with its native status.
 from __future__ import annotations
 
 import threading
+
+import numpy
 from dataclasses import dataclass, field, fields, is_dataclass, replace
 from enum import Enum, StrEnum
 
-from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
+from typing_extensions import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from cramera_bridge.exceptions import UnknownPlanNode
 from cramera_bridge.names import (
@@ -233,6 +244,48 @@ class NodeLifeCycle:
         return LifeCycleValues.RUNNING
 
 
+# %% places
+
+
+@dataclass(frozen=True)
+class NamedPlace:
+    """
+    A pose a task built for one of the places of its layout, under the name the task
+    gives the place, such as a holder of a centrifuge's rotor.
+    """
+
+    name: str
+    """
+    The place's name, such as ``centrifuge C4``.
+    """
+
+    pose: Pose
+    """
+    The pose the task builds for the place.
+    """
+
+    def names(self, pose: Pose) -> bool:
+        """
+        :param pose: A pose a designator holds.
+        :return: Whether it is this place's pose: given in the same frame, at the same
+            position and orientation, as the task built it; a pose near the place, such
+            as one above it to approach from, is not.
+        """
+        return pose.reference_frame is self.pose.reference_frame and bool(
+            numpy.allclose(
+                pose.to_np(), self.pose.to_np(), rtol=0.0, atol=PLACE_TOLERANCE
+            )
+        )
+
+
+PLACE_TOLERANCE = 1e-9
+"""
+How far, in metres and in the quaternion's components, a pose may differ from a named
+place's and still be that place's pose: only by rounding, as the same pose is built
+again from the same layout.
+"""
+
+
 # %% designators
 
 
@@ -302,10 +355,17 @@ class DesignatorSummary:
             if value is not None
         }
 
-    def roles(self, object_keys: Set[str], robot: Optional[object]) -> List[RoleSlot]:
+    def roles(
+        self,
+        object_keys: Set[str],
+        robot: Optional[object],
+        places: Sequence[NamedPlace] = (),
+    ) -> List[RoleSlot]:
         """
         :param object_keys: The keys of the published objects.
         :param robot: The robot of the plan's context, or None for a plan without one.
+        :param places: The places the task named; a pose that is one of them carries
+            its name.
         :return: The roles the designator's fields fill, by :data:`FIELD_ROLES`, with
             the entities each names; an action's agent first, from the context, since
             no field of the designator names it; empty for a node without a designator.
@@ -353,6 +413,16 @@ class DesignatorSummary:
                             for each in values
                             if isinstance(each, Pose)
                             and isinstance(each.reference_frame, Body)
+                        ),
+                        None,
+                    ),
+                    place=next(
+                        (
+                            place.name
+                            for each in values
+                            if isinstance(each, Pose)
+                            for place in places
+                            if place.names(each)
                         ),
                         None,
                     ),
@@ -520,6 +590,11 @@ class PerformedPlan:
     The images of what each perception step saw.
     """
 
+    places: List[NamedPlace] = field(default_factory=list)
+    """
+    The places the task named, which the plan's poses are named by.
+    """
+
     @classmethod
     def of_plan(
         cls, plan: Plan, number: int, images: PerceptionImages
@@ -610,6 +685,7 @@ class PerformedPlan:
             roles=summary.roles(
                 object_keys,
                 None if self.plan.context is None else self.plan.context.robot,
+                self.places,
             ),
             perceived=(
                 list(self.perceived.get(node.index, []))
@@ -716,6 +792,12 @@ class PlanPublisher:
     Takes and keeps the images of every plan's perception steps.
     """
 
+    places: List[NamedPlace] = field(default_factory=list)
+    """
+    The places the running task named, which the poses of the plans it begins are
+    named by.
+    """
+
     def begin(self, plan: Plan) -> None:
         """
         :param plan: The plan that starts performing; a plan performed before keeps its
@@ -730,6 +812,7 @@ class PlanPublisher:
                     plan, len(self.performed) + 1, self.images
                 )
                 self.performed.append(performed)
+            performed.places = list(self.places)
             self.active_plan = performed
 
     def observe_started(self, node: PlanNode) -> None:

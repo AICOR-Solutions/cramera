@@ -55,6 +55,7 @@ const ARM = slot('arm', DesignatorRole.EFFECTOR, 'PR2LeftArm', [entity('PR2LeftA
 const OBJECT = slot('grasp.graspable', DesignatorRole.OBJECT, 'Container', [entity('tube_amber', 'Container', [VESSEL])]);
 const HOLDER = slot('target_location', DesignatorRole.LOCATION, '0.000, 0.052, 0.020', [], {
   [RoleSlotKey.REFERENCE]: entity('laboratory_centrifuge_rotor', 'Body', ['laboratory_centrifuge_rotor']),
+  [RoleSlotKey.PLACE]: 'centrifuge C4',
 });
 
 const node = (identifier, kind, label, start, end, roles = [], children = [], status = 'SUCCEEDED') => ({
@@ -220,4 +221,15 @@ test('a recording written before roles says so instead of showing an empty table
   const panel = new DesignatorsPanel(new FakeDocument(), new EventBus());
   panel.show({ description: { [SceneKey.PLAN_TREES]: [old] }, querySteps: null });
   assert.match(panel.panel.element.innerText, new RegExp(NO_ROLES.slice(0, 40)));
+});
+
+test('a location the task named carries the place’s name into its row, its slot and its resolution', () => {
+  const [, , holder] = roleRows(PLACE);
+  assert.equal(holder.place, 'centrifuge C4');
+  assert.equal(roleRows(PICK).every((row) => row.place === null), true);
+  const panel = new DesignatorsPanel(new FakeDocument(), new EventBus());
+  panel.show(SCENE);
+  panel.showFrame(60);
+  const places = panel.panel.element.findAll((each) => each.className === 'role-place').map((each) => each.textContent);
+  assert.deepEqual(places, ['centrifuge C4', 'centrifuge C4', 'centrifuge C4']);
 });

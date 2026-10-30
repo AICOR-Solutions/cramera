@@ -61,6 +61,7 @@ from cramera_bridge.laboratory.mobility import (
 )
 from cramera_bridge.laboratory.transfer import POSE_TOLERANCE, PENETRATION_TOLERANCE
 from cramera_bridge.laboratory.world import LaboratoryEnvironment, LaboratoryHandle
+from cramera_bridge.live.plan import NamedPlace
 from cramera_bridge.scenes.presentation import ScenePresentation
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.scene import Camera
@@ -943,6 +944,20 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
                 )
 
     # %% plan
+
+    def named_places(self, context: Context) -> List[NamedPlace]:
+        """
+        :param context: The world and the robot.
+        :return: Every slot a vessel is moved into, named by its station and its
+            identifier in the bench's layout, such as ``centrifuge C4``.
+        """
+        return [
+            NamedPlace(
+                f"{move.target.station.value} {move.target.identifier}",
+                move.target.pose(self.laboratory, context.world),
+            )
+            for move in self.moves
+        ]
 
     def build_plan(self, context: Context) -> Plan:
         """

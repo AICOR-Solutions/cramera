@@ -181,3 +181,29 @@ def test_every_query_was_answered_from_working_memory_while_the_plan_was_built(
         assert step["phase"] in (StepPhase.SETUP, StepPhase.EXPANSION)
         assert step.get("planNode") is None
         assert step["frame"] <= first_motion
+
+
+def test_every_location_a_vessel_is_set_down_at_is_named_by_its_slot(scene):
+    places = [
+        role(action, "target_location").get("place")
+        for action in top_level_actions(scene)
+        if action["label"] == "RackPlaceAction"
+    ]
+    assert places == [
+        "rack A3",
+        "rack A1",
+        "rack B1",
+        "refrigerator R6",
+        "centrifuge C4",
+        "centrifuge C2",
+    ]
+
+
+def test_no_pose_but_a_slot_is_named(scene):
+    named = [
+        slot
+        for node in nodes(scene["planTrees"])
+        for slot in node.get("roles", [])
+        if slot.get("place")
+    ]
+    assert {slot["field"] for slot in named} == {"target_location"}

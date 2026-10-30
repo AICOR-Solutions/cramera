@@ -69,7 +69,7 @@ export const BACKEND_NOTE = 'Entity queries (krrood EQL) over the semantic digit
 /**
  * What the panel says of the roles: whose reading they are.
  */
-export const ROLES_NOTE = 'Roles are cramera’s reading of the designator’s CRAM fields (shown beside each role); CRAM itself names fields, not roles.';
+export const ROLES_NOTE = 'Roles are cramera’s reading of the designator’s CRAM fields (shown beside each role); CRAM itself names fields, not roles. Place names such as centrifuge C4 are the task’s, from its bench layout.';
 
 export class DesignatorsPanel {
   /**
@@ -244,7 +244,7 @@ export class DesignatorsPanel {
     const rows = this.rows.map((row) => {
       const selected = this.selected !== null && this.selected.join('|') === row.keys.join('|');
       const tr = element(document, 'tr', selected ? 'role-row selected' : 'role-row', null, [
-        element(document, 'td', 'role-entity', row.name),
+        element(document, 'td', 'role-entity', row.name, row.place ? [element(document, 'span', 'role-place', row.place)] : []),
         element(document, 'td', 'muted', row.type),
         element(document, 'td', `role-name role-${row.role}`, row.reference ? `${row.role} (frame)` : row.role),
         element(document, 'td', 'mono', row.field),
@@ -290,6 +290,7 @@ export class DesignatorsPanel {
         element(document, 'span', `role-name role-${slot[RoleSlotKey.ROLE]}`, slot[RoleSlotKey.ROLE]),
         element(document, 'span', 'mono', ` ${slot[RoleSlotKey.FIELD]}`),
         element(document, 'span', '', ` = ${slot[RoleSlotKey.VALUE]}`),
+        slot[RoleSlotKey.PLACE] ? element(document, 'span', 'role-place', slot[RoleSlotKey.PLACE]) : '',
         slot[RoleSlotKey.SOURCE] === RoleSource.CONTEXT ? element(document, 'span', 'muted', ' (plan context)') : '',
       ]))));
     }
@@ -315,6 +316,7 @@ export class DesignatorsPanel {
           element(document, 'span', `role-name role-${slot[RoleSlotKey.ROLE]}`, slot[RoleSlotKey.ROLE]),
           element(document, 'span', 'mono', ` ${slot[RoleSlotKey.FIELD]} `),
           element(document, 'span', '', `→ ${slot[RoleSlotKey.VALUE]}`),
+          slot[RoleSlotKey.PLACE] ? element(document, 'span', 'role-place', slot[RoleSlotKey.PLACE]) : '',
           element(document, 'span', 'slot-filling', resolution.filling),
         ]);
         if (resolution.steps.length) entry.append(element(document, 'span', 'muted', ` by query ${resolution.steps.map((step) => `#${step[QueryStepKey.NUMBER]}`).join(', ')}`));

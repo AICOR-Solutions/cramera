@@ -729,6 +729,7 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 .role-row:hover, .role-row:focus-visible { background: var(--accent-soft); outline: none; }
 .role-row.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .role-name { font-weight: 600; }
+.role-place { margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 3px; background: rgb(255 182 72 / 0.14); color: var(--warning); }
 .role-agent { color: var(--accent-2); }
 .role-object { color: var(--accent); }
 .role-effector { color: var(--play-text); }

@@ -196,8 +196,10 @@ export class RoleRow {
    * @param {string|null} fields.node The identity of that designator's plan node.
    * @param {Array<string>} fields.keys What the scene lights up for it.
    * @param {boolean} fields.reference Whether it is only the frame a pose is given in.
+   * @param {string|null} fields.place The name the task gave the place the pose
+   *   stands for, such as `centrifuge C4`, or null.
    */
-  constructor({ name, type, role, field, designator, node, keys, reference }) {
+  constructor({ name, type, role, field, designator, node, keys, reference, place = null }) {
     this.name = name;
     this.type = type;
     this.role = role;
@@ -206,6 +208,7 @@ export class RoleRow {
     this.node = node;
     this.keys = keys;
     this.reference = reference;
+    this.place = place;
   }
 }
 
@@ -239,8 +242,9 @@ export function roleRows(action) {
           node: node[PlanNodeKey.IDENTIFIER] ?? null,
           keys: entity[RoleEntityKey.KEYS] ?? [],
           reference,
+          place: reference ? slot[RoleSlotKey.PLACE] ?? null : null,
         });
-        const identity = `${row.name}|${row.role}|${row.field}`;
+        const identity = `${row.name}|${row.role}|${row.field}|${row.place}`;
         if (!rows.has(identity)) rows.set(identity, row);
       }
     }
