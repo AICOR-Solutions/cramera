@@ -83,9 +83,10 @@ export class UnsupportedPointCloudFile extends Error {
 export class BuilderEnvironment {
   /**
    * @param {Object} parts The parts, by name: `document`, `api` (a `BuilderApi`),
-   *   `storage` (a `Storage`), `query` (the page's `URLSearchParams`), `viewerUrl`,
-   *   `createView` (builds a `DraftView` in a container with listeners, or null without
-   *   WebGL) and `download` (offers a `Blob` as a file of a name).
+   *   `storage` (the tab's `Storage`), `query` (the page's `URLSearchParams`),
+   *   `returning` (whether the tab returned to the page by a reload or its history),
+   *   `viewerUrl`, `createView` (builds a `DraftView` in a container with listeners, or
+   *   null without WebGL) and `download` (offers a `Blob` as a file of a name).
    */
   constructor(parts) {
     /**
@@ -99,7 +100,7 @@ export class BuilderEnvironment {
      */
     this.api = parts.api;
     /**
-     * The browser's storage.
+     * The tab's storage.
      * @type {Storage}
      */
     this.storage = parts.storage;
@@ -108,6 +109,12 @@ export class BuilderEnvironment {
      * @type {URLSearchParams}
      */
     this.query = parts.query;
+    /**
+     * Whether the tab returned to the page by a reload or its history, rather than
+     * opening it anew.
+     * @type {boolean}
+     */
+    this.returning = Boolean(parts.returning);
     /**
      * The viewer's page.
      * @type {string}
@@ -276,8 +283,9 @@ export class BuilderPage {
   }
 
   /**
-   * Read the catalog, restore the draft of the last visit, show the 3D view and, when
-   * the page names a scene, start a draft from it.
+   * Read the catalog and show the 3D view; a tab returning to the page continues the
+   * draft it kept, and a page opened anew starts an empty draft, or a draft from the
+   * scene it names.
    * @returns {Promise<void>} Resolves once the page is ready.
    */
   async start() {
@@ -295,10 +303,10 @@ export class BuilderPage {
       this.#parts.stage.append(this.#elements.create('p', 'stage-message', 'This browser cannot show the 3D view; the fields still place every instance.'));
     }
     this.#status(`${catalog[CatalogKey.RESOURCES].length} resources. Place one, or start from a scene.`);
-    await this.#restore();
+    const restored = this.#environment.returning && (await this.#restore());
     this.#render(this.#state.draft);
     const scene = this.#environment.query.get(BuilderPageParameter.SCENE);
-    if (scene) await this.#attempt(() => this.#openScene(scene));
+    if (scene && !restored) await this.#attempt(() => this.#openScene(scene));
   }
 
   /**
@@ -441,21 +449,23 @@ export class BuilderPage {
   }
 
   /**
-   * Restore the draft of the last visit, if one is kept; an unreadable one is
-   * forgotten and reported.
-   * @returns {Promise<void>} Resolves once restored or reported.
+   * Restore the draft the tab kept, if it kept one; an unreadable one is forgotten and
+   * reported.
+   * @returns {Promise<boolean>} Resolves to whether a draft was restored.
    */
   #restore() {
     return Promise.resolve()
       .then(() => {
         const kept = this.#recovery.restore();
-        if (kept === null) return;
+        if (kept === null) return false;
         this.#state.reset(kept.draft);
         this.#draftIdentifier = kept.identifier;
+        return true;
       })
       .catch((error) => {
         this.#recovery.forget();
-        this.#status(`The draft of the last visit could not be restored: ${error.message}`, true);
+        this.#status(`The draft this tab kept could not be restored: ${error.message}`, true);
+        return false;
       });
   }
 

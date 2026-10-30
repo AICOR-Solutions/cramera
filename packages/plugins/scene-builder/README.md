@@ -21,6 +21,9 @@ cramera
   be designed. Their scale fields read as their size in metres.
 - Every placed instance has a name and an optional description: what it is, how it
   works, anything to remember when designing it later. Both are saved with the draft.
+- The builder page opens with an empty draft, or with a copy of the scene its
+  `?scene=<name>` names. Only a reload, or going back to the page, continues the draft
+  the tab was editing, unsaved changes included.
 - Drafts are saved under `CRAMERA_DATA/scene-builder/drafts`, uploaded point clouds
   under `CRAMERA_DATA/scene-builder/point-clouds`.
 - Point clouds are vertex-only PLY files or ASCII and uncompressed binary PCD files of
