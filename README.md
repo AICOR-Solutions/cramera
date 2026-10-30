@@ -106,7 +106,8 @@ A scenes directory may hold other scenes directories: every child that is not a
 bundle but holds an `index.json` or bundles counts as a further directory of the same
 source, and so on below it. So `demo` holds `demo/standard_scenes`, this repository's
 recordings, which replay without CRAM: the PR2 working in the small medical lab,
-`aicor_medical_lab_pr2_workflow`, and `aicor_medical_lab_pr2_query_stepper`, whose
+`aicor_medical_lab_pr2_workflow`, which `?layout=designators` shows beside its action
+designators, their roles and the queries that resolved them, and `aicor_medical_lab_pr2_query_stepper`, whose
 Queries panel steps through the queries the PR2 asked, and GARMI picking up a bowl
 and a spoon in an apartment, `garmi_pick_place`; and any scenes
 repository cloned next to it, such as

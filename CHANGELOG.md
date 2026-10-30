@@ -26,6 +26,45 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **The Designators tab: the action under way, its roles and how they were resolved.**
+  `?layout=designators` shows the 3D scene beside three panes bound to the top-level
+  action at the playback frame: the twin's entities that fill a role in it (selecting
+  a row lights the body up; clicking a body marks its row), the action designator as
+  a tree with its role slots and each node pending, running, succeeded or failed
+  (each motion from the frames it ran in, which every recorded frame now names as
+  `RecordedFrame.motion_node`; a sequence that ran but whose status coraplex never set
+  shows as ended; a condition or an attachment, which take no time, takes its
+  parent's phase, dashed),
+  and how each role was filled: by an entity query whose answer is the same entity,
+  from the plan's context, or written or computed by the plan's code. Every answer is
+  marked RECORDED when replayed from the bundle and LIVE only when a running process
+  published it. The queries are EQL over the twin's working memory; none is KnowRob.
+  The 3D view marks where the running step acts (`ViewerEvent.TARGET_MARKED`,
+  `TargetMarker`): the motion's location at its pose in the frame of its reference
+  body, which `RoleSlot.pose` now records, so a tool target over a holder sits where
+  the gripper ends; else the entity it acts on, such as the lid handle a mechanism
+  motion turns; the mark moves with its body and is drawn over what hides it.
+  With **Follow target** (`TargetFollow`; on in the designators layout, and off
+  whenever **Follow robot** is on) the camera glides onto each new target from above,
+  keeping the side it looked from, and moves with the mark while its body moves;
+  `CameraGlide.glideTo` takes the direction to look from.
+  The bridge records, for every plan node, its `roles` (`RoleSlot`, field, role,
+  value, entities with their scene keys, the reference body of a pose and, for a pose
+  the task built for a place of its layout, the place's name such as `centrifuge C4`,
+  from `RobotTaskDemo.named_places`, which the workflow and the vessel transfer
+  provide), read through
+  `FIELD_ROLES` in `cramera_bridge/names.py`, cramera's reading of CRAM's fields
+  (agent from the context, object, effector, location, instrument for a tool); every
+  query step records the `frame` it was asked at, the `planNode` under way and the
+  `entities` its answers are. The PR2 laboratory workflow finds its vessels and the
+  door's and lid's handles by entity queries, and `aicor_medical_lab_pr2_workflow` is
+  recorded again with `cramera_bridge.demos.workflow_queries`: the rack re-sort, a
+  vessel stored in the refrigerator and a pair loaded into the centrifuge, with its
+  query steps. `aicor_medical_lab_pr2_query_stepper` is recorded again too, with
+  its roles and its target named `rack A3`. The laboratory's rack slots are given in the rack's
+  frame (`LaboratoryEnvironment.slot_pose`), as the centrifuge's and the
+  refrigerator's holders are in theirs, so a vessel's target follows the rack and the
+  view names the rack, not the map, as the frame of the location.
 - **The Segmind tab: what segmind saw, annotated in the replay.** A run recorded with
   segmind watching (`cramera-onboard --detect-events`, or `CRAMERA_DETECT_EVENTS=1` for
   a live run) lists every event with its sort, the frame it happened at and the keys

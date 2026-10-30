@@ -309,6 +309,12 @@ from cramera_protocol.questions import (
     VocabularyKey,
     VocabularyKind,
 )
+from cramera_protocol.designator_roles import (
+    DesignatorRole,
+    RoleEntityKey,
+    RoleSlotKey,
+    RoleSource,
+)
 from cramera_protocol.query_steps import (
     CallSiteKey,
     EnclosingKind,
@@ -488,6 +494,10 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     EnclosingStatementKey,
     SourceExcerptKey,
     CallSiteKey,
+    DesignatorRole,
+    RoleSource,
+    RoleEntityKey,
+    RoleSlotKey,
     QueryStepKey,
     QueryStepsKey,
     StepAdvanceKey,

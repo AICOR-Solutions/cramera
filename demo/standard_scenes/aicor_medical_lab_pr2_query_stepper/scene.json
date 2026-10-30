@@ -1,7 +1,7 @@
 {
  "name": "aicor_medical_lab_pr2_query_stepper",
  "formatVersion": "1.0",
- "framesPerSecond": 31.91,
+ "framesPerSecond": 18.52,
  "trajectory": "trajectory.json",
  "querySteps": "query_steps.json",
  "models": [
@@ -74,7 +74,7 @@
     "pr2/fl_caster_l_wheel_joint"
    ],
    "posedJoints": [],
-   "identifier": "5de30326-184f-459d-8b3e-102a18cc6d96",
+   "identifier": "803eab1c-515e-4c8f-a271-ff99b9efb1cd",
    "pose": [
     0.4,
     -0.72,
@@ -220,13 +220,13 @@
     "attachedTo": "PR2RightArm"
    }
   ],
-  "identifier": "5de30326-184f-459d-8b3e-102a18cc6d96",
+  "identifier": "803eab1c-515e-4c8f-a271-ff99b9efb1cd",
   "label": "PR2"
  },
  "objects": [
   {
    "id": "laboratory_rack",
-   "key": "5e35a92d-cd0f-409d-9728-9e9e658e603e",
+   "key": "137d8906-6e2f-4fee-b802-8c70bbd208a8",
    "spawn": [
     0.22,
     -0.04,
@@ -238,11 +238,11 @@
    ],
    "color": "#ffffff",
    "height": 0.0681,
-   "mesh": "meshes/objects/5e35a92d-cd0f-409d-9728-9e9e658e603e/tube_rack.glb"
+   "mesh": "meshes/objects/137d8906-6e2f-4fee-b802-8c70bbd208a8/tube_rack.glb"
   },
   {
    "id": "tube_clear",
-   "key": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+   "key": "cd882979-ca7b-4179-a57f-60a95b5493cb",
    "spawn": [
     0.16,
     -0.065,
@@ -254,11 +254,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/1acf45bb-c50d-47a3-a893-c681ed5c5b4b/tube_clear.glb"
+   "mesh": "meshes/objects/cd882979-ca7b-4179-a57f-60a95b5493cb/tube_clear.glb"
   },
   {
    "id": "tube_amber",
-   "key": "3f75538d-a269-48f2-bf92-49feaf8c6352",
+   "key": "a8251ab0-11bd-4240-9844-71f2bee56c33",
    "spawn": [
     0.22,
     -0.065,
@@ -270,11 +270,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/3f75538d-a269-48f2-bf92-49feaf8c6352/tube_amber.glb"
+   "mesh": "meshes/objects/a8251ab0-11bd-4240-9844-71f2bee56c33/tube_amber.glb"
   },
   {
    "id": "tube_teal",
-   "key": "f77fca6f-4789-4c22-9cff-730db09a8694",
+   "key": "f402d8c9-19b9-45b2-a2c5-cf8847a2b46e",
    "spawn": [
     0.16,
     -0.015,
@@ -286,11 +286,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/f77fca6f-4789-4c22-9cff-730db09a8694/tube_teal.glb"
+   "mesh": "meshes/objects/f402d8c9-19b9-45b2-a2c5-cf8847a2b46e/tube_teal.glb"
   },
   {
    "id": "tube_reserve",
-   "key": "f577379e-4fb0-42e6-b3c7-2aed3d6ec9cd",
+   "key": "35a290e5-4b1b-4e7a-916b-50fef4365b81",
    "spawn": [
     0.28,
     -0.015,
@@ -302,11 +302,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/f577379e-4fb0-42e6-b3c7-2aed3d6ec9cd/tube_clear.glb"
+   "mesh": "meshes/objects/35a290e5-4b1b-4e7a-916b-50fef4365b81/tube_clear.glb"
   },
   {
    "id": "stopper",
-   "key": "d1eae4a0-e1fc-4158-99d5-20838819b894",
+   "key": "e7435d71-d7fa-4489-8159-5ab028abe8ce",
    "spawn": [
     0.5,
     -0.12,
@@ -318,7 +318,7 @@
    ],
    "color": "#ffffff",
    "height": 0.021,
-   "mesh": "meshes/objects/d1eae4a0-e1fc-4158-99d5-20838819b894/stopper.glb"
+   "mesh": "meshes/objects/e7435d71-d7fa-4489-8159-5ab028abe8ce/stopper.glb"
   }
  ],
  "segments": [
@@ -331,7 +331,7 @@
    "step": "VesselPickUpAction",
    "start": 341,
    "end": 651,
-   "picks": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+   "picks": "cd882979-ca7b-4179-a57f-60a95b5493cb",
    "attach": 341,
    "detach": 620
   }
@@ -355,7 +355,8 @@
        "id": "plan_node_10",
        "parent": "plan_node_1",
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       },
       {
        "kind": "sequence",
@@ -375,7 +376,8 @@
            "id": "plan_node_16",
            "parent": "plan_node_4",
            "parameters": {},
-           "constraints": []
+           "constraints": [],
+           "roles": []
           },
           {
            "kind": "sequence",
@@ -390,6 +392,8 @@
              "arm": "PR2LeftArm",
              "id": "plan_node_12",
              "parent": "plan_node_9",
+             "start": 11,
+             "end": 183,
              "parameters": {
               "max_linear_velocity": "0.12",
               "target": "0.000, 0.000, 0.214",
@@ -397,7 +401,69 @@
               "allow_gripper_collision": "on",
               "movement_type": "CARTESIAN"
              },
-             "constraints": []
+             "constraints": [],
+             "roles": [
+              {
+               "field": "target",
+               "role": "location",
+               "source": "field",
+               "value": "0.000, 0.000, 0.214",
+               "entities": [],
+               "reference": {
+                "keys": [
+                 "cd882979-ca7b-4179-a57f-60a95b5493cb"
+                ],
+                "name": "tube_clear",
+                "type": "Body"
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.214,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
+              },
+              {
+               "field": "arm",
+               "role": "effector",
+               "source": "field",
+               "value": "PR2LeftArm",
+               "entities": [
+                {
+                 "keys": [
+                  "pr2/torso_lift_link",
+                  "pr2/l_shoulder_pan_link",
+                  "pr2/l_shoulder_lift_link",
+                  "pr2/l_upper_arm_roll_link",
+                  "pr2/l_upper_arm_link",
+                  "pr2/l_elbow_flex_link",
+                  "pr2/l_forearm_roll_link",
+                  "pr2/l_forearm_link",
+                  "pr2/l_wrist_flex_link",
+                  "pr2/l_wrist_roll_link",
+                  "pr2/l_force_torque_adapter_link",
+                  "pr2/l_force_torque_link",
+                  "pr2/l_gripper_palm_link",
+                  "pr2/l_gripper_r_finger_link",
+                  "pr2/l_gripper_l_finger_tip_link",
+                  "pr2/l_gripper_led_frame",
+                  "pr2/l_gripper_motor_accelerometer_link",
+                  "pr2/l_gripper_tool_frame",
+                  "pr2/l_gripper_motor_slider_link",
+                  "pr2/l_gripper_motor_screw_link",
+                  "pr2/l_gripper_l_finger_link",
+                  "pr2/l_gripper_r_finger_tip_link",
+                  "pr2/l_gripper_l_finger_tip_frame"
+                 ],
+                 "name": "PR2LeftArm",
+                 "type": "PR2LeftArm"
+                }
+               ]
+              }
+             ]
             },
             {
              "kind": "motion",
@@ -406,12 +472,41 @@
              "children": [],
              "id": "plan_node_13",
              "parent": "plan_node_9",
+             "start": 184,
+             "end": 205,
              "parameters": {
               "tolerate_stall": "off",
               "motion": "OPEN",
               "gripper": "PR2LeftGripper"
              },
-             "constraints": []
+             "constraints": [],
+             "roles": [
+              {
+               "field": "gripper",
+               "role": "effector",
+               "source": "field",
+               "value": "PR2LeftGripper",
+               "entities": [
+                {
+                 "keys": [
+                  "pr2/l_gripper_palm_link",
+                  "pr2/l_gripper_r_finger_link",
+                  "pr2/l_gripper_l_finger_tip_link",
+                  "pr2/l_gripper_led_frame",
+                  "pr2/l_gripper_motor_accelerometer_link",
+                  "pr2/l_gripper_tool_frame",
+                  "pr2/l_gripper_motor_slider_link",
+                  "pr2/l_gripper_motor_screw_link",
+                  "pr2/l_gripper_l_finger_link",
+                  "pr2/l_gripper_r_finger_tip_link",
+                  "pr2/l_gripper_l_finger_tip_frame"
+                 ],
+                 "name": "PR2LeftGripper",
+                 "type": "PR2LeftGripper"
+                }
+               ]
+              }
+             ]
             },
             {
              "kind": "motion",
@@ -421,6 +516,8 @@
              "arm": "PR2LeftArm",
              "id": "plan_node_14",
              "parent": "plan_node_9",
+             "start": 206,
+             "end": 280,
              "parameters": {
               "position_threshold": "0.0005",
               "max_linear_velocity": "0.025",
@@ -429,13 +526,78 @@
               "allow_gripper_collision": "on",
               "movement_type": "CARTESIAN"
              },
-             "constraints": []
+             "constraints": [],
+             "roles": [
+              {
+               "field": "target",
+               "role": "location",
+               "source": "field",
+               "value": "-0.000, -0.000, 0.105",
+               "entities": [],
+               "reference": {
+                "keys": [
+                 "cd882979-ca7b-4179-a57f-60a95b5493cb"
+                ],
+                "name": "tube_clear",
+                "type": "Body"
+               },
+               "pose": [
+                -0.0,
+                -0.0,
+                0.105,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
+              },
+              {
+               "field": "arm",
+               "role": "effector",
+               "source": "field",
+               "value": "PR2LeftArm",
+               "entities": [
+                {
+                 "keys": [
+                  "pr2/torso_lift_link",
+                  "pr2/l_shoulder_pan_link",
+                  "pr2/l_shoulder_lift_link",
+                  "pr2/l_upper_arm_roll_link",
+                  "pr2/l_upper_arm_link",
+                  "pr2/l_elbow_flex_link",
+                  "pr2/l_forearm_roll_link",
+                  "pr2/l_forearm_link",
+                  "pr2/l_wrist_flex_link",
+                  "pr2/l_wrist_roll_link",
+                  "pr2/l_force_torque_adapter_link",
+                  "pr2/l_force_torque_link",
+                  "pr2/l_gripper_palm_link",
+                  "pr2/l_gripper_r_finger_link",
+                  "pr2/l_gripper_l_finger_tip_link",
+                  "pr2/l_gripper_led_frame",
+                  "pr2/l_gripper_motor_accelerometer_link",
+                  "pr2/l_gripper_tool_frame",
+                  "pr2/l_gripper_motor_slider_link",
+                  "pr2/l_gripper_motor_screw_link",
+                  "pr2/l_gripper_l_finger_link",
+                  "pr2/l_gripper_r_finger_tip_link",
+                  "pr2/l_gripper_l_finger_tip_frame"
+                 ],
+                 "name": "PR2LeftArm",
+                 "type": "PR2LeftArm"
+                }
+               ]
+              }
+             ]
             }
            ],
            "id": "plan_node_9",
            "parent": "plan_node_4",
+           "start": 11,
+           "end": 280,
            "parameters": {},
-           "constraints": []
+           "constraints": [],
+           "roles": []
           },
           {
            "kind": "condition",
@@ -445,7 +607,8 @@
            "id": "plan_node_17",
            "parent": "plan_node_4",
            "parameters": {},
-           "constraints": []
+           "constraints": [],
+           "roles": []
           }
          ],
          "arm": "PR2LeftArm",
@@ -465,7 +628,179 @@
           "open_gripper_at_pre_pose": "on",
           "grasp_position_threshold": "0.0005"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "robot",
+           "role": "agent",
+           "source": "context",
+           "value": "PR2",
+           "entities": [
+            {
+             "keys": [
+              "pr2/base_footprint",
+              "pr2/base_link",
+              "pr2/base_bellow_link",
+              "pr2/base_laser_link",
+              "pr2/fl_caster_rotation_link",
+              "pr2/fl_caster_l_wheel_link",
+              "pr2/fl_caster_r_wheel_link",
+              "pr2/fr_caster_rotation_link",
+              "pr2/fr_caster_l_wheel_link",
+              "pr2/fr_caster_r_wheel_link",
+              "pr2/bl_caster_rotation_link",
+              "pr2/bl_caster_l_wheel_link",
+              "pr2/bl_caster_r_wheel_link",
+              "pr2/br_caster_rotation_link",
+              "pr2/br_caster_l_wheel_link",
+              "pr2/br_caster_r_wheel_link",
+              "pr2/torso_lift_link",
+              "pr2/l_torso_lift_side_plate_link",
+              "pr2/r_torso_lift_side_plate_link",
+              "pr2/torso_lift_motor_screw_link",
+              "pr2/imu_link",
+              "pr2/head_pan_link",
+              "pr2/head_tilt_link",
+              "pr2/head_plate_frame",
+              "pr2/sensor_mount_link",
+              "pr2/high_def_frame",
+              "pr2/high_def_optical_frame",
+              "pr2/double_stereo_link",
+              "pr2/wide_stereo_link",
+              "pr2/wide_stereo_optical_frame",
+              "pr2/wide_stereo_l_stereo_camera_frame",
+              "pr2/wide_stereo_l_stereo_camera_optical_frame",
+              "pr2/wide_stereo_r_stereo_camera_frame",
+              "pr2/wide_stereo_r_stereo_camera_optical_frame",
+              "pr2/narrow_stereo_link",
+              "pr2/narrow_stereo_optical_frame",
+              "pr2/narrow_stereo_l_stereo_camera_frame",
+              "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+              "pr2/narrow_stereo_r_stereo_camera_frame",
+              "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+              "pr2/projector_wg6802418_frame",
+              "pr2/projector_wg6802418_child_frame",
+              "pr2/head_mount_link",
+              "pr2/head_mount_kinect_ir_link",
+              "pr2/head_mount_kinect_ir_optical_frame",
+              "pr2/head_mount_kinect_rgb_link",
+              "pr2/head_mount_kinect_rgb_optical_frame",
+              "pr2/head_mount_kinect2_rgb_optical_frame",
+              "pr2/head_mount_kinect2_ir_optical_frame",
+              "pr2/head_mount_prosilica_link",
+              "pr2/head_mount_prosilica_optical_frame",
+              "pr2/laser_tilt_mount_link",
+              "pr2/laser_tilt_link",
+              "pr2/r_shoulder_pan_link",
+              "pr2/r_shoulder_lift_link",
+              "pr2/r_upper_arm_roll_link",
+              "pr2/r_upper_arm_link",
+              "pr2/r_elbow_flex_link",
+              "pr2/r_forearm_roll_link",
+              "pr2/r_forearm_link",
+              "pr2/r_wrist_flex_link",
+              "pr2/r_wrist_roll_link",
+              "pr2/r_gripper_palm_link",
+              "pr2/r_gripper_led_frame",
+              "pr2/r_gripper_motor_accelerometer_link",
+              "pr2/r_gripper_tool_frame",
+              "pr2/r_gripper_motor_slider_link",
+              "pr2/r_gripper_motor_screw_link",
+              "pr2/r_gripper_l_finger_link",
+              "pr2/r_gripper_r_finger_tip_link",
+              "pr2/r_gripper_l_finger_tip_frame",
+              "pr2/l_shoulder_pan_link",
+              "pr2/l_shoulder_lift_link",
+              "pr2/l_upper_arm_roll_link",
+              "pr2/l_upper_arm_link",
+              "pr2/l_elbow_flex_link",
+              "pr2/l_forearm_roll_link",
+              "pr2/l_forearm_link",
+              "pr2/l_wrist_flex_link",
+              "pr2/l_wrist_roll_link",
+              "pr2/l_force_torque_adapter_link",
+              "pr2/l_force_torque_link",
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame",
+              "pr2/l_forearm_cam_frame",
+              "pr2/l_forearm_cam_optical_frame",
+              "pr2/r_forearm_cam_frame",
+              "pr2/r_forearm_cam_optical_frame",
+              "pr2/head_mount_kinect2_link",
+              "pr2/l_torso_lift_side_item_profile_link",
+              "pr2/r_torso_lift_side_item_profile_link",
+              "pr2/m_torso_lift_side_item_profile_link",
+              "pr2/t_torso_lift_side_item_profile_link",
+              "pr2/r_gripper_r_finger_link",
+              "pr2/r_gripper_l_finger_tip_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link"
+             ],
+             "name": "PR2",
+             "type": "PR2"
+            }
+           ]
+          },
+          {
+           "field": "arm",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftArm",
+           "entities": [
+            {
+             "keys": [
+              "pr2/torso_lift_link",
+              "pr2/l_shoulder_pan_link",
+              "pr2/l_shoulder_lift_link",
+              "pr2/l_upper_arm_roll_link",
+              "pr2/l_upper_arm_link",
+              "pr2/l_elbow_flex_link",
+              "pr2/l_forearm_roll_link",
+              "pr2/l_forearm_link",
+              "pr2/l_wrist_flex_link",
+              "pr2/l_wrist_roll_link",
+              "pr2/l_force_torque_adapter_link",
+              "pr2/l_force_torque_link",
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftArm",
+             "type": "PR2LeftArm"
+            }
+           ]
+          },
+          {
+           "field": "grasp.graspable",
+           "role": "object",
+           "source": "field",
+           "value": "Container",
+           "entities": [
+            {
+             "keys": [
+              "cd882979-ca7b-4179-a57f-60a95b5493cb"
+             ],
+             "name": "Container \u00b7 tube_clear",
+             "type": "Container"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "other",
@@ -475,24 +810,69 @@
          "id": "plan_node_5",
          "parent": "plan_node_3",
          "parameters": {},
-         "constraints": []
+         "constraints": [],
+         "roles": []
         },
         {
          "kind": "motion",
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+         "target": "cd882979-ca7b-4179-a57f-60a95b5493cb",
          "id": "plan_node_6",
          "parent": "plan_node_3",
+         "start": 287,
+         "end": 336,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+          "object_designator": "cd882979-ca7b-4179-a57f-60a95b5493cb",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "gripper",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftGripper",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftGripper",
+             "type": "PR2LeftGripper"
+            }
+           ]
+          },
+          {
+           "field": "object_designator",
+           "role": "object",
+           "source": "field",
+           "value": "cd882979-ca7b-4179-a57f-60a95b5493cb",
+           "entities": [
+            {
+             "keys": [
+              "cd882979-ca7b-4179-a57f-60a95b5493cb"
+             ],
+             "name": "tube_clear",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "attachment",
@@ -502,7 +882,8 @@
          "id": "plan_node_7",
          "parent": "plan_node_3",
          "parameters": {},
-         "constraints": []
+         "constraints": [],
+         "roles": []
         },
         {
          "kind": "motion",
@@ -512,6 +893,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_8",
          "parent": "plan_node_3",
+         "start": 345,
+         "end": 413,
          "parameters": {
           "max_linear_velocity": "0.04",
           "target": "0.000, 0.000, 0.265",
@@ -519,15 +902,78 @@
           "allow_gripper_collision": "on",
           "movement_type": "TRANSLATION"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "target",
+           "role": "location",
+           "source": "field",
+           "value": "0.000, 0.000, 0.265",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "cd882979-ca7b-4179-a57f-60a95b5493cb"
+            ],
+            "name": "tube_clear",
+            "type": "Body"
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.265,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          },
+          {
+           "field": "arm",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftArm",
+           "entities": [
+            {
+             "keys": [
+              "pr2/torso_lift_link",
+              "pr2/l_shoulder_pan_link",
+              "pr2/l_shoulder_lift_link",
+              "pr2/l_upper_arm_roll_link",
+              "pr2/l_upper_arm_link",
+              "pr2/l_elbow_flex_link",
+              "pr2/l_forearm_roll_link",
+              "pr2/l_forearm_link",
+              "pr2/l_wrist_flex_link",
+              "pr2/l_wrist_roll_link",
+              "pr2/l_force_torque_adapter_link",
+              "pr2/l_force_torque_link",
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftArm",
+             "type": "PR2LeftArm"
+            }
+           ]
+          }
+         ]
         }
        ],
        "id": "plan_node_3",
        "parent": "plan_node_1",
        "start": 11,
-       "end": 280,
+       "end": 413,
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       },
       {
        "kind": "condition",
@@ -537,14 +983,15 @@
        "id": "plan_node_11",
        "parent": "plan_node_1",
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       }
      ],
      "arm": "PR2LeftArm",
      "id": "plan_node_1",
      "parent": "plan_node_0",
      "start": 11,
-     "end": 344,
+     "end": 413,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "pre_approach_linear_velocity": "0.12",
@@ -561,7 +1008,179 @@
       "grasp_position_threshold": "0.0005",
       "lift_movement": "TRANSLATION"
      },
-     "constraints": []
+     "constraints": [],
+     "roles": [
+      {
+       "field": "robot",
+       "role": "agent",
+       "source": "context",
+       "value": "PR2",
+       "entities": [
+        {
+         "keys": [
+          "pr2/base_footprint",
+          "pr2/base_link",
+          "pr2/base_bellow_link",
+          "pr2/base_laser_link",
+          "pr2/fl_caster_rotation_link",
+          "pr2/fl_caster_l_wheel_link",
+          "pr2/fl_caster_r_wheel_link",
+          "pr2/fr_caster_rotation_link",
+          "pr2/fr_caster_l_wheel_link",
+          "pr2/fr_caster_r_wheel_link",
+          "pr2/bl_caster_rotation_link",
+          "pr2/bl_caster_l_wheel_link",
+          "pr2/bl_caster_r_wheel_link",
+          "pr2/br_caster_rotation_link",
+          "pr2/br_caster_l_wheel_link",
+          "pr2/br_caster_r_wheel_link",
+          "pr2/torso_lift_link",
+          "pr2/l_torso_lift_side_plate_link",
+          "pr2/r_torso_lift_side_plate_link",
+          "pr2/torso_lift_motor_screw_link",
+          "pr2/imu_link",
+          "pr2/head_pan_link",
+          "pr2/head_tilt_link",
+          "pr2/head_plate_frame",
+          "pr2/sensor_mount_link",
+          "pr2/high_def_frame",
+          "pr2/high_def_optical_frame",
+          "pr2/double_stereo_link",
+          "pr2/wide_stereo_link",
+          "pr2/wide_stereo_optical_frame",
+          "pr2/wide_stereo_l_stereo_camera_frame",
+          "pr2/wide_stereo_l_stereo_camera_optical_frame",
+          "pr2/wide_stereo_r_stereo_camera_frame",
+          "pr2/wide_stereo_r_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_link",
+          "pr2/narrow_stereo_optical_frame",
+          "pr2/narrow_stereo_l_stereo_camera_frame",
+          "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_r_stereo_camera_frame",
+          "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+          "pr2/projector_wg6802418_frame",
+          "pr2/projector_wg6802418_child_frame",
+          "pr2/head_mount_link",
+          "pr2/head_mount_kinect_ir_link",
+          "pr2/head_mount_kinect_ir_optical_frame",
+          "pr2/head_mount_kinect_rgb_link",
+          "pr2/head_mount_kinect_rgb_optical_frame",
+          "pr2/head_mount_kinect2_rgb_optical_frame",
+          "pr2/head_mount_kinect2_ir_optical_frame",
+          "pr2/head_mount_prosilica_link",
+          "pr2/head_mount_prosilica_optical_frame",
+          "pr2/laser_tilt_mount_link",
+          "pr2/laser_tilt_link",
+          "pr2/r_shoulder_pan_link",
+          "pr2/r_shoulder_lift_link",
+          "pr2/r_upper_arm_roll_link",
+          "pr2/r_upper_arm_link",
+          "pr2/r_elbow_flex_link",
+          "pr2/r_forearm_roll_link",
+          "pr2/r_forearm_link",
+          "pr2/r_wrist_flex_link",
+          "pr2/r_wrist_roll_link",
+          "pr2/r_gripper_palm_link",
+          "pr2/r_gripper_led_frame",
+          "pr2/r_gripper_motor_accelerometer_link",
+          "pr2/r_gripper_tool_frame",
+          "pr2/r_gripper_motor_slider_link",
+          "pr2/r_gripper_motor_screw_link",
+          "pr2/r_gripper_l_finger_link",
+          "pr2/r_gripper_r_finger_tip_link",
+          "pr2/r_gripper_l_finger_tip_frame",
+          "pr2/l_shoulder_pan_link",
+          "pr2/l_shoulder_lift_link",
+          "pr2/l_upper_arm_roll_link",
+          "pr2/l_upper_arm_link",
+          "pr2/l_elbow_flex_link",
+          "pr2/l_forearm_roll_link",
+          "pr2/l_forearm_link",
+          "pr2/l_wrist_flex_link",
+          "pr2/l_wrist_roll_link",
+          "pr2/l_force_torque_adapter_link",
+          "pr2/l_force_torque_link",
+          "pr2/l_gripper_palm_link",
+          "pr2/l_gripper_led_frame",
+          "pr2/l_gripper_motor_accelerometer_link",
+          "pr2/l_gripper_tool_frame",
+          "pr2/l_gripper_motor_slider_link",
+          "pr2/l_gripper_motor_screw_link",
+          "pr2/l_gripper_l_finger_link",
+          "pr2/l_gripper_r_finger_tip_link",
+          "pr2/l_gripper_l_finger_tip_frame",
+          "pr2/l_forearm_cam_frame",
+          "pr2/l_forearm_cam_optical_frame",
+          "pr2/r_forearm_cam_frame",
+          "pr2/r_forearm_cam_optical_frame",
+          "pr2/head_mount_kinect2_link",
+          "pr2/l_torso_lift_side_item_profile_link",
+          "pr2/r_torso_lift_side_item_profile_link",
+          "pr2/m_torso_lift_side_item_profile_link",
+          "pr2/t_torso_lift_side_item_profile_link",
+          "pr2/r_gripper_r_finger_link",
+          "pr2/r_gripper_l_finger_tip_link",
+          "pr2/l_gripper_r_finger_link",
+          "pr2/l_gripper_l_finger_tip_link"
+         ],
+         "name": "PR2",
+         "type": "PR2"
+        }
+       ]
+      },
+      {
+       "field": "grasp.graspable",
+       "role": "object",
+       "source": "field",
+       "value": "Container",
+       "entities": [
+        {
+         "keys": [
+          "cd882979-ca7b-4179-a57f-60a95b5493cb"
+         ],
+         "name": "Container \u00b7 tube_clear",
+         "type": "Container"
+        }
+       ]
+      },
+      {
+       "field": "arm",
+       "role": "effector",
+       "source": "field",
+       "value": "PR2LeftArm",
+       "entities": [
+        {
+         "keys": [
+          "pr2/torso_lift_link",
+          "pr2/l_shoulder_pan_link",
+          "pr2/l_shoulder_lift_link",
+          "pr2/l_upper_arm_roll_link",
+          "pr2/l_upper_arm_link",
+          "pr2/l_elbow_flex_link",
+          "pr2/l_forearm_roll_link",
+          "pr2/l_forearm_link",
+          "pr2/l_wrist_flex_link",
+          "pr2/l_wrist_roll_link",
+          "pr2/l_force_torque_adapter_link",
+          "pr2/l_force_torque_link",
+          "pr2/l_gripper_palm_link",
+          "pr2/l_gripper_r_finger_link",
+          "pr2/l_gripper_l_finger_tip_link",
+          "pr2/l_gripper_led_frame",
+          "pr2/l_gripper_motor_accelerometer_link",
+          "pr2/l_gripper_tool_frame",
+          "pr2/l_gripper_motor_slider_link",
+          "pr2/l_gripper_motor_screw_link",
+          "pr2/l_gripper_l_finger_link",
+          "pr2/l_gripper_r_finger_tip_link",
+          "pr2/l_gripper_l_finger_tip_frame"
+         ],
+         "name": "PR2LeftArm",
+         "type": "PR2LeftArm"
+        }
+       ]
+      }
+     ]
     },
     {
      "kind": "action",
@@ -576,7 +1195,8 @@
        "id": "plan_node_24",
        "parent": "plan_node_2",
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       },
       {
        "kind": "sequence",
@@ -591,15 +1211,79 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_18",
          "parent": "plan_node_15",
+         "start": 418,
+         "end": 456,
          "parameters": {
           "position_threshold": "0.003",
           "max_linear_velocity": "0.08",
-          "target": "0.280, -0.065, 1.171",
+          "target": "0.060, -0.025, 0.271",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "target",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.271",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "137d8906-6e2f-4fee-b802-8c70bbd208a8"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.271,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          },
+          {
+           "field": "arm",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftArm",
+           "entities": [
+            {
+             "keys": [
+              "pr2/torso_lift_link",
+              "pr2/l_shoulder_pan_link",
+              "pr2/l_shoulder_lift_link",
+              "pr2/l_upper_arm_roll_link",
+              "pr2/l_upper_arm_link",
+              "pr2/l_elbow_flex_link",
+              "pr2/l_forearm_roll_link",
+              "pr2/l_forearm_link",
+              "pr2/l_wrist_flex_link",
+              "pr2/l_wrist_roll_link",
+              "pr2/l_force_torque_adapter_link",
+              "pr2/l_force_torque_link",
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftArm",
+             "type": "PR2LeftArm"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "motion",
@@ -609,14 +1293,78 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_19",
          "parent": "plan_node_15",
+         "start": 457,
+         "end": 594,
          "parameters": {
           "max_linear_velocity": "0.02",
-          "target": "0.280, -0.065, 1.011",
+          "target": "0.060, -0.025, 0.111",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "target",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.111",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "137d8906-6e2f-4fee-b802-8c70bbd208a8"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.111,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          },
+          {
+           "field": "arm",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftArm",
+           "entities": [
+            {
+             "keys": [
+              "pr2/torso_lift_link",
+              "pr2/l_shoulder_pan_link",
+              "pr2/l_shoulder_lift_link",
+              "pr2/l_upper_arm_roll_link",
+              "pr2/l_upper_arm_link",
+              "pr2/l_elbow_flex_link",
+              "pr2/l_forearm_roll_link",
+              "pr2/l_forearm_link",
+              "pr2/l_wrist_flex_link",
+              "pr2/l_wrist_roll_link",
+              "pr2/l_force_torque_adapter_link",
+              "pr2/l_force_torque_link",
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftArm",
+             "type": "PR2LeftArm"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "motion",
@@ -625,13 +1373,42 @@
          "children": [],
          "id": "plan_node_20",
          "parent": "plan_node_15",
+         "start": 595,
+         "end": 613,
          "parameters": {
           "tolerate_stall": "off",
           "motion": "OPEN",
           "gripper": "PR2LeftGripper",
           "allow_gripper_collision": "on"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "gripper",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftGripper",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftGripper",
+             "type": "PR2LeftGripper"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "attachment",
@@ -641,7 +1418,8 @@
          "id": "plan_node_21",
          "parent": "plan_node_15",
          "parameters": {},
-         "constraints": []
+         "constraints": [],
+         "roles": []
         },
         {
          "kind": "motion",
@@ -651,19 +1429,86 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_22",
          "parent": "plan_node_15",
+         "start": 622,
+         "end": 647,
          "parameters": {
           "max_linear_velocity": "0.08",
-          "target": "0.280, -0.065, 1.120",
+          "target": "0.060, -0.025, 0.220",
           "arm": "PR2LeftArm",
           "movement_type": "CARTESIAN"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "target",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.220",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "137d8906-6e2f-4fee-b802-8c70bbd208a8"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.22,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          },
+          {
+           "field": "arm",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftArm",
+           "entities": [
+            {
+             "keys": [
+              "pr2/torso_lift_link",
+              "pr2/l_shoulder_pan_link",
+              "pr2/l_shoulder_lift_link",
+              "pr2/l_upper_arm_roll_link",
+              "pr2/l_upper_arm_link",
+              "pr2/l_elbow_flex_link",
+              "pr2/l_forearm_roll_link",
+              "pr2/l_forearm_link",
+              "pr2/l_wrist_flex_link",
+              "pr2/l_wrist_roll_link",
+              "pr2/l_force_torque_adapter_link",
+              "pr2/l_force_torque_link",
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftArm",
+             "type": "PR2LeftArm"
+            }
+           ]
+          }
+         ]
         }
        ],
        "id": "plan_node_15",
        "parent": "plan_node_2",
+       "start": 418,
+       "end": 647,
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       },
       {
        "kind": "condition",
@@ -673,7 +1518,8 @@
        "id": "plan_node_25",
        "parent": "plan_node_2",
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       }
      ],
      "id": "plan_node_2",
@@ -688,11 +1534,170 @@
       "approach_clearance": "0.109",
       "retreat_distance": "0.16",
       "object_designator": "Container",
-      "target_location": "0.280, -0.065, 0.906",
+      "target_location": "0.060, -0.025, 0.006",
       "grasp_release_threshold": "0.1",
       "approach_position_threshold": "0.003"
      },
-     "constraints": []
+     "constraints": [],
+     "roles": [
+      {
+       "field": "robot",
+       "role": "agent",
+       "source": "context",
+       "value": "PR2",
+       "entities": [
+        {
+         "keys": [
+          "pr2/base_footprint",
+          "pr2/base_link",
+          "pr2/base_bellow_link",
+          "pr2/base_laser_link",
+          "pr2/fl_caster_rotation_link",
+          "pr2/fl_caster_l_wheel_link",
+          "pr2/fl_caster_r_wheel_link",
+          "pr2/fr_caster_rotation_link",
+          "pr2/fr_caster_l_wheel_link",
+          "pr2/fr_caster_r_wheel_link",
+          "pr2/bl_caster_rotation_link",
+          "pr2/bl_caster_l_wheel_link",
+          "pr2/bl_caster_r_wheel_link",
+          "pr2/br_caster_rotation_link",
+          "pr2/br_caster_l_wheel_link",
+          "pr2/br_caster_r_wheel_link",
+          "pr2/torso_lift_link",
+          "pr2/l_torso_lift_side_plate_link",
+          "pr2/r_torso_lift_side_plate_link",
+          "pr2/torso_lift_motor_screw_link",
+          "pr2/imu_link",
+          "pr2/head_pan_link",
+          "pr2/head_tilt_link",
+          "pr2/head_plate_frame",
+          "pr2/sensor_mount_link",
+          "pr2/high_def_frame",
+          "pr2/high_def_optical_frame",
+          "pr2/double_stereo_link",
+          "pr2/wide_stereo_link",
+          "pr2/wide_stereo_optical_frame",
+          "pr2/wide_stereo_l_stereo_camera_frame",
+          "pr2/wide_stereo_l_stereo_camera_optical_frame",
+          "pr2/wide_stereo_r_stereo_camera_frame",
+          "pr2/wide_stereo_r_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_link",
+          "pr2/narrow_stereo_optical_frame",
+          "pr2/narrow_stereo_l_stereo_camera_frame",
+          "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_r_stereo_camera_frame",
+          "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+          "pr2/projector_wg6802418_frame",
+          "pr2/projector_wg6802418_child_frame",
+          "pr2/head_mount_link",
+          "pr2/head_mount_kinect_ir_link",
+          "pr2/head_mount_kinect_ir_optical_frame",
+          "pr2/head_mount_kinect_rgb_link",
+          "pr2/head_mount_kinect_rgb_optical_frame",
+          "pr2/head_mount_kinect2_rgb_optical_frame",
+          "pr2/head_mount_kinect2_ir_optical_frame",
+          "pr2/head_mount_prosilica_link",
+          "pr2/head_mount_prosilica_optical_frame",
+          "pr2/laser_tilt_mount_link",
+          "pr2/laser_tilt_link",
+          "pr2/r_shoulder_pan_link",
+          "pr2/r_shoulder_lift_link",
+          "pr2/r_upper_arm_roll_link",
+          "pr2/r_upper_arm_link",
+          "pr2/r_elbow_flex_link",
+          "pr2/r_forearm_roll_link",
+          "pr2/r_forearm_link",
+          "pr2/r_wrist_flex_link",
+          "pr2/r_wrist_roll_link",
+          "pr2/r_gripper_palm_link",
+          "pr2/r_gripper_led_frame",
+          "pr2/r_gripper_motor_accelerometer_link",
+          "pr2/r_gripper_tool_frame",
+          "pr2/r_gripper_motor_slider_link",
+          "pr2/r_gripper_motor_screw_link",
+          "pr2/r_gripper_l_finger_link",
+          "pr2/r_gripper_r_finger_tip_link",
+          "pr2/r_gripper_l_finger_tip_frame",
+          "pr2/l_shoulder_pan_link",
+          "pr2/l_shoulder_lift_link",
+          "pr2/l_upper_arm_roll_link",
+          "pr2/l_upper_arm_link",
+          "pr2/l_elbow_flex_link",
+          "pr2/l_forearm_roll_link",
+          "pr2/l_forearm_link",
+          "pr2/l_wrist_flex_link",
+          "pr2/l_wrist_roll_link",
+          "pr2/l_force_torque_adapter_link",
+          "pr2/l_force_torque_link",
+          "pr2/l_gripper_palm_link",
+          "pr2/l_gripper_led_frame",
+          "pr2/l_gripper_motor_accelerometer_link",
+          "pr2/l_gripper_tool_frame",
+          "pr2/l_gripper_motor_slider_link",
+          "pr2/l_gripper_motor_screw_link",
+          "pr2/l_gripper_l_finger_link",
+          "pr2/l_gripper_r_finger_tip_link",
+          "pr2/l_gripper_l_finger_tip_frame",
+          "pr2/l_forearm_cam_frame",
+          "pr2/l_forearm_cam_optical_frame",
+          "pr2/r_forearm_cam_frame",
+          "pr2/r_forearm_cam_optical_frame",
+          "pr2/head_mount_kinect2_link",
+          "pr2/l_torso_lift_side_item_profile_link",
+          "pr2/r_torso_lift_side_item_profile_link",
+          "pr2/m_torso_lift_side_item_profile_link",
+          "pr2/t_torso_lift_side_item_profile_link",
+          "pr2/r_gripper_r_finger_link",
+          "pr2/r_gripper_l_finger_tip_link",
+          "pr2/l_gripper_r_finger_link",
+          "pr2/l_gripper_l_finger_tip_link"
+         ],
+         "name": "PR2",
+         "type": "PR2"
+        }
+       ]
+      },
+      {
+       "field": "object_designator",
+       "role": "object",
+       "source": "field",
+       "value": "Container",
+       "entities": [
+        {
+         "keys": [
+          "cd882979-ca7b-4179-a57f-60a95b5493cb"
+         ],
+         "name": "Container \u00b7 tube_clear",
+         "type": "Container"
+        }
+       ]
+      },
+      {
+       "field": "target_location",
+       "role": "location",
+       "source": "field",
+       "value": "0.060, -0.025, 0.006",
+       "entities": [],
+       "reference": {
+        "keys": [
+         "137d8906-6e2f-4fee-b802-8c70bbd208a8"
+        ],
+        "name": "laboratory_rack",
+        "type": "Body"
+       },
+       "pose": [
+        0.06,
+        -0.025,
+        0.006,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
+       "place": "rack A3"
+      }
+     ]
     }
    ],
    "id": "plan_node_0",
@@ -700,7 +1705,8 @@
    "end": 647,
    "robot": "PR2",
    "parameters": {},
-   "constraints": []
+   "constraints": [],
+   "roles": []
   }
  ],
  "actions": [],
@@ -730,7 +1736,6 @@
    "pr2": "semantic_digital_twin.robots.pr2.PR2"
   },
   "bodies": {
-   "world_root": "semantic_digital_twin.world_description.world_entity.Body",
    "map": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_root": "semantic_digital_twin.world_description.world_entity.Body",
@@ -750,7 +1755,7 @@
    "laboratory_cabinet_right_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_middle_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_lower_handle": "semantic_digital_twin.world_description.world_entity.Body",
-   "a4a9200d-5986-443d-ac00-639076713a6b/odom": "semantic_digital_twin.world_description.world_entity.Body",
+   "a6409c87-9f78-4728-8641-8b8f964ae078/odom": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_link": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/torso_lift_motor_screw_link": "semantic_digital_twin.world_description.world_entity.Body",
@@ -863,7 +1868,6 @@
    "stopper": "semantic_digital_twin.world_description.world_entity.Body"
   },
   "connections": {
-   "world_root_to_map": "semantic_digital_twin.world_description.connections.FixedConnection",
    "map_T_laboratory_cabinet": "semantic_digital_twin.world_description.connections.FixedConnection",
    "map_T_laboratory_root": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_refrigerator_base_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
@@ -875,15 +1879,13 @@
    "aicor_medical_lab/laboratory_centrifuge_lid_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_centrifuge_rotor_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "aicor_medical_lab/laboratory_balance_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "world_root_to_laboratory_rack_handle": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_drawer_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",
    "aicor_medical_lab/laboratory_drawer_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_room_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_right_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_middle_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_lower_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "a4a9200d-5986-443d-ac00-639076713a6b/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "world_root_to_pr2/base_footprint": "semantic_digital_twin.world_description.connections.FixedConnection",
+   "a6409c87-9f78-4728-8641-8b8f964ae078/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/base_footprint_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/torso_lift_motor_screw_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",
@@ -996,6 +1998,55 @@
   }
  },
  "annotations": [
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_rack_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_drawer_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_cabinet_lower_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_cabinet_middle_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_cabinet_right_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_centrifuge_lid_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_refrigerator_door_handle"
+   ]
+  },
   {
    "name": "laboratory_drawer",
    "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",

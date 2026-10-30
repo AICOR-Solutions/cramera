@@ -5,24 +5,51 @@ The executing plan as the viewer shows it: every node with its native status.
 from __future__ import annotations
 
 import threading
+
+import numpy
 from dataclasses import dataclass, field, fields, is_dataclass, replace
 from enum import Enum, StrEnum
 
-from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
+from typing_extensions import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from cramera_bridge.exceptions import UnknownPlanNode
-from cramera_bridge.names import plan_node_kind
+from cramera_bridge.geometry import NumericPose
+from cramera_bridge.names import (
+    ACTION_NAMES,
+    FIELD_NAMES,
+    FIELD_ROLES,
+    plan_node_kind,
+)
 from cramera_bridge.live.perception_images import PerceptionImages
 from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.robots import RobotRoster
+from cramera_protocol.designator_roles import (
+    DesignatorRole,
+    RoleEntity,
+    RoleSlot,
+    RoleSource,
+)
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, MotionNode, PlanNode
 from coraplex.robot_plans.motions.misc import DetectingMotion
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from krrood.entity_query_language.core.variable import Variable
 from krrood.entity_query_language.query.match import Match
-from semantic_digital_twin.robots.robot_parts import Arm
+from semantic_digital_twin.robots.robot_parts import (
+    AbstractRobot,
+    AbstractRobotPart,
+    Arm,
+)
 from semantic_digital_twin.spatial_types.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -88,6 +115,18 @@ Separates the class a match matches from what it states about the class's fields
 OPEN_VALUE = "any"
 """
 Precedes the type of a value a designator leaves open, to be found when it runs.
+"""
+
+ENTITY_ROOT_SEPARATOR = " · "
+"""
+Joins an annotation named only by its kind, such as a container, to the name of its root
+body, as a query step words such an answer.
+"""
+
+AGENT_FIELD = "robot"
+"""
+What the plan's context calls the robot that performs an action, which fills the
+action's agent role.
 """
 
 
@@ -206,6 +245,48 @@ class NodeLifeCycle:
         return LifeCycleValues.RUNNING
 
 
+# %% places
+
+
+@dataclass(frozen=True)
+class NamedPlace:
+    """
+    A pose a task built for one of the places of its layout, under the name the task
+    gives the place, such as a holder of a centrifuge's rotor.
+    """
+
+    name: str
+    """
+    The place's name, such as ``centrifuge C4``.
+    """
+
+    pose: Pose
+    """
+    The pose the task builds for the place.
+    """
+
+    def names(self, pose: Pose) -> bool:
+        """
+        :param pose: A pose a designator holds.
+        :return: Whether it is this place's pose: given in the same frame, at the same
+            position and orientation, as the task built it; a pose near the place, such
+            as one above it to approach from, is not.
+        """
+        return pose.reference_frame is self.pose.reference_frame and bool(
+            numpy.allclose(
+                pose.to_np(), self.pose.to_np(), rtol=0.0, atol=PLACE_TOLERANCE
+            )
+        )
+
+
+PLACE_TOLERANCE = 1e-9
+"""
+How far, in metres and in the quaternion's components, a pose may differ from a named
+place's and still be that place's pose: only by rounding, as the same pose is built
+again from the same layout.
+"""
+
+
 # %% designators
 
 
@@ -274,6 +355,123 @@ class DesignatorSummary:
             for name, value in self.fields_of(self.node.designator)
             if value is not None
         }
+
+    def roles(
+        self,
+        object_keys: Set[str],
+        robot: Optional[object],
+        places: Sequence[NamedPlace] = (),
+    ) -> List[RoleSlot]:
+        """
+        :param object_keys: The keys of the published objects.
+        :param robot: The robot of the plan's context, or None for a plan without one.
+        :param places: The places the task named; a pose that is one of them carries
+            its name.
+        :return: The roles the designator's fields fill, by :data:`FIELD_ROLES`, with
+            the entities each names; an action's agent first, from the context, since
+            no field of the designator names it; empty for a node without a designator.
+        """
+        if not isinstance(self.node, DesignatorNode):
+            return []
+        designator = self.node.designator
+        slots = []
+        if robot is not None and isinstance(self.node, ActionNode):
+            slots.append(
+                RoleSlot(
+                    field=AGENT_FIELD,
+                    role=DesignatorRole.AGENT,
+                    source=RoleSource.CONTEXT,
+                    value=str(robot.name),
+                    entities=[self.entity(robot, object_keys)],
+                )
+            )
+        action = ACTION_NAMES.identifier_of(type(designator))
+        for name, value in self.fields_of(designator):
+            identifier = FIELD_NAMES.identifier_of(action, name)
+            field_role = FIELD_ROLES.get(identifier)
+            if field_role is None:
+                continue
+            path = [identifier]
+            for inner in field_role.within:
+                value = getattr(value, inner, None)
+                path.append(inner)
+            if value is None or isinstance(value, Variable):
+                continue
+            values = list(value) if isinstance(value, (list, tuple)) else [value]
+            slots.append(
+                RoleSlot(
+                    field=".".join(path),
+                    role=field_role.role,
+                    value=self.render(value, object_keys),
+                    entities=[
+                        self.entity(each, object_keys)
+                        for each in values
+                        if isinstance(each, (Body, SemanticAnnotation))
+                    ],
+                    reference=next(
+                        (
+                            self.entity(each.reference_frame, object_keys)
+                            for each in values
+                            if isinstance(each, Pose)
+                            and isinstance(each.reference_frame, Body)
+                        ),
+                        None,
+                    ),
+                    pose=next(
+                        (
+                            NumericPose.of_matrix(each.to_np()).published()
+                            for each in values
+                            if isinstance(each, Pose)
+                            and isinstance(each.reference_frame, Body)
+                        ),
+                        None,
+                    ),
+                    place=next(
+                        (
+                            place.name
+                            for each in values
+                            if isinstance(each, Pose)
+                            for place in places
+                            if place.names(each)
+                        ),
+                        None,
+                    ),
+                )
+            )
+        return slots
+
+    @classmethod
+    def entity(cls, value: object, object_keys: Set[str]) -> RoleEntity:
+        """
+        :param value: A body or an annotation a role names.
+        :param object_keys: The keys of the published objects.
+        :return: The entity with the keys the scene lights up for it, as a query's
+            highlight names them: a free object by its key, another body by its name,
+            an annotation by its bodies, or by its root while it belongs to no world,
+            as a part of a robot description a designator holds does; an annotation
+            named only by its kind, such as a container, is named by its root body
+            too; a robot and its parts keep their own names.
+        """
+        if isinstance(value, Body):
+            bodies = [value]
+        elif value._world is not None:
+            bodies = list(value.bodies)
+        else:
+            root = getattr(value, "root", None)
+            bodies = [root] if isinstance(root, Body) else []
+        name = str(value.name)
+        root = getattr(value, "root", None)
+        if (
+            name == type(value).__name__
+            and isinstance(root, Body)
+            and not isinstance(value, (AbstractRobot, AbstractRobotPart))
+        ):
+            name = f"{name}{ENTITY_ROOT_SEPARATOR}{root.name}"
+        return RoleEntity(
+            keys=list(dict.fromkeys(cls.render(body, object_keys) for body in bodies)),
+            name=name,
+            type_name=type(value).__name__,
+        )
 
     @staticmethod
     def fields_of(value: object) -> List[Tuple[str, object]]:
@@ -402,6 +600,11 @@ class PerformedPlan:
     The images of what each perception step saw.
     """
 
+    places: List[NamedPlace] = field(default_factory=list)
+    """
+    The places the task named, which the plan's poses are named by.
+    """
+
     @classmethod
     def of_plan(
         cls, plan: Plan, number: int, images: PerceptionImages
@@ -489,6 +692,11 @@ class PerformedPlan:
             target=summary.target(object_keys),
             constraints=constraints(identifier),
             parameters=summary.parameters(object_keys),
+            roles=summary.roles(
+                object_keys,
+                None if self.plan.context is None else self.plan.context.robot,
+                self.places,
+            ),
             perceived=(
                 list(self.perceived.get(node.index, []))
                 if self.is_perception(node)
@@ -544,6 +752,21 @@ class PerformedPlan:
         root = self.root()
         return root is not None and root.status in FINISHED_LIFE_CYCLES
 
+    def running_motion(self) -> Optional[str]:
+        """
+        :return: The identity of the plan's motion that coraplex reports running, the
+            one that started last when several do, or None while none runs.
+        """
+        root = self.root()
+        if root is None:
+            return None
+        running = [
+            node
+            for node in root.descendants
+            if isinstance(node, MotionNode) and node.status is LifeCycleValues.RUNNING
+        ]
+        return None if not running else self.identifier(running[-1])
+
     def running(self) -> Optional[RunningAction]:
         """
         :return: The plan's deepest running action, or None between actions.
@@ -594,6 +817,12 @@ class PlanPublisher:
     Takes and keeps the images of every plan's perception steps.
     """
 
+    places: List[NamedPlace] = field(default_factory=list)
+    """
+    The places the running task named, which the poses of the plans it begins are
+    named by.
+    """
+
     def begin(self, plan: Plan) -> None:
         """
         :param plan: The plan that starts performing; a plan performed before keeps its
@@ -608,6 +837,7 @@ class PlanPublisher:
                     plan, len(self.performed) + 1, self.images
                 )
                 self.performed.append(performed)
+            performed.places = list(self.places)
             self.active_plan = performed
 
     def observe_started(self, node: PlanNode) -> None:
@@ -712,6 +942,15 @@ class PlanPublisher:
         """
         running = self.running()
         return None if running is None else running.label
+
+    def running_motion(self) -> Optional[str]:
+        """
+        :return: The identity of the motion of the plan being performed that runs, or
+            None while none runs.
+        """
+        with self.lock:
+            active_plan = self.active_plan
+        return None if active_plan is None else active_plan.running_motion()
 
     def running(self) -> Optional[RunningAction]:
         """

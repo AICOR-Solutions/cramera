@@ -1,9 +1,11 @@
 {
- "rackPositionError": 1.4087536937361417e-05,
- "widestDoorAngle": 1.442648882944108,
- "widestLidAngle": 1.294663361601236,
- "doorAngle": 0.0032515158042296668,
- "lidAngle": 0.007532186323899927,
- "smallestPadClearance": 0.0002540762355072164,
- "smallestCollisionDistance": 0.0026624382930378184
+ "rackPositionError": 1.413480387574385e-05,
+ "refrigeratorPositionError": 0.0005824297900414387,
+ "centrifugePositionError": 0.0004171248843873183,
+ "widestDoorAngle": 1.442479576687168,
+ "widestLidAngle": 1.294402712936587,
+ "doorAngle": 0.0032652842461967876,
+ "lidAngle": 0.007549828762510363,
+ "smallestPadClearance": 0.001196585221885902,
+ "smallestCollisionDistance": 0.00158397087084118
 }

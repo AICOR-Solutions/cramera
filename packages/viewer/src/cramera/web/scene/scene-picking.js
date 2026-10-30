@@ -40,13 +40,14 @@ export function selectionOf(object) {
 
 /**
  * @param {THREE.Object3D} owner A link or a free object.
- * @returns {THREE.Box3} The box around its own meshes; the links below a link are left out.
+ * @returns {THREE.Box3} The box around its own meshes; the links below a link and overlays, such
+ *   as the mark of a step's target, are left out.
  */
 export function ownBounds(owner) {
   const box = new THREE.Box3();
   owner.updateWorldMatrix(true, true);
   const visit = (object) => {
-    if (object !== owner && (object.isURDFLink || object.isURDFJoint)) return;
+    if (object !== owner && (object.isURDFLink || object.isURDFJoint || object.userData?.overlay)) return;
     if (object.isMesh) box.expandByObject(object);
     object.children.forEach(visit);
   };

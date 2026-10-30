@@ -38,7 +38,12 @@ from cramera_bridge.scenes.presentation import ScenePresentation
 from cramera_bridge.laboratory.grasping import PadContact
 from cramera_bridge.laboratory.handling import VesselTaskDemo
 from cramera_protocol.laboratory.runs import TaskRecording
-from cramera_bridge.laboratory.world import LaboratoryEnvironment
+from cramera_bridge.laboratory.world import (
+    PLACE_NAME,
+    RACK_STATION,
+    LaboratoryEnvironment,
+)
+from cramera_bridge.live.plan import NamedPlace
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.scene import Camera
 from cramera_protocol.geometry import Vector3
@@ -364,6 +369,19 @@ class VesselTransferDemo(VesselTaskDemo):
         self.keep_clear(world, robot, [self.vessel])
         return self.tight_context(world, robot)
 
+    def named_places(self, context: Context) -> List[NamedPlace]:
+        """
+        :param context: The world and the robot.
+        :return: The rack slot the vessel is set into, named by the rack and its
+            identifier in the bench's layout, such as ``rack A3``.
+        """
+        return [
+            NamedPlace(
+                PLACE_NAME.format(station=RACK_STATION, slot=self.target_slot),
+                self.laboratory.slot_pose(self.target_slot, context.world),
+            )
+        ]
+
     def build_plan(self, context: Context) -> Plan:
         """
         :param context: The world and the robot.
@@ -427,7 +445,10 @@ class VesselTransferDemo(VesselTaskDemo):
         observation = self.observation
         body = observation.body
         actual = body.global_pose.to_np()
-        desired = self.laboratory.slot_pose(self.target_slot, context.world).to_np()
+        world = context.world
+        desired = world.transform(
+            self.laboratory.slot_pose(self.target_slot, world), world.root
+        ).to_np()
         position_error = float(np.linalg.norm(actual[:3, 3] - desired[:3, 3]))
         orientation_error = float(
             np.arccos(

@@ -21,6 +21,7 @@ from enum import Enum
 from typing_extensions import Dict, List, Optional, Tuple
 
 from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
+from cramera_protocol.designator_roles import DesignatorRole
 
 # %% pinned classes
 
@@ -1010,4 +1011,58 @@ class FieldNames:
 FIELD_NAMES = FieldNames(FIELD_RENAMES)
 """
 The identifiers of the actions' fields.
+"""
+
+# %% roles
+
+
+@dataclass(frozen=True)
+class FieldRole:
+    """
+    The role a field of an action or a motion fills, wherever it occurs.
+    """
+
+    role: DesignatorRole
+    """
+    The role.
+    """
+
+    within: Tuple[str, ...] = ()
+    """
+    The fields, nested in the field's value, that name the role's filler, such as the
+    graspable a grasp candidate takes; empty when the value itself fills it.
+    """
+
+
+FIELD_ROLES: Dict[str, FieldRole] = {
+    "robot": FieldRole(DesignatorRole.AGENT),
+    "object_designator": FieldRole(DesignatorRole.OBJECT),
+    "object_sem_annotation": FieldRole(DesignatorRole.OBJECT),
+    "grasp": FieldRole(DesignatorRole.OBJECT, within=("graspable",)),
+    "handle": FieldRole(DesignatorRole.OBJECT),
+    "part": FieldRole(DesignatorRole.OBJECT),
+    "object_part": FieldRole(DesignatorRole.OBJECT),
+    "container": FieldRole(DesignatorRole.OBJECT),
+    "source_container": FieldRole(DesignatorRole.OBJECT),
+    "object_to_cut": FieldRole(DesignatorRole.OBJECT),
+    "elevator": FieldRole(DesignatorRole.OBJECT),
+    "arm": FieldRole(DesignatorRole.EFFECTOR),
+    "arms": FieldRole(DesignatorRole.EFFECTOR),
+    "gripper": FieldRole(DesignatorRole.EFFECTOR),
+    "end_effector": FieldRole(DesignatorRole.EFFECTOR),
+    "tool": FieldRole(DesignatorRole.INSTRUMENT),
+    "target_location": FieldRole(DesignatorRole.LOCATION),
+    "target_locations": FieldRole(DesignatorRole.LOCATION),
+    "target_pose": FieldRole(DesignatorRole.LOCATION),
+    "target": FieldRole(DesignatorRole.LOCATION),
+    "target_container": FieldRole(DesignatorRole.LOCATION),
+    "surface": FieldRole(DesignatorRole.LOCATION),
+    "region": FieldRole(DesignatorRole.LOCATION),
+}
+"""
+The role each field fills, by the field's identifier: cramera's reading of CRAM's
+fields, not a name CRAM defines. CRAM takes the agent from the plan's context, named
+here ``robot``; only a tool, such as a knife or a whisk, is read as an instrument, so a
+centrifuge the robot loads is the reference of a location, not an instrument. A field
+missing here fills no role, such as a velocity, a threshold or a nested action.
 """

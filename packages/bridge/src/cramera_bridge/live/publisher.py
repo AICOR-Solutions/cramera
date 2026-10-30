@@ -334,6 +334,7 @@ class LivePublisher:
                 snapshot,
                 self.plan.running(),
                 self.statechart.current() if self.motion_running else None,
+                self.plan.running_motion(),
             )
 
     def begin_plan(self, plan: Plan) -> None:

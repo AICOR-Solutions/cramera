@@ -13,6 +13,7 @@ import {
   ExecutionRequestKey,
   LiveInfoKey,
   LiveRoute,
+  PageLayout,
   RecordingState,
   RecordingStatusKey,
   SceneKey,
@@ -22,7 +23,11 @@ import {
 import { PlaybackClock } from '../playback/playback-clock.js';
 import { saveVideo, VideoRecording } from '../playback/video-recording.js';
 import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view.js';
+import { DESIGNATORS_PANEL, DesignatorsPanel } from '../panels/designators-panel.js';
+import { AnswerOrigin } from '../designators/designator-chain.js';
 import { DetailsPanel } from '../panels/details-panel.js';
+import { TargetFollow } from '../scene/target-follow.js';
+import { TargetMarker } from '../scene/target-marker.js';
 import { PerceptionPanel } from '../panels/perception-panel.js';
 import { QueryStepActions, QueryStepsPanel } from '../panels/query-steps-panel.js';
 import { ResolutionActions, ResolutionsPanel } from '../panels/resolutions-panel.js';
@@ -351,6 +356,12 @@ export class Application {
   #glide = null;
 
   /**
+   * Moves the camera with the running step's target, when asked to.
+   * @type {TargetFollow|null}
+   */
+  #targetFollow = null;
+
+  /**
    * The Plan resolution panel.
    * @type {ResolutionsPanel}
    */
@@ -361,6 +372,12 @@ export class Application {
    * @type {QueryStepsPanel}
    */
   #querySteps;
+
+  /**
+   * The Designators panel.
+   * @type {DesignatorsPanel}
+   */
+  #designators;
 
   /**
    * The Live panel.
@@ -463,6 +480,7 @@ export class Application {
       timers,
       (inspecting) => this.#resolutions.holdScene(inspecting),
     );
+    this.#designators = new DesignatorsPanel(elements.document, this.bus);
     this.#liveBadge = new LiveBadge(elements.liveBadge, () => this.#panels.show(this.#livePanel.panel.identifier));
     this.bus.subscribe(ViewerEvent.LIVE_CONNECTED, (info) => this.#showLiveConnection(info));
     this.bus.subscribe(ViewerEvent.LIVE_DISCONNECTED, () => this.#showLiveConnection(null));
@@ -504,6 +522,13 @@ export class Application {
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
     this.#regions = new RegionOutlines(this.#view);
     this.#glide = new CameraGlide(this.#view);
+    const marker = new TargetMarker(this.#view);
+    this.#targetFollow = new TargetFollow(this.#view, marker.mark, this.#glide);
+    if (layout === PageLayout.DESIGNATORS) this.#followTarget(true);
+    this.bus.subscribe(ViewerEvent.TARGET_MARKED, (target) => {
+      marker.show(target ?? null);
+      this.#targetFollow.aim();
+    });
     this.bus.subscribe(ViewerEvent.REGIONS_OUTLINED, (outlines) => this.#regions.show(outlines ?? []));
     this.bus.subscribe(ViewerEvent.FOCUS_REQUESTED, (keys) => this.#glide.glideTo(focusBounds(this.#view.content, this.#regions.group, keys ?? [])));
     this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => {
@@ -525,8 +550,8 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#sceneGraph, this.#perception, this.#segmind, this.#resolutions, this.#querySteps, this.#details, this.#livePanel]) this.#panels.add(part.panel);
-    const panel = panelOf(this.#location.href);
+    for (const part of [this.#sceneGraph, this.#perception, this.#segmind, this.#resolutions, this.#querySteps, this.#designators, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    const panel = layout === PageLayout.DESIGNATORS ? DESIGNATORS_PANEL : panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
     else await this.show(choice.scene);
@@ -570,11 +595,14 @@ export class Application {
     this.#perception.show(loaded, SceneKey.PLAN_TREES, (file) => this.#api.sceneFileUrl(loaded.name, file));
     this.#segmind.show(loaded);
     if (!this.#live) this.#querySteps.showRecorded(loaded.querySteps);
+    this.#designators.show(loaded);
+    if (this.#live) this.#designators.showSteps(null, AnswerOrigin.LIVE);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
     const missing = loaded.missingFiles().length;
     this.#status.ready(missing ? `Showing ${name}; ${missing} files could not be loaded (see Details)` : `Showing ${name}`);
     this.bus.publish(ViewerEvent.SCENE_LOADED, loaded);
+    if (this.#elements.document.documentElement.dataset.layout === PageLayout.DESIGNATORS) this.#panels.show(DESIGNATORS_PANEL);
   }
 
   /**
@@ -613,7 +641,10 @@ export class Application {
           this.#livePanel.showRecording(status);
         },
         (resolutions) => this.#resolutions.show(resolutions, this.#live?.offers(Capability.RESOLUTION_EXECUTION) ?? false),
-        (steps) => this.#querySteps.show(steps),
+        (steps) => {
+          this.#querySteps.show(steps);
+          this.#designators.showSteps(steps, AnswerOrigin.LIVE);
+        },
         () => this.#querySteps.revision,
         (detected) => this.#segmind.showLive(detected),
       ),
@@ -758,10 +789,37 @@ export class Application {
     const filmed = this.#cinematic.update(this.#clock.time, robot, (key) => this.#objectPosition(key));
     if (filmed) this.#follow.reset(robot);
     else this.#follow.follow(robot);
+    if (filmed) this.#targetFollow.reset();
+    else this.#targetFollow.follow();
     this.#picking.update();
     this.#highlights.update();
     this.#view.requestRender();
     this.bus.publish(ViewerEvent.FRAME_CHANGED, frame);
+  }
+
+  /**
+   * Follow the robot, or stop; following it stops following the step's target, as both
+   * move the camera.
+   * @param {boolean} following Whether the camera follows the robot.
+   */
+  #followRobot(following) {
+    this.#follow.following = following;
+    if (following && this.#targetFollow) this.#targetFollow.following = false;
+    this.#layers?.refresh();
+  }
+
+  /**
+   * Follow the running step's target, or stop; following it stops following the robot,
+   * as both move the camera, and glides onto the target at once.
+   * @param {boolean} following Whether the camera follows the target.
+   */
+  #followTarget(following) {
+    this.#targetFollow.following = following;
+    if (following) {
+      this.#follow.following = false;
+      this.#targetFollow.aim();
+    }
+    this.#layers?.refresh();
   }
 
   /**
@@ -776,7 +834,8 @@ export class Application {
         new ViewSwitch('Object labels', () => this.#labels.shown, (shown) => this.#labels.setShown(shown)),
         new ViewSwitch('Floor shadow', () => view.ground.visible, (shown) => view.showGround(shown)),
         new ViewSwitch('Ambient occlusion', () => view.ambientOcclusion, (enabled) => view.setAmbientOcclusion(enabled)),
-        new ViewSwitch('Follow robot', () => this.#follow.following, (following) => { this.#follow.following = following; }),
+        new ViewSwitch('Follow robot', () => this.#follow.following, (following) => this.#followRobot(following)),
+        new ViewSwitch('Follow target', () => this.#targetFollow?.following ?? false, (following) => this.#followTarget(following)),
         new ViewSwitch('Cinematic camera', () => this.#cinematic.enabled, (enabled) => this.#filmWith(enabled)),
       ],
       (key) => this.bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, [key]),

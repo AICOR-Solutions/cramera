@@ -96,7 +96,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/refrigerator_base.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/refrigerator_base.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_refrigerator_base#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -730,7 +730,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/refrigerator_door.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/refrigerator_door.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_refrigerator_door#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -802,7 +802,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/pipetting_station.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/pipetting_station.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_pipetting_station#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -866,7 +866,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/centrifuge_base.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/centrifuge_base.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_centrifuge_base#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1032,7 +1032,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/centrifuge_lid.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/centrifuge_lid.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_centrifuge_lid#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1080,7 +1080,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/centrifuge_rotor.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/centrifuge_rotor.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_centrifuge_rotor#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1686,7 +1686,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/drawer.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/drawer.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_drawer#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1758,7 +1758,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-c0ff7ce1/environment.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/environment.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_room#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1818,10 +1818,10 @@
     <child link="laboratory_cabinet_lower_handle" />
     <origin xyz="-0.52 -0.346 0.546" rpy="0.0 0.0 0.0" />
   </joint>
-  <link name="80dffb99-697d-4a08-bc45-75e67fb4e504/odom" />
-  <joint name="80dffb99-697d-4a08-bc45-75e67fb4e504/map_T_odom" type="fixed">
+  <link name="301e0ace-1b2f-4c54-9599-2841ba8b4697/odom" />
+  <joint name="301e0ace-1b2f-4c54-9599-2841ba8b4697/map_T_odom" type="fixed">
     <parent link="map" />
-    <child link="80dffb99-697d-4a08-bc45-75e67fb4e504/odom" />
+    <child link="301e0ace-1b2f-4c54-9599-2841ba8b4697/odom" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
 </robot>

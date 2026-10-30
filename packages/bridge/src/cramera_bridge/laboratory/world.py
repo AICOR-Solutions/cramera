@@ -46,6 +46,18 @@ from cramera_protocol.laboratory.layout import (
 # %% names
 
 
+RACK_STATION = "rack"
+"""
+The name of the sample rack among the stations that hold vessels at the bench.
+"""
+
+PLACE_NAME = "{station} {slot}"
+"""
+How a task names a slot it sets a vessel into: the station holding it and the slot's
+identifier in the bench's layout, such as ``centrifuge C4``.
+"""
+
+
 class LaboratoryHandle(StrEnum):
     """
     The frames on the laboratory's handle bars.
@@ -265,10 +277,12 @@ class LaboratoryEnvironment(BundleEnvironment):
         """
         :param identifier: A rack slot.
         :param world: A world holding the laboratory.
-        :return: Where a vessel's bottom stands in the slot, in the world's root frame.
+        :return: Where a vessel's bottom stands in the slot, in the rack's frame: the
+            bench's layout gives the slot in the world's root frame, where the rack
+            stands when the world is built, so the slot moves with the rack.
         """
         pose = self.bench.slot(identifier).pose
-        return Pose.from_xyz_quaternion(
+        in_the_world = Pose.from_xyz_quaternion(
             pose.x,
             pose.y,
             pose.z,
@@ -277,4 +291,7 @@ class LaboratoryEnvironment(BundleEnvironment):
             pose.qz,
             pose.qw,
             reference_frame=world.root,
+        )
+        return world.transform(
+            in_the_world, world.get_body_by_name(LaboratoryLink.RACK.value)
         )
