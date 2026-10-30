@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import * as THREE from 'three';
 import assert from 'node:assert/strict';
 
 import { EventBus } from '../../src/cramera/web/core/event-bus.js';
@@ -12,6 +13,8 @@ import {
   roleRows,
   rowsOfKey,
   runningNode,
+  runningTarget,
+  targetOf,
   slotResolutions,
   stepsNaming,
   stepsOfAction,
@@ -33,6 +36,7 @@ import {
   StepPhase,
   ViewerEvent,
 } from '../../src/cramera/web/protocol.js';
+import { TargetMarker, WORLD_FRAMES } from '../../src/cramera/web/scene/target-marker.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
 // %% a small recorded run: the PR2 loads a vessel into a centrifuge holder
@@ -251,4 +255,86 @@ test('motions with frames of their own show their own phase, and the running one
   const after = nodeAtFrame(pick, 30);
   assert.equal(after.children[0].phase, NodePhase.ENDED, 'a sequence that ran has no status of its own');
   assert.equal(after.children[0].inferred, false);
+});
+
+// %% the running step's target
+
+const ROTOR_FRAME = entity('laboratory_centrifuge_rotor', 'Body', ['laboratory_centrifuge_rotor']);
+const lower = node('n_lower', PlanNodeKind.MOTION, 'MoveToolCenterPointMotion', 30, 39, [
+  slot('target', DesignatorRole.LOCATION, '0.000, -0.072, 0.143', [], { [RoleSlotKey.REFERENCE]: ROTOR_FRAME, [RoleSlotKey.POSE]: [0, -0.072, 0.143, 0, 0, 0, 1] }),
+  ARM,
+]);
+const open = node('n_open', PlanNodeKind.MOTION, 'HeldToolGripperMotion', 40, 45, [slot('gripper', DesignatorRole.EFFECTOR, 'PR2LeftGripper', [entity('PR2LeftGripper', 'PR2LeftGripper', ['pr2/l_gripper_palm_link'])])]);
+const turn = node('n_turn', PlanNodeKind.MOTION, 'MechanismMotion', 46, 50, [slot('part', DesignatorRole.OBJECT, 'laboratory_centrifuge_lid', [entity('laboratory_centrifuge_lid', 'Body', ['laboratory_centrifuge_lid'])]), ARM]);
+const LOAD = node('n_load', PlanNodeKind.ACTION, 'RackPlaceAction', 30, 50, [AGENT, OBJECT, {
+  ...HOLDER,
+  [RoleSlotKey.POSE]: [0, -0.072, 0.008, 0, 0, 0, 1],
+}], [lower, open, turn]);
+
+test('a step’s target is its location in its reference’s frame, else the entity it acts on', () => {
+  const lowering = targetOf(lower);
+  assert.deepEqual(lowering.keys, ['laboratory_centrifuge_rotor']);
+  assert.deepEqual(lowering.pose, [0, -0.072, 0.143, 0, 0, 0, 1]);
+  assert.equal(lowering.label, 'MoveToolCenterPointMotion · target');
+  assert.equal(targetOf(LOAD).label, 'RackPlaceAction · target_location · centrifuge C4');
+  const turning = targetOf(turn);
+  assert.deepEqual([turning.keys, turning.pose], [['laboratory_centrifuge_lid'], null]);
+  assert.equal(targetOf(open), null);
+});
+
+test('the running motion’s target is marked, or its action’s while the motion has none', () => {
+  const marked = (frame) => {
+    const tree = nodeAtFrame(LOAD, frame);
+    return runningTarget(runningNode(tree), tree);
+  };
+  assert.equal(marked(35).label, 'MoveToolCenterPointMotion · target');
+  assert.equal(marked(42).label, 'RackPlaceAction · target_location · centrifuge C4');
+  assert.equal(marked(48).frame, 'laboratory_centrifuge_lid');
+  assert.equal(marked(60), null);
+});
+
+test('the panel tells the 3D view the running step’s target once each time it changes', () => {
+  const bus = new EventBus();
+  const marks = [];
+  bus.subscribe(ViewerEvent.TARGET_MARKED, (target) => marks.push(target?.label ?? null));
+  const panel = new DesignatorsPanel(new FakeDocument(), bus);
+  panel.show({ description: { [SceneKey.PLAN_TREES]: [LOAD] }, querySteps: null });
+  for (const frame of [31, 32, 33, 41, 47, 60]) bus.publish(ViewerEvent.FRAME_CHANGED, frame);
+  assert.deepEqual(marks, [
+    'MoveToolCenterPointMotion · target',
+    'RackPlaceAction · target_location · centrifuge C4',
+    'MechanismMotion · part · laboratory_centrifuge_lid',
+    null,
+  ]);
+});
+
+test('the mark is attached to the body its target is given in, at the target’s pose', () => {
+  const content = new THREE.Group();
+  const rotor = Object.assign(new THREE.Object3D(), { isURDFLink: true, urdfName: 'laboratory_centrifuge_rotor' });
+  const rack = new THREE.Group();
+  rack.userData.objectKey = 'rack-key';
+  content.add(rotor, rack);
+  const marker = new TargetMarker({ content });
+  marker.show({ keys: ['laboratory_centrifuge_rotor'], frame: 'laboratory_centrifuge_rotor', pose: [0, -0.072, 0.143, 0, 0, 0, 1], label: 'lowering' });
+  assert.equal(marker.mark.parent, rotor);
+  assert.deepEqual(marker.mark.position.toArray(), [0, -0.072, 0.143]);
+  marker.show({ keys: ['rack-key'], frame: 'laboratory_rack', pose: null, label: 'rack' });
+  assert.equal(marker.mark.parent, rack);
+  assert.deepEqual(marker.mark.position.toArray(), [0, 0, 0]);
+  marker.show({ keys: ['map'], frame: WORLD_FRAMES[0], pose: [1, 2, 0, 0, 0, 0, 1], label: 'drive' });
+  assert.equal(marker.mark.parent, content, 'the map is the frame the content is given in');
+  marker.show({ keys: ['unknown'], frame: 'unknown', pose: null, label: 'nowhere' });
+  assert.equal(marker.mark.parent, null);
+  marker.show(null);
+  assert.equal(marker.mark.parent, null);
+});
+
+test('lighting up the body a mark is attached to leaves the mark as it is', async () => {
+  const { ownMeshes } = await import('../../src/cramera/web/scene/scene-highlights.js');
+  const rotor = Object.assign(new THREE.Object3D(), { isURDFLink: true, urdfName: 'laboratory_centrifuge_rotor' });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), new THREE.MeshBasicMaterial());
+  rotor.add(body);
+  const marker = new TargetMarker({ content: rotor });
+  marker.show({ keys: ['laboratory_centrifuge_rotor'], frame: 'laboratory_centrifuge_rotor', pose: null, label: 'here' });
+  assert.deepEqual(ownMeshes(rotor), [body]);
 });

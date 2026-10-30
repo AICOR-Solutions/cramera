@@ -39,6 +39,11 @@ which this repository was mirrored until 22 Oct 2026.
   from the plan's context, or written or computed by the plan's code. Every answer is
   marked RECORDED when replayed from the bundle and LIVE only when a running process
   published it. The queries are EQL over the twin's working memory; none is KnowRob.
+  The 3D view marks where the running step acts (`ViewerEvent.TARGET_MARKED`,
+  `TargetMarker`): the motion's location at its pose in the frame of its reference
+  body, which `RoleSlot.pose` now records, so a tool target over a holder sits where
+  the gripper ends; else the entity it acts on, such as the lid handle a mechanism
+  motion turns; the mark moves with its body and is drawn over what hides it.
   The bridge records, for every plan node, its `roles` (`RoleSlot`, field, role,
   value, entities with their scene keys, the reference body of a pose and, for a pose
   the task built for a place of its layout, the place's name such as `centrifuge C4`,

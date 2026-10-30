@@ -1818,10 +1818,10 @@
     <child link="laboratory_cabinet_lower_handle" />
     <origin xyz="-0.52 -0.346 0.546" rpy="0.0 0.0 0.0" />
   </joint>
-  <link name="0b915927-c343-4893-93f8-f57fe1b447b8/odom" />
-  <joint name="0b915927-c343-4893-93f8-f57fe1b447b8/map_T_odom" type="fixed">
+  <link name="301e0ace-1b2f-4c54-9599-2841ba8b4697/odom" />
+  <joint name="301e0ace-1b2f-4c54-9599-2841ba8b4697/map_T_odom" type="fixed">
     <parent link="map" />
-    <child link="0b915927-c343-4893-93f8-f57fe1b447b8/odom" />
+    <child link="301e0ace-1b2f-4c54-9599-2841ba8b4697/odom" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
 </robot>

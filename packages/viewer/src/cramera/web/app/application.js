@@ -26,6 +26,7 @@ import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view
 import { DESIGNATORS_PANEL, DesignatorsPanel } from '../panels/designators-panel.js';
 import { AnswerOrigin } from '../designators/designator-chain.js';
 import { DetailsPanel } from '../panels/details-panel.js';
+import { TargetMarker } from '../scene/target-marker.js';
 import { PerceptionPanel } from '../panels/perception-panel.js';
 import { QueryStepActions, QueryStepsPanel } from '../panels/query-steps-panel.js';
 import { ResolutionActions, ResolutionsPanel } from '../panels/resolutions-panel.js';
@@ -511,6 +512,8 @@ export class Application {
     this.#addLayers(this.#view);
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.#highlights = new SceneHighlights(this.#view);
+    const marker = new TargetMarker(this.#view);
+    this.bus.subscribe(ViewerEvent.TARGET_MARKED, (target) => marker.show(target ?? null));
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
     this.#regions = new RegionOutlines(this.#view);
     this.#glide = new CameraGlide(this.#view);

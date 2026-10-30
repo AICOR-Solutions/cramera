@@ -22,6 +22,7 @@ from typing_extensions import (
 )
 
 from cramera_bridge.exceptions import UnknownPlanNode
+from cramera_bridge.geometry import NumericPose
 from cramera_bridge.names import (
     ACTION_NAMES,
     FIELD_NAMES,
@@ -410,6 +411,15 @@ class DesignatorSummary:
                     reference=next(
                         (
                             self.entity(each.reference_frame, object_keys)
+                            for each in values
+                            if isinstance(each, Pose)
+                            and isinstance(each.reference_frame, Body)
+                        ),
+                        None,
+                    ),
+                    pose=next(
+                        (
+                            NumericPose.of_matrix(each.to_np()).published()
                             for each in values
                             if isinstance(each, Pose)
                             and isinstance(each.reference_frame, Body)

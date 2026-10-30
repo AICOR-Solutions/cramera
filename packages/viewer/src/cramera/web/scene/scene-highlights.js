@@ -55,12 +55,13 @@ export function boxedGroups(parts) {
 
 /**
  * @param {THREE.Object3D} owner A link or a free object.
- * @returns {Array<THREE.Mesh>} Its own meshes; the links below a link are left out.
+ * @returns {Array<THREE.Mesh>} Its own meshes; the links below a link and overlays, such as the
+ *   mark of a step's target, are left out.
  */
 export function ownMeshes(owner) {
   const meshes = [];
   const visit = (object) => {
-    if (object !== owner && (object.isURDFLink || object.isURDFJoint)) return;
+    if (object !== owner && (object.isURDFLink || object.isURDFJoint || object.userData?.overlay)) return;
     if (object.isMesh) meshes.push(object);
     object.children.forEach(visit);
   };

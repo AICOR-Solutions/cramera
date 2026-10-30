@@ -1,7 +1,7 @@
 {
  "name": "aicor_medical_lab_pr2_workflow",
  "formatVersion": "1.0",
- "framesPerSecond": 38.64,
+ "framesPerSecond": 38.28,
  "trajectory": "trajectory.json",
  "querySteps": "query_steps.json",
  "models": [
@@ -74,7 +74,7 @@
     "pr2/fl_caster_l_wheel_joint"
    ],
    "posedJoints": [],
-   "identifier": "cec53fb7-be38-4936-b17d-eb1b2ee2b35a",
+   "identifier": "367b8553-2867-44ad-84d4-f45edba872c1",
    "pose": [
     0.39999,
     -0.72,
@@ -220,13 +220,13 @@
     "attachedTo": "PR2RightArm"
    }
   ],
-  "identifier": "cec53fb7-be38-4936-b17d-eb1b2ee2b35a",
+  "identifier": "367b8553-2867-44ad-84d4-f45edba872c1",
   "label": "PR2"
  },
  "objects": [
   {
    "id": "laboratory_rack",
-   "key": "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd",
+   "key": "bfd3a56b-df3f-46b7-a854-c87f71b1d29a",
    "spawn": [
     0.22,
     -0.04,
@@ -238,11 +238,11 @@
    ],
    "color": "#ffffff",
    "height": 0.0681,
-   "mesh": "meshes/objects/cc6a765b-b4d2-4a91-95d2-f1361d32a9dd/tube_rack.glb"
+   "mesh": "meshes/objects/bfd3a56b-df3f-46b7-a854-c87f71b1d29a/tube_rack.glb"
   },
   {
    "id": "tube_clear",
-   "key": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+   "key": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
    "spawn": [
     0.16,
     -0.065,
@@ -254,11 +254,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/b9e04b5a-18fe-4b63-a6e2-f61e5c22e148/tube_clear.glb"
+   "mesh": "meshes/objects/40b62a27-6f7c-471b-a042-3e1797dcc8c0/tube_clear.glb"
   },
   {
    "id": "tube_amber",
-   "key": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+   "key": "144e778c-8f01-499c-81c8-fcad489789db",
    "spawn": [
     0.22,
     -0.065,
@@ -270,11 +270,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/53cc314b-3281-4d2a-a932-d8f9dab97bd4/tube_amber.glb"
+   "mesh": "meshes/objects/144e778c-8f01-499c-81c8-fcad489789db/tube_amber.glb"
   },
   {
    "id": "tube_teal",
-   "key": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+   "key": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
    "spawn": [
     0.16,
     -0.015,
@@ -286,11 +286,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/18e6ed76-ad82-45ed-acf6-52cafb0f6b4d/tube_teal.glb"
+   "mesh": "meshes/objects/d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3/tube_teal.glb"
   },
   {
    "id": "tube_reserve",
-   "key": "16737f33-8967-480c-9b3b-cc72e4bb3e92",
+   "key": "384d7daa-421e-49aa-8de1-cd432ee041ba",
    "spawn": [
     0.28,
     -0.015,
@@ -302,11 +302,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/16737f33-8967-480c-9b3b-cc72e4bb3e92/tube_clear.glb"
+   "mesh": "meshes/objects/384d7daa-421e-49aa-8de1-cd432ee041ba/tube_clear.glb"
   },
   {
    "id": "stopper",
-   "key": "07ff5a2b-714d-478e-98aa-bbfb57b85a5b",
+   "key": "ec07da16-2e9f-4a97-8b46-3aa13ebea246",
    "spawn": [
     0.5,
     -0.12,
@@ -318,7 +318,7 @@
    ],
    "color": "#ffffff",
    "height": 0.021,
-   "mesh": "meshes/objects/07ff5a2b-714d-478e-98aa-bbfb57b85a5b/stopper.glb"
+   "mesh": "meshes/objects/ec07da16-2e9f-4a97-8b46-3aa13ebea246/stopper.glb"
   }
  ],
  "segments": [
@@ -331,7 +331,7 @@
    "step": "VesselPickUpAction",
    "start": 345,
    "end": 805,
-   "picks": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+   "picks": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
    "attach": 345,
    "detach": 7833
   },
@@ -339,7 +339,7 @@
    "step": "VesselPickUpAction",
    "start": 805,
    "end": 1244,
-   "picks": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+   "picks": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
    "attach": 805,
    "detach": 4096
   },
@@ -347,7 +347,7 @@
    "step": "VesselPickUpAction",
    "start": 1244,
    "end": 10500,
-   "picks": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+   "picks": "144e778c-8f01-499c-81c8-fcad489789db",
    "attach": 1244,
    "detach": 8547
   }
@@ -427,11 +427,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+                 "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.214,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
               },
               {
                "field": "arm",
@@ -543,11 +552,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+                 "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0,
+                0.105,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
               },
               {
                "field": "arm",
@@ -791,7 +809,7 @@
            "entities": [
             {
              "keys": [
-              "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+              "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
              ],
              "name": "Container \u00b7 tube_clear",
              "type": "Container"
@@ -816,14 +834,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+         "target": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
          "id": "plan_node_75",
          "parent": "plan_node_72",
          "start": 291,
          "end": 340,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+          "object_designator": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -859,11 +877,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+           "value": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
            "entities": [
             {
              "keys": [
-              "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+              "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
              ],
              "name": "tube_clear",
              "type": "Body"
@@ -910,11 +928,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+             "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
             ],
             "name": "tube_clear",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.265,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -1125,7 +1152,7 @@
        "entities": [
         {
          "keys": [
-          "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+          "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1220,11 +1247,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.271,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -1292,11 +1328,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.111,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -1418,11 +1463,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.22,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -1628,7 +1682,7 @@
        "entities": [
         {
          "keys": [
-          "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+          "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1643,11 +1697,20 @@
        "entities": [],
        "reference": {
         "keys": [
-         "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+         "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
         ],
         "name": "laboratory_rack",
         "type": "Body"
        },
+       "pose": [
+        0.06,
+        -0.025,
+        0.006,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
        "place": "rack A3"
       }
      ]
@@ -1721,11 +1784,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+                 "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.214,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
               },
               {
                "field": "arm",
@@ -1837,11 +1909,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+                 "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0,
+                0.105,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
               },
               {
                "field": "arm",
@@ -2085,7 +2166,7 @@
            "entities": [
             {
              "keys": [
-              "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+              "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
              ],
              "name": "Container \u00b7 tube_teal",
              "type": "Container"
@@ -2110,14 +2191,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+         "target": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
          "id": "plan_node_97",
          "parent": "plan_node_92",
          "start": 751,
          "end": 800,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+          "object_designator": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -2153,11 +2234,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+           "value": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
            "entities": [
             {
              "keys": [
-              "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+              "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
              ],
              "name": "tube_teal",
              "type": "Body"
@@ -2204,11 +2285,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+             "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
             ],
             "name": "tube_teal",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            -0.0,
+            0.265,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -2419,7 +2509,7 @@
        "entities": [
         {
          "keys": [
-          "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+          "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -2514,11 +2604,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.06,
+            -0.025,
+            0.271,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -2586,11 +2685,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.06,
+            -0.025,
+            0.111,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -2712,11 +2820,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.06,
+            -0.025,
+            0.22,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -2922,7 +3039,7 @@
        "entities": [
         {
          "keys": [
-          "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+          "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -2937,11 +3054,20 @@
        "entities": [],
        "reference": {
         "keys": [
-         "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+         "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
         ],
         "name": "laboratory_rack",
         "type": "Body"
        },
+       "pose": [
+        -0.06,
+        -0.025,
+        0.006,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
        "place": "rack A1"
       }
      ]
@@ -3015,11 +3141,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+                 "144e778c-8f01-499c-81c8-fcad489789db"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.214,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
               },
               {
                "field": "arm",
@@ -3131,11 +3266,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+                 "144e778c-8f01-499c-81c8-fcad489789db"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0,
+                0.105,
+                0.2706,
+                0.65328,
+                -0.2706,
+                0.65328
+               ]
               },
               {
                "field": "arm",
@@ -3379,7 +3523,7 @@
            "entities": [
             {
              "keys": [
-              "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+              "144e778c-8f01-499c-81c8-fcad489789db"
              ],
              "name": "Container \u00b7 tube_amber",
              "type": "Container"
@@ -3404,14 +3548,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+         "target": "144e778c-8f01-499c-81c8-fcad489789db",
          "id": "plan_node_119",
          "parent": "plan_node_114",
          "start": 1190,
          "end": 1239,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+          "object_designator": "144e778c-8f01-499c-81c8-fcad489789db",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -3447,11 +3591,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+           "value": "144e778c-8f01-499c-81c8-fcad489789db",
            "entities": [
             {
              "keys": [
-              "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+              "144e778c-8f01-499c-81c8-fcad489789db"
              ],
              "name": "tube_amber",
              "type": "Body"
@@ -3498,11 +3642,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+             "144e778c-8f01-499c-81c8-fcad489789db"
             ],
             "name": "tube_amber",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.265,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -3713,7 +3866,7 @@
        "entities": [
         {
          "keys": [
-          "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+          "144e778c-8f01-499c-81c8-fcad489789db"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -3808,11 +3961,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.06,
+            0.025,
+            0.271,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -3880,11 +4042,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.06,
+            0.025,
+            0.111,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -4006,11 +4177,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+             "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
             ],
             "name": "laboratory_rack",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.06,
+            0.025,
+            0.22,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
           },
           {
            "field": "arm",
@@ -4216,7 +4396,7 @@
        "entities": [
         {
          "keys": [
-          "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+          "144e778c-8f01-499c-81c8-fcad489789db"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -4231,11 +4411,20 @@
        "entities": [],
        "reference": {
         "keys": [
-         "cc6a765b-b4d2-4a91-95d2-f1361d32a9dd"
+         "bfd3a56b-df3f-46b7-a854-c87f71b1d29a"
         ],
         "name": "laboratory_rack",
         "type": "Body"
        },
+       "pose": [
+        -0.06,
+        0.025,
+        0.006,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
        "place": "rack B1"
       }
      ]
@@ -4512,7 +4701,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.95,
+            -0.95,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -4687,7 +4885,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.95,
+        -0.95,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -4763,7 +4970,16 @@
                 ],
                 "name": "laboratory_refrigerator_door_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.06,
+                0.0,
+                0.0,
+                0.0,
+                0.70711,
+                0.70711
+               ]
               },
               {
                "field": "arm",
@@ -4877,7 +5093,16 @@
                 ],
                 "name": "laboratory_refrigerator_door_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.70711,
+                0.70711
+               ]
               },
               {
                "field": "arm",
@@ -5525,7 +5750,16 @@
         ],
         "name": "pr2/l_gripper_tool_frame",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ]
       },
       {
        "field": "arm",
@@ -6051,7 +6285,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.348,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -6226,7 +6469,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.348,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -6316,11 +6568,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+                 "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.057,
+                0.125,
+                0.70711,
+                0.70711,
+                0.0,
+                0.0
+               ]
               },
               {
                "field": "arm",
@@ -6432,11 +6693,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+                 "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.125,
+                0.70711,
+                0.70711,
+                0.0,
+                0.0
+               ]
               },
               {
                "field": "arm",
@@ -6680,7 +6950,7 @@
            "entities": [
             {
              "keys": [
-              "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+              "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
              ],
              "name": "Container \u00b7 tube_teal",
              "type": "Container"
@@ -6705,14 +6975,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+         "target": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
          "id": "plan_node_173",
          "parent": "plan_node_168",
          "start": 3188,
          "end": 3237,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+          "object_designator": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -6748,11 +7018,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d",
+           "value": "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3",
            "entities": [
             {
              "keys": [
-              "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+              "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
              ],
              "name": "tube_teal",
              "type": "Body"
@@ -6799,11 +7069,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+             "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
             ],
             "name": "tube_teal",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.285,
+            0.70711,
+            0.70711,
+            0.0,
+            0.0
+           ]
           },
           {
            "field": "arm",
@@ -7014,7 +7293,7 @@
        "entities": [
         {
          "keys": [
-          "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+          "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -7119,7 +7398,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.348,
+            -1.05,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -7294,7 +7582,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.348,
+        -1.05,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -7357,7 +7654,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.902,
+            -1.05,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -7532,7 +7838,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.902,
+        -1.05,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -7582,7 +7897,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -1.09,
+        -0.395,
+        0.65,
+        0.70711,
+        0.70711,
+        0.0,
+        0.0
+       ]
       },
       {
        "field": "arm",
@@ -7682,7 +8006,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.902,
+            -0.755,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -7857,7 +8190,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.902,
+        -0.755,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -7914,7 +8256,16 @@
             ],
             "name": "laboratory_refrigerator_base",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.14,
+            -0.1,
+            0.65,
+            0.70711,
+            0.70711,
+            0.0,
+            0.0
+           ]
           },
           {
            "field": "arm",
@@ -7986,7 +8337,16 @@
             ],
             "name": "laboratory_refrigerator_base",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.14,
+            -0.1,
+            0.605,
+            0.70711,
+            0.70711,
+            0.0,
+            0.0
+           ]
           },
           {
            "field": "arm",
@@ -8112,7 +8472,16 @@
             ],
             "name": "laboratory_refrigerator_base",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.14,
+            -0.157,
+            0.605,
+            0.70711,
+            0.70711,
+            0.0,
+            0.0
+           ]
           },
           {
            "field": "arm",
@@ -8318,7 +8687,7 @@
        "entities": [
         {
          "keys": [
-          "18e6ed76-ad82-45ed-acf6-52cafb0f6b4d"
+          "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -8338,6 +8707,15 @@
         "name": "laboratory_refrigerator_base",
         "type": "Body"
        },
+       "pose": [
+        0.14,
+        -0.1,
+        0.48,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
        "place": "refrigerator R6"
       }
      ]
@@ -8401,7 +8779,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.902,
+            -1.05,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -8576,7 +8963,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.902,
+        -1.05,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -8852,7 +9248,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.95,
+            -0.95,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -9027,7 +9432,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.95,
+        -0.95,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -9103,7 +9517,16 @@
                 ],
                 "name": "laboratory_refrigerator_door_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.06,
+                0.0,
+                0.0,
+                0.0,
+                0.70711,
+                0.70711
+               ]
               },
               {
                "field": "arm",
@@ -9217,7 +9640,16 @@
                 ],
                 "name": "laboratory_refrigerator_door_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.70711,
+                0.70711
+               ]
               },
               {
                "field": "arm",
@@ -9865,7 +10297,16 @@
         ],
         "name": "pr2/l_gripper_tool_frame",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ]
       },
       {
        "field": "arm",
@@ -10178,7 +10619,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.22,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -10353,7 +10803,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.22,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -10429,7 +10888,16 @@
                 ],
                 "name": "laboratory_centrifuge_lid_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.06,
+                0.0,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+               ]
               },
               {
                "field": "arm",
@@ -10543,7 +11011,16 @@
                 ],
                 "name": "laboratory_centrifuge_lid_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+               ]
               },
               {
                "field": "arm",
@@ -11191,7 +11668,16 @@
         ],
         "name": "pr2/l_gripper_tool_frame",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ]
       },
       {
        "field": "arm",
@@ -11518,7 +12004,16 @@
         ],
         "name": "laboratory_centrifuge_lid",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.0,
+        -0.36,
+        -0.07,
+        0.70711,
+        -0.0,
+        0.70711,
+        0.0
+       ]
       },
       {
        "field": "arm",
@@ -11589,7 +12084,16 @@
         ],
         "name": "laboratory_centrifuge_lid",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.0,
+        -0.29,
+        -0.012,
+        0.70106,
+        0.0923,
+        0.70106,
+        0.0923
+       ]
       },
       {
        "field": "arm",
@@ -11732,7 +12236,16 @@
         ],
         "name": "pr2/l_gripper_tool_frame",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ]
       },
       {
        "field": "arm",
@@ -12258,7 +12771,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.4,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -12433,7 +12955,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.4,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -12506,11 +13037,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+                 "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0545,
+                0.2294,
+                0.61237,
+                0.61237,
+                -0.35355,
+                0.35355
+               ]
               },
               {
                "field": "arm",
@@ -12622,11 +13162,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+                 "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0,
+                0.135,
+                0.61237,
+                0.61237,
+                -0.35355,
+                0.35355
+               ]
               },
               {
                "field": "arm",
@@ -12870,7 +13419,7 @@
            "entities": [
             {
              "keys": [
-              "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+              "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
              ],
              "name": "Container \u00b7 tube_clear",
              "type": "Container"
@@ -12895,14 +13444,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+         "target": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
          "id": "plan_node_274",
          "parent": "plan_node_269",
          "start": 7399,
          "end": 7448,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+          "object_designator": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -12938,11 +13487,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148",
+           "value": "40b62a27-6f7c-471b-a042-3e1797dcc8c0",
            "entities": [
             {
              "keys": [
-              "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+              "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
              ],
              "name": "tube_clear",
              "type": "Body"
@@ -12989,11 +13538,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+             "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
             ],
             "name": "tube_clear",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.295,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -13204,7 +13762,7 @@
        "entities": [
         {
          "keys": [
-          "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+          "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -13309,7 +13867,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.12,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -13484,7 +14051,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.12,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -13541,7 +14117,16 @@
             ],
             "name": "laboratory_centrifuge_rotor",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            -0.072,
+            0.323,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -13613,7 +14198,16 @@
             ],
             "name": "laboratory_centrifuge_rotor",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.0,
+            -0.072,
+            0.143,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -13739,7 +14333,16 @@
             ],
             "name": "laboratory_centrifuge_rotor",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.0,
+            -0.1265,
+            0.2374,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -13945,7 +14548,7 @@
        "entities": [
         {
          "keys": [
-          "b9e04b5a-18fe-4b63-a6e2-f61e5c22e148"
+          "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -13965,6 +14568,15 @@
         "name": "laboratory_centrifuge_rotor",
         "type": "Body"
        },
+       "pose": [
+        -0.0,
+        -0.072,
+        0.008,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
        "place": "centrifuge C4"
       }
      ]
@@ -14241,7 +14853,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.4,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -14416,7 +15037,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.4,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -14489,11 +15119,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+                 "144e778c-8f01-499c-81c8-fcad489789db"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0545,
+                0.2294,
+                0.61237,
+                0.61237,
+                -0.35355,
+                0.35355
+               ]
               },
               {
                "field": "arm",
@@ -14605,11 +15244,20 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+                 "144e778c-8f01-499c-81c8-fcad489789db"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.0,
+                0.135,
+                0.61237,
+                0.61237,
+                -0.35355,
+                0.35355
+               ]
               },
               {
                "field": "arm",
@@ -14853,7 +15501,7 @@
            "entities": [
             {
              "keys": [
-              "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+              "144e778c-8f01-499c-81c8-fcad489789db"
              ],
              "name": "Container \u00b7 tube_amber",
              "type": "Container"
@@ -14878,14 +15526,14 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+         "target": "144e778c-8f01-499c-81c8-fcad489789db",
          "id": "plan_node_311",
          "parent": "plan_node_306",
          "start": 8176,
          "end": 8225,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+          "object_designator": "144e778c-8f01-499c-81c8-fcad489789db",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -14921,11 +15569,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "53cc314b-3281-4d2a-a932-d8f9dab97bd4",
+           "value": "144e778c-8f01-499c-81c8-fcad489789db",
            "entities": [
             {
              "keys": [
-              "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+              "144e778c-8f01-499c-81c8-fcad489789db"
              ],
              "name": "tube_amber",
              "type": "Body"
@@ -14972,11 +15620,20 @@
            "entities": [],
            "reference": {
             "keys": [
-             "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+             "144e778c-8f01-499c-81c8-fcad489789db"
             ],
             "name": "tube_amber",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.295,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -15187,7 +15844,7 @@
        "entities": [
         {
          "keys": [
-          "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+          "144e778c-8f01-499c-81c8-fcad489789db"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -15292,7 +15949,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.12,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -15467,7 +16133,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.12,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -15524,7 +16199,16 @@
             ],
             "name": "laboratory_centrifuge_rotor",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.072,
+            0.323,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -15596,7 +16280,16 @@
             ],
             "name": "laboratory_centrifuge_rotor",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.0,
+            0.072,
+            0.143,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -15722,7 +16415,16 @@
             ],
             "name": "laboratory_centrifuge_rotor",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.0,
+            0.0175,
+            0.2374,
+            0.61237,
+            0.61237,
+            -0.35355,
+            0.35355
+           ]
           },
           {
            "field": "arm",
@@ -15928,7 +16630,7 @@
        "entities": [
         {
          "keys": [
-          "53cc314b-3281-4d2a-a932-d8f9dab97bd4"
+          "144e778c-8f01-499c-81c8-fcad489789db"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -15948,6 +16650,15 @@
         "name": "laboratory_centrifuge_rotor",
         "type": "Body"
        },
+       "pose": [
+        0.0,
+        0.072,
+        0.008,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
        "place": "centrifuge C2"
       }
      ]
@@ -16224,7 +16935,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.22,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -16399,7 +17119,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.22,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -16689,7 +17418,16 @@
         ],
         "name": "laboratory_centrifuge_lid",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.0,
+        -0.36,
+        -0.07,
+        0.70711,
+        -0.0,
+        0.70711,
+        0.0
+       ]
       },
       {
        "field": "arm",
@@ -16760,7 +17498,16 @@
         ],
         "name": "laboratory_centrifuge_lid",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.0,
+        -0.29,
+        -0.012,
+        0.70106,
+        0.0923,
+        0.70106,
+        0.0923
+       ]
       },
       {
        "field": "arm",
@@ -16903,7 +17650,16 @@
         ],
         "name": "pr2/l_gripper_tool_frame",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ]
       },
       {
        "field": "arm",
@@ -17216,7 +17972,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.22,
+            -0.88,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -17391,7 +18156,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.22,
+        -0.88,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -17667,7 +18441,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            -0.22,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -17842,7 +18625,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.22,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     },
@@ -17918,7 +18710,16 @@
                 ],
                 "name": "laboratory_centrifuge_lid_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                -0.0,
+                -0.06,
+                0.0,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+               ]
               },
               {
                "field": "arm",
@@ -18032,7 +18833,16 @@
                 ],
                 "name": "laboratory_centrifuge_lid_handle",
                 "type": "Body"
-               }
+               },
+               "pose": [
+                0.0,
+                0.0,
+                0.0,
+                0.5,
+                0.5,
+                0.5,
+                0.5
+               ]
               },
               {
                "field": "arm",
@@ -18680,7 +19490,16 @@
         ],
         "name": "pr2/l_gripper_tool_frame",
         "type": "Body"
-       }
+       },
+       "pose": [
+        -0.07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ]
       },
       {
        "field": "arm",
@@ -18993,7 +19812,16 @@
             ],
             "name": "map",
             "type": "Body"
-           }
+           },
+           "pose": [
+            0.4,
+            -0.72,
+            0.0,
+            0.0,
+            0.0,
+            0.70711,
+            0.70711
+           ]
           }
          ]
         },
@@ -19168,7 +19996,16 @@
         ],
         "name": "map",
         "type": "Body"
-       }
+       },
+       "pose": [
+        0.4,
+        -0.72,
+        0.0,
+        0.0,
+        0.0,
+        0.70711,
+        0.70711
+       ]
       }
      ]
     }
@@ -19228,7 +20065,7 @@
    "laboratory_cabinet_right_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_middle_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_lower_handle": "semantic_digital_twin.world_description.world_entity.Body",
-   "0b915927-c343-4893-93f8-f57fe1b447b8/odom": "semantic_digital_twin.world_description.world_entity.Body",
+   "301e0ace-1b2f-4c54-9599-2841ba8b4697/odom": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_link": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/torso_lift_motor_screw_link": "semantic_digital_twin.world_description.world_entity.Body",
@@ -19358,7 +20195,7 @@
    "aicor_medical_lab/laboratory_cabinet_right_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_middle_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_lower_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "0b915927-c343-4893-93f8-f57fe1b447b8/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
+   "301e0ace-1b2f-4c54-9599-2841ba8b4697/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/base_footprint_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/torso_lift_motor_screw_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",

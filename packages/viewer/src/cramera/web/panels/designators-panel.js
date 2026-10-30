@@ -32,6 +32,7 @@ import {
   rolesOf,
   rowsOfKey,
   runningNode,
+  runningTarget,
   slotResolutions,
   stepsOf,
   stepsOfAction,
@@ -121,6 +122,12 @@ export class DesignatorsPanel {
   rows = [];
 
   /**
+   * The target the 3D view marks, or null.
+   * @type {import('../designators/designator-chain.js').StepTarget|null}
+   */
+  target = null;
+
+  /**
    * The keys of the entity selected in either view, or null.
    * @type {Array<string>|null}
    */
@@ -164,6 +171,7 @@ export class DesignatorsPanel {
    */
   show(scene) {
     this.roots = scene.description[SceneKey.PLAN_TREES] ?? [];
+    this.target = null;
     this.showSteps(scene.querySteps, AnswerOrigin.RECORDED);
   }
 
@@ -214,6 +222,7 @@ export class DesignatorsPanel {
     const panes = this.#panes;
     this.action = actionAt(this.roots, this.frame);
     if (!this.action) {
+      this.#markTarget(null);
       this.rows = [];
       panes.title.textContent = NO_PLAN;
       for (const body of [panes.roles, panes.tree, panes.resolution]) body.replaceChildren();
@@ -221,6 +230,7 @@ export class DesignatorsPanel {
     }
     const tree = nodeAtFrame(this.action, this.frame);
     const running = runningNode(tree);
+    this.#markTarget(runningTarget(running, tree));
     panes.title.replaceChildren(
       element(document, 'span', 'muted', 'Top-level action at frame '),
       element(document, 'strong', '', this.frame),
@@ -233,6 +243,17 @@ export class DesignatorsPanel {
     panes.roles.replaceChildren(hasRoles ? this.#rolesTable(document) : element(document, 'p', 'muted', NO_ROLES));
     panes.tree.replaceChildren(element(document, 'ol', 'designator-tree', null, [this.#treeNode(document, tree, running)]));
     panes.resolution.replaceChildren(...this.#resolution(document, running?.node ?? this.action));
+  }
+
+  /**
+   * Let the 3D view mark a target, when it differs from the one marked.
+   * @param {import('../designators/designator-chain.js').StepTarget|null} target
+   *   Where the running step acts, or null.
+   */
+  #markTarget(target) {
+    if (target === null ? this.target === null : target.equals(this.target)) return;
+    this.target = target;
+    this.#bus.publish(ViewerEvent.TARGET_MARKED, target);
   }
 
   /**

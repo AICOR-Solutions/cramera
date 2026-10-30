@@ -231,3 +231,35 @@ def test_the_stepped_transfer_sets_its_vessel_into_the_rack_slot_a_query_did_not
     assert target["place"] == "rack A3"
     assert target["entities"] == []
     assert target["reference"]["name"] == RACK
+
+
+LAYOUT = (
+    Path(__file__).resolve().parents[2]
+    / "plugins/laboratory/src/cramera_laboratory/resources/aicor_medical_lab/scene.json"
+)
+"""
+The bench layout the workflow's holders come from.
+"""
+
+
+def test_a_location_carries_its_pose_in_its_references_frame_as_the_layout_gives_it(
+    scene,
+):
+    layout = json.loads(LAYOUT.read_text(encoding="utf-8"))["laboratory"]
+    holders = {
+        f"centrifuge {slot['id']}": slot["position"]
+        for slot in layout["centrifuge"]["slots"]
+    } | {
+        f"refrigerator {slot['id']}": slot["localPosition"]
+        for slot in layout["refrigerator"]["slots"]
+    }
+    located = [
+        slot
+        for node in nodes(scene["planTrees"])
+        for slot in node.get("roles", [])
+        if slot.get("reference")
+    ]
+    assert located and all(len(slot["pose"]) == 7 for slot in located)
+    for slot in located:
+        if slot.get("place") in holders:
+            assert slot["pose"][:3] == pytest.approx(holders[slot["place"]], abs=1e-6)

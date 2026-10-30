@@ -17,6 +17,7 @@ from enum import StrEnum
 from typing_extensions import List, Optional
 
 from cramera_protocol.document import JsonDocument, document_field
+from cramera_protocol.geometry import Pose
 
 
 class DesignatorRole(StrEnum):
@@ -151,6 +152,11 @@ class RoleSlotKey(StrEnum):
     The name the task gives the place a pose stands for.
     """
 
+    POSE = "pose"
+    """
+    The pose in the frame of its reference.
+    """
+
 
 @dataclass(kw_only=True)
 class RoleSlot(JsonDocument):
@@ -193,6 +199,12 @@ class RoleSlot(JsonDocument):
     )
     """
     The body a pose is expressed in, or None for a value that is no pose.
+    """
+
+    pose: Optional[Pose] = document_field(RoleSlotKey.POSE, default=None)
+    """
+    A pose's position and orientation in the frame of :attr:`reference`, so the scene
+    can show where it is while the reference moves; None for a value that is no pose.
     """
 
     place: Optional[str] = document_field(RoleSlotKey.PLACE, default=None)

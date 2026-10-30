@@ -399,3 +399,88 @@ export function whenAsked(step, action) {
   if (phase === StepPhase.RESOLUTION) return 'while an open part of the plan was resolved';
   return 'before the action ran';
 }
+
+// %% the running step's target
+
+/**
+ * Where the running step of a plan acts, as the 3D view marks it.
+ */
+export class StepTarget {
+  /**
+   * @param {Object} fields The target's fields.
+   * @param {Array<string>} fields.keys What the scene knows the body the target is
+   *   given in by.
+   * @param {string} fields.frame That body's name.
+   * @param {Array<number>|null} fields.pose The target's pose in the body's frame, as
+   *   `[x, y, z, qx, qy, qz, qw]`, or null for the body's own origin.
+   * @param {string} fields.label What the mark says.
+   */
+  constructor({ keys, frame, pose, label }) {
+    this.keys = keys;
+    this.frame = frame;
+    this.pose = pose;
+    this.label = label;
+  }
+
+  /**
+   * @param {StepTarget|null} other Another target, or null.
+   * @returns {boolean} Whether both mark the same place.
+   */
+  equals(other) {
+    return other !== null && JSON.stringify(this) === JSON.stringify(other);
+  }
+}
+
+/**
+ * @param {Object} node A plan node.
+ * @returns {StepTarget|null} Where it acts: its first location given as a pose in a
+ *   body's frame, else the first entity an object role names, at its origin; null for
+ *   a node with neither, such as one that only opens a gripper.
+ */
+export function targetOf(node) {
+  const slots = rolesOf(node);
+  const located = slots.find((slot) => slot[RoleSlotKey.ROLE] === 'location' && slot[RoleSlotKey.REFERENCE] && slot[RoleSlotKey.POSE]);
+  if (located) {
+    const reference = located[RoleSlotKey.REFERENCE];
+    const place = located[RoleSlotKey.PLACE];
+    return new StepTarget({
+      keys: reference[RoleEntityKey.KEYS] ?? [],
+      frame: reference[RoleEntityKey.NAME],
+      pose: [...located[RoleSlotKey.POSE]],
+      label: `${node[PlanNodeKey.LABEL]} · ${located[RoleSlotKey.FIELD]}${place ? ` · ${place}` : ''}`,
+    });
+  }
+  const object = slots.find((slot) => slot[RoleSlotKey.ROLE] === 'object' && (slot[RoleSlotKey.ENTITIES] ?? []).length);
+  if (!object) return null;
+  const [entity] = object[RoleSlotKey.ENTITIES];
+  return new StepTarget({
+    keys: entity[RoleEntityKey.KEYS] ?? [],
+    frame: entity[RoleEntityKey.NAME],
+    pose: null,
+    label: `${node[PlanNodeKey.LABEL]} · ${object[RoleSlotKey.FIELD]} · ${entity[RoleEntityKey.NAME]}`,
+  });
+}
+
+/**
+ * @param {NodeAtFrame|null} running The node running deepest, or null.
+ * @param {NodeAtFrame} tree The action it runs in, with its phases.
+ * @returns {StepTarget|null} Its target, else that of the nearest node above it with
+ *   one, as the action a motion without a target belongs to; null while nothing runs.
+ */
+export function runningTarget(running, tree) {
+  if (!running) return null;
+  const line = [];
+  const visit = (at) => {
+    line.push(at);
+    if (at === running) return true;
+    for (const child of at.children) if (visit(child)) return true;
+    line.pop();
+    return false;
+  };
+  visit(tree);
+  for (const at of line.reverse()) {
+    const target = targetOf(at.node);
+    if (target) return target;
+  }
+  return null;
+}
