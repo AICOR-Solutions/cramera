@@ -1,5 +1,14 @@
 {"framesPerSecond": 2,
  "frames": [{"pr2/torso_lift_joint": 0.0, "pr2/l_wrist_flex_joint": -0.1},
             {"pr2/torso_lift_joint": 0.1, "pr2/l_wrist_flex_joint": -0.4},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
+            {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2},
             {"pr2/torso_lift_joint": 0.3, "pr2/l_wrist_flex_joint": -0.2}],
- "objects": [{}, {}, {}]}
+ "at": [1790848799.5, 1790848800.0, 1790848800.5, 1790848801.0, 1790848801.5,
+        1790848802.0, 1790848802.5, 1790848803.0, 1790848803.5, 1790848804.0],
+ "objects": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]}
