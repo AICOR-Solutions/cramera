@@ -140,6 +140,7 @@ class LiveRoutes:
             LiveRoute.PRESETS: publisher.presets,
             LiveRoute.RECORDING: publisher.recording_status,
             LiveRoute.RESOLUTIONS: publisher.resolutions.current,
+            LiveRoute.DETECTED_EVENTS: publisher.detected_events,
         }
         actions = {
             LiveRoute.RECORDING_STOP: publisher.finish_recording,

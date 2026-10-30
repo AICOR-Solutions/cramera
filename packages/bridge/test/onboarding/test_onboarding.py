@@ -22,7 +22,7 @@ from cramera_protocol.bundle.index import (
     ReservedSceneName,
     SceneIndex,
 )
-from cramera_protocol.bundle.scene import SceneDescription
+from cramera_protocol.bundle.scene import DetectedEventKind, SceneDescription
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import SceneDestination
 from cramera_protocol.viewer import EnvironmentVariable
@@ -110,6 +110,26 @@ def test_detected_events_are_listed_in_the_bundle(locations, coraplex_visualizat
     assert SupportEvent.__name__ in event_types
 
 
+def test_listed_events_are_placed_on_the_bundles_frames(
+    locations, coraplex_visualization
+):
+    onboarding(locations, detect_events=True).run()
+    scene = saved_scene(locations.local_scenes)
+    frame_count = (
+        DocumentFile(locations.local_scenes / SCENE_NAME / scene.trajectory)
+        .read(Trajectory)
+        .frame_count()
+    )
+    [support, *_] = [
+        event
+        for event in scene.detected_events
+        if event.event_type == SupportEvent.__name__
+    ]
+    assert support.kind is DetectedEventKind.SUPPORT
+    assert 0 <= support.frame < frame_count
+    assert support.keys
+
+
 def test_a_run_is_saved_into_the_shared_directory(locations, coraplex_visualization):
     onboarding(locations, destination=SceneDestination.SHARED).run()
     assert saved_scene(locations.shared_scenes).name == SCENE_NAME
@@ -122,7 +142,9 @@ def test_a_failing_demo_releases_its_visualizations(locations, coraplex_visualiz
         failing.run()
     assert failure.value.code == FAILURE_STATUS
     assert [visualization.server for visualization in failing.visualizations] == [None]
-    assert [recorder.callback for recorder in failing.recorders] == [None]
+    assert [
+        visualization.detections.is_watching for visualization in failing.visualizations
+    ] == [False]
     assert not (locations.local_scenes / SCENE_NAME).exists()
 
 

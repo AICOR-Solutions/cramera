@@ -81,6 +81,11 @@ def test_a_recorded_frame_keeps_its_values_when_the_state_changes():
     assert frame.objects == state(1.0).objects
 
 
+def test_the_recording_names_the_time_of_every_frame():
+    recording = recorded(3, ManualClock())
+    assert recording.frame_times() == [0.0, FRAME_INTERVAL, 2 * FRAME_INTERVAL]
+
+
 def test_finishing_keeps_the_frames_and_finishing_again_returns_them():
     recording = recorded(3, ManualClock())
     frames = recording.finish()

@@ -20,7 +20,7 @@ from enum import Enum
 
 from typing_extensions import Dict, List, Optional, Tuple
 
-from cramera_protocol.bundle.scene import PlanNodeKind
+from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
 
 # %% pinned classes
 
@@ -310,6 +310,30 @@ PLAN_NODE_KINDS = (
 """
 The plan node classes by the kind the protocol names them, tried in order; a node is of
 the kind of the first class it is an instance of, else :attr:`PlanNodeKind.OTHER`.
+"""
+
+SEGMIND_EVENTS = "segmind.datastructures.events"
+"""
+The module segmind defines its events in.
+"""
+
+DETECTED_EVENT_KINDS = (
+    (f"{SEGMIND_EVENTS}.AbstractContactEvent", DetectedEventKind.CONTACT),
+    (f"{SEGMIND_EVENTS}.MotionEvent", DetectedEventKind.MOTION),
+    (f"{SEGMIND_EVENTS}.SupportEvent", DetectedEventKind.SUPPORT),
+    (f"{SEGMIND_EVENTS}.LossOfSupportEvent", DetectedEventKind.SUPPORT),
+    (f"{SEGMIND_EVENTS}.ContainmentEvent", DetectedEventKind.CONTAINMENT),
+    (f"{SEGMIND_EVENTS}.LossOfContainmentEvent", DetectedEventKind.CONTAINMENT),
+    (f"{SEGMIND_EVENTS}.InsertionEvent", DetectedEventKind.CONTAINMENT),
+    (f"{SEGMIND_EVENTS}.GraspEvent", DetectedEventKind.GRASP),
+    (f"{SEGMIND_EVENTS}.LossOfGraspEvent", DetectedEventKind.GRASP),
+    (f"{SEGMIND_EVENTS}.PickUpEvent", DetectedEventKind.PICK_AND_PLACE),
+    (f"{SEGMIND_EVENTS}.PlacingEvent", DetectedEventKind.PICK_AND_PLACE),
+)
+"""
+The event classes of segmind by the kind the protocol names them, tried in order; an
+event is of the kind of the first class it is an instance of, else
+:attr:`DetectedEventKind.OTHER`.
 """
 
 ANNOTATIONS = (
@@ -832,6 +856,28 @@ def plan_node_kind(node: object) -> PlanNodeKind:
         if isinstance(node, cls):
             return kind
     return PlanNodeKind.OTHER
+
+
+@functools.cache
+def detected_event_classes() -> Tuple[Tuple[type, DetectedEventKind], ...]:
+    """
+    :return: The classes of :data:`DETECTED_EVENT_KINDS` with their kinds, imported
+        once.
+    """
+    return tuple(
+        (PinnedClass(kind, path).resolve(), kind) for path, kind in DETECTED_EVENT_KINDS
+    )
+
+
+def detected_event_kind(event: object) -> DetectedEventKind:
+    """
+    :param event: An event segmind detected.
+    :return: The kind the protocol names it.
+    """
+    for cls, kind in detected_event_classes():
+        if isinstance(event, cls):
+            return kind
+    return DetectedEventKind.OTHER
 
 
 ANNOTATION_NAMES = ClassNames(ANNOTATIONS)

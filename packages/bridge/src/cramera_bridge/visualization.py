@@ -13,15 +13,18 @@ import importlib.util
 import os
 from contextlib import ExitStack
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 
 from typing_extensions import TYPE_CHECKING, Any, Optional
 
 from cramera.locations import DataLocations
+from cramera_bridge.detections import DetectionRecorder
 from cramera_bridge.live.marker_topics import MarkerTopicConfiguration
 from cramera_bridge.live.publisher import LivePublisher
 from cramera_bridge.live.server import LIVE_HOST, LIVE_PORT, LiveServer
 from cramera_protocol.live_messages import RecordingState
+from cramera_bridge.questions.live import WorldHighlightKeys
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from coraplex.plans.plan_callbacks import PlanCallback
 from coraplex.plans.plan_node import PlanNode
@@ -43,6 +46,24 @@ The modules reading markers from ROS needs.
 ROS_IMAGE_MODULES = ("rclpy", "sensor_msgs")
 """
 The modules reading RoboKudo's images from ROS needs.
+"""
+
+
+class DetectionEnvironmentVariable(StrEnum):
+    """
+    The environment variables configuring the detection of a run's events.
+    """
+
+    DETECT_EVENTS = "CRAMERA_DETECT_EVENTS"
+    """
+    Set to :data:`DETECTION_ENABLED` for segmind's detectors to watch every run a
+    visualization serves, so its recording lists what they saw.
+    """
+
+
+DETECTION_ENABLED = "1"
+"""
+The value of :attr:`DetectionEnvironmentVariable.DETECT_EVENTS` that turns detection on.
 """
 
 # %% world callbacks
@@ -152,6 +173,24 @@ class LiveVisualization:
     The workspace classes queries may name; the installed CRAM packages when None.
     """
 
+    detect_events: bool = field(
+        default_factory=lambda: os.environ.get(
+            DetectionEnvironmentVariable.DETECT_EVENTS
+        )
+        == DETECTION_ENABLED
+    )
+    """
+    Whether segmind's detectors watch the run, so the viewer shows what they saw and the
+    recording lists it; by default as the process environment says.
+    """
+
+    detections: Optional[DetectionRecorder] = field(default=None, init=False)
+    """
+    Segmind watching the run, once started with :attr:`detect_events`; it stops before
+    the recording is written, so the recording keeps what it saw last, and stays
+    readable after.
+    """
+
     publisher: Optional[LivePublisher] = field(default=None, init=False)
     """
     The publisher, while started.
@@ -197,6 +236,12 @@ class LiveVisualization:
                 publisher.plan.images.cameras.append(listener)
             publisher.attach(self.world)
             acquired.callback(self.finish_recording, publisher)
+            if self.detect_events:
+                self.detections = DetectionRecorder(
+                    self.world, WorldHighlightKeys(publisher.current_objects)
+                ).start()
+                acquired.callback(self.detections.stop)
+                publisher.detections = self.detections
             for callback_class in (PublishedStateChange, PublishedModelChange):
                 callback = callback_class(_world=self.world, publisher=publisher)
                 acquired.callback(callback.stop)
@@ -262,8 +307,8 @@ class LiveVisualization:
 
     def stop(self) -> None:
         """
-        Write the recording and release the callbacks, the server, hand control and the
-        marker listener.
+        Write the recording and release the callbacks, the server, hand control, the
+        marker listener and the detectors.
         """
         atexit.unregister(self.stop)
         self.resources.close()

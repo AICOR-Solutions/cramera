@@ -1,30 +1,34 @@
 """
-Segmind's event detectors ticked along a run, so a recording carries what they saw.
+Segmind segmenting a run into events while it goes on, so a recording carries what it
+saw.
 
-The detectors run on the thread that changes the world, through a state-change callback:
-segmind's expressions are CasADi-backed and must not be evaluated from a second thread
-while the planner builds expressions of its own.
+The run is segmented the way segmind segments a run of its own: its detectors of every
+kind watch the run's objects, the free objects and the things a robot takes hold of, and
+are ticked on a thread of their own that holds the world's lock while it reads the
+world. A demo that segments its run with segmind therefore gets the same events into its
+recording that it reports itself.
+
+What segmind detects leaves this module as the protocol's :class:`DetectedEvent`: its
+kind named by :func:`~cramera_bridge.names.detected_event_kind`, its bodies by the keys
+the viewer shows them under.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from typing_extensions import Any, List, Optional
+from typing_extensions import List, Optional
 
-from cramera_bridge.attachment import AttachmentDetector
+from cramera_bridge.live.detected_events import DetectedEventSource
+from cramera_bridge.names import detected_event_kind
+from cramera_bridge.questions.highlights import HighlightKeys
+from cramera_bridge.questions.live import WorldHighlightKeys
+from cramera_bridge.world_objects import WorldObjects
 from cramera_protocol.bundle.scene import DetectedEvent
-from giskardpy.motion_statechart.context import MotionStatechartContext
 from segmind.datastructures.events import EventWithTrackedObjects
-from segmind.detectors.base import AbstractDetector, SegmindContext
-from segmind.detectors.coarse_event_detector_nodes import (
-    PickUpDetector,
-    PlacingDetector,
-)
-from segmind.episode_segmenter import EpisodeSegmenterExecutor
-from segmind.statecharts.segmind_statechart import SegmindStatechart
-from semantic_digital_twin.callbacks.callback import StateChangeCallback
+from segmind.event_segmentation import Segmind
 from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.world_entity import Body
 
 EVENT_NAME_SEPARATOR = " "
 """
@@ -35,91 +39,107 @@ What separates the object's name from the event type in an event's name.
 
 
 @dataclass
-class DetectionRecorder:
+class DetectionRecorder(DetectedEventSource):
     """
-    Segmind's detectors compiled against one world and ticked whenever its state
-    changes, from :meth:`start` until :meth:`stop`.
+    Segmind watching the objects of one world, from :meth:`start` until :meth:`stop`.
     """
 
     world: World
     """
-    The world whose bodies the detectors watch.
+    The world the run takes place in.
     """
 
-    executor: Optional[EpisodeSegmenterExecutor] = field(default=None, init=False)
+    keys: Optional[HighlightKeys] = None
     """
-    The executor ticking the detectors, once started.
-    """
-
-    context: Optional[SegmindContext] = field(default=None, init=False)
-    """
-    Where the detectors log their events, once started.
+    Maps a body to the keys the viewer shows it under; when None, the world's free
+    objects are keyed as the live publisher keys them and any other body by its name.
     """
 
-    callback: Optional[DetectionTicks] = field(default=None, init=False)
+    segmentation: Optional[Segmind] = field(default=None, init=False)
     """
-    The callback ticking the detectors, while started.
+    Segmind with its detectors compiled, once compiled; None while the world holds no
+    object to watch.
     """
 
-    @staticmethod
-    def detectors() -> List[AbstractDetector]:
+    def watched_bodies(self) -> List[Body]:
         """
-        :return: Every detector segmind offers, with picking up and putting down read
-            from the attachment itself rather than inferred from motion, which would
-            give one event per surface an object touched instead of one per grasp.
+        :return: The run's objects as the live publisher lists them: the free objects
+            and the things a robot takes hold of.
         """
-        inferred = (PickUpDetector, PlacingDetector)
-        return [
-            detector
-            for detector in SegmindStatechart().build_statechart().nodes
-            if not isinstance(detector, inferred)
-        ] + [AttachmentDetector()]
+        return WorldObjects(self.world).objects()
 
-    def start(self) -> DetectionRecorder:
+    def compile(self) -> DetectionRecorder:
         """
-        Compile the detectors and tick them whenever the world's state changes.
+        Compile segmind's detectors of every kind for the objects the world holds now,
+        without ticking them.
 
         :return: This recorder.
         """
-        executor = EpisodeSegmenterExecutor(
-            context=MotionStatechartContext(world=self.world)
+        bodies = self.watched_bodies()
+        self.segmentation = (
+            Segmind.create_for_bodies(self.world, bodies) if bodies else None
         )
-        self.context = executor.context.require_extension(SegmindContext)
-        executor.compile(SegmindStatechart().build_statechart(self.detectors()))
-        self.executor = executor
-        self.callback = DetectionTicks(_world=self.world, recorder=self)
+        return self
+
+    def start(self) -> DetectionRecorder:
+        """
+        Compile the detectors and tick them on their own thread until :meth:`stop`.
+
+        :return: This recorder.
+        """
+        self.compile()
+        if self.segmentation is not None:
+            self.segmentation.start()
         return self
 
     def tick(self) -> None:
         """
-        Let the detectors look at the world as it stands now.
+        Let the detectors look at the world as it stands now, once.
         """
-        self.executor.tick()
+        if self.segmentation is not None:
+            self.segmentation.tick()
+
+    @property
+    def is_watching(self) -> bool:
+        """
+        Whether the detectors are being ticked on their thread.
+        """
+        return self.segmentation is not None and self.segmentation.is_watching
 
     def stop(self) -> None:
         """
-        Stop ticking the detectors; what they detected stays readable.
+        Stop ticking the detectors once they have seen the world at rest; what they
+        detected stays readable, and stopping a recorder that does not tick changes
+        nothing.
         """
-        if self.callback is not None:
-            self.callback.stop()
-            self.callback = None
+        if self.is_watching:
+            self.segmentation.stop()
 
     def events(self) -> List[DetectedEvent]:
         """
         :return: Everything detected so far, oldest first; nothing before
-            :meth:`start`.
+            :meth:`compile`.
         """
-        if self.context is None:
+        if self.segmentation is None:
             return []
-        return [self.describe(event) for event in self.context.logger.get_events()]
+        keys = (
+            WorldHighlightKeys(WorldObjects(self.world).objects)
+            if self.keys is None
+            else self.keys
+        )
+        return [
+            self.describe(event, keys)
+            for event in self.segmentation.event_logger.get_events()
+        ]
 
     @staticmethod
-    def describe(event: EventWithTrackedObjects) -> DetectedEvent:
+    def describe(event: EventWithTrackedObjects, keys: HighlightKeys) -> DetectedEvent:
         """
-        :param event: An event a detector produced; every event segmind detects is
-            about tracked objects.
+        :param event: An event segmind detected; every event it detects is about
+            tracked objects.
+        :param keys: Maps a body to the keys the viewer shows it under.
         :return: The event as a scene bundle carries it, named by the full names of the
-            bodies it is about.
+            bodies it is about, on no frame yet.
         """
         event_type = type(event).__name__
         tracked = str(event.tracked_object.name)
@@ -131,19 +151,10 @@ class DetectionRecorder:
             with_object=(
                 None if event.with_object is None else str(event.with_object.name)
             ),
+            kind=detected_event_kind(event),
+            keys=list(
+                dict.fromkeys(
+                    key for body in event.tracked_objects for key in keys.keys_of(body)
+                )
+            ),
         )
-
-
-@dataclass(eq=False)
-class DetectionTicks(StateChangeCallback):
-    """
-    Ticks a recorder's detectors whenever the world's state changes.
-    """
-
-    recorder: DetectionRecorder = field(kw_only=True)
-    """
-    The recorder.
-    """
-
-    def on_state_change(self, **kwargs: Any) -> None:
-        self.recorder.tick()

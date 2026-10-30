@@ -10,21 +10,16 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from typing_extensions import List, Optional
 
 from cramera.locations import DataLocations
 from cramera_bridge.coraplex_backend import CoraplexBackendRegistration
 from cramera_bridge.demo_script import DemoScript
-from cramera_bridge.detections import DetectionRecorder
-from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import DemoStartedNoWorld, SceneNameTaken
 from cramera_bridge.live.recording_storage import RecordingStorage
 from cramera_bridge.visualization import LiveVisualization
-from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import SceneName
-from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.live_messages import (
     RecordingSaveRequest,
     SavedScene,
@@ -82,15 +77,10 @@ class DemoOnboarding:
     The visualizations the demo started.
     """
 
-    recorders: List[DetectionRecorder] = field(default_factory=list, init=False)
-    """
-    The detectors watching the demo's worlds.
-    """
-
     def visualization(self, world: World) -> LiveVisualization:
         """
         Create the visualization coraplex asks for, recording into this onboarding's
-        locations, and the detectors of its world when events are detected.
+        locations, with segmind's detectors watching its world when events are detected.
 
         :param world: The world the demo visualizes.
         :return: The visualization, not yet started.
@@ -101,10 +91,9 @@ class DemoOnboarding:
             locations=self.locations,
             read_ros_markers=False,
             read_robokudo_images=False,
+            detect_events=self.detect_events,
         )
         self.visualizations.append(visualization)
-        if self.detect_events:
-            self.recorders.append(DetectionRecorder(world).start())
         return visualization
 
     def run(self) -> SavedScene:
@@ -120,7 +109,7 @@ class DemoOnboarding:
         """
         storage = RecordingStorage(self.locations)
         name = SceneName(self.name).text
-        destination = storage.destination(self.destination)
+        storage.destination(self.destination)
         if any((directory / name).exists() for directory in storage.directories()):
             raise SceneNameTaken(name)
         with ExitStack() as running:
@@ -129,34 +118,16 @@ class DemoOnboarding:
                 self.demo.run()
         if not self.visualizations:
             raise DemoStartedNoWorld(self.demo.path)
-        saved = storage.save(
+        return storage.save(
             RecordingSaveRequest(
                 name=name, destination=self.destination, task=self.task
             )
         )
-        self.add_detected_events(destination / saved.scene)
-        return saved
 
     def stop_watching(self) -> None:
         """
-        Stop the demo's visualizations, which writes their recordings, and its
-        detectors; stopping what already stopped changes nothing.
+        Stop the demo's visualizations, which writes their recordings with what their
+        detectors saw; stopping what already stopped changes nothing.
         """
         for visualization in self.visualizations:
             visualization.stop()
-        for recorder in self.recorders:
-            recorder.stop()
-
-    def add_detected_events(self, bundle: Path) -> None:
-        """
-        List what the detectors saw in the saved bundle's scene.
-
-        :param bundle: The saved bundle's directory.
-        """
-        events = [event for recorder in self.recorders for event in recorder.events()]
-        if not events:
-            return
-        scene_file = DocumentFile(bundle / BundleFile.SCENE)
-        scene = scene_file.read(SceneDescription)
-        scene.detected_events = events
-        scene_file.write(scene)

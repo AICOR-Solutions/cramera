@@ -29,6 +29,7 @@ TESTS_WITHOUT_CRAM = (
     "questions/test_recorded_bundle.py",
     "questions/test_urdf_structure.py",
     "recording/test_activity.py",
+    "recording/test_detected_events.py",
     "recording/test_marker_topics.py",
     "recording/test_recording.py",
     "recording/test_segments.py",
