@@ -16,6 +16,16 @@ const DESCRIBING_COLUMNS = Object.freeze([AnswerColumn.ENTITY, AnswerColumn.TYPE
  */
 const DESCRIBING_HEADINGS = Object.freeze({ [AnswerColumn.ENTITY]: 'Entity', [AnswerColumn.TYPE]: 'Type' });
 
+/**
+ * @param {Object|null} window A row's replay window.
+ * @returns {boolean} Whether it names frames of the shown recording; answers recorded
+ *   before replay windows named frames wrote seconds since the epoch, which no frame
+ *   can be found for.
+ */
+function namesFrames(window) {
+  return Number.isInteger(window?.[ReplayWindowKey.FIRST_FRAME]) && Number.isInteger(window?.[ReplayWindowKey.LAST_FRAME]);
+}
+
 // %% view
 
 export class AnswerView {
@@ -26,7 +36,8 @@ export class AnswerView {
   element;
 
   /**
-   * Called with a row's replay window when a person asks to replay it.
+   * Called with a row's replay window, in frames of the shown recording, when a person
+   * asks to replay it.
    * @type {function(Object): void}
    */
   #onReplay;
@@ -124,10 +135,10 @@ export class AnswerView {
       }
       const action = document.createElement('td');
       const window = replay[position];
-      if (window) {
+      if (namesFrames(window)) {
         const button = document.createElement('button');
-        button.textContent = 'Replay';
-        button.title = `Frames ${window[ReplayWindowKey.START]} to ${window[ReplayWindowKey.END]}`;
+        button.textContent = 'Play NEEM';
+        button.title = `Frames ${window[ReplayWindowKey.FIRST_FRAME]} to ${window[ReplayWindowKey.LAST_FRAME]}`;
         button.addEventListener('click', () => this.#onReplay(window));
         action.append(button);
       }

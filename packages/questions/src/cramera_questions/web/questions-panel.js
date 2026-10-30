@@ -291,11 +291,11 @@ export class QuestionsPanel {
   }
 
   /**
-   * Jump to the start of a row's moment and play it.
-   * @param {Object} window The row's replay window.
+   * Jump to shortly before a row's moment and play it.
+   * @param {Object} window The row's replay window, in frames of the shown recording.
    */
   #replay(window) {
-    this.#bus.publish(ViewerEvent.FRAME_REQUESTED, window[ReplayWindowKey.START]);
+    this.#bus.publish(ViewerEvent.FRAME_REQUESTED, window[ReplayWindowKey.FIRST_FRAME]);
     this.#bus.publish(ViewerEvent.PLAYBACK_REQUESTED, true);
   }
 }
