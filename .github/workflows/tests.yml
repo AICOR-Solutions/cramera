@@ -33,6 +33,7 @@ jobs:
           - package: bridge
             install: -e ./packages/bridge
             coverage: >-
+              --cov=cramera_bridge.database.runs
               --cov=cramera_bridge.demo_script
               --cov=cramera_bridge.documents
               --cov=cramera_bridge.laboratory.command

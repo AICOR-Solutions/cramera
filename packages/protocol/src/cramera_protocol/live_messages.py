@@ -1655,6 +1655,11 @@ class RecordingSaveRequestKey(StrEnum):
     The last frame to keep.
     """
 
+    ADDS_A_RUN = "addsARun"
+    """
+    Whether the recording is a further run of a bundle that already holds the name.
+    """
+
 
 @dataclass(kw_only=True)
 class RecordingSaveRequest(JsonDocument):
@@ -1703,6 +1708,12 @@ class RecordingSaveRequest(JsonDocument):
     )
     """
     The last frame kept, or None to keep the recording to its end.
+    """
+
+    adds_a_run: bool = document_field(RecordingSaveRequestKey.ADDS_A_RUN, default=False)
+    """
+    Whether a bundle of the same name in the destination is replaced by this run, which
+    joins the runs its plan database holds, instead of refusing the name.
     """
 
 

@@ -43,6 +43,16 @@ which this repository was mirrored until 22 Oct 2026.
   `--step-queries`. `cramera_bridge.demos.garmi_apartment` is CRAM's GARMI
   demonstration as a task demo: GARMI carries a bowl and a spoon across the apartment,
   each transport grounded by a query.
+- **A plan database in every recorded bundle.** Saving a recording keeps the run in
+  the bundle's `plans.sqlite` (`BundleFile.PLAN_DATABASE`): the documents that change
+  from run to run (scene, trajectory, statecharts, query steps, acceptance metrics and
+  recorded answers), every plan step with the parameters and constraints the plan view
+  shows, and the performed coraplex plans as CRAM's own database mapping stores them,
+  where the workspace has generated it. Meshes and URDFs stay the bundle's files, kept
+  once. A save with `addsARun`, and `cramera-onboard`, the task demos and the query
+  stepper with `--add-run`, record a further run into the bundle of the same name: its
+  files show the newest run, and its database keeps every run. The database is not
+  committed.
 - **Watching from a phone.** `cramera --lan` listens on every address and names the
   address, with a key, that other devices of the network open; they need the key, kept
   in `~/.cramera/network_key` and then in a cookie, and may only read, so asking,
@@ -377,6 +387,35 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Nothing comes between the cinematic camera and what it films.** The film's wide
+  orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
+  so the picture showed that and not the robot. The camera now casts rays against the
+  environment (`LineOfSight`; the robots and the free objects are what it films):
+  a blocked or crowded angle, one whose picture a near surface mostly hides, films from
+  another one, the wide orbit turns back where a wall would come between and looks from
+  higher up when it has to, a close-up films its object from the other side or from
+  above, and a camera with nowhere clear to go stands in front of what is in the way.
+  The camera eases round what it films rather than through it, moves in front of a
+  surface at once rather than easing behind it, and cuts to the shot when easing would
+  lose the robot behind a wall, as when it moves faster than the camera follows. A mesh
+  of many triangles, such as an oven, stands in the way as its box, and a ray that starts
+  inside that box, as at a spoon in a drawer, tests the mesh's triangles through a tree
+  of nested boxes built the first time; in the PR2 apartment the camera then takes a
+  millisecond or two a frame.
+
+  ![Before and after in the PR2 apartment](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/cinematic-occlusion/cinematic_camera_occlusion.png)
+- **Play NEEM jumps to the moment an answer is about.** An answer's replay windows
+  named seconds since the epoch, which the questions panel took for frame numbers, so
+  every replay, such as one of "what was detected, and when?", landed on the last
+  frame. `ReplayWindow` now names the first and last frame of the recorded scene
+  (`first_frame`, `last_frame`): the frames recorded nearest to a second before and a
+  second after the moment, found from the wall-clock time of each frame of its
+  trajectory (`FrameTimeline`). A moment outside the recording, an answer about a
+  running world and a recording without frame times offer no replay. Windows recorded
+  before in seconds offer none either; record the answers again with
+  `cramera-record-answers` to replay them. The answer's button, **Replay** before, is
+  called **Play NEEM**.
+
 - **An environment drawn without collision geometry gets its annotations.** CRAM's
   world reasoner takes a body without collision geometry for one that only carries a
   joint, so the world built from a bundle whose environment has visual shapes only,

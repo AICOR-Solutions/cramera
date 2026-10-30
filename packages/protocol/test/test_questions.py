@@ -9,6 +9,7 @@ import pytest
 from cramera_protocol.bundle.statecharts import Statecharts
 from cramera_protocol.exceptions import (
     InvalidDocumentValue,
+    MissingDocumentField,
     UnsupportedProtocolVersion,
 )
 from cramera_protocol.questions import (
@@ -71,6 +72,12 @@ def test_an_answer_reads_replay_windows(read_json):
     data = read_json("questions/event_answer.json")
     answer = QueryAnswer.from_json(data)
     assert answer.replay[0] == ReplayWindow.from_json(data[QueryAnswerKey.REPLAY][0])
+    assert answer.replay[0] == ReplayWindow(first_frame=12, last_frame=40)
+
+
+def test_a_replay_window_in_seconds_is_not_read_as_frames():
+    with pytest.raises(MissingDocumentField):
+        ReplayWindow.from_json({"start": 1790848799.0, "end": 1790848801.0})
 
 
 def test_an_answer_keeps_the_statement_it_was_translated_into(read_json):

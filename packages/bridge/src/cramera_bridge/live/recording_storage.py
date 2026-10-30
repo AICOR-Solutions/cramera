@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import shutil
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 from typing_extensions import List, Optional
 
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
+from cramera_bridge.database.runs import PlanDatabase, StoredRun
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
     NoRecording,
@@ -22,7 +24,7 @@ from cramera_bridge.exceptions import (
     SharedScenesUnavailable,
 )
 from cramera_bridge.export.scene_index import SceneIndexFile
-from cramera_bridge.live.bundles import STAGING_PREFIX, STAGING_SUFFIX
+from cramera_bridge.live.bundles import BundleDirectory
 from cramera_bridge.live.recording import FrameRange
 from cramera_bridge.live.segments import PlanNodeClipping, SegmentClipping
 from cramera_protocol.bundle.files import BundleFile
@@ -33,7 +35,6 @@ from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.live_messages import (
     RecordingSaveRequest,
     RecordingState,
-    SavedScene,
     SceneDestination,
 )
 
@@ -86,16 +87,23 @@ class RecordingStorage:
         shared = self.locations.shared_scenes
         return [self.locations.local_scenes] + ([] if shared is None else [shared])
 
-    def save(self, request: RecordingSaveRequest) -> SavedScene:
+    def save(self, request: RecordingSaveRequest) -> StoredRun:
         """
-        Save the bundle under a name, trimmed to the requested frames.
+        Save the bundle under a name, trimmed to the requested frames, and keep the run
+        in the saved bundle's plan database.
+
+        A request that adds a run replaces the destination's bundle of the same name,
+        whose plan database the run joins. The new bundle is written whole, run
+        included, before it replaces the old one, so a failed save leaves the old bundle
+        and its runs as they were.
 
         :param request: The save request.
-        :return: The saved bundle's name.
+        :return: The run, kept in the saved bundle's plan database.
         :raises InvalidSceneName: When the name is no valid bundle name.
         :raises SharedScenesUnavailable: For an unconfigured shared directory.
         :raises NoRecording: When there is no bundle to save.
-        :raises SceneNameTaken: When a scenes directory holds the name already.
+        :raises SceneNameTaken: When a scenes directory holds the name already, other
+            than the destination for a request that adds a run.
         :raises InvalidFrameRange: When the frames lie outside the recording.
         """
         name = SceneName(request.name).text
@@ -105,7 +113,11 @@ class RecordingStorage:
         )
         if trajectory is None:
             raise NoRecording(RecordingState.FINALIZED)
-        if any((directory / name).exists() for directory in self.directories()):
+        if any(
+            (directory / name).exists()
+            and not (request.adds_a_run and directory == target_directory)
+            for directory in self.directories()
+        ):
             raise SceneNameTaken(name)
         frame_range = FrameRange(
             first=0 if request.first_frame is None else request.first_frame,
@@ -116,12 +128,18 @@ class RecordingStorage:
             ),
         )
         frame_range.require_within(trajectory.frame_count())
-        staging = target_directory / f"{STAGING_PREFIX}{name}{STAGING_SUFFIX}"
-        if staging.exists():
-            shutil.rmtree(staging)
-        shutil.copytree(self.bundle, staging)
+        bundle = BundleDirectory(target_directory / name)
+        staging = bundle.staging()
+        shutil.copytree(self.bundle, staging, dirs_exist_ok=True)
         scene = SavedBundle(staging, frame_range).rewrite(name, request)
-        staging.rename(target_directory / name)
+        earlier_runs = PlanDatabase(bundle.path)
+        database = (
+            earlier_runs.copy_into(staging)
+            if earlier_runs.path.exists()
+            else PlanDatabase(staging)
+        )
+        run = database.add_run(datetime.now(timezone.utc))
+        bundle.publish(staging)
         SceneIndexFile(
             target_directory,
             (
@@ -139,7 +157,7 @@ class RecordingStorage:
             )
         )
         self.discard()
-        return SavedScene(scene=name)
+        return StoredRun(PlanDatabase(bundle.path), run)
 
 
 @dataclass(frozen=True)

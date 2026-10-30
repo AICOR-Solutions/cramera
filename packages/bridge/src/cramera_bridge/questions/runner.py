@@ -37,7 +37,7 @@ from cramera_bridge.questions.knowledge import (
     QueryEvaluation,
     TranslatedEvaluation,
 )
-from cramera_bridge.questions.replay import ReplayMoment
+from cramera_bridge.questions.replay import FrameTimeline
 from cramera_bridge.questions.verbalization import QueryVerbalizer
 from cramera_bridge.questions.workspace_classes import (
     WorkspaceClassIndex,
@@ -118,6 +118,12 @@ class AnswerRenderer:
     limit: int = DEFAULT_ROW_LIMIT
     """
     The most rows rendered.
+    """
+
+    timeline: FrameTimeline = field(default_factory=FrameTimeline)
+    """
+    The frames of the recording the answer is about, which a row's moment is replayed
+    in; without frames no row offers a replay.
     """
 
     highlight: List[str] = field(default_factory=list)
@@ -205,7 +211,7 @@ class AnswerRenderer:
         for column, value in zip(columns, item.values()):
             self.highlight.extend(self.highlight_keys.keys_of(value))
             if replay is None and isinstance(value, datetime):
-                replay = ReplayMoment(value).window()
+                replay = self.timeline.window_around(value)
             values[column] = self.text_of(value)
         return AnswerRow(values, replay)
 
@@ -241,7 +247,7 @@ class AnswerRenderer:
             if value is MISSING:
                 continue
             if replay is None and isinstance(value, datetime):
-                replay = ReplayMoment(value).window()
+                replay = self.timeline.window_around(value)
             values[entity_field.name] = self.text_of(value)
         return AnswerRow(values, replay)
 

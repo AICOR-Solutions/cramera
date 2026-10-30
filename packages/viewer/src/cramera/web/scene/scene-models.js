@@ -117,6 +117,14 @@ export class SceneModels {
   }
 
   /**
+   * @returns {Array<Object>} The loaded models that are not robots, such as the room
+   *   with its walls, cabinets and doors.
+   */
+  environmentModels() {
+    return this.names().filter((name) => !this.#descriptions.get(name)[ModelKey.ROBOT]).map((name) => this.#robots.get(name));
+  }
+
+  /**
    * Set the joint values of one frame.
    * @param {Map<string, Map<string, number>>} values The joint values of each model.
    */
