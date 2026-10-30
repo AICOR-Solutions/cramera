@@ -44,6 +44,10 @@ which this repository was mirrored until 22 Oct 2026.
   body, which `RoleSlot.pose` now records, so a tool target over a holder sits where
   the gripper ends; else the entity it acts on, such as the lid handle a mechanism
   motion turns; the mark moves with its body and is drawn over what hides it.
+  With **Follow target** (`TargetFollow`; on in the designators layout, and off
+  whenever **Follow robot** is on) the camera glides onto each new target from above,
+  keeping the side it looked from, and moves with the mark while its body moves;
+  `CameraGlide.glideTo` takes the direction to look from.
   The bridge records, for every plan node, its `roles` (`RoleSlot`, field, role,
   value, entities with their scene keys, the reference body of a pose and, for a pose
   the task built for a place of its layout, the place's name such as `centrifuge C4`,

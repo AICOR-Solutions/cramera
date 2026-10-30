@@ -137,18 +137,20 @@ export class CameraGlide {
   }
 
   /**
-   * Start gliding, keeping the direction the camera looks from, until the box fills the
-   * view.
+   * Start gliding, keeping the direction the camera looks from unless another is
+   * given, until the box fills the view.
    * @param {THREE.Box3} box What the camera glides onto.
    * @param {number} seconds How long the glide takes.
+   * @param {THREE.Vector3|null} looking The direction from the box's centre to where
+   *   the camera ends, or null to keep the camera's.
    * @returns {boolean} Whether a glide started; an empty box starts none.
    */
-  glideTo(box, seconds = GlideSetting.SECONDS) {
+  glideTo(box, seconds = GlideSetting.SECONDS, looking = null) {
     if (box.isEmpty()) return false;
     const { camera, controls } = this.#view;
     const center = box.getCenter(new THREE.Vector3());
     const distance = Math.max(GlideSetting.NEAREST, box.getSize(new THREE.Vector3()).length() * GlideSetting.SPAN);
-    const direction = camera.position.clone().sub(controls.target).normalize();
+    const direction = (looking ?? camera.position.clone().sub(controls.target)).clone().normalize();
     this.#glide = {
       seconds,
       elapsed: 0,

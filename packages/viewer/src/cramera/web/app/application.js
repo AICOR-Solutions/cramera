@@ -26,6 +26,7 @@ import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view
 import { DESIGNATORS_PANEL, DesignatorsPanel } from '../panels/designators-panel.js';
 import { AnswerOrigin } from '../designators/designator-chain.js';
 import { DetailsPanel } from '../panels/details-panel.js';
+import { TargetFollow } from '../scene/target-follow.js';
 import { TargetMarker } from '../scene/target-marker.js';
 import { PerceptionPanel } from '../panels/perception-panel.js';
 import { QueryStepActions, QueryStepsPanel } from '../panels/query-steps-panel.js';
@@ -355,6 +356,12 @@ export class Application {
   #glide = null;
 
   /**
+   * Moves the camera with the running step's target, when asked to.
+   * @type {TargetFollow|null}
+   */
+  #targetFollow = null;
+
+  /**
    * The Plan resolution panel.
    * @type {ResolutionsPanel}
    */
@@ -512,11 +519,16 @@ export class Application {
     this.#addLayers(this.#view);
     this.#picking = new ScenePicking(this.#view, this.bus);
     this.#highlights = new SceneHighlights(this.#view);
-    const marker = new TargetMarker(this.#view);
-    this.bus.subscribe(ViewerEvent.TARGET_MARKED, (target) => marker.show(target ?? null));
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
     this.#regions = new RegionOutlines(this.#view);
     this.#glide = new CameraGlide(this.#view);
+    const marker = new TargetMarker(this.#view);
+    this.#targetFollow = new TargetFollow(this.#view, marker.mark, this.#glide);
+    if (layout === PageLayout.DESIGNATORS) this.#followTarget(true);
+    this.bus.subscribe(ViewerEvent.TARGET_MARKED, (target) => {
+      marker.show(target ?? null);
+      this.#targetFollow.aim();
+    });
     this.bus.subscribe(ViewerEvent.REGIONS_OUTLINED, (outlines) => this.#regions.show(outlines ?? []));
     this.bus.subscribe(ViewerEvent.FOCUS_REQUESTED, (keys) => this.#glide.glideTo(focusBounds(this.#view.content, this.#regions.group, keys ?? [])));
     this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => {
@@ -777,10 +789,37 @@ export class Application {
     const filmed = this.#cinematic.update(this.#clock.time, robot, (key) => this.#objectPosition(key));
     if (filmed) this.#follow.reset(robot);
     else this.#follow.follow(robot);
+    if (filmed) this.#targetFollow.reset();
+    else this.#targetFollow.follow();
     this.#picking.update();
     this.#highlights.update();
     this.#view.requestRender();
     this.bus.publish(ViewerEvent.FRAME_CHANGED, frame);
+  }
+
+  /**
+   * Follow the robot, or stop; following it stops following the step's target, as both
+   * move the camera.
+   * @param {boolean} following Whether the camera follows the robot.
+   */
+  #followRobot(following) {
+    this.#follow.following = following;
+    if (following && this.#targetFollow) this.#targetFollow.following = false;
+    this.#layers?.refresh();
+  }
+
+  /**
+   * Follow the running step's target, or stop; following it stops following the robot,
+   * as both move the camera, and glides onto the target at once.
+   * @param {boolean} following Whether the camera follows the target.
+   */
+  #followTarget(following) {
+    this.#targetFollow.following = following;
+    if (following) {
+      this.#follow.following = false;
+      this.#targetFollow.aim();
+    }
+    this.#layers?.refresh();
   }
 
   /**
@@ -795,7 +834,8 @@ export class Application {
         new ViewSwitch('Object labels', () => this.#labels.shown, (shown) => this.#labels.setShown(shown)),
         new ViewSwitch('Floor shadow', () => view.ground.visible, (shown) => view.showGround(shown)),
         new ViewSwitch('Ambient occlusion', () => view.ambientOcclusion, (enabled) => view.setAmbientOcclusion(enabled)),
-        new ViewSwitch('Follow robot', () => this.#follow.following, (following) => { this.#follow.following = following; }),
+        new ViewSwitch('Follow robot', () => this.#follow.following, (following) => this.#followRobot(following)),
+        new ViewSwitch('Follow target', () => this.#targetFollow?.following ?? false, (following) => this.#followTarget(following)),
         new ViewSwitch('Cinematic camera', () => this.#cinematic.enabled, (enabled) => this.#filmWith(enabled)),
       ],
       (key) => this.bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, [key]),

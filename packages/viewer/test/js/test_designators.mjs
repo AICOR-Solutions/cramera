@@ -36,6 +36,7 @@ import {
   StepPhase,
   ViewerEvent,
 } from '../../src/cramera/web/protocol.js';
+import { TARGET_VIEW, TargetFollow } from '../../src/cramera/web/scene/target-follow.js';
 import { TargetMarker, WORLD_FRAMES } from '../../src/cramera/web/scene/target-marker.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
@@ -337,4 +338,61 @@ test('lighting up the body a mark is attached to leaves the mark as it is', asyn
   const marker = new TargetMarker({ content: rotor });
   marker.show({ keys: ['laboratory_centrifuge_rotor'], frame: 'laboratory_centrifuge_rotor', pose: null, label: 'here' });
   assert.deepEqual(ownMeshes(rotor), [body]);
+});
+
+// %% the camera following the target
+
+/**
+ * @returns {{view: Object, glides: Array<THREE.Box3>, glide: Object, gripper: THREE.Object3D, marker: TargetMarker}}
+ *   A view with a camera, a glide that notes where it goes, and a mark on a gripper.
+ */
+function followingScene() {
+  const content = new THREE.Group();
+  const gripper = Object.assign(new THREE.Object3D(), { isURDFLink: true, urdfName: 'pr2/l_gripper_tool_frame' });
+  content.add(gripper);
+  const view = { content, camera: { position: new THREE.Vector3(2, 0, 1), up: new THREE.Vector3(0, 1, 0) }, controls: { target: new THREE.Vector3(0, 0, 1) }, requestRender() {} };
+  const glides = [];
+  const glide = { gliding: false, looking: null, glideTo(box, seconds, looking) { glides.push(box); this.looking = looking; return true; } };
+  const marker = new TargetMarker(view);
+  marker.show({ keys: ['pr2/l_gripper_tool_frame'], frame: 'pr2/l_gripper_tool_frame', pose: [-0.07, 0, 0, 0, 0, 0, 1], label: 'back off' });
+  return { view, glides, glide, gripper, marker };
+}
+
+test('following the target glides onto a box around the mark each time the target changes', () => {
+  const { view, glides, glide, marker } = followingScene();
+  const follow = new TargetFollow(view, marker.mark, glide);
+  assert.equal(follow.aim(), false, 'not following: the camera stays');
+  follow.following = true;
+  assert.equal(follow.aim(), true);
+  const box = glides.at(-1);
+  assert.deepEqual(box.getCenter(new THREE.Vector3()).toArray().map((each) => +each.toFixed(6)), [-0.07, 0, 0]);
+  assert.equal(+box.getSize(new THREE.Vector3()).x.toFixed(6), TARGET_VIEW);
+  const elevation = THREE.MathUtils.radToDeg(Math.asin(glide.looking.y));
+  assert.equal(Math.round(elevation), 55, 'from above');
+  assert.ok(glide.looking.x > 0 && Math.abs(glide.looking.z) < 1e-9, 'from the side the camera looked from');
+  marker.show(null);
+  assert.equal(follow.aim(), false, 'no target: nothing to glide onto');
+});
+
+test('the camera moves with a mark whose body moves, but not while it glides or does not follow', () => {
+  const { view, glide, gripper, marker } = followingScene();
+  const follow = new TargetFollow(view, marker.mark, glide);
+  follow.following = true;
+  follow.aim();
+  gripper.position.set(0.1, 0.2, 0);
+  gripper.updateMatrixWorld(true);
+  follow.follow();
+  assert.deepEqual(view.camera.position.toArray().map((each) => +each.toFixed(6)), [2.1, 0.2, 1]);
+  assert.deepEqual(view.controls.target.toArray().map((each) => +each.toFixed(6)), [0.1, 0.2, 1]);
+  glide.gliding = true;
+  gripper.position.set(0.3, 0.2, 0);
+  gripper.updateMatrixWorld(true);
+  follow.follow();
+  assert.deepEqual(view.camera.position.toArray().map((each) => +each.toFixed(6)), [2.1, 0.2, 1], 'the glide moves the camera');
+  glide.gliding = false;
+  follow.following = false;
+  gripper.position.set(0.5, 0.2, 0);
+  gripper.updateMatrixWorld(true);
+  follow.follow();
+  assert.deepEqual(view.camera.position.toArray().map((each) => +each.toFixed(6)), [2.1, 0.2, 1]);
 });
