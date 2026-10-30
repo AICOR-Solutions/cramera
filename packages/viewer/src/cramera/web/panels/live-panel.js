@@ -33,6 +33,7 @@ export const CAPABILITY_LABELS = Object.freeze({
   [Capability.CONSTRAINTS]: 'constraints',
   [Capability.OBJECT_PLACEMENT]: 'moving objects',
   [Capability.ROBOT_SELECTION]: 'choosing the robot',
+  [Capability.DETECTED_EVENTS]: 'segmind’s events',
 });
 
 /**

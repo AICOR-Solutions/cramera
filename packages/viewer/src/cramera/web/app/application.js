@@ -26,6 +26,7 @@ import { PerceptionPanel } from '../panels/perception-panel.js';
 import { QueryStepActions, QueryStepsPanel } from '../panels/query-steps-panel.js';
 import { ResolutionActions, ResolutionsPanel } from '../panels/resolutions-panel.js';
 import { SceneGraphPanel } from '../panels/scene-graph-panel.js';
+import { SegmindPanel } from '../panels/segmind-panel.js';
 import { PanelHost } from '../panels/panel-host.js';
 import { SceneChoice } from '../panels/scene-choice.js';
 import { ScenePickerView } from '../panels/scene-picker-view.js';
@@ -259,6 +260,12 @@ export class Application {
   #perception;
 
   /**
+   * The Segmind panel.
+   * @type {SegmindPanel}
+   */
+  #segmind;
+
+  /**
    * The top bar.
    * @type {SiteHeader}
    */
@@ -427,6 +434,7 @@ export class Application {
     this.#details = new DetailsPanel(elements.document);
     this.#sceneGraph = new SceneGraphPanel(elements.document, this.bus, (path) => ontologyAddress(api.url(ONTOLOGY_ROUTE), path));
     this.#perception = new PerceptionPanel(elements.document, this.bus);
+    this.#segmind = new SegmindPanel(elements.document, this.bus, (marks) => this.#timeline.showEventMarks(marks));
     this.#livePanel = new LivePanel(
       elements.document,
       new LiveActions(
@@ -515,7 +523,7 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#sceneGraph, this.#perception, this.#resolutions, this.#querySteps, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    for (const part of [this.#sceneGraph, this.#perception, this.#segmind, this.#resolutions, this.#querySteps, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
@@ -557,6 +565,7 @@ export class Application {
     this.#details.show(loaded);
     this.#sceneGraph.show(loaded);
     this.#perception.show(loaded, SceneKey.PLAN_TREES, (file) => this.#api.sceneFileUrl(loaded.name, file));
+    this.#segmind.show(loaded);
     if (!this.#live) this.#querySteps.showRecorded(loaded.querySteps);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
@@ -602,6 +611,7 @@ export class Application {
         (resolutions) => this.#resolutions.show(resolutions, this.#live?.offers(Capability.RESOLUTION_EXECUTION) ?? false),
         (steps) => this.#querySteps.show(steps),
         () => this.#querySteps.revision,
+        (detected) => this.#segmind.showLive(detected),
       ),
     );
     this.#livePanel.showConnecting(true, null, address);

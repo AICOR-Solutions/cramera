@@ -6,8 +6,8 @@ import { DuplicatePanel, PanelHost, SidePanel } from '../../src/cramera/web/pane
 import { SceneChoice } from '../../src/cramera/web/panels/scene-choice.js';
 import { ScenePickerView } from '../../src/cramera/web/panels/scene-picker-view.js';
 import { PlaybackClock } from '../../src/cramera/web/playback/playback-clock.js';
-import { formatSeconds, LIVE_NOTE, LOST_NOTE, MarkKind, marksOf, SPEEDS, TimelineView, VIDEO_TEXT } from '../../src/cramera/web/playback/timeline-view.js';
-import { IndexEntryKey, IndexKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
+import { EventMark, formatSeconds, LIVE_NOTE, LOST_NOTE, MarkKind, marksOf, SPEEDS, TimelineView, VIDEO_TEXT } from '../../src/cramera/web/playback/timeline-view.js';
+import { DetectedEventKind, IndexEntryKey, IndexKey, SceneKey, SegmentKey } from '../../src/cramera/web/protocol.js';
 import { FakeDocument } from './support/fake-document.mjs';
 
 const SEGMENTS = [
@@ -136,6 +136,34 @@ test('the marks show where steps start, pick up and let go, by kind', () => {
   new TimelineView(root, () => {}, () => {}).show(new PlaybackClock(10, 51), segments);
   const drawn = root.children[1].children[0].children[1].children;
   assert.deepEqual(drawn.map((mark) => mark.className), marks.map((mark) => `mark mark-${mark.kind}`));
+});
+
+test('detected events are ticked under the slider by kind and seek to their frame', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  const sought = [];
+  const timeline = new TimelineView(root, (frame) => sought.push(frame), () => {});
+  timeline.show(new PlaybackClock(10, 51), []);
+  timeline.showEventMarks([new EventMark(25, DetectedEventKind.SUPPORT, '0:02.5 Support: milk · table')]);
+  const [tick] = root.children[1].children[0].children[2].children;
+  assert.equal(tick.dataset.kind, DetectedEventKind.SUPPORT);
+  assert.equal(tick.style.left, '50%');
+  assert.match(tick.title, /milk/);
+  assert.equal(root.dataset.events, 'true');
+  tick.click();
+  assert.deepEqual(sought, [25]);
+  timeline.show(new PlaybackClock(10, 51), []);
+  assert.equal(root.children[1].children[0].children[2].children.length, 0);
+  assert.equal(root.dataset.events, 'false');
+});
+
+test('a still scene ticks no detected events', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('footer');
+  const timeline = new TimelineView(root, () => {}, () => {});
+  timeline.show(new PlaybackClock(10, 1), []);
+  timeline.showEventMarks([new EventMark(0, DetectedEventKind.MOTION, 'Translation: milk')]);
+  assert.equal(root.children[1].children[0].children[2].children.length, 0);
 });
 
 test('the save button is offered only while a live episode can be saved', () => {
