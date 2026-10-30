@@ -14,7 +14,7 @@ from enum import StrEnum
 
 from typing_extensions import Any, Dict, List, Optional
 
-from cramera_protocol.bundle.scene import PerceptionImage, PlanNodeKind
+from cramera_protocol.bundle.scene import DetectedEvent, PerceptionImage, PlanNodeKind
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.exceptions import InvalidDocumentValue
@@ -1375,6 +1375,34 @@ class LiveScene(JsonDocument):
     scene: Optional[str] = document_field(LiveSceneKey.SCENE, default=None)
     """
     The bundle's name, or None while no world is attached.
+    """
+
+
+# %% detected events
+
+
+class DetectedEventsKey(StrEnum):
+    """
+    The keys of the answer to :attr:`~cramera_protocol.live.LiveRoute.DETECTED_EVENTS`.
+    """
+
+    EVENTS = "events"
+    """
+    The events seen so far.
+    """
+
+
+@dataclass(kw_only=True)
+class DetectedEvents(JsonDocument):
+    """
+    The events segmind's detectors saw so far in the live run, oldest first.
+    """
+
+    events: List[DetectedEvent] = document_field(
+        DetectedEventsKey.EVENTS, default_factory=list
+    )
+    """
+    The events, each placed on the frame of the running recording it happened at.
     """
 
 

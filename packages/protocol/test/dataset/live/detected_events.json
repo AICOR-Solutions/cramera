@@ -1,0 +1,23 @@
+{
+  "events": [
+    {
+      "name": "milk.stl PickUpEvent",
+      "eventType": "PickUpEvent",
+      "timestamp": "2026-10-28T14:02:31.250000",
+      "trackedObject": "milk.stl",
+      "withObject": "r_gripper_tool_frame",
+      "kind": "pick_and_place",
+      "frame": 42,
+      "keys": ["9f1c", "r_gripper_tool_frame"]
+    },
+    {
+      "name": "milk.stl SupportEvent",
+      "eventType": "SupportEvent",
+      "timestamp": "2026-10-28T14:02:35.500000",
+      "trackedObject": "milk.stl",
+      "withObject": "table_area_main",
+      "kind": "support",
+      "keys": ["9f1c", "table_area_main"]
+    }
+  ]
+}

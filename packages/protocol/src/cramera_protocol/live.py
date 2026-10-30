@@ -190,6 +190,11 @@ class LiveRoute(StrEnum):
     Chooses whether the process is held at every query it asks.
     """
 
+    DETECTED_EVENTS = "/detected_events"
+    """
+    The events the detectors saw so far.
+    """
+
 
 # %% address
 
@@ -281,6 +286,11 @@ class Capability(StrEnum):
     QUERY_STEPPING = "query_stepping"
     """
     The process can be held at every query it asks until a person moves on.
+    """
+
+    DETECTED_EVENTS = "detected_events"
+    """
+    Segmind's detectors watch the run and the events they saw are published.
     """
 
 

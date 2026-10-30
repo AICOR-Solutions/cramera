@@ -17,6 +17,7 @@ from cramera_protocol.live_messages import (
     ConstraintOperation,
     ConstraintRequest,
     ConstraintRequestKey,
+    DetectedEvents,
     JointRequest,
     LivePlan,
     LivePlanNodeKey,
@@ -61,6 +62,7 @@ from cramera_protocol.live_messages import (
         (TeleoperationRequest, "live/teleoperation_request.json"),
         (ConstraintRequest, "live/constraint_request.json"),
         (LiveInfo, "live/info.json"),
+        (DetectedEvents, "live/detected_events.json"),
     ],
 )
 def test_live_documents_round_trip(read_json, document_class, relative_path):
