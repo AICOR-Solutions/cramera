@@ -45,6 +45,12 @@ class Stage(StrEnum):
     A scaled glass pane in a frame.
     """
 
+    UDIM_DISPENSER = "udim_dispenser.usda"
+    """
+    A dispenser with SimReady materials: UDIM tiles 1001 and 1002, a UDIM set of tile
+    1001 only, tangent flips and an opacity constant.
+    """
+
     Y_UP_CENTIMETRES = "y_up_centimetres.usda"
     """
     A Y-up stage in centimetres with a display-coloured marker.

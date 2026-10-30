@@ -147,6 +147,64 @@ class ColorSpace(StrEnum):
         return known.get(name, cls.AUTO)
 
 
+# %% tiles
+
+
+@dataclass(frozen=True)
+class TileGrid:
+    """
+    The unit squares of texture coordinates a texture covers, ``columns`` along U and
+    ``rows`` along V from the origin; a single image covers one.
+    """
+
+    columns: int = 1
+    """
+    The number of unit squares along U.
+    """
+
+    rows: int = 1
+    """
+    The number of unit squares along V.
+    """
+
+    @property
+    def single(self) -> bool:
+        """
+        Whether the grid is one unit square.
+        """
+        return self.columns == 1 and self.rows == 1
+
+    def union(self, other: TileGrid) -> TileGrid:
+        """
+        :param other: Another grid.
+        :return: The smallest grid holding both.
+        """
+        return TileGrid(max(self.columns, other.columns), max(self.rows, other.rows))
+
+
+@dataclass(frozen=True)
+class TextureTile:
+    """
+    One tile of a UDIM texture set: the image covering one unit square of texture
+    coordinates.
+    """
+
+    path: Path
+    """
+    The resolved image file.
+    """
+
+    column: int
+    """
+    The unit square along U, from zero: tile 1001 is column 0, tile 1002 column 1.
+    """
+
+    row: int
+    """
+    The unit square along V, from zero: tile 1011 is row 1.
+    """
+
+
 # %% inputs
 
 
@@ -158,7 +216,7 @@ class TextureFile:
 
     path: Path
     """
-    The resolved image file.
+    The resolved image file; the first tile of a UDIM set.
     """
 
     color_space: ColorSpace = ColorSpace.AUTO
@@ -170,6 +228,29 @@ class TextureFile:
     """
     The channels the shader input reads.
     """
+
+    tiles: Tuple[TextureTile, ...] = ()
+    """
+    The tiles of a UDIM set beyond the single tile 1001, which glTF draws as one atlas
+    image; empty for a single image.
+    """
+
+    @property
+    def files(self) -> Tuple[Path, ...]:
+        """
+        The image files the texture reads: its tiles, else its one image.
+        """
+        return tuple(tile.path for tile in self.tiles) or (self.path,)
+
+    @property
+    def grid(self) -> TileGrid:
+        """
+        The unit squares of texture coordinates the texture's tiles cover.
+        """
+        return TileGrid(
+            max((tile.column + 1 for tile in self.tiles), default=1),
+            max((tile.row + 1 for tile in self.tiles), default=1),
+        )
 
 
 ShaderInputValue = Union[bool, int, float, str, Tuple[float, ...], TextureFile]
@@ -208,10 +289,12 @@ class AuthoredMaterial:
 
     def texture_files(self) -> List[Path]:
         """
-        :return: The image files the material's inputs read.
+        :return: The image files the material's inputs read, every tile of a UDIM set
+            included.
         """
         return [
-            value.path
+            path
             for value in self.inputs.values()
             if isinstance(value, TextureFile)
+            for path in value.files
         ]

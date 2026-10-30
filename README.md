@@ -401,6 +401,10 @@ What carries over:
 - **Materials**: OmniPBR, OmniSurface, OmniGlass and UsdPreviewSurface become glTF PBR
   materials with their textures. An unknown shader shows magenta and is listed in
   `conversion_report.json`.
+- **Textures** are embedded in each GLB that draws them, scaled down to 1024 pixels on
+  their longer side (`--texture-size PIXELS`, `0` keeps every image at its own size).
+  A UDIM set (`<UDIM>` in the file name) of several tiles becomes one atlas image that
+  the GLB reads through `KHR_texture_transform`.
 - **Glass** (OmniGlass, and OmniSurface with transmission) is drawn as a blended,
   reflecting surface, since the viewer cannot refract; the authored transmission,
   index of refraction, base colour and metalness stay in the GLB material's `extras`.

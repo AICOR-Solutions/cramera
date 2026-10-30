@@ -26,6 +26,7 @@ from cramera_usd.bundle.camera import SceneCamera
 from cramera_usd.bundle.scene import DEFAULT_EXPOSURE, ScenePresentation
 from cramera_usd.bundle.writer import SceneBundle
 from cramera_usd.locations import ScenesLocations
+from cramera_usd.materials.images import DEFAULT_TEXTURE_SIZE, TextureSizeLimit
 from cramera_usd.scene.kinematics import JointKind
 from cramera_usd.scene.log import ConversionLog
 from cramera_usd.scene.stage import ConvertedStage
@@ -131,6 +132,11 @@ class ImportOption(StrEnum):
     A run record whose steps become the playback's segments.
     """
 
+    TEXTURE_SIZE = "--texture-size"
+    """
+    The longest side of an embedded texture image.
+    """
+
 
 class ImportDestination(StrEnum):
     """
@@ -166,6 +172,11 @@ The names of a point's coordinates in the help.
 VARIANT_PARTS = ("PRIM", "SET", "VARIANT")
 """
 The names of a variant selection's parts in the help.
+"""
+
+UNLIMITED_TEXTURE_SIZE = 0
+"""
+The texture size that embeds every image at its own size.
 """
 
 # %% parser
@@ -296,6 +307,15 @@ class ImportParser:
             type=Path,
             help="run record (JSON with steps) whose steps become the segments",
         )
+        parser.add_argument(
+            ImportOption.TEXTURE_SIZE,
+            type=int,
+            default=DEFAULT_TEXTURE_SIZE,
+            metavar="PIXELS",
+            help="longest side of an embedded texture image; larger images are scaled "
+            f"down, {UNLIMITED_TEXTURE_SIZE} keeps every image at its own size "
+            "(default: %(default)s)",
+        )
         return parser
 
 
@@ -363,6 +383,11 @@ class ImportCommand:
     Whether the standalone rigid bodies of a static scene become free objects.
     """
 
+    texture_size: TextureSizeLimit = field(default_factory=TextureSizeLimit)
+    """
+    The largest image a GLB embeds.
+    """
+
     @classmethod
     def from_options(
         cls,
@@ -399,7 +424,26 @@ class ImportCommand:
             ],
             record=options.record,
             free_objects=options.free_objects,
+            texture_size=cls.texture_size_of(options, parser),
         )
+
+    @staticmethod
+    def texture_size_of(
+        options: argparse.Namespace, parser: argparse.ArgumentParser
+    ) -> TextureSizeLimit:
+        """
+        :param options: The parsed import options.
+        :param parser: The parser, to refuse a negative size.
+        :return: The largest image a GLB embeds.
+        """
+        if options.texture_size < UNLIMITED_TEXTURE_SIZE:
+            parser.error(
+                f"{ImportOption.TEXTURE_SIZE} is a number of pixels, or "
+                f"{UNLIMITED_TEXTURE_SIZE} for no limit"
+            )
+        if options.texture_size == UNLIMITED_TEXTURE_SIZE:
+            return TextureSizeLimit(None)
+        return TextureSizeLimit(options.texture_size)
 
     @staticmethod
     def camera_of(
@@ -454,6 +498,7 @@ class ImportCommand:
             animation=self.animation(reader, stage),
             read_seconds=time.perf_counter() - started,
             free_objects=self.free_objects,
+            texture_size=self.texture_size,
         )
         bundle.write()
         return bundle

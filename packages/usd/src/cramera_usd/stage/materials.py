@@ -4,8 +4,8 @@ Reading the surface shaders of bound materials.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import StrEnum
+from dataclasses import dataclass, field, replace
+from enum import IntEnum, StrEnum
 from pathlib import Path
 
 from pxr import Sdf, Usd, UsdGeom, UsdShade
@@ -19,6 +19,7 @@ from cramera_usd.scene.materials import (
     ShaderInputValue,
     TextureChannel,
     TextureFile,
+    TextureTile,
 )
 from cramera_usd.stage.frame import StageFrame
 from cramera_usd.stage.values import StageValue
@@ -77,6 +78,23 @@ class TextureInput(StrEnum):
     COLOR_SPACE = "sourceColorSpace"
     """
     The declared colour space of the image.
+    """
+
+
+class UdimTileNumber(IntEnum):
+    """
+    The numbering of UDIM tiles: tile ``1001 + column + 10 * row`` covers the unit
+    square of texture coordinates at that column along U and row along V.
+    """
+
+    FIRST = 1001
+    """
+    The tile at the origin.
+    """
+
+    PER_ROW = 10
+    """
+    The tiles of one row.
     """
 
 
@@ -218,7 +236,7 @@ class MaterialReader:
         value = attribute.Get(self.frame.time)
         if isinstance(value, Sdf.AssetPath):
             return self.texture_file(
-                value, attribute.GetColorSpace(), TextureChannel.RGB
+                value, attribute, attribute.GetColorSpace(), TextureChannel.RGB
             )
         return StageValue(value).shader_value()
 
@@ -238,13 +256,20 @@ class MaterialReader:
             return None
         channel = TextureChannel.of_output(UsdShade.Output(output).GetBaseName())
         color_space = color_space_input.Get() if color_space_input else ""
-        return self.texture_file(asset, color_space or "", channel)
+        return self.texture_file(
+            asset, file_input.GetAttr(), color_space or "", channel
+        )
 
     def texture_file(
-        self, asset: Sdf.AssetPath, color_space: str, channel: TextureChannel
+        self,
+        asset: Sdf.AssetPath,
+        attribute: Usd.Attribute,
+        color_space: str,
+        channel: TextureChannel,
     ) -> Optional[TextureFile]:
         """
         :param asset: An authored asset path.
+        :param attribute: The attribute holding it.
         :param color_space: The declared colour space, possibly empty.
         :param channel: The channels read.
         :return: The resolved texture file, or None for an empty asset path and for one
@@ -252,9 +277,61 @@ class MaterialReader:
         """
         if not asset.path:
             return None
+        if UsdShade.UdimUtils.IsUdimIdentifier(asset.path):
+            return self.udim_texture(asset.path, attribute, color_space, channel)
         if not asset.resolvedPath or not Path(asset.resolvedPath).is_file():
             self.log.miss_texture(asset.path)
             return None
         return TextureFile(
             Path(asset.resolvedPath), ColorSpace.of_name(color_space), channel
         )
+
+    def udim_texture(
+        self,
+        pattern: str,
+        attribute: Usd.Attribute,
+        color_space: str,
+        channel: TextureChannel,
+    ) -> Optional[TextureFile]:
+        """
+        :param pattern: An authored asset path holding the ``<UDIM>`` tile pattern.
+        :param attribute: The attribute holding it.
+        :param color_space: The declared colour space, possibly empty.
+        :param channel: The channels read.
+        :return: The tile 1001 as a single image when it is the set's only tile, else
+            every tile of the set; None when no tile resolves to a file, which the log
+            records.
+        """
+        resolved = sorted(
+            (int(number), Path(path))
+            for path, number in UsdShade.UdimUtils.ResolveUdimTilePaths(
+                pattern, self.authoring_layer(attribute)
+            )
+            if Path(path).is_file()
+        )
+        if not resolved:
+            self.log.miss_texture(pattern)
+            return None
+        tiles = tuple(
+            TextureTile(
+                path,
+                (number - UdimTileNumber.FIRST) % UdimTileNumber.PER_ROW,
+                (number - UdimTileNumber.FIRST) // UdimTileNumber.PER_ROW,
+            )
+            for number, path in resolved
+        )
+        texture = TextureFile(tiles[0].path, ColorSpace.of_name(color_space), channel)
+        if resolved[0][0] == UdimTileNumber.FIRST and len(tiles) == 1:
+            return texture
+        return replace(texture, tiles=tiles)
+
+    def authoring_layer(self, attribute: Usd.Attribute) -> Sdf.Layer:
+        """
+        :param attribute: An attribute.
+        :return: The layer holding the strongest opinion of its value, which anchors
+            its relative asset paths; the root layer when no layer holds one.
+        """
+        for spec in attribute.GetPropertyStack(self.frame.time):
+            if spec.HasDefaultValue() or spec.layer.GetNumTimeSamplesForPath(spec.path):
+                return spec.layer
+        return attribute.GetStage().GetRootLayer()

@@ -35,6 +35,8 @@ from cramera_usd.bundle.trajectory import AnimatedTrajectory, StaticTrajectory
 from cramera_usd.distribution import Distribution
 from cramera_usd.encoding import TEXT_ENCODING
 from cramera_usd.exceptions import FreeObjectsOfPlayback
+from cramera_usd.gltf.document import TextureEncodings
+from cramera_usd.materials.images import TextureSizeLimit
 from cramera_usd.materials.mapper import MaterialMapper
 from cramera_usd.materials.physically_based import PhysicallyBasedMaterial
 from cramera_usd.scene.stage import ConvertedStage
@@ -89,6 +91,11 @@ class SceneBundle:
     """
     Whether the standalone rigid bodies of a static scene become free objects instead of
     links of the environment.
+    """
+
+    texture_size: TextureSizeLimit = field(default_factory=TextureSizeLimit)
+    """
+    The largest image a GLB embeds.
     """
 
     def __post_init__(self) -> None:
@@ -209,6 +216,7 @@ class SceneBundle:
             self.layout,
             materials,
             {item.path: item.attributes for item in self.stage.semantics},
+            textures=TextureEncodings(self.texture_size),
         )
         files.write_models(self.models())
         files.write_objects(self.objects())

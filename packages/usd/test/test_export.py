@@ -20,7 +20,11 @@ from cramera_usd.commands.export_scene import (
     ExportOption,
     ExportParser,
 )
-from cramera_usd.commands.import_scene import ImportOption, ImportParser
+from cramera_usd.commands.import_scene import (
+    ImportCommand,
+    ImportOption,
+    ImportParser,
+)
 from cramera_usd.exceptions import ViewerNotInstalled
 from cramera_usd.export.gate import (
     BenchOnly,
@@ -41,6 +45,7 @@ from cramera_usd.export.lens import RenderLens
 from cramera_usd.export.screenshot import ViewerScreenshot
 from cramera_usd.export.staging import StagingName
 from cramera_usd.locations import DefaultDirectory, ScenesLocations
+from cramera_usd.materials.images import DEFAULT_TEXTURE_SIZE, TextureSizeLimit
 from cramera_usd.names import PrimPath
 from cramera_protocol.viewer import EnvironmentVariable
 
@@ -177,6 +182,8 @@ def test_import_arguments_reproduce_the_import_options(tmp_path):
             PHYSICS.variant,
             ImportOption.RECORD,
             str(RECORD),
+            ImportOption.TEXTURE_SIZE,
+            "512",
         ]
     )
     staging = tmp_path / "staging"
@@ -186,6 +193,27 @@ def test_import_arguments_reproduce_the_import_options(tmp_path):
     assert {key: value for key, value in vars(reparsed).items()} == {
         key: expected[key] for key in vars(reparsed)
     }
+
+
+@pytest.mark.parametrize(
+    ("arguments", "limit"),
+    [
+        ([], TextureSizeLimit(DEFAULT_TEXTURE_SIZE)),
+        ([ImportOption.TEXTURE_SIZE, "2048"], TextureSizeLimit(2048)),
+        ([ImportOption.TEXTURE_SIZE, "0"], TextureSizeLimit(None)),
+    ],
+)
+def test_texture_size_limits_the_embedded_images(tmp_path, arguments, limit):
+    parser = ImportParser().parser("cramera-import")
+    options = parser.parse_args([*STAGE_ARGUMENTS, *arguments])
+    assert ImportCommand.from_options(options, parser, tmp_path).texture_size == limit
+
+
+def test_a_negative_texture_size_is_refused(tmp_path):
+    parser = ImportParser().parser("cramera-import")
+    options = parser.parse_args([*STAGE_ARGUMENTS, ImportOption.TEXTURE_SIZE, "-1"])
+    with pytest.raises(SystemExit):
+        ImportCommand.from_options(options, parser, tmp_path)
 
 
 def test_the_export_directory_defaults_to_the_shared_scenes(tmp_path):

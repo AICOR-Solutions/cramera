@@ -12,7 +12,11 @@ from typing_extensions import Dict, Optional
 from cramera_usd.materials.channels import ColorOpacityTexture, ScalarChannel
 from cramera_usd.materials.emission import EmissionScale
 from cramera_usd.materials.inputs import ShaderInputs
-from cramera_usd.materials.mapping import RoughnessMetallicPacking, ShaderMapping
+from cramera_usd.materials.mapping import (
+    RoughnessMetallicPacking,
+    ShaderMapping,
+    TangentFlips,
+)
 from cramera_usd.materials.physically_based import (
     DEFAULT_ALPHA_CUTOFF,
     WHITE,
@@ -124,7 +128,7 @@ class OmniPhysicallyBasedInput(StrEnum):
 
     OPACITY = "opacity_constant"
     """
-    The opacity without a texture.
+    The opacity without a texture; without effect while the opacity is not enabled.
     """
 
     ENABLE_OPACITY_TEXTURE = "enable_opacity_texture"
@@ -238,6 +242,11 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
     The conversion of emission intensities.
     """
 
+    tangents: TangentFlips = field(default_factory=TangentFlips)
+    """
+    OmniPBR's tangent flips of its normal map, by their defaults.
+    """
+
     neutral_specular_level: float = 0.5
     """
     OmniPBR's default ``specular_level``.
@@ -272,10 +281,9 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
         )
         enable_opacity = inputs.flag(input_name.ENABLE_OPACITY, False)
         opacity_texture = self.opacity_texture(inputs, enable_opacity)
+        opacity_constant = inputs.number(input_name.OPACITY, 1.0)
         opacity = (
-            inputs.number(input_name.OPACITY, 1.0)
-            if enable_opacity and opacity_texture is None
-            else 1.0
+            opacity_constant if enable_opacity and opacity_texture is None else 1.0
         )
         threshold = inputs.number(input_name.OPACITY_THRESHOLD, 0.0)
         material = PhysicallyBasedMaterial(
@@ -292,13 +300,16 @@ class OmniPhysicallyBasedMapping(ShaderMapping):
                 if opacity_texture is None
                 else ColorOpacityTexture(diffuse_texture, opacity_texture)
             ),
-            normal_texture=inputs.texture(input_name.NORMAL_TEXTURE),
-            normal_scale=inputs.number(input_name.BUMP_FACTOR, 1.0),
             alpha_mode=self.alpha_mode(enable_opacity, threshold),
             alpha_cutoff=threshold if threshold > 0.0 else DEFAULT_ALPHA_CUTOFF,
             specular_color_factor=self.specular_color_factor(inputs),
             texture_transform=self.texture_transform(inputs),
         )
+        material = self.tangents.normal_map(
+            inputs,
+            inputs.texture(input_name.NORMAL_TEXTURE),
+            inputs.number(input_name.BUMP_FACTOR, 1.0),
+        ).apply(material)
         material = self.roughness_metallic(inputs).apply(material)
         return self.with_emission(material, inputs)
 

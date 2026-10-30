@@ -1,20 +1,32 @@
 """
 Texture channels as numbers: one channel of an image, a scalar property that blends a
-constant with a texture, the glTF metallic-roughness texture packed from two of them,
-and the sRGB decoding of colour textures.
+constant with a texture, the glTF metallic-roughness texture packed from two of them, a
+colour image composed with an opacity image, a normal map with a flipped tangent, and
+the sRGB decoding of colour textures.
 """
 
 from __future__ import annotations
 
 import io
 from dataclasses import dataclass
-from enum import IntEnum, StrEnum
+from enum import IntEnum
 
 import numpy
 from PIL import Image
-from typing_extensions import Optional, Tuple
+from typing_extensions import Optional
 
-from cramera_usd.scene.materials import TextureChannel, TextureFile
+from cramera_usd.materials.images import (
+    ImageFormat,
+    ImageMode,
+    ImageSize,
+    TextureImage,
+    TextureSizeLimit,
+)
+from cramera_usd.scene.materials import (
+    TextureChannel,
+    TextureFile,
+    TileGrid,
+)
 
 # %% image values
 
@@ -33,49 +45,6 @@ class ChannelScale(IntEnum):
     """
     The largest value of a 16-bit channel.
     """
-
-
-class ImageMode(StrEnum):
-    """
-    The Pillow image modes the reader and the packer treat specially.
-    """
-
-    PALETTE = "P"
-    """
-    Colours looked up in a palette.
-    """
-
-    RGBA = "RGBA"
-    """
-    Red, green, blue and alpha.
-    """
-
-    RGB = "RGB"
-    """
-    Red, green and blue.
-    """
-
-    INTEGER_PREFIX = "I"
-    """
-    The prefix of the modes holding integers of more than eight bits.
-    """
-
-
-class ImageFormat(StrEnum):
-    """
-    The image formats the converter encodes.
-    """
-
-    PNG = "PNG"
-    """
-    Portable Network Graphics.
-    """
-
-
-ImageSize = Tuple[int, int]
-"""
-The width and height of an image in pixels.
-"""
 
 
 @dataclass
@@ -144,15 +113,25 @@ class ScalarChannel:
         """
         return self.texture is not None and self.influence > 0.0
 
-    def texel_values(self, size: Optional[ImageSize]) -> numpy.ndarray:
+    @property
+    def grid(self) -> TileGrid:
+        """
+        The unit squares of texture coordinates the texture covers; one without a
+        texture.
+        """
+        return self.texture.grid if self.textured else TileGrid()
+
+    def texel_values(
+        self, size: Optional[ImageSize], grid: Optional[TileGrid] = None
+    ) -> numpy.ndarray:
         """
         :param size: The size to resample the texture to, or None to keep the
             texture's own size.
+        :param grid: The grid to lay the texture out on, or None for the texture's
+            own.
         :return: The blended value per texel, between 0 and 1.
         """
-        image = Image.open(self.texture.path)
-        if size is not None and image.size != size:
-            image = image.resize(size, Image.Resampling.BILINEAR)
+        image = TextureImage(self.texture).opened(grid, size)
         values = TextureChannelReader(image).values(self.texture.channel)
         return (1.0 - self.influence) * self.constant + self.influence * values
 
@@ -205,15 +184,23 @@ class RoughnessMetallicTexture:
     The metalness source.
     """
 
-    def encode(self) -> bytes:
+    @property
+    def grid(self) -> TileGrid:
         """
+        The unit squares of texture coordinates the textured sources cover.
+        """
+        return self.roughness.grid.union(self.metallic.grid)
+
+    def encode(self, limit: TextureSizeLimit) -> bytes:
+        """
+        :param limit: The largest image to embed.
         :return: The packed texture as PNG bytes, sized like the roughness texture (or
-            the metalness texture when roughness is constant).
+            the metalness texture when roughness is constant) within the limit.
         """
         reference = self.roughness if self.roughness.textured else self.metallic
-        size = Image.open(reference.texture.path).size
-        green = self.channel_values(self.roughness, size)
-        blue = self.channel_values(self.metallic, size)
+        size = limit.fitted(TextureImage(reference.texture).size_on(self.grid))
+        green = self.channel_values(self.roughness, size, self.grid)
+        blue = self.channel_values(self.metallic, size, self.grid)
         packed = numpy.stack(
             [numpy.full_like(green, ChannelScale.EIGHT_BIT), green, blue], axis=-1
         ).astype(numpy.uint8)
@@ -222,10 +209,13 @@ class RoughnessMetallicTexture:
         return stream.getvalue()
 
     @staticmethod
-    def channel_values(channel: ScalarChannel, size: ImageSize) -> numpy.ndarray:
+    def channel_values(
+        channel: ScalarChannel, size: ImageSize, grid: TileGrid
+    ) -> numpy.ndarray:
         """
         :param channel: The source of one channel.
         :param size: The size of the packed texture.
+        :param grid: The unit squares of texture coordinates the packed texture covers.
         :return: The channel's bytes at the packed size; a constant fills the whole
             image.
         """
@@ -235,7 +225,7 @@ class RoughnessMetallicTexture:
                 (height, width), round(channel.constant * ChannelScale.EIGHT_BIT)
             )
         return numpy.clip(
-            numpy.round(channel.texel_values(size) * ChannelScale.EIGHT_BIT),
+            numpy.round(channel.texel_values(size, grid) * ChannelScale.EIGHT_BIT),
             0,
             ChannelScale.EIGHT_BIT,
         )
@@ -262,26 +252,34 @@ class ColorOpacityTexture:
     as OmniPBR's default opacity mode reads it.
     """
 
-    def encode(self) -> bytes:
+    @property
+    def grid(self) -> TileGrid:
         """
+        The unit squares of texture coordinates the colour and opacity images cover.
+        """
+        grid = self.opacity.grid
+        return grid if self.color is None else grid.union(self.color.grid)
+
+    def encode(self, limit: TextureSizeLimit) -> bytes:
+        """
+        :param limit: The largest image to embed.
         :return: The composed texture as PNG bytes, sized like the colour image (or the
-            opacity image without one).
+            opacity image without one) within the limit.
         """
-        opacity_image = Image.open(self.opacity.path)
-        size = (
-            opacity_image.size
-            if self.color is None
-            else Image.open(self.color.path).size
-        )
+        grid = self.grid
+        reference = self.opacity if self.color is None else self.color
+        size = limit.fitted(TextureImage(reference).size_on(grid))
         width, height = size
         color = (
             numpy.full(
                 (height, width, len(OPACITY_SOURCE_CHANNELS)), ChannelScale.EIGHT_BIT
             )
             if self.color is None
-            else numpy.asarray(Image.open(self.color.path).convert(ImageMode.RGB))
+            else numpy.asarray(
+                TextureImage(self.color).opened(grid, size).convert(ImageMode.RGB)
+            )
         )
-        reader = TextureChannelReader(opacity_image.resize(size))
+        reader = TextureChannelReader(TextureImage(self.opacity).opened(grid, size))
         opacity = numpy.mean(
             [reader.values(channel) for channel in OPACITY_SOURCE_CHANNELS], axis=0
         )
@@ -302,6 +300,68 @@ OPACITY_SOURCE_CHANNELS = (
 )
 """
 The channels of an opacity image that are averaged into the opacity.
+"""
+
+
+# %% normal map with a flipped tangent
+
+
+@dataclass(frozen=True)
+class FlippedNormalTexture:
+    """
+    A tangent-space normal map with the X or Y component of its normals flipped: the
+    normal map of a shader whose tangent along U or along V points the other way than
+    glTF's.
+    """
+
+    normal: TextureFile
+    """
+    The normal map as the stage authors it.
+    """
+
+    flip_x: bool
+    """
+    Whether the component along U, in the red channel, is flipped.
+    """
+
+    flip_y: bool
+    """
+    Whether the component along V, in the green channel, is flipped.
+    """
+
+    @property
+    def grid(self) -> TileGrid:
+        """
+        The unit squares of texture coordinates the normal map covers.
+        """
+        return self.normal.grid
+
+    def encode(self, limit: TextureSizeLimit) -> bytes:
+        """
+        :param limit: The largest image to embed.
+        :return: The normal map as PNG bytes, the flipped channels inverted, within the
+            limit.
+        """
+        image = TextureImage(self.normal)
+        reader = TextureChannelReader(image.opened(size=limit.fitted(image.size)))
+        flips = (self.flip_x, self.flip_y, False)
+        channels = [
+            1.0 - reader.values(channel) if flipped else reader.values(channel)
+            for channel, flipped in zip(NORMAL_CHANNELS, flips)
+        ]
+        flipped = numpy.round(
+            numpy.stack(channels, axis=-1) * ChannelScale.EIGHT_BIT
+        ).astype(numpy.uint8)
+        stream = io.BytesIO()
+        Image.fromarray(flipped, mode=ImageMode.RGB).save(
+            stream, format=ImageFormat.PNG
+        )
+        return stream.getvalue()
+
+
+NORMAL_CHANNELS = (TextureChannel.RED, TextureChannel.GREEN, TextureChannel.BLUE)
+"""
+The channels of a normal map holding the X, Y and Z components of its normals.
 """
 
 

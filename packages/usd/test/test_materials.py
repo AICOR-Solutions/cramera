@@ -14,14 +14,16 @@ from typing_extensions import Any
 
 from cramera_usd.materials.channels import (
     ColorOpacityTexture,
+    FlippedNormalTexture,
     RoughnessMetallicTexture,
     ScalarChannel,
     SrgbTransfer,
 )
 from cramera_usd.materials.emission import EmissionScale
 from cramera_usd.materials.fallbacks import DisplayColorMapping, UnknownShaderMapping
+from cramera_usd.materials.images import TextureImage, TextureSizeLimit
 from cramera_usd.materials.mapper import MaterialMapper
-from cramera_usd.materials.mapping import RoughnessMetallicPacking
+from cramera_usd.materials.mapping import RoughnessMetallicPacking, TangentFlipInput
 from cramera_usd.materials.omni_glass import OmniGlassInput
 from cramera_usd.materials.omni_pbr import (
     OmniPhysicallyBasedInput,
@@ -43,6 +45,8 @@ from cramera_usd.scene.materials import (
     MaterialSource,
     TextureChannel,
     TextureFile,
+    TextureTile,
+    TileGrid,
 )
 
 from .dataset.stages import TEXTURES
@@ -65,6 +69,31 @@ def pixels(name: str) -> numpy.ndarray:
     :param name: The file name in the texture fixtures.
     """
     return numpy.asarray(Image.open(TEXTURES / name))
+
+
+def udim(stem: str, *tiles: int) -> TextureFile:
+    """
+    A fixture UDIM set.
+
+    :param stem: The file name in the texture fixtures before the tile number.
+    :param tiles: The tile numbers of the set.
+    """
+    paths = [TEXTURES / f"{stem}.{tile}.png" for tile in tiles]
+    return TextureFile(
+        paths[0],
+        tiles=tuple(
+            TextureTile(path, (tile - 1001) % 10, (tile - 1001) // 10)
+            for path, tile in zip(paths, tiles)
+        ),
+    )
+
+
+def decoded(data: bytes) -> numpy.ndarray:
+    """
+    :param data: An encoded image.
+    :return: Its pixel values.
+    """
+    return numpy.asarray(Image.open(io.BytesIO(data)))
 
 
 # %% OmniPBR
@@ -250,6 +279,69 @@ class TestOmniPhysicallyBasedMapping:
         assert material.alpha_mode is AlphaMode.OPAQUE
         assert material.unmapped_inputs == ()
 
+    def test_opacity_constant_of_disabled_opacity_has_no_effect(self):
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Chrome",
+                MaterialSource.OMNI_PBR,
+                {OmniPhysicallyBasedInput.OPACITY: 0.3},
+            )
+        )
+        assert material.base_color_factor[3] == 1.0
+        assert material.alpha_mode is AlphaMode.OPAQUE
+        assert material.unmapped_inputs == ()
+
+    def test_default_tangents_keep_the_normal_map_as_authored(self):
+        normal = texture("albedo.png")
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Chrome",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.NORMAL_TEXTURE: normal,
+                    TangentFlipInput.FLIP_U: False,
+                    TangentFlipInput.FLIP_V: True,
+                },
+            )
+        )
+        assert material.normal_texture == normal
+        assert material.normal_scale == 1.0
+        assert material.unmapped_inputs == ()
+
+    def test_tangent_flipped_along_v_flips_the_green_channel(self):
+        normal = texture("albedo.png")
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Chrome",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.NORMAL_TEXTURE: normal,
+                    OmniPhysicallyBasedInput.BUMP_FACTOR: 0.8,
+                    TangentFlipInput.FLIP_V: False,
+                },
+            )
+        )
+        assert material.normal_texture == FlippedNormalTexture(normal, False, True)
+        assert material.normal_scale == 0.8
+        assert material.unmapped_inputs == ()
+
+    def test_tangents_flipped_along_both_axes_negate_the_strength(self):
+        normal = texture("albedo.png")
+        material = OmniPhysicallyBasedMapping().map(
+            AuthoredMaterial(
+                "/Looks/Chrome",
+                MaterialSource.OMNI_PBR,
+                {
+                    OmniPhysicallyBasedInput.NORMAL_TEXTURE: normal,
+                    OmniPhysicallyBasedInput.BUMP_FACTOR: 0.8,
+                    TangentFlipInput.FLIP_U: True,
+                    TangentFlipInput.FLIP_V: False,
+                },
+            )
+        )
+        assert material.normal_texture == normal
+        assert material.normal_scale == -0.8
+
     def test_unknown_authored_inputs_are_listed(self):
         material = OmniPhysicallyBasedMapping().map(
             AuthoredMaterial(
@@ -277,7 +369,7 @@ class TestRoughnessMetallicTexture:
             ScalarChannel(0.5, texture("roughness.png")),
             ScalarChannel(0.0, texture("metallic.png")),
         )
-        image = numpy.asarray(Image.open(io.BytesIO(packed.encode())))
+        image = numpy.asarray(Image.open(io.BytesIO(packed.encode(TextureSizeLimit()))))
         assert numpy.array_equal(image[..., 1], pixels("roughness.png"))
         assert numpy.array_equal(image[..., 2], pixels("metallic.png"))
 
@@ -286,7 +378,7 @@ class TestRoughnessMetallicTexture:
             ScalarChannel(1.0, texture("roughness.png"), 0.25),
             ScalarChannel(0.0),
         )
-        image = numpy.asarray(Image.open(io.BytesIO(packed.encode())))
+        image = numpy.asarray(Image.open(io.BytesIO(packed.encode(TextureSizeLimit()))))
         expected = numpy.round(0.75 * 255.0 + 0.25 * pixels("roughness.png"))
         assert numpy.array_equal(image[..., 1], expected)
         assert numpy.array_equal(image[..., 2], numpy.zeros_like(expected))
@@ -297,6 +389,147 @@ class TestRoughnessMetallicTexture:
         )
         values = channel.texel_values(None)
         assert numpy.array_equal(values * 255.0, pixels("albedo.png")[..., 1])
+
+
+# %% normal map with a flipped tangent
+
+
+def test_flipped_normal_texture_inverts_the_flipped_component_only():
+    flipped = decoded(
+        FlippedNormalTexture(
+            TextureFile(TEXTURES / "tiles_normal.1001.png"), False, True
+        ).encode(TextureSizeLimit())
+    )
+    authored = pixels("tiles_normal.1001.png")
+    assert numpy.array_equal(flipped[..., 0], authored[..., 0])
+    assert numpy.array_equal(flipped[..., 1], 255 - authored[..., 1])
+    assert numpy.array_equal(flipped[..., 2], authored[..., 2])
+
+
+# %% texture images
+
+
+class TestTextureImage:
+    """
+    The pixels of a texture file, the atlas of a UDIM set, and the size limit.
+    """
+
+    def test_tile_1002_sits_right_of_tile_1001(self):
+        atlas = numpy.asarray(TextureImage(udim("tiles_albedo", 1001, 1002)).opened())
+        assert atlas.shape[:2] == (2, 4)
+        assert numpy.array_equal(atlas[:, :2], pixels("tiles_albedo.1001.png"))
+        assert numpy.array_equal(atlas[:, 2:], pixels("tiles_albedo.1002.png"))
+
+    def test_second_row_of_tiles_sits_on_top(self):
+        texture_file = TextureFile(
+            TEXTURES / "tiles_albedo.1001.png",
+            tiles=(
+                TextureTile(TEXTURES / "tiles_albedo.1001.png", 0, 0),
+                TextureTile(TEXTURES / "tiles_albedo.1002.png", 0, 1),
+            ),
+        )
+        atlas = numpy.asarray(TextureImage(texture_file).opened())
+        assert texture_file.grid == TileGrid(1, 2)
+        assert numpy.array_equal(atlas[:2], pixels("tiles_albedo.1002.png"))
+        assert numpy.array_equal(atlas[2:], pixels("tiles_albedo.1001.png"))
+
+    def test_square_without_a_tile_is_black(self):
+        atlas = numpy.asarray(TextureImage(udim("tiles_albedo", 1002)).opened())
+        assert numpy.array_equal(atlas[:, :2], numpy.zeros((2, 2, 3)))
+        assert numpy.array_equal(atlas[:, 2:], pixels("tiles_albedo.1002.png"))
+
+    def test_single_image_repeats_in_every_square_of_a_grid(self):
+        image = numpy.asarray(
+            TextureImage(texture("albedo.png")).opened(TileGrid(2, 1))
+        )
+        assert numpy.array_equal(image[:, :4], pixels("albedo.png"))
+        assert numpy.array_equal(image[:, 4:], pixels("albedo.png"))
+
+    def test_every_tile_is_a_file_of_the_texture(self):
+        texture_file = udim("tiles_albedo", 1001, 1002)
+        assert texture_file.files == (
+            TEXTURES / "tiles_albedo.1001.png",
+            TEXTURES / "tiles_albedo.1002.png",
+        )
+        assert texture("albedo.png").files == (TEXTURES / "albedo.png",)
+
+    @pytest.mark.parametrize(
+        ("longest_side", "size", "fitted"),
+        [
+            (1024, (4096, 2048), (1024, 512)),
+            (1024, (1024, 300), (1024, 300)),
+            (None, (8192, 4096), (8192, 4096)),
+        ],
+    )
+    def test_size_limit_scales_the_longer_side_keeping_the_aspect(
+        self, longest_side, size, fitted
+    ):
+        assert TextureSizeLimit(longest_side).fitted(size) == fitted
+
+    def test_packed_texture_of_a_udim_set_is_its_atlas(self):
+        packed = RoughnessMetallicTexture(
+            ScalarChannel(
+                0.0,
+                replace(udim("tiles_normal", 1001, 1002), channel=TextureChannel.GREEN),
+            ),
+            ScalarChannel(0.0, texture("metallic.png")),
+        )
+        image = decoded(packed.encode(TextureSizeLimit()))
+        assert packed.grid == TileGrid(2, 1)
+        assert numpy.array_equal(
+            image[..., 1],
+            numpy.hstack(
+                [
+                    pixels("tiles_normal.1001.png")[..., 1],
+                    pixels("tiles_normal.1002.png")[..., 1],
+                ]
+            ),
+        )
+
+    def test_packed_texture_is_scaled_down_to_the_limit(self):
+        packed = RoughnessMetallicTexture(
+            ScalarChannel(0.0, texture("roughness.png")), ScalarChannel(0.0)
+        )
+        assert decoded(packed.encode(TextureSizeLimit(2))).shape[:2] == (2, 2)
+
+
+class TestAtlasTransform:
+    """
+    The texture coordinates that read a UDIM set's atlas.
+    """
+
+    @staticmethod
+    def applied(transform: TextureTransform, point: Any) -> numpy.ndarray:
+        """
+        :param transform: A change of glTF texture coordinates.
+        :param point: glTF texture coordinates.
+        :return: The changed coordinates.
+        """
+        return numpy.asarray(transform.offset) + numpy.asarray(
+            transform.scale
+        ) * numpy.asarray(point)
+
+    def test_atlas_is_read_where_the_tiles_are(self):
+        grid = TileGrid(2, 2)
+        usd_point = (1.25, 1.75)
+        gltf_point = (usd_point[0], 1.0 - usd_point[1])
+        read = self.applied(TextureTransform.onto_atlas(grid), gltf_point)
+        column, row = 1, 1
+        within_tile = (usd_point[0] - column, usd_point[1] - row)
+        from_top_left = (
+            (column + within_tile[0]) / grid.columns,
+            (grid.rows - 1 - row + 1.0 - within_tile[1]) / grid.rows,
+        )
+        assert numpy.allclose(read, from_top_left)
+
+    def test_material_tiling_is_applied_before_the_atlas(self):
+        tiling = TextureTransform(offset=(0.0, -2.0), scale=(3.0, 3.0))
+        atlas = TextureTransform.onto_atlas(TileGrid(2, 1))
+        point = (0.3, 0.6)
+        assert numpy.allclose(
+            self.applied(tiling.then(atlas), point),
+            self.applied(atlas, self.applied(tiling, point)),
+        )
 
 
 # %% transmission drawn by blending
@@ -492,7 +725,11 @@ class TestTransmissionBlending:
         ).apply(transmissive(transmission=share))
         blended = TransmissionBlending().approximate(packed)
         image = numpy.asarray(
-            Image.open(io.BytesIO(blended.metallic_roughness_texture.encode()))
+            Image.open(
+                io.BytesIO(
+                    blended.metallic_roughness_texture.encode(TextureSizeLimit())
+                )
+            )
         )
         assert numpy.array_equal(
             image[..., 2],
@@ -739,6 +976,30 @@ def test_omniglass_hidden_texture_switch_is_not_reported():
         )
     )
     assert material.unmapped_inputs == ()
+
+
+def test_omniglass_tangent_flips_without_a_normal_map_have_no_effect():
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Glass",
+            MaterialSource.OMNI_GLASS,
+            {TangentFlipInput.FLIP_U: False, TangentFlipInput.FLIP_V: False},
+        )
+    )
+    assert material.normal_texture is None
+    assert material.unmapped_inputs == ()
+
+
+def test_omniglass_tangent_flipped_along_v_flips_the_green_channel():
+    normal = texture("albedo.png")
+    material = MaterialMapper().map(
+        AuthoredMaterial(
+            "/Looks/Glass",
+            MaterialSource.OMNI_GLASS,
+            {OmniGlassInput.NORMAL_TEXTURE: normal, TangentFlipInput.FLIP_V: False},
+        )
+    )
+    assert material.normal_texture == FlippedNormalTexture(normal, False, True)
 
 
 def test_preview_surface_opacity_blends_and_texture_replaces_colour():

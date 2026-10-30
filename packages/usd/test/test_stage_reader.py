@@ -4,6 +4,7 @@ Reading composed USD stages into the neutral description of a converted stage.
 
 from __future__ import annotations
 
+import shutil
 
 import numpy
 import pytest
@@ -29,7 +30,7 @@ from cramera_usd.exceptions import (
 from cramera_usd.names import GeneratedName
 from cramera_usd.scene.kinematics import CollisionBox, JointKind, Link
 from cramera_usd.scene.lights import LightKind
-from cramera_usd.scene.materials import MaterialSource
+from cramera_usd.scene.materials import MaterialSource, TextureTile, TileGrid
 from cramera_usd.scene.stage import ConvertedStage
 from cramera_usd.stage.materials import DisplayPrimvar
 from cramera_usd.stage.reader import StageReader
@@ -91,6 +92,71 @@ class TestTexturedQuad:
             semantics["/World/Decal"].link
             == link_holding(converted, "/World/Decal").name
         )
+
+
+class TestUdimDispenser:
+    """
+    A dispenser whose materials read UDIM sets, as SimReady packages author them.
+    """
+
+    body = "/World/Dispenser/VisualMaterials/m_opaque__metal__dispenser"
+    """
+    The material reading tiles 1001 and 1002.
+    """
+
+    @pytest.fixture(scope="class")
+    @classmethod
+    def converted(cls) -> ConvertedStage:
+        return read(Stage.UDIM_DISPENSER)
+
+    def test_udim_set_resolves_every_tile(self, converted):
+        albedo = converted.materials[self.body].inputs["diffuse_texture"]
+        assert albedo.path == TEXTURES / "tiles_albedo.1001.png"
+        assert albedo.tiles == (
+            TextureTile(TEXTURES / "tiles_albedo.1001.png", 0, 0),
+            TextureTile(TEXTURES / "tiles_albedo.1002.png", 1, 0),
+        )
+        assert albedo.grid == TileGrid(2, 1)
+
+    def test_udim_set_of_tile_1001_only_is_a_single_image(self, converted):
+        label = converted.materials[
+            "/World/Dispenser/VisualMaterials/m_opaque__paper__label"
+        ].inputs["diffuse_texture"]
+        assert label.path == TEXTURES / "label.1001.png"
+        assert label.tiles == ()
+
+    def test_every_tile_is_a_used_file_and_none_is_missing(self, converted):
+        assert {
+            TEXTURES / "tiles_albedo.1001.png",
+            TEXTURES / "tiles_albedo.1002.png",
+            TEXTURES / "tiles_normal.1002.png",
+        } <= set(converted.used_files)
+        assert converted.log.missing_textures == []
+
+
+def test_udim_tiles_resolve_beside_the_layer_authoring_them(tmp_path):
+    root = tmp_path / "hall.usda"
+    stage = Usd.Stage.CreateNew(str(root))
+    stage.DefinePrim("/Hall").GetReferences().AddReference(
+        str(Stage.UDIM_DISPENSER.path), "/World"
+    )
+    stage.GetRootLayer().Save()
+    converted = StageReader(root, []).read()
+    material = "/Hall/Dispenser/VisualMaterials/m_opaque__metal__dispenser"
+    assert converted.materials[material].inputs["diffuse_texture"].grid == TileGrid(
+        2, 1
+    )
+    assert converted.log.missing_textures == []
+
+
+def test_udim_set_without_a_tile_is_a_missing_texture(tmp_path):
+    shutil.copy(Stage.UDIM_DISPENSER.path, tmp_path)
+    converted = StageReader(tmp_path / Stage.UDIM_DISPENSER.value, []).read()
+    assert converted.log.missing_textures == [
+        "./textures/tiles_albedo.<UDIM>.png",
+        "./textures/tiles_normal.<UDIM>.png",
+        "./textures/label.<UDIM>.png",
+    ]
 
 
 def test_scaled_cube_keeps_its_authored_extent():
