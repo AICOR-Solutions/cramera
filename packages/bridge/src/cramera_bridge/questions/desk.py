@@ -34,6 +34,7 @@ from cramera_bridge.questions.highlights import (
 from cramera_bridge.questions.knowledge import QueryableKnowledge
 from cramera_bridge.questions.matching import QuestionMatcher, WordedPreset
 from cramera_bridge.questions.presets import Preset
+from cramera_bridge.questions.replay import FrameTimeline
 from cramera_bridge.questions.runner import (
     DEFAULT_ROW_LIMIT,
     AnswerRenderer,
@@ -148,6 +149,12 @@ class QuestionDesk:
     Reads queries back as English.
     """
 
+    timeline: FrameTimeline = field(default_factory=FrameTimeline)
+    """
+    The frames of the recorded scene, which answers name the moments of their rows in; a
+    running world has none, so its answers offer no replay.
+    """
+
     lock: threading.Lock = field(
         default_factory=threading.Lock, repr=False, compare=False
     )
@@ -251,6 +258,7 @@ class QuestionDesk:
             highlight_keys=self.highlight_keys,
             value_formats=self.value_formats,
             limit=self.row_limit,
+            timeline=self.timeline,
         )
         with self.lock:
             attempt = Attempt.of(lambda: runner.answer(request.code, renderer))

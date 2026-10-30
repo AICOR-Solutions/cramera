@@ -10,7 +10,8 @@ import pytest
 
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import PartRole, PartSide, SceneDescription
-from cramera_protocol.questions import QueryRequest, QueryScope
+from cramera_protocol.bundle.trajectory import TrajectoryKey
+from cramera_protocol.questions import QueryRequest, QueryScope, ReplayWindow
 from cramera_bridge.questions.presets import (
     DetectedEventQuestion,
     QueryVariable,
@@ -173,3 +174,29 @@ def test_detections_are_answered_with_replay_windows(annotated):
     answer = desk.answer_query(QueryRequest(code=preset.code, scope=preset.scope))
     assert answer.count == len(annotated.events)
     assert all(window is not None for window in answer.replay)
+
+
+def test_a_detection_replays_the_frames_of_the_recording_around_it(annotated):
+    desk = annotated.desk(WorkspaceClassIndex())
+    preset = annotated.event_questions().listed()[0]
+    answer = desk.answer_query(QueryRequest(code=preset.code, scope=preset.scope))
+    windows = {row["name"]: window for row, window in zip(answer.rows, answer.replay)}
+    assert windows == {
+        "milk PickUpEvent": ReplayWindow(first_frame=0, last_frame=3),
+        "milk PlacingEvent": ReplayWindow(first_frame=7, last_frame=9),
+    }
+
+
+def test_a_recording_without_frame_times_offers_no_replay(catalog, scenes):
+    path = scenes / SceneName.ANNOTATED / BundleFile.TRAJECTORY
+    data = json.loads(path.read_text(encoding="utf-8"))
+    del data[TrajectoryKey.FRAME_TIMES]
+    path.write_text(json.dumps(data), encoding="utf-8")
+    knowledge = RecordedKnowledge.of_bundle(
+        RecordedBundle.of_catalog(catalog, SceneName.ANNOTATED)
+    )
+    preset = knowledge.event_questions().listed()[0]
+    answer = knowledge.desk(WorkspaceClassIndex()).answer_query(
+        QueryRequest(code=preset.code, scope=preset.scope)
+    )
+    assert answer.replay == [None, None]

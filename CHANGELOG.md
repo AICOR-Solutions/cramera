@@ -377,6 +377,16 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Replay jumps to the moment an answer is about.** An answer's replay windows named
+  seconds since the epoch, which the questions panel took for frame numbers, so every
+  **Replay**, such as one of "what was detected, and when?", landed on the last frame.
+  `ReplayWindow` now names the first and last frame of the recorded scene
+  (`first_frame`, `last_frame`): the frames recorded nearest to a second before and a
+  second after the moment, found from the wall-clock time of each frame of its
+  trajectory (`FrameTimeline`). A moment outside the recording, an answer about a
+  running world and a recording without frame times offer no replay. Windows recorded before
+  in seconds offer none either; record the answers again with
+  `cramera-record-answers` to replay them.
 - **An environment drawn without collision geometry gets its annotations.** CRAM's
   world reasoner takes a body without collision geometry for one that only carries a
   joint, so the world built from a bundle whose environment has visual shapes only,

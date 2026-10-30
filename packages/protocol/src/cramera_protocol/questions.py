@@ -225,31 +225,35 @@ class ReplayWindowKey(StrEnum):
     The keys of a stretch of a recording worth replaying.
     """
 
-    START = "start"
+    FIRST_FRAME = "first_frame"
     """
-    Where the stretch starts.
+    The frame the stretch starts at.
     """
 
-    END = "end"
+    LAST_FRAME = "last_frame"
     """
-    Where the stretch ends.
+    The frame the stretch ends at.
     """
 
 
 @dataclass(kw_only=True)
 class ReplayWindow(JsonDocument):
     """
-    The stretch of a recording worth replaying around an answered moment.
+    The stretch of the recorded scene worth replaying around an answered moment, in
+    frames of the scene's trajectory.
+
+    Answers recorded before replay windows named frames wrote ``start`` and ``end`` in
+    seconds since the epoch instead; viewers offer no replay for such windows.
     """
 
-    start: float = document_field(ReplayWindowKey.START)
+    first_frame: int = document_field(ReplayWindowKey.FIRST_FRAME)
     """
-    The start, in seconds since the epoch.
+    The first frame of the stretch.
     """
 
-    end: float = document_field(ReplayWindowKey.END)
+    last_frame: int = document_field(ReplayWindowKey.LAST_FRAME)
     """
-    The end, in seconds since the epoch.
+    The last frame of the stretch, at or after the first.
     """
 
 
@@ -429,7 +433,8 @@ class QueryAnswer(JsonDocument):
         QueryAnswerKey.REPLAY, default_factory=list
     )
     """
-    One entry per row: the stretch worth replaying, or None for a row without a moment.
+    One entry per row: the stretch of the recorded scene worth replaying, or None for a
+    row without a moment in the recording, and for every row of a live world's answer.
     """
 
     verbalization: Optional[Verbalization] = document_field(
