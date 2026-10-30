@@ -1,7 +1,7 @@
 {
  "name": "aicor_medical_lab_pr2_workflow",
  "formatVersion": "1.0",
- "framesPerSecond": 40.11,
+ "framesPerSecond": 32.88,
  "trajectory": "trajectory.json",
  "querySteps": "query_steps.json",
  "models": [
@@ -74,7 +74,7 @@
     "pr2/fl_caster_l_wheel_joint"
    ],
    "posedJoints": [],
-   "identifier": "b1e6c9f9-4a07-4637-a42c-4620e5c3a325",
+   "identifier": "807e75e4-02d5-4f46-b449-71a71077fb88",
    "pose": [
     0.39999,
     -0.72,
@@ -220,13 +220,13 @@
     "attachedTo": "PR2RightArm"
    }
   ],
-  "identifier": "b1e6c9f9-4a07-4637-a42c-4620e5c3a325",
+  "identifier": "807e75e4-02d5-4f46-b449-71a71077fb88",
   "label": "PR2"
  },
  "objects": [
   {
    "id": "laboratory_rack",
-   "key": "0062417c-3bed-45bd-8f15-151f9b042210",
+   "key": "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276",
    "spawn": [
     0.22,
     -0.04,
@@ -238,11 +238,11 @@
    ],
    "color": "#ffffff",
    "height": 0.0681,
-   "mesh": "meshes/objects/0062417c-3bed-45bd-8f15-151f9b042210/tube_rack.glb"
+   "mesh": "meshes/objects/0a1a2bb1-004e-47f4-9a8d-c0f724cb9276/tube_rack.glb"
   },
   {
    "id": "tube_clear",
-   "key": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+   "key": "3e3867b7-ce3b-4509-8362-b50037268308",
    "spawn": [
     0.16,
     -0.065,
@@ -254,11 +254,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36/tube_clear.glb"
+   "mesh": "meshes/objects/3e3867b7-ce3b-4509-8362-b50037268308/tube_clear.glb"
   },
   {
    "id": "tube_amber",
-   "key": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+   "key": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
    "spawn": [
     0.22,
     -0.065,
@@ -270,11 +270,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/5844b1ae-741e-4877-8ba0-ea2c0442a4de/tube_amber.glb"
+   "mesh": "meshes/objects/2d0e2b1f-4926-4c78-a771-ba7676be4e59/tube_amber.glb"
   },
   {
    "id": "tube_teal",
-   "key": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+   "key": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
    "spawn": [
     0.16,
     -0.015,
@@ -286,11 +286,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/61e7c57d-2932-41d7-8f74-78da1fe1540b/tube_teal.glb"
+   "mesh": "meshes/objects/cc8f15c8-2be8-4333-bc2f-19dcc935697f/tube_teal.glb"
   },
   {
    "id": "tube_reserve",
-   "key": "d9375518-71f0-457f-94a8-91fe19618c03",
+   "key": "bed4156a-aa06-42ac-924a-e782ccaecd13",
    "spawn": [
     0.28,
     -0.015,
@@ -302,11 +302,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/d9375518-71f0-457f-94a8-91fe19618c03/tube_clear.glb"
+   "mesh": "meshes/objects/bed4156a-aa06-42ac-924a-e782ccaecd13/tube_clear.glb"
   },
   {
    "id": "stopper",
-   "key": "19510a7b-d1d7-4270-94ce-4b7a767649fb",
+   "key": "10b9926c-24f2-47d2-8c9e-9561d7f81a07",
    "spawn": [
     0.5,
     -0.12,
@@ -318,7 +318,7 @@
    ],
    "color": "#ffffff",
    "height": 0.021,
-   "mesh": "meshes/objects/19510a7b-d1d7-4270-94ce-4b7a767649fb/stopper.glb"
+   "mesh": "meshes/objects/10b9926c-24f2-47d2-8c9e-9561d7f81a07/stopper.glb"
   }
  ],
  "segments": [
@@ -331,25 +331,25 @@
    "step": "VesselPickUpAction",
    "start": 345,
    "end": 805,
-   "picks": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+   "picks": "3e3867b7-ce3b-4509-8362-b50037268308",
    "attach": 345,
-   "detach": 7866
+   "detach": 7833
   },
   {
    "step": "VesselPickUpAction",
    "start": 805,
    "end": 1244,
-   "picks": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+   "picks": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
    "attach": 805,
-   "detach": 4131
+   "detach": 4096
   },
   {
    "step": "VesselPickUpAction",
    "start": 1244,
-   "end": 10533,
-   "picks": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+   "end": 10500,
+   "picks": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
    "attach": 1244,
-   "detach": 8580
+   "detach": 8547
   }
  ],
  "planTrees": [
@@ -425,7 +425,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+                 "3e3867b7-ce3b-4509-8362-b50037268308"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
@@ -537,7 +537,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+                 "3e3867b7-ce3b-4509-8362-b50037268308"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
@@ -783,7 +783,7 @@
            "entities": [
             {
              "keys": [
-              "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+              "3e3867b7-ce3b-4509-8362-b50037268308"
              ],
              "name": "Container \u00b7 tube_clear",
              "type": "Container"
@@ -808,12 +808,12 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+         "target": "3e3867b7-ce3b-4509-8362-b50037268308",
          "id": "plan_node_75",
          "parent": "plan_node_72",
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+          "object_designator": "3e3867b7-ce3b-4509-8362-b50037268308",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -849,11 +849,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+           "value": "3e3867b7-ce3b-4509-8362-b50037268308",
            "entities": [
             {
              "keys": [
-              "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+              "3e3867b7-ce3b-4509-8362-b50037268308"
              ],
              "name": "tube_clear",
              "type": "Body"
@@ -898,7 +898,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+             "3e3867b7-ce3b-4509-8362-b50037268308"
             ],
             "name": "tube_clear",
             "type": "Body"
@@ -1113,7 +1113,7 @@
        "entities": [
         {
          "keys": [
-          "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+          "3e3867b7-ce3b-4509-8362-b50037268308"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1191,7 +1191,7 @@
          "parameters": {
           "position_threshold": "0.003",
           "max_linear_velocity": "0.08",
-          "target": "0.280, -0.065, 1.171",
+          "target": "0.060, -0.025, 0.271",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
@@ -1202,13 +1202,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.280, -0.065, 1.171",
+           "value": "0.060, -0.025, 0.271",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -1261,7 +1261,7 @@
          "parent": "plan_node_84",
          "parameters": {
           "max_linear_velocity": "0.02",
-          "target": "0.280, -0.065, 1.011",
+          "target": "0.060, -0.025, 0.111",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
@@ -1272,13 +1272,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.280, -0.065, 1.011",
+           "value": "0.060, -0.025, 0.111",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -1384,7 +1384,7 @@
          "parent": "plan_node_84",
          "parameters": {
           "max_linear_velocity": "0.08",
-          "target": "0.280, -0.065, 1.120",
+          "target": "0.060, -0.025, 0.220",
           "arm": "PR2LeftArm",
           "movement_type": "CARTESIAN"
          },
@@ -1394,13 +1394,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.280, -0.065, 1.120",
+           "value": "0.060, -0.025, 0.220",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -1474,7 +1474,7 @@
       "approach_clearance": "0.109",
       "retreat_distance": "0.16",
       "object_designator": "Container",
-      "target_location": "0.280, -0.065, 0.906",
+      "target_location": "0.060, -0.025, 0.006",
       "grasp_release_threshold": "0.1",
       "approach_position_threshold": "0.003"
      },
@@ -1606,7 +1606,7 @@
        "entities": [
         {
          "keys": [
-          "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+          "3e3867b7-ce3b-4509-8362-b50037268308"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1617,13 +1617,13 @@
        "field": "target_location",
        "role": "location",
        "source": "field",
-       "value": "0.280, -0.065, 0.906",
+       "value": "0.060, -0.025, 0.006",
        "entities": [],
        "reference": {
         "keys": [
-         "map"
+         "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
         ],
-        "name": "map",
+        "name": "laboratory_rack",
         "type": "Body"
        },
        "place": "rack A3"
@@ -1697,7 +1697,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+                 "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
@@ -1809,7 +1809,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+                 "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
@@ -2055,7 +2055,7 @@
            "entities": [
             {
              "keys": [
-              "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+              "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
              ],
              "name": "Container \u00b7 tube_teal",
              "type": "Container"
@@ -2080,12 +2080,12 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+         "target": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
          "id": "plan_node_97",
          "parent": "plan_node_92",
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+          "object_designator": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -2121,11 +2121,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+           "value": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
            "entities": [
             {
              "keys": [
-              "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+              "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
              ],
              "name": "tube_teal",
              "type": "Body"
@@ -2170,7 +2170,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+             "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
             ],
             "name": "tube_teal",
             "type": "Body"
@@ -2385,7 +2385,7 @@
        "entities": [
         {
          "keys": [
-          "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+          "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -2463,7 +2463,7 @@
          "parameters": {
           "position_threshold": "0.003",
           "max_linear_velocity": "0.08",
-          "target": "0.160, -0.065, 1.171",
+          "target": "-0.060, -0.025, 0.271",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
@@ -2474,13 +2474,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.160, -0.065, 1.171",
+           "value": "-0.060, -0.025, 0.271",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -2533,7 +2533,7 @@
          "parent": "plan_node_106",
          "parameters": {
           "max_linear_velocity": "0.02",
-          "target": "0.160, -0.065, 1.011",
+          "target": "-0.060, -0.025, 0.111",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
@@ -2544,13 +2544,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.160, -0.065, 1.011",
+           "value": "-0.060, -0.025, 0.111",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -2656,7 +2656,7 @@
          "parent": "plan_node_106",
          "parameters": {
           "max_linear_velocity": "0.08",
-          "target": "0.160, -0.065, 1.120",
+          "target": "-0.060, -0.025, 0.220",
           "arm": "PR2LeftArm",
           "movement_type": "CARTESIAN"
          },
@@ -2666,13 +2666,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.160, -0.065, 1.120",
+           "value": "-0.060, -0.025, 0.220",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -2746,7 +2746,7 @@
       "approach_clearance": "0.109",
       "retreat_distance": "0.16",
       "object_designator": "Container",
-      "target_location": "0.160, -0.065, 0.906",
+      "target_location": "-0.060, -0.025, 0.006",
       "grasp_release_threshold": "0.1",
       "approach_position_threshold": "0.003"
      },
@@ -2878,7 +2878,7 @@
        "entities": [
         {
          "keys": [
-          "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+          "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -2889,13 +2889,13 @@
        "field": "target_location",
        "role": "location",
        "source": "field",
-       "value": "0.160, -0.065, 0.906",
+       "value": "-0.060, -0.025, 0.006",
        "entities": [],
        "reference": {
         "keys": [
-         "map"
+         "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
         ],
-        "name": "map",
+        "name": "laboratory_rack",
         "type": "Body"
        },
        "place": "rack A1"
@@ -2969,7 +2969,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+                 "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
@@ -3081,7 +3081,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+                 "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
@@ -3327,7 +3327,7 @@
            "entities": [
             {
              "keys": [
-              "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+              "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
              ],
              "name": "Container \u00b7 tube_amber",
              "type": "Container"
@@ -3352,12 +3352,12 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+         "target": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
          "id": "plan_node_119",
          "parent": "plan_node_114",
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+          "object_designator": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -3393,11 +3393,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+           "value": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
            "entities": [
             {
              "keys": [
-              "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+              "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
              ],
              "name": "tube_amber",
              "type": "Body"
@@ -3442,7 +3442,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+             "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
             ],
             "name": "tube_amber",
             "type": "Body"
@@ -3657,7 +3657,7 @@
        "entities": [
         {
          "keys": [
-          "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+          "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -3735,7 +3735,7 @@
          "parameters": {
           "position_threshold": "0.003",
           "max_linear_velocity": "0.08",
-          "target": "0.160, -0.015, 1.171",
+          "target": "-0.060, 0.025, 0.271",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
@@ -3746,13 +3746,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.160, -0.015, 1.171",
+           "value": "-0.060, 0.025, 0.271",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -3805,7 +3805,7 @@
          "parent": "plan_node_128",
          "parameters": {
           "max_linear_velocity": "0.02",
-          "target": "0.160, -0.015, 1.011",
+          "target": "-0.060, 0.025, 0.111",
           "arm": "PR2LeftArm",
           "allow_gripper_collision": "on",
           "movement_type": "CARTESIAN"
@@ -3816,13 +3816,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.160, -0.015, 1.011",
+           "value": "-0.060, 0.025, 0.111",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -3928,7 +3928,7 @@
          "parent": "plan_node_128",
          "parameters": {
           "max_linear_velocity": "0.08",
-          "target": "0.160, -0.015, 1.120",
+          "target": "-0.060, 0.025, 0.220",
           "arm": "PR2LeftArm",
           "movement_type": "CARTESIAN"
          },
@@ -3938,13 +3938,13 @@
            "field": "target",
            "role": "location",
            "source": "field",
-           "value": "0.160, -0.015, 1.120",
+           "value": "-0.060, 0.025, 0.220",
            "entities": [],
            "reference": {
             "keys": [
-             "map"
+             "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
             ],
-            "name": "map",
+            "name": "laboratory_rack",
             "type": "Body"
            }
           },
@@ -4018,7 +4018,7 @@
       "approach_clearance": "0.109",
       "retreat_distance": "0.16",
       "object_designator": "Container",
-      "target_location": "0.160, -0.015, 0.906",
+      "target_location": "-0.060, 0.025, 0.006",
       "grasp_release_threshold": "0.1",
       "approach_position_threshold": "0.003"
      },
@@ -4150,7 +4150,7 @@
        "entities": [
         {
          "keys": [
-          "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+          "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -4161,13 +4161,13 @@
        "field": "target_location",
        "role": "location",
        "source": "field",
-       "value": "0.160, -0.015, 0.906",
+       "value": "-0.060, 0.025, 0.006",
        "entities": [],
        "reference": {
         "keys": [
-         "map"
+         "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
         ],
-        "name": "map",
+        "name": "laboratory_rack",
         "type": "Body"
        },
        "place": "rack B1"
@@ -6216,7 +6216,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+                 "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
@@ -6328,7 +6328,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+                 "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
                 ],
                 "name": "tube_teal",
                 "type": "Body"
@@ -6574,7 +6574,7 @@
            "entities": [
             {
              "keys": [
-              "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+              "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
              ],
              "name": "Container \u00b7 tube_teal",
              "type": "Container"
@@ -6599,12 +6599,12 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+         "target": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
          "id": "plan_node_173",
          "parent": "plan_node_168",
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+          "object_designator": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -6640,11 +6640,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+           "value": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
            "entities": [
             {
              "keys": [
-              "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+              "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
              ],
              "name": "tube_teal",
              "type": "Body"
@@ -6689,7 +6689,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+             "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
             ],
             "name": "tube_teal",
             "type": "Body"
@@ -6904,7 +6904,7 @@
        "entities": [
         {
          "keys": [
-          "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+          "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -8041,7 +8041,7 @@
      "id": "plan_node_23",
      "parent": "plan_node_0",
      "start": 3919,
-     "end": 4144,
+     "end": 4109,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "placing_linear_velocity": "0.02",
@@ -8182,7 +8182,7 @@
        "entities": [
         {
          "keys": [
-          "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+          "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
          ],
          "name": "Container \u00b7 tube_teal",
          "type": "Container"
@@ -8299,8 +8299,8 @@
      ],
      "id": "plan_node_24",
      "parent": "plan_node_0",
-     "start": 4157,
-     "end": 4172,
+     "start": 4122,
+     "end": 4137,
      "parameters": {
       "target": "-0.902, -1.050, 0.000"
      },
@@ -8486,8 +8486,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_25",
      "parent": "plan_node_0",
-     "start": 4181,
-     "end": 4566,
+     "start": 4146,
+     "end": 4532,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "on"
@@ -8744,8 +8744,8 @@
      ],
      "id": "plan_node_26",
      "parent": "plan_node_0",
-     "start": 4575,
-     "end": 4581,
+     "start": 4541,
+     "end": 4547,
      "parameters": {
       "target": "-0.950, -0.950, 0.000"
      },
@@ -9128,8 +9128,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_226",
          "parent": "plan_node_223",
-         "start": 4599,
-         "end": 4962,
+         "start": 4565,
+         "end": 4929,
          "parameters": {
           "grasp_detection_threshold": "0.9",
           "approach_clearance": "0.06",
@@ -9358,8 +9358,8 @@
        ],
        "id": "plan_node_223",
        "parent": "plan_node_27",
-       "start": 4599,
-       "end": 4962,
+       "start": 4565,
+       "end": 4929,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -9379,8 +9379,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_27",
      "parent": "plan_node_0",
-     "start": 4599,
-     "end": 4964,
+     "start": 4565,
+     "end": 4931,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "approach_clearance": "0.06",
@@ -9790,8 +9790,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_31",
      "parent": "plan_node_0",
-     "start": 5258,
-     "end": 5541,
+     "start": 5225,
+     "end": 5508,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "on"
@@ -10048,8 +10048,8 @@
      ],
      "id": "plan_node_32",
      "parent": "plan_node_0",
-     "start": 5550,
-     "end": 5584,
+     "start": 5517,
+     "end": 5551,
      "parameters": {
       "target": "-0.220, -0.720, 0.000"
      },
@@ -10432,8 +10432,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_246",
          "parent": "plan_node_243",
-         "start": 5591,
-         "end": 5921,
+         "start": 5558,
+         "end": 5888,
          "parameters": {
           "grasp_detection_threshold": "0.9",
           "approach_clearance": "0.06",
@@ -10662,8 +10662,8 @@
        ],
        "id": "plan_node_243",
        "parent": "plan_node_33",
-       "start": 5591,
-       "end": 5921,
+       "start": 5558,
+       "end": 5888,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -10683,8 +10683,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_33",
      "parent": "plan_node_0",
-     "start": 5591,
-     "end": 5923,
+     "start": 5558,
+     "end": 5890,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "approach_clearance": "0.06",
@@ -11094,8 +11094,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_37",
      "parent": "plan_node_0",
-     "start": 6202,
-     "end": 6338,
+     "start": 6169,
+     "end": 6305,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -11623,8 +11623,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_43",
      "parent": "plan_node_0",
-     "start": 6999,
-     "end": 7144,
+     "start": 6966,
+     "end": 7111,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -11834,8 +11834,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_44",
      "parent": "plan_node_0",
-     "start": 7146,
-     "end": 7147,
+     "start": 7113,
+     "end": 7114,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -12092,8 +12092,8 @@
      ],
      "id": "plan_node_45",
      "parent": "plan_node_0",
-     "start": 7155,
-     "end": 7184,
+     "start": 7122,
+     "end": 7151,
      "parameters": {
       "target": "0.400, -0.720, 0.000"
      },
@@ -12300,7 +12300,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+                 "3e3867b7-ce3b-4509-8362-b50037268308"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
@@ -12412,7 +12412,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+                 "3e3867b7-ce3b-4509-8362-b50037268308"
                 ],
                 "name": "tube_clear",
                 "type": "Body"
@@ -12479,8 +12479,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_272",
          "parent": "plan_node_269",
-         "start": 7191,
-         "end": 7425,
+         "start": 7158,
+         "end": 7392,
          "parameters": {
           "grasp_detection_threshold": "0.9",
           "pre_approach_linear_velocity": "0.12",
@@ -12658,7 +12658,7 @@
            "entities": [
             {
              "keys": [
-              "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+              "3e3867b7-ce3b-4509-8362-b50037268308"
              ],
              "name": "Container \u00b7 tube_clear",
              "type": "Container"
@@ -12683,12 +12683,12 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+         "target": "3e3867b7-ce3b-4509-8362-b50037268308",
          "id": "plan_node_274",
          "parent": "plan_node_269",
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+          "object_designator": "3e3867b7-ce3b-4509-8362-b50037268308",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -12724,11 +12724,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+           "value": "3e3867b7-ce3b-4509-8362-b50037268308",
            "entities": [
             {
              "keys": [
-              "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+              "3e3867b7-ce3b-4509-8362-b50037268308"
              ],
              "name": "tube_clear",
              "type": "Body"
@@ -12773,7 +12773,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+             "3e3867b7-ce3b-4509-8362-b50037268308"
             ],
             "name": "tube_clear",
             "type": "Body"
@@ -12821,8 +12821,8 @@
        ],
        "id": "plan_node_269",
        "parent": "plan_node_46",
-       "start": 7191,
-       "end": 7425,
+       "start": 7158,
+       "end": 7392,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -12842,8 +12842,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_46",
      "parent": "plan_node_0",
-     "start": 7191,
-     "end": 7489,
+     "start": 7158,
+     "end": 7456,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "pre_approach_linear_velocity": "0.12",
@@ -12988,7 +12988,7 @@
        "entities": [
         {
          "keys": [
-          "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+          "3e3867b7-ce3b-4509-8362-b50037268308"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -13127,8 +13127,8 @@
      ],
      "id": "plan_node_47",
      "parent": "plan_node_0",
-     "start": 7567,
-     "end": 7592,
+     "start": 7534,
+     "end": 7559,
      "parameters": {
       "target": "-0.120, -0.720, 0.000"
      },
@@ -13573,8 +13573,8 @@
      ],
      "id": "plan_node_48",
      "parent": "plan_node_0",
-     "start": 7599,
-     "end": 7886,
+     "start": 7566,
+     "end": 7853,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "placing_linear_velocity": "0.02",
@@ -13715,7 +13715,7 @@
        "entities": [
         {
          "keys": [
-          "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+          "3e3867b7-ce3b-4509-8362-b50037268308"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -13785,8 +13785,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_49",
      "parent": "plan_node_0",
-     "start": 7891,
-     "end": 7973,
+     "start": 7858,
+     "end": 7940,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -14043,8 +14043,8 @@
      ],
      "id": "plan_node_50",
      "parent": "plan_node_0",
-     "start": 7981,
-     "end": 8006,
+     "start": 7948,
+     "end": 7973,
      "parameters": {
       "target": "0.400, -0.720, 0.000"
      },
@@ -14251,7 +14251,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+                 "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
@@ -14363,7 +14363,7 @@
                "entities": [],
                "reference": {
                 "keys": [
-                 "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+                 "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
                 ],
                 "name": "tube_amber",
                 "type": "Body"
@@ -14430,8 +14430,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_309",
          "parent": "plan_node_306",
-         "start": 8013,
-         "end": 8202,
+         "start": 7980,
+         "end": 8169,
          "parameters": {
           "grasp_detection_threshold": "0.9",
           "pre_approach_linear_velocity": "0.12",
@@ -14609,7 +14609,7 @@
            "entities": [
             {
              "keys": [
-              "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+              "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
              ],
              "name": "Container \u00b7 tube_amber",
              "type": "Container"
@@ -14634,12 +14634,12 @@
          "label": "PadContactMotion",
          "status": "SUCCEEDED",
          "children": [],
-         "target": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+         "target": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
          "id": "plan_node_311",
          "parent": "plan_node_306",
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+          "object_designator": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -14675,11 +14675,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+           "value": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
            "entities": [
             {
              "keys": [
-              "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+              "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
              ],
              "name": "tube_amber",
              "type": "Body"
@@ -14724,7 +14724,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+             "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
             ],
             "name": "tube_amber",
             "type": "Body"
@@ -14772,8 +14772,8 @@
        ],
        "id": "plan_node_306",
        "parent": "plan_node_51",
-       "start": 8013,
-       "end": 8202,
+       "start": 7980,
+       "end": 8169,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -14793,8 +14793,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_51",
      "parent": "plan_node_0",
-     "start": 8013,
-     "end": 8266,
+     "start": 7980,
+     "end": 8233,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "pre_approach_linear_velocity": "0.12",
@@ -14939,7 +14939,7 @@
        "entities": [
         {
          "keys": [
-          "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+          "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -15078,8 +15078,8 @@
      ],
      "id": "plan_node_52",
      "parent": "plan_node_0",
-     "start": 8342,
-     "end": 8367,
+     "start": 8309,
+     "end": 8334,
      "parameters": {
       "target": "-0.120, -0.720, 0.000"
      },
@@ -15524,8 +15524,8 @@
      ],
      "id": "plan_node_53",
      "parent": "plan_node_0",
-     "start": 8374,
-     "end": 8598,
+     "start": 8341,
+     "end": 8565,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "placing_linear_velocity": "0.02",
@@ -15666,7 +15666,7 @@
        "entities": [
         {
          "keys": [
-          "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+          "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
          ],
          "name": "Container \u00b7 tube_amber",
          "type": "Container"
@@ -15736,8 +15736,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_54",
      "parent": "plan_node_0",
-     "start": 8604,
-     "end": 8717,
+     "start": 8571,
+     "end": 8684,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -15994,8 +15994,8 @@
      ],
      "id": "plan_node_55",
      "parent": "plan_node_0",
-     "start": 8725,
-     "end": 8731,
+     "start": 8692,
+     "end": 8698,
      "parameters": {
       "target": "-0.220, -0.720, 0.000"
      },
@@ -16181,8 +16181,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_56",
      "parent": "plan_node_0",
-     "start": 8749,
-     "end": 8749,
+     "start": 8716,
+     "end": 8716,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -16710,8 +16710,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_62",
      "parent": "plan_node_0",
-     "start": 9341,
-     "end": 9429,
+     "start": 9308,
+     "end": 9396,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -16968,8 +16968,8 @@
      ],
      "id": "plan_node_63",
      "parent": "plan_node_0",
-     "start": 9437,
-     "end": 9446,
+     "start": 9404,
+     "end": 9413,
      "parameters": {
       "target": "-0.220, -0.880, 0.000"
      },
@@ -17155,8 +17155,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_64",
      "parent": "plan_node_0",
-     "start": 9461,
-     "end": 9859,
+     "start": 9428,
+     "end": 9826,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "on"
@@ -17413,8 +17413,8 @@
      ],
      "id": "plan_node_65",
      "parent": "plan_node_0",
-     "start": 9868,
-     "end": 9877,
+     "start": 9835,
+     "end": 9844,
      "parameters": {
       "target": "-0.220, -0.720, 0.000"
      },
@@ -17797,8 +17797,8 @@
          "arm": "PR2LeftArm",
          "id": "plan_node_367",
          "parent": "plan_node_364",
-         "start": 9892,
-         "end": 10042,
+         "start": 9859,
+         "end": 10009,
          "parameters": {
           "grasp_detection_threshold": "0.9",
           "approach_clearance": "0.06",
@@ -18027,8 +18027,8 @@
        ],
        "id": "plan_node_364",
        "parent": "plan_node_66",
-       "start": 9892,
-       "end": 10042,
+       "start": 9859,
+       "end": 10009,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -18048,8 +18048,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_66",
      "parent": "plan_node_0",
-     "start": 9892,
-     "end": 10044,
+     "start": 9859,
+     "end": 10011,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "approach_clearance": "0.06",
@@ -18459,8 +18459,8 @@
      "arm": "PR2LeftArm",
      "id": "plan_node_70",
      "parent": "plan_node_0",
-     "start": 10396,
-     "end": 10490,
+     "start": 10363,
+     "end": 10457,
      "parameters": {
       "arms": "PR2LeftArm",
       "raise_torso": "off"
@@ -18717,8 +18717,8 @@
      ],
      "id": "plan_node_71",
      "parent": "plan_node_0",
-     "start": 10498,
-     "end": 10527,
+     "start": 10465,
+     "end": 10494,
      "parameters": {
       "target": "0.400, -0.720, 0.000"
      },
@@ -18861,7 +18861,7 @@
    ],
    "id": "plan_node_0",
    "start": 15,
-   "end": 10527,
+   "end": 10494,
    "robot": "PR2",
    "parameters": {},
    "constraints": [],
@@ -18914,7 +18914,7 @@
    "laboratory_cabinet_right_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_middle_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_lower_handle": "semantic_digital_twin.world_description.world_entity.Body",
-   "1f9635a1-2bab-4f59-9f08-1fa5e8687007/odom": "semantic_digital_twin.world_description.world_entity.Body",
+   "51529858-a0e4-46a0-b4f0-793ef5a077ab/odom": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_link": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/torso_lift_motor_screw_link": "semantic_digital_twin.world_description.world_entity.Body",
@@ -19044,7 +19044,7 @@
    "aicor_medical_lab/laboratory_cabinet_right_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_middle_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_lower_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "1f9635a1-2bab-4f59-9f08-1fa5e8687007/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
+   "51529858-a0e4-46a0-b4f0-793ef5a077ab/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/base_footprint_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/torso_lift_motor_screw_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",

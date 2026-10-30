@@ -262,7 +262,7 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 4.644500993890688,
+   "milliseconds": 5.362128998967819,
    "frame": 1,
    "entities": [
     {
@@ -390,7 +390,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1181,
+    "firstLine": 1188,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -402,13 +402,13 @@
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1185,
-    "focusLastLine": 1185
+    "focusFirstLine": 1192,
+    "focusLastLine": 1192
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1185
+    "line": 1192
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -420,21 +420,21 @@
    ],
    "highlight": {
     "keys": [
-     "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+     "3e3867b7-ce3b-4509-8362-b50037268308"
     ],
     "regions": [],
     "framed": [
-     "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+     "3e3867b7-ce3b-4509-8362-b50037268308"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.379039990250021,
+   "milliseconds": 3.830836998531595,
    "frame": 13,
    "entities": [
     {
      "keys": [
-      "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+      "3e3867b7-ce3b-4509-8362-b50037268308"
      ],
      "name": "tube_clear",
      "type": "Body"
@@ -454,7 +454,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1181,
+    "firstLine": 1188,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -466,13 +466,13 @@
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1185,
-    "focusLastLine": 1185
+    "focusFirstLine": 1192,
+    "focusLastLine": 1192
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1185
+    "line": 1192
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -484,21 +484,21 @@
    ],
    "highlight": {
     "keys": [
-     "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+     "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
     ],
     "regions": [],
     "framed": [
-     "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+     "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.2479420042363927,
+   "milliseconds": 3.7586099933832884,
    "frame": 15,
    "entities": [
     {
      "keys": [
-      "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+      "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
      ],
      "name": "tube_teal",
      "type": "Body"
@@ -518,7 +518,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1181,
+    "firstLine": 1188,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -530,13 +530,13 @@
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1185,
-    "focusLastLine": 1185
+    "focusFirstLine": 1192,
+    "focusLastLine": 1192
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1185
+    "line": 1192
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -548,21 +548,21 @@
    ],
    "highlight": {
     "keys": [
-     "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+     "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
     ],
     "regions": [],
     "framed": [
-     "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+     "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.4795359970303252,
+   "milliseconds": 3.9292709989240393,
    "frame": 15,
    "entities": [
     {
      "keys": [
-      "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+      "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
      ],
      "name": "tube_amber",
      "type": "Body"
@@ -582,7 +582,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.handle",
-    "firstLine": 1171,
+    "firstLine": 1178,
     "lines": [
      "        :param name: One of the laboratory's handles.",
      "        :return: The handle's annotation, found by an entity query.",
@@ -594,13 +594,13 @@
      "    def the_vessel(world: World, key: str) -> Body:",
      "        \"\"\""
     ],
-    "focusFirstLine": 1175,
-    "focusLastLine": 1175
+    "focusFirstLine": 1182,
+    "focusLastLine": 1182
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.handle",
     "module": "workflow",
-    "line": 1175
+    "line": 1182
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -621,7 +621,7 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 1.5187490062089637,
+   "milliseconds": 1.6997710044961423,
    "frame": 15,
    "entities": [
     {
@@ -646,7 +646,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1181,
+    "firstLine": 1188,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -658,13 +658,13 @@
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1185,
-    "focusLastLine": 1185
+    "focusFirstLine": 1192,
+    "focusLastLine": 1192
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1185
+    "line": 1192
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -676,21 +676,21 @@
    ],
    "highlight": {
     "keys": [
-     "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+     "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
     ],
     "regions": [],
     "framed": [
-     "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+     "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.437829000176862,
+   "milliseconds": 4.243550996761769,
    "frame": 15,
    "entities": [
     {
      "keys": [
-      "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+      "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
      ],
      "name": "tube_teal",
      "type": "Body"
@@ -710,7 +710,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.handle",
-    "firstLine": 1171,
+    "firstLine": 1178,
     "lines": [
      "        :param name: One of the laboratory's handles.",
      "        :return: The handle's annotation, found by an entity query.",
@@ -722,13 +722,13 @@
      "    def the_vessel(world: World, key: str) -> Body:",
      "        \"\"\""
     ],
-    "focusFirstLine": 1175,
-    "focusLastLine": 1175
+    "focusFirstLine": 1182,
+    "focusLastLine": 1182
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.handle",
     "module": "workflow",
-    "line": 1175
+    "line": 1182
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -749,7 +749,7 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 1.3801830064039677,
+   "milliseconds": 1.5938410069793463,
    "frame": 15,
    "entities": [
     {
@@ -774,7 +774,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1181,
+    "firstLine": 1188,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -786,13 +786,13 @@
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1185,
-    "focusLastLine": 1185
+    "focusFirstLine": 1192,
+    "focusLastLine": 1192
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1185
+    "line": 1192
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -804,21 +804,21 @@
    ],
    "highlight": {
     "keys": [
-     "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+     "3e3867b7-ce3b-4509-8362-b50037268308"
     ],
     "regions": [],
     "framed": [
-     "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+     "3e3867b7-ce3b-4509-8362-b50037268308"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.3803429978433996,
+   "milliseconds": 4.010661010397598,
    "frame": 15,
    "entities": [
     {
      "keys": [
-      "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+      "3e3867b7-ce3b-4509-8362-b50037268308"
      ],
      "name": "tube_clear",
      "type": "Body"
@@ -838,7 +838,7 @@
    "code": {
     "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1181,
+    "firstLine": 1188,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -850,13 +850,13 @@
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1185,
-    "focusLastLine": 1185
+    "focusFirstLine": 1192,
+    "focusLastLine": 1192
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1185
+    "line": 1192
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -868,21 +868,21 @@
    ],
    "highlight": {
     "keys": [
-     "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+     "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
     ],
     "regions": [],
     "framed": [
-     "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+     "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.487152003799565,
+   "milliseconds": 4.439394004293717,
    "frame": 15,
    "entities": [
     {
      "keys": [
-      "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+      "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
      ],
      "name": "tube_amber",
      "type": "Body"

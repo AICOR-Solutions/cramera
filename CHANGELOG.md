@@ -49,7 +49,10 @@ which this repository was mirrored until 22 Oct 2026.
   recorded again with `cramera_bridge.demos.workflow_queries`: the rack re-sort, a
   vessel stored in the refrigerator and a pair loaded into the centrifuge, with its
   query steps. `aicor_medical_lab_pr2_query_stepper` is recorded again too, with
-  its roles and its target named `rack A3`.
+  its roles and its target named `rack A3`. The laboratory's rack slots are given in the rack's
+  frame (`LaboratoryEnvironment.slot_pose`), as the centrifuge's and the
+  refrigerator's holders are in theirs, so a vessel's target follows the rack and the
+  view names the rack, not the map, as the frame of the location.
 - **The Segmind tab: what segmind saw, annotated in the replay.** A run recorded with
   segmind watching (`cramera-onboard --detect-events`, or `CRAMERA_DETECT_EVENTS=1` for
   a live run) lists every event with its sort, the frame it happened at and the keys

@@ -445,7 +445,10 @@ class VesselTransferDemo(VesselTaskDemo):
         observation = self.observation
         body = observation.body
         actual = body.global_pose.to_np()
-        desired = self.laboratory.slot_pose(self.target_slot, context.world).to_np()
+        world = context.world
+        desired = world.transform(
+            self.laboratory.slot_pose(self.target_slot, world), world.root
+        ).to_np()
         position_error = float(np.linalg.norm(actual[:3, 3] - desired[:3, 3]))
         orientation_error = float(
             np.arccos(

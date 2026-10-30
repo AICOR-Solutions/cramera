@@ -1,7 +1,7 @@
 {
  "formatVersion": "1.0",
  "scene": "aicor_medical_lab_pr2_workflow",
- "recordedAt": "2026-10-30T19:08:19Z",
+ "recordedAt": "2026-10-30T19:37:49Z",
  "presets": {
   "ok": true,
   "title": "aicor_medical_lab_pr2_workflow",
@@ -148,40 +148,40 @@
      "title": "PR2RightGripper"
     },
     {
-     "id": "0062417c-3bed-45bd-8f15-151f9b042210",
+     "id": "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276",
      "label": "laboratory_rack",
      "group": "object",
-     "title": "laboratory_rack\n0062417c-3bed-45bd-8f15-151f9b042210"
+     "title": "laboratory_rack\n0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
     },
     {
-     "id": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+     "id": "3e3867b7-ce3b-4509-8362-b50037268308",
      "label": "tube_clear",
      "group": "object",
-     "title": "tube_clear\n637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+     "title": "tube_clear\n3e3867b7-ce3b-4509-8362-b50037268308"
     },
     {
-     "id": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+     "id": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
      "label": "tube_amber",
      "group": "object",
-     "title": "tube_amber\n5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+     "title": "tube_amber\n2d0e2b1f-4926-4c78-a771-ba7676be4e59"
     },
     {
-     "id": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+     "id": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
      "label": "tube_teal",
      "group": "object",
-     "title": "tube_teal\n61e7c57d-2932-41d7-8f74-78da1fe1540b"
+     "title": "tube_teal\ncc8f15c8-2be8-4333-bc2f-19dcc935697f"
     },
     {
-     "id": "d9375518-71f0-457f-94a8-91fe19618c03",
+     "id": "bed4156a-aa06-42ac-924a-e782ccaecd13",
      "label": "tube_reserve",
      "group": "object",
-     "title": "tube_reserve\nd9375518-71f0-457f-94a8-91fe19618c03"
+     "title": "tube_reserve\nbed4156a-aa06-42ac-924a-e782ccaecd13"
     },
     {
-     "id": "19510a7b-d1d7-4270-94ce-4b7a767649fb",
+     "id": "10b9926c-24f2-47d2-8c9e-9561d7f81a07",
      "label": "stopper",
      "group": "object",
-     "title": "stopper\n19510a7b-d1d7-4270-94ce-4b7a767649fb"
+     "title": "stopper\n10b9926c-24f2-47d2-8c9e-9561d7f81a07"
     },
     {
      "id": "step/0",
@@ -235,19 +235,19 @@
     },
     {
      "from": "step/1",
-     "to": "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+     "to": "3e3867b7-ce3b-4509-8362-b50037268308",
      "kind": "property",
      "label": "picks"
     },
     {
      "from": "step/2",
-     "to": "61e7c57d-2932-41d7-8f74-78da1fe1540b",
+     "to": "cc8f15c8-2be8-4333-bc2f-19dcc935697f",
      "kind": "property",
      "label": "picks"
     },
     {
      "from": "step/3",
-     "to": "5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+     "to": "2d0e2b1f-4926-4c78-a771-ba7676be4e59",
      "kind": "property",
      "label": "picks"
     }
@@ -284,46 +284,46 @@
      "group": "gripper",
      "lines": []
     },
-    "0062417c-3bed-45bd-8f15-151f9b042210": {
+    "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276": {
      "label": "laboratory_rack",
      "group": "object",
      "lines": [
-      "0062417c-3bed-45bd-8f15-151f9b042210"
+      "0a1a2bb1-004e-47f4-9a8d-c0f724cb9276"
      ]
     },
-    "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36": {
+    "3e3867b7-ce3b-4509-8362-b50037268308": {
      "label": "tube_clear",
      "group": "object",
      "lines": [
-      "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+      "3e3867b7-ce3b-4509-8362-b50037268308"
      ]
     },
-    "5844b1ae-741e-4877-8ba0-ea2c0442a4de": {
+    "2d0e2b1f-4926-4c78-a771-ba7676be4e59": {
      "label": "tube_amber",
      "group": "object",
      "lines": [
-      "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+      "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
      ]
     },
-    "61e7c57d-2932-41d7-8f74-78da1fe1540b": {
+    "cc8f15c8-2be8-4333-bc2f-19dcc935697f": {
      "label": "tube_teal",
      "group": "object",
      "lines": [
-      "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+      "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
      ]
     },
-    "d9375518-71f0-457f-94a8-91fe19618c03": {
+    "bed4156a-aa06-42ac-924a-e782ccaecd13": {
      "label": "tube_reserve",
      "group": "object",
      "lines": [
-      "d9375518-71f0-457f-94a8-91fe19618c03"
+      "bed4156a-aa06-42ac-924a-e782ccaecd13"
      ]
     },
-    "19510a7b-d1d7-4270-94ce-4b7a767649fb": {
+    "10b9926c-24f2-47d2-8c9e-9561d7f81a07": {
      "label": "stopper",
      "group": "object",
      "lines": [
-      "19510a7b-d1d7-4270-94ce-4b7a767649fb"
+      "10b9926c-24f2-47d2-8c9e-9561d7f81a07"
      ]
     },
     "step/0": {
@@ -490,7 +490,7 @@
      "id": "plan_node_75",
      "label": "PadContactMotion",
      "group": "motion",
-     "title": "PadContactMotion\nmotion\n637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+     "title": "PadContactMotion\nmotion\n3e3867b7-ce3b-4509-8362-b50037268308",
      "status": "SUCCEEDED",
      "kind": "motion",
      "parent": "plan_node_72"
@@ -706,7 +706,7 @@
      "id": "plan_node_97",
      "label": "PadContactMotion",
      "group": "motion",
-     "title": "PadContactMotion\nmotion\n61e7c57d-2932-41d7-8f74-78da1fe1540b",
+     "title": "PadContactMotion\nmotion\ncc8f15c8-2be8-4333-bc2f-19dcc935697f",
      "status": "SUCCEEDED",
      "kind": "motion",
      "parent": "plan_node_92"
@@ -922,7 +922,7 @@
      "id": "plan_node_119",
      "label": "PadContactMotion",
      "group": "motion",
-     "title": "PadContactMotion\nmotion\n5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+     "title": "PadContactMotion\nmotion\n2d0e2b1f-4926-4c78-a771-ba7676be4e59",
      "status": "SUCCEEDED",
      "kind": "motion",
      "parent": "plan_node_114"
@@ -1516,7 +1516,7 @@
      "id": "plan_node_173",
      "label": "PadContactMotion",
      "group": "motion",
-     "title": "PadContactMotion\nmotion\n61e7c57d-2932-41d7-8f74-78da1fe1540b",
+     "title": "PadContactMotion\nmotion\ncc8f15c8-2be8-4333-bc2f-19dcc935697f",
      "status": "SUCCEEDED",
      "kind": "motion",
      "parent": "plan_node_168"
@@ -2686,7 +2686,7 @@
      "id": "plan_node_274",
      "label": "PadContactMotion",
      "group": "motion",
-     "title": "PadContactMotion\nmotion\n637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36",
+     "title": "PadContactMotion\nmotion\n3e3867b7-ce3b-4509-8362-b50037268308",
      "status": "SUCCEEDED",
      "kind": "motion",
      "parent": "plan_node_269"
@@ -3064,7 +3064,7 @@
      "id": "plan_node_311",
      "label": "PadContactMotion",
      "group": "motion",
-     "title": "PadContactMotion\nmotion\n5844b1ae-741e-4877-8ba0-ea2c0442a4de",
+     "title": "PadContactMotion\nmotion\n2d0e2b1f-4926-4c78-a771-ba7676be4e59",
      "status": "SUCCEEDED",
      "kind": "motion",
      "parent": "plan_node_306"
@@ -6259,7 +6259,7 @@
      "group": "motion",
      "lines": [
       "motion",
-      "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+      "3e3867b7-ce3b-4509-8362-b50037268308"
      ]
     },
     "plan_node_76": {
@@ -6436,7 +6436,7 @@
      "group": "motion",
      "lines": [
       "motion",
-      "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+      "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
      ]
     },
     "plan_node_98": {
@@ -6613,7 +6613,7 @@
      "group": "motion",
      "lines": [
       "motion",
-      "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+      "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
      ]
     },
     "plan_node_120": {
@@ -7094,7 +7094,7 @@
      "group": "motion",
      "lines": [
       "motion",
-      "61e7c57d-2932-41d7-8f74-78da1fe1540b"
+      "cc8f15c8-2be8-4333-bc2f-19dcc935697f"
      ]
     },
     "plan_node_174": {
@@ -8038,7 +8038,7 @@
      "group": "motion",
      "lines": [
       "motion",
-      "637e86e9-e1a5-4e9a-95e2-2eb5abc4ce36"
+      "3e3867b7-ce3b-4509-8362-b50037268308"
      ]
     },
     "plan_node_275": {
@@ -8342,7 +8342,7 @@
      "group": "motion",
      "lines": [
       "motion",
-      "5844b1ae-741e-4877-8ba0-ea2c0442a4de"
+      "2d0e2b1f-4926-4c78-a771-ba7676be4e59"
      ]
     },
     "plan_node_312": {

@@ -28,6 +28,11 @@ BUNDLE = (
 The recorded workflow.
 """
 
+RACK = "laboratory_rack"
+"""
+The body the rack's slots are given in.
+"""
+
 ROTOR = "laboratory_centrifuge_rotor"
 """
 The body the centrifuge's holders are given in.
@@ -122,11 +127,12 @@ def test_every_action_names_the_robot_of_its_context_as_its_agent(scene):
         assert agent["source"] == RoleSource.CONTEXT
 
 
-def test_the_centrifuge_and_the_refrigerator_are_loaded_at_holders_given_in_their_frames(
+def test_every_slot_a_vessel_is_set_into_is_given_in_its_stations_frame(
     scene,
 ):
     places = [a for a in top_level_actions(scene) if a["label"] == "RackPlaceAction"]
     references = [role(a, "target_location")["reference"]["name"] for a in places]
+    assert references.count(RACK) == 3
     assert references.count(ROTOR) == 2
     assert references.count(REFRIGERATOR) == 1
     for action in places:
@@ -224,3 +230,4 @@ def test_the_stepped_transfer_sets_its_vessel_into_the_rack_slot_a_query_did_not
     assert naming == [2]
     assert target["place"] == "rack A3"
     assert target["entities"] == []
+    assert target["reference"]["name"] == RACK
