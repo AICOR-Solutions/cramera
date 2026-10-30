@@ -377,6 +377,23 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Nothing comes between the cinematic camera and what it films.** The film's wide
+  orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
+  so the picture showed that and not the robot. The camera now casts rays against the
+  environment (`LineOfSight`; the robots and the free objects are what it films):
+  a blocked or crowded angle, one whose picture a near surface mostly hides, films from
+  another one, the wide orbit turns back where a wall would come between and looks from
+  higher up when it has to, a close-up films its object from the other side or from
+  above, and a camera with nowhere clear to go stands in front of what is in the way.
+  The camera eases round what it films rather than through it, moves in front of a
+  surface at once rather than easing behind it, and cuts to the shot when easing would
+  lose the robot behind a wall, as when it moves faster than the camera follows. A mesh
+  of many triangles, such as an oven, stands in the way as its box, and a ray that starts
+  inside that box, as at a spoon in a drawer, tests the mesh's triangles through a tree
+  of nested boxes built the first time; in the PR2 apartment the camera then takes a
+  millisecond or two a frame.
+
+  ![Before and after in the PR2 apartment](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/cinematic-occlusion/cinematic_camera_occlusion.png)
 - **An environment drawn without collision geometry gets its annotations.** CRAM's
   world reasoner takes a body without collision geometry for one that only carries a
   joint, so the world built from a bundle whose environment has visual shapes only,

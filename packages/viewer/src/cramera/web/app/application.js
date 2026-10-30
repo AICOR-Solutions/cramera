@@ -555,6 +555,7 @@ export class Application {
     this.#clock = new PlaybackClock(loaded.frames.framesPerSecond, loaded.frames.frameCount);
     const segments = loaded.description[SceneKey.SEGMENTS] ?? [];
     this.#cinematic.plan(ShotPlan.of(segments, loaded.frames.framesPerSecond, this.#clock.duration));
+    this.#cinematic.setObstacles(loaded.models.environmentModels());
     this.#timeline.show(this.#clock, segments);
     this.#details.show(loaded);
     this.#sceneGraph.show(loaded);
