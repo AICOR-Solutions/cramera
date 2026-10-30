@@ -37,6 +37,7 @@ from semantic_digital_twin.collision_checking.collision_rules import (
 from semantic_digital_twin.datastructures.definitions import GripperState
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.pr2 import PR2
+from krrood.entity_query_language.factories import entity, the, variable
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.spatial_types import (
@@ -996,7 +997,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         """
         steps = []
         for move, key in self.moves_to(Station.RACK):
-            grasp = self.grasp(context, context.world.get_body_by_name(key))
+            grasp = self.grasp(context, self.the_vessel(context.world, key))
             steps += [
                 self.pick_up(context, grasp),
                 self.place(grasp, move.target.pose(self.laboratory, context.world)),
@@ -1029,7 +1030,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             self.park(context, raise_torso=True),
         ]
         for move, key in self.moves_to(Station.REFRIGERATOR):
-            steps += self.store(context, move, context.world.get_body_by_name(key))
+            steps += self.store(context, move, self.the_vessel(context.world, key))
         return [
             *steps,
             self.drive(context, DOOR_STAND),
@@ -1130,7 +1131,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         lid = world.get_body_by_name(self.laboratory.bench.centrifuge.lid_body)
         loading = []
         for move, key in self.moves_to(Station.CENTRIFUGE):
-            loading += self.load(context, move, world.get_body_by_name(key))
+            loading += self.load(context, move, self.the_vessel(world, key))
         return [
             self.drive(context, CENTRIFUGE_STAND),
             *self.operate(context, lid_grasp, self.lid_pulled),
@@ -1153,13 +1154,20 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         """
         :param world: A world holding the laboratory.
         :param name: One of the laboratory's handles.
-        :return: The handle's annotation.
+        :return: The handle's annotation, found by an entity query.
         """
-        return next(
-            handle
-            for handle in world.get_semantic_annotations_by_type(Handle)
-            if handle.root.name.name == name.value
-        )
+        handle = variable(Handle, world.semantic_annotations)
+        return the(entity(handle).where(handle.root.name.name == name.value)).first()
+
+    @staticmethod
+    def the_vessel(world: World, key: str) -> Body:
+        """
+        :param world: A world holding the laboratory.
+        :param key: The name of a vessel's body.
+        :return: The vessel, found by an entity query.
+        """
+        body = variable(Body, world.bodies)
+        return the(entity(body).where(body.name.name == key)).first()
 
     def drive(self, context: Context, stand: Stand) -> DriveAction:
         """

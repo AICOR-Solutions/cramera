@@ -1,0 +1,893 @@
+{
+ "revision": 0,
+ "unchanged": false,
+ "stepping": false,
+ "holdsNested": true,
+ "steps": [
+  {
+   "number": 0,
+   "depth": 0,
+   "phase": "setup",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique PR2",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/robots/pr2/index.html#semantic_digital_twin.robots.pr2.PR2\" title=\"The PR2 robot built by Willow Garage.\"><span style=\"color:cornflowerblue\">PR2</span></a>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/handling.py",
+    "function": "VesselTaskDemo.the_robot",
+    "firstLine": 224,
+    "lines": [
+     "        :param world: The world built for the task.",
+     "        :return: The PR2 in it, found by an entity query.",
+     "        \"\"\"",
+     "        robot = variable(PR2, world.semantic_annotations)",
+     "        return the(entity(robot)).first()",
+     "",
+     "    def posture(self, world: World) -> PR2:",
+     "        \"\"\"",
+     "        Park the arms, raise the torso and take the drive out of the controller; the arm"
+    ],
+    "focusFirstLine": 228,
+    "focusLastLine": 228
+   },
+   "caller": {
+    "function": "VesselTaskDemo.the_robot",
+    "module": "handling",
+    "line": 228
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "PR2 \u00b7 pr2/base_footprint"
+   ],
+   "highlight": {
+    "keys": [
+     "pr2/base_footprint",
+     "pr2/base_link",
+     "pr2/base_bellow_link",
+     "pr2/base_laser_link",
+     "pr2/fl_caster_rotation_link",
+     "pr2/fl_caster_l_wheel_link",
+     "pr2/fl_caster_r_wheel_link",
+     "pr2/fr_caster_rotation_link",
+     "pr2/fr_caster_l_wheel_link",
+     "pr2/fr_caster_r_wheel_link",
+     "pr2/bl_caster_rotation_link",
+     "pr2/bl_caster_l_wheel_link",
+     "pr2/bl_caster_r_wheel_link",
+     "pr2/br_caster_rotation_link",
+     "pr2/br_caster_l_wheel_link",
+     "pr2/br_caster_r_wheel_link",
+     "pr2/torso_lift_link",
+     "pr2/l_torso_lift_side_plate_link",
+     "pr2/r_torso_lift_side_plate_link",
+     "pr2/torso_lift_motor_screw_link",
+     "pr2/imu_link",
+     "pr2/head_pan_link",
+     "pr2/head_tilt_link",
+     "pr2/head_plate_frame",
+     "pr2/sensor_mount_link",
+     "pr2/high_def_frame",
+     "pr2/high_def_optical_frame",
+     "pr2/double_stereo_link",
+     "pr2/wide_stereo_link",
+     "pr2/wide_stereo_optical_frame",
+     "pr2/wide_stereo_l_stereo_camera_frame",
+     "pr2/wide_stereo_l_stereo_camera_optical_frame",
+     "pr2/wide_stereo_r_stereo_camera_frame",
+     "pr2/wide_stereo_r_stereo_camera_optical_frame",
+     "pr2/narrow_stereo_link",
+     "pr2/narrow_stereo_optical_frame",
+     "pr2/narrow_stereo_l_stereo_camera_frame",
+     "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+     "pr2/narrow_stereo_r_stereo_camera_frame",
+     "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+     "pr2/projector_wg6802418_frame",
+     "pr2/projector_wg6802418_child_frame",
+     "pr2/head_mount_link",
+     "pr2/head_mount_kinect_ir_link",
+     "pr2/head_mount_kinect_ir_optical_frame",
+     "pr2/head_mount_kinect_rgb_link",
+     "pr2/head_mount_kinect_rgb_optical_frame",
+     "pr2/head_mount_kinect2_rgb_optical_frame",
+     "pr2/head_mount_kinect2_ir_optical_frame",
+     "pr2/head_mount_prosilica_link",
+     "pr2/head_mount_prosilica_optical_frame",
+     "pr2/laser_tilt_mount_link",
+     "pr2/laser_tilt_link",
+     "pr2/r_shoulder_pan_link",
+     "pr2/r_shoulder_lift_link",
+     "pr2/r_upper_arm_roll_link",
+     "pr2/r_upper_arm_link",
+     "pr2/r_elbow_flex_link",
+     "pr2/r_forearm_roll_link",
+     "pr2/r_forearm_link",
+     "pr2/r_wrist_flex_link",
+     "pr2/r_wrist_roll_link",
+     "pr2/r_gripper_palm_link",
+     "pr2/r_gripper_led_frame",
+     "pr2/r_gripper_motor_accelerometer_link",
+     "pr2/r_gripper_tool_frame",
+     "pr2/r_gripper_motor_slider_link",
+     "pr2/r_gripper_motor_screw_link",
+     "pr2/r_gripper_l_finger_link",
+     "pr2/r_gripper_r_finger_tip_link",
+     "pr2/r_gripper_l_finger_tip_frame",
+     "pr2/l_shoulder_pan_link",
+     "pr2/l_shoulder_lift_link",
+     "pr2/l_upper_arm_roll_link",
+     "pr2/l_upper_arm_link",
+     "pr2/l_elbow_flex_link",
+     "pr2/l_forearm_roll_link",
+     "pr2/l_forearm_link",
+     "pr2/l_wrist_flex_link",
+     "pr2/l_wrist_roll_link",
+     "pr2/l_force_torque_adapter_link",
+     "pr2/l_force_torque_link",
+     "pr2/l_gripper_palm_link",
+     "pr2/l_gripper_led_frame",
+     "pr2/l_gripper_motor_accelerometer_link",
+     "pr2/l_gripper_tool_frame",
+     "pr2/l_gripper_motor_slider_link",
+     "pr2/l_gripper_motor_screw_link",
+     "pr2/l_gripper_l_finger_link",
+     "pr2/l_gripper_r_finger_tip_link",
+     "pr2/l_gripper_l_finger_tip_frame",
+     "pr2/l_forearm_cam_frame",
+     "pr2/l_forearm_cam_optical_frame",
+     "pr2/r_forearm_cam_frame",
+     "pr2/r_forearm_cam_optical_frame",
+     "pr2/head_mount_kinect2_link",
+     "pr2/l_torso_lift_side_item_profile_link",
+     "pr2/r_torso_lift_side_item_profile_link",
+     "pr2/m_torso_lift_side_item_profile_link",
+     "pr2/t_torso_lift_side_item_profile_link",
+     "pr2/r_gripper_r_finger_link",
+     "pr2/r_gripper_l_finger_tip_link",
+     "pr2/l_gripper_r_finger_link",
+     "pr2/l_gripper_l_finger_tip_link"
+    ],
+    "regions": [],
+    "framed": [
+     "pr2/base_footprint",
+     "pr2/base_link",
+     "pr2/base_bellow_link",
+     "pr2/base_laser_link",
+     "pr2/fl_caster_rotation_link",
+     "pr2/fl_caster_l_wheel_link",
+     "pr2/fl_caster_r_wheel_link",
+     "pr2/fr_caster_rotation_link",
+     "pr2/fr_caster_l_wheel_link",
+     "pr2/fr_caster_r_wheel_link",
+     "pr2/bl_caster_rotation_link",
+     "pr2/bl_caster_l_wheel_link",
+     "pr2/bl_caster_r_wheel_link",
+     "pr2/br_caster_rotation_link",
+     "pr2/br_caster_l_wheel_link",
+     "pr2/br_caster_r_wheel_link",
+     "pr2/torso_lift_link",
+     "pr2/l_torso_lift_side_plate_link",
+     "pr2/r_torso_lift_side_plate_link",
+     "pr2/torso_lift_motor_screw_link",
+     "pr2/imu_link",
+     "pr2/head_pan_link",
+     "pr2/head_tilt_link",
+     "pr2/head_plate_frame",
+     "pr2/sensor_mount_link",
+     "pr2/high_def_frame",
+     "pr2/high_def_optical_frame",
+     "pr2/double_stereo_link",
+     "pr2/wide_stereo_link",
+     "pr2/wide_stereo_optical_frame",
+     "pr2/wide_stereo_l_stereo_camera_frame",
+     "pr2/wide_stereo_l_stereo_camera_optical_frame",
+     "pr2/wide_stereo_r_stereo_camera_frame",
+     "pr2/wide_stereo_r_stereo_camera_optical_frame",
+     "pr2/narrow_stereo_link",
+     "pr2/narrow_stereo_optical_frame",
+     "pr2/narrow_stereo_l_stereo_camera_frame",
+     "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+     "pr2/narrow_stereo_r_stereo_camera_frame",
+     "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+     "pr2/projector_wg6802418_frame",
+     "pr2/projector_wg6802418_child_frame",
+     "pr2/head_mount_link",
+     "pr2/head_mount_kinect_ir_link",
+     "pr2/head_mount_kinect_ir_optical_frame",
+     "pr2/head_mount_kinect_rgb_link",
+     "pr2/head_mount_kinect_rgb_optical_frame",
+     "pr2/head_mount_kinect2_rgb_optical_frame",
+     "pr2/head_mount_kinect2_ir_optical_frame",
+     "pr2/head_mount_prosilica_link",
+     "pr2/head_mount_prosilica_optical_frame",
+     "pr2/laser_tilt_mount_link",
+     "pr2/laser_tilt_link",
+     "pr2/r_shoulder_pan_link",
+     "pr2/r_shoulder_lift_link",
+     "pr2/r_upper_arm_roll_link",
+     "pr2/r_upper_arm_link",
+     "pr2/r_elbow_flex_link",
+     "pr2/r_forearm_roll_link",
+     "pr2/r_forearm_link",
+     "pr2/r_wrist_flex_link",
+     "pr2/r_wrist_roll_link",
+     "pr2/r_gripper_palm_link",
+     "pr2/r_gripper_led_frame",
+     "pr2/r_gripper_motor_accelerometer_link",
+     "pr2/r_gripper_tool_frame",
+     "pr2/r_gripper_motor_slider_link",
+     "pr2/r_gripper_motor_screw_link",
+     "pr2/r_gripper_l_finger_link",
+     "pr2/r_gripper_r_finger_tip_link",
+     "pr2/r_gripper_l_finger_tip_frame",
+     "pr2/l_shoulder_pan_link",
+     "pr2/l_shoulder_lift_link",
+     "pr2/l_upper_arm_roll_link",
+     "pr2/l_upper_arm_link",
+     "pr2/l_elbow_flex_link",
+     "pr2/l_forearm_roll_link",
+     "pr2/l_forearm_link",
+     "pr2/l_wrist_flex_link",
+     "pr2/l_wrist_roll_link",
+     "pr2/l_force_torque_adapter_link",
+     "pr2/l_force_torque_link",
+     "pr2/l_gripper_palm_link",
+     "pr2/l_gripper_led_frame",
+     "pr2/l_gripper_motor_accelerometer_link",
+     "pr2/l_gripper_tool_frame",
+     "pr2/l_gripper_motor_slider_link",
+     "pr2/l_gripper_motor_screw_link",
+     "pr2/l_gripper_l_finger_link",
+     "pr2/l_gripper_r_finger_tip_link",
+     "pr2/l_gripper_l_finger_tip_frame",
+     "pr2/l_forearm_cam_frame",
+     "pr2/l_forearm_cam_optical_frame",
+     "pr2/r_forearm_cam_frame",
+     "pr2/r_forearm_cam_optical_frame",
+     "pr2/head_mount_kinect2_link",
+     "pr2/l_torso_lift_side_item_profile_link",
+     "pr2/r_torso_lift_side_item_profile_link",
+     "pr2/m_torso_lift_side_item_profile_link",
+     "pr2/t_torso_lift_side_item_profile_link",
+     "pr2/r_gripper_r_finger_link",
+     "pr2/r_gripper_l_finger_tip_link",
+     "pr2/l_gripper_r_finger_link",
+     "pr2/l_gripper_l_finger_tip_link"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 5.191627002204768,
+   "frame": 1,
+   "entities": [
+    {
+     "keys": [
+      "pr2/base_footprint",
+      "pr2/base_link",
+      "pr2/base_bellow_link",
+      "pr2/base_laser_link",
+      "pr2/fl_caster_rotation_link",
+      "pr2/fl_caster_l_wheel_link",
+      "pr2/fl_caster_r_wheel_link",
+      "pr2/fr_caster_rotation_link",
+      "pr2/fr_caster_l_wheel_link",
+      "pr2/fr_caster_r_wheel_link",
+      "pr2/bl_caster_rotation_link",
+      "pr2/bl_caster_l_wheel_link",
+      "pr2/bl_caster_r_wheel_link",
+      "pr2/br_caster_rotation_link",
+      "pr2/br_caster_l_wheel_link",
+      "pr2/br_caster_r_wheel_link",
+      "pr2/torso_lift_link",
+      "pr2/l_torso_lift_side_plate_link",
+      "pr2/r_torso_lift_side_plate_link",
+      "pr2/torso_lift_motor_screw_link",
+      "pr2/imu_link",
+      "pr2/head_pan_link",
+      "pr2/head_tilt_link",
+      "pr2/head_plate_frame",
+      "pr2/sensor_mount_link",
+      "pr2/high_def_frame",
+      "pr2/high_def_optical_frame",
+      "pr2/double_stereo_link",
+      "pr2/wide_stereo_link",
+      "pr2/wide_stereo_optical_frame",
+      "pr2/wide_stereo_l_stereo_camera_frame",
+      "pr2/wide_stereo_l_stereo_camera_optical_frame",
+      "pr2/wide_stereo_r_stereo_camera_frame",
+      "pr2/wide_stereo_r_stereo_camera_optical_frame",
+      "pr2/narrow_stereo_link",
+      "pr2/narrow_stereo_optical_frame",
+      "pr2/narrow_stereo_l_stereo_camera_frame",
+      "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+      "pr2/narrow_stereo_r_stereo_camera_frame",
+      "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+      "pr2/projector_wg6802418_frame",
+      "pr2/projector_wg6802418_child_frame",
+      "pr2/head_mount_link",
+      "pr2/head_mount_kinect_ir_link",
+      "pr2/head_mount_kinect_ir_optical_frame",
+      "pr2/head_mount_kinect_rgb_link",
+      "pr2/head_mount_kinect_rgb_optical_frame",
+      "pr2/head_mount_kinect2_rgb_optical_frame",
+      "pr2/head_mount_kinect2_ir_optical_frame",
+      "pr2/head_mount_prosilica_link",
+      "pr2/head_mount_prosilica_optical_frame",
+      "pr2/laser_tilt_mount_link",
+      "pr2/laser_tilt_link",
+      "pr2/r_shoulder_pan_link",
+      "pr2/r_shoulder_lift_link",
+      "pr2/r_upper_arm_roll_link",
+      "pr2/r_upper_arm_link",
+      "pr2/r_elbow_flex_link",
+      "pr2/r_forearm_roll_link",
+      "pr2/r_forearm_link",
+      "pr2/r_wrist_flex_link",
+      "pr2/r_wrist_roll_link",
+      "pr2/r_gripper_palm_link",
+      "pr2/r_gripper_led_frame",
+      "pr2/r_gripper_motor_accelerometer_link",
+      "pr2/r_gripper_tool_frame",
+      "pr2/r_gripper_motor_slider_link",
+      "pr2/r_gripper_motor_screw_link",
+      "pr2/r_gripper_l_finger_link",
+      "pr2/r_gripper_r_finger_tip_link",
+      "pr2/r_gripper_l_finger_tip_frame",
+      "pr2/l_shoulder_pan_link",
+      "pr2/l_shoulder_lift_link",
+      "pr2/l_upper_arm_roll_link",
+      "pr2/l_upper_arm_link",
+      "pr2/l_elbow_flex_link",
+      "pr2/l_forearm_roll_link",
+      "pr2/l_forearm_link",
+      "pr2/l_wrist_flex_link",
+      "pr2/l_wrist_roll_link",
+      "pr2/l_force_torque_adapter_link",
+      "pr2/l_force_torque_link",
+      "pr2/l_gripper_palm_link",
+      "pr2/l_gripper_led_frame",
+      "pr2/l_gripper_motor_accelerometer_link",
+      "pr2/l_gripper_tool_frame",
+      "pr2/l_gripper_motor_slider_link",
+      "pr2/l_gripper_motor_screw_link",
+      "pr2/l_gripper_l_finger_link",
+      "pr2/l_gripper_r_finger_tip_link",
+      "pr2/l_gripper_l_finger_tip_frame",
+      "pr2/l_forearm_cam_frame",
+      "pr2/l_forearm_cam_optical_frame",
+      "pr2/r_forearm_cam_frame",
+      "pr2/r_forearm_cam_optical_frame",
+      "pr2/head_mount_kinect2_link",
+      "pr2/l_torso_lift_side_item_profile_link",
+      "pr2/r_torso_lift_side_item_profile_link",
+      "pr2/m_torso_lift_side_item_profile_link",
+      "pr2/t_torso_lift_side_item_profile_link",
+      "pr2/r_gripper_r_finger_link",
+      "pr2/r_gripper_l_finger_tip_link",
+      "pr2/l_gripper_r_finger_link",
+      "pr2/l_gripper_l_finger_tip_link"
+     ],
+     "name": "PR2",
+     "type": "PR2"
+    }
+   ]
+  },
+  {
+   "number": 1,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Body such that the name of its name is 'tube_clear'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_clear&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "firstLine": 1166,
+    "lines": [
+     "        :param key: The name of a vessel's body.",
+     "        :return: The vessel, found by an entity query.",
+     "        \"\"\"",
+     "        body = variable(Body, world.bodies)",
+     "        return the(entity(body).where(body.name.name == key)).first()",
+     "",
+     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "        \"\"\"",
+     "        :param context: The world and the robot."
+    ],
+    "focusFirstLine": 1170,
+    "focusLastLine": 1170
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "module": "workflow",
+    "line": 1170
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "tube_clear"
+   ],
+   "highlight": {
+    "keys": [
+     "b26727bf-812a-4423-ae6c-d83db3488eed"
+    ],
+    "regions": [],
+    "framed": [
+     "b26727bf-812a-4423-ae6c-d83db3488eed"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 5.1649759989231825,
+   "frame": 13,
+   "entities": [
+    {
+     "keys": [
+      "b26727bf-812a-4423-ae6c-d83db3488eed"
+     ],
+     "name": "tube_clear",
+     "type": "Body"
+    }
+   ]
+  },
+  {
+   "number": 2,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Body such that the name of its name is 'tube_teal'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_teal&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "firstLine": 1166,
+    "lines": [
+     "        :param key: The name of a vessel's body.",
+     "        :return: The vessel, found by an entity query.",
+     "        \"\"\"",
+     "        body = variable(Body, world.bodies)",
+     "        return the(entity(body).where(body.name.name == key)).first()",
+     "",
+     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "        \"\"\"",
+     "        :param context: The world and the robot."
+    ],
+    "focusFirstLine": 1170,
+    "focusLastLine": 1170
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "module": "workflow",
+    "line": 1170
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "tube_teal"
+   ],
+   "highlight": {
+    "keys": [
+     "36b5640e-95e4-493d-b86e-c3388e5b219f"
+    ],
+    "regions": [],
+    "framed": [
+     "36b5640e-95e4-493d-b86e-c3388e5b219f"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 4.256486994563602,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "36b5640e-95e4-493d-b86e-c3388e5b219f"
+     ],
+     "name": "tube_teal",
+     "type": "Body"
+    }
+   ]
+  },
+  {
+   "number": 3,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Body such that the name of its name is 'tube_amber'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_amber&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "firstLine": 1166,
+    "lines": [
+     "        :param key: The name of a vessel's body.",
+     "        :return: The vessel, found by an entity query.",
+     "        \"\"\"",
+     "        body = variable(Body, world.bodies)",
+     "        return the(entity(body).where(body.name.name == key)).first()",
+     "",
+     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "        \"\"\"",
+     "        :param context: The world and the robot."
+    ],
+    "focusFirstLine": 1170,
+    "focusLastLine": 1170
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "module": "workflow",
+    "line": 1170
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "tube_amber"
+   ],
+   "highlight": {
+    "keys": [
+     "ee880464-759d-46b5-931f-4a51e1a6af4b"
+    ],
+    "regions": [],
+    "framed": [
+     "ee880464-759d-46b5-931f-4a51e1a6af4b"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 5.407531003584154,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "ee880464-759d-46b5-931f-4a51e1a6af4b"
+     ],
+     "name": "tube_amber",
+     "type": "Body"
+    }
+   ]
+  },
+  {
+   "number": 4,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Handle such that the name of the name of its root is 'laboratory_refrigerator_door_handle'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle\" title=\"A handle is a physical entity that can be grasped by a hand or a robotic gripper to\"><span style=\"color:cornflowerblue\">Handle</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle.root\" title=\"The root kinematic structure entity of the semantic annotation.\"><span style=\"color:#8FC7B8\">root</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;laboratory_refrigerator_door_handle&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.handle",
+    "firstLine": 1156,
+    "lines": [
+     "        :param name: One of the laboratory's handles.",
+     "        :return: The handle's annotation, found by an entity query.",
+     "        \"\"\"",
+     "        handle = variable(Handle, world.semantic_annotations)",
+     "        return the(entity(handle).where(handle.root.name.name == name.value)).first()",
+     "",
+     "    @staticmethod",
+     "    def the_vessel(world: World, key: str) -> Body:",
+     "        \"\"\""
+    ],
+    "focusFirstLine": 1160,
+    "focusLastLine": 1160
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.handle",
+    "module": "workflow",
+    "line": 1160
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "Handle \u00b7 laboratory_refrigerator_door_handle"
+   ],
+   "highlight": {
+    "keys": [
+     "laboratory_refrigerator_door_handle"
+    ],
+    "regions": [],
+    "framed": [
+     "laboratory_refrigerator_door_handle"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 2.1154870046302676,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "laboratory_refrigerator_door_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_refrigerator_door_handle",
+     "type": "Handle"
+    }
+   ]
+  },
+  {
+   "number": 5,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Body such that the name of its name is 'tube_teal'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_teal&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "firstLine": 1166,
+    "lines": [
+     "        :param key: The name of a vessel's body.",
+     "        :return: The vessel, found by an entity query.",
+     "        \"\"\"",
+     "        body = variable(Body, world.bodies)",
+     "        return the(entity(body).where(body.name.name == key)).first()",
+     "",
+     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "        \"\"\"",
+     "        :param context: The world and the robot."
+    ],
+    "focusFirstLine": 1170,
+    "focusLastLine": 1170
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "module": "workflow",
+    "line": 1170
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "tube_teal"
+   ],
+   "highlight": {
+    "keys": [
+     "36b5640e-95e4-493d-b86e-c3388e5b219f"
+    ],
+    "regions": [],
+    "framed": [
+     "36b5640e-95e4-493d-b86e-c3388e5b219f"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 4.713211994385347,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "36b5640e-95e4-493d-b86e-c3388e5b219f"
+     ],
+     "name": "tube_teal",
+     "type": "Body"
+    }
+   ]
+  },
+  {
+   "number": 6,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Handle such that the name of the name of its root is 'laboratory_centrifuge_lid_handle'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle\" title=\"A handle is a physical entity that can be grasped by a hand or a robotic gripper to\"><span style=\"color:cornflowerblue\">Handle</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle.root\" title=\"The root kinematic structure entity of the semantic annotation.\"><span style=\"color:#8FC7B8\">root</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;laboratory_centrifuge_lid_handle&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.handle",
+    "firstLine": 1156,
+    "lines": [
+     "        :param name: One of the laboratory's handles.",
+     "        :return: The handle's annotation, found by an entity query.",
+     "        \"\"\"",
+     "        handle = variable(Handle, world.semantic_annotations)",
+     "        return the(entity(handle).where(handle.root.name.name == name.value)).first()",
+     "",
+     "    @staticmethod",
+     "    def the_vessel(world: World, key: str) -> Body:",
+     "        \"\"\""
+    ],
+    "focusFirstLine": 1160,
+    "focusLastLine": 1160
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.handle",
+    "module": "workflow",
+    "line": 1160
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "Handle \u00b7 laboratory_centrifuge_lid_handle"
+   ],
+   "highlight": {
+    "keys": [
+     "laboratory_centrifuge_lid_handle"
+    ],
+    "regions": [],
+    "framed": [
+     "laboratory_centrifuge_lid_handle"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 2.4538060097256675,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "laboratory_centrifuge_lid_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_centrifuge_lid_handle",
+     "type": "Handle"
+    }
+   ]
+  },
+  {
+   "number": 7,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Body such that the name of its name is 'tube_clear'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_clear&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "firstLine": 1166,
+    "lines": [
+     "        :param key: The name of a vessel's body.",
+     "        :return: The vessel, found by an entity query.",
+     "        \"\"\"",
+     "        body = variable(Body, world.bodies)",
+     "        return the(entity(body).where(body.name.name == key)).first()",
+     "",
+     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "        \"\"\"",
+     "        :param context: The world and the robot."
+    ],
+    "focusFirstLine": 1170,
+    "focusLastLine": 1170
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "module": "workflow",
+    "line": 1170
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "tube_clear"
+   ],
+   "highlight": {
+    "keys": [
+     "b26727bf-812a-4423-ae6c-d83db3488eed"
+    ],
+    "regions": [],
+    "framed": [
+     "b26727bf-812a-4423-ae6c-d83db3488eed"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 4.442706995178014,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "b26727bf-812a-4423-ae6c-d83db3488eed"
+     ],
+     "name": "tube_clear",
+     "type": "Body"
+    }
+   ]
+  },
+  {
+   "number": 8,
+   "depth": 0,
+   "phase": "expansion",
+   "during": "PR2: rack, refrigerator and centrifuge loading, with its queries",
+   "moment": "answered",
+   "question": {
+    "text": "Find the unique Body such that the name of its name is 'tube_amber'",
+    "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_amber&#x27;</span>"
+   },
+   "code": {
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "firstLine": 1166,
+    "lines": [
+     "        :param key: The name of a vessel's body.",
+     "        :return: The vessel, found by an entity query.",
+     "        \"\"\"",
+     "        body = variable(Body, world.bodies)",
+     "        return the(entity(body).where(body.name.name == key)).first()",
+     "",
+     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "        \"\"\"",
+     "        :param context: The world and the robot."
+    ],
+    "focusFirstLine": 1170,
+    "focusLastLine": 1170
+   },
+   "caller": {
+    "function": "LaboratoryWorkflowDemo.the_vessel",
+    "module": "workflow",
+    "line": 1170
+   },
+   "backend": {
+    "name": "EntityQueryLanguageBackend",
+    "source": "working memory"
+   },
+   "generates": false,
+   "answers": [
+    "tube_amber"
+   ],
+   "highlight": {
+    "keys": [
+     "ee880464-759d-46b5-931f-4a51e1a6af4b"
+    ],
+    "regions": [],
+    "framed": [
+     "ee880464-759d-46b5-931f-4a51e1a6af4b"
+    ]
+   },
+   "variables": [],
+   "enclosing": [],
+   "milliseconds": 6.841945010819472,
+   "frame": 15,
+   "entities": [
+    {
+     "keys": [
+      "ee880464-759d-46b5-931f-4a51e1a6af4b"
+     ],
+     "name": "tube_amber",
+     "type": "Body"
+    }
+   ]
+  }
+ ]
+}

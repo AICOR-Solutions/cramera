@@ -13,6 +13,7 @@ import {
   ExecutionRequestKey,
   LiveInfoKey,
   LiveRoute,
+  PageLayout,
   RecordingState,
   RecordingStatusKey,
   SceneKey,
@@ -22,6 +23,8 @@ import {
 import { PlaybackClock } from '../playback/playback-clock.js';
 import { saveVideo, VideoRecording } from '../playback/video-recording.js';
 import { LOST_NOTE, TimelineView, WAITING_NOTE } from '../playback/timeline-view.js';
+import { DESIGNATORS_PANEL, DesignatorsPanel } from '../panels/designators-panel.js';
+import { AnswerOrigin } from '../designators/designator-chain.js';
 import { DetailsPanel } from '../panels/details-panel.js';
 import { PerceptionPanel } from '../panels/perception-panel.js';
 import { QueryStepActions, QueryStepsPanel } from '../panels/query-steps-panel.js';
@@ -363,6 +366,12 @@ export class Application {
   #querySteps;
 
   /**
+   * The Designators panel.
+   * @type {DesignatorsPanel}
+   */
+  #designators;
+
+  /**
    * The Live panel.
    * @type {LivePanel}
    */
@@ -463,6 +472,7 @@ export class Application {
       timers,
       (inspecting) => this.#resolutions.holdScene(inspecting),
     );
+    this.#designators = new DesignatorsPanel(elements.document, this.bus);
     this.#liveBadge = new LiveBadge(elements.liveBadge, () => this.#panels.show(this.#livePanel.panel.identifier));
     this.bus.subscribe(ViewerEvent.LIVE_CONNECTED, (info) => this.#showLiveConnection(info));
     this.bus.subscribe(ViewerEvent.LIVE_DISCONNECTED, () => this.#showLiveConnection(null));
@@ -525,8 +535,8 @@ export class Application {
     this.#view.start((seconds) => this.#tick(seconds));
     const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
-    for (const part of [this.#sceneGraph, this.#perception, this.#segmind, this.#resolutions, this.#querySteps, this.#details, this.#livePanel]) this.#panels.add(part.panel);
-    const panel = panelOf(this.#location.href);
+    for (const part of [this.#sceneGraph, this.#perception, this.#segmind, this.#resolutions, this.#querySteps, this.#designators, this.#details, this.#livePanel]) this.#panels.add(part.panel);
+    const panel = layout === PageLayout.DESIGNATORS ? DESIGNATORS_PANEL : panelOf(this.#location.href);
     if (panel && this.#panels.identifiers().includes(panel)) this.#panels.show(panel);
     if (liveAddress) this.connectLive(liveAddress);
     else await this.show(choice.scene);
@@ -570,11 +580,14 @@ export class Application {
     this.#perception.show(loaded, SceneKey.PLAN_TREES, (file) => this.#api.sceneFileUrl(loaded.name, file));
     this.#segmind.show(loaded);
     if (!this.#live) this.#querySteps.showRecorded(loaded.querySteps);
+    this.#designators.show(loaded);
+    if (this.#live) this.#designators.showSteps(null, AnswerOrigin.LIVE);
     this.#rememberScene(name);
     this.#elements.stageMessage.hidden = true;
     const missing = loaded.missingFiles().length;
     this.#status.ready(missing ? `Showing ${name}; ${missing} files could not be loaded (see Details)` : `Showing ${name}`);
     this.bus.publish(ViewerEvent.SCENE_LOADED, loaded);
+    if (this.#elements.document.documentElement.dataset.layout === PageLayout.DESIGNATORS) this.#panels.show(DESIGNATORS_PANEL);
   }
 
   /**
@@ -613,7 +626,10 @@ export class Application {
           this.#livePanel.showRecording(status);
         },
         (resolutions) => this.#resolutions.show(resolutions, this.#live?.offers(Capability.RESOLUTION_EXECUTION) ?? false),
-        (steps) => this.#querySteps.show(steps),
+        (steps) => {
+          this.#querySteps.show(steps);
+          this.#designators.showSteps(steps, AnswerOrigin.LIVE);
+        },
         () => this.#querySteps.revision,
         (detected) => this.#segmind.showLive(detected),
       ),

@@ -10,6 +10,7 @@ from enum import StrEnum
 
 from typing_extensions import List, Optional
 
+from cramera_protocol.designator_roles import RoleEntity
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.questions import Verbalization
 from cramera_protocol.resolutions import BackendDescription, Reasoning, SceneHighlight
@@ -484,6 +485,21 @@ class QueryStepKey(StrEnum):
     How long answering took.
     """
 
+    FRAME = "frame"
+    """
+    The recorded frame the query was asked at.
+    """
+
+    PLAN_NODE = "planNode"
+    """
+    The plan node under way when the query was asked.
+    """
+
+    ENTITIES = "entities"
+    """
+    The entities of the world its answers are.
+    """
+
 
 @dataclass(kw_only=True)
 class QueryStep(JsonDocument):
@@ -587,6 +603,29 @@ class QueryStep(JsonDocument):
     )
     """
     How long answering took in milliseconds, or None before it ended.
+    """
+
+    frame: Optional[int] = document_field(QueryStepKey.FRAME, default=None)
+    """
+    The index of the frame the recording was about to record when the query was asked,
+    or None for a process that does not record; a query asked while the plans are
+    built, before any motion, has the frame the robot starts from.
+    """
+
+    plan_node: Optional[str] = document_field(QueryStepKey.PLAN_NODE, default=None)
+    """
+    The identity of the action under way when the query was asked, as the recording's
+    plan trees name it, or None for a query asked while no plan ran, such as while the
+    plans were built.
+    """
+
+    entities: List[RoleEntity] = document_field(
+        QueryStepKey.ENTITIES, default_factory=list
+    )
+    """
+    The answers that are bodies or semantic annotations of the world, in the order
+    given, each with the keys the scene lights up for it; a role of a designator is
+    filled by an answer when they name the same keys.
     """
 
 

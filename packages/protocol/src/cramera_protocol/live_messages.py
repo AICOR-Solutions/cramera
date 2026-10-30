@@ -19,6 +19,7 @@ from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.exceptions import InvalidDocumentValue
 from cramera_protocol.geometry import NumberArray, Pose, Vector3
+from cramera_protocol.designator_roles import RoleSlot
 
 # %% values
 
@@ -297,6 +298,11 @@ class LivePlanNodeKey(StrEnum):
     What a perception step saw.
     """
 
+    ROLES = "roles"
+    """
+    The roles the fields of the node's designator fill.
+    """
+
 
 @dataclass(kw_only=True)
 class LivePlanNode(JsonDocument):
@@ -375,6 +381,12 @@ class LivePlanNode(JsonDocument):
     For a perception step: the images of what it saw once it ended, each served by
     :attr:`~cramera_protocol.live.LiveRoute.PERCEPTION_IMAGE`; None for every other
     node.
+    """
+
+    roles: List[RoleSlot] = document_field(LivePlanNodeKey.ROLES, default_factory=list)
+    """
+    The roles the fields of the node's designator fill, with the entities each names;
+    empty for a node without a designator and in recordings written before.
     """
 
 

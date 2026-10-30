@@ -11,18 +11,33 @@ from enum import Enum, StrEnum
 from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 from cramera_bridge.exceptions import UnknownPlanNode
-from cramera_bridge.names import plan_node_kind
+from cramera_bridge.names import (
+    ACTION_NAMES,
+    FIELD_NAMES,
+    FIELD_ROLES,
+    plan_node_kind,
+)
 from cramera_bridge.live.perception_images import PerceptionImages
 from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.robots import RobotRoster
+from cramera_protocol.designator_roles import (
+    DesignatorRole,
+    RoleEntity,
+    RoleSlot,
+    RoleSource,
+)
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
 from coraplex.plans.plan_node import ActionNode, DesignatorNode, MotionNode, PlanNode
 from coraplex.robot_plans.motions.misc import DetectingMotion
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from krrood.entity_query_language.core.variable import Variable
 from krrood.entity_query_language.query.match import Match
-from semantic_digital_twin.robots.robot_parts import Arm
+from semantic_digital_twin.robots.robot_parts import (
+    AbstractRobot,
+    AbstractRobotPart,
+    Arm,
+)
 from semantic_digital_twin.spatial_types.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -88,6 +103,18 @@ Separates the class a match matches from what it states about the class's fields
 OPEN_VALUE = "any"
 """
 Precedes the type of a value a designator leaves open, to be found when it runs.
+"""
+
+ENTITY_ROOT_SEPARATOR = " · "
+"""
+Joins an annotation named only by its kind, such as a container, to the name of its root
+body, as a query step words such an answer.
+"""
+
+AGENT_FIELD = "robot"
+"""
+What the plan's context calls the robot that performs an action, which fills the
+action's agent role.
 """
 
 
@@ -274,6 +301,97 @@ class DesignatorSummary:
             for name, value in self.fields_of(self.node.designator)
             if value is not None
         }
+
+    def roles(self, object_keys: Set[str], robot: Optional[object]) -> List[RoleSlot]:
+        """
+        :param object_keys: The keys of the published objects.
+        :param robot: The robot of the plan's context, or None for a plan without one.
+        :return: The roles the designator's fields fill, by :data:`FIELD_ROLES`, with
+            the entities each names; an action's agent first, from the context, since
+            no field of the designator names it; empty for a node without a designator.
+        """
+        if not isinstance(self.node, DesignatorNode):
+            return []
+        designator = self.node.designator
+        slots = []
+        if robot is not None and isinstance(self.node, ActionNode):
+            slots.append(
+                RoleSlot(
+                    field=AGENT_FIELD,
+                    role=DesignatorRole.AGENT,
+                    source=RoleSource.CONTEXT,
+                    value=str(robot.name),
+                    entities=[self.entity(robot, object_keys)],
+                )
+            )
+        action = ACTION_NAMES.identifier_of(type(designator))
+        for name, value in self.fields_of(designator):
+            identifier = FIELD_NAMES.identifier_of(action, name)
+            field_role = FIELD_ROLES.get(identifier)
+            if field_role is None:
+                continue
+            path = [identifier]
+            for inner in field_role.within:
+                value = getattr(value, inner, None)
+                path.append(inner)
+            if value is None or isinstance(value, Variable):
+                continue
+            values = list(value) if isinstance(value, (list, tuple)) else [value]
+            slots.append(
+                RoleSlot(
+                    field=".".join(path),
+                    role=field_role.role,
+                    value=self.render(value, object_keys),
+                    entities=[
+                        self.entity(each, object_keys)
+                        for each in values
+                        if isinstance(each, (Body, SemanticAnnotation))
+                    ],
+                    reference=next(
+                        (
+                            self.entity(each.reference_frame, object_keys)
+                            for each in values
+                            if isinstance(each, Pose)
+                            and isinstance(each.reference_frame, Body)
+                        ),
+                        None,
+                    ),
+                )
+            )
+        return slots
+
+    @classmethod
+    def entity(cls, value: object, object_keys: Set[str]) -> RoleEntity:
+        """
+        :param value: A body or an annotation a role names.
+        :param object_keys: The keys of the published objects.
+        :return: The entity with the keys the scene lights up for it, as a query's
+            highlight names them: a free object by its key, another body by its name,
+            an annotation by its bodies, or by its root while it belongs to no world,
+            as a part of a robot description a designator holds does; an annotation
+            named only by its kind, such as a container, is named by its root body
+            too; a robot and its parts keep their own names.
+        """
+        if isinstance(value, Body):
+            bodies = [value]
+        elif value._world is not None:
+            bodies = list(value.bodies)
+        else:
+            root = getattr(value, "root", None)
+            bodies = [root] if isinstance(root, Body) else []
+        name = str(value.name)
+        root = getattr(value, "root", None)
+        if (
+            name == type(value).__name__
+            and isinstance(root, Body)
+            and not isinstance(value, (AbstractRobot, AbstractRobotPart))
+        ):
+            name = f"{name}{ENTITY_ROOT_SEPARATOR}{root.name}"
+        return RoleEntity(
+            keys=list(dict.fromkeys(cls.render(body, object_keys) for body in bodies)),
+            name=name,
+            type_name=type(value).__name__,
+        )
 
     @staticmethod
     def fields_of(value: object) -> List[Tuple[str, object]]:
@@ -489,6 +607,10 @@ class PerformedPlan:
             target=summary.target(object_keys),
             constraints=constraints(identifier),
             parameters=summary.parameters(object_keys),
+            roles=summary.roles(
+                object_keys,
+                None if self.plan.context is None else self.plan.context.robot,
+            ),
             perceived=(
                 list(self.perceived.get(node.index, []))
                 if self.is_perception(node)

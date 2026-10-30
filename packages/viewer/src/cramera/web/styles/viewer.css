@@ -708,6 +708,58 @@ body.scene-page { display: flex; flex-direction: column; overflow: hidden; backg
 :root[data-layout="scene"] .split { grid-template-columns: minmax(0, 1fr); padding: 0; }
 :root[data-layout="scene"] .scene-card { border: none; border-radius: 0; }
 
+/* %% the designators layout: the scene beside the Designators panel and nothing else */
+
+:root[data-layout="designators"] .query-slot,
+:root[data-layout="designators"] .row-divider,
+:root[data-layout="designators"] #side-panels > .tabs { display: none; }
+:root[data-layout="designators"] .split { --side-share: 46%; }
+
+.designators { display: grid; gap: 10px; align-content: start; font-size: 12.5px; }
+.designators h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: 0.02em; }
+.designators h4 { margin: 8px 0 4px; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+.designators-action { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.designators-pane { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; background: var(--surface-raised); max-height: 34vh; overflow: auto; }
+.designators-note { margin: 0 0 6px; font-size: 11.5px; }
+.designators .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+.role-table { width: 100%; border-collapse: collapse; }
+.role-table th { text-align: left; color: var(--text-faint); font-weight: 500; padding: 2px 6px; border-bottom: 1px solid var(--border); }
+.role-table td { padding: 3px 6px; border-bottom: 1px solid var(--border); }
+.role-row { cursor: pointer; }
+.role-row:hover, .role-row:focus-visible { background: var(--accent-soft); outline: none; }
+.role-row.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.role-name { font-weight: 600; }
+.role-agent { color: var(--accent-2); }
+.role-object { color: var(--accent); }
+.role-effector { color: var(--play-text); }
+.role-location { color: var(--warning); }
+.role-instrument { color: var(--success); }
+.designator-tree, .designator-children { list-style: none; margin: 0; padding: 0 0 0 14px; }
+.designator-tree { padding: 0; }
+.designator-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; padding: 2px 4px; border-radius: var(--radius); }
+.designator-line[title] { cursor: pointer; }
+.designator-line.current { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.designator-kind { color: var(--text-faint); font-size: 11px; min-width: 52px; }
+.designator-phase { font-size: 10.5px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border-strong); text-transform: uppercase; letter-spacing: 0.04em; }
+.designator-phase.inferred { border-style: dashed; opacity: 0.8; }
+.phase-pending { color: var(--text-muted); }
+.phase-running { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
+.phase-succeeded { color: var(--success); border-color: var(--success); }
+.phase-failed, .phase-interrupted { color: var(--danger); border-color: var(--danger); }
+.phase-not-run { color: var(--text-faint); }
+.designator-node[data-phase="pending"] > .designator-line strong { color: var(--text-muted); }
+.role-slots { list-style: none; margin: 0 0 2px; padding: 0 0 0 62px; color: var(--control-text); }
+.slot-resolutions, .designator-queries, .query-answers { margin: 0; padding-left: 16px; }
+.slot-resolution { margin: 2px 0; }
+.slot-filling { margin-left: 6px; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--text-muted); }
+.filling-queried .slot-filling { color: var(--accent); border-color: var(--accent); }
+.designator-query { margin: 4px 0 8px; }
+.designator-query > .muted { margin: 2px 0; font-size: 11px; }
+.query-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.answer-origin { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 0 5px; border-radius: 3px; margin-left: 6px; }
+.origin-recorded { color: var(--record-text); border: 1px solid var(--record); }
+.origin-live { color: var(--accent-text); background: var(--danger); }
+
 /* %% narrow and low screens, such as a phone upright or on its side: the columns stack */
 
 @media (max-width: 900px), (max-height: 540px) {

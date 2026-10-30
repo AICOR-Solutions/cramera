@@ -18,6 +18,7 @@ from cramera_bridge.exceptions import (
 from coraplex.robot_plans.actions.composite.transporting import MoveAndPickUpAction
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
+from cramera_protocol.designator_roles import DesignatorRole
 from cramera_bridge.live.plan import DesignatorSummary, PLAN_NODE_PREFIX, PlanNodeStatus
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
@@ -379,3 +380,17 @@ def test_a_sub_action_left_to_be_found_is_named_by_what_it_matches():
 
 def test_a_value_left_open_is_named_by_its_type():
     assert DesignatorSummary.render(variable(Pose, domain=[]), set()) == "any Pose"
+
+
+def test_a_node_names_the_entities_its_designator_fields_fill_roles_with(
+    publisher, small_plan, kitchen, robot_world
+):
+    publisher.begin_plan(small_plan.plan)
+    root, action, motion = publisher.current_plan().nodes
+    assert root.roles == []
+    roles = {slot.field: slot for slot in motion.roles}
+    assert roles["arm"].role is DesignatorRole.EFFECTOR
+    assert roles["arm"].entities[0].name == str(robot_world.robot.left_arm.name)
+    assert roles["object_part"].role is DesignatorRole.OBJECT
+    assert roles["object_part"].entities[0].keys == [str(kitchen.milk.id)]
+    assert "robot" not in roles, "a motion takes no agent of its own"

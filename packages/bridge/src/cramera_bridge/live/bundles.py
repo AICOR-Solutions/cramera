@@ -267,6 +267,7 @@ class PlanTrees:
                 end=None if frames is None else frames.last,
                 robot=None if node.parent in identifiers else self.robot,
                 parameters=dict(node.parameters),
+                roles=list(node.roles),
                 perceived=(None if node.perceived is None else list(node.perceived)),
                 reason=node.reason,
                 images=(
