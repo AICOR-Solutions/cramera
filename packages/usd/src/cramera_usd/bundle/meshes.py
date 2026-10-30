@@ -14,6 +14,7 @@ from cramera_protocol.bundle.files import BundleFile, MeshFormat
 from cramera_protocol.bundle.semantics import SemanticNamespace
 from cramera_usd.animation.models import AnimatedObject, KinematicModel
 from cramera_usd.bundle.layout import ANY_NAME, BundleLayout
+from cramera_usd.gltf.document import TextureEncodings
 from cramera_usd.gltf.link import LinkGltf
 from cramera_usd.materials.physically_based import PhysicallyBasedMaterial
 from cramera_usd.scene.kinematics import Link
@@ -41,6 +42,11 @@ class MeshFiles:
     semantics: Dict[str, Dict[SemanticNamespace, Dict[str, Any]]]
     """
     The semantic attributes by prim path, stored on the GLB nodes.
+    """
+
+    textures: TextureEncodings = field(default_factory=TextureEncodings)
+    """
+    The encoding of the textures the GLBs embed, each texture encoded once.
     """
 
     written: Set[Path] = field(default_factory=set)
@@ -77,7 +83,9 @@ class MeshFiles:
         """
         path = self.layout.file(relative)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(LinkGltf(link, self.materials, self.semantics).encode())
+        path.write_bytes(
+            LinkGltf(link, self.materials, self.semantics, self.textures).encode()
+        )
         self.written.add(path)
 
     def remove_stale(self) -> None:

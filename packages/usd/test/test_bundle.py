@@ -443,6 +443,25 @@ def test_unmapped_material_inputs_are_reported(tmp_path):
     }
 
 
+def test_simready_materials_leave_no_input_unmapped_and_no_udim_tile_missing(
+    tmp_path,
+):
+    bundle = convert(Stage.UDIM_DISPENSER, tmp_path, "dispenser")
+    report = report_of(bundle)
+    assert report.unmapped_inputs == {}
+    assert report.missing_textures == []
+    contents = [
+        GlbContent.of_bytes(glb.read_bytes())
+        for glb in bundle.joinpath(BundleFile.MESHES).glob(f"*{MeshFormat.GLB}")
+    ]
+    sizes = {
+        Image.open(io.BytesIO(content.embedded(image))).size
+        for content in contents
+        for image in range(len(content.document.get(GltfKey.IMAGES, [])))
+    }
+    assert sizes == {(4, 2), (2, 2)}
+
+
 def test_semantics_ride_on_the_glb_node_of_their_prim(tmp_path):
     bundle = convert(Stage.TEXTURED_QUAD, tmp_path, "quad")
     (glb,) = bundle.joinpath(BundleFile.MESHES).glob(f"*{MeshFormat.GLB}")

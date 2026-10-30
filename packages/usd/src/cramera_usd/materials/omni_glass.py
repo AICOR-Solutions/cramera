@@ -11,7 +11,11 @@ from typing_extensions import Dict
 
 from cramera_usd.materials.channels import ScalarChannel
 from cramera_usd.materials.inputs import ShaderInputs
-from cramera_usd.materials.mapping import RoughnessMetallicPacking, ShaderMapping
+from cramera_usd.materials.mapping import (
+    RoughnessMetallicPacking,
+    ShaderMapping,
+    TangentFlips,
+)
 from cramera_usd.materials.omni_pbr import NO_SCALING
 from cramera_usd.materials.physically_based import (
     WHITE,
@@ -133,6 +137,11 @@ class OmniGlassMapping(ShaderMapping):
     OmniGlass's default ``glass_color``.
     """
 
+    tangents: TangentFlips = field(default_factory=TangentFlips)
+    """
+    OmniGlass's tangent flips of its normal map, by their defaults, which are OmniPBR's.
+    """
+
     neutral_inputs: Dict[str, ShaderInputValue] = field(
         default_factory=lambda: {
             OmniGlassInput.USE_COLOR_TEXTURE: True,
@@ -151,7 +160,12 @@ class OmniGlassMapping(ShaderMapping):
         color = inputs.textured_color(
             input_name.COLOR, input_name.COLOR_TEXTURE, self.glass_color
         )
-        return RoughnessMetallicPacking(
+        normal_map = self.tangents.normal_map(
+            inputs,
+            inputs.texture(input_name.NORMAL_TEXTURE),
+            inputs.number(input_name.NORMAL_STRENGTH, 1.0),
+        )
+        material = RoughnessMetallicPacking(
             ScalarChannel(
                 inputs.number(input_name.FROSTING, 0.0),
                 inputs.texture(input_name.ROUGHNESS_TEXTURE),
@@ -163,8 +177,6 @@ class OmniGlassMapping(ShaderMapping):
                 name="",
                 base_color_factor=(*color.factor, self.cut_out_opacity(inputs)),
                 base_color_texture=color.texture,
-                normal_texture=inputs.texture(input_name.NORMAL_TEXTURE),
-                normal_scale=inputs.number(input_name.NORMAL_STRENGTH, 1.0),
                 transmission=1.0,
                 index_of_refraction=inputs.number(
                     input_name.INDEX_OF_REFRACTION, self.index_of_refraction
@@ -174,6 +186,7 @@ class OmniGlassMapping(ShaderMapping):
                 double_sided=True,
             )
         )
+        return normal_map.apply(material)
 
     @staticmethod
     def cut_out_opacity(inputs: ShaderInputs) -> float:

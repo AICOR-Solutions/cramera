@@ -396,6 +396,24 @@ which this repository was mirrored until 22 Oct 2026.
   ![The GARMI apartment's kitchen exported with its materials](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/apartment-materials/garmi_apartment_kitchen.png)
   ![Flowers cut out by their opacity texture in a glass vase](https://raw.githubusercontent.com/AICOR-Solutions/cramera/pr-media/apartment-materials/garmi_apartment_flowers.png)
 
+- **Isaac twins with NVIDIA SimReady items pass the export gate and load in the
+  viewer.** `cramera-export` refused LabAutomationTwin's S2 lab once it held SimReady
+  items: their OmniPBR and OmniGlass materials set `flip_tangent_u` and
+  `flip_tangent_v`, OmniPBR sets `opacity_constant` without enabling opacity, and the
+  hygiene station reads `<UDIM>` textures; its bundle grew to 2.9 GB. The tangent
+  flips are read against MDL's defaults (`TangentFlips`), under which OmniPBR reads a
+  normal map as glTF does: both flipped negate the normal scale, one flipped inverts
+  that channel of the embedded normal map (`FlippedNormalTexture`), and without a
+  normal map they have no effect, as `opacity_constant` has none while opacity is off.
+  A UDIM set is resolved beside the layer that authors it (`TextureFile.tiles`): tile
+  1001 alone stays one image, several tiles become one atlas image read through
+  `KHR_texture_transform` (`TextureImage`, `TextureTransform.onto_atlas`). Embedded
+  images are scaled down to 1024 pixels on their longer side (`--texture-size PIXELS`,
+  `0` for none), since every GLB embeds the textures its link draws and the browser
+  uploads them once per GLB: the SimReady items' 66 textures of 4096 pixels were
+  embedded 247 times and needed 20.8 GB of texture memory. Each texture is encoded
+  once per bundle (`TextureEncodings`). The S2 lab is 293 MB instead of 2894 MB and
+  exports in 52 s instead of 5 min 44 s.
 - **Free objects whose bodies share a prim name are told apart.** `--free-objects`
   keyed every object by its rigid body's prim name, so the GARMI apartment, whose
   chairs, books and dining table each keep their rigid body in a `Geom/body`, listed

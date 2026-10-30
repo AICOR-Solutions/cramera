@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy
-from PIL import Image
 from typing_extensions import Any, Dict, Optional, Set, Tuple, Union
 
 from cramera_usd.encoding import TEXT_ENCODING
@@ -35,8 +34,15 @@ from cramera_usd.gltf.material import GltfMaterial
 from cramera_usd.gltf.merged import MergedMesh
 from cramera_usd.materials.channels import (
     ColorOpacityTexture,
-    ImageFormat,
+    FlippedNormalTexture,
     RoughnessMetallicTexture,
+)
+from cramera_usd.materials.images import (
+    JPEG_QUALITY,
+    ImageFormat,
+    ImageMode,
+    TextureImage,
+    TextureSizeLimit,
 )
 from cramera_usd.materials.physically_based import (
     PhysicallyBasedMaterial,
@@ -47,36 +53,108 @@ from cramera_usd.scene.materials import TextureFile
 
 # %% images
 
-TextureSource = Union[TextureFile, RoughnessMetallicTexture, ColorOpacityTexture]
+TextureSource = Union[
+    TextureFile, RoughnessMetallicTexture, ColorOpacityTexture, FlippedNormalTexture
+]
 """
 What a texture is made from: an image file, roughness and metalness packed into one
-image, or a colour image composed with an opacity image.
+image, a colour image composed with an opacity image, or a normal map with a flipped
+tangent.
+"""
+
+SIGNATURE_LENGTH = 8
+"""
+The number of leading bytes that tell the encoding of an image file.
+"""
+
+JPEG_MODES = (ImageMode.RGB, ImageMode.GREYSCALE)
+"""
+The image modes a JPEG file holds.
 """
 
 
 @dataclass
 class EmbeddedImage:
     """
-    An image file as glTF can embed it: PNG and JPEG as they are, anything else re-
-    encoded as PNG.
+    A texture file as glTF can embed it: a PNG or JPEG file within the size limit as it
+    is; a larger image scaled down to the limit, the atlas of a UDIM set and any other
+    format encoded again, as JPEG when it was a JPEG file and as PNG otherwise.
     """
 
-    path: Path
+    texture: TextureFile
     """
-    The image file.
+    The texture file.
+    """
+
+    limit: TextureSizeLimit
+    """
+    The largest image to embed.
     """
 
     def encoded(self) -> Tuple[bytes, ImageType]:
         """
         :return: The image bytes and their type.
         """
-        data = self.path.read_bytes()
-        for image_type in ImageType:
-            if data.startswith(image_type.signature):
-                return data, image_type
+        image = TextureImage(self.texture)
+        size = self.limit.fitted(image.size)
+        source_type = self.type_of(self.texture.path)
+        if not self.texture.tiles and size == image.size and source_type is not None:
+            return self.texture.path.read_bytes(), source_type
+        opened = image.opened(size=size)
         stream = io.BytesIO()
-        Image.open(self.path).save(stream, format=ImageFormat.PNG)
+        if source_type is ImageType.JPEG and opened.mode in JPEG_MODES:
+            opened.save(stream, format=ImageFormat.JPEG, quality=JPEG_QUALITY)
+            return stream.getvalue(), ImageType.JPEG
+        opened.save(stream, format=ImageFormat.PNG)
         return stream.getvalue(), ImageType.PNG
+
+    @staticmethod
+    def type_of(path: Path) -> Optional[ImageType]:
+        """
+        :param path: An image file.
+        :return: The glTF image type its bytes start with, or None for another format.
+        """
+        with path.open("rb") as stream:
+            head = stream.read(SIGNATURE_LENGTH)
+        return next(
+            (
+                image_type
+                for image_type in ImageType
+                if head.startswith(image_type.signature)
+            ),
+            None,
+        )
+
+
+@dataclass
+class TextureEncodings:
+    """
+    The embedded bytes of every texture encoded so far, shared by the GLBs of one
+    bundle, whose links draw the same textures again.
+    """
+
+    limit: TextureSizeLimit = field(default_factory=TextureSizeLimit)
+    """
+    The largest image to embed.
+    """
+
+    encoded: Dict[TextureSource, Tuple[bytes, ImageType]] = field(default_factory=dict)
+    """
+    The bytes and type of each texture encoded so far.
+    """
+
+    def encode(self, source: TextureSource) -> Tuple[bytes, ImageType]:
+        """
+        :param source: An image file, or a texture made from image files.
+        :return: Its bytes as glTF embeds them, and their type.
+        """
+        if source not in self.encoded:
+            self.encoded[source] = (
+                EmbeddedImage(source, self.limit).encoded()
+                if isinstance(source, TextureFile)
+                else (source.encode(self.limit), ImageType.PNG)
+            )
+        return self.encoded[source]
 
 
 # %% document
@@ -141,6 +219,11 @@ class GltfDocument:
     blending: TransmissionBlending = field(default_factory=TransmissionBlending)
     """
     How transmissive surfaces are drawn, for viewers that cannot refract.
+    """
+
+    textures: TextureEncodings = field(default_factory=TextureEncodings)
+    """
+    The encoding of the textures the document embeds, shared with other documents.
     """
 
     def appended(self, key: GltfKey, item: Dict[str, Any]) -> int:
@@ -212,16 +295,12 @@ class GltfDocument:
         """
         Embed a texture once.
 
-        :param source: An image file, or a texture packed from greyscale sources.
+        :param source: An image file, or a texture made from image files.
         :return: The index of the texture.
         """
         if source in self.texture_indices:
             return self.texture_indices[source]
-        data, image_type = (
-            (source.encode(), ImageType.PNG)
-            if isinstance(source, (RoughnessMetallicTexture, ColorOpacityTexture))
-            else EmbeddedImage(source.path).encoded()
-        )
+        data, image_type = self.textures.encode(source)
         image = self.appended(
             GltfKey.IMAGES,
             {
@@ -240,9 +319,13 @@ class GltfDocument:
         """
         :param source: A texture.
         :param transform: The material's change of texture coordinates, if any.
-        :return: A glTF texture info pointing at the embedded texture.
+        :return: A glTF texture info pointing at the embedded texture, the texture
+            coordinates of a UDIM set's atlas changed to read it.
         """
         reference: Dict[str, Any] = {GltfKey.INDEX: self.add_texture(source)}
+        if not source.grid.single:
+            atlas = TextureTransform.onto_atlas(source.grid)
+            transform = atlas if transform is None else transform.then(atlas)
         if transform is not None:
             self.extensions.add(GltfExtension.TEXTURE_TRANSFORM)
             reference[GltfKey.EXTENSIONS] = {

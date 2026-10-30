@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing_extensions import Any, Dict, List
 
 from cramera_protocol.bundle.semantics import SemanticNamespace
-from cramera_usd.gltf.document import GltfDocument
+from cramera_usd.gltf.document import GltfDocument, TextureEncodings
 from cramera_usd.gltf.format import NodeExtra
 from cramera_usd.gltf.merged import MergedMesh
 from cramera_usd.materials.physically_based import PhysicallyBasedMaterial
@@ -42,6 +42,11 @@ class LinkGltf:
     Semantic attributes by prim path, stored on the nodes as ``extras``.
     """
 
+    textures: TextureEncodings = field(default_factory=TextureEncodings)
+    """
+    The encoding of the textures the GLB embeds, shared with the bundle's other GLBs.
+    """
+
     def groups(self) -> Dict[PhysicallyBasedMaterial, List[LinkMesh]]:
         """
         :return: The link's meshes grouped by the material they are drawn with, in the
@@ -59,7 +64,7 @@ class LinkGltf:
         """
         :return: The link's GLB file.
         """
-        document = GltfDocument()
+        document = GltfDocument(textures=self.textures)
         for material, meshes in self.groups().items():
             paths = [mesh.path for mesh in meshes]
             name = self.common_prim_path(paths)

@@ -1,0 +1,114 @@
+#usda 1.0
+(
+    doc = """A hygiene dispenser with materials as NVIDIA SimReady packages author them: a
+    body whose OmniPBR material reads UDIM tiles 1001 and 1002 with the tangent flips
+    and opacity constant SimReady sets, a label whose UDIM set has tile 1001 only, and an
+    OmniGlass window with tangent flips but no normal map."""
+    defaultPrim = "World"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "World"
+{
+    def Xform "Dispenser"
+    {
+        def Mesh "Body" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            point3f[] points = [(0, 0, 0), (2, 0, 0), (2, 0, 1), (0, 0, 1)]
+            texCoord2f[] primvars:st = [(0, 0), (2, 0), (2, 1), (0, 1)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+            rel material:binding = </World/Dispenser/VisualMaterials/m_opaque__metal__dispenser>
+        }
+
+        def Mesh "Label" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            point3f[] points = [(0.5, -0.01, 0.5), (1, -0.01, 0.5), (1, -0.01, 0.8), (0.5, -0.01, 0.8)]
+            texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "vertex"
+            )
+            uniform token subdivisionScheme = "none"
+            rel material:binding = </World/Dispenser/VisualMaterials/m_opaque__paper__label>
+        }
+
+        def Mesh "Window" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            point3f[] points = [(1.2, -0.01, 0.2), (1.8, -0.01, 0.2), (1.8, -0.01, 0.4), (1.2, -0.01, 0.4)]
+            uniform token subdivisionScheme = "none"
+            rel material:binding = </World/Dispenser/VisualMaterials/m_trans__glass__window>
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "m_opaque__metal__dispenser"
+            {
+                token outputs:mdl:surface.connect = </World/Dispenser/VisualMaterials/m_opaque__metal__dispenser/OmniPBR_Shader.outputs:out>
+
+                def Shader "OmniPBR_Shader"
+                {
+                    uniform token info:implementationSource = "sourceAsset"
+                    uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
+                    uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                    float inputs:bump_factor = 1
+                    asset inputs:diffuse_texture = @./textures/tiles_albedo.<UDIM>.png@ (
+                        colorSpace = "sRGB"
+                    )
+                    bool inputs:flip_tangent_u = 0
+                    bool inputs:flip_tangent_v = 1
+                    asset inputs:normalmap_texture = @./textures/tiles_normal.<UDIM>.png@ (
+                        colorSpace = "raw"
+                    )
+                    float inputs:opacity_constant = 1
+                    token outputs:out
+                }
+            }
+
+            def Material "m_opaque__paper__label"
+            {
+                token outputs:mdl:surface.connect = </World/Dispenser/VisualMaterials/m_opaque__paper__label/OmniPBR_Shader.outputs:out>
+
+                def Shader "OmniPBR_Shader"
+                {
+                    uniform token info:implementationSource = "sourceAsset"
+                    uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
+                    uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                    asset inputs:diffuse_texture = @./textures/label.<UDIM>.png@ (
+                        colorSpace = "sRGB"
+                    )
+                    token outputs:out
+                }
+            }
+
+            def Material "m_trans__glass__window"
+            {
+                token outputs:mdl:surface.connect = </World/Dispenser/VisualMaterials/m_trans__glass__window/OmniGlass_Shader.outputs:out>
+
+                def Shader "OmniGlass_Shader"
+                {
+                    uniform token info:implementationSource = "sourceAsset"
+                    uniform asset info:mdl:sourceAsset = @OmniGlass.mdl@
+                    uniform token info:mdl:sourceAsset:subIdentifier = "OmniGlass"
+                    bool inputs:flip_tangent_u = 0
+                    bool inputs:flip_tangent_v = 0
+                    color3f inputs:glass_color = (0.8, 0.8, 0.8)
+                    float inputs:glass_ior = 1.5
+                    token outputs:out
+                }
+            }
+        }
+    }
+}

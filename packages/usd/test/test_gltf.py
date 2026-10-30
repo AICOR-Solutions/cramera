@@ -12,7 +12,7 @@ import numpy
 import trimesh
 from PIL import Image
 
-from cramera_usd.gltf.document import GltfDocument
+from cramera_usd.gltf.document import EmbeddedImage, GltfDocument, TextureEncodings
 from cramera_usd.gltf.format import (
     AttributeName,
     GltfExtension,
@@ -24,9 +24,11 @@ from cramera_usd.gltf.link import LinkGltf
 from cramera_usd.gltf.material import GltfMaterial
 from cramera_usd.materials.channels import (
     ColorOpacityTexture,
+    FlippedNormalTexture,
     RoughnessMetallicTexture,
     ScalarChannel,
 )
+from cramera_usd.materials.images import TextureSizeLimit
 from cramera_usd.materials.physically_based import (
     AlphaMode,
     PhysicallyBasedMaterial,
@@ -36,7 +38,12 @@ from cramera_usd.materials.transmission import TransmissionBlending
 from cramera_usd.geometry.meshes import TriangleMesh
 from cramera_usd.geometry.transforms import RigidTransform
 from cramera_usd.scene.kinematics import Link, LinkMesh
-from cramera_usd.scene.materials import ColorSpace, TextureFile
+from cramera_usd.scene.materials import (
+    ColorSpace,
+    TextureFile,
+    TextureTile,
+    TileGrid,
+)
 
 from .dataset.glb import GlbContent
 from .dataset.stages import DATASET, TEXTURES
@@ -77,6 +84,18 @@ def link_with(*meshes: LinkMesh) -> Link:
 ALBEDO = TextureFile(TEXTURES / "albedo.png", ColorSpace.SRGB)
 """
 The colour texture of the tests' textured material.
+"""
+
+TILED_ALBEDO = TextureFile(
+    TEXTURES / "tiles_albedo.1001.png",
+    ColorSpace.SRGB,
+    tiles=(
+        TextureTile(TEXTURES / "tiles_albedo.1001.png", 0, 0),
+        TextureTile(TEXTURES / "tiles_albedo.1002.png", 1, 0),
+    ),
+)
+"""
+A colour texture of UDIM tiles 1001 and 1002.
 """
 
 VIEWER_GLASS = DATASET / "blended_glass.gltf"
@@ -366,6 +385,126 @@ def test_textures_are_embedded_once_with_their_transform():
         }
     }
     assert content.embedded(0) == ALBEDO.path.read_bytes()
+
+
+# %% UDIM sets, size limit and shared encodings
+
+
+def written_texture(content: GlbContent, key: MaterialKey) -> dict:
+    """
+    :param content: A GLB of one material.
+    :param key: A texture of the material's metallic-roughness property.
+    :return: The material's reference to that texture.
+    """
+    return content.document[GltfKey.MATERIALS][0][MaterialKey.METALLIC_ROUGHNESS][key]
+
+
+def test_udim_set_is_embedded_as_one_atlas_read_through_a_texture_transform():
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Station/Dispenser", "metal")),
+            {
+                "metal": PhysicallyBasedMaterial(
+                    "metal", base_color_texture=TILED_ALBEDO
+                )
+            },
+        ).encode()
+    )
+    atlas = numpy.asarray(Image.open(io.BytesIO(content.embedded(0))))
+    assert atlas.shape[:2] == (2, 4)
+    reference = written_texture(content, MaterialKey.BASE_COLOR_TEXTURE)
+    atlas_transform = TextureTransform.onto_atlas(TileGrid(2, 1))
+    assert reference[GltfKey.EXTENSIONS] == {
+        GltfExtension.TEXTURE_TRANSFORM: {
+            GltfKey.OFFSET: list(atlas_transform.offset),
+            GltfKey.SCALE: [0.5, 1.0],
+        }
+    }
+    assert GltfExtension.TEXTURE_TRANSFORM in content.document[GltfKey.EXTENSIONS_USED]
+
+
+def test_udim_atlas_transform_follows_the_material_tiling():
+    tiling = TextureTransform(offset=(0.0, -2.0), scale=(3.0, 3.0))
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Station/Dispenser", "metal")),
+            {
+                "metal": PhysicallyBasedMaterial(
+                    "metal",
+                    base_color_texture=TILED_ALBEDO,
+                    texture_transform=tiling,
+                )
+            },
+        ).encode()
+    )
+    combined = tiling.then(TextureTransform.onto_atlas(TileGrid(2, 1)))
+    assert written_texture(content, MaterialKey.BASE_COLOR_TEXTURE)[GltfKey.EXTENSIONS][
+        GltfExtension.TEXTURE_TRANSFORM
+    ] == {
+        GltfKey.OFFSET: list(combined.offset),
+        GltfKey.SCALE: list(combined.scale),
+    }
+
+
+def test_image_beyond_the_size_limit_is_scaled_down():
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Station/Decal", "paint")),
+            {"paint": PhysicallyBasedMaterial("paint", base_color_texture=ALBEDO)},
+            textures=TextureEncodings(TextureSizeLimit(2)),
+        ).encode()
+    )
+    assert Image.open(io.BytesIO(content.embedded(0))).size == (2, 2)
+
+
+def test_image_without_a_size_limit_is_embedded_as_it_is():
+    data, _ = EmbeddedImage(ALBEDO, TextureSizeLimit(None)).encoded()
+    assert data == ALBEDO.path.read_bytes()
+
+
+def test_a_texture_is_encoded_once_for_every_glb_sharing_the_encodings(monkeypatch):
+    encodings = []
+    encoded = EmbeddedImage.encoded
+    monkeypatch.setattr(
+        EmbeddedImage,
+        "encoded",
+        lambda image: encodings.append(image.texture) or encoded(image),
+    )
+    textures = TextureEncodings()
+    material = {"paint": PhysicallyBasedMaterial("paint", base_color_texture=ALBEDO)}
+    first, second = (
+        LinkGltf(
+            link_with(quad(f"/World/Station/{name}", "paint")),
+            material,
+            textures=textures,
+        ).encode()
+        for name in ("Left", "Right")
+    )
+    assert encodings == [ALBEDO]
+    assert GlbContent.of_bytes(first).embedded(0) == GlbContent.of_bytes(
+        second
+    ).embedded(0)
+
+
+def test_normal_map_with_a_flipped_tangent_is_embedded_flipped():
+    normal = TextureFile(TEXTURES / "tiles_normal.1001.png")
+    content = GlbContent.of_bytes(
+        LinkGltf(
+            link_with(quad("/World/Station/Panel", "metal")),
+            {
+                "metal": PhysicallyBasedMaterial(
+                    "metal",
+                    normal_texture=FlippedNormalTexture(normal, False, True),
+                    normal_scale=0.5,
+                )
+            },
+        ).encode()
+    )
+    material = content.document[GltfKey.MATERIALS][0]
+    assert material[MaterialKey.NORMAL_TEXTURE][GltfKey.SCALE] == 0.5
+    embedded = numpy.asarray(Image.open(io.BytesIO(content.embedded(0))))
+    authored = numpy.asarray(Image.open(normal.path))
+    assert numpy.array_equal(embedded[..., 1], 255 - authored[..., 1])
 
 
 def test_trimesh_loads_the_file():

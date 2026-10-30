@@ -148,6 +148,7 @@ class ImportArguments:
         for selection in options.variant:
             arguments += [ImportOption.VARIANT, *selection]
         arguments += self.optional(ImportOption.RECORD, options.record)
+        arguments += self.optional(ImportOption.TEXTURE_SIZE, options.texture_size)
         return [str(argument) for argument in arguments]
 
     @staticmethod

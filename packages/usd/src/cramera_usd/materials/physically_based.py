@@ -9,8 +9,12 @@ from enum import StrEnum
 
 from typing_extensions import Optional, Self, Tuple, Union
 
-from cramera_usd.materials.channels import ColorOpacityTexture, RoughnessMetallicTexture
-from cramera_usd.scene.materials import TextureFile
+from cramera_usd.materials.channels import (
+    ColorOpacityTexture,
+    FlippedNormalTexture,
+    RoughnessMetallicTexture,
+)
+from cramera_usd.scene.materials import TextureFile, TileGrid
 
 # %% vocabulary
 
@@ -89,6 +93,32 @@ class TextureTransform:
     Multiplies the coordinates; values above one repeat the texture.
     """
 
+    @classmethod
+    def onto_atlas(cls, grid: TileGrid) -> Self:
+        """
+        :param grid: The unit squares of texture coordinates a UDIM set covers.
+        :return: The change that reads the set's atlas image where the coordinates
+            read its tiles: ``(u / C, v / R)`` in USD's convention, which in glTF's
+            flipped coordinates (``t = 1 - v``) is ``(s / C, t / R + (R - 1) / R)``.
+        """
+        return cls(
+            offset=(0.0, (grid.rows - 1) / grid.rows),
+            scale=(1.0 / grid.columns, 1.0 / grid.rows),
+        )
+
+    def then(self, other: TextureTransform) -> TextureTransform:
+        """
+        :param other: A change applied after this one.
+        :return: Both changes as one.
+        """
+        return TextureTransform(
+            offset=(
+                other.offset[0] + other.scale[0] * self.offset[0],
+                other.offset[1] + other.scale[1] * self.offset[1],
+            ),
+            scale=(other.scale[0] * self.scale[0], other.scale[1] * self.scale[1]),
+        )
+
 
 # %% material
 
@@ -133,9 +163,10 @@ class PhysicallyBasedMaterial:
     The packed roughness and metalness texture.
     """
 
-    normal_texture: Optional[TextureFile] = None
+    normal_texture: Optional[Union[TextureFile, FlippedNormalTexture]] = None
     """
-    The tangent-space normal map.
+    The tangent-space normal map, its components flipped where the shader's tangents
+    point the other way than glTF's.
     """
 
     normal_scale: float = 1.0

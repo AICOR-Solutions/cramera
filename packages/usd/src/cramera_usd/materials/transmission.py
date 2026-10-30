@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 
 import numpy
-from PIL import Image
 from scipy.integrate import quad
 from typing_extensions import Optional, Union
 
@@ -18,6 +17,7 @@ from cramera_usd.materials.channels import (
     SrgbTransfer,
     TextureChannelReader,
 )
+from cramera_usd.materials.images import TextureImage
 from cramera_usd.materials.physically_based import (
     AlphaMode,
     PhysicallyBasedMaterial,
@@ -175,7 +175,7 @@ class TransmissionBlending:
             texture = texture.color
         if texture is None:
             return numpy.ones(len(COLOR_CHANNELS))
-        reader = TextureChannelReader(Image.open(texture.path))
+        reader = TextureChannelReader(TextureImage(texture).opened())
         encoded = numpy.stack([reader.values(channel) for channel in COLOR_CHANNELS])
         return (
             self.transfer.decoded(encoded).reshape(len(COLOR_CHANNELS), -1).mean(axis=1)
