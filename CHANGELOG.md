@@ -39,7 +39,8 @@ which this repository was mirrored until 22 Oct 2026.
   The bridge records, for every plan node, its `roles` (`RoleSlot`, field, role,
   value, entities with their scene keys, the reference body of a pose and, for a pose
   the task built for a place of its layout, the place's name such as `centrifuge C4`,
-  from `RobotTaskDemo.named_places`), read through
+  from `RobotTaskDemo.named_places`, which the workflow and the vessel transfer
+  provide), read through
   `FIELD_ROLES` in `cramera_bridge/names.py`, cramera's reading of CRAM's fields
   (agent from the context, object, effector, location, instrument for a tool); every
   query step records the `frame` it was asked at, the `planNode` under way and the
@@ -47,7 +48,8 @@ which this repository was mirrored until 22 Oct 2026.
   door's and lid's handles by entity queries, and `aicor_medical_lab_pr2_workflow` is
   recorded again with `cramera_bridge.demos.workflow_queries`: the rack re-sort, a
   vessel stored in the refrigerator and a pair loaded into the centrifuge, with its
-  query steps.
+  query steps. `aicor_medical_lab_pr2_query_stepper` is recorded again too, with
+  its roles and its target named `rack A3`.
 - **The Segmind tab: what segmind saw, annotated in the replay.** A run recorded with
   segmind watching (`cramera-onboard --detect-events`, or `CRAMERA_DETECT_EVENTS=1` for
   a live run) lists every event with its sort, the frame it happened at and the keys

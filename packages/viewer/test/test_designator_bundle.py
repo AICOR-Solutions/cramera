@@ -207,3 +207,20 @@ def test_no_pose_but_a_slot_is_named(scene):
         if slot.get("place")
     ]
     assert {slot["field"] for slot in named} == {"target_location"}
+
+
+def test_the_stepped_transfer_sets_its_vessel_into_the_rack_slot_a_query_did_not_name():
+    bundle = BUNDLE.parent / "aicor_medical_lab_pr2_query_stepper"
+    scene = json.loads((bundle / BundleFile.SCENE).read_text(encoding="utf-8"))
+    steps = json.loads((bundle / scene["querySteps"]).read_text(encoding="utf-8"))
+    pick_up, place = top_level_actions(scene)
+    (vessel,) = role(pick_up, "grasp.graspable")["entities"]
+    naming = [
+        step["number"]
+        for step in steps["steps"]
+        if any(identity(e) == identity(vessel) for e in step["entities"])
+    ]
+    target = role(place, "target_location")
+    assert naming == [2]
+    assert target["place"] == "rack A3"
+    assert target["entities"] == []

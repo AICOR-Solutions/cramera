@@ -8,7 +8,9 @@ from cramera_bridge.demos.query_stepping import NAME, TASK, main
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.robot_task import TaskArgument
 from cramera_protocol.bundle.files import BundleFile
-from cramera_protocol.bundle.scene import SceneDescription
+from typing_extensions import List
+
+from cramera_protocol.bundle.scene import PlanNode, SceneDescription
 from cramera_protocol.laboratory.runs import TransferOption
 from cramera_protocol.query_steps import QuerySteps, StepPhase
 from cramera_protocol.viewer import EnvironmentVariable
@@ -39,3 +41,20 @@ def test_the_transfer_steps_through_its_robot_handles_and_vessel(
     assert {step.phase for step in steps} == {StepPhase.SETUP}
     assert steps[2].answers == ["tube_clear"]
     assert capsys.readouterr().out.strip() == f"asked 3 queries; saved {NAME}"
+    (place,) = [
+        node
+        for root in scene.plan_trees
+        for node in nodes(root)
+        if node.label == "RackPlaceAction"
+    ]
+    (target,) = [slot for slot in place.roles if slot.field == "target_location"]
+    assert target.place == "rack A3"
+    assert [step.frame is not None for step in steps] == [True] * 3
+
+
+def nodes(node: PlanNode) -> List[PlanNode]:
+    """
+    :param node: A node of a recorded plan tree.
+    :return: The node and every node below it.
+    """
+    return [node] + [each for child in node.children for each in nodes(child)]

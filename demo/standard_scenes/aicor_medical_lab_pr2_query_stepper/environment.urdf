@@ -96,7 +96,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/refrigerator_base.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/refrigerator_base.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_refrigerator_base#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -730,7 +730,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/refrigerator_door.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/refrigerator_door.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_refrigerator_door#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -802,7 +802,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/pipetting_station.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/pipetting_station.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_pipetting_station#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -827,21 +827,21 @@
       </geometry>
     </collision>
     <collision>
-      <origin xyz="-0.01375 -0.1165 0.032" rpy="0.0 0.0 0.0" />
+      <origin xyz="-0.012625 -0.1165 0.032" rpy="0.0 0.0 0.0" />
       <geometry>
-        <box size="0.0045 0.045 0.032" />
+        <box size="0.00675 0.045 0.032" />
       </geometry>
     </collision>
     <collision>
-      <origin xyz="0.01375 -0.1165 0.032" rpy="0.0 0.0 0.0" />
+      <origin xyz="0.012625 -0.1165 0.032" rpy="0.0 0.0 0.0" />
       <geometry>
-        <box size="0.0045 0.045 0.032" />
+        <box size="0.00675 0.045 0.032" />
       </geometry>
     </collision>
     <collision>
-      <origin xyz="0.0 -0.09625 0.032" rpy="0.0 0.0 0.0" />
+      <origin xyz="0.0 -0.097375 0.032" rpy="0.0 0.0 0.0" />
       <geometry>
-        <box size="0.032 0.0045 0.032" />
+        <box size="0.032 0.00675 0.032" />
       </geometry>
     </collision>
     <collision>
@@ -866,7 +866,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/centrifuge_base.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/centrifuge_base.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_centrifuge_base#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1032,7 +1032,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/centrifuge_lid.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/centrifuge_lid.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_centrifuge_lid#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1080,7 +1080,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/centrifuge_rotor.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/centrifuge_rotor.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_centrifuge_rotor#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1686,7 +1686,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/drawer.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/drawer.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_drawer#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1758,7 +1758,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/assets-11428412/environment.glb" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/assets-9601546b/environment.glb" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="laboratory_room#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1818,10 +1818,10 @@
     <child link="laboratory_cabinet_lower_handle" />
     <origin xyz="-0.52 -0.346 0.546" rpy="0.0 0.0 0.0" />
   </joint>
-  <link name="a4a9200d-5986-443d-ac00-639076713a6b/odom" />
-  <joint name="a4a9200d-5986-443d-ac00-639076713a6b/map_T_odom" type="fixed">
+  <link name="42c38def-f168-4d5d-9ee7-f356b4be2938/odom" />
+  <joint name="42c38def-f168-4d5d-9ee7-f356b4be2938/map_T_odom" type="fixed">
     <parent link="map" />
-    <child link="a4a9200d-5986-443d-ac00-639076713a6b/odom" />
+    <child link="42c38def-f168-4d5d-9ee7-f356b4be2938/odom" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
 </robot>

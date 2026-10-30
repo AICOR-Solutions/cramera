@@ -11,7 +11,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/base.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/base.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/base_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -20,7 +20,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/base_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/base_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -40,7 +40,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/torso_v0-959a528e/torso_lift.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/torso_v0-783fb20d/torso_lift.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/torso_lift_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -49,7 +49,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/torso_v0-959a528e/torso_lift_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/torso_v0-783fb20d/torso_lift_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -64,7 +64,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_pan.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_pan.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_shoulder_pan_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -73,7 +73,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_pan.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_pan.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -88,7 +88,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_lift.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_lift.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_shoulder_lift_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -97,7 +97,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_lift.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_lift.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -112,7 +112,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/upper_arm_roll.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/upper_arm_roll.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_upper_arm_roll_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -121,7 +121,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/upper_arm_roll_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/upper_arm_roll_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -136,7 +136,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/upper_arm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/upper_arm.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_upper_arm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -145,20 +145,20 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/upper_arm.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/upper_arm.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
   <joint name="pr2/l_upper_arm_joint" type="fixed">
     <parent link="pr2/l_upper_arm_roll_link" />
     <child link="pr2/l_upper_arm_link" />
-    <origin xyz="0.0 0.0 -0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/l_elbow_flex_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/elbow_flex.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/elbow_flex.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_elbow_flex_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -167,7 +167,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/elbow_flex.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/elbow_flex.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -182,7 +182,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/forearm_roll.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/forearm_roll.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_forearm_roll_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -191,7 +191,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/forearm_roll_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/forearm_roll_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -211,13 +211,13 @@
   <joint name="pr2/l_forearm_cam_optical_frame_joint" type="fixed">
     <parent link="pr2/l_forearm_cam_frame" />
     <child link="pr2/l_forearm_cam_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/l_forearm_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/forearm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/forearm.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_forearm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -226,7 +226,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/forearm.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/forearm.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -239,7 +239,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_flex.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_flex.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_wrist_flex_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -248,7 +248,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_flex.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_flex.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -263,7 +263,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_roll.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_roll.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_wrist_roll_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -272,7 +272,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_roll_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_roll_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -308,13 +308,13 @@
   <joint name="pr2/l_force_torque_joint" type="fixed">
     <parent link="pr2/l_force_torque_adapter_link" />
     <child link="pr2/l_force_torque_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 1.22173" />
+    <origin xyz="-0.0 0.0 0.0" rpy="0.0 0.0 1.22173" />
   </joint>
   <link name="pr2/l_gripper_palm_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/gripper_palm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/gripper_palm.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_gripper_palm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -323,7 +323,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/gripper_palm.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/gripper_palm.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -336,7 +336,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_gripper_r_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -345,7 +345,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -360,7 +360,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_gripper_r_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -369,7 +369,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -392,7 +392,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_gripper_l_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -401,7 +401,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -416,7 +416,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_gripper_l_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -425,7 +425,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -467,13 +467,13 @@
   <joint name="pr2/l_gripper_led_joint" type="fixed">
     <parent link="pr2/l_gripper_palm_link" />
     <child link="pr2/l_gripper_led_frame" />
-    <origin xyz="0.0513 0.0 0.0244" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0513 -0.0 0.0244" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_shoulder_pan_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_pan.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_pan.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_shoulder_pan_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -482,7 +482,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_pan.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_pan.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -497,7 +497,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_lift.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_lift.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_shoulder_lift_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -506,7 +506,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/shoulder_lift.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/shoulder_lift.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -521,7 +521,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/upper_arm_roll.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/upper_arm_roll.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_upper_arm_roll_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -530,7 +530,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/shoulder_v0-ce1e3eca/upper_arm_roll_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/shoulder_v0-4e52c6f3/upper_arm_roll_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -545,7 +545,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/upper_arm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/upper_arm.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_upper_arm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -554,7 +554,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/upper_arm.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/upper_arm.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -567,7 +567,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/elbow_flex.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/elbow_flex.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_elbow_flex_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -576,7 +576,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/elbow_flex.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/elbow_flex.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -591,7 +591,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/forearm_roll.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/forearm_roll.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_forearm_roll_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -600,7 +600,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/upper_arm_v0-00154080/forearm_roll_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/upper_arm_v0-611c0460/forearm_roll_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -626,7 +626,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/forearm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/forearm.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_forearm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -635,20 +635,20 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/forearm.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/forearm.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
   <joint name="pr2/r_forearm_joint" type="fixed">
     <parent link="pr2/r_forearm_roll_link" />
     <child link="pr2/r_forearm_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="-0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_wrist_flex_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_flex.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_flex.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_wrist_flex_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -657,7 +657,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_flex.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_flex.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -672,7 +672,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_roll.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_roll.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_wrist_roll_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -681,7 +681,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/forearm_v0-de8189f5/wrist_roll_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/forearm_v0-f1752220/wrist_roll_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -695,7 +695,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/gripper_palm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/gripper_palm.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_gripper_palm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -704,20 +704,20 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/gripper_palm.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/gripper_palm.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
   <joint name="pr2/r_gripper_palm_joint" type="fixed">
     <parent link="pr2/r_wrist_roll_link" />
     <child link="pr2/r_gripper_palm_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 -0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_gripper_r_finger_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_gripper_r_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -726,7 +726,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -741,7 +741,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_gripper_r_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -750,7 +750,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="-3.141593 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -773,7 +773,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_gripper_l_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -782,7 +782,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -797,7 +797,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_gripper_l_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -806,7 +806,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/gripper_v0-e7d8e0df/l_finger_tip.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/gripper_v0-bb7a33e2/l_finger_tip.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -836,25 +836,25 @@
   <joint name="pr2/r_gripper_tool_joint" type="fixed">
     <parent link="pr2/r_gripper_palm_link" />
     <child link="pr2/r_gripper_tool_frame" />
-    <origin xyz="0.18 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.18 0.0 -0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_gripper_motor_accelerometer_link" />
   <joint name="pr2/r_gripper_motor_accelerometer_joint" type="fixed">
     <parent link="pr2/r_gripper_palm_link" />
     <child link="pr2/r_gripper_motor_accelerometer_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 -0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_gripper_led_frame" />
   <joint name="pr2/r_gripper_led_joint" type="fixed">
     <parent link="pr2/r_gripper_palm_link" />
     <child link="pr2/r_gripper_led_frame" />
-    <origin xyz="0.0513 -0.0 0.0244" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0513 0.0 0.0244" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/laser_tilt_mount_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/tilting_laser_v0-625c29a0/tilting_hokuyo.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/tilting_laser_v0-31feeb11/tilting_hokuyo.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/laser_tilt_mount_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -863,7 +863,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/tilting_laser_v0-625c29a0/tilting_hokuyo_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/tilting_laser_v0-31feeb11/tilting_hokuyo_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -878,13 +878,13 @@
   <joint name="pr2/laser_tilt_joint" type="fixed">
     <parent link="pr2/laser_tilt_mount_link" />
     <child link="pr2/laser_tilt_link" />
-    <origin xyz="-0.0 0.0 0.029202" rpy="0.0 0.0 -0.011866" />
+    <origin xyz="0.0 0.0 0.029202" rpy="0.0 0.0 -0.011866" />
   </joint>
   <link name="pr2/head_pan_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/head_v0-3c2f98ce/head_pan.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/head_v0-5fb2c976/head_pan.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/head_pan_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -893,7 +893,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/head_v0-3c2f98ce/head_pan_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/head_v0-5fb2c976/head_pan_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -908,7 +908,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/head_v0-3c2f98ce/head_tilt.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/head_v0-5fb2c976/head_tilt.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/head_tilt_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -917,7 +917,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/head_v0-3c2f98ce/head_tilt_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/head_v0-5fb2c976/head_tilt_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -932,16 +932,16 @@
   <joint name="pr2/head_plate_frame_joint" type="fixed">
     <parent link="pr2/head_tilt_link" />
     <child link="pr2/head_plate_frame" />
-    <origin xyz="0.0232 0.0 0.0645" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0232 -0.0 0.0645" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/head_mount_kinect2_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/sensors-d2549cd3/microsoft_kinect2.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/sensors-07a920b9/microsoft_kinect2.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/head_mount_kinect2_link#0">
-        <color rgba="1.0 1.0 1.0 1.0" />
+        <color rgba="0.5 0.5 0.5 1.0" />
       </material>
     </visual>
     <collision>
@@ -960,10 +960,10 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/kinect_prosilica_v0-14ae1fdc/115x100_swept_back--coarse.STL" scale="0.001 0.001 0.001" />
+        <mesh filename="meshes/recording/kinect_prosilica_v0-dc4c08c9/115x100_swept_back--coarse.STL" scale="0.001 0.001 0.001" />
       </geometry>
       <material name="pr2/head_mount_link#0">
-        <color rgba="1.0 1.0 1.0 1.0" />
+        <color rgba="0.5 0.5 0.5 1.0" />
       </material>
     </visual>
     <collision>
@@ -988,7 +988,7 @@
   <joint name="pr2/head_mount_prosilica_optical_frame_joint" type="fixed">
     <parent link="pr2/head_mount_prosilica_link" />
     <child link="pr2/head_mount_prosilica_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/head_mount_kinect_ir_link" />
   <joint name="pr2/head_mount_kinect_ir_joint" type="fixed">
@@ -1024,13 +1024,13 @@
   <joint name="pr2/projector_wg6802418_child_frame_joint" type="fixed">
     <parent link="pr2/projector_wg6802418_frame" />
     <child link="pr2/projector_wg6802418_child_frame" />
-    <origin xyz="0.0 -0.0 0.0" rpy="0.0 -1.570796 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="-0.0 -1.570796 0.0" />
   </joint>
   <link name="pr2/sensor_mount_link" />
   <joint name="pr2/sensor_mount_frame_joint" type="fixed">
     <parent link="pr2/head_plate_frame" />
     <child link="pr2/sensor_mount_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/double_stereo_link">
     <visual>
@@ -1046,7 +1046,7 @@
   <joint name="pr2/double_stereo_frame_joint" type="fixed">
     <parent link="pr2/sensor_mount_link" />
     <child link="pr2/double_stereo_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/narrow_stereo_link" />
   <joint name="pr2/narrow_stereo_frame_joint" type="fixed">
@@ -1058,31 +1058,31 @@
   <joint name="pr2/narrow_stereo_l_stereo_camera_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_link" />
     <child link="pr2/narrow_stereo_l_stereo_camera_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/narrow_stereo_r_stereo_camera_frame" />
   <joint name="pr2/narrow_stereo_r_stereo_camera_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_l_stereo_camera_frame" />
     <child link="pr2/narrow_stereo_r_stereo_camera_frame" />
-    <origin xyz="-0.0 -0.09 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 -0.09 -0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/narrow_stereo_r_stereo_camera_optical_frame" />
   <joint name="pr2/narrow_stereo_r_stereo_camera_optical_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_r_stereo_camera_frame" />
     <child link="pr2/narrow_stereo_r_stereo_camera_optical_frame" />
-    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/narrow_stereo_l_stereo_camera_optical_frame" />
   <joint name="pr2/narrow_stereo_l_stereo_camera_optical_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_l_stereo_camera_frame" />
     <child link="pr2/narrow_stereo_l_stereo_camera_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/narrow_stereo_optical_frame" />
   <joint name="pr2/narrow_stereo_optical_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_link" />
     <child link="pr2/narrow_stereo_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/wide_stereo_link" />
   <joint name="pr2/wide_stereo_frame_joint" type="fixed">
@@ -1094,7 +1094,7 @@
   <joint name="pr2/wide_stereo_l_stereo_camera_frame_joint" type="fixed">
     <parent link="pr2/wide_stereo_link" />
     <child link="pr2/wide_stereo_l_stereo_camera_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/wide_stereo_r_stereo_camera_frame" />
   <joint name="pr2/wide_stereo_r_stereo_camera_frame_joint" type="fixed">
@@ -1112,13 +1112,13 @@
   <joint name="pr2/wide_stereo_l_stereo_camera_optical_frame_joint" type="fixed">
     <parent link="pr2/wide_stereo_l_stereo_camera_frame" />
     <child link="pr2/wide_stereo_l_stereo_camera_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/wide_stereo_optical_frame" />
   <joint name="pr2/wide_stereo_optical_frame_joint" type="fixed">
     <parent link="pr2/wide_stereo_link" />
     <child link="pr2/wide_stereo_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/high_def_frame" />
   <joint name="pr2/high_def_frame_joint" type="fixed">
@@ -1130,7 +1130,7 @@
   <joint name="pr2/high_def_optical_frame_joint" type="fixed">
     <parent link="pr2/high_def_frame" />
     <child link="pr2/high_def_optical_frame" />
-    <origin xyz="0.0 -0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/head_mount_kinect2_rgb_optical_frame" />
   <joint name="pr2/head_mount_kinect2_rgb_optical_frame_joint" type="fixed">
@@ -1148,7 +1148,7 @@
   <joint name="pr2/imu_joint" type="fixed">
     <parent link="pr2/torso_lift_link" />
     <child link="pr2/imu_link" />
-    <origin xyz="-0.02977 -0.1497 0.164" rpy="-3.141593 -0.0 -3.141593" />
+    <origin xyz="-0.02977 -0.1497 0.164" rpy="3.141593 -0.0 3.141593" />
   </joint>
   <link name="pr2/r_torso_lift_side_plate_link" />
   <joint name="pr2/r_torso_lift_side_plate_joint" type="fixed">
@@ -1160,7 +1160,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/cableguide-75b4a5de/item_Profil_8_40x40_leicht_L410.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/cableguide-bc7839b7/item_Profil_8_40x40_leicht_L410.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/r_torso_lift_side_item_profile_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1182,7 +1182,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/cableguide-75b4a5de/item_Profil_8_40x40_leicht_L420.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/cableguide-bc7839b7/item_Profil_8_40x40_leicht_L420.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/m_torso_lift_side_item_profile_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1204,7 +1204,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/cableguide-75b4a5de/item_Profil_8_40x40_leicht_L1000.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/cableguide-bc7839b7/item_Profil_8_40x40_leicht_L1000.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/t_torso_lift_side_item_profile_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1232,7 +1232,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/cableguide-75b4a5de/item_Profil_8_40x40_leicht_L410.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/cableguide-bc7839b7/item_Profil_8_40x40_leicht_L410.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/l_torso_lift_side_item_profile_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1254,7 +1254,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/br_caster_rotation_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1263,7 +1263,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -1277,7 +1277,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/br_caster_r_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1300,7 +1300,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/br_caster_l_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1323,7 +1323,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/bl_caster_rotation_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1332,7 +1332,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -1346,7 +1346,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/bl_caster_r_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1369,7 +1369,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/bl_caster_l_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1392,7 +1392,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/fr_caster_rotation_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1401,7 +1401,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -1415,7 +1415,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/fr_caster_r_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1438,7 +1438,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/fr_caster_l_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1461,7 +1461,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster.stl" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/fl_caster_rotation_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1470,7 +1470,7 @@
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/caster_L.stl" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/caster_L.stl" scale="1.0 1.0 1.0" />
       </geometry>
     </collision>
   </link>
@@ -1484,7 +1484,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/fl_caster_r_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
@@ -1507,7 +1507,7 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/base_v0-f056339a/wheel.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/base_v0-7c37a8f0/wheel.dae" scale="1.0 1.0 1.0" />
       </geometry>
       <material name="pr2/fl_caster_l_wheel_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />

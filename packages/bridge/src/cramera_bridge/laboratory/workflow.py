@@ -60,7 +60,12 @@ from cramera_bridge.laboratory.mobility import (
     TuckArmsAction,
 )
 from cramera_bridge.laboratory.transfer import POSE_TOLERANCE, PENETRATION_TOLERANCE
-from cramera_bridge.laboratory.world import LaboratoryEnvironment, LaboratoryHandle
+from cramera_bridge.laboratory.world import (
+    PLACE_NAME,
+    RACK_STATION,
+    LaboratoryEnvironment,
+    LaboratoryHandle,
+)
 from cramera_bridge.live.plan import NamedPlace
 from cramera_bridge.scenes.presentation import ScenePresentation
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
@@ -199,7 +204,7 @@ class Station(StrEnum):
     What holds the vessels at the bench.
     """
 
-    RACK = "rack"
+    RACK = RACK_STATION
     """
     The sample rack.
     """
@@ -953,7 +958,9 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         """
         return [
             NamedPlace(
-                f"{move.target.station.value} {move.target.identifier}",
+                PLACE_NAME.format(
+                    station=move.target.station.value, slot=move.target.identifier
+                ),
                 move.target.pose(self.laboratory, context.world),
             )
             for move in self.moves

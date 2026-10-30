@@ -8,34 +8,34 @@
    "number": 0,
    "depth": 0,
    "phase": "setup",
-   "during": "setting up the robot at the bench",
+   "during": "PR2: vessel transfer A1 \u2192 A3, stepping through its queries",
    "moment": "answered",
    "question": {
     "text": "Find the unique PR2",
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/robots/pr2/index.html#semantic_digital_twin.robots.pr2.PR2\" title=\"The PR2 robot built by Willow Garage.\"><span style=\"color:cornflowerblue\">PR2</span></a>"
    },
    "code": {
-    "file": "/home/vee/cramera/packages/bridge/src/cramera_bridge/demos/query_stepping.py",
-    "function": "QueryingTransferDemo.the_robot",
-    "firstLine": 503,
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/handling.py",
+    "function": "VesselTaskDemo.the_robot",
+    "firstLine": 224,
     "lines": [
      "        :param world: The world built for the task.",
-     "        :return: The PR2 in it.",
+     "        :return: The PR2 in it, found by an entity query.",
      "        \"\"\"",
      "        robot = variable(PR2, world.semantic_annotations)",
      "        return the(entity(robot)).first()",
      "",
-     "    def the_handles(self, world: World) -> List[Handle]:",
+     "    def posture(self, world: World) -> PR2:",
      "        \"\"\"",
-     "        :param world: The world built for the task."
+     "        Park the arms, raise the torso and take the drive out of the controller; the arm"
     ],
-    "focusFirstLine": 507,
-    "focusLastLine": 507
+    "focusFirstLine": 228,
+    "focusLastLine": 228
    },
    "caller": {
-    "function": "QueryingTransferDemo.the_robot",
-    "module": "query_stepping",
-    "line": 507
+    "function": "VesselTaskDemo.the_robot",
+    "module": "handling",
+    "line": 228
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -262,25 +262,138 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 0.9201419998134952
+   "milliseconds": 4.355885001132265,
+   "frame": 1,
+   "entities": [
+    {
+     "keys": [
+      "pr2/base_footprint",
+      "pr2/base_link",
+      "pr2/base_bellow_link",
+      "pr2/base_laser_link",
+      "pr2/fl_caster_rotation_link",
+      "pr2/fl_caster_l_wheel_link",
+      "pr2/fl_caster_r_wheel_link",
+      "pr2/fr_caster_rotation_link",
+      "pr2/fr_caster_l_wheel_link",
+      "pr2/fr_caster_r_wheel_link",
+      "pr2/bl_caster_rotation_link",
+      "pr2/bl_caster_l_wheel_link",
+      "pr2/bl_caster_r_wheel_link",
+      "pr2/br_caster_rotation_link",
+      "pr2/br_caster_l_wheel_link",
+      "pr2/br_caster_r_wheel_link",
+      "pr2/torso_lift_link",
+      "pr2/l_torso_lift_side_plate_link",
+      "pr2/r_torso_lift_side_plate_link",
+      "pr2/torso_lift_motor_screw_link",
+      "pr2/imu_link",
+      "pr2/head_pan_link",
+      "pr2/head_tilt_link",
+      "pr2/head_plate_frame",
+      "pr2/sensor_mount_link",
+      "pr2/high_def_frame",
+      "pr2/high_def_optical_frame",
+      "pr2/double_stereo_link",
+      "pr2/wide_stereo_link",
+      "pr2/wide_stereo_optical_frame",
+      "pr2/wide_stereo_l_stereo_camera_frame",
+      "pr2/wide_stereo_l_stereo_camera_optical_frame",
+      "pr2/wide_stereo_r_stereo_camera_frame",
+      "pr2/wide_stereo_r_stereo_camera_optical_frame",
+      "pr2/narrow_stereo_link",
+      "pr2/narrow_stereo_optical_frame",
+      "pr2/narrow_stereo_l_stereo_camera_frame",
+      "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+      "pr2/narrow_stereo_r_stereo_camera_frame",
+      "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+      "pr2/projector_wg6802418_frame",
+      "pr2/projector_wg6802418_child_frame",
+      "pr2/head_mount_link",
+      "pr2/head_mount_kinect_ir_link",
+      "pr2/head_mount_kinect_ir_optical_frame",
+      "pr2/head_mount_kinect_rgb_link",
+      "pr2/head_mount_kinect_rgb_optical_frame",
+      "pr2/head_mount_kinect2_rgb_optical_frame",
+      "pr2/head_mount_kinect2_ir_optical_frame",
+      "pr2/head_mount_prosilica_link",
+      "pr2/head_mount_prosilica_optical_frame",
+      "pr2/laser_tilt_mount_link",
+      "pr2/laser_tilt_link",
+      "pr2/r_shoulder_pan_link",
+      "pr2/r_shoulder_lift_link",
+      "pr2/r_upper_arm_roll_link",
+      "pr2/r_upper_arm_link",
+      "pr2/r_elbow_flex_link",
+      "pr2/r_forearm_roll_link",
+      "pr2/r_forearm_link",
+      "pr2/r_wrist_flex_link",
+      "pr2/r_wrist_roll_link",
+      "pr2/r_gripper_palm_link",
+      "pr2/r_gripper_led_frame",
+      "pr2/r_gripper_motor_accelerometer_link",
+      "pr2/r_gripper_tool_frame",
+      "pr2/r_gripper_motor_slider_link",
+      "pr2/r_gripper_motor_screw_link",
+      "pr2/r_gripper_l_finger_link",
+      "pr2/r_gripper_r_finger_tip_link",
+      "pr2/r_gripper_l_finger_tip_frame",
+      "pr2/l_shoulder_pan_link",
+      "pr2/l_shoulder_lift_link",
+      "pr2/l_upper_arm_roll_link",
+      "pr2/l_upper_arm_link",
+      "pr2/l_elbow_flex_link",
+      "pr2/l_forearm_roll_link",
+      "pr2/l_forearm_link",
+      "pr2/l_wrist_flex_link",
+      "pr2/l_wrist_roll_link",
+      "pr2/l_force_torque_adapter_link",
+      "pr2/l_force_torque_link",
+      "pr2/l_gripper_palm_link",
+      "pr2/l_gripper_led_frame",
+      "pr2/l_gripper_motor_accelerometer_link",
+      "pr2/l_gripper_tool_frame",
+      "pr2/l_gripper_motor_slider_link",
+      "pr2/l_gripper_motor_screw_link",
+      "pr2/l_gripper_l_finger_link",
+      "pr2/l_gripper_r_finger_tip_link",
+      "pr2/l_gripper_l_finger_tip_frame",
+      "pr2/l_forearm_cam_frame",
+      "pr2/l_forearm_cam_optical_frame",
+      "pr2/r_forearm_cam_frame",
+      "pr2/r_forearm_cam_optical_frame",
+      "pr2/head_mount_kinect2_link",
+      "pr2/l_torso_lift_side_item_profile_link",
+      "pr2/r_torso_lift_side_item_profile_link",
+      "pr2/m_torso_lift_side_item_profile_link",
+      "pr2/t_torso_lift_side_item_profile_link",
+      "pr2/r_gripper_r_finger_link",
+      "pr2/r_gripper_l_finger_tip_link",
+      "pr2/l_gripper_r_finger_link",
+      "pr2/l_gripper_l_finger_tip_link"
+     ],
+     "name": "PR2",
+     "type": "PR2"
+    }
+   ]
   },
   {
    "number": 1,
    "depth": 0,
    "phase": "setup",
-   "during": "setting up the robot at the bench",
+   "during": "PR2: vessel transfer A1 \u2192 A3, stepping through its queries",
    "moment": "answered",
    "question": {
     "text": "Find a Handle",
     "html": "<span style=\"color:#eded18\">Find</span> a <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle\" title=\"A handle is a physical entity that can be grasped by a hand or a robotic gripper to\"><span style=\"color:cornflowerblue\">Handle</span></a>"
    },
    "code": {
-    "file": "/home/vee/cramera/packages/bridge/src/cramera_bridge/demos/query_stepping.py",
-    "function": "QueryingTransferDemo.the_handles",
-    "firstLine": 511,
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/transfer.py",
+    "function": "VesselTransferDemo.the_handles",
+    "firstLine": 333,
     "lines": [
-     "        :param world: The world built for the task.",
-     "        :return: Every handle at the bench.",
+     "        :return: Every handle at the bench, found by an entity query; the transfer",
+     "            opens none of them, so their answers only show where they are.",
      "        \"\"\"",
      "        handle = variable(Handle, world.semantic_annotations)",
      "        return an(entity(handle)).tolist()",
@@ -289,13 +402,13 @@
      "        \"\"\"",
      "        :param world: The world built for the task."
     ],
-    "focusFirstLine": 515,
-    "focusLastLine": 515
+    "focusFirstLine": 337,
+    "focusLastLine": 337
    },
    "caller": {
-    "function": "QueryingTransferDemo.the_handles",
-    "module": "query_stepping",
-    "line": 515
+    "function": "VesselTransferDemo.the_handles",
+    "module": "transfer",
+    "line": 337
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -334,40 +447,92 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 0.17303999993600883
+   "milliseconds": 2.098277007462457,
+   "frame": 7,
+   "entities": [
+    {
+     "keys": [
+      "laboratory_rack_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_rack_handle",
+     "type": "Handle"
+    },
+    {
+     "keys": [
+      "laboratory_drawer_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_drawer_handle",
+     "type": "Handle"
+    },
+    {
+     "keys": [
+      "laboratory_cabinet_lower_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_cabinet_lower_handle",
+     "type": "Handle"
+    },
+    {
+     "keys": [
+      "laboratory_cabinet_middle_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_cabinet_middle_handle",
+     "type": "Handle"
+    },
+    {
+     "keys": [
+      "laboratory_cabinet_right_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_cabinet_right_handle",
+     "type": "Handle"
+    },
+    {
+     "keys": [
+      "laboratory_centrifuge_lid_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_centrifuge_lid_handle",
+     "type": "Handle"
+    },
+    {
+     "keys": [
+      "laboratory_refrigerator_door_handle"
+     ],
+     "name": "Handle \u00b7 laboratory_refrigerator_door_handle",
+     "type": "Handle"
+    }
+   ]
   },
   {
    "number": 2,
    "depth": 0,
-   "phase": "resolution",
-   "during": "choosing the vessel to carry",
+   "phase": "setup",
+   "during": "PR2: vessel transfer A1 \u2192 A3, stepping through its queries",
    "moment": "answered",
    "question": {
     "text": "Find the unique Body such that the name of its name is 'tube_clear'",
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_clear&#x27;</span>"
    },
    "code": {
-    "file": "/home/vee/cramera/packages/bridge/src/cramera_bridge/demos/query_stepping.py",
-    "function": "QueryingTransferDemo.the_vessel",
-    "firstLine": 520,
+    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/transfer.py",
+    "function": "VesselTransferDemo.the_vessel",
+    "firstLine": 342,
     "lines": [
-     "        :return: The vessel standing in the source slot.",
+     "        :return: The vessel standing in the source slot, found by an entity query.",
      "        \"\"\"",
-     "        key = self.vessel_in(self.source_slot)",
+     "        key = self.vessel_key()",
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
      "    def vessel_key(self) -> str:",
-     "        return str(self.vessel.name.name)",
-     ""
+     "        \"\"\"",
+     "        :return: The vessel starting in the source slot."
     ],
-    "focusFirstLine": 524,
-    "focusLastLine": 524
+    "focusFirstLine": 346,
+    "focusLastLine": 346
    },
    "caller": {
-    "function": "QueryingTransferDemo.the_vessel",
-    "module": "query_stepping",
-    "line": 524
+    "function": "VesselTransferDemo.the_vessel",
+    "module": "transfer",
+    "line": 346
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -379,16 +544,26 @@
    ],
    "highlight": {
     "keys": [
-     "1acf45bb-c50d-47a3-a893-c681ed5c5b4b"
+     "c67c9378-dcc0-4d53-8092-0b4f1f93bead"
     ],
     "regions": [],
     "framed": [
-     "1acf45bb-c50d-47a3-a893-c681ed5c5b4b"
+     "c67c9378-dcc0-4d53-8092-0b4f1f93bead"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 2.0360429989523254
+   "milliseconds": 2.562563997344114,
+   "frame": 7,
+   "entities": [
+    {
+     "keys": [
+      "c67c9378-dcc0-4d53-8092-0b4f1f93bead"
+     ],
+     "name": "tube_clear",
+     "type": "Body"
+    }
+   ]
   }
  ]
 }

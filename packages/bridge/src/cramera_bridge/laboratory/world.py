@@ -46,6 +46,18 @@ from cramera_protocol.laboratory.layout import (
 # %% names
 
 
+RACK_STATION = "rack"
+"""
+The name of the sample rack among the stations that hold vessels at the bench.
+"""
+
+PLACE_NAME = "{station} {slot}"
+"""
+How a task names a slot it sets a vessel into: the station holding it and the slot's
+identifier in the bench's layout, such as ``centrifuge C4``.
+"""
+
+
 class LaboratoryHandle(StrEnum):
     """
     The frames on the laboratory's handle bars.
