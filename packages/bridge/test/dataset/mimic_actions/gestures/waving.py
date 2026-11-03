@@ -13,7 +13,8 @@ from enum import Enum, IntEnum, auto
 
 from typing_extensions import TYPE_CHECKING, List, Optional
 
-from coraplex.robot_plans.actions.base import ActionDescription
+from coraplex.robot_plans.actions.base import SequentialAction
+from cramph.node import StatechartNode
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.robot_parts import Arm, EndEffector, Torso
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
@@ -56,8 +57,8 @@ class Mood(Enum):
     """
 
 
-@dataclass(kw_only=True)
-class Gesture(ActionDescription, ABC):
+@dataclass(eq=False, repr=False, kw_only=True)
+class Gesture(SequentialAction, ABC):
     """
     A gesture, abstract by deriving from ABC directly.
     """
@@ -67,11 +68,11 @@ class Gesture(ActionDescription, ABC):
     A field typed with a class importable only while type checking.
     """
 
-    def _action_plan(self) -> None:
-        return None
+    def create_steps(self) -> List[StatechartNode]:
+        return []
 
 
-@dataclass
+@dataclass(eq=False, repr=False, kw_only=True)
 class WaveAction(Gesture):
     """
     Wave with an arm.
@@ -130,8 +131,8 @@ class WaveAction(Gesture):
     """
 
 
-@dataclass
-class HandOverAction(ActionDescription):
+@dataclass(eq=False, repr=False, kw_only=True)
+class HandOverAction(SequentialAction):
     """
     Hand an object over with a tool.
     """
@@ -161,12 +162,12 @@ class HandOverAction(ActionDescription):
     The tool used.
     """
 
-    def _action_plan(self) -> None:
-        return None
+    def create_steps(self) -> List[StatechartNode]:
+        return []
 
 
-@dataclass
-class PointAction(ActionDescription):
+@dataclass(eq=False, repr=False, kw_only=True)
+class PointAction(SequentialAction):
     """
     Point somewhere with a hand, acting on no object.
     """
@@ -181,12 +182,12 @@ class PointAction(ActionDescription):
     The hand that points, picked by its arm.
     """
 
-    def _action_plan(self) -> None:
-        return None
+    def create_steps(self) -> List[StatechartNode]:
+        return []
 
 
-@dataclass
-class ShrugAction(ActionDescription):
+@dataclass(eq=False, repr=False, kw_only=True)
+class ShrugAction(SequentialAction):
     """
     Shrug while thinking of something only type checking knows.
     """
@@ -196,5 +197,5 @@ class ShrugAction(ActionDescription):
     A required field whose type cannot be resolved.
     """
 
-    def _action_plan(self) -> None:
-        return None
+    def create_steps(self) -> List[StatechartNode]:
+        return []

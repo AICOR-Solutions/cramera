@@ -8,6 +8,7 @@ from __future__ import annotations
 import pytest
 
 from coraplex.datastructures.trajectory import PoseTrajectory
+from coraplex.robot_plans.actions.composite.searching import SearchAction
 from coraplex.robot_plans.actions.core.navigation import LookAtAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
@@ -39,7 +40,12 @@ The stand-in module that fails to import.
 
 SEARCHING_MODULE = "coraplex.robot_plans.actions.composite.searching"
 """
-The action module that fails to import in this checkout.
+The action module that failed to import in earlier checkouts.
+"""
+
+STATECHART_FIELD = "name"
+"""
+A field every statechart node has, which is no parameter of an action.
 """
 
 
@@ -164,8 +170,19 @@ def test_the_native_actions_are_available(native, action):
     assert discovered.schema.available is True
 
 
-def test_the_searching_module_fails_to_import_in_this_checkout(native):
-    assert SEARCHING_MODULE in [failed.module for failed in native.failed_modules]
+def test_the_searching_module_imports_in_this_checkout(native):
+    assert SEARCHING_MODULE not in [failed.module for failed in native.failed_modules]
+    discovered = native.named(ACTION_NAMES.identifier_of(SearchAction))
+    assert discovered.action_class is SearchAction
+
+
+def test_the_fields_of_the_statechart_node_are_no_parameters(native):
+    for discovered in native.actions:
+        schema = discovered.schema
+        names = [offered.name for offered in schema.fields] + [
+            hidden.name for hidden in schema.hidden
+        ]
+        assert STATECHART_FIELD not in names, schema.name
 
 
 def test_an_action_with_a_required_trajectory_is_unavailable(native):
@@ -174,12 +191,16 @@ def test_an_action_with_a_required_trajectory_is_unavailable(native):
     assert PoseTrajectory.__name__ in schema.unavailable_reason
 
 
-def test_set_gripper_offers_its_two_enumerations(native):
-    schema = native.named(SetGripperAction.__name__).schema
+def test_set_gripper_offers_its_configuration_as_two_enumerations(native):
+    discovered = native.named(SetGripperAction.__name__)
+    schema = discovered.schema
     assert [offered.enum_type for offered in schema.fields] == [
         ENUM_NAMES.identifier_of(Arms),
         "gripper_state",
     ]
+    assert discovered.configuration_parts() == {
+        offered.name for offered in schema.fields
+    }
 
 
 def test_core_actions_come_first(native):

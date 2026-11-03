@@ -1,8 +1,9 @@
 """
 A plan's steps as the native coraplex actions they name: each value converted by the
 kind and type of its field, an arm into the robot's part, an object into its body, its
-annotation or the grasp of it closest to the robot, the constraints' switches turned on,
-and the action constructed with keyword arguments.
+annotation or the grasp of it closest to the robot, a gripper and its state into the
+gripper's configuration, the constraints' switches turned on, and the action constructed
+with keyword arguments.
 """
 
 from __future__ import annotations
@@ -11,11 +12,15 @@ from dataclasses import dataclass
 
 from typing_extensions import Any, Callable, Dict, Iterable, Optional
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.querying.predicates import IsAmongTheClosestGraspsTo
-from coraplex.robot_plans.actions.base import ActionDescription
+from coraplex.querying.grasp_closeness import GraspsByCloseness
+from coraplex.robot_plans.actions.base import Action
 from cramera_bridge.names import ENUM_NAMES
-from cramera_bridge.plans.actions import DiscoveredAction, DiscoveredActions
+from cramera_bridge.performing import TaskContext
+from cramera_bridge.plans.actions import (
+    DiscoveredAction,
+    DiscoveredActions,
+    GripperConfigurationPart,
+)
 from cramera_bridge.plans.arms import ArmField, Arms, RobotArms
 from cramera_bridge.plans.surfaces import SurfaceTargets
 from cramera_bridge.plans.world import PlannedGraspable
@@ -45,7 +50,7 @@ class StepArguments:
     The keyword arguments of one step's action, converted from the step's values.
     """
 
-    context: Context
+    context: TaskContext
     """
     The world and the robot that performs the step.
     """
@@ -67,8 +72,9 @@ class StepArguments:
 
     def arguments(self) -> Dict[str, Any]:
         """
-        :return: A value for every field the step gives and True for every switch its
-            constraints turn on; fields the step leaves out keep the action's defaults.
+        :return: A value for every field the step gives, a gripper configuration for
+            the gripper and state it names, and True for every switch its constraints
+            turn on; fields the step leaves out keep the action's defaults.
         """
         converters: Dict[ActionFieldKind, Callable[[ActionField, Any], Any]] = {
             ActionFieldKind.BODY: self.body,
@@ -82,13 +88,26 @@ class StepArguments:
             ActionFieldKind.TEXT: self.plain,
         }
         schema = self.action.schema
-        arguments = {
-            self.action.field_name(offered.name): converters[offered.kind](
+        parts = self.action.configuration_parts()
+        converted = {
+            offered.name: converters[offered.kind](
                 offered, self.step.values[offered.name]
             )
             for offered in schema.fields
             if offered.name in self.step.values
         }
+        arguments = {
+            self.action.field_name(identifier): value
+            for identifier, value in converted.items()
+            if identifier not in parts
+        }
+        for name, configured in self.action.configurations.items():
+            if all(identifier in converted for identifier in configured.values()):
+                arguments[name] = converted[
+                    configured[GripperConfigurationPart.GRIPPER]
+                ].default_configuration(
+                    converted[configured[GripperConfigurationPart.MOTION]]
+                )
         for constraint in self.step.constraints:
             if constraint.switch is not None and self.is_switch(constraint.switch):
                 arguments[self.action.field_name(constraint.switch)] = True
@@ -206,16 +225,12 @@ class StepArguments:
         :param identifier: The object's identity.
         :param graspable: Its annotation.
         :return: The grasp of the object closest to where the robot stands, approached
-            from the robot's side.
+            most directly from the robot's side.
         :raises ObjectNotGraspable: When the object offers no grasp.
         """
-        grasps = graspable.grasp_candidates()
-        standing = self.context.robot.root.global_pose
-        closest = [
-            grasp
-            for grasp in grasps
-            if IsAmongTheClosestGraspsTo(grasp, standing, grasps, number_of_grasps=1)()
-        ]
+        closest = GraspsByCloseness(
+            graspable, self.context.robot.root.global_pose, number_of_grasps=1
+        )()
         if not closest:
             raise ObjectNotGraspable(identifier)
         return closest[0]
@@ -239,7 +254,7 @@ class StepActions:
     Builds the native action of each step against the world and robot of a context.
     """
 
-    context: Context
+    context: TaskContext
     """
     The world and the robot that performs the steps.
     """
@@ -254,7 +269,7 @@ class StepActions:
     The workspace's actions, which steps name by class name.
     """
 
-    def action(self, step: PlanStep) -> ActionDescription:
+    def action(self, step: PlanStep) -> Action:
         """
         :param step: A step the plan builder checked against its action's schema.
         :return: The native action the step stands for.

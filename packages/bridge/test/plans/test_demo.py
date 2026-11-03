@@ -177,8 +177,14 @@ def test_a_place_puts_down_the_object_it_names(demo, actions):
 def test_a_gripper_step_opens_and_closes_the_gripper(demo, built, actions):
     _, context = built
     close, open_ = (actions.action(step) for step in demo.steps()[4:])
-    assert (close.motion, open_.motion) == (GripperState.CLOSE, GripperState.OPEN)
-    assert close.gripper is context.robot.left_arm.end_effector
+    gripper = context.robot.left_arm.end_effector
+    assert close.configuration.end_effector is gripper
+    assert [
+        action.configuration.joint_state.target_values for action in (close, open_)
+    ] == [
+        gripper.get_joint_state_by_type(state).target_values
+        for state in (GripperState.CLOSE, GripperState.OPEN)
+    ]
 
 
 def test_a_switch_the_action_lacks_is_left_out(demo, actions):
