@@ -15,6 +15,7 @@ from cramera_bridge.exceptions import (
 )
 from cramera_bridge.export.assets import BundledAssets
 from cramera_bridge.export.urdf import (
+    COORDINATE_PRECISION,
     ROOT_LINK,
     UrdfAttribute,
     UrdfBundle,
@@ -100,8 +101,9 @@ def test_visuals_carry_the_native_colour(kitchen, tmp_path):
     report = document(kitchen.world, tmp_path).write([kitchen.milk], "milk")
     milk = links_of(tmp_path / report.urdf)[str(kitchen.milk.name)]
     rgba = milk.find("visual/material/color").attrib[UrdfAttribute.RGBA]
-    assert [float(value) for value in rgba.split()] == list(
-        kitchen.milk.visual.shapes[0].color.to_rgba()
+    assert [float(value) for value in rgba.split()] == pytest.approx(
+        list(kitchen.milk.visual.shapes[0].color.to_rgba()),
+        abs=10**-COORDINATE_PRECISION,
     )
 
 
