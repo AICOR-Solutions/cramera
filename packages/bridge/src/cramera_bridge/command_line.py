@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import List, Optional, Sequence
+from typing_extensions import Callable, List, Optional, Sequence
 
 from cramera.locations import DataLocations
 from cramera_bridge.coraplex_backend import CoraplexBackendRegistration
@@ -115,12 +115,29 @@ class LiveCommand:
             )
         )
 
-    def run_demo(self) -> None:
+    def run_demo(self, then: Callable[[], None] = lambda: None) -> None:
         """
-        Run the demo as its own ``__main__`` with the cramera backend selected.
+        Run the demo as its own ``__main__``, showing every plan it performs in the
+        cramera viewer.
+
+        :param then: Called once the demo ran, while its world is still published.
         """
         with CoraplexBackendRegistration():
             self.demo.run()
+            then()
+
+
+def wait_until_interrupted() -> None:
+    """
+    Block until Ctrl-C or a termination signal.
+    """
+    stop_signals = {signal.SIGINT, signal.SIGTERM}
+    previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
+    logging.getLogger(__name__).info(
+        "The demo finished; the live publisher stays up until interrupted."
+    )
+    signal.sigwait(stop_signals)
+    signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
 
 
 def live(arguments: Optional[Sequence[str]] = None) -> None:
@@ -132,14 +149,7 @@ def live(arguments: Optional[Sequence[str]] = None) -> None:
     """
     logging.basicConfig(level=logging.INFO)
     command = LiveCommand.parse(sys.argv[1:] if arguments is None else arguments)
-    command.run_demo()
-    stop_signals = {signal.SIGINT, signal.SIGTERM}
-    previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
-    logging.getLogger(__name__).info(
-        "The demo finished; the live publisher stays up until interrupted."
-    )
-    signal.sigwait(stop_signals)
-    signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+    command.run_demo(then=wait_until_interrupted)
 
 
 # %% onboard

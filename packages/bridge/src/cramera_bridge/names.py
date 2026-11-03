@@ -120,7 +120,7 @@ ACTIONS = (
     ),
     PinnedClass(
         "container",
-        "coraplex.robot_plans.actions.core.container.ContainerAction",
+        "coraplex.robot_plans.actions.core.container.MovesContainerByItsHandle",
         ("ContainerAction",),
     ),
     PinnedClass(
@@ -297,19 +297,25 @@ The robot annotations a plan's robot names as its model.
 """
 
 PLAN_NODE_KINDS = (
-    ("coraplex.plans.plan_node.ActionNode", PlanNodeKind.ACTION),
-    ("coraplex.plans.plan_node.MotionNode", PlanNodeKind.MOTION),
-    ("coraplex.plans.condition_nodes.ConditionNode", PlanNodeKind.CONDITION),
-    ("coraplex.language.ExecutesSequentially", PlanNodeKind.SEQUENCE),
-    ("coraplex.language.ExecutesInParallel", PlanNodeKind.PARALLEL),
-    ("coraplex.language.MonitorNode", PlanNodeKind.MONITOR),
-    ("coraplex.language.CodeNode", PlanNodeKind.CODE),
-    ("coraplex.plans.attachment_nodes.ReAttachNode", PlanNodeKind.ATTACHMENT),
-    ("coraplex.plans.underspecified.UnderspecifiedNode", PlanNodeKind.UNDERSPECIFIED),
+    ("coraplex.robot_plans.actions.base.Action", PlanNodeKind.ACTION),
+    ("cramph.composites.StatementNode", PlanNodeKind.UNDERSPECIFIED),
+    (
+        "giskardpy.motion_statechart.graph_node.MotionStatechartNode",
+        PlanNodeKind.MOTION,
+    ),
+    ("cramph.composites.MonitoredCompositeNode", PlanNodeKind.MONITOR),
+    ("cramph.composites.Sequence", PlanNodeKind.SEQUENCE),
+    ("cramph.composites.TryInOrder", PlanNodeKind.SEQUENCE),
+    ("cramph.composites.RepeatUntil", PlanNodeKind.SEQUENCE),
+    ("cramph.composites.Parallel", PlanNodeKind.PARALLEL),
+    ("cramph.composites.TryAll", PlanNodeKind.PARALLEL),
+    ("cramph.threaded_nodes.FunctionCall", PlanNodeKind.CODE),
+    ("cramph.world_modification_nodes.MoveBranch", PlanNodeKind.ATTACHMENT),
 )
 """
-The plan node classes by the kind the protocol names them, tried in order; a node is of
-the kind of the first class it is an instance of, else :attr:`PlanNodeKind.OTHER`.
+The statechart node classes by the kind the protocol names them, tried in order: an
+action is of its own kind although it is also the composite of its steps, and a node is
+of the kind of the first class it is an instance of, else :attr:`PlanNodeKind.OTHER`.
 """
 
 SEGMIND_EVENTS = "segmind.datastructures.events"

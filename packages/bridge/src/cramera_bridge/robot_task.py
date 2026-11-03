@@ -19,12 +19,12 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, Iterator, List, Optional, Self, Sequence, Tuple
+from typing_extensions import Any, Iterator, List, Optional, Self, Sequence, Tuple, Type
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.execution_environment import ExecutionEnvironment
-from coraplex.datastructures.enums import ExecutionType
-from coraplex.plans.plan import Plan
+from coraplex.plans.executors import (
+    KinematicallySimulatedPlanExecutor,
+    PlanExecutor,
+)
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
 from cramera_bridge.database.runs import StoredRun
@@ -37,6 +37,7 @@ from cramera_bridge.exceptions import (
 from cramera_bridge.export.scene_index import SceneIndexFile
 from cramera_bridge.live.query_steps import HeldQueries
 from cramera_bridge.live.server import LIVE_PORT
+from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.query_stepping import QueryStepper
 from cramera_bridge.scenes.bundle_world import BundleEnvironment
 from cramera_bridge.scenes.environment import SceneEnvironment
@@ -52,6 +53,7 @@ from cramera_protocol.live_messages import (
     SceneDestination,
 )
 from cramera_protocol.query_steps import StepPhase
+from cramph.node import StatechartNode
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.world import World
 
@@ -135,9 +137,9 @@ class RobotTaskDemo(ABC):
     The port the run is published on while it runs.
     """
 
-    execution_type: ExecutionType = ExecutionType.KINEMATICALLY_SIMULATED
+    executor_type: Type[PlanExecutor] = KinematicallySimulatedPlanExecutor
     """
-    How the plan's motions are executed.
+    The executor running each plan, which decides how its motions are executed.
     """
 
     collision_avoidance: bool = False
@@ -169,13 +171,13 @@ class RobotTaskDemo(ABC):
     """
 
     @abstractmethod
-    def build_plan(self, context: Context) -> Plan:
+    def build_plan(self, context: TaskContext) -> StatechartNode:
         """
         :param context: The world and the robot the task is performed with.
-        :return: The task's plan.
+        :return: The task's plan: the top-level node of the statechart it runs as.
         """
 
-    def build_plans(self, context: Context) -> List[Plan]:
+    def build_plans(self, context: TaskContext) -> List[StatechartNode]:
         """
         :param context: The world and the robot the task is performed with.
         :return: The plans performed one after another and recorded together: the
@@ -184,7 +186,7 @@ class RobotTaskDemo(ABC):
         return [self.build_plan(context)]
 
     @abstractmethod
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
         Measure the outcome from the world after the plan ran.
 
@@ -261,7 +263,7 @@ class RobotTaskDemo(ABC):
         """
         return self.environment.create_world(robots=[self.robot])
 
-    def build_context(self, world: World) -> Context:
+    def build_context(self, world: World) -> TaskContext:
         """
         :param world: The world built for the task.
         :return: The context naming the robot of the task.
@@ -269,7 +271,16 @@ class RobotTaskDemo(ABC):
         robot = world.get_semantic_annotations_by_type(
             self.robot.semantic_annotation_type
         )[0]
-        return Context(world=world, robot=robot)
+        return TaskContext(world=world, robot=robot)
+
+    def performance(self) -> PlanPerformance:
+        """
+        :return: How the task's plans are performed.
+        """
+        return PlanPerformance(
+            executor_type=self.executor_type,
+            collision_avoidance=self.collision_avoidance,
+        )
 
     def on_live_started(self, visualization: LiveVisualization) -> None:
         """
@@ -307,15 +318,12 @@ class RobotTaskDemo(ABC):
                     prepared = self.prepare(world)
                 context, plans = prepared
                 self.enter_phase(StepPhase.EXECUTION)
-                with ExecutionEnvironment(
-                    execution_type=self.execution_type,
-                    collision_avoidance=self.collision_avoidance,
-                ):
-                    for plan in plans:
-                        plan.node_callbacks.append(visualization.plan_callback(plan))
-                        if self.stepper is not None:
-                            plan.node_callbacks.append(self.stepper.progress(plan))
-                        plan.perform()
+                performance = self.performance()
+                for plan in plans:
+                    extensions = [visualization.progress()]
+                    if self.stepper is not None:
+                        extensions.append(self.stepper.progress())
+                    performance.perform(plan, context, extensions)
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
             run = visualization.publisher.save_recording(
@@ -332,7 +340,7 @@ class RobotTaskDemo(ABC):
         self.complete(run, metrics)
         return SavedScene(scene=run.scene)
 
-    def prepare(self, world: World) -> Tuple[Context, List[Plan]]:
+    def prepare(self, world: World) -> Tuple[TaskContext, List[StatechartNode]]:
         """
         Set the task up in its world and build its plans; while the run steps through
         its queries, the plans' open parts are grounded step by step.

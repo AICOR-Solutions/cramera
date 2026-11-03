@@ -34,7 +34,8 @@ class GeneratedMapping(StrEnum):
 
     PLANS = "coraplex.orm.ormatic_interface"
     """
-    The mapping of coraplex's plans, which includes everything a plan refers to.
+    The mapping of coraplex's plans, which includes the statecharts they run as and
+    everything they refer to.
     """
 
 
@@ -83,7 +84,7 @@ class NativePlans:
         mapping.Base.metadata.create_all(engine)
         with Session(engine) as session, session.begin():
             for performed in plans:
-                stored = to_dao(performed.plan)
+                stored = to_dao(performed.statechart)
                 session.add(stored)
                 session.flush()
                 session.add(

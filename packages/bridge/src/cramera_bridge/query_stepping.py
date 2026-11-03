@@ -27,10 +27,7 @@ from types import FrameType
 
 from typing_extensions import Any, Iterable, Iterator, List, Optional, Tuple
 
-from coraplex.plans.plan import Plan
-from coraplex.plans.plan_callbacks import PlanCallback
-from coraplex.plans.plan_node import ActionNode, PlanNode
-from coraplex.plans.underspecified import UnderspecifiedNode
+from coraplex.robot_plans.actions.base import Action
 from cramera_bridge.live.publisher import LivePublisher
 from cramera_bridge.live.query_steps import HeldQueries
 from cramera_bridge.questions.verbalization import QueryVerbalizer
@@ -44,6 +41,11 @@ from cramera_protocol.query_steps import (
     StepPhase,
 )
 from cramera_protocol.resolutions import BackendDescription, KnowledgeSource
+from cramph.composites import StatementNode
+from cramph.executor import Executor, StatechartExecutor, TickingExecutorExtension
+from cramph.node import StatechartNode
+from cramph.state_history import StateHistoryItem
+from cramph.statechart import Statechart
 from krrood.entity_query_language.backends import (
     EntityQueryLanguageBackend,
     QueryBackend,
@@ -239,14 +241,14 @@ class QueryStepper:
     What the run is doing.
     """
 
-    plans: List[Plan] = field(default_factory=list)
+    statecharts: List[Statechart] = field(default_factory=list)
     """
-    The plans whose progress the stepper follows.
+    The statecharts of the plans whose progress the stepper follows.
     """
 
-    running: List[PlanNode] = field(default_factory=list)
+    running: List[StatechartNode] = field(default_factory=list)
     """
-    The plan nodes under way, in the order they started.
+    The plan's nodes under way, in the order they started.
     """
 
     steps: List[QueryStep] = field(default_factory=list)
@@ -322,13 +324,12 @@ class QueryStepper:
         """
         return SteppedBackend(inner=inner, stepper=self, resolves=True)
 
-    def progress(self, plan: Plan) -> PlanCallback:
+    def progress(self) -> ActionProgress:
         """
-        :param plan: A plan about to be performed.
-        :return: The plan callback that follows its nodes under way.
+        :return: The executor extension that follows the nodes under way of the plan
+            the executor it is added to runs.
         """
-        self.plans.append(plan)
-        return ActionProgress(stepper=self, plan=plan)
+        return ActionProgress(stepper=self)
 
     # %% answering
 
@@ -456,9 +457,8 @@ class QueryStepper:
 
     def during(self, open_part: Optional[Evaluable] = None) -> str:
         """
-        Coraplex reports the start of motions and of the nodes it performs one by one,
-        not of the actions it builds one motion statechart of, so an action is found
-        among the ancestors of a node.
+        An action is found among the ancestors of a node, since the nodes started last
+        are the motions an action is made of.
 
         :param open_part: The part a plan leaves open, while it is grounded.
         :return: The action under way: the innermost action enclosing the open part's
@@ -468,22 +468,19 @@ class QueryStepper:
         lines = [node.path for node in self.open_part_nodes(open_part)] + [
             [node, *node.path] for node in reversed(self.running)
         ]
-        actions = [
-            node for line in lines for node in line if isinstance(node, ActionNode)
-        ]
-        return type(actions[0].designator).__name__ if actions else self.task
+        actions = [node for line in lines for node in line if isinstance(node, Action)]
+        return type(actions[0]).__name__ if actions else self.task
 
-    def open_part_nodes(self, open_part: Optional[Evaluable]) -> List[PlanNode]:
+    def open_part_nodes(self, open_part: Optional[Evaluable]) -> List[StatechartNode]:
         """
         :param open_part: A part a plan leaves open, or None.
-        :return: The nodes of the followed plans standing for it.
+        :return: The statement nodes of the followed plans standing for it.
         """
         return [
             node
-            for plan in self.plans
-            for node in plan.nodes
-            if isinstance(node, UnderspecifiedNode)
-            and node.underspecified_action is open_part
+            for statechart in self.statecharts
+            for node in statechart.get_nodes_by_type(StatementNode)
+            if node.statement is open_part
         ]
 
     @staticmethod
@@ -535,10 +532,10 @@ class QueryStepper:
 
 
 @dataclass
-class ActionProgress(PlanCallback):
+class ActionProgress(TickingExecutorExtension):
     """
-    Tells the stepper which plan nodes are under way, so its steps name the action they
-    are asked during.
+    Tells the stepper which nodes of the plan an executor runs are under way, so its
+    steps name the action they are asked during.
     """
 
     stepper: QueryStepper = field(kw_only=True)
@@ -546,10 +543,41 @@ class ActionProgress(PlanCallback):
     The stepper whose steps name the action.
     """
 
-    def on_start(self, node: PlanNode) -> None:
-        self.stepper.running.append(node)
+    followed: Optional[StateHistoryItem] = field(default=None, init=False)
+    """
+    The newest state of the statechart whose changes were followed.
+    """
 
-    def on_end(self, node: PlanNode) -> None:
+    def after_compile(self, executor: Executor) -> None:
+        """
+        Follow the plan the executor compiled, from the nodes its first tick started.
+        """
+        if executor.statechart not in self.stepper.statecharts:
+            self.stepper.statecharts.append(executor.statechart)
+        self.follow(executor)
+
+    def after_recompile(self, executor: StatechartExecutor) -> None:
+        """
+        Follows nothing new: the statechart keeps the nodes it held.
+        """
+
+    def after_tick(self, executor: StatechartExecutor) -> None:
+        self.follow(executor)
+
+    def follow(self, executor: Executor) -> None:
+        """
+        Note the nodes that started and ended since the state followed last.
+
+        :param executor: The executor running the plan.
+        """
+        history = executor.statechart.state_history
+        moment = history.latest_item
+        if moment is None or moment is self.followed:
+            return
+        self.followed = moment
+        ended = history.nodes_ended_in_latest_item()
         self.stepper.running = [
-            running for running in self.stepper.running if running is not node
+            node for node in self.stepper.running if node not in ended
+        ] + [
+            node for node in history.nodes_started_in_latest_item() if node not in ended
         ]
