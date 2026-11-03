@@ -17,13 +17,11 @@ from pathlib import Path
 import numpy as np
 from typing_extensions import Dict, List, Optional
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import sequential
-from coraplex.plans.plan import Plan
-from coraplex.plans.plan_node import MotionNode
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from cramph.composites import Sequence
+from cramph.data_types import LifeCycleValues
+from cramph.node import StatechartNode
 from krrood.entity_query_language.factories import an, entity, the, variable
 from semantic_digital_twin.callbacks.callback import StateChangeCallback
 from semantic_digital_twin.specifications.robots import RobotSpecification
@@ -39,6 +37,7 @@ from cramera_bridge.laboratory.grasping import PadContact
 from cramera_bridge.laboratory.handling import VesselTaskDemo
 from cramera_protocol.laboratory.runs import TaskRecording
 from cramera_bridge.laboratory.world import LaboratoryEnvironment
+from cramera_bridge.performing import TaskContext
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.scene import Camera
 from cramera_protocol.geometry import Vector3
@@ -175,7 +174,7 @@ class TransferObservation(StateChangeCallback):
     Measures the vessel and its neighbours after each state update of the run.
     """
 
-    context: Context = field(kw_only=True)
+    context: TaskContext = field(kw_only=True)
     """
     The world and the robot.
     """
@@ -346,7 +345,7 @@ class VesselTransferDemo(VesselTaskDemo):
         """
         return self.vessel_in(self.source_slot)
 
-    def build_context(self, world: World) -> Context:
+    def build_context(self, world: World) -> TaskContext:
         """
         Find the robot, the handles and the vessel with entity queries, park the arms,
         raise the torso, and keep the gripper and the vessel clear of the laboratory,
@@ -364,7 +363,7 @@ class VesselTransferDemo(VesselTaskDemo):
         self.keep_clear(world, robot, [self.vessel])
         return self.tight_context(world, robot)
 
-    def build_plan(self, context: Context) -> Plan:
+    def build_plan(self, context: TaskContext) -> StatechartNode:
         """
         :param context: The world and the robot.
         :return: Pickup from the source slot and placing into the target slot.
@@ -380,15 +379,14 @@ class VesselTransferDemo(VesselTaskDemo):
         ]
         if bench.stopper is not None:
             others.append(context.world.get_body_by_name(bench.stopper.key))
-        plan = sequential(
-            [
+        plan = Sequence(
+            nodes=[
                 self.pick_up(context, grasp),
                 self.place(
                     grasp, self.laboratory.slot_pose(self.target_slot, context.world)
                 ),
-            ],
-            context=context,
-        ).plan
+            ]
+        )
         if self.observation is not None:
             self.observation.stop()
         self.observation = TransferObservation(
@@ -417,7 +415,7 @@ class VesselTransferDemo(VesselTaskDemo):
             if self.observation is not None:
                 self.observation.stop()
 
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
         :param context: The world and the robot after the run.
         :return: The measurements.
@@ -476,28 +474,22 @@ class VesselTransferDemo(VesselTaskDemo):
             }
         )
 
-    def require_success(self, context: Context) -> None:
+    def require_success(self, context: TaskContext) -> None:
         """
-        Check every motion of both actions.
-
-        Current CRAM does not aggregate parent action status when execution is split at
-        attachment boundaries.
+        Check that the plan holds one pickup and one placing, both expanded, and that
+        they and every action they hold succeeded.
 
         :param context: The world and the robot after the run.
         :raises TaskFailed: When the pickup or the placing did not succeed.
         """
-        plan = self.plan
-        nodes = plan.get_nodes_by_designator_type(
-            PickUpAction
-        ) + plan.get_nodes_by_designator_type(PlaceAction)
-        motions = [
-            [child for child in node.descendants if isinstance(child, MotionNode)]
-            for node in nodes
-        ]
-        statuses = [motion.status for action in motions for motion in action]
+        actions = self.performed_actions()
+        statuses = [action.life_cycle_state for action in actions]
+        pickups = [action for action in actions if isinstance(action, PickUpAction)]
+        placings = [action for action in actions if isinstance(action, PlaceAction)]
         if (
-            len(nodes) != 2 * SINGLE_ACTION
-            or any(not action for action in motions)
+            len(pickups) != SINGLE_ACTION
+            or len(placings) != SINGLE_ACTION
+            or any(not action.nodes for action in pickups + placings)
             or any(status is not LifeCycleValues.SUCCEEDED for status in statuses)
         ):
             raise TaskFailed(

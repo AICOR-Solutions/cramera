@@ -11,11 +11,10 @@ from abc import ABC
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from typing_extensions import List, Optional
+from typing_extensions import Dict, List, Optional
 
-from coraplex.datastructures.dataclasses import Context, MotionToleranceConfig
-from coraplex.datastructures.enums import MovementType
-from coraplex.plans.plan import Plan
+from coraplex.robot_plans.actions.base import Action
+from cramph.node import StatechartNode
 from krrood.entity_query_language.factories import entity, the, variable
 from semantic_digital_twin.collision_checking.collision_rules import (
     AllowCollisionBetweenGroups,
@@ -35,6 +34,7 @@ from semantic_digital_twin.world_description.world_entity import Body
 
 from cramera_bridge.laboratory.grasping import RackPlaceAction, VesselPickUpAction
 from cramera_bridge.laboratory.world import LaboratoryEnvironment
+from cramera_bridge.performing import TaskContext
 from cramera_bridge.robot_task import RobotTaskDemo
 from cramera_bridge.visualization import LiveVisualization
 from cramera_protocol.live_messages import SavedScene
@@ -196,7 +196,7 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
     How fast the tool moves in each stage.
     """
 
-    plan: Optional[Plan] = field(init=False, default=None)
+    plan: Optional[StatechartNode] = field(init=False, default=None)
     """
     The current run's plan, once it is built.
     """
@@ -286,19 +286,23 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
                     )
                 )
 
-    def tight_context(self, world: World, robot: PR2) -> Context:
+    def tight_context(self, world: World, robot: PR2) -> TaskContext:
         """
         :param world: The world built for the task.
         :param robot: The robot.
-        :return: The context with tight tolerances at the slots.
+        :return: The context of the task; the tight tolerances at the slots are those of
+            :meth:`tool_tolerances`, which every tool motion of the task is given.
         """
-        return Context(
-            world=world,
-            robot=robot,
-            motion_tolerances=MotionToleranceConfig(
-                default_tcp_position_threshold=self.position_tolerance,
-                tool_orientation_threshold=self.orientation_tolerance,
-            ),
+        return TaskContext(world=world, robot=robot)
+
+    def tool_tolerances(self) -> Dict[str, float]:
+        """
+        :return: The tool's position and orientation tolerances at a slot, as the fields
+            of CRAM's actions that move the tool take them.
+        """
+        return dict(
+            position_threshold=self.position_tolerance,
+            orientation_threshold=self.orientation_tolerance,
         )
 
     # %% handling
@@ -319,7 +323,7 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
         )
 
     def grasp(
-        self, context: Context, body: Body, grip: Optional[VesselGrip] = None
+        self, context: TaskContext, body: Body, grip: Optional[VesselGrip] = None
     ) -> GraspCandidate:
         """
         :param context: The world and the robot.
@@ -338,7 +342,7 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
 
     @staticmethod
     def grasp_at(
-        context: Context, graspable: HasGraspCandidates, tool_pose: Pose
+        context: TaskContext, graspable: HasGraspCandidates, tool_pose: Pose
     ) -> GraspCandidate:
         """
         :param context: The world and the robot.
@@ -368,7 +372,7 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
 
     def pick_up(
         self,
-        context: Context,
+        context: TaskContext,
         grasp: GraspCandidate,
         grip: Optional[VesselGrip] = None,
     ) -> VesselPickUpAction:
@@ -391,9 +395,8 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
             grasp_joint_position_threshold=self.finger_tolerance,
             contact_clearance=self.pad_clearance,
             grasp_position_threshold=grip.grasp_tolerance,
-            lift_movement=(
-                MovementType.CARTESIAN if grip.upright else MovementType.TRANSLATION
-            ),
+            lifts_upright=grip.upright,
+            **self.tool_tolerances(),
         )
 
     def place(
@@ -410,16 +413,26 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
         """
         grip = self.top_grip if grip is None else grip
         return RackPlaceAction(
-            grasp.graspable,
-            target,
+            object_designator=grasp.graspable,
+            target_location=target,
             approach_clearance=grip.approach_clearance,
             retreat_distance=grip.lowering,
             transport_linear_velocity=self.speeds.transport,
             placing_linear_velocity=self.speeds.placing,
             retract_linear_velocity=self.speeds.retract,
+            **self.tool_tolerances(),
         )
 
     # %% running
+
+    def performed_actions(self) -> List[Action]:
+        """
+        :return: Every action of the current run's plan, in the order the plan holds
+            them; none before the plan joined a statechart.
+        """
+        if self.plan is None or not self.plan.belongs_to_statechart():
+            return []
+        return self.plan.statechart.get_nodes_by_type(Action)
 
     def on_live_started(self, visualization: LiveVisualization) -> None:
         """
