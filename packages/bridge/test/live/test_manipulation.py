@@ -57,7 +57,8 @@ def test_a_move_while_a_plan_runs_waits_for_the_next_tick(publisher, kitchen):
     )
     assert NumericPose.of_entity(kitchen.world, kitchen.milk).position[0] != 3.0
     assert publisher.captured_objects().objects[str(kitchen.milk.id)].x == 3.0
-    publisher.observe_motion_tick(chart.chart)
+    chart.executor.tick()
+    publisher.observe_tick(chart.chart, False)
     assert NumericPose.of_entity(kitchen.world, kitchen.milk).position[0] == 3.0
 
 

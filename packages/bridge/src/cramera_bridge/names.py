@@ -175,6 +175,11 @@ ACTIONS = (
         ("MoveToReach",),
     ),
     PinnedClass(
+        "move_fingers_to_width",
+        "coraplex.robot_plans.actions.core.robot_body.MoveFingersToWidthAction",
+        ("MoveFingersToWidthAction",),
+    ),
+    PinnedClass(
         "move_torso",
         "coraplex.robot_plans.actions.core.robot_body.MoveTorsoAction",
         ("MoveTorsoAction",),
@@ -220,6 +225,11 @@ ACTIONS = (
         ("SetGripperAction",),
     ),
     PinnedClass(
+        "carry",
+        "coraplex.robot_plans.actions.composite.carrying.CarryAction",
+        ("CarryAction",),
+    ),
+    PinnedClass(
         "cutting",
         "coraplex.robot_plans.actions.composite.tool_based.CuttingAction",
         ("CuttingAction",),
@@ -250,6 +260,11 @@ ACTIONS = (
         ("MoveAndPlaceAction",),
     ),
     PinnedClass(
+        "look_at_and_detect",
+        "coraplex.robot_plans.actions.composite.searching.LookAtAndDetectAction",
+        ("LookAtAndDetectAction",),
+    ),
+    PinnedClass(
         "pick_and_place",
         "coraplex.robot_plans.actions.composite.transporting.PickAndPlaceAction",
         ("PickAndPlaceAction",),
@@ -258,6 +273,11 @@ ACTIONS = (
         "pouring",
         "coraplex.robot_plans.actions.composite.tool_based.PouringAction",
         ("PouringAction",),
+    ),
+    PinnedClass(
+        "search",
+        "coraplex.robot_plans.actions.composite.searching.SearchAction",
+        ("SearchAction",),
     ),
     PinnedClass(
         "transport",
@@ -473,9 +493,19 @@ ANNOTATIONS = (
         "tracy_table", "semantic_digital_twin.robots.tracy.TracyTable", ("TracyTable",)
     ),
     PinnedClass(
+        "tumble_dryer",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.TumbleDryer",
+        ("TumbleDryer",),
+    ),
+    PinnedClass(
         "trash_can",
         "semantic_digital_twin.semantic_annotations.semantic_annotations.TrashCan",
         ("TrashCan",),
+    ),
+    PinnedClass(
+        "washing_machine",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.WashingMachine",
+        ("WashingMachine",),
     ),
     PinnedClass(
         "wardrobe",
@@ -577,20 +607,8 @@ The enumerations action fields take a member of, with the identifier of each mem
 """
 
 FIELDS = {
-    "close": (
-        "approach_clearance",
-        "retreat_distance",
-        "handle",
-        "arm",
-        "release_clearance",
-    ),
-    "container": (
-        "approach_clearance",
-        "retreat_distance",
-        "handle",
-        "arm",
-        "release_clearance",
-    ),
+    "close": ("approach_clearance", "arm", "release_clearance"),
+    "container": ("approach_clearance", "arm", "release_clearance"),
     "detect": (
         "technique",
         "state",
@@ -650,8 +668,6 @@ FIELDS = {
     "navigate": ("target_location",),
     "open": (
         "approach_clearance",
-        "retreat_distance",
-        "handle",
         "arm",
         "release_clearance",
     ),
@@ -725,7 +741,7 @@ FIELDS = {
     ),
     "move_and_open": ("navigate", "face_and_look_at", "open_container"),
     "move_and_pick_up": ("navigate", "face_and_look_at", "pick_up"),
-    "move_and_place": ("navigate", "face_and_look_at", "place"),
+    "move_and_place": ("face_and_look_at", "place"),
     "pick_and_place": ("pick_up", "place"),
     "pouring": (
         "position_threshold",
@@ -759,7 +775,7 @@ The identifier of every field of each pinned action, by the action's identifier:
 field names when the action was pinned.
 """
 
-FIELD_RENAMES: Dict[str, Dict[str, str]] = {}
+FIELD_RENAMES: Dict[str, Dict[str, str]] = {"detect": {"region": "detection_box"}}
 """
 The field each identifier stands for where CRAM renamed the field since the action was
 pinned, by the action's identifier and the field's identifier.

@@ -13,6 +13,7 @@ from cramera.http.messages import Header, HttpMethod, Request
 from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
 from cramera_bridge.live.publisher import LivePublisher
+from cramera_bridge.performing import TaskContext
 from cramera_bridge.live.server import LiveServer
 from cramera_bridge.visualization import PublishedModelChange, PublishedStateChange
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
@@ -56,12 +57,14 @@ def publisher(kitchen, locations) -> Iterator[LivePublisher]:
 
 
 @pytest.fixture
-def small_plan(kitchen, robot_world) -> SmallPlan:
+def small_plan(robot_world) -> SmallPlan:
     """
-    :return: A plan of a root, an action and a motion opening the milk with the PR2's
-        left arm.
+    :return: A plan of a root, an action and the motion raising the PR2's torso, none
+        of them started.
     """
-    return SmallPlan.build(kitchen.milk, robot_world.robot.left_arm)
+    return SmallPlan.raising_the_torso(
+        TaskContext(robot_world.world, robot_world.robot)
+    )
 
 
 @pytest.fixture
@@ -73,16 +76,11 @@ def two_robots() -> TwoRobots:
 
 
 @pytest.fixture
-def robot_plans(kitchen, robot_world, two_robots) -> List[SmallPlan]:
+def robot_plans(two_robots) -> List[SmallPlan]:
     """
-    :return: A small plan for each of the two robots, each opening the milk.
+    :return: A small plan for each of the two robots, each waiting a tick.
     """
-    return [
-        SmallPlan.build(
-            kitchen.milk, robot_world.robot.left_arm, two_robots.context(robot)
-        )
-        for robot in two_robots.robots
-    ]
+    return [SmallPlan.waiting(two_robots.context(robot)) for robot in two_robots.robots]
 
 
 @pytest.fixture
