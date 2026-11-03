@@ -98,12 +98,15 @@ from cramera_protocol.questions import (
 )
 from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
-from coraplex.plans.plan_node import MotionNode, PlanNode
+from coraplex.plans.context_extensions import RobotAccess
+from cramph.data_types import LifeCycleValues
+from cramph.node import StatechartNode
+from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 
 if TYPE_CHECKING:
-    from coraplex.plans.plan import Plan
-    from giskardpy.motion_statechart.motion_statechart import MotionStatechart
+    from coraplex.plans.executors import PlanExecutor
+    from cramph.statechart import Statechart
     from semantic_digital_twin.world import World
     from semantic_digital_twin.world_description.world_entity import Body
 
@@ -119,8 +122,8 @@ The package's version when it runs from its source tree without being installed.
 
 PLAN_REFRESH_TICKS = 5
 """
-How many motion ticks pass between two plan snapshots; walking the plan costs more than
-a tick and its statuses change far less often.
+How many ticks pass between two plan snapshots; walking the plan costs more than a tick
+and its statuses change far less often.
 """
 
 # %% publisher
@@ -209,7 +212,7 @@ class LivePublisher:
 
     chart_title: str = field(default="", init=False)
     """
-    The action whose motions the ticked statechart executes.
+    The action under way while the statechart was ticked last.
     """
 
     motion_running: bool = field(default=False, init=False)
@@ -219,7 +222,7 @@ class LivePublisher:
 
     ticks: int = field(default=0, init=False)
     """
-    How many motion ticks happened.
+    How many ticks happened.
     """
 
     transforms: TransformTracker = field(default_factory=TransformTracker, init=False)
@@ -336,53 +339,47 @@ class LivePublisher:
                 self.statechart.current() if self.motion_running else None,
             )
 
-    def begin_plan(self, plan: Plan) -> None:
+    def begin_plan(self, executor: PlanExecutor) -> None:
         """
         Publish a plan that is about to perform, keeping the plans performed before for
         the recording; its robot becomes the selected one.
 
-        :param plan: The plan.
+        :param executor: The executor that compiled the plan.
         """
         with self.world_lock:
-            if plan.context is not None and self.model is not None:
-                robot = plan.context.robot
-                if robot in self.model.robots:
-                    self.select(robot)
-            self.plan.begin(plan)
+            access = executor.context.get_extension(RobotAccess)
+            if access is not None and self.model is not None:
+                if access.robot in self.model.robots:
+                    self.select(access.robot)
+            self.plan.begin(executor)
             self.constraints.clear()
             self.refresh_plan()
 
-    def observe_node_started(self, node: PlanNode) -> None:
+    def observe_node_started(self, node: StatechartNode) -> None:
         """
         :param node: The plan node that started.
         """
         with self.world_lock:
-            if isinstance(node, MotionNode):
-                action = node.parent_action_node
-                self.chart_title = (
-                    type(action.designator).__name__ if action is not None else ""
-                )
+            if isinstance(node, MotionStatechartNode):
                 self.motion_running = True
                 self.constraints.note_motion_started()
             self.plan.observe_started(node)
-            self.refresh_plan()
 
-    def observe_node_ended(self, node: PlanNode) -> None:
+    def observe_node_ended(self, node: StatechartNode) -> None:
         """
         :param node: The plan node that ended.
         """
         with self.world_lock:
-            if isinstance(node, MotionNode):
-                self.motion_running = False
             object_keys = set() if self.model is None else set(self.model.object_keys())
             self.plan.observe_ended(node, object_keys)
-            self.refresh_plan()
 
-    def observe_motion_tick(self, chart: MotionStatechart) -> None:
+    def observe_tick(self, chart: Statechart, changed: bool) -> None:
         """
         Write the waiting changes, evaluate the constraints and publish the statechart.
 
         :param chart: The statechart the executor ticks.
+        :param changed: Whether a node started or ended in the tick, so the plan is
+            published again at once.
         """
         with self.world_lock:
             self.activity.tick()
@@ -390,9 +387,15 @@ class LivePublisher:
             if self.edits.apply(self.model, self.transforms):
                 world.notify_state_change()
             self.constraints.tick(world)
+            self.motion_running = any(
+                isinstance(node, MotionStatechartNode)
+                and node.life_cycle_state is LifeCycleValues.RUNNING
+                for node in chart.nodes
+            )
+            self.chart_title = self.plan.running_action() or ""
             self.statechart.observe(chart, self.chart_title)
             self.ticks += 1
-            if self.ticks % PLAN_REFRESH_TICKS == 0:
+            if changed or self.ticks % PLAN_REFRESH_TICKS == 0:
                 self.refresh_plan()
 
     def refresh_plan(self) -> LivePlan:

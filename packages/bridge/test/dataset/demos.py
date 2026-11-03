@@ -10,15 +10,13 @@ from enum import StrEnum
 
 from typing_extensions import List
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import execute_single, sequential
-from coraplex.plans.plan import Plan
-from coraplex.plans.plan_node import PlanNode
-from coraplex.robot_plans.actions.base import ActionDescription
+from coraplex.robot_plans.actions.base import SequentialAction
 from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from cramera_bridge.exceptions import TaskFailed
+from cramera_bridge.performing import TaskContext
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_bridge.robot_task import RobotTaskDemo
+from cramph.node import StatechartNode
 from krrood.entity_query_language.factories import a, entity, the, variable
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.pr2 import PR2
@@ -54,10 +52,10 @@ class TorsoDemo(RobotTaskDemo):
     The state the torso is moved to.
     """
 
-    def build_plan(self, context: Context) -> Plan:
-        return execute_single(MoveTorsoAction(self.torso_state), context=context).plan
+    def build_plan(self, context: TaskContext) -> StatechartNode:
+        return MoveTorsoAction(torso_state=self.torso_state)
 
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         joint_state = context.robot.get_torso().get_joint_state_by_type(
             self.torso_state
         )
@@ -86,13 +84,13 @@ class RaisedThenMovedTorsoDemo(TorsoDemo):
     The state the second plan moves the torso to.
     """
 
-    def build_plans(self, context: Context) -> List[Plan]:
-        raised = execute_single(MoveTorsoAction(TorsoState.HIGH), context=context).plan
+    def build_plans(self, context: TaskContext) -> List[StatechartNode]:
+        raised = MoveTorsoAction(torso_state=TorsoState.HIGH)
         return [raised, self.build_plan(context)]
 
 
-@dataclass
-class GroundedTorsoAction(ActionDescription):
+@dataclass(eq=False, repr=False, kw_only=True)
+class GroundedTorsoAction(SequentialAction):
     """
     Moves the torso by a move the plan grounds once it reaches it.
     """
@@ -102,9 +100,8 @@ class GroundedTorsoAction(ActionDescription):
     The state the torso is moved to.
     """
 
-    @property
-    def _action_plan(self) -> PlanNode:
-        return sequential([a(MoveTorsoAction)(torso_state=self.torso_state)])
+    def create_steps(self) -> List[StatechartNode]:
+        return [a(MoveTorsoAction)(torso_state=self.torso_state)]
 
 
 @dataclass
@@ -114,11 +111,9 @@ class QueryingTorsoDemo(TorsoDemo):
     the plan grounds.
     """
 
-    def build_context(self, world: World) -> Context:
+    def build_context(self, world: World) -> TaskContext:
         robot = variable(PR2, world.semantic_annotations)
-        return Context(world=world, robot=the(entity(robot)).first())
+        return TaskContext(world=world, robot=the(entity(robot)).first())
 
-    def build_plan(self, context: Context) -> Plan:
-        return execute_single(
-            GroundedTorsoAction(self.torso_state), context=context
-        ).plan
+    def build_plan(self, context: TaskContext) -> StatechartNode:
+        return GroundedTorsoAction(torso_state=self.torso_state)

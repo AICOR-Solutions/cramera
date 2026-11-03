@@ -29,13 +29,12 @@ from cramera_protocol.live_messages import (
     PlanNodeReference,
     RobotSelection,
 )
-from coraplex.plans.plan_node import MotionNode
-from coraplex.robot_plans.motions.container import OpeningMotion
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from coraplex.robot_plans.actions.core.robot_body import ParkArmsAction
+from cramph.data_types import LifeCycleValues, ObservationStateValues
+from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPose
 from krrood.entity_query_language.factories import a, variable
 from semantic_digital_twin.datastructures.definitions import TorsoState
-from semantic_digital_twin.spatial_types.spatial_types import Pose
-from giskardpy.motion_statechart.data_types import ObservationStateValues
+from krrood_spatial_math.spatial_types import Pose
 from cramera.http.messages import HttpMethod
 
 from ..dataset.live_worlds import HeightChart
@@ -45,8 +44,8 @@ from .conftest import dataset_body, live_request
 
 
 def test_every_node_shows_its_own_native_status(publisher, small_plan):
-    small_plan.root.status = LifeCycleValues.RUNNING
-    publisher.begin_plan(small_plan.plan)
+    small_plan.set(small_plan.root, LifeCycleValues.RUNNING)
+    publisher.begin_plan(small_plan.executor)
     plan = publisher.current_plan()
     assert [node.status for node in plan.nodes] == [
         PlanNodeStatus.RUNNING,
@@ -54,88 +53,84 @@ def test_every_node_shows_its_own_native_status(publisher, small_plan):
         PlanNodeStatus.CREATED,
     ]
     assert plan.nodes[1].parent == plan.nodes[0].identifier
-    assert plan.nodes[1].label == type(small_plan.action.designator).__name__
+    assert plan.nodes[1].label == type(small_plan.action).__name__
 
 
 def test_a_parent_status_is_never_derived_from_its_children(publisher, small_plan):
-    small_plan.action.status = LifeCycleValues.SUCCEEDED
-    publisher.begin_plan(small_plan.plan)
+    small_plan.set(small_plan.action, LifeCycleValues.SUCCEEDED)
+    publisher.begin_plan(small_plan.executor)
     root = publisher.current_plan().nodes[0]
     assert root.status == PlanNodeStatus.CREATED
 
 
 @pytest.mark.parametrize(
-    "motion_status, action_status",
+    "action_life_cycle, action_status",
     [
         (LifeCycleValues.NOT_STARTED, PlanNodeStatus.CREATED),
         (LifeCycleValues.RUNNING, PlanNodeStatus.RUNNING),
-        (LifeCycleValues.SUCCEEDED, PlanNodeStatus.SUCCEEDED),
+        (LifeCycleValues.PAUSED, PlanNodeStatus.PAUSE),
         (LifeCycleValues.FAILED, PlanNodeStatus.FAILED),
+        (LifeCycleValues.INTERRUPTED, PlanNodeStatus.INTERRUPTED),
     ],
 )
-def test_an_action_coraplex_left_unstarted_shows_what_its_motion_went_through(
-    publisher, small_plan, motion_status, action_status
+def test_an_action_shows_its_own_status_not_its_motions(
+    publisher, small_plan, action_life_cycle, action_status
 ):
-    small_plan.motion.status = motion_status
-    publisher.begin_plan(small_plan.plan)
-    _, action, _ = publisher.current_plan().nodes
-    assert action.status == action_status
+    small_plan.set(small_plan.action, action_life_cycle)
+    small_plan.set(small_plan.motion, LifeCycleValues.SUCCEEDED)
+    publisher.begin_plan(small_plan.executor)
+    _, action, motion = publisher.current_plan().nodes
+    assert (action.status, motion.status) == (action_status, PlanNodeStatus.SUCCEEDED)
 
 
-def test_an_action_coraplex_started_keeps_its_own_status(publisher, small_plan):
-    small_plan.action.status = LifeCycleValues.FAILED
-    small_plan.motion.status = LifeCycleValues.SUCCEEDED
-    publisher.begin_plan(small_plan.plan)
-    _, action, _ = publisher.current_plan().nodes
-    assert action.status == PlanNodeStatus.FAILED
+def test_a_running_motion_alone_names_no_running_action(publisher, small_plan):
+    small_plan.set(small_plan.motion, LifeCycleValues.RUNNING)
+    publisher.begin_plan(small_plan.executor)
+    assert publisher.plan.running_action() is None
 
 
-def test_an_action_runs_until_its_motions_ran_or_the_plan_ended(
-    publisher, small_plan, kitchen, robot_world
-):
-    later = MotionNode(
-        designator=OpeningMotion(
-            object_part=kitchen.milk, arm=robot_world.robot.left_arm
-        )
-    )
-    small_plan.action.add_child(later)
-    small_plan.motion.status = LifeCycleValues.SUCCEEDED
-    small_plan.root.status = LifeCycleValues.RUNNING
-    publisher.begin_plan(small_plan.plan)
-    running = publisher.current_plan().nodes[1].status
-    small_plan.root.status = LifeCycleValues.SUCCEEDED
-    ended = publisher.refresh_plan().nodes[1].status
-    assert (running, ended) == (PlanNodeStatus.RUNNING, PlanNodeStatus.SUCCEEDED)
+def test_an_action_names_the_arm_it_is_given(robot_world):
+    park = ParkArmsAction(arms=[robot_world.robot.left_arm])
+    assert DesignatorSummary(park).arm() == str(robot_world.robot.left_arm.name)
 
 
-def test_an_action_whose_motion_runs_names_the_running_step(publisher, small_plan):
-    small_plan.motion.status = LifeCycleValues.RUNNING
-    publisher.begin_plan(small_plan.plan)
-    assert (
-        publisher.plan.running_action() == type(small_plan.action.designator).__name__
+def reaching_the_milk(kitchen) -> CartesianPose:
+    """
+    :return: A motion moving the milk to a pose above the table.
+    """
+    return CartesianPose(
+        root_link=kitchen.root,
+        tip_link=kitchen.milk,
+        goal_pose=Pose.from_xyz_rpy(1.0, 0.0, 0.9, reference_frame=kitchen.root),
     )
 
 
-def test_a_motion_names_its_arm_and_object(publisher, small_plan, kitchen, robot_world):
-    publisher.begin_plan(small_plan.plan)
-    motion = publisher.current_plan().nodes[2]
-    assert motion.arm == str(robot_world.robot.left_arm.name)
-    assert motion.target == str(kitchen.milk.id)
+def test_a_motion_targets_the_published_object_it_names(publisher, kitchen):
+    keys = set(publisher.model.object_keys())
+    summary = DesignatorSummary(reaching_the_milk(kitchen))
+    assert summary.target(keys) == str(kitchen.milk.id)
+    assert summary.target(set()) == str(kitchen.root.name)
+    assert summary.arm() is None
 
 
-def test_a_node_renders_every_field_of_its_designator(
-    publisher, small_plan, kitchen, robot_world
-):
-    publisher.begin_plan(small_plan.plan)
+def test_a_node_renders_every_parameter_it_is_described_by(publisher, small_plan):
+    publisher.begin_plan(small_plan.executor)
     root, action, motion = publisher.current_plan().nodes
     assert root.parameters == {}
     assert action.parameters == {"torso_state": TorsoState.HIGH.name}
-    assert motion.parameters["arm"] == str(robot_world.robot.left_arm.name)
-    assert motion.parameters["object_part"] == str(kitchen.milk.id)
+    assert motion.label == type(small_plan.motion).__name__
+
+
+def test_a_motion_renders_the_fields_its_class_adds(publisher, kitchen):
+    keys = set(publisher.model.object_keys())
+    parameters = DesignatorSummary(reaching_the_milk(kitchen)).parameters(keys)
+    assert parameters["tip_link"] == str(kitchen.milk.id)
+    assert parameters["root_link"] == str(kitchen.root.name)
+    assert parameters["goal_pose"] == "1.000, 0.000, 0.900"
 
 
 def test_a_node_is_found_by_its_identity(publisher, small_plan):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     identifier = publisher.plan.active_plan.identifier(small_plan.action)
     assert identifier.startswith(PLAN_NODE_PREFIX)
     assert publisher.plan.published_node(identifier).identifier == identifier
@@ -149,22 +144,20 @@ def test_no_plan_has_no_nodes(publisher):
 
 
 def test_the_running_action_names_the_step(publisher, small_plan):
-    small_plan.action.status = LifeCycleValues.RUNNING
-    publisher.begin_plan(small_plan.plan)
-    assert (
-        publisher.plan.running_action() == type(small_plan.action.designator).__name__
-    )
+    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
+    publisher.begin_plan(small_plan.executor)
+    assert publisher.plan.running_action() == type(small_plan.action).__name__
 
 
 def test_a_later_plan_keeps_its_node_identities_apart_from_the_first(
     publisher, robot_plans
 ):
     first, second = robot_plans
-    publisher.begin_plan(first.plan)
+    publisher.begin_plan(first.executor)
     first_identities = {node.identifier for node in publisher.current_plan().nodes}
-    publisher.begin_plan(second.plan)
+    publisher.begin_plan(second.executor)
     second_identities = {node.identifier for node in publisher.current_plan().nodes}
-    assert len(second_identities) == len(second.plan.all_nodes)
+    assert len(second_identities) == len(second.nodes)
     assert first_identities.isdisjoint(second_identities)
 
 
@@ -172,21 +165,30 @@ def test_a_plan_begun_again_is_published_with_its_first_identities(
     publisher, robot_plans
 ):
     first, second = robot_plans
-    publisher.begin_plan(first.plan)
+    publisher.begin_plan(first.executor)
     identities = [node.identifier for node in publisher.current_plan().nodes]
-    publisher.begin_plan(second.plan)
-    publisher.begin_plan(first.plan)
+    publisher.begin_plan(second.executor)
+    publisher.begin_plan(first.executor)
     assert [node.identifier for node in publisher.current_plan().nodes] == identities
 
 
 def test_a_robot_cannot_be_selected_while_the_plan_runs(publisher, small_plan):
-    small_plan.root.status = LifeCycleValues.RUNNING
-    publisher.begin_plan(small_plan.plan)
+    small_plan.set(small_plan.root, LifeCycleValues.RUNNING)
+    publisher.begin_plan(small_plan.executor)
     with pytest.raises(RobotSelectionBusy):
         publisher.select_robot(RobotSelection(identifier="any"))
 
 
 # %% constraints
+
+
+def tick(publisher, chart: HeightChart) -> None:
+    """
+    Tick the chart once and let the publisher observe the tick, in which no plan node
+    started or ended.
+    """
+    chart.executor.tick()
+    publisher.observe_tick(chart.chart, False)
 
 
 def height_constraint(publisher, kitchen, small_plan, activation) -> ConstraintRequest:
@@ -210,55 +212,55 @@ def height_constraint(publisher, kitchen, small_plan, activation) -> ConstraintR
 def test_an_attached_constraint_is_observed_on_the_next_tick(
     publisher, kitchen, small_plan
 ):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     publisher.attach_constraint(
         height_constraint(
             publisher, kitchen, small_plan, ConstraintActivation.IMMEDIATE
         )
     )
     chart = HeightChart.build(kitchen.world, kitchen.milk)
-    publisher.observe_motion_tick(chart.chart)
+    tick(publisher, chart)
     constraint = publisher.refresh_plan().nodes[0].constraints[0]
     assert constraint.observation == ObservationStateValues.TRUE.name
 
 
 def test_a_constraint_waits_for_the_next_motion(publisher, kitchen, small_plan):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     publisher.attach_constraint(
         height_constraint(
             publisher, kitchen, small_plan, ConstraintActivation.NEXT_ACTIVATION
         )
     )
     chart = HeightChart.build(kitchen.world, kitchen.milk)
-    publisher.observe_motion_tick(chart.chart)
+    tick(publisher, chart)
     assert publisher.refresh_plan().nodes[0].constraints[0].observation is None
     publisher.observe_node_started(small_plan.motion)
-    publisher.observe_motion_tick(chart.chart)
+    tick(publisher, chart)
     observed = publisher.refresh_plan().nodes[0].constraints[0]
     assert observed.observation == ObservationStateValues.TRUE.name
 
 
 def test_a_constraint_sees_the_world_change(publisher, kitchen, small_plan):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     publisher.attach_constraint(
         height_constraint(
             publisher, kitchen, small_plan, ConstraintActivation.IMMEDIATE
         )
     )
     chart = HeightChart.build(kitchen.world, kitchen.milk)
-    publisher.observe_motion_tick(chart.chart)
+    tick(publisher, chart)
     kitchen.milk_connection.origin = type(kitchen.milk_connection.origin).from_xyz_rpy(
         1.0, 0.1, 0.1, reference_frame=kitchen.root
     )
-    publisher.observe_motion_tick(chart.chart)
+    tick(publisher, chart)
     observed = publisher.refresh_plan().nodes[0].constraints[0]
     assert observed.observation == ObservationStateValues.FALSE.name
 
 
 def test_a_constraint_reaches_a_node_of_a_later_plan(publisher, kitchen, robot_plans):
     first, second = robot_plans
-    publisher.begin_plan(first.plan)
-    publisher.begin_plan(second.plan)
+    publisher.begin_plan(first.executor)
+    publisher.begin_plan(second.executor)
     plan = publisher.attach_constraint(
         height_constraint(publisher, kitchen, second, ConstraintActivation.IMMEDIATE)
     )
@@ -283,7 +285,7 @@ def test_a_constraint_reaches_a_node_of_a_later_plan(publisher, kitchen, robot_p
 def test_every_monitor_type_is_built_and_observed(
     publisher, kitchen, small_plan, monitor_type, parameters
 ):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
             identifier=publisher.plan.active_plan.identifier(small_plan.action)
@@ -292,7 +294,7 @@ def test_every_monitor_type_is_built_and_observed(
         apply=ConstraintActivation.IMMEDIATE,
     )
     publisher.attach_constraint(request)
-    publisher.observe_motion_tick(HeightChart.build(kitchen.world, kitchen.milk).chart)
+    tick(publisher, HeightChart.build(kitchen.world, kitchen.milk))
     constraint = publisher.refresh_plan().nodes[1].constraints[0]
     assert constraint.monitor == monitor_type
     assert constraint.observation in ObservationStateValues.__members__
@@ -307,7 +309,7 @@ def test_every_monitor_type_is_built_and_observed(
     ],
 )
 def test_an_unreadable_constraint_is_refused(publisher, small_plan, parameters, error):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
             identifier=publisher.plan.active_plan.identifier(small_plan.root)
@@ -321,7 +323,7 @@ def test_an_unreadable_constraint_is_refused(publisher, small_plan, parameters, 
 
 
 def test_a_limit_must_be_a_number(publisher, small_plan):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
             identifier=publisher.plan.active_plan.identifier(small_plan.root)
@@ -336,7 +338,7 @@ def test_a_limit_must_be_a_number(publisher, small_plan):
 
 
 def test_pointing_needs_a_goal(publisher, small_plan):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     request = ConstraintRequest(
         target_plan_node=PlanNodeReference(
             identifier=publisher.plan.active_plan.identifier(small_plan.root)
@@ -353,7 +355,7 @@ def test_pointing_needs_a_goal(publisher, small_plan):
 def test_a_constraint_posted_by_the_plan_view_reaches_its_node(
     publisher, answerer, small_plan, kitchen
 ):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     answer = answerer.answer(
         live_request(
             HttpMethod.POST,

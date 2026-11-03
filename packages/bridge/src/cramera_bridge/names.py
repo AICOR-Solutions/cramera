@@ -63,6 +63,17 @@ class PinnedClass:
         module, _, name = self.path.rpartition(".")
         return getattr(importlib.import_module(module), name)
 
+    def resolve_if_installed(self) -> Optional[type]:
+        """
+        :return: The class, or None when its module needs a package that is not
+            installed, such as a robot's ROS interfaces.
+        :raises AttributeError: When its module defines no such class.
+        """
+        try:
+            return self.resolve()
+        except ModuleNotFoundError:
+            return None
+
 
 @dataclass(frozen=True)
 class PinnedEnum:
@@ -120,7 +131,7 @@ ACTIONS = (
     ),
     PinnedClass(
         "container",
-        "coraplex.robot_plans.actions.core.container.ContainerAction",
+        "coraplex.robot_plans.actions.core.container.MovesContainerByItsHandle",
         ("ContainerAction",),
     ),
     PinnedClass(
@@ -162,6 +173,11 @@ ACTIONS = (
         "move_to_reach",
         "coraplex.robot_plans.actions.core.misc.MoveToReach",
         ("MoveToReach",),
+    ),
+    PinnedClass(
+        "move_fingers_to_width",
+        "coraplex.robot_plans.actions.core.robot_body.MoveFingersToWidthAction",
+        ("MoveFingersToWidthAction",),
     ),
     PinnedClass(
         "move_torso",
@@ -209,6 +225,11 @@ ACTIONS = (
         ("SetGripperAction",),
     ),
     PinnedClass(
+        "carry",
+        "coraplex.robot_plans.actions.composite.carrying.CarryAction",
+        ("CarryAction",),
+    ),
+    PinnedClass(
         "cutting",
         "coraplex.robot_plans.actions.composite.tool_based.CuttingAction",
         ("CuttingAction",),
@@ -239,6 +260,11 @@ ACTIONS = (
         ("MoveAndPlaceAction",),
     ),
     PinnedClass(
+        "look_at_and_detect",
+        "coraplex.robot_plans.actions.composite.searching.LookAtAndDetectAction",
+        ("LookAtAndDetectAction",),
+    ),
+    PinnedClass(
         "pick_and_place",
         "coraplex.robot_plans.actions.composite.transporting.PickAndPlaceAction",
         ("PickAndPlaceAction",),
@@ -247,6 +273,11 @@ ACTIONS = (
         "pouring",
         "coraplex.robot_plans.actions.composite.tool_based.PouringAction",
         ("PouringAction",),
+    ),
+    PinnedClass(
+        "search",
+        "coraplex.robot_plans.actions.composite.searching.SearchAction",
+        ("SearchAction",),
     ),
     PinnedClass(
         "transport",
@@ -297,19 +328,25 @@ The robot annotations a plan's robot names as its model.
 """
 
 PLAN_NODE_KINDS = (
-    ("coraplex.plans.plan_node.ActionNode", PlanNodeKind.ACTION),
-    ("coraplex.plans.plan_node.MotionNode", PlanNodeKind.MOTION),
-    ("coraplex.plans.condition_nodes.ConditionNode", PlanNodeKind.CONDITION),
-    ("coraplex.language.ExecutesSequentially", PlanNodeKind.SEQUENCE),
-    ("coraplex.language.ExecutesInParallel", PlanNodeKind.PARALLEL),
-    ("coraplex.language.MonitorNode", PlanNodeKind.MONITOR),
-    ("coraplex.language.CodeNode", PlanNodeKind.CODE),
-    ("coraplex.plans.attachment_nodes.ReAttachNode", PlanNodeKind.ATTACHMENT),
-    ("coraplex.plans.underspecified.UnderspecifiedNode", PlanNodeKind.UNDERSPECIFIED),
+    ("coraplex.robot_plans.actions.base.Action", PlanNodeKind.ACTION),
+    ("cramph.composites.StatementNode", PlanNodeKind.UNDERSPECIFIED),
+    (
+        "giskardpy.motion_statechart.graph_node.MotionStatechartNode",
+        PlanNodeKind.MOTION,
+    ),
+    ("cramph.composites.MonitoredCompositeNode", PlanNodeKind.MONITOR),
+    ("cramph.composites.Sequence", PlanNodeKind.SEQUENCE),
+    ("cramph.composites.TryInOrder", PlanNodeKind.SEQUENCE),
+    ("cramph.composites.RepeatUntil", PlanNodeKind.SEQUENCE),
+    ("cramph.composites.Parallel", PlanNodeKind.PARALLEL),
+    ("cramph.composites.TryAll", PlanNodeKind.PARALLEL),
+    ("cramph.threaded_nodes.FunctionCall", PlanNodeKind.CODE),
+    ("cramph.world_modification_nodes.MoveBranch", PlanNodeKind.ATTACHMENT),
 )
 """
-The plan node classes by the kind the protocol names them, tried in order; a node is of
-the kind of the first class it is an instance of, else :attr:`PlanNodeKind.OTHER`.
+The statechart node classes by the kind the protocol names them, tried in order: an
+action is of its own kind although it is also the composite of its steps, and a node is
+of the kind of the first class it is an instance of, else :attr:`PlanNodeKind.OTHER`.
 """
 
 SEGMIND_EVENTS = "segmind.datastructures.events"
@@ -456,9 +493,19 @@ ANNOTATIONS = (
         "tracy_table", "semantic_digital_twin.robots.tracy.TracyTable", ("TracyTable",)
     ),
     PinnedClass(
+        "tumble_dryer",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.TumbleDryer",
+        ("TumbleDryer",),
+    ),
+    PinnedClass(
         "trash_can",
         "semantic_digital_twin.semantic_annotations.semantic_annotations.TrashCan",
         ("TrashCan",),
+    ),
+    PinnedClass(
+        "washing_machine",
+        "semantic_digital_twin.semantic_annotations.semantic_annotations.WashingMachine",
+        ("WashingMachine",),
     ),
     PinnedClass(
         "wardrobe",
@@ -560,20 +607,8 @@ The enumerations action fields take a member of, with the identifier of each mem
 """
 
 FIELDS = {
-    "close": (
-        "approach_clearance",
-        "retreat_distance",
-        "handle",
-        "arm",
-        "release_clearance",
-    ),
-    "container": (
-        "approach_clearance",
-        "retreat_distance",
-        "handle",
-        "arm",
-        "release_clearance",
-    ),
+    "close": ("approach_clearance", "arm", "release_clearance"),
+    "container": ("approach_clearance", "arm", "release_clearance"),
     "detect": (
         "technique",
         "state",
@@ -633,8 +668,6 @@ FIELDS = {
     "navigate": ("target_location",),
     "open": (
         "approach_clearance",
-        "retreat_distance",
-        "handle",
         "arm",
         "release_clearance",
     ),
@@ -708,7 +741,7 @@ FIELDS = {
     ),
     "move_and_open": ("navigate", "face_and_look_at", "open_container"),
     "move_and_pick_up": ("navigate", "face_and_look_at", "pick_up"),
-    "move_and_place": ("navigate", "face_and_look_at", "place"),
+    "move_and_place": ("face_and_look_at", "place"),
     "pick_and_place": ("pick_up", "place"),
     "pouring": (
         "position_threshold",
@@ -742,7 +775,7 @@ The identifier of every field of each pinned action, by the action's identifier:
 field names when the action was pinned.
 """
 
-FIELD_RENAMES: Dict[str, Dict[str, str]] = {}
+FIELD_RENAMES: Dict[str, Dict[str, str]] = {"detect": {"region": "detection_box"}}
 """
 The field each identifier stands for where CRAM renamed the field since the action was
 pinned, by the action's identifier and the field's identifier.

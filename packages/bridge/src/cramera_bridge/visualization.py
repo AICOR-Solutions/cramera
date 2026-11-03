@@ -1,9 +1,9 @@
 """
-The cramera backend of coraplex's world visualization: publishes a world and the plans
-performed in it to the viewer while a demo runs.
+The cramera viewer's live visualization: publishes a world and the plans performed in it
+to the viewer while a demo runs.
 
-World changes reach the publisher through the world's own callbacks and plan progress
-through a plan callback; nothing of the demo is patched.
+World changes reach the publisher through the world's own callbacks and a plan's
+progress through an extension of the executor running it.
 """
 
 from __future__ import annotations
@@ -26,8 +26,7 @@ from cramera_bridge.live.server import LIVE_HOST, LIVE_PORT, LiveServer
 from cramera_protocol.live_messages import RecordingState
 from cramera_bridge.questions.live import WorldHighlightKeys
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
-from coraplex.plans.plan_callbacks import PlanCallback
-from coraplex.plans.plan_node import PlanNode
+from cramph.executor import Executor, StatechartExecutor, TickingExecutorExtension
 from semantic_digital_twin.callbacks.callback import (
     ModelChangeCallback,
     StateChangeCallback,
@@ -35,8 +34,7 @@ from semantic_digital_twin.callbacks.callback import (
 from semantic_digital_twin.world import World
 
 if TYPE_CHECKING:
-    from coraplex.plans.plan import Plan
-    from giskardpy.motion_statechart.motion_statechart import MotionStatechart
+    from cramph.state_history import StateHistoryItem
 
 ROS_MODULES = ("rclpy", "visualization_msgs")
 """
@@ -99,13 +97,14 @@ class PublishedModelChange(ModelChangeCallback):
         self.publisher.observe_model_change()
 
 
-# %% plan callback
+# %% plan progress
 
 
 @dataclass
-class PublishedPlanProgress(PlanCallback):
+class PublishedPlanProgress(TickingExecutorExtension):
     """
-    Reports a plan's node starts and ends and every motion tick to the publisher.
+    Publishes the plan an executor compiled, and after every tick the nodes that started
+    and ended in it and the statechart's state.
     """
 
     publisher: LivePublisher = field(kw_only=True)
@@ -113,14 +112,47 @@ class PublishedPlanProgress(PlanCallback):
     The publisher.
     """
 
-    def on_start(self, node: PlanNode) -> None:
-        self.publisher.observe_node_started(node)
+    reported: Optional[StateHistoryItem] = field(default=None, init=False)
+    """
+    The newest state of the statechart whose changes were published.
+    """
 
-    def on_end(self, node: PlanNode) -> None:
-        self.publisher.observe_node_ended(node)
+    def after_compile(self, executor: Executor) -> None:
+        """
+        Publish the plan the executor compiled, and the nodes its first tick started.
+        """
+        self.publisher.begin_plan(executor)
+        self.report(executor)
 
-    def on_motion_tick(self, statechart: MotionStatechart) -> None:
-        self.publisher.observe_motion_tick(statechart)
+    def after_recompile(self, executor: StatechartExecutor) -> None:
+        """
+        Publishes nothing again: the plan is read from the statechart, which keeps the
+        nodes it held.
+        """
+
+    def after_tick(self, executor: StatechartExecutor) -> None:
+        self.report(executor)
+
+    def report(self, executor: Executor) -> None:
+        """
+        Publish the nodes that started and ended since the state published last, then
+        the statechart's state.
+
+        :param executor: The executor running the plan.
+        """
+        statechart = executor.statechart
+        history = statechart.state_history
+        moment = history.latest_item
+        changed = False
+        if moment is not None and moment is not self.reported:
+            self.reported = moment
+            for node in history.nodes_started_in_latest_item():
+                self.publisher.observe_node_started(node)
+                changed = True
+            for node in history.nodes_ended_in_latest_item():
+                self.publisher.observe_node_ended(node)
+                changed = True
+        self.publisher.observe_tick(statechart, changed)
 
 
 # %% the backend
@@ -289,15 +321,11 @@ class LiveVisualization:
         if status.state is RecordingState.RECORDING and status.frame_count > 0:
             publisher.finish_recording()
 
-    def plan_callback(self, plan: Plan) -> PlanCallback:
+    def progress(self) -> PublishedPlanProgress:
         """
-        Publish a plan before it performs.
-
-        :param plan: The plan about to perform.
-        :return: The callback to append to the plan's node callbacks.
+        :return: The extension publishing the plan of the executor it is added to.
         """
-        self.publisher.begin_plan(plan)
-        return PublishedPlanProgress(publisher=self.publisher, plan=plan)
+        return PublishedPlanProgress(publisher=self.publisher)
 
     def url(self) -> str:
         """

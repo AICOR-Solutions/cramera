@@ -1,9 +1,9 @@
 """
-Onboarding a coraplex demo: run the demo file unchanged with the cramera backend, record
-everything its visualization publishes and save the recording as a named scene bundle.
+Onboarding a coraplex demo: run the demo file unchanged with the cramera visualization,
+record everything it publishes and save the recording as a named scene bundle.
 
-Nothing of the demo is patched: the demo selects coraplex's cramera backend, and the
-backend's visualizations are created by this onboarding, which records through them.
+Nothing of the demo is patched: while it runs, every plan executor it creates for its
+world is shown through a visualization this onboarding creates, which records the run.
 """
 
 from __future__ import annotations
@@ -88,13 +88,14 @@ class DemoOnboarding:
     performed_plans: List[PerformedPlan] = field(default_factory=list, init=False)
     """
     The plans performed in the visualization stopped last, whose recording is the one
-    saved.
+    saved; kept as it stops.
     """
 
     def visualization(self, world: World) -> LiveVisualization:
         """
-        Create the visualization coraplex asks for, recording into this onboarding's
-        locations, with segmind's detectors watching its world when events are detected.
+        Create the visualization of the demo's world, recording into this onboarding's
+        locations, with segmind's detectors watching its world when events are detected;
+        it keeps the plans it published as it stops.
 
         :param world: The world the demo visualizes.
         :return: The visualization, not yet started.
@@ -109,6 +110,13 @@ class DemoOnboarding:
         )
         self.visualizations.append(visualization)
         return visualization
+
+    def keep_performed_plans(self, visualization: LiveVisualization) -> None:
+        """
+        :param visualization: A started visualization of the demo, which is about to
+            stop.
+        """
+        self.performed_plans = visualization.publisher.plan.performed_plans()
 
     def run(self) -> SavedScene:
         """
@@ -133,8 +141,13 @@ class DemoOnboarding:
             raise SceneNameTaken(name)
         with ExitStack() as running:
             running.callback(self.stop_watching)
-            with CoraplexBackendRegistration(factory=self.visualization):
-                self.demo.run()
+            registration = CoraplexBackendRegistration(factory=self.visualization)
+            with registration:
+                try:
+                    self.demo.run()
+                finally:
+                    if registration.live is not None:
+                        self.keep_performed_plans(registration.live)
         if not self.visualizations:
             raise DemoStartedNoWorld(self.demo.path)
         run = storage.save(
@@ -156,5 +169,5 @@ class DemoOnboarding:
         """
         for visualization in self.visualizations:
             if visualization.publisher is not None:
-                self.performed_plans = visualization.publisher.plan.performed_plans()
+                self.keep_performed_plans(visualization)
             visualization.stop()

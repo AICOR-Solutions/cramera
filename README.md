@@ -281,7 +281,8 @@ cramera-record-classes ~/.cramera/scenes --scene my_recording
 ## Follow a running plan
 
 `cramera-bridge` publishes a running CRAM world on `http://127.0.0.1:8765`. Run a demo
-file with the cramera backend and keep publishing until Ctrl-C:
+file, unchanged, with every plan executor it creates for its world shown in the viewer,
+and keep publishing until Ctrl-C:
 
 ```bash
 pip install ./packages/questions ./packages/bridge   # inside the CRAM environment
@@ -291,7 +292,7 @@ cramera --no-browser
 ```
 
 The viewer starts without a recorded scene, loads the live world, and follows its
-joint states, plan and motion statecharts. The **Live** tab connects to another
+joint states, its plan and the statechart the plan runs as. The **Live** tab connects to another
 publisher, stops and saves the recording as a bundle, and replays it.
 `cramera-onboard demo.py --name NAME` runs a demo and saves its run as a bundle
 without keeping a publisher up.

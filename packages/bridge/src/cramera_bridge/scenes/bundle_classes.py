@@ -97,10 +97,13 @@ class BundleClasses:
     def robot_classes() -> Dict[str, type]:
         """
         :return: The pinned robot classes by the model name the only robot of a world
-            being of that class gets.
+            being of that class gets, leaving out those whose modules need packages that
+            are not installed.
         """
-        classes = [pinned.resolve() for pinned in ROBOTS]
-        return {RobotRoster.class_model_name(cls): cls for cls in classes}
+        classes = [pinned.resolve_if_installed() for pinned in ROBOTS]
+        return {
+            RobotRoster.class_model_name(cls): cls for cls in classes if cls is not None
+        }
 
     @staticmethod
     def part_classes(robot_class: type) -> Dict[str, str]:
@@ -111,7 +114,7 @@ class BundleClasses:
         """
         world = WorldSpecification(
             robots=[RobotSpecification(semantic_annotation_type=robot_class)]
-        ).to_domain_object()
+        ).create_world()
         [robot] = world.get_semantic_annotations_by_type(robot_class)
         return {
             str(part.name): class_path(type(part))
@@ -124,7 +127,7 @@ class BundleClasses:
             builds from the bundle without robots: those of the classes its prims stand
             for, or those CRAM's reasoner infers for an environment without prims.
         """
-        world = WorldSpecification(robots=[]).to_domain_object()
+        world = WorldSpecification(robots=[]).create_world()
         names = BundleEnvironment(self.directory).add_scene(world)
         return WorldAnnotations(world).descriptions(names)
 

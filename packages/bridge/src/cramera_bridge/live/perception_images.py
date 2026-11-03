@@ -376,18 +376,23 @@ class WorldModelCamera(PerceptionCamera):
         """
         if self.tracer is None or self.tracer.world is not world:
             self.tracer = RayTracer(world)
-        origins, directions, pixels = self.tracer.create_camera_rays(
+        camera_rays = self.tracer.create_camera_rays(
             camera.root_T_forward_view,
             resolution=CAMERA_RESOLUTION,
             field_of_view=camera.field_of_view,
         )
-        points, rays, hit_bodies = self.tracer.ray_test(
+        origins = camera_rays.origin_points
+        directions = camera_rays.direction_vectors
+        pixels = camera_rays.pixel_coordinates
+        intersections = self.tracer.ray_test(
             origins,
             origins + directions * FARTHEST_SURFACE,
             multiple_hits=True,
             min_distance=NEAREST_SURFACE,
             max_distance=FARTHEST_SURFACE,
         )
+        points, rays = intersections.hit_points, intersections.ray_indices
+        hit_bodies = intersections.bodies
         if len(rays) == 0:
             return None
         distances = np.linalg.norm(points - origins[rays], axis=1)

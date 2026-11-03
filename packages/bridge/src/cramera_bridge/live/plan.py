@@ -1,5 +1,9 @@
 """
 The executing plan as the viewer shows it: every node with its native status.
+
+A plan runs as one cramph statechart, whose actions, composites and statements hold the
+motions they expand into. The plan shows the plan's own nodes down to each motion; what
+a motion is made of is the statechart's to show.
 """
 
 from __future__ import annotations
@@ -17,31 +21,36 @@ from cramera_bridge.live.recording import RunningAction
 from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.robots import RobotRoster
 from cramera_protocol.live_messages import ConstraintObservation, LivePlan, LivePlanNode
-from coraplex.plans.plan_node import ActionNode, DesignatorNode, MotionNode, PlanNode
-from coraplex.robot_plans.motions.misc import DetectingMotion
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from coraplex.perception import PerceptionTask
+from coraplex.plans.context_extensions import RobotAccess
+from coraplex.robot_plans.actions.base import Action
+from cramph.composites import StatementNode
+from cramph.data_types import LifeCycleValues
+from cramph.node import CompositeNode, StatechartNode
+from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from krrood.entity_query_language.core.variable import Variable
 from krrood.entity_query_language.query.match import Match
 from semantic_digital_twin.robots.robot_parts import Arm
-from semantic_digital_twin.spatial_types.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
     SemanticAnnotation,
 )
 
 if TYPE_CHECKING:
-    from coraplex.plans.plan import Plan
+    from coraplex.plans.executors import PlanExecutor
+    from cramph.statechart import Statechart
 
 PLAN_NODE_PREFIX = "plan_node_"
 """
 The start of the identity of every node of the first plan performed; the rest is the
-node's index in the plan graph.
+node's index in the plan's statechart.
 """
 
 LATER_PLAN_NODE_PREFIX = "plan_{number}_node_"
 """
 The start of the identity of every node of a later plan, naming the plan's number; the
-rest is the node's index in the plan graph.
+rest is the node's index in the plan's statechart.
 """
 
 FIRST_PLAN_NUMBER = 1
@@ -94,8 +103,8 @@ Precedes the type of a value a designator leaves open, to be found when it runs.
 class PlanNodeStatus(StrEnum):
     """
     The status of a plan node as the viewer and the recorded bundles name it, which
-    keeps the names coraplex used before its nodes took the motion statechart's life
-    cycle values.
+    keeps the names coraplex used before its nodes took the statechart's life cycle
+    values.
     """
 
     CREATED = "CREATED"
@@ -153,87 +162,55 @@ FINISHED_LIFE_CYCLES = (
 The life cycle values of a node that ended.
 """
 
-
-@dataclass(frozen=True)
-class NodeLifeCycle:
-    """
-    The life cycle a plan node shows: its own, or, for an action coraplex left
-    unstarted, the one its motions went through.
-
-    coraplex performs an action's motions as one motion statechart without starting the
-    action node itself, so the action's own life cycle stays not started although its
-    motions ran.
-    """
-
-    node: PlanNode
-    """
-    The node.
-    """
-
-    plan_ended: bool
-    """
-    Whether the plan's root ended, so an action none of whose motions runs any more is
-    done.
-    """
-
-    def value(self) -> LifeCycleValues:
-        """
-        :return: The node's own life cycle value, unless it is an action coraplex left
-            unstarted: then the value of its motion that started last; an action whose
-            last started motion succeeded while others have not started yet runs until
-            they did or the plan ended.
-        """
-        if (
-            not isinstance(self.node, ActionNode)
-            or self.node.status is not LifeCycleValues.NOT_STARTED
-        ):
-            return self.node.status
-        motions = [
-            descendant.status
-            for descendant in self.node.descendants
-            if isinstance(descendant, MotionNode)
-        ]
-        started = [
-            status for status in motions if status is not LifeCycleValues.NOT_STARTED
-        ]
-        if not started:
-            return LifeCycleValues.NOT_STARTED
-        last = started[-1]
-        if last is not LifeCycleValues.SUCCEEDED:
-            return last
-        if len(started) == len(motions) or self.plan_ended:
-            return LifeCycleValues.SUCCEEDED
-        return LifeCycleValues.RUNNING
-
-
 # %% designators
+
+
+NODE_BASES = (StatechartNode, CompositeNode, MotionStatechartNode)
+"""
+The node classes whose fields run a node rather than describe what it does.
+"""
 
 
 @dataclass(frozen=True)
 class DesignatorSummary:
     """
-    The arm and the body a node's designator names, and every field it holds rendered
-    for reading.
+    The arm and the body a plan node is described by, and every parameter it holds
+    rendered for reading: an action's parameters, what a statement states, and the fields
+    a motion or another node is given.
     """
 
-    node: PlanNode
+    node: StatechartNode
     """
     The plan node.
     """
 
+    def described_by(self) -> Dict[str, object]:
+        """
+        :return: The parameters the node is described by, by name: an action's
+            designator parameters, the fields a statement states, and else the fields
+            its class adds to the node classes.
+        """
+        if isinstance(self.node, Action):
+            return dict(self.node.designator_parameter)
+        if isinstance(self.node, StatementNode):
+            return dict(self.node.statement._kwargs_)
+        running = {each.name for base in NODE_BASES for each in fields(base)}
+        return {
+            each.name: getattr(self.node, each.name)
+            for each in fields(self.node)
+            if each.init and each.name not in running and not each.name.startswith("_")
+        }
+
     def values(self) -> List[object]:
         """
-        :return: The values of the node's designator's fields, or none for a node
-            without a designator.
+        :return: The values of the parameters the node is described by.
         """
-        if not isinstance(self.node, DesignatorNode):
-            return []
-        return list(vars(self.node.designator).values())
+        return list(self.described_by().values())
 
     def arm(self) -> Optional[str]:
         """
-        :return: The name of the first arm the designator names, on its own or among
-            several arms.
+        :return: The name of the first arm the node names, on its own or among several
+            arms.
         """
         for value in self.values():
             for candidate in value if isinstance(value, (list, tuple)) else [value]:
@@ -244,8 +221,8 @@ class DesignatorSummary:
     def target(self, object_keys: Set[str]) -> Optional[str]:
         """
         :param object_keys: The keys of the published objects.
-        :return: The key of the first published object the designator names, else the
-            name of the first body it names.
+        :return: The key of the first published object the node names, else the name of
+            the first body it names.
         """
         bodies = [value for value in self.values() if isinstance(value, Body)]
         for body in bodies:
@@ -255,23 +232,21 @@ class DesignatorSummary:
 
     def label(self) -> str:
         """
-        :return: The class name of the designator, or of the node without one.
+        :return: The class name of the node, or of the action a statement describes.
         """
-        if isinstance(self.node, DesignatorNode):
-            return type(self.node.designator).__name__
+        if isinstance(self.node, StatementNode):
+            return self.node.statement._type_.__name__
         return type(self.node).__name__
 
     def parameters(self, object_keys: Set[str]) -> Dict[str, str]:
         """
         :param object_keys: The keys of the published objects.
-        :return: Every field of the designator that holds a value, by name, rendered
-            as the viewer shows it; empty for a node without a designator.
+        :return: Every parameter of the node that holds a value, by name, rendered as
+            the viewer shows it.
         """
-        if not isinstance(self.node, DesignatorNode):
-            return {}
         return {
             name: self.render(value, object_keys)
-            for name, value in self.fields_of(self.node.designator)
+            for name, value in self.described_by().items()
             if value is not None
         }
 
@@ -364,6 +339,20 @@ class DesignatorSummary:
 # %% plan
 
 
+def is_plan_node(node: StatechartNode) -> bool:
+    """
+    :param node: A node below a plan's top-level nodes.
+    :return: Whether the plan shows it: every node not inside a motion, so a motion is
+        shown and not what it is made of.
+    """
+    parent = node.parent_node
+    while parent is not None:
+        if isinstance(parent, MotionStatechartNode):
+            return False
+        parent = parent.parent_node
+    return True
+
+
 @dataclass
 class PerformedPlan:
     """
@@ -371,9 +360,15 @@ class PerformedPlan:
     newest snapshot.
     """
 
-    plan: Plan
+    statechart: Statechart
     """
-    The plan.
+    The statechart the plan runs as.
+    """
+
+    plan_nodes: List[StatechartNode]
+    """
+    The plan's top-level nodes, without what the executor added to run them, such as the
+    end of the plan or its stall detection.
     """
 
     number: int
@@ -383,8 +378,8 @@ class PerformedPlan:
 
     robot: Optional[str]
     """
-    The display name of the robot that performed the plan, or None for a plan without a
-    context.
+    The display name of the robot that performed the plan, or None for a plan whose
+    context names no robot.
     """
 
     latest: LivePlan = field(default_factory=LivePlan)
@@ -403,24 +398,25 @@ class PerformedPlan:
     """
 
     @classmethod
-    def of_plan(
-        cls, plan: Plan, number: int, images: PerceptionImages
+    def of_executor(
+        cls, executor: PlanExecutor, number: int, images: PerceptionImages
     ) -> PerformedPlan:
         """
-        :param plan: A plan that starts performing.
-        :param number: Its position among the plans performed, counted from one.
+        :param executor: The executor that compiled the plan.
+        :param number: The plan's position among the plans performed, counted from one.
         :param images: Takes and keeps the images of its perception steps.
-        :return: The plan with the robot its context names.
+        :return: The plan the executor runs, with the robot its context names.
         """
-        robot = None if plan.context is None else plan.context.robot
+        access = executor.context.get_extension(RobotAccess)
         return cls(
-            plan=plan,
+            statechart=executor.statechart,
+            plan_nodes=list(executor.plan_nodes),
             number=number,
-            robot=None if robot is None else RobotRoster.label(robot),
+            robot=None if access is None else RobotRoster.label(access.robot),
             images=images,
         )
 
-    def identifier(self, node: PlanNode) -> str:
+    def identifier(self, node: StatechartNode) -> str:
         """
         :param node: A node of the plan.
         :return: The node's identity, which no node of another plan performed shares;
@@ -433,30 +429,29 @@ class PerformedPlan:
         )
         return f"{prefix}{node.index}"
 
-    def root(self) -> Optional[PlanNode]:
+    def nodes(self) -> List[StatechartNode]:
         """
-        :return: The plan's root, or None while its graph is no tree.
+        :return: The nodes the plan shows, each top-level node followed by the nodes
+            below it.
         """
-        roots = [node for node in self.plan.all_nodes if node.parent is None]
-        if len(roots) != 1:
-            return None
-        return roots[0]
+        return [
+            node
+            for top in self.plan_nodes
+            for node in [top, *top.descendants]
+            if is_plan_node(node)
+        ]
 
     def describe(
         self, object_keys: Set[str], constraints: ConstraintLookup
-    ) -> Optional[LivePlan]:
+    ) -> LivePlan:
         """
         :param object_keys: The keys of the published objects.
         :param constraints: The constraint monitors attached to each node.
-        :return: A snapshot of every node with its native status, or None while the
-            plan's graph is being rebuilt.
+        :return: A snapshot of every node the plan shows with its native status.
         """
-        root = self.root()
-        if root is None:
-            return None
         nodes = [
             self.node_description(node, object_keys, constraints)
-            for node in [root] + root.descendants
+            for node in self.nodes()
         ]
         return LivePlan(
             signature=SIGNATURE_SEPARATOR.join(node.identifier for node in nodes),
@@ -465,7 +460,7 @@ class PerformedPlan:
 
     def node_description(
         self,
-        node: PlanNode,
+        node: StatechartNode,
         object_keys: Set[str],
         constraints: ConstraintLookup,
     ) -> LivePlanNode:
@@ -473,18 +468,17 @@ class PerformedPlan:
         :param node: A node of the plan.
         :param object_keys: The keys of the published objects.
         :param constraints: The constraint monitors attached to each node.
-        :return: The node with its native status.
+        :return: The node with its native status; a top-level node has no parent.
         """
         summary = DesignatorSummary(node)
         identifier = self.identifier(node)
-        parent = node.parent
-        life_cycle = NodeLifeCycle(node, self.has_ended()).value()
+        parent = None if node in self.plan_nodes else node.parent_node
         return LivePlanNode(
             identifier=identifier,
             parent=None if parent is None else self.identifier(parent),
             kind=plan_node_kind(node),
             label=summary.label(),
-            status=PlanNodeStatus.of(life_cycle),
+            status=PlanNodeStatus.of(node.life_cycle_state),
             arm=summary.arm(),
             target=summary.target(object_keys),
             constraints=constraints(identifier),
@@ -494,7 +488,7 @@ class PerformedPlan:
                 if self.is_perception(node)
                 else None
             ),
-            reason=None if node.reason is None else str(node.reason),
+            reason=self.reason(node),
             images=(
                 [image.document(image.key) for image in self.images.of_step(identifier)]
                 if self.is_perception(node)
@@ -503,17 +497,28 @@ class PerformedPlan:
         )
 
     @staticmethod
-    def is_perception(node: PlanNode) -> bool:
+    def reason(node: StatechartNode) -> Optional[str]:
         """
         :param node: A node of the plan.
-        :return: Whether it is a perception step: the motion that answers a perception
-            query.
+        :return: Why a node choosing its child gave up on its children: the names of the
+            monitors that failed them; None for any other node.
         """
-        return isinstance(node, MotionNode) and isinstance(
-            node.designator, DetectingMotion
+        if not isinstance(node, StatementNode) or not node.failure_reasons:
+            return None
+        return PARAMETER_SEPARATOR.join(
+            str(monitor.name) for monitor in node.failure_reasons
         )
 
-    def observe_ended(self, node: PlanNode, object_keys: Set[str]) -> None:
+    @staticmethod
+    def is_perception(node: StatechartNode) -> bool:
+        """
+        :param node: A node of the plan.
+        :return: Whether it is a perception step: the node that answers a perception
+            query.
+        """
+        return isinstance(node, PerceptionTask)
+
+    def observe_ended(self, node: StatechartNode, object_keys: Set[str]) -> None:
         """
         Keep what a perception step reported when it ends: the objects of the queried
         kind in the queried region that the robot's camera sees, once the detection was
@@ -525,11 +530,10 @@ class PerformedPlan:
         """
         if not self.is_perception(node):
             return
-        query = node.designator.query
-        reported = (
-            query.from_world() if node.status is LifeCycleValues.SUCCEEDED else []
-        )
-        if node.status is LifeCycleValues.SUCCEEDED:
+        query = node.query
+        succeeded = node.life_cycle_state is LifeCycleValues.SUCCEEDED
+        reported = query.from_world() if succeeded else []
+        if succeeded:
             self.perceived[node.index] = [
                 DesignatorSummary.render(body, object_keys) for body in reported
             ]
@@ -539,28 +543,25 @@ class PerformedPlan:
 
     def has_ended(self) -> bool:
         """
-        :return: Whether the plan's root ended.
+        :return: Whether every top-level node of the plan ended.
         """
-        root = self.root()
-        return root is not None and root.status in FINISHED_LIFE_CYCLES
+        return all(
+            node.life_cycle_state in FINISHED_LIFE_CYCLES for node in self.plan_nodes
+        )
 
     def running(self) -> Optional[RunningAction]:
         """
         :return: The plan's deepest running action, or None between actions.
         """
-        root = self.root()
-        if root is None:
-            return None
-        plan_ended = self.has_ended()
         running = [
             node
-            for node in [root] + root.descendants
-            if isinstance(node, ActionNode)
-            and NodeLifeCycle(node, plan_ended).value() is LifeCycleValues.RUNNING
+            for node in self.nodes()
+            if isinstance(node, Action)
+            and node.life_cycle_state is LifeCycleValues.RUNNING
         ]
         if not running:
             return None
-        deepest = max(running, key=lambda node: len(node.path))
+        deepest = max(running, key=lambda node: node.depth)
         return RunningAction(
             identifier=self.identifier(deepest),
             label=DesignatorSummary(deepest).label(),
@@ -594,37 +595,47 @@ class PlanPublisher:
     Takes and keeps the images of every plan's perception steps.
     """
 
-    def begin(self, plan: Plan) -> None:
+    def begin(self, executor: PlanExecutor) -> None:
         """
-        :param plan: The plan that starts performing; a plan performed before keeps its
-            number and snapshot.
+        :param executor: The executor that compiled the plan which starts performing; a
+            plan performed before keeps its number and snapshot.
         """
         with self.lock:
             performed = next(
-                (entry for entry in self.performed if entry.plan is plan), None
+                (
+                    entry
+                    for entry in self.performed
+                    if entry.statechart is executor.statechart
+                ),
+                None,
             )
             if performed is None:
-                performed = PerformedPlan.of_plan(
-                    plan, len(self.performed) + 1, self.images
+                performed = PerformedPlan.of_executor(
+                    executor, len(self.performed) + 1, self.images
                 )
                 self.performed.append(performed)
             self.active_plan = performed
 
-    def observe_started(self, node: PlanNode) -> None:
+    def observe_started(self, node: StatechartNode) -> None:
         """
         :param node: A plan node that started.
         """
         if PerformedPlan.is_perception(node):
             self.images.observe_started()
 
-    def observe_ended(self, node: PlanNode, object_keys: Set[str]) -> None:
+    def observe_ended(self, node: StatechartNode, object_keys: Set[str]) -> None:
         """
         :param node: A plan node that ended.
         :param object_keys: The keys of the published objects.
         """
         with self.lock:
             performed = next(
-                (entry for entry in self.performed if entry.plan is node.plan), None
+                (
+                    entry
+                    for entry in self.performed
+                    if entry.statechart is node.statechart
+                ),
+                None,
             )
         if performed is not None:
             performed.observe_ended(node, object_keys)
@@ -638,8 +649,7 @@ class PlanPublisher:
 
     def refresh(self, object_keys: Set[str], constraints: ConstraintLookup) -> LivePlan:
         """
-        Read every node's native status into a new snapshot; a plan whose graph is being
-        rebuilt keeps its last snapshot.
+        Read every node's native status into a new snapshot.
 
         :param object_keys: The keys of the published objects.
         :param constraints: The constraint monitors attached to each node.
@@ -650,8 +660,6 @@ class PlanPublisher:
         if active_plan is None:
             return self.current()
         snapshot = active_plan.describe(object_keys, constraints)
-        if snapshot is None:
-            return self.current()
         with self.lock:
             active_plan.latest = snapshot
         return snapshot
@@ -678,12 +686,12 @@ class PlanPublisher:
 
     def is_executing(self) -> bool:
         """
-        :return: Whether the published plan's root is running or paused.
+        :return: Whether a top-level node of the published plan is running or paused.
         """
-        roots = [node for node in self.current().nodes if node.parent is None]
-        return bool(roots) and roots[0].status in (
-            PlanNodeStatus.RUNNING,
-            PlanNodeStatus.PAUSE,
+        return any(
+            node.parent is None
+            and node.status in (PlanNodeStatus.RUNNING, PlanNodeStatus.PAUSE)
+            for node in self.current().nodes
         )
 
     def with_constraints(self, constraints: ConstraintLookup) -> LivePlan:

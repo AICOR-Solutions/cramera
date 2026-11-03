@@ -54,9 +54,14 @@ from cramera_protocol.query_steps import (
 )
 from cramera_protocol.resolutions import BackendDescription, KnowledgeSource
 from cramera.locations import DataLocations
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from coraplex.plans.executors import KinematicallySimulatedPlanExecutor
+from cramph.composites import Sequence
+from cramph.context import StatechartContext
+from cramph.data_types import LifeCycleValues
+from cramph.monitors import CountTicks
+from cramph.statechart import Statechart
 from semantic_digital_twin.datastructures.definitions import TorsoState
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 from ..dataset.live_worlds import HeightChart
 
@@ -77,7 +82,8 @@ def carry_milk(kitchen, publisher) -> None:
         kitchen.milk_connection.origin = HomogeneousTransformationMatrix.from_xyz_rpy(
             1.0 + 0.1 * step, 0.1, 0.9, reference_frame=kitchen.root
         )
-        publisher.observe_motion_tick(chart.chart)
+        chart.executor.tick()
+        publisher.observe_tick(chart.chart, False)
         publisher.motion_running = True
         publisher.observe_state_change()
 
@@ -403,13 +409,13 @@ def run_the_small_plan(kitchen, publisher, small_plan) -> FrameRange:
 
     :return: The frames recorded while the action ran.
     """
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     carry_milk(kitchen, publisher)
-    small_plan.action.status = LifeCycleValues.RUNNING
+    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
     first = publisher.recording.frame_count()
     carry_milk(kitchen, publisher)
     running = FrameRange(first, publisher.recording.frame_count() - 1)
-    small_plan.action.status = LifeCycleValues.SUCCEEDED
+    small_plan.set(small_plan.action, LifeCycleValues.SUCCEEDED)
     carry_milk(kitchen, publisher)
     return running
 
@@ -444,7 +450,7 @@ def test_a_recorded_step_names_the_frames_its_action_ran_in(
 def test_a_recorded_step_keeps_its_parameters_and_constraints(
     publisher, kitchen, small_plan, locations
 ):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     publisher.attach_constraint(
         ConstraintRequest(
             target_plan_node=PlanNodeReference(
@@ -459,9 +465,9 @@ def test_a_recorded_step_keeps_its_parameters_and_constraints(
         )
     )
     live = publisher.refresh_plan().nodes[1].constraints[0]
-    small_plan.action.status = LifeCycleValues.RUNNING
+    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
     carry_milk(kitchen, publisher)
-    small_plan.action.status = LifeCycleValues.SUCCEEDED
+    small_plan.set(small_plan.action, LifeCycleValues.SUCCEEDED)
     carry_milk(kitchen, publisher)
     publisher.finish_recording()
     root = bundle_files(locations)[1].plan_trees[0]
@@ -546,7 +552,7 @@ def test_the_nodes_of_two_plans_have_distinct_identities(
         node.identifier for node in all_nodes(bundle_files(locations)[1].plan_trees)
     ]
     assert len(set(identities)) == len(identities)
-    assert len(identities) == sum(len(plan.plan.all_nodes) for plan in robot_plans)
+    assert len(identities) == sum(len(plan.nodes) for plan in robot_plans)
 
 
 def test_a_plan_begun_again_is_recorded_once(publisher, kitchen, small_plan, locations):
@@ -557,9 +563,32 @@ def test_a_plan_begun_again_is_recorded_once(publisher, kitchen, small_plan, loc
     assert root.children[0].end == running.last
 
 
-def test_a_plan_without_a_context_names_no_robot(
-    publisher, kitchen, small_plan, locations
+def robotless_plan(kitchen) -> KinematicallySimulatedPlanExecutor:
+    """
+    :return: The executor of a plan waiting a tick, prepared in a context that names no
+        robot and not run.
+    """
+    executor = KinematicallySimulatedPlanExecutor(
+        StatechartContext.with_extensions(kitchen.world, [])
+    )
+    statechart = Statechart(context=executor.context)
+    statechart.add_node(Sequence(nodes=[CountTicks(name="wait", ticks=1)]))
+    executor.prepare(statechart)
+    return executor
+
+
+def test_a_plan_names_the_robot_its_context_names(
+    publisher, kitchen, small_plan, robot_world, locations
 ):
     run_the_small_plan(kitchen, publisher, small_plan)
+    publisher.finish_recording()
+    assert bundle_files(locations)[1].plan_trees[0].robot == RobotRoster.label(
+        robot_world.robot
+    )
+
+
+def test_a_plan_whose_context_names_no_robot_names_none(publisher, kitchen, locations):
+    publisher.begin_plan(robotless_plan(kitchen))
+    carry_milk(kitchen, publisher)
     publisher.finish_recording()
     assert bundle_files(locations)[1].plan_trees[0].robot is None

@@ -31,7 +31,7 @@ from cramera_protocol.live_messages import (
     Surfaces,
 )
 from semantic_digital_twin.semantic_annotations.mixins import HasSupportingSurface
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world_description.connections import Connection6DoF
 
 if TYPE_CHECKING:

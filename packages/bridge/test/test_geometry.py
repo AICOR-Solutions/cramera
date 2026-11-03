@@ -13,7 +13,7 @@ from cramera_bridge.geometry import (
     PublishedScale,
 )
 from cramera_protocol.geometry import Pose, Vector3
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world_description.geometry import Color, Scale
 
 # %% poses
@@ -54,7 +54,7 @@ def test_a_scale_keeps_its_axes():
 
 
 def test_a_colour_becomes_css_and_keeps_its_opacity():
-    color = PublishedColor(Color(1.0, 0.0, 0.5, 0.25))
+    color = PublishedColor(Color.from_rgba(1.0, 0.0, 0.5, 0.25))
     blue = round(0.5 * COLOR_CHANNEL_MAXIMUM)
     assert color.hexadecimal() == "#ff00%02x" % blue
     assert color.opacity() == 0.25

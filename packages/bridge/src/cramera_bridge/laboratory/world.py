@@ -27,7 +27,7 @@ from semantic_digital_twin.collision_checking.collision_rules import (
     AllowCollisionBetweenGroups,
 )
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Pose
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.geometry import Box, Scale
 from semantic_digital_twin.world_description.shape_collection import ShapeCollection
@@ -163,7 +163,7 @@ class LaboratoryEnvironment(BundleEnvironment):
             path_resolver=CompositePathResolver(
                 [FileUriResolver(base_directory=str(path.parent)), PackageUriResolver()]
             ),
-        ).parse()
+        ).create_world()
         root = model.root.id
         world.merge_world_at_pose(model, PoseText(description.spawn).native(world.root))
         return world.get_kinematic_structure_entity_by_id(root)
