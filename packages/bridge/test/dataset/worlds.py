@@ -14,7 +14,7 @@ from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
 from semantic_digital_twin.robots.pr2 import PR2
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (
     Connection6DoF,
@@ -175,7 +175,7 @@ class RobotWorld:
         """
         :return: A new world holding a PR2.
         """
-        world = URDFParser.from_file(file_path=PR2.get_ros_file_path()).parse()
+        world = URDFParser.from_file(file_path=PR2.get_ros_file_path()).create_world()
         return cls(world=world, robot=PR2.from_world(world))
 
 

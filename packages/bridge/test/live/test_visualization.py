@@ -30,7 +30,7 @@ from cramera_protocol.live import LiveInfo, LiveRoute
 from cramera_protocol.live_messages import LivePlan
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from giskardpy.motion_statechart.data_types import LifeCycleValues
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 from ..dataset.live_worlds import HeightChart
 from .conftest import LIVE_DATASET

@@ -13,7 +13,7 @@ from cramera_bridge.geometry import (
     PublishedScale,
 )
 from cramera_protocol.geometry import Pose, Vector3
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world_description.geometry import Color, Scale
 
 # %% poses

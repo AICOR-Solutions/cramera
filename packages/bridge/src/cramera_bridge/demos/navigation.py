@@ -20,7 +20,7 @@ from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from semantic_digital_twin.specifications.kinematic_structure_entities import (
     BodySpecification,
 )
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Pose
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.geometry import Scale
 

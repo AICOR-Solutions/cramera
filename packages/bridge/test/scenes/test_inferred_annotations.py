@@ -76,7 +76,7 @@ def test_an_environment_without_prims_gets_annotations_named_after_their_bodies(
 
 
 def test_an_annotation_rooted_outside_the_environment_is_removed():
-    world = URDFParser.from_file(str(DRAWER_CABINET_URDF)).parse()
+    world = URDFParser.from_file(str(DRAWER_CABINET_URDF)).create_world()
     environment = [
         body for body in world.bodies if body.name.name != "handle_cab1_drawer_top"
     ]
@@ -97,7 +97,7 @@ def test_an_environment_drawn_without_collision_geometry_gets_its_annotations(
         ),
         encoding="utf-8",
     )
-    world = URDFParser.from_file(str(drawn_only)).parse()
+    world = URDFParser.from_file(str(drawn_only)).create_world()
     kept = InferredAnnotations(world).add(world.bodies)
     assert {str(annotation.name) for annotation in kept} >= {
         "cabinet1_drawer_top",

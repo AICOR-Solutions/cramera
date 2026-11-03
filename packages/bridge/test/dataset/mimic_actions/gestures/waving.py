@@ -17,7 +17,7 @@ from coraplex.robot_plans.actions.base import ActionDescription
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.robot_parts import Arm, EndEffector, Torso
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
-from semantic_digital_twin.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import Body
 
 if TYPE_CHECKING:

@@ -30,7 +30,7 @@ from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.robots.stretch import Stretch
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.robots.unitree_g1 import UnitreeG1
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.semantic_annotations.mixins import HasCaseAsRootBody
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
 

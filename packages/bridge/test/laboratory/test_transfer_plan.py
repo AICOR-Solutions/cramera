@@ -20,7 +20,7 @@ from cramera_bridge.laboratory.grasping import (
 )
 from cramera_bridge.laboratory.transfer import VesselTransferDemo
 from cramera_bridge.exceptions import TaskFailed
-from semantic_digital_twin.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 
 

@@ -90,12 +90,22 @@ class CramPackage(StrEnum):
 
     GISKARDPY = "giskardpy"
     """
-    Motion statecharts.
+    Motion control.
+    """
+
+    CRAMPH = "cramph"
+    """
+    Statecharts, which plans and motions run as.
     """
 
     KRROOD = "krrood"
     """
     The entity query language.
+    """
+
+    KRROOD_SPATIAL_MATH = "krrood_spatial_math"
+    """
+    Points, vectors, rotations and transformations.
     """
 
     SEGMIND = "segmind"

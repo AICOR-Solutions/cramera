@@ -25,7 +25,7 @@ from cramera_bridge.robots import RobotParts
 from cramera_protocol.live_messages import TeleoperationRequest
 from semantic_digital_twin.datastructures.definitions import GripperState
 from semantic_digital_twin.spatial_computations.ik_solver import IKSolverException
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 if TYPE_CHECKING:
     from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm

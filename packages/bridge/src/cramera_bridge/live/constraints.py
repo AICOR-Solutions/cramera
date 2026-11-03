@@ -38,7 +38,7 @@ from giskardpy.motion_statechart.monitors.feature_monitors import (
     HeightMonitor,
 )
 from giskardpy.motion_statechart.motion_statechart import MotionStatechart
-from semantic_digital_twin.spatial_types import Point3, Vector3
+from krrood_spatial_math.spatial_types import Point3, Vector3
 
 if TYPE_CHECKING:
     from semantic_digital_twin.world import World

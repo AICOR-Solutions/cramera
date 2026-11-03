@@ -23,7 +23,7 @@ from giskardpy.motion_statechart.data_types import LifeCycleValues
 from krrood.entity_query_language.core.variable import Variable
 from krrood.entity_query_language.query.match import Match
 from semantic_digital_twin.robots.robot_parts import Arm
-from semantic_digital_twin.spatial_types.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
     SemanticAnnotation,

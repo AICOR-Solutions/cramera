@@ -32,7 +32,7 @@ from cramera_protocol.bundle.scene import (
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.geometry import Pose
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (
     ActiveConnection1DOF,

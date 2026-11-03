@@ -111,7 +111,7 @@ class BundleClasses:
         """
         world = WorldSpecification(
             robots=[RobotSpecification(semantic_annotation_type=robot_class)]
-        ).to_domain_object()
+        ).create_world()
         [robot] = world.get_semantic_annotations_by_type(robot_class)
         return {
             str(part.name): class_path(type(part))
@@ -124,7 +124,7 @@ class BundleClasses:
             builds from the bundle without robots: those of the classes its prims stand
             for, or those CRAM's reasoner infers for an environment without prims.
         """
-        world = WorldSpecification(robots=[]).to_domain_object()
+        world = WorldSpecification(robots=[]).create_world()
         names = BundleEnvironment(self.directory).add_scene(world)
         return WorldAnnotations(world).descriptions(names)
 

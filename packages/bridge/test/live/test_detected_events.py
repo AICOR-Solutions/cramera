@@ -32,7 +32,7 @@ from cramera_protocol.bundle.scene import (
 from cramera_protocol.live import Capability, LiveRoute
 from cramera_protocol.live_messages import DetectedEvents, RecordingSaveRequest
 from segmind.datastructures.events import TranslationEvent
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 from .conftest import live_request
 

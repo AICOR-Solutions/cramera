@@ -14,7 +14,7 @@ from coraplex.execution_environment import ExecutionEnvironment
 from coraplex.plans.factories import sequential
 from cramera_bridge.laboratory.mobility import DriveAction
 from cramera_bridge.laboratory.transfer import VesselTransferDemo
-from semantic_digital_twin.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 
 STAND = (-0.22, -0.72, math.pi / 2)
 """

@@ -34,7 +34,7 @@ from coraplex.robot_plans.motions.container import OpeningMotion
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from krrood.entity_query_language.factories import a, variable
 from semantic_digital_twin.datastructures.definitions import TorsoState
-from semantic_digital_twin.spatial_types.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from giskardpy.motion_statechart.data_types import ObservationStateValues
 from cramera.http.messages import HttpMethod
 

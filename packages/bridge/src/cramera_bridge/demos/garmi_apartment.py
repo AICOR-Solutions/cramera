@@ -54,8 +54,8 @@ from semantic_digital_twin.specifications.kinematic_structure_entities import (
 )
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.specifications.worlds import WorldSpecification
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
-from semantic_digital_twin.spatial_types.spatial_types import Point3, Pose
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import Point3, Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import FixedConnection
 
@@ -275,7 +275,7 @@ class GarmiApartmentEnvironment(SceneEnvironment):
         """
         world = WorldSpecification.from_mjcf(
             SceneFile.APARTMENT.path, use_visual_as_collision_backup=True
-        ).to_domain_object()
+        ).create_world()
         inferred = WorldReasoner(world).infer_semantic_annotations()
         with world.modify_world():
             world.add_semantic_annotations(inferred)

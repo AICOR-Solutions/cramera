@@ -32,7 +32,7 @@ from cramera_protocol.questions import (
 )
 from cramera_bridge.questions.presets import RobotQuestion
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Point3
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Point3
 from semantic_digital_twin.world_description.geometry import Box, Scale
 
 from .conftest import dataset_body, live_request

@@ -20,7 +20,7 @@ from giskardpy.motion_statechart.monitors.feature_monitors import HeightMonitor
 from giskardpy.motion_statechart.motion_statechart import MotionStatechart
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.robot_parts import Arm
-from semantic_digital_twin.spatial_types import Point3
+from krrood_spatial_math.spatial_types import Point3
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 

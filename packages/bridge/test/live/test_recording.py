@@ -56,7 +56,7 @@ from cramera_protocol.resolutions import BackendDescription, KnowledgeSource
 from cramera.locations import DataLocations
 from giskardpy.motion_statechart.data_types import LifeCycleValues
 from semantic_digital_twin.datastructures.definitions import TorsoState
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 from ..dataset.live_worlds import HeightChart
 
