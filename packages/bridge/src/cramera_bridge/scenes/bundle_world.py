@@ -95,7 +95,7 @@ class ColorText:
             / COLOR_CHANNEL_MAXIMUM
             for channel in range(COLOR_CHANNELS)
         ]
-        return Color(*channels)
+        return Color.from_rgba(*channels)
 
 
 @dataclass(frozen=True)

@@ -85,7 +85,7 @@ def saved_scene(directory, name: str = SCENE_NAME) -> SceneDescription:
     return DocumentFile(directory / name / BundleFile.SCENE).read(SceneDescription)
 
 
-def test_a_demo_run_is_saved_as_a_named_bundle(locations, coraplex_visualization):
+def test_a_demo_run_is_saved_as_a_named_bundle(locations):
     saved = onboarding(locations).run()
     scene = saved_scene(locations.local_scenes)
     trajectory = DocumentFile(
@@ -102,12 +102,12 @@ def test_a_demo_run_is_saved_as_a_named_bundle(locations, coraplex_visualization
     assert not (locations.local_scenes / ReservedSceneName.RECORDING).exists()
 
 
-def test_a_run_without_detection_lists_no_events(locations, coraplex_visualization):
+def test_a_run_without_detection_lists_no_events(locations):
     onboarding(locations).run()
     assert saved_scene(locations.local_scenes).detected_events == []
 
 
-def test_detected_events_are_listed_in_the_bundle(locations, coraplex_visualization):
+def test_detected_events_are_listed_in_the_bundle(locations):
     onboarding(locations, detect_events=True).run()
     event_types = {
         event.event_type
@@ -116,9 +116,7 @@ def test_detected_events_are_listed_in_the_bundle(locations, coraplex_visualizat
     assert SupportEvent.__name__ in event_types
 
 
-def test_listed_events_are_placed_on_the_bundles_frames(
-    locations, coraplex_visualization
-):
+def test_listed_events_are_placed_on_the_bundles_frames(locations):
     onboarding(locations, detect_events=True).run()
     scene = saved_scene(locations.local_scenes)
     frame_count = (
@@ -136,13 +134,13 @@ def test_listed_events_are_placed_on_the_bundles_frames(
     assert support.keys
 
 
-def test_a_run_is_saved_into_the_shared_directory(locations, coraplex_visualization):
+def test_a_run_is_saved_into_the_shared_directory(locations):
     onboarding(locations, destination=SceneDestination.SHARED).run()
     assert saved_scene(locations.shared_scenes).name == SCENE_NAME
     assert not (locations.local_scenes / SCENE_NAME).exists()
 
 
-def test_a_failing_demo_releases_its_visualizations(locations, coraplex_visualization):
+def test_a_failing_demo_releases_its_visualizations(locations):
     failing = onboarding(locations, FAILURE_ARGUMENT, detect_events=True)
     with pytest.raises(SystemExit) as failure:
         failing.run()
@@ -170,15 +168,13 @@ def saved_run_tasks(directory, name: str = SCENE_NAME) -> list:
         )
 
 
-def test_an_onboarded_run_is_kept_in_the_plan_database(
-    locations, coraplex_visualization
-):
+def test_an_onboarded_run_is_kept_in_the_plan_database(locations):
     onboarding(locations).run()
 
     assert saved_run_tasks(locations.local_scenes) == [TASK]
 
 
-def test_onboarding_again_adds_a_run_to_the_bundle(locations, coraplex_visualization):
+def test_onboarding_again_adds_a_run_to_the_bundle(locations):
     onboarding(locations).run()
 
     onboarding(locations, task="again", adds_a_run=True).run()
@@ -187,9 +183,7 @@ def test_onboarding_again_adds_a_run_to_the_bundle(locations, coraplex_visualiza
     assert saved_run_tasks(locations.local_scenes) == [TASK, "again"]
 
 
-def test_a_run_keeps_the_events_detected_after_it_was_saved(
-    locations, coraplex_visualization
-):
+def test_a_run_keeps_the_events_detected_after_it_was_saved(locations):
     onboarding(locations, detect_events=True).run()
 
     database = PlanDatabase(locations.local_scenes / SCENE_NAME)
@@ -332,9 +326,7 @@ def test_the_command_describes_the_onboarding(locations):
     )
 
 
-def test_the_command_saves_into_the_configured_data_directory(
-    tmp_path, monkeypatch, coraplex_visualization
-):
+def test_the_command_saves_into_the_configured_data_directory(tmp_path, monkeypatch):
     data = tmp_path / "data"
     monkeypatch.setenv(EnvironmentVariable.DATA, str(data))
     monkeypatch.delenv(EnvironmentVariable.SCENES, raising=False)

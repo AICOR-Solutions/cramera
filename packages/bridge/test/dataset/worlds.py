@@ -9,7 +9,7 @@ from pathlib import Path
 
 from typing_extensions import List
 
-from coraplex.datastructures.dataclasses import Context
+from cramera_bridge.performing import TaskContext
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
@@ -100,14 +100,23 @@ class KitchenWorld:
         table = Body(
             name=PrefixedName("table", "kitchen"),
             visual=ShapeCollection(
-                shapes=[Box(scale=Scale(1.0, 0.6, 0.05), color=Color(0.6, 0.4, 0.2))]
+                shapes=[
+                    Box(
+                        scale=Scale(1.0, 0.6, 0.05),
+                        color=Color.from_rgba(0.6, 0.4, 0.2),
+                    )
+                ]
             ),
         )
         milk = Body(
             name=PrefixedName("milk", "kitchen"),
             visual=ShapeCollection(
                 shapes=[
-                    Cylinder(width=0.06, height=0.2, color=Color(0.2, 0.4, 0.8, 0.5))
+                    Cylinder(
+                        width=0.06,
+                        height=0.2,
+                        color=Color.from_rgba(0.2, 0.4, 0.8, 0.5),
+                    )
                 ]
             ),
         )
@@ -220,9 +229,9 @@ class TwoRobots:
                 world.add_semantic_annotation(robot)
         return cls(world=world, robots=robots)
 
-    def context(self, robot: MinimalRobot) -> Context:
+    def context(self, robot: MinimalRobot) -> TaskContext:
         """
         :param robot: One of the robots.
         :return: The context of a plan the robot performs.
         """
-        return Context(world=self.world, robot=robot)
+        return TaskContext(world=self.world, robot=robot)

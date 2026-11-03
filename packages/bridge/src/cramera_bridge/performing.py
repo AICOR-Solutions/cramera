@@ -5,7 +5,8 @@ plan node in a statechart of its own.
 coraplex runs a plan as the top-level node of a cramph statechart, compiled and executed
 by a plan executor whose context gives the nodes the robot and how statements are
 grounded. A context serves one executor, so every plan performed gets a context of its
-own, made from the :class:`TaskContext` it was built with.
+own, made from the :class:`TaskContext` it was built with: the one a plan was built in,
+if it asked for one, else a new one.
 """
 
 from __future__ import annotations
@@ -57,24 +58,51 @@ class TaskContext:
     Grounds the statements of the task's plans, as coraplex does by default.
     """
 
+    sampling_seed: Optional[int] = StatementGrounding.sampling_seed
+    """
+    Seeds the locations the plans' actions sample, so a run repeats; None samples afresh
+    each run.
+    """
+
     extensions: List[ContextExtension] = field(default_factory=list)
     """
-    Further context extensions every plan of the task runs with.
+    Further context extensions every plan of the task runs with, such as the
+    :class:`~coraplex.plans.plan_transformation.PlanRewriting` of its plans.
+    """
+
+    next_context: Optional[StatechartContext] = field(default=None, init=False)
+    """
+    The context the next plan performed runs in, once a plan was built in it.
     """
 
     def statechart_context(self) -> StatechartContext:
         """
-        :return: A new context of a statechart performing one plan of the task: its
-            robot, how its statements are grounded and :attr:`extensions`.
+        :return: The context the next plan performed runs in, for a plan whose nodes
+            are built in it: the task's robot, how its statements are grounded and
+            :attr:`extensions`.
         """
-        return StatechartContext.with_extensions(
-            self.world,
-            [
-                RobotAccess(self.robot),
-                StatementGrounding(query_backend=self.query_backend),
-                *self.extensions,
-            ],
-        )
+        if self.next_context is None:
+            self.next_context = StatechartContext.with_extensions(
+                self.world,
+                [
+                    RobotAccess(self.robot),
+                    StatementGrounding(
+                        query_backend=self.query_backend,
+                        sampling_seed=self.sampling_seed,
+                    ),
+                    *self.extensions,
+                ],
+            )
+        return self.next_context
+
+    def take_statechart_context(self) -> StatechartContext:
+        """
+        :return: The context the next plan performed runs in, which no later plan
+            shares.
+        """
+        context = self.statechart_context()
+        self.next_context = None
+        return context
 
 
 # %% performing
@@ -113,7 +141,7 @@ class PlanPerformance:
         :return: A new executor with a context of its own.
         """
         return self.executor_type(
-            context.statechart_context(),
+            context.take_statechart_context(),
             collision_avoidance=self.collision_avoidance,
             extensions=[*self.extensions, *extensions],
         )

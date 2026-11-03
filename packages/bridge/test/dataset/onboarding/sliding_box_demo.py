@@ -1,14 +1,21 @@
 """
-A coraplex demo for the onboarding tests: it shows a world through coraplex's world
-visualization and slides a box until it touches a table.
+A coraplex demo for the onboarding tests: it lowers a box onto a table by a plan, which
+a coraplex plan executor runs in a statechart, one step per height.
 """
 
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from coraplex.visualization import WorldVisualization
+from typing_extensions import Optional
+
+from coraplex.plans.executors import KinematicallySimulatedPlanExecutor
+from cramph.composites import Sequence
+from cramph.context import StatechartContext
+from cramph.data_types import ObservationStateValues
+from cramph.node import StatechartNode, SucceedsOnObservingTrue
+from cramph.statechart import Statechart
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
@@ -37,7 +44,7 @@ The heights the box is moved to, the last one resting on the table.
 
 FAILURE_ARGUMENT = "--fail"
 """
-Makes the demo exit with :data:`FAILURE_STATUS` after its visualization started.
+Makes the demo exit with :data:`FAILURE_STATUS` once its plan was compiled.
 """
 
 FAILURE_STATUS = 3
@@ -84,7 +91,12 @@ class SlidingBoxWorld:
         table = Body(
             name=PrefixedName("table", "demo"),
             visual=ShapeCollection(
-                shapes=[Box(scale=Scale(1.0, 0.6, 0.05), color=Color(0.6, 0.4, 0.2))]
+                shapes=[
+                    Box(
+                        scale=Scale(1.0, 0.6, 0.05),
+                        color=Color.from_rgba(0.6, 0.4, 0.2),
+                    )
+                ]
             ),
             collision=ShapeCollection(shapes=[Box(scale=Scale(1.0, 0.6, 0.05))]),
         )
@@ -125,23 +137,55 @@ class SlidingBoxWorld:
         )
 
 
+# %% plan
+
+
+@dataclass(eq=False, repr=False)
+class BoxLowering(SucceedsOnObservingTrue, StatechartNode):
+    """
+    Moves the box to one height on its first tick, and is done then.
+    """
+
+    scene: Optional[SlidingBoxWorld] = field(default=None, kw_only=True)
+    """
+    The world the box is moved in.
+    """
+
+    height: float = field(default=0.0, kw_only=True)
+    """
+    The height the box is moved to.
+    """
+
+    def on_tick(self) -> ObservationStateValues:
+        self.scene.move_box(self.height)
+        return ObservationStateValues.TRUE
+
+
 # %% demo
 
 
 def main() -> None:
     """
-    Show the world with the backend the environment selects and lower the box onto the
-    table.
+    Lower the box onto the table, one height after another, by a plan a coraplex
+    executor runs.
 
     :raises SystemExit: With :data:`FAILURE_STATUS` when the demo is asked to fail.
     """
     scene = SlidingBoxWorld.build()
-    visualization = WorldVisualization.from_environment(scene.world).start()
+    executor = KinematicallySimulatedPlanExecutor(StatechartContext(world=scene.world))
+    statechart = Statechart(context=executor.context)
+    statechart.add_node(
+        Sequence(
+            nodes=[
+                BoxLowering(name=f"lower to {height}", scene=scene, height=height)
+                for height in BOX_HEIGHTS
+            ]
+        )
+    )
+    executor.compile(statechart)
     if FAILURE_ARGUMENT in sys.argv[1:]:
         sys.exit(FAILURE_STATUS)
-    for height in BOX_HEIGHTS:
-        scene.move_box(height)
-    visualization.stop()
+    executor.execute()
 
 
 if __name__ == "__main__":

@@ -8,15 +8,14 @@ import math
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import execute_single
-from coraplex.plans.plan import Plan
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from cramera_bridge.exceptions import TaskFailed
 from cramera_bridge.geometry import NumericPose
+from cramera_bridge.performing import TaskContext
 from cramera_bridge.robot_task import RobotTaskDemo
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
+from cramph.node import StatechartNode
 from semantic_digital_twin.specifications.kinematic_structure_entities import (
     BodySpecification,
 )
@@ -105,11 +104,11 @@ class NavigationDemo(RobotTaskDemo):
     The target's x coordinate in the world, in metres.
     """
 
-    def build_plan(self, context: Context) -> Plan:
+    def build_plan(self, context: TaskContext) -> StatechartNode:
         target = Pose.from_xyz_rpy(self.target_x, reference_frame=context.world.root)
-        return execute_single(NavigateAction(target), context=context).plan
+        return NavigateAction(target_location=target)
 
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         position = NumericPose.of_entity(context.world, context.robot.root).position
         error = math.dist(position[:2], (self.target_x, 0.0))
         if error > BASE_TOLERANCE:

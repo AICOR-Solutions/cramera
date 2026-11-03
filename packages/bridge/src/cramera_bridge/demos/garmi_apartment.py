@@ -27,20 +27,20 @@ from enum import Enum, IntEnum, StrEnum
 import numpy as np
 from typing_extensions import Dict, Optional, Sequence
 
-from coraplex.alternative_motion_mapping import AlternativeMotion
-from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import sequential
-from coraplex.plans.plan import Plan
+from coraplex.plans.plan_transformation import PlanRewriting
 from coraplex.robot_plans.actions.composite.transporting import TransportAction
 from coraplex.robot_plans.actions.core.robot_body import ParkArmsAction
 from coraplex.robot_plans.plan_transformations import OpenDrawerBeforeMoveAndPickUp
 from cramera_bridge.exceptions import TaskFailed
+from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.workspace import OBJECT_DIRECTORY
 from cramera_bridge.robot_task import RobotTaskDemo, TaskCommand
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.scene import Camera
 from cramera_protocol.geometry import Vector3
+from cramph.composites import Sequence
+from cramph.node import StatechartNode
 from krrood.entity_query_language.factories import entity, the, variable
 from semantic_digital_twin.reasoning.world_reasoner import WorldReasoner
 from semantic_digital_twin.robots.garmi import Garmi
@@ -369,24 +369,23 @@ class GarmiApartmentDemo(RobotTaskDemo):
         spoon = variable(Spoon, world.semantic_annotations)
         return the(entity(spoon)).first()
 
-    def build_context(self, world: World) -> Context:
+    def build_context(self, world: World) -> TaskContext:
         """
         :param world: The world built for the task.
-        :return: The context of CRAM's demonstration: conditions checked, every
-            alternative motion known, locations drawn repeatably, and a drawer opened
-            before anything is taken out of it.
+        :return: The context of CRAM's demonstration: locations drawn repeatably, and a
+            drawer opened before anything is taken out of it.
         """
-        return Context(
+        return TaskContext(
             world=world,
             robot=self.the_robot(world),
-            evaluate_conditions=True,
-            alternative_motion_mappings=AlternativeMotion.discover_all(),
             sampling_seed=SamplingSeed.REPEATABLE,
-            plan_transformations=[OpenDrawerBeforeMoveAndPickUp()],
+            extensions=[
+                PlanRewriting(transformations=[OpenDrawerBeforeMoveAndPickUp()])
+            ],
         )
 
     def transport(
-        self, graspable: HasGraspCandidates, context: Context
+        self, graspable: HasGraspCandidates, context: TaskContext
     ) -> TransportAction:
         """
         :param graspable: The object to carry.
@@ -399,25 +398,24 @@ class GarmiApartmentDemo(RobotTaskDemo):
             graspable,
             Pose(position=target.position, reference_frame=context.world.root),
             context.robot.get_right_arm_if_specified(),
-            context,
+            context.statechart_context(),
         )
 
-    def build_plan(self, context: Context) -> Plan:
+    def build_plan(self, context: TaskContext) -> StatechartNode:
         """
         :param context: The world and GARMI.
         :return: Carrying the bowl and then the spoon to the table.
         """
         world = context.world
-        return sequential(
-            [
-                ParkArmsAction(context.robot.all_arms),
+        return Sequence(
+            nodes=[
+                ParkArmsAction(arms=context.robot.all_arms),
                 self.transport(self.the_bowl(world), context),
                 self.transport(self.the_spoon(world), context),
-            ],
-            context,
-        ).plan
+            ]
+        )
 
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
         :param context: The world and GARMI after the run.
         :return: How far each object ended from its target, in metres.

@@ -25,7 +25,7 @@ from enum import StrEnum
 from pathlib import Path
 from types import FrameType
 
-from typing_extensions import Any, Iterable, Iterator, List, Optional, Tuple
+from typing_extensions import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 from coraplex.robot_plans.actions.base import Action
 from cramera_bridge.live.publisher import LivePublisher
@@ -212,6 +212,17 @@ class SteppedBackend(QueryBackend):
         if threading.current_thread() is not self.stepper.thread:
             return self.inner.evaluate(expression)
         return self.stepper.answer(expression, self.inner, self.resolves)
+
+    def __deepcopy__(self, memo: Dict[int, Any]) -> QueryBackend:
+        """
+        A plan tries a candidate in a copy of its world, whose context answers with a
+        copy of this backend; those trials are coraplex's own queries, so the copy
+        answers without stepping.
+
+        :param memo: The objects copied so far, by their identity.
+        :return: A copy of the backend this one answers with.
+        """
+        return copy.deepcopy(self.inner, memo)
 
 
 @dataclass

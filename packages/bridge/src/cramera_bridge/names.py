@@ -63,6 +63,17 @@ class PinnedClass:
         module, _, name = self.path.rpartition(".")
         return getattr(importlib.import_module(module), name)
 
+    def resolve_if_installed(self) -> Optional[type]:
+        """
+        :return: The class, or None when its module needs a package that is not
+            installed, such as a robot's ROS interfaces.
+        :raises AttributeError: When its module defines no such class.
+        """
+        try:
+            return self.resolve()
+        except ModuleNotFoundError:
+            return None
+
 
 @dataclass(frozen=True)
 class PinnedEnum:

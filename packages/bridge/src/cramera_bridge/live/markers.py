@@ -249,7 +249,9 @@ class ColorChannels:
         :return: The colour as the geometry boundary publishes it.
         """
         return PublishedColor(
-            Color(self.message.r, self.message.g, self.message.b, self.message.a)
+            Color.from_rgba(
+                self.message.r, self.message.g, self.message.b, self.message.a
+            )
         )
 
     def hexadecimal(self) -> str:

@@ -18,6 +18,7 @@ from cramera_bridge.visualization import LiveVisualization
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.query_steps import QuerySteps, StepAdvance, StepMoment, StepPhase
+from cramph.composites import StatementNode
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.specifications.robots import RobotSpecification
 
@@ -99,7 +100,7 @@ def test_the_run_records_the_queries_of_its_own(stepped_run):
     assert len(finding.answers) == 1
     assert grounding.phase is StepPhase.RESOLUTION
     assert grounding.during == GroundedTorsoAction.__name__
-    assert grounding.caller.module == "underspecified"
+    assert grounding.caller.function == StatementNode.next_candidate.__qualname__
     assert grounding.generates
     assert all(step.moment is StepMoment.ANSWERED for step in (finding, grounding))
 
