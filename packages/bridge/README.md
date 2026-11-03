@@ -10,6 +10,19 @@ query language about live worlds and recorded scenes (`cramera_bridge.questions`
 workspace, and needs it installed. See the repository README and
 `docs/architecture.md`.
 
+## Showing a plan in the viewer
+
+coraplex runs a plan as one cramph statechart, executed by a plan executor. A
+`CrameraVisualization` (`cramera_bridge.coraplex_backend`) among the executor's
+extensions serves its world and publishes the plan tick by tick, so a coraplex
+`RobotDemonstration` handed it as its `visualization` is shown in the viewer;
+`LiveVisualization.progress()` is the extension publishing a plan through a
+visualization already running. `cramera-live` and `cramera-onboard` run a demo file
+unchanged inside a `CoraplexBackendRegistration`, which adds the visualization to every
+plan executor the demo creates for its world. `cramera_bridge.performing` holds the
+`TaskContext` a robot task's plans are built with and `PlanPerformance`, which performs
+each in a statechart of its own.
+
 ## Publishing how plans are resolved and the queries a process asks
 
 A process that resolves the open parts of its plans, or steps through the queries it
@@ -44,7 +57,7 @@ curl -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8765/q
 Only the task's own queries are stepped: those asked on the run's thread by code outside
 the CRAM workspace, such as `VesselTransferDemo` finding its robot, the bench's handles
 and its vessel, and the parts a plan leaves open, which coraplex grounds through the
-context's `query_backend`. What CRAM's packages ask for their own purposes, such as a
+`query_backend` of the context's `StatementGrounding`. What CRAM's packages ask for their own purposes, such as a
 robot part finding its robot or the world reasoner's rules, is answered without a step.
 Each query is held where it is asked and again where its answering ends; a part a plan
 leaves open ends once its candidate was carried out, and its answers are published as
@@ -55,7 +68,7 @@ still while the run is held, so its replay keeps the run's pace.
 `cramera_bridge.query_stepping.QueryStepper` does this for any thread:
 `QueryStepper.watching()` steps the queries asked until the block ends,
 `QueryStepper.resolving(backend)` wraps a context's backend, and
-`QueryStepper.progress()` is the plan callback naming the action under way.
+`QueryStepper.progress()` is the executor extension naming the action under way.
 `HeldQueries` (`cramera_bridge.live.query_steps`) is the `QueryStepControl` that holds
 the thread.
 

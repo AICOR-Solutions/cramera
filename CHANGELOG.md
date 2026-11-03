@@ -501,6 +501,18 @@ which this repository was mirrored until 22 Oct 2026.
   meshes are now found beside the URDF.
 
 ### Changed
+- **cramera-bridge follows CRAM 26.10.** A plan runs as one cramph statechart, so
+  the bridge follows it through executor extensions instead of plan callbacks:
+  `CrameraVisualization` is the world visualization of coraplex's executors, and
+  `CoraplexBackendRegistration` adds it to every plan executor a demo file creates for
+  its world, which replaces the `CORAPLEX_VISUALIZATION` selection and the
+  `coraplex.visualizations` entry point. The plan view shows the statechart's actions,
+  composites, statements and the motions they expand into with their own life cycles,
+  the statechart view the whole statechart. Robot task demos build their plans as
+  statechart nodes with a `TaskContext` and perform them through `PlanPerformance`
+  (`cramera_bridge.performing`); `RobotTaskDemo.executor_type` replaces
+  `execution_type`. Spatial types come from `krrood_spatial_math`, worlds are created
+  with `create_world()`, colours from RGBA.
 - **The scene builder opens with an empty draft.** It no longer restores the draft of
   the last visit, so it starts without the scene opened before; only a reload, or the
   browser's back and forward buttons, continue the draft the tab was editing. The copy

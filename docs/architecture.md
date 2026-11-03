@@ -36,7 +36,8 @@ through a plugin.
 ### CRAM boundary
 
 `cramera-bridge` is the only package that imports the CRAM workspace (`coraplex`,
-`semantic_digital_twin`, `giskardpy`, `krrood`, `segmind`, ...), so a CRAM change only
+`cramph`, `semantic_digital_twin`, `krrood_spatial_math`, `giskardpy`, `krrood`,
+`segmind`, ...), so a CRAM change only
 needs that package to follow; `AGENTS.md` states the rule and
 `packages/bridge/test/test_cram_boundary.py` checks it. Other packages reach CRAM through
 `cramera_bridge` functions that take and return protocol documents, or through a child
@@ -67,7 +68,8 @@ requests to carry out a resolved plan or to move a held process on reach the pro
 through the `ResolutionExecution` and `QueryStepControl` it publishes them with. Every
 `RobotTaskDemo` run with `--step-queries` does so through
 `cramera_bridge.query_stepping.QueryStepper`, which replaces krrood's
-`Evaluable.evaluate` while the run lasts and wraps the context's `query_backend`, and
+`Evaluable.evaluate` while the run lasts and wraps the backend grounding the statements
+of its plans, and
 holds the run's thread with `HeldQueries`.
 
 ## Protocol
