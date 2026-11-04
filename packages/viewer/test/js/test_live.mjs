@@ -218,6 +218,8 @@ test('the Live panel connects, reports what the publisher offers, and drives the
   panel.showRecording({ [RecordingStatusKey.STATE]: RecordingState.RECORDING, [RecordingStatusKey.FRAME_COUNT]: 12, [RecordingStatusKey.DURATION_SECONDS]: 1.5 });
   recording.children[1].dispatch('click');
   panel.showRecording({ [RecordingStatusKey.STATE]: RecordingState.FINALIZED });
+  assert.equal(recording.children.length, 1);
+  panel.showRecording({ [RecordingStatusKey.STATE]: RecordingState.FINALIZED, [RecordingStatusKey.SCENE_NAME]: '__recording__' });
   const save = recording.children[1];
   save.children[0].value = 'my_run';
   save.children[1].value = SceneDestination.LOCAL;
@@ -241,7 +243,8 @@ test('the Live panel names what the publisher offers in words', () => {
 test('the recording is told in a sentence that counts its frames', () => {
   const status = (state, frames) => ({ [RecordingStatusKey.STATE]: state, [RecordingStatusKey.FRAME_COUNT]: frames, [RecordingStatusKey.DURATION_SECONDS]: 1.25 });
   assert.equal(recordingText(status(RecordingState.RECORDING, 1)), 'Recording the run: 1 frame, 1.3 s.');
-  assert.match(recordingText(status(RecordingState.FINALIZED, 12)), /^The recording ended \(12 frames, 1\.3 s\); save it/);
+  assert.match(recordingText(status(RecordingState.FINALIZED, 12)), /^The recording ended \(12 frames, 1\.3 s\); writing it down/);
+  assert.match(recordingText({ ...status(RecordingState.FINALIZED, 12), [RecordingStatusKey.SCENE_NAME]: '__recording__' }), /^The recording ended \(12 frames, 1\.3 s\); save it/);
   assert.equal(recordingText(status(RecordingState.IDLE, 0)), 'Not recording.');
 });
 
