@@ -413,6 +413,12 @@ which this repository was mirrored until 22 Oct 2026.
   and slide child was drawn displaced by its joint's position. Such a joint now moves a
   link of its own at the joint frame, `<child>_connection_frame`, to which the child is
   fixed; the child link keeps its body's frame and the joint its name.
+- **Textured surfaces keep their textures in the viewer.** A world loaded from MJCF,
+  such as a RoboCasa kitchen, was drawn in flat colours. A primitive with a texture
+  and a mesh painted with a texture its own file does not name are now written into
+  the bundle as binary glTF holding the geometry, the texture coordinates and the
+  image, in the URDF models and for the free objects alike (`TexturedSurface`); a
+  primitive's texture repeats per meter or across each face, as the texture states.
 - **Nothing comes between the cinematic camera and what it films.** The film's wide
   orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
   so the picture showed that and not the robot. The camera now casts rays against the

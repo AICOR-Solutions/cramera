@@ -19,6 +19,7 @@ from uuid import UUID
 
 from cramera_bridge.exceptions import UnrepresentableJointLimits, UrdfSourceNotFound
 from cramera_bridge.export.assets import BundledAssets, MeshFormat, MeshReference
+from cramera_bridge.export.textures import SurfaceFile, TexturedSurface
 from cramera_bridge.names import class_path
 from krrood.ormatic.utils import classproperty
 from semantic_digital_twin.adapters.urdf import URDFParser
@@ -600,7 +601,10 @@ class UrdfDocument:
         element = ElementTree.SubElement(link, kind)
         UrdfNumbers.origin(element, shape.origin.to_np())
         geometry = ElementTree.SubElement(element, UrdfElement.GEOMETRY)
-        if isinstance(shape, Box):
+        surface = TexturedSurface.of(shape) if kind is UrdfElement.VISUAL else None
+        if surface is not None:
+            self.add_textured_surface(geometry, surface)
+        elif isinstance(shape, Box):
             ElementTree.SubElement(
                 geometry,
                 UrdfElement.BOX,
@@ -642,6 +646,26 @@ class UrdfDocument:
                 UrdfAttribute.FILENAME: self.assets.relative(destination),
                 UrdfAttribute.SCALE: UrdfNumbers.text(mesh.scale.to_np()[:3]),
             },
+        )
+
+    def add_textured_surface(
+        self, geometry: ElementTree.Element, surface: TexturedSurface
+    ) -> None:
+        """
+        Write a textured surface into the bundle and reference it.
+
+        :param geometry: The geometry element.
+        :param surface: The surface, already at its shape's scale.
+        """
+        written = SurfaceFile(self.assets).write(
+            [surface.mesh],
+            self.assets.folder_for(surface.source, self.mesh_directory),
+            surface.source.stem,
+        )
+        ElementTree.SubElement(
+            geometry,
+            UrdfElement.MESH,
+            {UrdfAttribute.FILENAME: self.assets.relative(written)},
         )
 
     # %% joints
