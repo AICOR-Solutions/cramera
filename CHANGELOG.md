@@ -402,6 +402,11 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Doors and drawers of MJCF worlds sit where the world has them.** The URDF export
+  dropped a connection's pose of its child relative to the joint, so every MJCF hinge
+  and slide child was drawn displaced by its joint's position. Such a joint now moves a
+  link of its own at the joint frame, `<child>_connection_frame`, to which the child is
+  fixed; the child link keeps its body's frame and the joint its name.
 - **Nothing comes between the cinematic camera and what it films.** The film's wide
   orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
   so the picture showed that and not the robot. The camera now casts rays against the
