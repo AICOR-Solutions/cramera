@@ -5,7 +5,9 @@ URDF documents written from world bodies and copied from URDF files.
 from __future__ import annotations
 
 import xml.etree.ElementTree as ElementTree
+from pathlib import Path
 
+import numpy
 import pytest
 
 from cramera_bridge.exceptions import (
@@ -13,7 +15,7 @@ from cramera_bridge.exceptions import (
     UnrepresentableJointLimits,
     UrdfSourceNotFound,
 )
-from cramera_bridge.export.assets import BundledAssets
+from cramera_bridge.export.assets import BundledAssets, MeshFormat
 from cramera_bridge.export.urdf import (
     ROOT_LINK,
     UrdfAttribute,
@@ -33,7 +35,12 @@ from semantic_digital_twin.world_description.connections import (
 from semantic_digital_twin.world_description.world_entity import Body
 
 from ..dataset.bundles import BUNDLED_CUP_URDF
-from ..dataset.worlds import CUP_MESH
+from ..dataset.worlds import (
+    BRICKS_TEXTURE,
+    CUP_MESH,
+    UV_MAPPED_MESH,
+    WrittenSurface,
+)
 
 MESH_DIRECTORY = "test"
 """
@@ -114,6 +121,73 @@ def test_a_mesh_is_copied_with_its_material_library(kitchen, tmp_path):
     assert bundled.read_bytes() == CUP_MESH.read_bytes()
     assert (bundled.parent / "cup.mtl").is_file()
     assert report.missing == []
+
+
+# %% textures
+
+
+def written_surface(directory, report, body) -> WrittenSurface:
+    mesh = links_of(directory / report.urdf)[str(body.name)].find(
+        "visual/geometry/mesh"
+    )
+    return WrittenSurface(directory / mesh.attrib[UrdfAttribute.FILENAME])
+
+
+def test_a_textured_box_is_written_with_its_image_repeated_per_meter(
+    textured, tmp_path
+):
+    report = document(textured.world, tmp_path).write([textured.wall], "wall")
+    surface = written_surface(tmp_path, report, textured.wall)
+    [box] = textured.wall.visual.shapes
+    assert surface.path.suffix == MeshFormat.GLB
+    assert numpy.array_equal(
+        surface.image(), WrittenSurface.pixels_of(Path(box.texture.file_path))
+    )
+    texture_coordinates = surface.mesh().visual.uv
+    span = texture_coordinates.max(axis=0) - texture_coordinates.min(axis=0)
+    assert span[0] == pytest.approx(box.scale.x * box.texture.repeat[0])
+    assert surface.mesh().extents == pytest.approx(box.scale.to_np()[:3])
+
+
+def test_a_textured_box_stretches_its_image_across_each_face(textured, tmp_path):
+    [box] = textured.wall.visual.shapes
+    box.texture.uniform = False
+    report = document(textured.world, tmp_path).write([textured.wall], "wall")
+    texture_coordinates = (
+        written_surface(tmp_path, report, textured.wall).mesh().visual.uv
+    )
+    span = texture_coordinates.max(axis=0) - texture_coordinates.min(axis=0)
+    assert span == pytest.approx(box.texture.repeat)
+
+
+def test_a_mesh_with_a_texture_its_file_does_not_name_carries_it(textured, tmp_path):
+    report = document(textured.world, tmp_path).write([textured.panel], "panel")
+    surface = written_surface(tmp_path, report, textured.panel)
+    assert surface.path.suffix == MeshFormat.GLB
+    assert numpy.array_equal(surface.image(), WrittenSurface.pixels_of(BRICKS_TEXTURE))
+    assert surface.mesh().extents == pytest.approx(
+        textured.panel.visual.shapes[0].mesh.extents
+    )
+
+
+def test_a_mesh_without_a_texture_is_copied_as_its_file(textured, tmp_path):
+    report = document(textured.world, tmp_path).write(
+        [textured.bare_panel], "bare_panel"
+    )
+    mesh = links_of(tmp_path / report.urdf)[str(textured.bare_panel.name)].find(
+        "visual/geometry/mesh"
+    )
+    bundled = tmp_path / mesh.attrib[UrdfAttribute.FILENAME]
+    assert bundled.read_bytes() == UV_MAPPED_MESH.read_bytes()
+
+
+def test_a_textured_world_round_trips_through_its_urdf(textured, tmp_path):
+    bodies = textured.world.bodies_topologically_sorted
+    report = document(textured.world, tmp_path).write(bodies, "textured")
+    parsed = SceneEnvironment.parse_model(tmp_path / report.urdf, prefix="")
+    assert {str(body.name) for body in parsed.bodies} == {ROOT_LINK} | {
+        str(body.name) for body in bodies
+    }
 
 
 def test_a_body_whose_parent_is_left_out_is_fixed_at_its_world_pose(kitchen, tmp_path):
