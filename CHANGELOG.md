@@ -402,6 +402,17 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+
+- **A world followed live draws its free objects.** The live bundle described none,
+  so walls, sinks and fixtures loaded from MJCF appeared only in a saved recording.
+  It now describes every free object at the pose it holds when the bundle is written,
+  and an object added, removed or drawn anew rewrites the bundle.
+
+- **Doors and drawers of MJCF worlds sit where the world has them.** The URDF export
+  dropped a connection's pose of its child relative to the joint, so every MJCF hinge
+  and slide child was drawn displaced by its joint's position. Such a joint now moves a
+  link of its own at the joint frame, `<child>_connection_frame`, to which the child is
+  fixed; the child link keeps its body's frame and the joint its name.
 - **Textured surfaces keep their textures in the viewer.** A world loaded from MJCF,
   such as a RoboCasa kitchen, was drawn in flat colours. A primitive with a texture
   and a mesh painted with a texture its own file does not name are now written into

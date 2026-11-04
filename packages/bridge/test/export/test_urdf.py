@@ -26,15 +26,17 @@ from cramera_bridge.export.urdf import (
 )
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.files import BundleFile
+from semantic_digital_twin.adapters.mjcf import MJCFParser
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from krrood_spatial_math.spatial_types import Vector3
 from semantic_digital_twin.world_description.connections import (
+    ActiveConnection1DOF,
     PrismaticConnection,
     RevoluteConnection,
 )
 from semantic_digital_twin.world_description.world_entity import Body
 
-from ..dataset.bundles import BUNDLED_CUP_URDF
+from ..dataset.bundles import BUNDLED_CUP_URDF, HINGED_CABINET_MJCF
 from ..dataset.worlds import (
     BRICKS_TEXTURE,
     CUP_MESH,
@@ -262,6 +264,52 @@ def test_a_robot_keeps_its_joints_and_limits(robot_world, tmp_path):
     }
     assert written == original
     assert "pr2/torso_lift_joint" in report.movable_joints
+
+
+@pytest.mark.parametrize("joint_fraction", [0.0, 0.5, 1.0])
+def test_joints_away_from_their_child_keep_the_child_where_the_world_has_it(
+    joint_fraction, tmp_path
+):
+    world = MJCFParser.from_file(str(HINGED_CABINET_MJCF)).create_world()
+    report = document(world, tmp_path).write(
+        world.bodies_topologically_sorted, "cabinet"
+    )
+    parsed = SceneEnvironment.parse_model(tmp_path / report.urdf, prefix="")
+    parsed_connections = {
+        connection.name.name: connection for connection in parsed.connections
+    }
+    for connection in world.get_connections_by_type(ActiveConnection1DOF):
+        limits = connection.dof.limits
+        position = limits.lower.position + joint_fraction * (
+            limits.upper.position - limits.lower.position
+        )
+        connection.position = position
+        parsed_connections[str(connection.name)].position = position
+    parsed_bodies = {str(body.name): body for body in parsed.bodies}
+    for body in world.bodies:
+        numpy.testing.assert_allclose(
+            parsed.compute_forward_kinematics_np(
+                parsed.root, parsed_bodies[report.body_links[body.id]]
+            ),
+            world.compute_forward_kinematics_np(world.root, body),
+            atol=1e-5,
+        )
+
+
+def test_a_joint_away_from_its_child_keeps_its_name_and_moves_a_frame_link(tmp_path):
+    world = MJCFParser.from_file(str(HINGED_CABINET_MJCF)).create_world()
+    report = document(world, tmp_path).write(
+        world.bodies_topologically_sorted, "cabinet"
+    )
+    hinges = list(world.get_connections_by_type(ActiveConnection1DOF))
+    assert set(report.movable_joints) == {str(connection.name) for connection in hinges}
+    joints = joints_of(tmp_path / report.urdf)
+    for connection in hinges:
+        frame = joints[str(connection.name)].find(UrdfElement.CHILD)
+        assert frame.attrib[UrdfAttribute.LINK] in report.links
+        assert (
+            frame.attrib[UrdfAttribute.LINK] != report.body_links[connection.child.id]
+        )
 
 
 def test_a_document_cannot_be_written_outside_its_bundle(kitchen, tmp_path):
