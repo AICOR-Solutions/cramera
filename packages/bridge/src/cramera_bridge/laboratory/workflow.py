@@ -124,9 +124,10 @@ RACK_STAND = Stand(0.40, -0.72)
 In front of the rack, where the PR2 starts.
 """
 
-CENTRIFUGE_STAND = Stand(-0.22, -0.72)
+CENTRIFUGE_STAND = Stand(-0.22, -0.78)
 """
-In front of the centrifuge, its left shoulder beside the lid's handle.
+In front of the centrifuge, its left shoulder beside the lid's handle and far enough
+back that the arm reaches the handle without its shoulder and elbow at their limits.
 """
 
 CENTRIFUGE_STEP_BACK = Stand(-0.22, -0.88)
@@ -1093,14 +1094,17 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         :param context: The world and the robot.
         :param move: A move into the centrifuge.
         :param vessel: The vessel it carries.
-        :return: Take the vessel from above, leaning forwards, carry it to the
-            centrifuge and lower it into its holder.
+        :return: Tuck the arm in, its gripper touching the holder it may have just set
+            a vessel down in, raise the torso at the rack, so every vessel is taken from
+            the same posture, take the vessel from above, leaning forwards, carry it to
+            the centrifuge and lower it into its holder.
         """
         grip = self.loading_grip
         grasp = self.grasp(context, vessel, grip)
         return [
-            self.park(context),
+            self.park(context, touching=True),
             self.drive(context, RACK_STAND),
+            self.park(context, raise_torso=True),
             self.pick_up(context, grasp, grip),
             self.drive(context, LOADING_STAND),
             self.place(grasp, move.target.pose(self.laboratory, context.world), grip),
@@ -1136,14 +1140,14 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             *self.operate(context, lid_grasp, self.lid_pulled),
             *self.support_lid(context, lid, self.lid_pushed),
             *loading,
-            self.park(context),
+            self.park(context, touching=True),
             self.drive(context, CENTRIFUGE_STAND),
             *self.support_lid(context, lid, self.lid_pulled),
             self.drive(context, CENTRIFUGE_STEP_BACK),
             self.park(context, raise_torso=True),
             self.drive(context, CENTRIFUGE_STAND),
             *self.operate(context, lid_grasp, 0.0),
-            self.park(context),
+            self.park(context, touching=True),
         ]
 
     # %% steps
@@ -1170,13 +1174,18 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         return DriveAction(target=stand.pose(context.world))
 
     @staticmethod
-    def park(context: TaskContext, raise_torso: bool = False) -> TuckArmsAction:
+    def park(
+        context: TaskContext, raise_torso: bool = False, touching: bool = False
+    ) -> TuckArmsAction:
         """
         :param context: The world and the robot.
         :param raise_torso: Whether the torso is raised to the top of its travel as well.
+        :param touching: Whether the gripper may touch its surroundings on the way.
         :return: Tucking the left arm in, for driving or out of the way.
         """
-        return TuckArmsAction(arms=[context.robot.left_arm], raise_torso=raise_torso)
+        return TuckArmsAction(
+            arms=[context.robot.left_arm], raise_torso=raise_torso, touching=touching
+        )
 
     def operate(
         self, context: TaskContext, grasp: GraspCandidate, position: float
@@ -1203,8 +1212,10 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         :param context: The world and the robot.
         :param lid: The centrifuge's lid.
         :param position: Where the lid's hinge ends.
-        :return: Tuck the arm in, put the closed gripper under the lid's front edge from
-            below, move the lid on it, back away and tuck the arm in again.
+        :return: Tuck the arm in, its gripper touching the lid it may have just let
+            go of, put the closed gripper under the lid's front edge from below, move the
+            lid on it, back away and tuck the arm in again, touching the lid or the
+            housing on the way.
         """
         arm = context.robot.left_arm
         gripper = arm.end_effector
@@ -1215,7 +1226,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             )
 
         return [
-            self.park(context),
+            self.park(context, touching=True),
             MoveGripperAction(gripper=gripper, state=GripperState.CLOSE),
             self.move_tool(
                 context,
@@ -1233,7 +1244,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
                 touching=True,
                 precise=False,
             ),
-            self.park(context),
+            self.park(context, touching=True),
         ]
 
     def let_go(self, context: TaskContext) -> List[StatechartNode]:

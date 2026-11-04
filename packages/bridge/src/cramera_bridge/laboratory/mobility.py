@@ -274,6 +274,24 @@ class TuckArmsAction(ParkArmsAction):
     station the same start.
     """
 
+    touching: bool = False
+    """
+    Whether the grippers may touch their surroundings on the way, as one that let go of
+    a part a moment ago brushes it while the arm tucks in under it.
+    """
+
+    def create_temporary_collision_rules(self) -> List[CollisionRule]:
+        """
+        :return: An allowance for each parked arm's gripper to touch its surroundings if
+            :attr:`touching`, none otherwise.
+        """
+        if not self.touching:
+            return []
+        return [
+            AllowCollisionForEndEffector(end_effector=arm.end_effector)
+            for arm in self.arms
+        ]
+
     def park_joint_state(self) -> JointState:
         """
         :return: CRAM's park positions of the arms, and the torso at the top of its
