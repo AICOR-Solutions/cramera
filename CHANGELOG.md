@@ -26,6 +26,16 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **`cramera connect`: a live run on a remote server or in a container, in the
+  laptop's browser.** Every page now reads the live publisher through the viewer's
+  `/api/live/` relay, which also relays the page's changes (stopping, saving and
+  discarding the recording, executing a resolution) for this machine, so the viewer's
+  port is the only one to reach. `cramera connect user@server [--container NAME]
+  [--start]` reaches it through the user's own `ssh`, carrying each connection into a
+  container with `docker exec -i NAME cramera pipe`; nothing on the server listens
+  beyond its loopback address. `cramera --lifeline` ends the viewer when its input
+  closes, as `--start` uses it. `Option` and `DEFAULT_PORT` moved to
+  `cramera.viewer_options`; `RELAYED_CHANGES` maps each change to its `ChangeReach`.
 - **The Segmind tab: what segmind saw, annotated in the replay.** A run recorded with
   segmind watching (`cramera-onboard --detect-events`, or `CRAMERA_DETECT_EVENTS=1` for
   a live run) lists every event with its sort, the frame it happened at and the keys
