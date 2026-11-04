@@ -499,11 +499,11 @@ export class Application {
     this.#follow = new CameraFollow(this.#view);
     this.#cinematic = new CinematicCamera(this.#view);
     this.#addLayers(this.#view);
-    this.#picking = new ScenePicking(this.#view, this.bus);
+    this.#glide = new CameraGlide(this.#view);
+    this.#picking = new ScenePicking(this.#view, this.bus, (box, point) => this.#glide.glideOnto(box, point));
     this.#highlights = new SceneHighlights(this.#view);
     this.bus.subscribe(ViewerEvent.ENTITY_HIGHLIGHTED, (keys) => this.#highlights.show(keys ?? []));
     this.#regions = new RegionOutlines(this.#view);
-    this.#glide = new CameraGlide(this.#view);
     this.bus.subscribe(ViewerEvent.REGIONS_OUTLINED, (outlines) => this.#regions.show(outlines ?? []));
     this.bus.subscribe(ViewerEvent.FOCUS_REQUESTED, (keys) => this.#glide.glideTo(focusBounds(this.#view.content, this.#regions.group, keys ?? [])));
     this.bus.subscribe(ViewerEvent.ENTITY_SELECTED, (selection) => {
@@ -520,6 +520,7 @@ export class Application {
         () => this.#timeline.togglePlaying(),
         (frames) => this.seek((this.#clock?.frame ?? 0) + frames),
         (last) => this.seek(last ? (this.#clock?.lastFrame ?? 0) : 0),
+        () => this.#glide.glideTo(this.#picking.selectedBounds()),
       ),
     );
     this.#view.start((seconds) => this.#tick(seconds));

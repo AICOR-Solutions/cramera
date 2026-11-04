@@ -26,6 +26,11 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Focusing the camera on a body.** Double-clicking a body in the 3D view selects it
+  and glides the camera onto it: near enough to frame a small body, or onto the point
+  hit for one too big to frame from where the camera stands, so a double click never
+  moves the camera away. F frames the selection, and the scroll wheel zooms towards
+  the cursor instead of the orbit centre (#107).
 - **`cramera connect`: a live run on a remote server or in a container, in the
   laptop's browser.** Every page now reads the live publisher through the viewer's
   `/api/live/` relay, which also relays the page's changes (stopping, saving and
