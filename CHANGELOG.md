@@ -402,6 +402,12 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+
+- **A world followed live draws its free objects.** The live bundle described none,
+  so walls, sinks and fixtures loaded from MJCF appeared only in a saved recording.
+  It now describes every free object at the pose it holds when the bundle is written,
+  and an object added, removed or drawn anew rewrites the bundle.
+
 - **Doors and drawers of MJCF worlds sit where the world has them.** The URDF export
   dropped a connection's pose of its child relative to the joint, so every MJCF hinge
   and slide child was drawn displaced by its joint's position. Such a joint now moves a
