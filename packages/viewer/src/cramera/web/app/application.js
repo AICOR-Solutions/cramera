@@ -593,12 +593,12 @@ export class Application {
 
   /**
    * Follow a live publisher: show its world and apply its states as they arrive; a page
-   * of another device reads the publisher on this machine through the viewer.
+   * reads the publisher at the default address through the viewer.
    * @param {string} address The publisher's address.
    */
   connectLive(address) {
     this.disconnectLive();
-    const client = new LiveClient(this.#fetch, readAddressOf(this.#location.href, address, this.#api.url(ViewerRoute.LIVE_RELAY)));
+    const client = new LiveClient(this.#fetch, readAddressOf(address, this.#api.url(ViewerRoute.LIVE_RELAY)));
     this.#live = new LiveSession(
       client,
       this.#timers,

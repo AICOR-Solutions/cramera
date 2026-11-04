@@ -274,26 +274,18 @@ test('a page address can follow a live publisher instead of naming a bundle', ()
   assert.equal(liveAddressOf('http://localhost:8711/'), null);
 });
 
-test('a page of this machine reads the publisher at the address it names', () => {
-  const relay = 'http://127.0.0.1:8711/api/live/';
-  for (const page of ['http://127.0.0.1:8711/', 'http://localhost:8711/?live=x', 'http://[::1]:8711/']) {
-    assert.equal(readAddressOf(page, DEFAULT_LIVE_ADDRESS, relay), DEFAULT_LIVE_ADDRESS);
+test('every page reads the default publisher through the viewer', () => {
+  for (const relay of ['http://127.0.0.1:8711/api/live/', 'http://localhost:18711/api/live/', 'http://192.168.1.23:8711/api/live/']) {
+    for (const address of [DEFAULT_LIVE_ADDRESS, 'http://localhost:8765', 'http://[::1]:8765/']) {
+      assert.equal(readAddressOf(address, relay), relay);
+    }
   }
 });
 
-test('a page opened from another device reads the default publisher through the viewer', () => {
-  const page = 'http://192.168.1.23:8711/?live=http://127.0.0.1:8765';
-  const relay = 'http://192.168.1.23:8711/api/live/';
-  for (const address of [DEFAULT_LIVE_ADDRESS, 'http://localhost:8765', 'http://[::1]:8765/']) {
-    assert.equal(readAddressOf(page, address, relay), relay);
-  }
-});
-
-test('another device reads any other publisher at the address it names', () => {
-  const page = 'http://192.168.1.23:8711/';
+test('a page reads any other publisher at the address it names', () => {
   const relay = 'http://192.168.1.23:8711/api/live/';
   for (const address of ['http://127.0.0.1:18765', 'http://192.168.1.23:8765', 'not an address']) {
-    assert.equal(readAddressOf(page, address, relay), address);
+    assert.equal(readAddressOf(address, relay), address);
   }
 });
 
