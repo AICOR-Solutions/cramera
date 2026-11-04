@@ -413,6 +413,12 @@ which this repository was mirrored until 22 Oct 2026.
 
 ### Fixed
 
+- **Saving a run right after stopping it saves that run.** The recording counted as
+  ended before its bundle was written, so a save in those seconds copied whatever
+  `__recording__` bundle an earlier run had left, or found none. A save now waits for
+  the written bundle, which the Live panel offers to save only once it is there, and a
+  new recording deletes the unsaved bundle an earlier one left.
+
 - **A world followed live draws its free objects.** The live bundle described none,
   so walls, sinks and fixtures loaded from MJCF appeared only in a saved recording.
   It now describes every free object at the pose it holds when the bundle is written,
