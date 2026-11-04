@@ -402,6 +402,10 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **A world followed live draws its free objects.** The live bundle described none,
+  so walls, sinks and fixtures loaded from MJCF appeared only in a saved recording.
+  It now describes every free object at the pose it holds when the bundle is written,
+  and an object added, removed or drawn anew rewrites the bundle.
 - **Nothing comes between the cinematic camera and what it films.** The film's wide
   orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
   so the picture showed that and not the robot. The camera now casts rays against the
