@@ -417,6 +417,13 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **A live run records only settled states, at most 30 a second.** The live publisher
+  took a full snapshot of every state change, so the planner's checks, which set a
+  state and restore it, slowed the run down and landed in the recording as poses the
+  robot never took. While a plan performs, snapshots are now taken after the
+  executor's ticks, never from a state change itself; outside a plan, at most one per
+  frame interval. The last state of a plan, and of a recording when it ends, is always
+  kept (#100).
 
 - **Saving a run right after stopping it saves that run.** The recording counted as
   ended before its bundle was written, so a save in those seconds copied whatever
