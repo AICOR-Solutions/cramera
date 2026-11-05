@@ -417,6 +417,12 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **A saved scene's Statechart tab draws its recorded statecharts again.** Since the
+  Chart states tab was dropped, the tab only said the scene held no statechart, even
+  when its bundle had one. It now draws the chart of the shown frame as a tree,
+  coloured by each node's life cycle, and follows the playback. CRAM's internal nodes,
+  such as the collision avoidance's task per link, are folded into the node above
+  them, whose details count them by life cycle (#110).
 - **A live run records only settled states, at most 30 a second.** The live publisher
   took a full snapshot of every state change, so the planner's checks, which set a
   state and restore it, slowed the run down and landed in the recording as poses the
