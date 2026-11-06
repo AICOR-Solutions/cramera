@@ -417,6 +417,19 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **The live view draws the ROS debug markers again.** The publisher read and served
+  them, but no part of the v1 viewer asked for them. The page now reads the overlay
+  whenever a state names a new version, through the viewer's relay, and draws every
+  marker kind the way RViz does: arrows by scale or between two points, boxes,
+  spheres, upright cylinders, line strips and lists as solid lines, box and sphere
+  lists, points with their own colours, and texts facing the camera. A marker that
+  only moved is moved, not built again. *ROS markers* in the Layers overlay switches
+  them, and the Live panel chooses the topics read and the namespaces drawn. Markers
+  that arrive while the world rests now take a snapshot; the last of a burst is taken
+  when the page next reads the state. A marker given in a body's frame follows the
+  body: the state carries its pose, so the overlay is not read again while it moves.
+  A marker whose quaternion is all zero, as publishers that set no orientation leave
+  it, is drawn unrotated instead of failing the snapshot (#114).
 - **A live run shows the kitchen's joints where the physics has them.** While a plan
   runs, a MuJoCo synchronizer can leave the joints that are not the robot's to the
   physics, and the world then keeps its own positions of them: the viewer showed a
