@@ -417,6 +417,12 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **A live run shows the kitchen's joints where the physics has them.** While a plan
+  runs, a MuJoCo synchronizer can leave the joints that are not the robot's to the
+  physics, and the world then keeps its own positions of them: the viewer showed a
+  drawer or door standing still while the robot pushed it, and jumping when the plan
+  ended. A snapshot now takes those joints' positions from every synchronizer that
+  gives them, through `physics_positions_left_to_the_physics` (#111).
 - **A saved scene's Statechart tab draws its recorded statecharts again.** Since the
   Chart states tab was dropped, the tab only said the scene held no statechart, even
   when its bundle had one. It now draws the chart of the shown frame as a tree,

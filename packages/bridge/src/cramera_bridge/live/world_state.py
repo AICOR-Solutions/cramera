@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing_extensions import Optional
 
 from cramera_bridge.geometry import POSE_PRECISION, NumericPose
+from cramera_bridge.live.physics_positions import PhysicsPositions
 from cramera_bridge.live.world_model import ObjectKey, WorldModelView
 from cramera_bridge.robots import RobotRoster
 from cramera_protocol.live_messages import LiveState
@@ -41,7 +42,8 @@ class WorldStatePublisher:
         markers_version: int,
     ) -> LiveState:
         """
-        Read the world's current state into a new snapshot.
+        Read the world's current state into a new snapshot, with the joints left to the
+        physics where the physics has them.
 
         :param model: The world's current model.
         :param selected_robot: The robot whose root is the snapshot's base.
@@ -49,8 +51,9 @@ class WorldStatePublisher:
         :return: The new snapshot.
         """
         world = model.world
+        physics = PhysicsPositions.of(world)
         frames = {
-            str(joint.name): round(float(joint.position), POSE_PRECISION)
+            str(joint.name): round(float(physics.position_of(joint)), POSE_PRECISION)
             for joint in model.joints
         }
         objects = {
