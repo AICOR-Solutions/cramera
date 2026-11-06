@@ -291,6 +291,7 @@ class LivePublisher:
     def __post_init__(self) -> None:
         self.bundle_writer = LiveBundleWriter(self.locations.local_scenes)
         self.pacing = SnapshotPacing(clock=self.clock, interval=self.snapshot_interval)
+        self.markers.change_listener = self.observe_state_change
 
     # %% simulation thread
 
@@ -339,8 +340,8 @@ class LivePublisher:
 
     def observe_state_change(self) -> None:
         """
-        Note that the world's state changed, and take a snapshot of it unless a plan
-        performs, whose ticks take them, or the last one is too recent.
+        Note that the world's state or its debug markers changed, and take a snapshot
+        unless a plan performs, whose ticks take them, or the last one is too recent.
         """
         with self.world_lock:
             if self.model is not None and self.pacing.state_changed():
@@ -355,8 +356,9 @@ class LivePublisher:
                 return
             self.pacing.taken()
             self.markers.refresh(self.model.world)
+            markers_version, marker_poses = self.markers.placed(self.model.world)
             snapshot = self.state.refresh(
-                self.model, self.selected_robot, self.markers.version()
+                self.model, self.selected_robot, markers_version, marker_poses
             )
             self.transforms.observe(self.model.world, self.clock())
             self.recording.append(
@@ -520,8 +522,17 @@ class LivePublisher:
 
     def current_state(self) -> LiveState:
         """
-        :return: The newest state snapshot.
+        :return: The newest state snapshot, after taking the one a change between plans
+            is owed: the interval held it back, and while the world rests nothing else
+            takes it.
         """
+        with self.world_lock:
+            if (
+                self.model is not None
+                and not self.pacing.is_performing()
+                and self.pacing.is_due()
+            ):
+                self.take_snapshot()
         return self.state.state()
 
     def current_plan(self) -> LivePlan:
