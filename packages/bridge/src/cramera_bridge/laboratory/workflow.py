@@ -20,16 +20,11 @@ from pathlib import Path
 import numpy as np
 from typing_extensions import Dict, List, Optional, Tuple
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import sequential
-from coraplex.plans.plan import Plan
-from coraplex.plans.plan_node import MotionNode, PlanNode
 from coraplex.robot_plans.actions.core.pick_up import GraspingAction
-from coraplex.robot_plans.motions.gripper import (
-    MoveGripperMotion,
-    MoveToolCenterPointMotion,
-)
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from coraplex.robot_plans.actions.core.robot_body import MoveManipulatorAction
+from cramph.composites import Sequence
+from cramph.data_types import LifeCycleValues
+from cramph.node import StatechartNode
 from semantic_digital_twin.callbacks.callback import StateChangeCallback
 from semantic_digital_twin.collision_checking.collision_rules import (
     AvoidCollisionBetweenGroups,
@@ -50,16 +45,17 @@ from semantic_digital_twin.world_description.connections import ActiveConnection
 from semantic_digital_twin.world_description.world_entity import Body
 
 from cramera_bridge.exceptions import TaskFailed
-from cramera_bridge.laboratory.grasping import PadContact
+from cramera_bridge.laboratory.grasping import MoveGripperAction, PadContact
 from cramera_bridge.laboratory.handling import VesselGrip, VesselTaskDemo
 from cramera_bridge.laboratory.mobility import (
     DriveAction,
-    HeldBaseJointsMotion,
-    MechanismMotion,
+    HeldBaseJointsAction,
+    MechanismAction,
     TuckArmsAction,
 )
 from cramera_bridge.laboratory.transfer import POSE_TOLERANCE, PENETRATION_TOLERANCE
 from cramera_bridge.laboratory.world import LaboratoryEnvironment, LaboratoryHandle
+from cramera_bridge.performing import TaskContext
 from cramera_bridge.scenes.presentation import ScenePresentation
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.scene import Camera
@@ -128,9 +124,10 @@ RACK_STAND = Stand(0.40, -0.72)
 In front of the rack, where the PR2 starts.
 """
 
-CENTRIFUGE_STAND = Stand(-0.22, -0.72)
+CENTRIFUGE_STAND = Stand(-0.22, -0.78)
 """
-In front of the centrifuge, its left shoulder beside the lid's handle.
+In front of the centrifuge, its left shoulder beside the lid's handle and far enough
+back that the arm reaches the handle without its shoulder and elbow at their limits.
 """
 
 CENTRIFUGE_STEP_BACK = Stand(-0.22, -0.88)
@@ -335,7 +332,7 @@ class WorkflowFailure(StrEnum):
 
     MOTIONS = "not every motion succeeded: {statuses}"
     """
-    A motion ended in another state, or the plan holds none.
+    An action ended in another state, or the plan holds none.
     """
 
     NOT_CARRIED = "the gripper never carried {vessel}"
@@ -427,7 +424,7 @@ class WorkflowObservation(StateChangeCallback):
     state update of the run.
     """
 
-    context: Context = field(kw_only=True)
+    context: TaskContext = field(kw_only=True)
     """
     The world and the robot.
     """
@@ -548,6 +545,8 @@ class WorkflowObservation(StateChangeCallback):
         self.widest_door = max(self.widest_door, float(self.door.position))
         self.widest_lid = max(self.widest_lid, float(self.lid.position))
         self.untouched_still = self.untouched_still and self.still()
+        if not hasattr(self.context.world.collision_manager, "collision_matrix"):
+            return
         contacts = self.context.world.collision_manager.compute_collisions().contacts
         if contacts:
             distance = min(float(contact.distance) for contact in contacts)
@@ -791,7 +790,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             if move.target.station is station
         ]
 
-    def stands(self, context: Context) -> List[Stand]:
+    def stands(self, context: TaskContext) -> List[Stand]:
         """
         :param context: The world and the robot.
         :return: Where the PR2 stands at its stations.
@@ -808,7 +807,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         return stands
 
     @staticmethod
-    def shoulder_offset(context: Context) -> float:
+    def shoulder_offset(context: TaskContext) -> float:
         """
         :param context: The world and the robot.
         :return: How far the left shoulder sits left of the base's centre, in metres.
@@ -820,7 +819,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             ]
         )
 
-    def storing_stands(self, context: Context, move: VesselMove) -> StoringStands:
+    def storing_stands(self, context: TaskContext, move: VesselMove) -> StoringStands:
         """
         :param context: The world and the robot.
         :param move: A move into the refrigerator.
@@ -885,7 +884,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
 
     # %% context
 
-    def build_context(self, world: World) -> Context:
+    def build_context(self, world: World) -> TaskContext:
         """
         Park the arms, raise the torso, and keep the gripper and the handled vessels
         clear of the laboratory, except for the intended contacts of the grasps.
@@ -943,7 +942,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
 
     # %% plan
 
-    def build_plan(self, context: Context) -> Plan:
+    def build_plan(self, context: TaskContext) -> StatechartNode:
         """
         :param context: The world and the robot.
         :return: The rack moves, the refrigerator and the centrifuge, in order.
@@ -958,15 +957,14 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         ]
         if bench.stopper is not None:
             untouched.append(world.get_body_by_name(bench.stopper.key))
-        plan = sequential(
-            [
+        plan = Sequence(
+            nodes=[
                 *self.rack_stage(context),
                 *self.refrigerator_stage(context),
                 *self.centrifuge_stage(context),
                 self.drive(context, RACK_STAND),
-            ],
-            context=context,
-        ).plan
+            ]
+        )
         if self.observation is not None:
             self.observation.stop()
         self.observation = WorkflowObservation(
@@ -989,7 +987,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         self.plan = plan
         return plan
 
-    def rack_stage(self, context: Context) -> List[PlanNode]:
+    def rack_stage(self, context: TaskContext) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :return: Every move within the rack, picked from and set into the rack.
@@ -1003,7 +1001,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             ]
         return steps
 
-    def refrigerator_stage(self, context: Context) -> List[PlanNode]:
+    def refrigerator_stage(self, context: TaskContext) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :return: Open the refrigerator's door by its handle, store the vessels, and close
@@ -1037,7 +1035,9 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             self.park(context, raise_torso=True),
         ]
 
-    def store(self, context: Context, move: VesselMove, vessel: Body) -> List[PlanNode]:
+    def store(
+        self, context: TaskContext, move: VesselMove, vessel: Body
+    ) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :param move: A move into the refrigerator.
@@ -1047,7 +1047,6 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             drive it in above the holder and set it into the holder, then drive back.
         """
         world = context.world
-        arm = context.robot.left_arm
         grip = self.storing_grip
         grasp = self.grasp(context, vessel, grip)
         stands = self.storing_stands(context, move)
@@ -1068,7 +1067,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         return [
             self.park(context),
             self.drive(context, stands.pick),
-            HeldBaseJointsMotion(
+            HeldBaseJointsAction(
                 names=[
                     world.get_connection_by_name(name).name.name
                     for name in self.level_posture
@@ -1078,35 +1077,40 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             self.pick_up(context, grasp, grip),
             self.drive(context, stands.back),
             self.drive(context, stands.front),
-            HeldBaseJointsMotion(
+            HeldBaseJointsAction(
                 names=[torso.name.name], positions=[torso.dof.limits.lower.position]
             ),
-            MoveToolCenterPointMotion(in_front, arm),
+            self.move_tool(context, in_front),
             self.drive(context, stands.inside),
             self.place(grasp, move.target.pose(self.laboratory, world), grip),
             self.drive(context, stands.front),
             self.park(context, raise_torso=True),
         ]
 
-    def load(self, context: Context, move: VesselMove, vessel: Body) -> List[PlanNode]:
+    def load(
+        self, context: TaskContext, move: VesselMove, vessel: Body
+    ) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :param move: A move into the centrifuge.
         :param vessel: The vessel it carries.
-        :return: Take the vessel from above, leaning forwards, carry it to the
-            centrifuge and lower it into its holder.
+        :return: Tuck the arm in, its gripper touching the holder it may have just set
+            a vessel down in, raise the torso at the rack, so every vessel is taken from
+            the same posture, take the vessel from above, leaning forwards, carry it to
+            the centrifuge and lower it into its holder.
         """
         grip = self.loading_grip
         grasp = self.grasp(context, vessel, grip)
         return [
-            self.park(context),
+            self.park(context, touching=True),
             self.drive(context, RACK_STAND),
+            self.park(context, raise_torso=True),
             self.pick_up(context, grasp, grip),
             self.drive(context, LOADING_STAND),
             self.place(grasp, move.target.pose(self.laboratory, context.world), grip),
         ]
 
-    def centrifuge_stage(self, context: Context) -> List[PlanNode]:
+    def centrifuge_stage(self, context: TaskContext) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :return: Open the lid, by its handle and then from below, load the vessels, and
@@ -1136,14 +1140,14 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             *self.operate(context, lid_grasp, self.lid_pulled),
             *self.support_lid(context, lid, self.lid_pushed),
             *loading,
-            self.park(context),
+            self.park(context, touching=True),
             self.drive(context, CENTRIFUGE_STAND),
             *self.support_lid(context, lid, self.lid_pulled),
             self.drive(context, CENTRIFUGE_STEP_BACK),
             self.park(context, raise_torso=True),
             self.drive(context, CENTRIFUGE_STAND),
             *self.operate(context, lid_grasp, 0.0),
-            self.park(context),
+            self.park(context, touching=True),
         ]
 
     # %% steps
@@ -1161,26 +1165,31 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             if handle.root.name.name == name.value
         )
 
-    def drive(self, context: Context, stand: Stand) -> DriveAction:
+    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:
         """
         :param context: The world and the robot.
         :param stand: Where the PR2 drives to.
         :return: The drive.
         """
-        return DriveAction(stand.pose(context.world))
+        return DriveAction(target=stand.pose(context.world))
 
     @staticmethod
-    def park(context: Context, raise_torso: bool = False) -> TuckArmsAction:
+    def park(
+        context: TaskContext, raise_torso: bool = False, touching: bool = False
+    ) -> TuckArmsAction:
         """
         :param context: The world and the robot.
         :param raise_torso: Whether the torso is raised to the top of its travel as well.
+        :param touching: Whether the gripper may touch its surroundings on the way.
         :return: Tucking the left arm in, for driving or out of the way.
         """
-        return TuckArmsAction([context.robot.left_arm], raise_torso=raise_torso)
+        return TuckArmsAction(
+            arms=[context.robot.left_arm], raise_torso=raise_torso, touching=touching
+        )
 
     def operate(
-        self, context: Context, grasp: GraspCandidate, position: float
-    ) -> List[PlanNode]:
+        self, context: TaskContext, grasp: GraspCandidate, position: float
+    ) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :param grasp: The left gripper's grasp on a handle.
@@ -1189,20 +1198,24 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         """
         arm = context.robot.left_arm
         return [
-            GraspingAction(grasp, arm, approach_clearance=self.handle_clearance),
-            MechanismMotion(grasp.graspable.root, arm, position),
+            GraspingAction(
+                grasp=grasp, arm=arm, approach_clearance=self.handle_clearance
+            ),
+            MechanismAction(part=grasp.graspable.root, arm=arm, position=position),
             *self.let_go(context),
         ]
 
     def support_lid(
-        self, context: Context, lid: Body, position: float
-    ) -> List[PlanNode]:
+        self, context: TaskContext, lid: Body, position: float
+    ) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :param lid: The centrifuge's lid.
         :param position: Where the lid's hinge ends.
-        :return: Tuck the arm in, put the closed gripper under the lid's front edge from
-            below, move the lid on it, back away and tuck the arm in again.
+        :return: Tuck the arm in, its gripper touching the lid it may have just let
+            go of, put the closed gripper under the lid's front edge from below, move the
+            lid on it, back away and tuck the arm in again, touching the lid or the
+            housing on the way.
         """
         arm = context.robot.left_arm
         gripper = arm.end_effector
@@ -1213,43 +1226,64 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             )
 
         return [
-            self.park(context),
-            MoveGripperMotion(
-                GripperState.CLOSE, gripper, allow_gripper_collision=True
-            ),
-            MoveToolCenterPointMotion(
+            self.park(context, touching=True),
+            MoveGripperAction(gripper=gripper, state=GripperState.CLOSE),
+            self.move_tool(
+                context,
                 under_the_lid(self.lid_contact_approach, self.lid_approach_orientation),
-                arm,
             ),
-            MoveToolCenterPointMotion(
+            self.move_tool(
+                context,
                 under_the_lid(self.lid_contact, self.lid_push_orientation),
-                arm,
-                allow_gripper_collision=True,
+                touching=True,
             ),
-            MechanismMotion(lid, arm, position),
-            MoveToolCenterPointMotion(
+            MechanismAction(part=lid, arm=arm, position=position),
+            self.move_tool(
+                context,
                 Pose.from_xyz_rpy(-self.back_off, reference_frame=gripper.tool_frame),
-                arm,
-                allow_gripper_collision=True,
+                touching=True,
+                precise=False,
             ),
-            self.park(context),
+            self.park(context, touching=True),
         ]
 
-    def let_go(self, context: Context) -> List[PlanNode]:
+    def let_go(self, context: TaskContext) -> List[StatechartNode]:
         """
         :param context: The world and the robot.
         :return: Open the gripper and back away from what it held.
         """
-        arm = context.robot.left_arm
-        gripper = arm.end_effector
+        gripper = context.robot.left_arm.end_effector
         return [
-            MoveGripperMotion(GripperState.OPEN, gripper, allow_gripper_collision=True),
-            MoveToolCenterPointMotion(
+            MoveGripperAction(gripper=gripper, state=GripperState.OPEN),
+            self.move_tool(
+                context,
                 Pose.from_xyz_rpy(-self.back_off, reference_frame=gripper.tool_frame),
-                arm,
-                allow_gripper_collision=True,
+                touching=True,
+                precise=False,
             ),
         ]
+
+    def move_tool(
+        self,
+        context: TaskContext,
+        target: Pose,
+        touching: bool = False,
+        precise: bool = True,
+    ) -> MoveManipulatorAction:
+        """
+        :param context: The world and the robot.
+        :param target: Where the left gripper's tool frame ends.
+        :param touching: Whether the gripper may touch its surroundings on the way.
+        :param precise: Whether the tool ends at the tight tolerances of a slot, or at
+            CRAM's own, as backing away from something does.
+        :return: Moving the tool there with the base held.
+        """
+        return MoveManipulatorAction(
+            target_pose=target,
+            end_effector=context.robot.left_arm.end_effector,
+            allow_gripper_collision=touching,
+            **(self.tool_tolerances() if precise else {}),
+        )
 
     # %% running
 
@@ -1278,7 +1312,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             for move, key in zip(self.moves, self.moved_vessels())
         ]
 
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
         :param context: The world and the robot after the run.
         :return: The measurements.
@@ -1378,16 +1412,15 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
             }
         )
 
-    def require_success(self, context: Context) -> None:
+    def require_success(self, context: TaskContext) -> None:
         """
-        Check every motion of the plan.
+        Check every action of the plan.
 
         :param context: The world and the robot after the run.
-        :raises TaskFailed: When the plan holds no motion or a motion did not succeed.
+        :raises TaskFailed: When the plan holds no action or an action did not succeed.
         """
-        motions = [node for node in self.plan.nodes if isinstance(node, MotionNode)]
-        statuses = [motion.status for motion in motions]
-        if not motions or any(
+        statuses = [action.life_cycle_state for action in self.performed_actions()]
+        if not statuses or any(
             status is not LifeCycleValues.SUCCEEDED for status in statuses
         ):
             raise TaskFailed(

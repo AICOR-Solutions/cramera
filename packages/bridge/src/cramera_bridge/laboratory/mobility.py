@@ -5,7 +5,7 @@ hinged parts such as a door or a lid while the gripper holds them.
 The laboratory's demos take the drive out of the controller while the arms work; a drive
 hands it back for its own motion only, and lets the base come up to the edge of the
 bench. What keeps the base where it stands while the arm works is the base hold of each
-motion: CRAM's tool motions hold it, and the tucking and the door and lid motions here
+action: CRAM's tool actions hold it, and the tucking and the door and lid actions here
 hold it too, so collision avoidance cannot push it away.
 """
 
@@ -13,29 +13,30 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from typing_extensions import List
+from typing_extensions import List, Tuple, Type
 
-from coraplex.plans.executables import Executable
-from coraplex.plans.factories import execute_single, sequential
-from coraplex.plans.plan_node import ExecutionBoundaryNode, PlanNode
-from coraplex.robot_plans.actions.base import ActionDescription
+import krrood.symbolic_math.symbolic_math as sm
+from coraplex.plans.context_extensions import RobotAccess
+from coraplex.robot_plans.actions.base import ParallelAction, SequentialAction
 from coraplex.robot_plans.actions.core.robot_body import ParkArmsAction
-from coraplex.robot_plans.motions.base import BaseMotion
-from coraplex.robot_plans.motions.robot_body import MoveJointsMotion
+from cramph.context import ContextExtension
+from cramph.node import NodeArtifacts, StatechartNode, SucceedsOnObservingTrue
 from giskardpy.motion_statechart.binding_policy import GoalBindingPolicy
-from giskardpy.motion_statechart.data_types import DefaultWeights
-from giskardpy.motion_statechart.goals.collision_avoidance import (
-    UpdateTemporaryCollisionRules,
+from giskardpy.motion_statechart.goals.grasped_mechanism import (
+    ArticulateGraspedMechanism,
 )
-from giskardpy.motion_statechart.goals.open_close import Close, Open
-from giskardpy.motion_statechart.goals.templates import Parallel
-from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPose
+from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList
+from giskardpy.motion_statechart.weights import DefaultWeights
+from krrood.ormatic.utils import classproperty
+from krrood_spatial_math.spatial_types import Pose
+from semantic_digital_twin.collision_checking.collision_matrix import CollisionRule
 from semantic_digital_twin.collision_checking.collision_rules import (
     AllowCollisionBetweenGroups,
+    AllowCollisionForEndEffector,
 )
+from semantic_digital_twin.datastructures.joint_state import JointState
 from semantic_digital_twin.robots.robot_parts import Arm
-from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -57,30 +58,14 @@ How far the base may stop turned from its stand's heading, in radians.
 # %% drive control
 
 
-@dataclass
-class DriveControl(Executable):
+@dataclass(eq=False, repr=False, kw_only=True)
+class DriveControl(SucceedsOnObservingTrue, StatechartNode):
     """
-    Hands the robot's drive to the controller, or takes it back.
-    """
+    A plan step between two motions that hands the robot's drive to the controller, or
+    takes it back, when it starts, and succeeds once it did.
 
-    controlled: bool = True
-    """
-    Whether the controller may move the drive from now on.
-    """
-
-    def execute(self) -> None:
-        world = self.context.world
-        with world.modify_world():
-            world.set_dofs_has_hardware_interface(
-                self.context.robot.drive.active_dofs, self.controlled
-            )
-
-
-@dataclass(eq=False, repr=False)
-class DriveControlNode(ExecutionBoundaryNode):
-    """
-    A plan step between two motions that hands the drive to the controller or takes it
-    back.
+    The statechart then builds every node again, so the controller moves the drive from
+    the next motion on, or no longer does.
     """
 
     controlled: bool = True
@@ -88,25 +73,32 @@ class DriveControlNode(ExecutionBoundaryNode):
     Whether the controller may move the drive after this step.
     """
 
-    def notify(self) -> None:
-        """
-        This step has no children to expand.
-        """
+    @classproperty
+    def required_context_extensions(cls) -> Tuple[Type[ContextExtension], ...]:
+        return super().required_context_extensions + (RobotAccess,)
 
-    def parse(self) -> DriveControl:
-        """
-        :return: The executable that changes who moves the drive.
-        """
-        return DriveControl(context=self.context, controlled=self.controlled)
+    def build_artifacts(self) -> NodeArtifacts:
+        return NodeArtifacts(observation=sm.Scalar.const_true())
+
+    def on_start(self) -> None:
+        super().on_start()
+        world = self.context.world
+        robot = self.context.require_extension(RobotAccess).robot
+        with world.modify_world():
+            world.set_dofs_has_hardware_interface(
+                robot.drive.active_dofs, self.controlled
+            )
 
 
 # %% driving
 
 
-@dataclass
-class DriveMotion(BaseMotion):
+@dataclass(eq=False, repr=False, kw_only=True)
+class DriveAction(SequentialAction):
     """
-    Drives the base straight to a stand, up to furniture's edge if the stand is there.
+    Drives the base straight to a stand, up to furniture's edge if the stand is there,
+    while the controller may move its drive, and takes the drive back once it stands
+    there.
 
     The base's own clearance is not kept from the environment while driving; the arms,
     the torso and the head still keep theirs.
@@ -121,9 +113,6 @@ class DriveMotion(BaseMotion):
     """
     How fast the base drives, in metres per second.
     """
-
-    def perform(self) -> None:
-        return
 
     def base_bodies(self) -> List[Body]:
         """
@@ -149,70 +138,48 @@ class DriveMotion(BaseMotion):
             entity = entity.parent_connection.parent
         return False
 
-    @property
-    def _motion_chart(self) -> MotionStatechartNode:
+    def create_temporary_collision_rules(self) -> List[CollisionRule]:
+        """
+        :return: An allowance for the base to come up to the environment while it
+            drives.
+        """
         environment = [
             body
             for body in self.world.bodies
             if body not in self.robot.bodies and body.has_collision()
         ]
-        return Parallel(
-            [
-                CartesianPose(
-                    root_link=self.world.root,
-                    tip_link=self.robot.root,
-                    goal_pose=self.target,
-                    reference_linear_velocity=self.linear_velocity,
-                    translation_threshold=DRIVE_POSITION_TOLERANCE,
-                    orientation_threshold=DRIVE_ORIENTATION_TOLERANCE,
-                    binding_policy=GoalBindingPolicy.Bind_on_start,
-                    weight=DefaultWeights.WEIGHT_ABOVE_COLLISION_AVOIDANCE,
-                    name=self.__class__.__name__,
-                ),
-                UpdateTemporaryCollisionRules(
-                    temporary_rules=[
-                        AllowCollisionBetweenGroups(
-                            body_group_a=self.base_bodies(),
-                            body_group_b=environment,
-                        )
-                    ]
-                ),
-            ],
-            name=self.__class__.__name__,
-        )
+        return [
+            AllowCollisionBetweenGroups(
+                body_group_a=self.base_bodies(), body_group_b=environment
+            )
+        ]
 
-
-@dataclass
-class DriveAction(ActionDescription):
-    """
-    Drives the robot to a stand while the controller may move its drive, and takes the
-    drive back once it stands there.
-    """
-
-    target: Pose
-    """
-    Where the base stands at the end, facing along the pose's x axis.
-    """
-
-    @property
-    def _action_plan(self) -> PlanNode:
-        return sequential(
-            [
-                DriveControlNode(controlled=True),
-                DriveMotion(self.target),
-                DriveControlNode(controlled=False),
-            ]
-        )
+    def create_steps(self) -> List[StatechartNode]:
+        return [
+            DriveControl(controlled=True),
+            CartesianPose(
+                root_link=self.world.root,
+                tip_link=self.robot.root,
+                goal_pose=self.target,
+                reference_linear_velocity=self.linear_velocity,
+                translation_threshold=DRIVE_POSITION_TOLERANCE,
+                orientation_threshold=DRIVE_ORIENTATION_TOLERANCE,
+                binding_policy=GoalBindingPolicy.Bind_on_start,
+                weight=DefaultWeights.WEIGHT_ABOVE_COLLISION_AVOIDANCE,
+                name=type(self).__name__,
+            ),
+            DriveControl(controlled=False),
+        ]
 
 
 # %% mechanisms
 
 
-@dataclass
-class MechanismMotion(BaseMotion):
+@dataclass(eq=False, repr=False, kw_only=True)
+class MechanismAction(ParallelAction):
     """
     Moves a door, a lid or another part on a joint of one degree of freedom to a
-    position, while the gripper keeps its hold on the part.
+    position, while the gripper keeps its hold on the part and the base stands still.
     """
 
     part: Body
@@ -231,9 +198,6 @@ class MechanismMotion(BaseMotion):
     Where the joint ends, in its own unit.
     """
 
-    def perform(self) -> None:
-        return
-
     @property
     def joint(self) -> ActiveConnection1DOF:
         """
@@ -241,43 +205,61 @@ class MechanismMotion(BaseMotion):
         """
         return self.part.get_first_parent_connection_of_type(ActiveConnection1DOF)
 
-    @property
-    def _motion_chart(self) -> MotionStatechartNode:
-        goal = Open if self.position >= self.joint.position else Close
-        return Parallel(
-            [
-                goal(
-                    tip_link=self.arm.end_effector.tool_frame,
-                    environment_link=self.part,
-                    goal_joint_state=self.position,
-                    mechanism_weight=DefaultWeights.WEIGHT_BELOW_COLLISION_AVOIDANCE,
-                    name=self.__class__.__name__,
-                ),
-                *self.keep_base_still(),
-            ],
-            name=self.__class__.__name__,
-        )
+    def create_temporary_collision_rules(self) -> List[CollisionRule]:
+        """
+        :return: An allowance for the gripper on the part to touch it and its
+            surroundings while it moves the part.
+        """
+        return [AllowCollisionForEndEffector(end_effector=self.arm.end_effector)]
+
+    def create_steps(self) -> List[StatechartNode]:
+        return [
+            ArticulateGraspedMechanism(
+                tip_link=self.arm.end_effector.tool_frame,
+                environment_link=self.part,
+                goal_joint_state=self.position,
+                mechanism_weight=DefaultWeights.WEIGHT_BELOW_COLLISION_AVOIDANCE,
+                name=type(self).__name__,
+            ),
+            *self.keep_base_still(),
+        ]
 
 
 # %% arms
 
 
-@dataclass
-class HeldBaseJointsMotion(MoveJointsMotion):
+@dataclass(eq=False, repr=False, kw_only=True)
+class HeldBaseJointsAction(ParallelAction):
     """
-    CRAM's motion of named joints, with the base held where it stands so that collision
-    avoidance cannot move it.
+    Moves named joints to their positions, with the base held where it stands so that
+    collision avoidance cannot move it.
     """
 
-    @property
-    def _motion_chart(self) -> MotionStatechartNode:
-        return Parallel(
-            [super()._motion_chart, *self.keep_base_still()],
-            name=self.__class__.__name__,
-        )
+    names: List[str]
+    """
+    The names of the joints moved.
+    """
+
+    positions: List[float]
+    """
+    Where each joint of :attr:`names` ends, in the order of :attr:`names`.
+    """
+
+    def create_steps(self) -> List[StatechartNode]:
+        return [
+            JointPositionList(
+                goal_state=JointState.from_mapping(
+                    {
+                        self.world.get_connection_by_name(name): position
+                        for name, position in zip(self.names, self.positions)
+                    }
+                )
+            ),
+            *self.keep_base_still(),
+        ]
 
 
-@dataclass
+@dataclass(eq=False, repr=False, kw_only=True)
 class TuckArmsAction(ParkArmsAction):
     """
     CRAM's parking of the arms, with the base held where it stands.
@@ -292,17 +274,40 @@ class TuckArmsAction(ParkArmsAction):
     station the same start.
     """
 
-    @property
-    def _action_plan(self) -> PlanNode:
-        names, positions = self.get_joint_poses()
-        if self.raise_torso:
-            for connection in self.robot.torso.active_connections:
-                names.append(connection.name.name)
-                positions.append(connection.dof.limits.upper.position)
-        return execute_single(
-            HeldBaseJointsMotion(
-                names=names,
-                positions=positions,
-                max_joint_velocity=self.max_joint_velocity,
-            )
+    touching: bool = False
+    """
+    Whether the grippers may touch their surroundings on the way, as one that let go of
+    a part a moment ago brushes it while the arm tucks in under it.
+    """
+
+    def create_temporary_collision_rules(self) -> List[CollisionRule]:
+        """
+        :return: An allowance for each parked arm's gripper to touch its surroundings if
+            :attr:`touching`, none otherwise.
+        """
+        if not self.touching:
+            return []
+        return [
+            AllowCollisionForEndEffector(end_effector=arm.end_effector)
+            for arm in self.arms
+        ]
+
+    def park_joint_state(self) -> JointState:
+        """
+        :return: CRAM's park positions of the arms, and the torso at the top of its
+            travel if :attr:`raise_torso`.
+        """
+        park_state = super().park_joint_state()
+        if not self.raise_torso:
+            return park_state
+        torso = self.robot.torso.active_connections
+        return JointState(
+            connections=[*park_state.connections, *torso],
+            target_values=[
+                *park_state.target_values,
+                *(connection.dof.limits.upper.position for connection in torso),
+            ],
         )
+
+    def create_steps(self) -> List[StatechartNode]:
+        return [*super().create_steps(), *self.keep_base_still()]

@@ -13,7 +13,15 @@ from pathlib import Path
 
 import pytest
 
-CRAM_PACKAGES = ("semantic_digital_twin", "coraplex", "giskardpy", "krrood", "segmind")
+CRAM_PACKAGES = (
+    "semantic_digital_twin",
+    "coraplex",
+    "cramph",
+    "giskardpy",
+    "krrood",
+    "krrood_spatial_math",
+    "segmind",
+)
 """
 The CRAM packages the tests import.
 """
