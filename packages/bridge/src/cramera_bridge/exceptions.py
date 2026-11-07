@@ -932,3 +932,27 @@ class UnknownAction(PlanError):
 
     def message(self) -> str:
         return f"The CRAM workspace defines no action {self.name!r}."
+
+
+# %% field roles
+
+
+@dataclass
+class ConflictingFieldRole(CramPublisherError):
+    """
+    A plugin's field role that differs from the role cramera, or another plugin, reads the
+    field as: a plugin may add fields, not change one.
+    """
+
+    identifier: str
+    """
+    The field.
+    """
+
+    plugin: str
+    """
+    The entry point that gave the second role.
+    """
+
+    def message(self) -> str:
+        return f"The plugin {self.plugin!r} gives the field {self.identifier!r} a role it already has otherwise."

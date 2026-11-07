@@ -26,7 +26,7 @@ from cramera_bridge.geometry import NumericPose
 from cramera_bridge.names import (
     ACTION_NAMES,
     FIELD_NAMES,
-    FIELD_ROLES,
+    field_roles,
     plan_node_kind,
 )
 from cramera_bridge.live.perception_images import PerceptionImages
@@ -367,7 +367,7 @@ class DesignatorSummary:
         :param robot: The robot of the plan's context, or None for a plan without one.
         :param places: The places the task named; a pose that is one of them carries
             its name.
-        :return: The roles the designator's fields fill, by :data:`FIELD_ROLES`, with
+        :return: The roles the designator's fields fill, by :func:`field_roles`, with
             the entities each names; an action's agent first, from the context, since
             no field of the designator names it; empty for a node without a designator.
         """
@@ -388,7 +388,7 @@ class DesignatorSummary:
         action = ACTION_NAMES.identifier_of(type(designator))
         for name, value in self.fields_of(designator):
             identifier = FIELD_NAMES.identifier_of(action, name)
-            field_role = FIELD_ROLES.get(identifier)
+            field_role = field_roles().get(identifier)
             if field_role is None:
                 continue
             path = [identifier]

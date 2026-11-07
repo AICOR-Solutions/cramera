@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
+from importlib.metadata import entry_points
+
 from typing_extensions import Dict, List, Optional, Tuple
 
 from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
@@ -1066,3 +1068,28 @@ here ``robot``; only a tool, such as a knife or a whisk, is read as an instrumen
 centrifuge the robot loads is the reference of a location, not an instrument. A field
 missing here fills no role, such as a velocity, a threshold or a nested action.
 """
+
+
+FIELD_ROLES_GROUP = "cramera.field_roles"
+"""
+The entry point group in which a plugin registers the roles of its domain's fields: each
+entry point names a callable that returns a dictionary from field identifier to
+:class:`FieldRole`.
+"""
+
+
+@functools.cache
+def field_roles() -> Dict[str, FieldRole]:
+    """
+    :return: :data:`FIELD_ROLES` with the roles the installed plugins add.
+    :raises ConflictingFieldRole: If a plugin gives a field a role it already has otherwise.
+    """
+    from cramera_bridge.exceptions import ConflictingFieldRole
+
+    roles = dict(FIELD_ROLES)
+    for entry_point in entry_points(group=FIELD_ROLES_GROUP):
+        for identifier, field_role in entry_point.load()().items():
+            if roles.get(identifier, field_role) != field_role:
+                raise ConflictingFieldRole(identifier, entry_point.name)
+            roles[identifier] = field_role
+    return roles
