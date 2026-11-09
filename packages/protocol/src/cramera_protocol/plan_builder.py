@@ -24,6 +24,7 @@ from cramera_protocol.live_messages import (
     MonitorSpecification,
     SurfaceDescription,
 )
+from cramera_protocol.robot_profile import RobotProfile
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
 PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
@@ -2212,6 +2213,11 @@ class PlanBuilderCatalogKey(StrEnum):
     The CRAM modules that cannot be found.
     """
 
+    PROFILE = "profile"
+    """
+    The robot profile the deployment configured.
+    """
+
 
 @dataclass(kw_only=True)
 class PlanBuilderCatalog(JsonDocument):
@@ -2303,6 +2309,13 @@ class PlanBuilderCatalog(JsonDocument):
     """
     The CRAM modules that cannot be found; robots, objects, surfaces and actions stay
     empty while one is missing.
+    """
+
+    profile: Optional[RobotProfile] = document_field(
+        PlanBuilderCatalogKey.PROFILE, default=None
+    )
+    """
+    The robot profile new plans start from, or None when the deployment configured none.
     """
 
 

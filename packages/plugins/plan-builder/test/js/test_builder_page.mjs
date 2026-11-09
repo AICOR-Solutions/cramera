@@ -31,6 +31,7 @@ import {
   SavedDemoKey,
   StepConstraintKey,
   ViewerEvent,
+  RobotProfileKey,
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
@@ -335,6 +336,16 @@ test('the page starts in the environment its query names, with the last robot mo
   const { page } = await openPage(`${PlanBuilderPageParameter.ENVIRONMENT}=nowhere`, ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'tracy'));
   assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'lab');
+});
+
+test('the page starts with the robot and environment of the configured profile', async () => {
+  const { page, root } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = { [RobotProfileKey.ROBOT]: 'tracy', [RobotProfileKey.LABEL]: 'Tracy', [RobotProfileKey.ENVIRONMENT]: 'lab' };
+  }, { robot: false });
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
+  assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'lab');
+  byAction(root, PlanAction.NEW)[0].click();
+  assert.deepEqual(page.state.robots().map((robot) => robot[PlannedRobotKey.MODEL]), ['tracy']);
 });
 
 test('the page opens the saved plan its query names', async () => {

@@ -35,6 +35,7 @@ from cramera_protocol.plan_builder import (
     PlanBuilderName,
     PlanBuilderVariable,
 )
+from cramera_protocol.robot_profile import RobotProfile, RobotProfileVariable
 from cramera_protocol.viewer import NavigationGroup
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
@@ -186,6 +187,13 @@ class PlanBuilderPlugin(ViewerPlugin):
         """
         return int(self.environment.get(PlanBuilderVariable.PORT, LIVE_PORT))
 
+    def profile(self) -> Optional[RobotProfile]:
+        """
+        :return: The robot profile the environment names, or None when it names none.
+        """
+        path = self.environment.get(RobotProfileVariable.PROFILE)
+        return RobotProfile.from_file(Path(path).expanduser()) if path else None
+
     def routes(self, context: PluginContext) -> List[RouteDeclaration]:
         """
         :param context: What the viewer offers the plugin.
@@ -212,6 +220,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             limits=self.limits,
             live_url=f"{LIVE_SCHEME}://{LIVE_HOST}:{port}",
             template=self.template,
+            profile=self.profile(),
         ).declarations()
 
     def web_directory(self) -> Optional[Path]:

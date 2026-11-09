@@ -29,6 +29,7 @@ from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
+from cramera_protocol.robot_profile import RobotProfile
 from cramera_protocol.plan_builder import (
     ActionSchema,
     ConstraintText,
@@ -156,6 +157,11 @@ class PlanBuilderRoutes:
     Lists the folders the URDF picker browses.
     """
 
+    profile: Optional[RobotProfile] = None
+    """
+    The robot profile new plans start from, or None when the deployment configured none.
+    """
+
     def declarations(self) -> List[RouteDeclaration]:
         """
         :return: The routes, below the plugin's prefix.
@@ -218,6 +224,7 @@ class PlanBuilderRoutes:
             plans=self.plans.summaries(),
             limits=self.limits,
             missing=workspace.missing(),
+            profile=self.profile,
         )
 
     def answer_catalog(self, request: Request) -> Response:

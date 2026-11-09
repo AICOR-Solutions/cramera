@@ -324,6 +324,7 @@ from cramera_protocol.query_steps import (
     SteppingRequestKey,
     VariableRole,
 )
+from cramera_protocol.robot_profile import RobotProfileKey
 from cramera_protocol.resolutions import (
     BackendDescriptionKey,
     ContactReadingKey,
@@ -693,6 +694,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     RunState,
     RunRequestKey,
     RunStatusKey,
+    RobotProfileKey,
 )
 """
 The enumerations the browser application reads.

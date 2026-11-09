@@ -49,6 +49,7 @@ from cramera_protocol.plan_builder import (
     StepConstraint,
     UrdfEnvironment,
 )
+from cramera_protocol.robot_profile import RobotProfile, RobotProfileVariable
 from cramera_protocol.viewer import ErrorKey
 
 from .conftest import DEMO_PORT, send
@@ -382,3 +383,28 @@ def test_the_plugin_has_an_entry_in_the_viewers_navigation():
         navigation.page
         == f"{ViewerRoute.PLUGIN_FILES}{PlanBuilderPlugin(environment={}).name()}/{PlanBuilderFile.PAGE}"
     )
+
+
+# %% robot profile
+
+
+def test_the_catalog_carries_the_robot_profile_the_environment_names(
+    serve, output, workspace_loader, tmp_path
+):
+    profile = RobotProfile(robot="tracy", label="Tracy")
+    path = tmp_path / "tracy.json"
+    path.write_text(json.dumps(profile.to_json()), encoding="utf-8")
+    plugin = PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(path),
+        },
+        workspace=workspace_loader,
+    )
+    answer = send(serve(plugin), HttpMethod.GET, PlanBuilderRoute.CATALOG)
+    assert PlanBuilderCatalog.from_json(json.loads(answer.body)).profile == profile
+
+
+def test_without_a_configured_profile_the_catalog_carries_none(get):
+    answer = get(PlanBuilderRoute.CATALOG)
+    assert PlanBuilderCatalog.from_json(json.loads(answer.body)).profile is None

@@ -22,6 +22,7 @@ import {
   PlanStepKey,
   PlanSummaryKey,
   RobotInstanceKey,
+  RobotProfileKey,
   RunMode,
   RunState,
   RunStatusKey,
@@ -274,8 +275,10 @@ export class BuilderPage {
     const query = this.#environment.query;
     const environments = catalog[PlanBuilderCatalogKey.ENVIRONMENTS].map((entry) => entry[IndexEntryKey.NAME]);
     const asked = query.get(PlanBuilderPageParameter.ENVIRONMENT);
-    const environment = environments.includes(asked) ? asked : (environments[0] ?? null);
-    this.state = PlanState.empty(catalog, environment);
+    const profile = catalog[PlanBuilderCatalogKey.PROFILE];
+    const configured = profile?.[RobotProfileKey.ENVIRONMENT] ?? null;
+    const environment = environments.includes(asked) ? asked : (configured ?? environments[0] ?? null);
+    this.state = PlanState.empty(catalog, environment, profile?.[RobotProfileKey.ROBOT] ?? null);
     this.#layout(statusLine);
     const saved = query.get(PlanBuilderPageParameter.PLAN);
     if (saved) await this.#open(saved);
@@ -480,7 +483,8 @@ export class BuilderPage {
    */
   #newPlan() {
     this.#planIdentifier = null;
-    this.state = PlanState.empty(this.state.catalog, this.state.field(PlanKey.ENVIRONMENT) || null);
+    const profile = this.state.catalog[PlanBuilderCatalogKey.PROFILE];
+    this.state = PlanState.empty(this.state.catalog, this.state.field(PlanKey.ENVIRONMENT) || null, profile?.[RobotProfileKey.ROBOT] ?? null);
     this.report('New plan.');
     this.render();
   }
