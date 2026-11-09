@@ -1,0 +1,331 @@
+"""
+Where a step puts an object down when that place is only found once the plan is
+grounded: into a named zone of the robot profile, on top of another object, or at a
+marker dragged across the scene. Each is resolved against the world as the steps before
+left it, so a stack follows the objects placed before it.
+
+Also what the robot's arms reach at most, the quick check of a marker and of a zone's
+spots; the plan's validation stays the full check.
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+
+import numpy as np
+from typing_extensions import Dict, Iterator, List, Tuple
+
+from cramera_bridge.exceptions import NoFreeSpotInZone, UnknownSupportingObject
+from cramera_bridge.names import ENUM_NAMES
+from cramera_bridge.plans.arms import Arms, RobotArms
+from cramera_bridge.plans.regions import RegionBoxes
+from cramera_bridge.plans.site import RobotSite
+from cramera_protocol.geometry import FloorRectangle
+from cramera_protocol.geometry import Pose as PlannedPose
+from cramera_protocol.geometry import Vector3
+from cramera_protocol.plan_builder import Destination, PlacementMode
+from cramera_protocol.reach import ArmReach
+from krrood_spatial_math.spatial_types import Pose
+from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm
+from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.connections import ActiveConnection
+from semantic_digital_twin.world_description.geometry import AxisAlignedBox
+from semantic_digital_twin.world_description.world_entity import Body
+
+# %% reach
+
+
+@dataclass(frozen=True)
+class ArmReaches:
+    """
+    The sphere around each arm's shoulder that its tool stays within: the arm's links
+    from its first moving joint to its tool, stretched out.
+
+    Revolute joints turn about the origin of the link they move, so no pose of the arm
+    puts the tool farther.
+    """
+
+    robot: AbstractRobot
+    """
+    The robot.
+    """
+
+    def arms(self) -> List[ArmReach]:
+        """
+        :return: The sphere of each arm, in the world's root frame.
+        """
+        return [self.arm_reach(arm) for arm in self.robot.all_arms]
+
+    def arm_reach(self, arm: Arm) -> ArmReach:
+        """
+        :param arm: An arm of the robot.
+        :return: The sphere its tool stays within.
+        """
+        world = self.robot._world
+        connections = world.compute_chain_of_connections(
+            arm.root, arm.end_effector.tool_frame
+        )
+        first_moving = next(
+            index
+            for index, connection in enumerate(connections)
+            if isinstance(connection, ActiveConnection)
+        )
+        points = [connections[first_moving].child.global_pose.to_np()[:3, 3]] + [
+            connection.child.global_pose.to_np()[:3, 3]
+            for connection in connections[first_moving + 1 :]
+        ]
+        radius = sum(
+            float(np.linalg.norm(after - before))
+            for before, after in zip(points, points[1:])
+        )
+        shoulder = points[0]
+        return ArmReach(
+            arm=ENUM_NAMES.member_identifier(
+                Arms, RobotArms(self.robot).find_side(arm)
+            ),
+            shoulder=Vector3(*(float(coordinate) for coordinate in shoulder)),
+            radius=radius,
+        )
+
+    def reaches(self, x: float, y: float, z: float) -> bool:
+        """
+        :return: Whether any arm's tool may get to the point in world coordinates.
+        """
+        point = Vector3(x, y, z)
+        return any(arm.reaches(point) for arm in self.arms())
+
+
+# %% objects
+
+
+@dataclass(frozen=True)
+class ObjectExtent:
+    """
+    How far an object reaches: its collision shapes' box in its own frame and in the
+    world.
+    """
+
+    body: Body
+    """
+    The object.
+    """
+
+    def own_box(self) -> AxisAlignedBox:
+        """
+        :return: The box around the object's collision shapes in its own frame.
+        """
+        return self.body.collision.as_bounding_box_collection_in_frame(
+            self.body
+        ).bounding_box()
+
+    def world_box(self) -> AxisAlignedBox:
+        """
+        :return: The box around the object's collision shapes in the world's root
+            frame.
+        """
+        return self.body.collision.as_bounding_box_collection_in_frame(
+            self.body._world.root
+        ).bounding_box()
+
+    def bottom_offset(self) -> float:
+        """
+        :return: How far the object's origin lies above its lowest point, so it rests on
+            a surface rather than sinking into it.
+        """
+        return -float(self.own_box().min_z)
+
+    def half_width(self) -> float:
+        """
+        :return: How far the object reaches from its origin along its own horizontal
+            axes, at most, so it fits a square of twice that side kept in its
+            orientation.
+        """
+        box = self.own_box()
+        return float(
+            max(abs(box.min_x), abs(box.max_x), abs(box.min_y), abs(box.max_y))
+        )
+
+
+# %% targets
+
+
+@dataclass(frozen=True)
+class PlacingTargets:
+    """
+    Resolves where a step puts its object down, in the world as it is now.
+    """
+
+    world: World
+    """
+    The world as the steps before left it.
+    """
+
+    robot: AbstractRobot
+    """
+    The robot that puts the object down.
+    """
+
+    site: RobotSite
+    """
+    Where the plan stands the robot, and the profile's zones.
+    """
+
+    bodies: Dict[str, Body]
+    """
+    The plan's objects by their identity, and the objects detections find by their
+    references.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object put down.
+    """
+
+    clearance: float = 0.01
+    """
+    How far, in metres, an object put into a zone keeps at least from the objects
+    already there; the spots of a zone's grid lie twice as far apart.
+    """
+
+    release_height: float = 0.005
+    """
+    How far, in metres, above the surface below an object is let go, so a held object
+    pressed against the surface or the object below cannot keep the gripper from its
+    goal; it drops that far.
+    """
+
+    def pose(self, destination: Destination) -> Pose:
+        """
+        :param destination: A destination resolved once the plan is grounded.
+        :return: The pose the object is put down at.
+        """
+        if destination.placement is PlacementMode.ZONE:
+            return self.in_zone(destination.zone)
+        if destination.placement is PlacementMode.ON_TOP_OF:
+            return self.on_top_of(destination.object)
+        return self.at_marker(destination.pose)
+
+    @property
+    def body(self) -> Body:
+        """
+        The object put down.
+        """
+        return self.bodies[self.object_identifier]
+
+    def on_top_of(self, identifier: str) -> Pose:
+        """
+        :param identifier: The identity of the object below, or the reference to the
+            object a detection finds.
+        :return: The object put down resting centred on the top of the object below,
+            keeping its current orientation.
+        :raises UnknownSupportingObject: When the plan holds no such object.
+        """
+        if identifier not in self.bodies:
+            raise UnknownSupportingObject(identifier)
+        below = self.bodies[identifier]
+        top = float(ObjectExtent(below).world_box().max_z)
+        position = below.global_pose.to_np()[:3, 3]
+        return self.resting(float(position[0]), float(position[1]), top)
+
+    def at_marker(self, marker: PlannedPose) -> Pose:
+        """
+        :param marker: The marker's pose, on the surface it rests on.
+        :return: The object put down resting on that surface at the marker, turned to
+            its heading.
+        """
+        return Pose.from_xyz_quaternion(
+            marker.x,
+            marker.y,
+            marker.z + ObjectExtent(self.body).bottom_offset() + self.release_height,
+            marker.qx,
+            marker.qy,
+            marker.qz,
+            marker.qw,
+            reference_frame=self.world.root,
+        )
+
+    def in_zone(self, identifier: str) -> Pose:
+        """
+        :param identifier: A zone of the robot profile.
+        :return: The object put down resting on the table at the zone's free spot
+            within reach that lies nearest its centre.
+        :raises UnknownZone: When the profile names no such zone.
+        :raises NoFreeSpotInZone: When every spot is taken or out of reach.
+        """
+        zone = self.site.zone(identifier)
+        height = float(RegionBoxes(self.robot).table().min_z)
+        lift = ObjectExtent(self.body).bottom_offset()
+        reach = ArmReaches(self.robot)
+        for x, y in self.spots(zone.area):
+            if self.is_free(x, y) and reach.reaches(x, y, height + lift):
+                return self.resting(x, y, height)
+        raise NoFreeSpotInZone(identifier, self.object_identifier)
+
+    def spots(self, area: FloorRectangle) -> Iterator[Tuple[float, float]]:
+        """
+        :param area: A zone's rectangle in the robot's frame.
+        :return: The world coordinates of the centres of a grid of spots the object
+            fits in the zone, one object and twice its clearance apart, nearest the
+            zone's centre first.
+        """
+        margin = ObjectExtent(self.body).half_width()
+        spacing = 2 * (margin + self.clearance)
+        centre_x = (area.min_x + area.max_x) / 2
+        centre_y = (area.min_y + area.max_y) / 2
+        steps_x = max(0, math.floor(((area.max_x - area.min_x) / 2 - margin) / spacing))
+        steps_y = max(0, math.floor(((area.max_y - area.min_y) / 2 - margin) / spacing))
+        offsets = sorted(
+            (
+                (i * spacing, j * spacing)
+                for i in range(-steps_x, steps_x + 1)
+                for j in range(-steps_y, steps_y + 1)
+            ),
+            key=lambda offset: (math.hypot(*offset), offset),
+        )
+        for offset_x, offset_y in offsets:
+            yield self.site.to_world(centre_x + offset_x, centre_y + offset_y)
+
+    def is_free(self, x: float, y: float) -> bool:
+        """
+        :return: Whether the object, put down at the point, keeps its clearance from
+            every other object of the plan.
+        """
+        reach = ObjectExtent(self.body).half_width() + self.clearance
+        for other in self.others():
+            box = ObjectExtent(other).world_box()
+            if (
+                x + reach > box.min_x
+                and x - reach < box.max_x
+                and y + reach > box.min_y
+                and y - reach < box.max_y
+            ):
+                return False
+        return True
+
+    def others(self) -> List[Body]:
+        """
+        :return: The plan's objects other than the one put down, each once.
+        """
+        others: List[Body] = []
+        for body in self.bodies.values():
+            if body is not self.body and all(body is not seen for seen in others):
+                others.append(body)
+        return others
+
+    def resting(self, x: float, y: float, surface: float) -> Pose:
+        """
+        :param x: The x coordinate in world coordinates.
+        :param y: The y coordinate in world coordinates.
+        :param surface: The height of the surface the object rests on.
+        :return: The object's pose resting on the surface at the point, in its current
+            orientation, :attr:`release_height` above it.
+        """
+        orientation = self.body.global_pose.orientation.to_np()
+        return Pose.from_xyz_quaternion(
+            x,
+            y,
+            surface + ObjectExtent(self.body).bottom_offset() + self.release_height,
+            *orientation[:4],
+            reference_frame=self.world.root,
+        )

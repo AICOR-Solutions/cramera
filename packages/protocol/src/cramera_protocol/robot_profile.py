@@ -17,6 +17,7 @@ from pathlib import Path
 from typing_extensions import Any, Dict, List, Optional, Self
 
 from cramera_protocol.document import JsonDocument, document_field
+from cramera_protocol.geometry import FloorRectangle
 from cramera_protocol.version import ProtocolVersion
 
 PROFILE_FORMAT_VERSION = ProtocolVersion(major=1, minor=0)
@@ -145,6 +146,51 @@ class Skill(JsonDocument):
     """
 
 
+class ZoneKey(StrEnum):
+    """
+    The keys of a named zone.
+    """
+
+    IDENTIFIER = "id"
+    """
+    The zone's stable identity, which plans name.
+    """
+
+    LABEL = "label"
+    """
+    The zone's name shown to people.
+    """
+
+    AREA = "area"
+    """
+    The rectangle the zone covers.
+    """
+
+
+@dataclass(kw_only=True)
+class Zone(JsonDocument):
+    """
+    A named rectangle on the table the robot works at, such as a tray, which a step puts
+    an object into or looks for objects in.
+    """
+
+    identifier: str = document_field(ZoneKey.IDENTIFIER)
+    """
+    The zone's stable identity, which a step keeps across platform versions.
+    """
+
+    label: str = document_field(ZoneKey.LABEL)
+    """
+    The zone's name in the step's choices and in the 3D view.
+    """
+
+    area: FloorRectangle = document_field(ZoneKey.AREA)
+    """
+    The rectangle the zone covers, in metres, in the frame of the pose a plan stands the
+    robot at; it lies on the top of the robot's table.
+    """
+
+
 class RobotProfileKey(StrEnum):
     """
     The keys of a robot profile.
@@ -193,6 +239,11 @@ class RobotProfileKey(StrEnum):
     SIMULATED_SCENE = "simulatedScene"
     """
     The file of the objects a simulated robot's camera sees.
+    """
+
+    ZONES = "zones"
+    """
+    The named zones on the robot's table.
     """
 
 
@@ -256,6 +307,11 @@ class RobotProfile(JsonDocument):
     asks the robot's own perception.
     """
 
+    zones: List[Zone] = document_field(RobotProfileKey.ZONES, default_factory=list)
+    """
+    The named zones on the robot's table that steps put objects into or look in.
+    """
+
     format_version: ProtocolVersion = document_field(
         RobotProfileKey.FORMAT_VERSION, default=PROFILE_FORMAT_VERSION
     )
@@ -274,6 +330,16 @@ class RobotProfile(JsonDocument):
         for skill in self.skills:
             if skill.identifier == identifier:
                 return skill
+        return None
+
+    def zone_named(self, identifier: str) -> Optional[Zone]:
+        """
+        :param identifier: A zone's identifier.
+        :return: The profile's zone of that identifier, or None when it has none.
+        """
+        for zone in self.zones:
+            if zone.identifier == identifier:
+                return zone
         return None
 
     def executor_for(

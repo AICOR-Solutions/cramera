@@ -43,6 +43,7 @@ import {
   RobotProfileKey,
   SkillKey,
   PlanTemplateKey,
+  ZoneKey,
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
@@ -58,6 +59,7 @@ import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
 const read = (name) => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const RULES = read('../../src/cramera_plan_builder/rules/constraints.json').rules;
+const TRACY_REACH = read('dataset/tracy_reach.json');
 const ACTIONS = read('../dataset/actions.json');
 const byAction = (root, action) => root.findAll((element) => element.dataset.action === action);
 const settled = () => new Promise((resolve) => setImmediate(resolve));
@@ -94,6 +96,7 @@ class FakeApi {
     this.annotationsAnswer = { [EnvironmentAnnotationsKey.ANNOTATIONS]: [] };
     this.validated = [];
     this.validationAnswer = (steps) => steps.map((step) => ({ [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER], [StepValidationKey.VERDICT]: StepVerdict.VALID }));
+    this.reached = [];
     this.scanned = [];
     this.scanAnswer = { [SceneScanKey.OBJECTS]: [], [SceneScanKey.GROUNDING]: DetectionGrounding.PERCEIVED, [SceneScanKey.UNRECOGNIZED]: 0 };
   }
@@ -102,6 +105,11 @@ class FakeApi {
     this.validated.push(plan);
     const robot = plan[PlanKey.ROBOTS].find((candidate) => candidate[PlannedRobotKey.IDENTIFIER] === plan[PlanKey.SELECTED_ROBOT]) ?? plan[PlanKey.ROBOTS][0];
     return { [ValidationReportKey.STEPS]: this.validationAnswer(robot[PlannedRobotKey.STEPS]), [ValidationReportKey.SECONDS]: 2.5 };
+  }
+
+  async reach(model) {
+    this.reached.push(model);
+    return structuredClone(TRACY_REACH);
   }
 
   async scan(plan, region) {
@@ -251,8 +259,8 @@ class FakeScene {
     this.environments.push(name);
   }
 
-  show(state, live) {
-    this.shown = { document: state.document, live };
+  show(state, live, overlay) {
+    this.shown = { document: state.document, live, overlay };
   }
 
   select(selection) {
@@ -1151,4 +1159,121 @@ test('the physics run is an optional dry-run, not gated by the validation', asyn
   const dryRun = byAction(root, PlanAction.SIMULATE)[0];
   assert.equal(dryRun.textContent, 'Dry-run in physics');
   assert.equal(dryRun.disabled, false);
+});
+
+// %% placing
+
+const ZONED_PROFILE = {
+  [RobotProfileKey.ROBOT]: 'tracy',
+  [RobotProfileKey.LABEL]: 'Tracy',
+  [RobotProfileKey.ZONES]: [
+    { [ZoneKey.IDENTIFIER]: 'left_tray', [ZoneKey.LABEL]: 'Left tray', [ZoneKey.AREA]: { minX: 0.6, maxX: 0.8, minY: 0.3, maxY: 0.5 } },
+    { [ZoneKey.IDENTIFIER]: 'center', [ZoneKey.LABEL]: 'Center', [ZoneKey.AREA]: { minX: 0.6, maxX: 0.8, minY: -0.1, maxY: 0.1 } },
+  ],
+};
+
+/**
+ * Open a page of Tracy's zoned profile whose plan picks the first of two objects and
+ * places it.
+ */
+async function tracyPlacing() {
+  const opened = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = ZONED_PROFILE;
+  }, { robot: false });
+  await settled();
+  byAction(opened.root, PlanAction.ADD_OBJECT)[0].click();
+  byAction(opened.root, PlanAction.ADD_OBJECT)[0].click();
+  for (const action of ['pick_up', 'place']) block(opened.root, action).click();
+  const place = opened.page.state.steps()[1];
+  const choose = (mode) => {
+    const select = parameter(opened.root, 'target_location');
+    select.value = mode;
+    select.dispatch(DomEvent.CHANGE);
+  };
+  return { ...opened, place: place[PlanStepKey.IDENTIFIER], choose };
+}
+
+const target = (page, identifier) => page.state.step(identifier)[PlanStepKey.VALUES].target_location;
+const markerInput = (root, axis) => root.findAll((element) => element.dataset.marker === 'true')[0].findAll((element) => element.dataset.field === axis)[0];
+
+test('the reach of the edited robot is asked once and the profile zones lie on its table', async () => {
+  const { api, page, scene } = await tracyPlacing();
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
+  assert.deepEqual(api.reached, ['tracy']);
+  assert.deepEqual(scene().shown.overlay.zones.map((zone) => zone.identifier), ['left_tray', 'center']);
+});
+
+test('a place step goes into a zone or on top of another object', async () => {
+  const { root, page, place, choose } = await tracyPlacing();
+  const modes = parameter(root, 'target_location').children.map((option) => option.value);
+  assert.ok([PlacementMode.ZONE, PlacementMode.ON_TOP_OF, PlacementMode.MARKER].every((mode) => modes.includes(mode)));
+  choose(PlacementMode.ZONE);
+  assert.equal(target(page, place)[DestinationKey.PLACEMENT], PlacementMode.ZONE);
+  assert.equal(target(page, place)[DestinationKey.ZONE], 'left_tray');
+  const zone = parameter(root, DestinationKey.ZONE);
+  zone.value = 'center';
+  zone.dispatch(DomEvent.CHANGE);
+  assert.equal(target(page, place)[DestinationKey.ZONE], 'center');
+  choose(PlacementMode.ON_TOP_OF);
+  const [placed, other] = page.state.objects().map((item) => item[PlannedObjectKey.IDENTIFIER]);
+  assert.equal(page.state.stepObject(page.state.step(place)), placed);
+  assert.equal(target(page, place)[DestinationKey.OBJECT], other);
+  assert.deepEqual(parameter(root, DestinationKey.OBJECT).children.map((option) => option.value), [other]);
+  assert.deepEqual(page.state.problems(page.state.step(place)), []);
+});
+
+test('dragging the marker updates its numeric fields and editing them moves the marker', async () => {
+  const { root, page, place, choose, scene } = await tracyPlacing();
+  choose(PlacementMode.MARKER);
+  const selection = new Selection(MarkerKind.TARGET, place, 'target_location');
+  const dragged = [0.7, -0.2, 1.3, 0, 0, Math.sin(0.5), Math.cos(0.5)];
+  const moving = scene().listeners.onMove(selection, dragged);
+  assert.deepEqual(PlanPose.position(moving.pose), [0.7, -0.2, 0.88]);
+  assert.equal(moving.reachable, true);
+  scene().listeners.onPlace(selection, dragged);
+  assert.equal(markerInput(root, 'x').value, '0.7');
+  assert.equal(markerInput(root, 'y').value, '-0.2');
+  assert.equal(markerInput(root, 'yaw°').value, String(PlanPose.degrees(1)));
+  const x = markerInput(root, 'x');
+  x.value = '0.5';
+  x.dispatch(DomEvent.CHANGE);
+  const shown = scene().shown.document[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS][1][PlanStepKey.VALUES].target_location;
+  assert.equal(shown[DestinationKey.PLACEMENT], PlacementMode.MARKER);
+  assert.deepEqual(PlanPose.position(shown[DestinationKey.POSE]), [0.5, -0.2, 0.88]);
+  assert.ok(Math.abs(PlanPose.yaw(shown[DestinationKey.POSE]) - 1) < 1e-9);
+});
+
+test('a marker dragged out of reach turns red and stays red where it is put down', async () => {
+  const { page, place, choose, scene } = await tracyPlacing();
+  choose(PlacementMode.MARKER);
+  const selection = new Selection(MarkerKind.TARGET, place, 'target_location');
+  assert.equal(scene().shown.overlay.reachable.get(selection.key), true);
+  const beyond = PlanPose.of(1.5, 0.1, 0.9, 0);
+  const moving = scene().listeners.onMove(selection, beyond);
+  assert.equal(moving.reachable, false);
+  assert.deepEqual(PlanPose.position(moving.pose), [1.5, 0.1, 0]);
+  scene().listeners.onPlace(selection, beyond);
+  assert.deepEqual(PlanPose.position(target(page, place)[DestinationKey.POSE]), [1.5, 0.1, 0]);
+  assert.equal(scene().shown.overlay.reachable.get(selection.key), false);
+});
+
+test('a detect step looks in a zone or around a marker', async () => {
+  const { root, page } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = ZONED_PROFILE;
+  }, { robot: false });
+  await settled();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'detect').click();
+  const detect = page.state.steps()[0][PlanStepKey.IDENTIFIER];
+  const region = parameter(root, 'region');
+  region.value = RegionKind.ZONE;
+  region.dispatch(DomEvent.CHANGE);
+  assert.deepEqual(page.state.step(detect)[PlanStepKey.VALUES].region, { [DetectionRegionKey.KIND]: RegionKind.ZONE, [DetectionRegionKey.ZONE]: 'left_tray' });
+  const kind = parameter(root, 'region');
+  kind.value = RegionKind.MARKER;
+  kind.dispatch(DomEvent.CHANGE);
+  const marker = page.state.step(detect)[PlanStepKey.VALUES].region;
+  assert.equal(marker[DetectionRegionKey.KIND], RegionKind.MARKER);
+  assert.equal(PlanPose.position(marker[DetectionRegionKey.POSE])[2], 0.88);
+  assert.deepEqual(page.state.targets(page.state.step(detect)).map((found) => found.marker), [true]);
 });

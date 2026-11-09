@@ -10,12 +10,15 @@ import pytest
 
 from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.exceptions import UnsupportedProtocolVersion
+from cramera_protocol.geometry import FloorRectangle
 from cramera_protocol.plan_builder import RunMode
 from cramera_protocol.robot_profile import (
     PROFILE_FORMAT_VERSION,
     ExecutorKind,
     RobotProfile,
     RobotProfileKey,
+    Zone,
+    ZoneKey,
 )
 from cramera_protocol.version import ProtocolVersion
 
@@ -107,3 +110,30 @@ def test_a_profile_names_the_simulated_scene_its_camera_sees():
     )
     assert profile.simulated_scene == "scenes/cubes.json"
     assert profile.to_json()[RobotProfileKey.SIMULATED_SCENE] == "scenes/cubes.json"
+
+
+# %% zones
+
+
+def test_a_profile_names_its_zones_on_the_robots_table():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "tracy",
+            RobotProfileKey.LABEL: "Tracy",
+            RobotProfileKey.ZONES: [
+                {
+                    ZoneKey.IDENTIFIER: "left_tray",
+                    ZoneKey.LABEL: "Left tray",
+                    ZoneKey.AREA: {"minX": 0.6, "maxX": 0.8, "minY": 0.3, "maxY": 0.5},
+                }
+            ],
+        }
+    )
+    assert profile.zone_named("left_tray") == Zone(
+        identifier="left_tray",
+        label="Left tray",
+        area=FloorRectangle(min_x=0.6, max_x=0.8, min_y=0.3, max_y=0.5),
+    )
+    assert profile.zone_named("right_tray") is None
+    assert RobotProfile.from_json(profile.to_json()) == profile
+    assert ZoneKey in BROWSER_ENUMERATIONS

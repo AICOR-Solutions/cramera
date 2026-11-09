@@ -24,7 +24,7 @@ from cramera_protocol.live_messages import (
     MonitorSpecification,
     SurfaceDescription,
 )
-from cramera_protocol.robot_profile import ExecutorKind, RobotProfile
+from cramera_protocol.robot_profile import ExecutorKind, RobotProfile, Zone
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
 PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
@@ -142,6 +142,12 @@ class PlanBuilderRoute(StrEnum):
     posted validation request answers with the validation's report.
     """
 
+    REACH = "reach"
+    """
+    What a robot model reaches and the table it works at; a posted reach request answers
+    with the robot's reach.
+    """
+
     OBJECT_FILES = "objects/"
     """
     The prefix of the object models' files: ``objects/<file>``.
@@ -223,6 +229,23 @@ class PlacementMode(StrEnum):
     runs.
     """
 
+    ZONE = "zone"
+    """
+    Into a named zone of the robot profile, at the free spot within reach nearest its
+    centre, found when the plan is grounded.
+    """
+
+    ON_TOP_OF = "on_top_of"
+    """
+    On top of another object, wherever that object stands when the plan is grounded.
+    """
+
+    MARKER = "marker"
+    """
+    At a marker dragged across the scene: its position and heading, resting on the
+    surface the marker snapped to.
+    """
+
 
 class DestinationKey(StrEnum):
     """
@@ -249,6 +272,16 @@ class DestinationKey(StrEnum):
     The surface.
     """
 
+    ZONE = "zone"
+    """
+    The named zone.
+    """
+
+    OBJECT = "object"
+    """
+    The object the step puts its object on top of.
+    """
+
 
 @dataclass(kw_only=True)
 class Destination(JsonDocument):
@@ -266,7 +299,8 @@ class Destination(JsonDocument):
 
     pose: Optional[Pose] = document_field(DestinationKey.POSE, default=None)
     """
-    The pose in world coordinates the object is put down at.
+    The pose in world coordinates the object is put down at; at a marker, the marker's
+    pose, resting on the surface below it.
     """
 
     surface_type: Optional[str] = document_field(
@@ -282,6 +316,29 @@ class Destination(JsonDocument):
     """
     The name of one surface annotation, or None for any surface of the type.
     """
+
+    zone: Optional[str] = document_field(DestinationKey.ZONE, default=None)
+    """
+    The identifier of the robot profile's zone the object is put into.
+    """
+
+    object: Optional[str] = document_field(DestinationKey.OBJECT, default=None)
+    """
+    The identity of the object, or the reference to the object a detection finds, that
+    the step puts its object on top of.
+    """
+
+    @property
+    def is_grounded_late(self) -> bool:
+        """
+        Whether the pose the object goes to is only known once the plan is grounded: in
+        a zone, on top of an object or at a marker.
+        """
+        return self.placement in (
+            PlacementMode.ZONE,
+            PlacementMode.ON_TOP_OF,
+            PlacementMode.MARKER,
+        )
 
 
 # %% constraints
@@ -2436,6 +2493,11 @@ class DemoDocumentKey(StrEnum):
     The environment bundle's directory.
     """
 
+    ZONES = "zones"
+    """
+    The named zones of the robot profile.
+    """
+
 
 @dataclass(kw_only=True)
 class DemoDocument(JsonDocument):
@@ -2454,6 +2516,11 @@ class DemoDocument(JsonDocument):
     )
     """
     The absolute path of the plan's environment bundle, or None for an empty floor.
+    """
+
+    zones: List[Zone] = document_field(DemoDocumentKey.ZONES, default_factory=list)
+    """
+    The robot profile's named zones the plan's steps may name.
     """
 
 

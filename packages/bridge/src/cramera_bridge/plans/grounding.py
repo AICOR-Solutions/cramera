@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 
-from typing_extensions import Dict, List, Optional
+from typing_extensions import Any, Dict, List, Optional
 
 from coraplex.perception import PerceptionInterface
 from coraplex.plans.validation import (
@@ -22,11 +22,13 @@ from coraplex.plans.validation import (
     StepCheck,
     ValidationVerdict,
 )
+from cramera_bridge.exceptions import PlacementNotFound
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
 from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.detected_objects import DetectedObjects
+from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.steps import StepActions, StepArguments
 from cramera_protocol.detection import DetectedObjectReference
 from cramera_protocol.plan_builder import PlanStep
@@ -66,6 +68,12 @@ class GroundedStep:
     The identifier of the field whose arm the step leaves open.
     """
 
+    resolved_destinations: Dict[str, Any] = field(default_factory=dict)
+    """
+    The value of each field whose destination was only known once the plan was grounded,
+    as the pose it resolved to.
+    """
+
     @property
     def succeeded(self) -> bool:
         """
@@ -77,18 +85,14 @@ class GroundedStep:
 
     def resolved_step(self) -> PlanStep:
         """
-        :return: The step naming the arm it was given in place of the open one; the
-            step itself when it leaves no arm open.
+        :return: The step naming the arm it was given in place of the open one, and
+            the poses its destinations resolved to in place of those only known once
+            the plan was grounded; the step itself when it leaves neither open.
         """
-        if self.arm is None:
-            return self.step
-        return replace(
-            self.step,
-            values={
-                **self.step.values,
-                self.arm_field: ENUM_NAMES.member_identifier(Arms, self.arm),
-            },
-        )
+        values = {**self.step.values, **self.resolved_destinations}
+        if self.arm is not None:
+            values[self.arm_field] = ENUM_NAMES.member_identifier(Arms, self.arm)
+        return replace(self.step, values=values)
 
     def to_step_validation(self) -> StepValidation:
         """
@@ -163,6 +167,11 @@ class PlanGrounding:
     The robot's perception, asked where its camera sees a detection's region now.
     """
 
+    site: RobotSite = field(default_factory=RobotSite)
+    """
+    Where the plan stands the robot, and the robot profile's zones.
+    """
+
     validation: PlanValidation = field(init=False)
     """
     Tries the steps in its copy of the world.
@@ -220,15 +229,23 @@ class PlanGrounding:
             bodies=self.copied_bodies,
             action=self.actions.named(step.action),
             step=step,
+            site=self.site,
         )
         open_field = arguments.find_open_arm_field()
-        check = self.validation.check(
-            StepActions(self.copied_context, self.copied_bodies, self.actions).action(
-                step
+        try:
+            resolved = arguments.resolved_destinations()
+        except PlacementNotFound as error:
+            return GroundedStep(
+                step=step,
+                check=StepCheck(verdict=ValidationVerdict.FAILED, failure=error),
             )
+        check = self.validation.check(
+            StepActions(
+                self.copied_context, self.copied_bodies, self.actions, site=self.site
+            ).action(replace(step, values={**step.values, **resolved}))
         )
         if open_field is None or check.grounded_action is None:
-            return GroundedStep(step=step, check=check)
+            return GroundedStep(step=step, check=check, resolved_destinations=resolved)
         return GroundedStep(
             step=step,
             check=check,
@@ -236,6 +253,7 @@ class PlanGrounding:
                 vars(check.grounded_action)[arguments.action.field_name(open_field)]
             ),
             arm_field=open_field,
+            resolved_destinations=resolved,
         )
 
     def ground_detection(self, step: PlanStep) -> GroundedStep:
@@ -245,7 +263,7 @@ class PlanGrounding:
             its reference.
         """
         query = DetectedObjects(
-            self.copied_context, self.copied_bodies, self.actions
+            self.copied_context, self.copied_bodies, self.actions, site=self.site
         ).query(step)
         check = self.validation.check_detection(query)
         if check.found:

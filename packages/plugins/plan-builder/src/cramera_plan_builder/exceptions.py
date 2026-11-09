@@ -408,8 +408,8 @@ class PlanWithoutRobot(PlanBuilderError):
 @dataclass
 class UnsupportedByCatalog(PlanBuilderError):
     """
-    A plan entry the catalog does not offer: an unknown robot, object model, environment
-    or surface type, or an enumeration member the robot does not have.
+    A plan entry the catalog does not offer: an unknown robot, object model,
+    environment, surface type or zone, or an enumeration member the robot does not have.
     """
 
     location: str
@@ -756,3 +756,24 @@ class PlanNotValidated(PlanBuilderError):
             f"A {self.mode!r} run needs the plan to pass its validation first; validate "
             f"the plan as it stands now."
         )
+
+
+# %% reach
+
+
+@dataclass
+class ReachNotMeasured(PlanBuilderError):
+    """
+    A measure of what a robot reaches whose process ended without one.
+    """
+
+    output: str
+    """
+    The newest output of the measure's process.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.BAD_GATEWAY
+
+    def message(self) -> str:
+        return f"What the robot reaches could not be measured:\n{self.output}"

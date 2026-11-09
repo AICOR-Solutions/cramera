@@ -57,6 +57,7 @@ class PlanValidator:
                 bodies=dict(demo.bodies),
                 actions=demo.discovered_actions,
                 perception=live,
+                site=demo.site,
             ).ground(steps)
         return ValidationReport(steps=[step.to_step_validation() for step in grounded])
 

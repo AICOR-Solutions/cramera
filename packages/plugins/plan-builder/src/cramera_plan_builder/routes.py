@@ -25,9 +25,11 @@ from cramera_plan_builder.exceptions import (
     MalformedRequestBody,
     NotAUrdfFile,
     PlanNotValidated,
+    UnsupportedByCatalog,
 )
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.profiles import ConfiguredProfile
+from cramera_plan_builder.reaches import RobotReaches
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
@@ -50,6 +52,7 @@ from cramera_protocol.plan_builder import (
     UrdfFolderParameter,
     EnvironmentAnnotationsParameter,
 )
+from cramera_protocol.reach import ReachRequest, ReachRequestKey
 from cramera_protocol.validation import (
     StepFailureReason,
     StepValidation,
@@ -189,6 +192,11 @@ class PlanBuilderRoutes:
     The plan whose validation passed last, which alone may run where a run needs one.
     """
 
+    reaches: RobotReaches = field(default_factory=RobotReaches)
+    """
+    Measures what robot models reach.
+    """
+
     def declarations(self) -> List[RouteDeclaration]:
         """
         :return: The routes, below the plugin's prefix.
@@ -225,6 +233,7 @@ class PlanBuilderRoutes:
             PluginRoute(
                 HttpMethod.POST, PlanBuilderRoute.VALIDATE, self.answer_validate
             ),
+            PluginRoute(HttpMethod.POST, PlanBuilderRoute.REACH, self.answer_reach),
             PluginPrefixRoute(
                 HttpMethod.GET, PlanBuilderRoute.OBJECT_FILES, self.answer_object_file
             ),
@@ -412,12 +421,17 @@ class PlanBuilderRoutes:
         """
         :param plan: A checked plan.
         :return: The plan with its environment's directory, found among the viewer's
-            scenes.
+            scenes, and the robot profile's zones.
         """
+        zones = [] if self.profile.profile is None else self.profile.profile.zones
         if plan.environment is None:
-            return DemoDocument(plan=plan)
+            return DemoDocument(plan=plan, zones=list(zones))
         directory = self.scenes.directory_of(plan.environment).path / plan.environment
-        return DemoDocument(plan=plan, environment_directory=str(directory.resolve()))
+        return DemoDocument(
+            plan=plan,
+            environment_directory=str(directory.resolve()),
+            zones=list(zones),
+        )
 
     def answer_demo(self, request: Request) -> Response:
         """
@@ -539,6 +553,20 @@ class PlanBuilderRoutes:
                 for step in plan.performing_robot().steps
             ]
         )
+
+    # %% reach
+
+    def answer_reach(self, request: Request) -> Response:
+        """
+        :param request: A request whose body is a :class:`ReachRequest`.
+        :return: The :class:`RobotReach` of the robot model.
+        :raises UnsupportedByCatalog: When the catalog offers no such robot model.
+        """
+        reach = ReachRequest.from_json(self.body(request))
+        offered = [robot.name for robot in self.workspace.workspace().robots()]
+        if reach.robot not in offered:
+            raise UnsupportedByCatalog(ReachRequestKey.ROBOT, reach.robot, offered)
+        return Response.of_json(self.reaches.reach(reach))
 
     def body(self, request: Request) -> Any:
         """

@@ -42,9 +42,10 @@ import {
 import { PageStatus } from '../../../core/page-status.js';
 import { ConstraintSentences, ConstraintsView } from './constraints-view.js';
 import { Elements, PlanAction } from './elements.js';
+import { FreePlace } from './free-place.js';
 import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
-import { MarkerKind, PlanSceneListeners, Selection, TransformMode } from './plan-scene.js';
+import { MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode } from './plan-scene.js';
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
@@ -295,6 +296,13 @@ export class BuilderPage {
   #validation = null;
 
   /**
+   * What each robot model reaches, by the model's name: its `RobotReach` once the plan
+   * builder answered, null while it is asked or when it could not be measured.
+   * @type {Map<string, Object|null>}
+   */
+  #reaches = new Map();
+
+  /**
    * The handle of the polling, or null.
    * @type {*}
    */
@@ -373,6 +381,7 @@ export class BuilderPage {
     parts.planTitle.textContent = `Plan of ${robot?.[PlannedRobotKey.LABEL] ?? 'no robot'}`;
     if (robot) this.#environment.storage.setItem(ROBOT_MODEL_KEY, robot[PlannedRobotKey.MODEL]);
     this.#showRun();
+    this.#askReach();
     this.#showScene();
   }
 
@@ -575,7 +584,64 @@ export class BuilderPage {
    */
   #adopt(state) {
     state.setDeveloperMode(this.#environment.storage.getItem(DEVELOPER_MODE_KEY) === String(true));
+    state.setMarkerSnap((pose) => this.freePlace().snapped(pose));
     this.state = state;
+  }
+
+  // %% free placing
+
+  /**
+   * @returns {FreePlace} Free placing for the edited robot: what its model reaches, once
+   *   known, from where the plan stands it.
+   */
+  freePlace() {
+    const robot = this.state.activeRobot();
+    const reach = robot ? (this.#reaches.get(robot[PlannedRobotKey.MODEL]) ?? null) : null;
+    return new FreePlace(reach, robot?.[PlannedRobotKey.POSE] ?? PlanPose.of(0, 0, 0, 0));
+  }
+
+  /**
+   * Ask once what the edited robot's model reaches, and show the plan again once known.
+   */
+  #askReach() {
+    const model = this.state.activeRobot()?.[PlannedRobotKey.MODEL];
+    if (!model || this.#reaches.has(model) || !this.#environment.api.reach) return;
+    this.#reaches.set(model, null);
+    this.#environment.api.reach(model).then(
+      (reach) => {
+        this.#reaches.set(model, reach);
+        this.render();
+      },
+      // without a measured reach, markers keep their height and colour
+      () => {},
+    );
+  }
+
+  /**
+   * @param {Selection} selection A marker being dragged.
+   * @param {Array<number>} pose Where it was dragged.
+   * @returns {{pose: Array<number>, reachable: (boolean|null)}} Where it rests on the
+   *   surface below it, and whether an arm of the edited robot may reach it there.
+   */
+  movingMarker(selection, pose) {
+    const place = this.freePlace();
+    const snapped = place.snapped(pose);
+    return { pose: snapped, reachable: place.reaches(snapped) };
+  }
+
+  /**
+   * @returns {SceneOverlay} The robot profile's zones on the edited robot's table, and
+   *   whether an arm may reach each of its free-place markers.
+   */
+  #overlay() {
+    const place = this.freePlace();
+    const reachable = new Map();
+    for (const step of this.state.steps()) {
+      for (const target of this.state.targets(step)) {
+        if (target.marker) reachable.set(new Selection(MarkerKind.TARGET, step[PlanStepKey.IDENTIFIER], target.field).key, place.reaches(target.pose));
+      }
+    }
+    return new SceneOverlay(place.zones(this.state.zones()), reachable);
   }
 
   /**
@@ -919,7 +985,7 @@ export class BuilderPage {
       this.#scene.showEnvironment(environment).then(() => this.#scene?.frame());
     }
     const robots = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.POSE]]));
-    this.#scene.show(this.state, { objects: this.#world.objects, robots });
+    this.#scene.show(this.state, { objects: this.#world.objects, robots }, this.#overlay());
   }
 
   // %% layout
@@ -1030,6 +1096,7 @@ export class BuilderPage {
           },
           (selection, pose) => this.#placed(selection, pose),
           (error) => this.report(error.message),
+          (selection, pose) => (selection.kind === MarkerKind.TARGET ? this.movingMarker(selection, pose) : null),
         ),
       );
     } else {

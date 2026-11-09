@@ -256,6 +256,19 @@ def test_a_destination_names_its_placement_pose_and_surface():
     assert Destination.from_json(written) == destination
 
 
+def test_a_zone_on_top_of_or_marker_destination_is_only_known_once_grounded():
+    zone = Destination(placement=PlacementMode.ZONE, zone="left_tray")
+    on_top = Destination(placement=PlacementMode.ON_TOP_OF, object="detected:step_2")
+    marker = Destination(
+        placement=PlacementMode.MARKER, pose=Pose(0.6, 0.2, 0.88, 0, 0, 0, 1)
+    )
+    for destination in (zone, on_top, marker):
+        assert destination.is_grounded_late
+        assert Destination.from_json(destination.to_json()) == destination
+    assert on_top.to_json()[DestinationKey.OBJECT] == "detected:step_2"
+    assert not Destination(pose=Pose(0, 0, 0, 0, 0, 0, 1)).is_grounded_late
+
+
 def test_a_plan_of_another_major_version_is_refused(read_json):
     with pytest.raises(UnsupportedProtocolVersion):
         PlanDocument.from_json(

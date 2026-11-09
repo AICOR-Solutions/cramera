@@ -66,6 +66,11 @@ class BridgeModule(StrEnum):
     Validates a plan.
     """
 
+    REACH = "cramera_bridge.plans.reaching"
+    """
+    Measures what a robot model reaches.
+    """
+
 
 # %% process
 

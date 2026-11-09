@@ -22,6 +22,7 @@ import {
   StepFailureReason,
   StepValidationKey,
   StepVerdict,
+  ZoneKey,
 } from '../../../protocol.js';
 import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
 import { PlanState } from './plan-state.js';
@@ -36,6 +37,9 @@ export { STEP_PALETTE_SIZE };
 const PLACEMENT_LABELS = Object.freeze({
   [PlacementMode.POSE]: 'at a pose',
   [PlacementMode.SURFACE]: 'on a surface',
+  [PlacementMode.ZONE]: 'in a zone',
+  [PlacementMode.ON_TOP_OF]: 'on top of',
+  [PlacementMode.MARKER]: 'at a marker',
 });
 
 /**
@@ -48,6 +52,8 @@ const ANY_SURFACE = Object.freeze({ value: '', label: 'any of the type' });
  */
 const REGION_LABELS = Object.freeze({
   [RegionKind.TABLE]: 'whole table',
+  [RegionKind.ZONE]: 'a zone',
+  [RegionKind.MARKER]: 'around a marker',
 });
 
 /**
@@ -451,10 +457,56 @@ export class StepsView {
    * @returns {Array<HTMLElement>} A choice of the regions the step can look in.
    */
   #regionPicker(step, field) {
-    const regions = Object.values(RegionKind).map((kind) => ({ value: kind, label: REGION_LABELS[kind] ?? kind }));
-    const current = StepsView.#value(step, field)?.[DetectionRegionKey.KIND] ?? RegionKind.TABLE;
-    const select = this.#shown.select(PlanAction.STEP_PARAMETER, regions, current, (kind) => this.#set(step, field, { [DetectionRegionKey.KIND]: kind }));
-    return [this.#labelled(step, field, select)];
+    const state = this.#editor.state;
+    const identifier = step[PlanStepKey.IDENTIFIER];
+    const name = field[ActionFieldKey.NAME];
+    const kinds = Object.values(RegionKind).filter((kind) => kind !== RegionKind.ZONE || state.zones().length > 0);
+    const regions = kinds.map((kind) => ({ value: kind, label: REGION_LABELS[kind] ?? kind }));
+    const region = StepsView.#value(step, field) ?? {};
+    const current = region[DetectionRegionKey.KIND] ?? RegionKind.TABLE;
+    const select = this.#shown.select(PlanAction.STEP_PARAMETER, regions, current, (kind) => this.#edit(() => state.setRegion(identifier, name, kind)));
+    const controls = [this.#labelled(step, field, select)];
+    if (current === RegionKind.ZONE) controls.push(this.#zonePicker(region[DetectionRegionKey.ZONE], DetectionRegionKey.ZONE, (zone) => this.#set(step, field, { ...region, [DetectionRegionKey.ZONE]: zone })));
+    if (current === RegionKind.MARKER) controls.push(this.#markerRow(region[DetectionRegionKey.POSE], (pose) => this.#edit(() => state.setTarget(identifier, name, pose))));
+    return controls;
+  }
+
+  /**
+   * @param {string|undefined} zone The chosen zone's identifier.
+   * @param {string} key The key the choice is written under.
+   * @param {function(string): void} onChange Called with the zone chosen.
+   * @returns {HTMLElement} A choice of the robot profile's zones.
+   */
+  #zonePicker(zone, key, onChange) {
+    const zones = this.#editor.state.zones().map((entry) => ({ value: entry[ZoneKey.IDENTIFIER], label: entry[ZoneKey.LABEL] }));
+    const select = this.#shown.select(PlanAction.STEP_PARAMETER, zones, zone ?? zones[0]?.value, onChange);
+    select.dataset.field = key;
+    return this.#shown.label('zone', select);
+  }
+
+  /**
+   * @param {Array<number>|undefined} pose A marker's pose.
+   * @param {function(Array<number>): void} onChange Called with the edited pose, before
+   *   it rests on the surface below it.
+   * @returns {HTMLElement} The controls of the marker's position on the surface and its
+   *   heading; its height follows the surface.
+   */
+  #markerRow(pose, onChange) {
+    const elements = this.#shown;
+    const target = pose ?? PlanPose.of(0, 0, 0, 0);
+    const position = PlanPose.position(target);
+    const row = elements.create('div', 'pose-row');
+    row.dataset.marker = 'true';
+    const coordinates = ['x', 'y'].map((axis, index) =>
+      elements.number(axis, position[index], PlanAction.POSE, (value) => {
+        const moved = [...position];
+        moved[index] = value;
+        onChange(PlanPose.moved(target, moved));
+      }),
+    );
+    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
+    row.append(...coordinates, heading);
+    return row;
   }
 
   /**
@@ -550,7 +602,8 @@ export class StepsView {
   /**
    * @param {Object} step A step.
    * @param {Object} field A field accepting a surface.
-   * @returns {Array<HTMLElement>} The choice of pose or surface and its controls.
+   * @returns {Array<HTMLElement>} The choice of a pose, a surface, a zone, an object to
+   *   put it on top of or a marker, and its controls.
    */
   #destination(step, field) {
     const elements = this.#shown;
@@ -559,10 +612,19 @@ export class StepsView {
     const name = field[ActionFieldKey.NAME];
     const destination = StepsView.#value(step, field) ?? {};
     const placement = destination[DestinationKey.PLACEMENT] ?? PlacementMode.POSE;
-    const modes = Object.values(PlacementMode).map((mode) => ({ value: mode, label: PLACEMENT_LABELS[mode] }));
+    const offered = Object.values(PlacementMode).filter((mode) => mode !== PlacementMode.ZONE || state.zones().length > 0);
+    const modes = offered.map((mode) => ({ value: mode, label: PLACEMENT_LABELS[mode] }));
     const controls = [this.#labelled(step, field, elements.select(PlanAction.STEP_PARAMETER, modes, placement, (value) => this.#edit(() => state.setPlacement(identifier, name, value))))];
     const update = (changes) => this.#set(step, field, { ...destination, ...changes });
     if (placement === PlacementMode.POSE) return [...controls, this.#poseRow(destination[DestinationKey.POSE], (pose) => update({ [DestinationKey.POSE]: pose }))];
+    if (placement === PlacementMode.MARKER) return [...controls, this.#markerRow(destination[DestinationKey.POSE], (pose) => this.#edit(() => state.setTarget(identifier, name, pose)))];
+    if (placement === PlacementMode.ZONE) return [...controls, this.#zonePicker(destination[DestinationKey.ZONE], DestinationKey.ZONE, (zone) => update({ [DestinationKey.ZONE]: zone }))];
+    if (placement === PlacementMode.ON_TOP_OF) {
+      const supports = state.supportChoices(identifier);
+      const select = elements.select(PlanAction.STEP_PARAMETER, supports, destination[DestinationKey.OBJECT] ?? supports[0]?.value, (value) => update({ [DestinationKey.OBJECT]: value }));
+      select.dataset.field = DestinationKey.OBJECT;
+      return [...controls, elements.label('object', select)];
+    }
     const types = state.catalog[PlanBuilderCatalogKey.SURFACE_TYPES].map((type) => ({ value: type, label: type }));
     const surfaceType = destination[DestinationKey.SURFACE_TYPE];
     const named = (this.#editor.surfaces().get(surfaceType) ?? []).map((surface) => ({ value: surface, label: surface }));

@@ -12,9 +12,9 @@ reaches.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from typing_extensions import Any, Callable, Dict, Iterable, Optional
+from typing_extensions import Any, Callable, Dict, Iterable, List, Optional
 
 from coraplex.querying.grasp_closeness import GraspsByCloseness
 from coraplex.robot_plans.actions.base import Action
@@ -28,10 +28,13 @@ from cramera_bridge.plans.actions import (
 )
 from cramera_bridge.plans.arms import ArmField, Arms, RobotArms
 from cramera_bridge.plans.object_types import ObjectType
+from cramera_bridge.plans.placing import PlacingTargets
 from cramera_bridge.plans.regions import RegionBoxes
+from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.surfaces import SurfaceTargets
 from cramera_bridge.plans.world import OBJECT_TYPE_ANNOTATIONS, PlannedGraspable
 from cramera_bridge.exceptions import AnnotationNotInWorld, ObjectNotGraspable
+from cramera_bridge.geometry import NumericPose
 from cramera_protocol.detection import DetectionRegion
 from cramera_protocol.geometry import Pose as PlannedPose
 from cramera_protocol.plan_builder import (
@@ -78,6 +81,11 @@ class StepArguments:
     step: PlanStep
     """
     The step.
+    """
+
+    site: RobotSite = field(default_factory=RobotSite)
+    """
+    Where the plan stands the robot, and the robot profile's zones.
     """
 
     def arguments(self) -> Dict[str, Any]:
@@ -203,7 +211,9 @@ class StepArguments:
         :param value: A :class:`DetectionRegion`.
         :return: The box the region spans around the robot that performs the step.
         """
-        return RegionBoxes(self.context.robot).box(DetectionRegion.from_json(value))
+        return RegionBoxes(self.context.robot, site=self.site).box(
+            DetectionRegion.from_json(value)
+        )
 
     def pose(self, offered: ActionField, value: Any) -> Pose:
         """
@@ -216,6 +226,8 @@ class StepArguments:
         destination = Destination.from_json(value)
         if destination.placement is PlacementMode.POSE:
             return self.native(destination.pose)
+        if destination.is_grounded_late:
+            return self.placing().pose(destination)
         return self.surface(destination).first()
 
     def poses(self, offered: ActionField, value: Any) -> Pose | Iterable[Pose]:
@@ -227,6 +239,8 @@ class StepArguments:
         destination = Destination.from_json(value)
         if destination.placement is PlacementMode.POSE:
             return self.native(destination.pose)
+        if destination.is_grounded_late:
+            return self.placing().pose(destination)
         return self.surface(destination)
 
     @staticmethod
@@ -249,6 +263,48 @@ class StepArguments:
             surface_type=destination.surface_type,
             surface_name=destination.surface_name,
         )
+
+    def placing(self) -> PlacingTargets:
+        """
+        :return: Where the step's object goes in the world as it is now.
+        """
+        return PlacingTargets(
+            world=self.context.world,
+            robot=self.context.robot,
+            site=self.site,
+            bodies=self.bodies,
+            object_identifier=self.object_identifier(),
+        )
+
+    def late_destination_fields(self) -> List[ActionField]:
+        """
+        :return: The step's fields accepting a surface whose destination is only known
+            once the plan is grounded: in a zone, on top of an object or at a marker.
+        """
+        return [
+            offered
+            for offered in self.action.schema.fields
+            if offered.accepts_surface
+            and offered.name in self.step.values
+            and Destination.from_json(self.step.values[offered.name]).is_grounded_late
+        ]
+
+    def resolved_destinations(self) -> Dict[str, Any]:
+        """
+        :return: The value of each field whose destination is only known once the plan
+            is grounded, as the pose it resolves to in the world as it is now.
+        :raises PlacementNotFound: When a destination resolves to no pose.
+        """
+        resolved = {}
+        for offered in self.late_destination_fields():
+            pose = self.placing().pose(
+                Destination.from_json(self.step.values[offered.name])
+            )
+            resolved[offered.name] = Destination(
+                placement=PlacementMode.POSE,
+                pose=NumericPose.of_matrix(pose.to_np()).published(),
+            ).to_json()
+        return resolved
 
     def object_identifier(self) -> Optional[str]:
         """
@@ -309,6 +365,11 @@ class StepActions:
     The workspace's actions, which steps name by class name.
     """
 
+    site: RobotSite = field(default_factory=RobotSite)
+    """
+    Where the plan stands the robot, and the robot profile's zones.
+    """
+
     def action(self, step: PlanStep) -> Action | StatementNode:
         """
         :param step: A step the plan builder checked against its action's schema.
@@ -318,7 +379,11 @@ class StepActions:
         """
         discovered = self.actions.named(step.action)
         step_arguments = StepArguments(
-            context=self.context, bodies=self.bodies, action=discovered, step=step
+            context=self.context,
+            bodies=self.bodies,
+            action=discovered,
+            step=step,
+            site=self.site,
         )
         arguments = step_arguments.arguments()
         if step_arguments.find_open_arm_field() is not None:

@@ -340,7 +340,18 @@ from cramera_protocol.query_steps import (
     SteppingRequestKey,
     VariableRole,
 )
-from cramera_protocol.robot_profile import ExecutorKind, RobotProfileKey, SkillKey
+from cramera_protocol.reach import (
+    ArmReachKey,
+    ReachRequestKey,
+    RobotReachKey,
+    TableTopKey,
+)
+from cramera_protocol.robot_profile import (
+    ExecutorKind,
+    RobotProfileKey,
+    SkillKey,
+    ZoneKey,
+)
 from cramera_protocol.resolutions import (
     BackendDescriptionKey,
     ContactReadingKey,
@@ -713,6 +724,11 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     RunStatusKey,
     RobotProfileKey,
     SkillKey,
+    ZoneKey,
+    ArmReachKey,
+    ReachRequestKey,
+    RobotReachKey,
+    TableTopKey,
     PlanTemplateKey,
     RegionKind,
     DetectionRegionKey,

@@ -23,6 +23,7 @@ from typing_extensions import (
     FrozenSet,
     Iterable,
     List,
+    Optional,
     Sized,
     Type,
     Union,
@@ -49,7 +50,12 @@ from cramera_plan_builder.exceptions import (
     ValueOutOfRange,
 )
 from cramera_protocol.bundle.index import SceneName
-from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
+from cramera_protocol.detection import (
+    DetectedObjectReference,
+    DetectionRegion,
+    DetectionRegionKey,
+    RegionKind,
+)
 from cramera_protocol.document import JsonValue
 from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.geometry import Pose
@@ -149,7 +155,7 @@ class ExpectedValue(StrEnum):
     A pose field's value.
     """
 
-    DESTINATION = "a pose or a surface to put the object down at"
+    DESTINATION = "a pose, surface, zone, object or marker to put the object down at"
     """
     The value of a field that accepts a surface.
     """
@@ -520,12 +526,24 @@ class StepValueCheck:
         :param value: Its value, a destination naming its pose or surface type.
         """
         destination = self.read(location, Destination, value, ExpectedValue.DESTINATION)
-        if destination.placement is PlacementMode.POSE:
+        if destination.placement in (PlacementMode.POSE, PlacementMode.MARKER):
             if destination.pose is None:
                 raise MissingStepParameter(location, DestinationKey.POSE)
             self.plan_check.pose(
                 PlanCheck.location(location, DestinationKey.POSE), destination.pose
             )
+            return
+        if destination.placement is PlacementMode.ZONE:
+            self.zone(
+                PlanCheck.location(location, DestinationKey.ZONE), destination.zone
+            )
+            return
+        if destination.placement is PlacementMode.ON_TOP_OF:
+            object_location = PlanCheck.location(location, DestinationKey.OBJECT)
+            if destination.object is None:
+                raise MissingStepParameter(location, DestinationKey.OBJECT)
+            if destination.object not in self.objects:
+                raise UnknownReference(object_location, destination.object)
             return
         if destination.surface_type is None:
             raise MissingStepParameter(location, DestinationKey.SURFACE_TYPE)
@@ -542,7 +560,31 @@ class StepValueCheck:
         :param offered: A region field.
         :param value: Its value, a region of the scene.
         """
-        self.read(location, DetectionRegion, value, ExpectedValue.REGION)
+        region = self.read(location, DetectionRegion, value, ExpectedValue.REGION)
+        if region.kind is RegionKind.ZONE:
+            self.zone(
+                PlanCheck.location(location, DetectionRegionKey.ZONE), region.zone
+            )
+        if region.kind is RegionKind.MARKER:
+            if region.pose is None:
+                raise MissingStepParameter(location, DetectionRegionKey.POSE)
+            self.plan_check.pose(
+                PlanCheck.location(location, DetectionRegionKey.POSE), region.pose
+            )
+
+    def zone(self, location: str, identifier: Optional[str]) -> None:
+        """
+        :param location: Where the zone's identifier sits.
+        :param identifier: The identifier of a zone of the robot profile, or None.
+        :raises MissingStepParameter: When no zone is named.
+        :raises UnsupportedByCatalog: When the robot profile names no such zone.
+        """
+        if identifier is None:
+            raise MissingStepParameter(location, DestinationKey.ZONE)
+        profile = self.catalog.profile
+        zones = [] if profile is None else [zone.identifier for zone in profile.zones]
+        if identifier not in zones:
+            raise UnsupportedByCatalog(location, identifier, zones)
 
     @staticmethod
     def read(

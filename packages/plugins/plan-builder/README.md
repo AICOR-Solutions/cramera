@@ -66,7 +66,7 @@ cramera
   | `Pose \| Iterable[Pose]` | pose or surface | a pose, or a surface sampled when the step runs |
   | `float`, `int`, `bool`, `str` | number, integer, boolean, text | inputs, the default as placeholder |
   | `GraspDescription` | grasp | none: derived from the action's arm and object |
-  | `VolumetricBoundingBox` | region | the regions of the scene: for now the whole table |
+  | `VolumetricBoundingBox` | region | the regions of the scene: the whole table, a zone of the profile, or the square around a marker |
   | `type[SemanticAnnotation]` | enum | the kinds of the plan's free objects (`object`, `block`) |
 
   `Optional[X]` is classified by `X`. A field of another type, or one whose type cannot
@@ -132,6 +132,22 @@ cramera
   profile's `simulatedScene` names a plan file whose objects a simulated camera sees.
   Found objects move the plan's objects, and one the plan lacks becomes a copy of the
   library model of its type and the `color` its collection names.
+- **Placing.** A field taking a surface (a place's `target_location`) also takes a
+  zone of the robot profile (`zones`: named rectangles on the robot's table, in the
+  frame of the robot's pose), on top of another object (one of the plan's or
+  `detected:<step id>`), or a free-place marker. These are resolved when the plan is
+  grounded, each in the copy of the twin as the steps before left it: a zone's free spot
+  within reach nearest its centre (a grid one object and twice a 1 cm clearance apart),
+  the top of the object below plus half the placed object's height, or the marker's
+  position and heading resting on the surface below it. The run grounds the plan the
+  same way before it starts and puts each object down at the pose found; the run
+  measures where it ended (`placedPosition.<step>`). The 3D view shows the zones on the
+  table. A marker slides over the surface below it (x, y and yaw only; the table's top,
+  else the floor), stays in sync with its x, y and yaw fields, and turns green or red
+  while dragged by a quick check against what the robot reaches: the `reach` route
+  answers, once per robot model, a sphere around each arm's shoulder that its tool
+  stays within (`cramera_bridge.plans.reaching`). Red is out of reach for certain;
+  green may still fail the validation, which stays the gate.
 - **Constraints** are compiled by the rule book `rules/constraints.json` into the
   monitor the live publisher observes (`VectorsAligned`, `HeightMonitor`,
   `DistanceMonitor`) and into switches of the step's own action: a rule's switch names

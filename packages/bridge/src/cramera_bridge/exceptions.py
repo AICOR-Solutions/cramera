@@ -1071,3 +1071,70 @@ class StepNotGrounded(PlanError):
 
     def message(self) -> str:
         return f"{self.step} cannot be carried out: {self.failure}"
+
+
+# %% placing
+
+
+@dataclass
+class PlacementNotFound(PlanError):
+    """
+    A step putting an object down at a place that is only found when the plan is
+    grounded, where no such place is found.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+@dataclass
+class UnknownZone(PlacementNotFound):
+    """
+    A zone the robot profile does not name.
+    """
+
+    zone: str
+    """
+    The zone's identifier.
+    """
+
+    def message(self) -> str:
+        return f"The robot profile names no zone {self.zone}."
+
+
+@dataclass
+class NoFreeSpotInZone(PlacementNotFound):
+    """
+    A zone in which every spot the object fits is taken or out of the robot's reach.
+    """
+
+    zone: str
+    """
+    The zone's identifier.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object put down.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The zone {self.zone} has no free spot within reach for "
+            f"{self.object_identifier}."
+        )
+
+
+@dataclass
+class UnknownSupportingObject(PlacementNotFound):
+    """
+    An object to put another one on top of that the plan does not hold.
+    """
+
+    object_identifier: str
+    """
+    The identity or reference the step names.
+    """
+
+    def message(self) -> str:
+        return f"The plan holds no object {self.object_identifier} to put anything on."

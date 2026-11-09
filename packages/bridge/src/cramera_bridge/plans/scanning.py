@@ -83,7 +83,7 @@ class SceneScanner:
         context = believed.build_context(world)
         query = PerceptionQuery(
             OBJECT_TYPE_ANNOTATIONS[ObjectType.OBJECT],
-            RegionBoxes(context.robot).box(self.order.region),
+            RegionBoxes(context.robot, site=believed.site).box(self.order.region),
             context.robot,
             world,
         )

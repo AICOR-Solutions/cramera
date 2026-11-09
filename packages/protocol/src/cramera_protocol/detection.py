@@ -12,6 +12,7 @@ from enum import StrEnum
 from typing_extensions import List, Optional
 
 from cramera_protocol.document import JsonDocument, document_field
+from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import DemoDocument, PlanDocument, PlannedObject
 
 # %% regions
@@ -27,6 +28,16 @@ class RegionKind(StrEnum):
     The whole top of the table the robot works at.
     """
 
+    ZONE = "zone"
+    """
+    A named zone of the robot profile.
+    """
+
+    MARKER = "marker"
+    """
+    The square around a marker dragged across the scene.
+    """
+
 
 class DetectionRegionKey(StrEnum):
     """
@@ -36,6 +47,16 @@ class DetectionRegionKey(StrEnum):
     KIND = "kind"
     """
     How the region is named.
+    """
+
+    ZONE = "zone"
+    """
+    The named zone.
+    """
+
+    POSE = "pose"
+    """
+    The marker's pose.
     """
 
 
@@ -49,6 +70,18 @@ class DetectionRegion(JsonDocument):
     kind: RegionKind = document_field(DetectionRegionKey.KIND, default=RegionKind.TABLE)
     """
     How the region is named.
+    """
+
+    zone: Optional[str] = document_field(DetectionRegionKey.ZONE, default=None)
+    """
+    The identifier of the robot profile's zone a region of kind :attr:`RegionKind.ZONE`
+    is.
+    """
+
+    pose: Optional[Pose] = document_field(DetectionRegionKey.POSE, default=None)
+    """
+    The pose of the marker a region of kind :attr:`RegionKind.MARKER` lies around, in
+    world coordinates, resting on the surface below it.
     """
 
 

@@ -72,3 +72,14 @@ def test_a_scan_order_and_its_scan_survive_their_json():
 
 def test_the_browser_reads_the_names_of_a_scan():
     assert {RegionKind, DetectionGrounding, SceneScanKey} <= set(BROWSER_ENUMERATIONS)
+
+
+def test_a_region_names_a_zone_or_lies_around_a_marker():
+    zone = DetectionRegion.from_json(
+        {DetectionRegionKey.KIND: RegionKind.ZONE, DetectionRegionKey.ZONE: "left_tray"}
+    )
+    marker = DetectionRegion(
+        kind=RegionKind.MARKER, pose=Pose(0.6, 0.2, 0.88, 0, 0, 0, 1)
+    )
+    assert zone.zone == "left_tray"
+    assert DetectionRegion.from_json(marker.to_json()) == marker

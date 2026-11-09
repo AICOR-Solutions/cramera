@@ -2,7 +2,7 @@
  * The plan builder's routes as the builder page calls them.
  */
 
-import { DetectionRegionKey, EnvironmentAnnotationsParameter, ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RegionKind, RunRequestKey, ScanRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ValidationRequestKey, ViewerRoute } from '../../../protocol.js';
+import { DetectionRegionKey, EnvironmentAnnotationsParameter, ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, ReachRequestKey, RegionKind, RunRequestKey, ScanRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ValidationRequestKey, ViewerRoute } from '../../../protocol.js';
 
 /**
  * The media type of JSON bodies, which also explain errors.
@@ -230,6 +230,15 @@ export class PlanBuilderApi {
    */
   validate(plan) {
     return this.#client.post(this.url(PlanBuilderRoute.VALIDATE), { [ValidationRequestKey.PLAN]: plan });
+  }
+
+  /**
+   * @param {string} model A robot model's name.
+   * @returns {Promise<Object>} The `RobotReach`: what each arm of the model reaches and
+   *   the table it works at.
+   */
+  reach(model) {
+    return this.#client.post(this.url(PlanBuilderRoute.REACH), { [ReachRequestKey.ROBOT]: model });
   }
 
   /**

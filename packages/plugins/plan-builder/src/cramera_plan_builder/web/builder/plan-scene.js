@@ -1,8 +1,12 @@
 /**
  * The builder's 3D view: the environment bundle as the viewer shows it, and over it the
  * plan's robots as their models at rest, objects and the edited robot's targets as
- * markers that are picked by a click and moved or turned with handles, and a map of the
- * world's axes.
+ * markers that are picked by a click and moved or turned with handles, the robot
+ * profile's zones on the table, and a map of the world's axes.
+ *
+ * A free-place marker slides over the surface below it and turns about the vertical
+ * only; while it is dragged, the page tells whether an arm may reach it, which tints it
+ * green or red.
  */
 
 import * as THREE from 'three';
@@ -81,7 +85,15 @@ const MarkerColor = Object.freeze({
   TARGET: 0x7c3aed,
   PUT_DOWN: 0xf59e0b,
   SELECTION: 0x0ea5e9,
+  REACHABLE: 0x16a34a,
+  UNREACHABLE: 0xdc2626,
+  ZONE: 0x0284c7,
 });
+
+/**
+ * How see-through a zone is.
+ */
+const ZONE_OPACITY = 0.18;
 
 /**
  * How see-through a put-down target is.
@@ -109,6 +121,7 @@ const PRIMARY_BUTTON = 0;
 const ViewEvent = Object.freeze({
   DRAGGING_CHANGED: 'dragging-changed',
   CHANGED: 'change',
+  OBJECT_CHANGED: 'objectChange',
   POINTER_DOWN: 'pointerdown',
   POINTER_UP: 'pointerup',
 });
@@ -174,8 +187,11 @@ export class PlanSceneListeners {
    *   ends, with the marker's new pose.
    * @param {function(Error): void} onError Called when the environment or a mesh cannot
    *   be shown.
+   * @param {function(Selection, Array<number>): ({pose: Array<number>, reachable: (boolean|null)}|null)=} onMove
+   *   Called while a free-place marker is dragged, with its pose; answers where it
+   *   rests and whether an arm may reach it, or null to leave it as dragged.
    */
-  constructor(onPick, onPlace, onError) {
+  constructor(onPick, onPlace, onError, onMove = () => null) {
     /**
      * Called when a click picks a marker or nothing.
      * @type {function(Selection|null): void}
@@ -191,6 +207,36 @@ export class PlanSceneListeners {
      * @type {function(Error): void}
      */
     this.onError = onError;
+    /**
+     * Called while a free-place marker is dragged.
+     * @type {function(Selection, Array<number>): ({pose: Array<number>, reachable: (boolean|null)}|null)}
+     */
+    this.onMove = onMove;
+  }
+}
+
+/**
+ * What the page lays over the plan's markers: the zones on the table and whether an
+ * arm may reach each free-place marker.
+ */
+export class SceneOverlay {
+  /**
+   * @param {Array<{identifier: string, label: string, corners: Array<Array<number>>}>} zones
+   *   The zones' corners in world coordinates.
+   * @param {Map<string, boolean|null>} reachable Whether an arm may reach each
+   *   free-place marker, by its selection's key; null while it is not known.
+   */
+  constructor(zones = [], reachable = new Map()) {
+    /**
+     * The zones' corners in world coordinates.
+     * @type {Array<{identifier: string, label: string, corners: Array<Array<number>>}>}
+     */
+    this.zones = zones;
+    /**
+     * Whether an arm may reach each free-place marker, by its selection's key.
+     * @type {Map<string, boolean|null>}
+     */
+    this.reachable = reachable;
   }
 }
 
@@ -238,6 +284,18 @@ export class PlanScene {
    * @type {Map<string, THREE.Object3D>}
    */
   #byKey = new Map();
+
+  /**
+   * The zones on the table, below the markers.
+   * @type {THREE.Group}
+   */
+  #zones = new THREE.Group();
+
+  /**
+   * The zones shown, as JSON, so they are drawn again only when they change.
+   * @type {string}
+   */
+  #zoneSignature = '';
 
   /**
    * Each object model's mesh once loaded, by model, copied for every object.
@@ -326,7 +384,7 @@ export class PlanScene {
     this.#listeners = listeners;
     this.#loader = new SceneLoader(api);
     this.#view = new SceneView(container);
-    this.#view.scene.add(this.#lighting.group, this.#markers);
+    this.#view.scene.add(this.#lighting.group, this.#zones, this.#markers);
     this.#axes = new SceneAxes(this.#view, container.ownerDocument);
     this.#showFloor();
     this.#handles = new TransformControls(this.#view.camera, this.#view.renderer.domElement);
@@ -335,6 +393,7 @@ export class PlanScene {
       if (!event.value) this.#placed();
     });
     this.#handles.addEventListener(ViewEvent.CHANGED, () => this.#view.requestRender());
+    this.#handles.addEventListener(ViewEvent.OBJECT_CHANGED, () => this.#moved());
     this.#view.scene.add(this.#handles.getHelper());
     this.#listenOnCanvas(ViewEvent.POINTER_DOWN, (event) => {
       this.#press = { x: event.clientX, y: event.clientY, onHandle: this.#handles.axis !== null };
@@ -371,10 +430,13 @@ export class PlanScene {
    * @param {import('./plan-state.js').PlanState} state The plan.
    * @param {{objects: Map<string, Array<number>>, robots: Map<string, Array<number>>}=} live
    *   The live world's poses by the plan's identities.
+   * @param {SceneOverlay=} overlay The zones and whether each free-place marker is
+   *   reached.
    */
-  show(state, live = { objects: new Map(), robots: new Map() }) {
+  show(state, live = { objects: new Map(), robots: new Map() }, overlay = new SceneOverlay()) {
+    this.#showZones(overlay.zones);
     const wanted = new Map();
-    const want = (selection, pose, signature, grounded, build) => wanted.set(selection.key, { selection, pose, signature, grounded, build });
+    const want = (selection, pose, signature, grounded, build, slides = false) => wanted.set(selection.key, { selection, pose, signature, grounded, build, slides });
     const edited = state.activeRobot()?.[PlannedRobotKey.IDENTIFIER];
     for (const robot of state.robots()) {
       const identifier = robot[PlannedRobotKey.IDENTIFIER];
@@ -394,12 +456,13 @@ export class PlanScene {
       for (const target of state.targets(step)) {
         const selection = new Selection(MarkerKind.TARGET, step[PlanStepKey.IDENTIFIER], target.field);
         const putDown = state.objects().find((item) => item[PlannedObjectKey.IDENTIFIER] === target.object);
+        const slides = Boolean(target.marker);
         if (!putDown) {
-          want(selection, target.pose, MarkerKind.TARGET, false, () => this.#targetMarker());
+          want(selection, target.pose, `${MarkerKind.TARGET}${slides}`, slides, () => this.#targetMarker(), slides);
           continue;
         }
         const model = putDown[PlannedObjectKey.MODEL];
-        want(selection, target.pose, model, false, () => this.#objectMarker(model, null, true));
+        want(selection, target.pose, `${model}${slides}`, slides, () => this.#objectMarker(model, null, true), slides);
       }
     }
     for (const [key, marker] of this.#byKey) {
@@ -413,11 +476,15 @@ export class PlanScene {
         marker.userData[SELECTION_DATA] = entry.selection;
         marker.userData.signature = entry.signature;
         marker.userData.grounded = entry.grounded;
+        marker.userData.slides = entry.slides;
         this.#byKey.set(key, marker);
         this.#markers.add(marker);
       }
       const marker = this.#byKey.get(key);
-      if (!(this.#handles.dragging && this.#handles.object === marker)) this.#pose(marker, entry.pose);
+      if (!(this.#handles.dragging && this.#handles.object === marker)) {
+        this.#pose(marker, entry.pose);
+        if (entry.slides) PlanScene.#tint(marker, overlay.reachable.get(key) ?? null);
+      }
     }
     this.select(this.#selection && this.#byKey.has(this.#selection.key) ? this.#selection : null);
     this.#view.requestRender();
@@ -680,6 +747,56 @@ export class PlanScene {
     this.#handles.showX = this.#mode === TransformMode.MOVE;
     this.#handles.showY = this.#mode === TransformMode.MOVE;
     this.#handles.showZ = this.#mode === TransformMode.TURN || !grounded;
+    this.#view.requestRender();
+  }
+
+  /**
+   * Rest a dragged free-place marker where the page says, and tint it by whether an arm
+   * may reach it.
+   */
+  #moved() {
+    const marker = this.#handles.object;
+    if (!marker?.userData.slides || !this.#selection) return;
+    const pose = [...marker.position.toArray(), ...marker.quaternion.toArray()];
+    const answer = this.#listeners.onMove(this.#selection, pose);
+    if (!answer) return;
+    this.#pose(marker, answer.pose);
+    PlanScene.#tint(marker, answer.reachable);
+    this.#view.requestRender();
+  }
+
+  /**
+   * @param {THREE.Object3D} marker A free-place marker.
+   * @param {boolean|null} reachable Whether an arm may reach it, or null while it is not
+   *   known, which keeps the marker's own colour.
+   */
+  static #tint(marker, reachable) {
+    marker.traverse((child) => {
+      if (!child.isMesh) return;
+      child.userData.ownColor ??= child.material.color.getHex();
+      const color = reachable === null ? child.userData.ownColor : reachable ? MarkerColor.REACHABLE : MarkerColor.UNREACHABLE;
+      child.material.color.setHex(color);
+    });
+  }
+
+  /**
+   * Draw the zones on the table, each a see-through rectangle with its outline.
+   * @param {Array<{identifier: string, label: string, corners: Array<Array<number>>}>} zones
+   *   The zones' corners in world coordinates.
+   */
+  #showZones(zones) {
+    const signature = JSON.stringify(zones);
+    if (signature === this.#zoneSignature) return;
+    this.#zoneSignature = signature;
+    this.#zones.clear();
+    for (const zone of zones) {
+      const corners = zone.corners.map((corner) => new THREE.Vector3(...corner));
+      const area = new THREE.BufferGeometry().setFromPoints([corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]]);
+      const fill = new THREE.Mesh(area, new THREE.MeshBasicMaterial({ color: MarkerColor.ZONE, transparent: true, opacity: ZONE_OPACITY, side: THREE.DoubleSide, depthWrite: false }));
+      const outline = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(corners), new THREE.LineBasicMaterial({ color: MarkerColor.ZONE }));
+      fill.name = zone.identifier;
+      this.#zones.add(fill, outline);
+    }
     this.#view.requestRender();
   }
 

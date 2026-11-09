@@ -28,6 +28,7 @@ from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.environments import EnvironmentAnnotationCache
 from cramera_plan_builder.routes import PlanBuilderRoutes
 from cramera_plan_builder.runs import DemoRunner
+from cramera_plan_builder.reaches import RobotReaches
 from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.validations import PlanValidations
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
@@ -186,6 +187,11 @@ class PlanBuilderPlugin(ViewerPlugin):
     Validates plans.
     """
 
+    reaches: RobotReaches = field(default_factory=RobotReaches)
+    """
+    Measures what robot models reach.
+    """
+
     def name(self) -> str:
         return PlanBuilderName.PLUGIN
 
@@ -228,6 +234,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             profile=ConfiguredProfile.of_environment(self.environment),
             scans=self.scans,
             validations=self.validations,
+            reaches=self.reaches,
         ).declarations()
 
     def web_directory(self) -> Optional[Path]:

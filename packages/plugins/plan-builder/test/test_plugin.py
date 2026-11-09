@@ -22,6 +22,7 @@ from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
 from cramera_plan_builder.exceptions import PlanNotValidated, RunModeNotOffered
 from cramera_plan_builder.profiles import ConfiguredProfile
+from cramera_plan_builder.reaches import RobotReaches
 from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.validations import PlanValidations
 from cramera_plan_builder.plugin import (
@@ -37,9 +38,12 @@ from cramera_plan_builder.workspace import (
 )
 from cramera_protocol.detection import ScanRequest, SceneScan
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT
+from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import (
     ConstraintText,
     DemoDocument,
+    Destination,
+    PlacementMode,
     LoadedEnvironment,
     DemoSource,
     PlanBuilderCatalog,
@@ -61,6 +65,7 @@ from cramera_protocol.robot_profile import (
     RobotProfile,
     RobotProfileVariable,
 )
+from cramera_protocol.reach import ReachRequest, RobotReach
 from cramera_protocol.validation import (
     StepFailureReason,
     StepVerdict,
@@ -631,3 +636,127 @@ def test_a_step_of_a_skill_the_profile_lacks_fails_without_trying(validating, pl
 
     assert report.steps[0].reason is StepFailureReason.SKILL_NOT_OFFERED
     assert {step.verdict for step in report.steps[1:]} == {StepVerdict.UNCHECKED}
+
+
+# %% placing
+
+
+@pytest.fixture
+def profiled(serve, output, workspace_loader):
+    """
+    :return: Answers requests to a plan builder of Tracy's test profile, which names a
+        left tray, measuring reach with the stand-in.
+    """
+    return serve(
+        PlanBuilderPlugin(
+            environment={
+                PlanBuilderVariable.OUTPUT: str(output),
+                RobotProfileVariable.PROFILE: str(DATASET / "profile" / "tracy.json"),
+            },
+            workspace=workspace_loader,
+            reaches=RobotReaches(
+                interpreter=str(DATASET / "reaching_interpreter.py"),
+                modules=CramModules(
+                    finder=lambda name: ModuleSpec(
+                        name, loader=None, origin=f"{name}.py"
+                    )
+                ),
+            ),
+        )
+    )
+
+
+def placing_at(plan, destination: Destination):
+    """
+    :return: The plan whose place step puts the milk down at the destination.
+    """
+    [robot, *others] = plan.robots
+    steps = [
+        (
+            replace(
+                step, values={**step.values, "target_location": destination.to_json()}
+            )
+            if step.action == "place"
+            else step
+        )
+        for step in robot.steps
+    ]
+    return replace(plan, robots=[replace(robot, steps=steps), *others])
+
+
+def test_a_demo_carries_the_profiles_zones_a_place_step_names(profiled, plan):
+    placed = placing_at(
+        plan,
+        Destination(placement=PlacementMode.ZONE, zone="left_tray"),
+    )
+
+    answer = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(placed.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.OK, answer.body
+    document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
+    assert [zone.identifier for zone in document.zones] == ["left_tray"]
+
+
+@pytest.mark.parametrize(
+    "destination",
+    [
+        Destination(placement=PlacementMode.ZONE, zone="kitchen"),
+        Destination(placement=PlacementMode.ZONE),
+        Destination(placement=PlacementMode.ON_TOP_OF, object="teapot"),
+        Destination(placement=PlacementMode.MARKER),
+    ],
+    ids=["unknown zone", "no zone", "unknown object", "marker without pose"],
+)
+def test_a_place_step_naming_what_the_plan_lacks_has_no_demo(
+    profiled, plan, destination
+):
+    placed = placing_at(plan, destination)
+
+    answer = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(placed.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+def test_a_place_step_on_top_of_an_object_or_at_a_marker_has_a_demo(profiled, plan):
+    for destination in (
+        Destination(placement=PlacementMode.ON_TOP_OF, object="milk"),
+        Destination(
+            placement=PlacementMode.MARKER, pose=Pose(0.7, 0.3, 0.8, 0, 0, 0, 1)
+        ),
+    ):
+        answer = send(
+            profiled,
+            HttpMethod.POST,
+            PlanBuilderRoute.DEMO,
+            json.dumps(placing_at(plan, destination).to_json()).encode(),
+        )
+        assert answer.status == HTTPStatus.OK, answer.body
+
+
+def test_what_a_robot_model_reaches_is_answered_and_an_unknown_model_refused(profiled):
+    known = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.REACH,
+        json.dumps(ReachRequest(robot="tracy").to_json()).encode(),
+    )
+    unknown = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.REACH,
+        json.dumps(ReachRequest(robot="r2d2").to_json()).encode(),
+    )
+
+    assert known.status == HTTPStatus.OK, known.body
+    assert RobotReach.from_json(json.loads(known.body)).robot == "tracy"
+    assert unknown.status == HTTPStatus.UNPROCESSABLE_ENTITY

@@ -6,7 +6,7 @@ perceives again when it runs.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from typing_extensions import Dict, List, Optional, Set
 
@@ -16,6 +16,7 @@ from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
 from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.plans.regions import RegionBoxes
+from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.steps import StepArguments
 from cramera_bridge.plans.world import OBJECT_TYPE_ANNOTATIONS
 from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
@@ -45,6 +46,11 @@ class DetectedObjects:
     actions: DiscoveredActions
     """
     The workspace's actions, which steps name.
+    """
+
+    site: RobotSite = field(default_factory=RobotSite)
+    """
+    Where the plan stands the robot, and the robot profile's zones.
     """
 
     def resolve(self, steps: List[PlanStep]) -> Dict[str, Body]:
@@ -100,8 +106,9 @@ class DetectedObjects:
             bodies=self.bodies,
             action=self.actions.named(step.action),
             step=step,
+            site=self.site,
         )
-        region = RegionBoxes(self.context.robot).box(DetectionRegion())
+        region = RegionBoxes(self.context.robot, site=self.site).box(DetectionRegion())
         object_type = OBJECT_TYPE_ANNOTATIONS[ObjectType.OBJECT]
         color: Optional[ColorName] = None
         for offered in arguments.action.schema.fields:

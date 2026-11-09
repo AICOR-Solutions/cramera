@@ -8,5 +8,8 @@
     {"id": "pick", "label": "Pick", "action": "pick_up", "fields": ["object_designator"]}
   ],
   "templates": ["templates/park.json"],
-  "simulatedScene": "scenes/two_cups.json"
+  "simulatedScene": "scenes/two_cups.json",
+  "zones": [
+    {"id": "left_tray", "label": "Left tray", "area": {"minX": 0.6, "maxX": 0.8, "minY": 0.3, "maxY": 0.5}}
+  ]
 }

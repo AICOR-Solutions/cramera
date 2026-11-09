@@ -22,6 +22,7 @@ from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.grounding import PlanGrounding
+from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.steps import StepActions, StepArguments
 from cramera_bridge.plans.workspace import RobotAnnotations
 from cramera_bridge.plans.world import EmptyFloor, PlannedObjects
@@ -62,6 +63,12 @@ PLACEMENT_ERROR = "placementError"
 """
 The measurement of how far an object ended from where a step put it, followed by the
 step's identity.
+"""
+
+PLACED_POSITION = "placedPosition"
+"""
+The measurement of where an object a step put down ended once the plan ran, followed by
+the step's identity.
 """
 
 MEASUREMENT_SEPARATOR = "."
@@ -174,6 +181,12 @@ class PlannedTaskDemo(RobotTaskDemo):
     Finds the native actions the steps name.
     """
 
+    performed_steps: List[PlanStep] = field(default_factory=list, init=False)
+    """
+    The performing robot's steps as the plan was built: each arm left open given and
+    each destination only known once grounded resolved to its pose.
+    """
+
     @cached_property
     def discovered_actions(self) -> DiscoveredActions:
         """
@@ -223,6 +236,13 @@ class PlannedTaskDemo(RobotTaskDemo):
         """
         return PlannedRobots(self.plan).performing().steps
 
+    @property
+    def site(self) -> RobotSite:
+        """
+        Where the plan stands the performing robot, and the robot profile's zones.
+        """
+        return RobotSite.of_demo(self.document)
+
     def build_world(self) -> World:
         """
         :return: A new world holding the environment, every robot at its start pose
@@ -244,38 +264,35 @@ class PlannedTaskDemo(RobotTaskDemo):
             grounded.
         """
         steps = self.grounded_steps(context)
+        self.performed_steps = steps
         self.bodies.update(
-            DetectedObjects(context, self.bodies, self.discovered_actions).resolve(
-                steps
-            )
+            DetectedObjects(
+                context, self.bodies, self.discovered_actions, site=self.site
+            ).resolve(steps)
         )
-        actions = StepActions(context, self.bodies, self.discovered_actions)
+        actions = StepActions(
+            context, self.bodies, self.discovered_actions, site=self.site
+        )
         return Sequence(nodes=[actions.action(step) for step in steps])
 
     def grounded_steps(self, context: TaskContext) -> List[PlanStep]:
         """
         :param context: The world and the performing robot.
         :return: The performing robot's steps, each leaving its arm open naming the arm
-            that reaches, as a grounding of the plan in a copy of the world on the twin's
-            objects chooses it.
+            that reaches and each destination only known once grounded naming the pose
+            it resolves to, as a grounding of the plan in a copy of the world on the
+            twin's objects finds them.
         :raises StepNotGrounded: When a step fails that grounding.
         """
         steps = self.steps()
-        if not any(
-            StepArguments(
-                context=context,
-                bodies=self.bodies,
-                action=self.discovered_actions.named(step.action),
-                step=step,
-            ).find_open_arm_field()
-            for step in steps
-        ):
+        if not any(self.is_left_open(context, step) for step in steps):
             return steps
         grounded = PlanGrounding(
             context=context,
             bodies=dict(self.bodies),
             actions=self.discovered_actions,
             perception=WorldPerception(reports_unseen_bodies=True),
+            site=self.site,
         ).ground(steps)
         for grounded_step in grounded:
             if not grounded_step.succeeded:
@@ -283,12 +300,31 @@ class PlannedTaskDemo(RobotTaskDemo):
                 raise StepNotGrounded(validation.step, validation.detail)
         return [grounded_step.resolved_step() for grounded_step in grounded]
 
+    def is_left_open(self, context: TaskContext, step: PlanStep) -> bool:
+        """
+        :param context: The world and the performing robot.
+        :param step: A step of the performing robot.
+        :return: Whether it leaves its arm open, or a destination only known once the
+            plan is grounded.
+        """
+        arguments = StepArguments(
+            context=context,
+            bodies=self.bodies,
+            action=self.discovered_actions.named(step.action),
+            step=step,
+            site=self.site,
+        )
+        return arguments.find_open_arm_field() is not None or bool(
+            arguments.late_destination_fields()
+        )
+
     def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
-        Measure how far each object put down at a pose ended from it.
+        Measure how far each object put down at a pose ended from it, and where it
+        ended.
 
         :param context: The world after the plan ran.
-        :return: The distances by step.
+        :return: The distances and the positions by step.
         :raises TaskFailed: When an object ended farther than
             :data:`PLACEMENT_TOLERANCE` from its pose.
         """
@@ -306,14 +342,18 @@ class PlannedTaskDemo(RobotTaskDemo):
             measurements[
                 MEASUREMENT_SEPARATOR.join((PLACEMENT_ERROR, placement.step.identifier))
             ] = error
+            measurements[
+                MEASUREMENT_SEPARATOR.join((PLACED_POSITION, placement.step.identifier))
+            ] = list(position)
         return AcceptanceMetrics(measurements=measurements)
 
     def placements(self) -> Iterator[Placement]:
         """
-        :return: The objects the performing robot's steps put down at a pose: the
-            first body of a step whose field accepting a surface names a pose.
+        :return: The objects the performing robot's steps put down at a pose, as the
+            plan was built: the first body of a step whose field accepting a surface
+            names a pose.
         """
-        for step in self.steps():
+        for step in self.performed_steps or self.steps():
             schema = self.discovered_actions.named(step.action).schema
             objects = [
                 step.values[offered.name]
