@@ -6,17 +6,24 @@ physical execution sets up, and the execution a generated demo's command chooses
 from __future__ import annotations
 
 import json
+from importlib.util import find_spec
 
 import pytest
 
 from cramera.locations import DataLocations
-from cramera_bridge.exceptions import ExecutionNotRunning
+from coraplex.datastructures.enums import PerceptionSource
+from coraplex.perception import PerceptionTask
+from coraplex.robot_plans.actions.core.pick_up import PickUpAction
+from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
 from cramera_bridge.execution import (
     EXECUTIONS,
+    PERCEPTION_ENGINE_VARIABLE,
     KinematicExecution,
+    PerceivingPhysicalExecution,
     PhysicalExecution,
     PlanExecution,
 )
+from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.plans.command import PlanDemoCommand
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.world import PlannedGraspableFromAbove
@@ -25,6 +32,7 @@ from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
 from cramera_protocol.robot_profile import ExecutorKind
 from cramera_protocol.viewer import EnvironmentVariable
 from cramph.context import StatechartContext
+from cramph.statechart import Statechart
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.datastructures.definitions import StaticJointState
 from semantic_digital_twin.robots.tracy import Tracy
@@ -44,6 +52,11 @@ from semantic_digital_twin.world_description.world_entity import Body
 needs_tracy = pytest.mark.skipif(
     not Tracy.is_description_installed(),
     reason="iai_tracy_description is not installed",
+)
+
+needs_robokudo_messages = pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None,
+    reason="RoboKudo's messages are not installed",
 )
 
 PARKED_TRACY_PLAN = {
@@ -134,6 +147,52 @@ def test_physics_starts_with_the_arms_parked_and_free_objects_held_by_friction(
     [geometry] = block.root.collision
     contact = geometry.get_simulator_property_of_type(ContactParameters)
     assert contact == ContactParameters.create_for_grasped_object()
+
+
+# %% perceiving in physics
+
+TRACY_CUBES = "tracy_cubes"
+"""
+RoboKudo's analysis engine localizing the cubes on Tracy's table.
+"""
+
+
+@needs_tracy
+def test_a_perceiving_execution_needs_the_analysis_engine_it_perceives_with(
+    tracy_with_a_block,
+):
+    with pytest.raises(PerceptionEngineNotNamed):
+        with PerceivingPhysicalExecution(analysis_engine="").running(
+            tracy_with_a_block
+        ):
+            pass
+
+
+@needs_tracy
+@needs_robokudo_messages
+def test_a_perceiving_execution_has_robokudo_detect_an_object_before_grasping_it(
+    tracy_with_a_block, monkeypatch
+):
+    """
+    The plan is the real robot's: the grasp first detects its object, and RoboKudo
+    answers, looking through the camera of the simulated world.
+    """
+    monkeypatch.setenv(PERCEPTION_ENGINE_VARIABLE, TRACY_CUBES)
+    world = tracy_with_a_block
+    [tracy] = world.get_semantic_annotations_by_type(Tracy)
+    [block] = world.get_semantic_annotations_by_type(PlannedGraspableFromAbove)
+    execution = PerceivingPhysicalExecution()
+    with execution.running(world):
+        executor = PlanPerformance(execution=execution).executor(
+            TaskContext(world=world, robot=tracy)
+        )
+        plan = PickUpAction(grasp=block.grasp_candidates()[0], arm=tracy.left_arm)
+        statechart = Statechart(context=executor.context)
+        statechart.add_node(plan)
+        executor.prepare(statechart)
+        executor.close()
+    tasks = [node for node in plan.descendants if isinstance(node, PerceptionTask)]
+    assert [task.answered_by for task in tasks] == [PerceptionSource.ROBOKUDO]
 
 
 # %% the generated demo's command

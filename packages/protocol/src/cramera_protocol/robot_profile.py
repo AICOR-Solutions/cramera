@@ -56,6 +56,13 @@ class ExecutorKind(StrEnum):
     is held by friction alone.
     """
 
+    PERCEIVED_PHYSICS = "perceived_physics"
+    """
+    Runs the motions in physics as :attr:`PHYSICS` does, and has a RoboKudo pipeline
+    look through the robot's simulated camera for the objects the plan detects, as the
+    real robot's perception does.
+    """
+
 
 class SkillKey(StrEnum):
     """

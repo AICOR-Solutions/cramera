@@ -87,7 +87,10 @@ cramera
   `cramera_bridge.plans`' `RobotTaskDemo`: `python <demo>.py` performs the selected
   robot's steps, each built generically from its action's class and values, and saves
   the recording into the local scenes directory, `--executor physics` performs them in
-  a MuJoCo physics simulation instead of kinematically, `--stage` only publishes the
+  a MuJoCo physics simulation instead of kinematically, `--executor perceived_physics`
+  does so with every grasp first detecting its object through RoboKudo (the analysis
+  engine `CRAMERA_PERCEPTION_ENGINE` names, looking through the robot's simulated
+  camera, hosted in the demo's process), `--stage` only publishes the
   world until it is stopped, `--port` chooses where it is published.
 - **Replays.** When the viewer shows a recording with a plan, the panel comes to the
   front and lists the plan's steps as the builder's cards (`web/steps.css`, shared

@@ -732,6 +732,25 @@ class ExecutionNotRunning(DemoError):
 
 
 @dataclass
+class PerceptionEngineNotNamed(DemoError):
+    """
+    A perceiving execution started without the RoboKudo analysis engine to perceive
+    with.
+    """
+
+    variable: str
+    """
+    The environment variable that names the analysis engine.
+    """
+
+    def message(self) -> str:
+        return (
+            f"A perceiving execution needs the RoboKudo analysis engine it perceives "
+            f"with; set {self.variable}."
+        )
+
+
+@dataclass
 class EnvironmentBundleHoldsRobot(DemoError):
     """
     A task demo asked to start from a bundle that holds a robot model; a task's robot

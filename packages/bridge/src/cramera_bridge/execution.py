@@ -15,13 +15,18 @@ Executing on the real robot is another kind of execution: a subclass whose
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
+from threading import Thread
 from types import MappingProxyType
 
 import mujoco
+import rclpy
+from rclpy.executors import SingleThreadedExecutor
+from rclpy.node import Node
 from typing_extensions import Iterator, Optional, Sequence, Type
 
 from coraplex.plans.executors import (
@@ -29,10 +34,18 @@ from coraplex.plans.executors import (
     PhysicallySimulatedPlanExecutor,
     PlanExecutor,
 )
-from cramera_bridge.exceptions import ExecutionNotRunning
+from coraplex.robot_plans.plan_transformations import (
+    DetectBeforeGrasp,
+    DetectWithRoboKudo,
+    LetContactCarryTheBodies,
+)
+from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
 from cramera_protocol.robot_profile import ExecutorKind
 from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
+from robokudo.defs import PACKAGE_NAME
+from robokudo.query_service import QueryService
+from robokudo.utils.module_loader import ModuleLoader
 from semantic_digital_twin.adapters.multi_sim import MujocoSim
 from semantic_digital_twin.datastructures.definitions import StaticJointState
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
@@ -40,6 +53,17 @@ from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import Connection6DoF
 from semantic_digital_twin.world_description.contact import ContactParameters
+
+PERCEPTION_ENGINE_VARIABLE = "CRAMERA_PERCEPTION_ENGINE"
+"""
+The environment variable naming the RoboKudo analysis engine a perceiving execution
+perceives with.
+"""
+
+PERCEIVING_NODE_NAME = "cramera_perception_client"
+"""
+The name of the node a perceiving execution's plans reach RoboKudo through.
+"""
 
 # %% execution
 
@@ -224,10 +248,90 @@ class PhysicalExecution(PlanExecution):
         )
 
 
+@dataclass
+class PerceivingPhysicalExecution(PhysicalExecution):
+    """
+    Runs the motions in physics as :class:`PhysicalExecution` does, and answers the
+    plans' detections the way the real robot does: a RoboKudo analysis engine looks
+    through the robot's camera, rendered from the simulated world, over RoboKudo's query
+    action, and every grasp first detects the object it reaches for.
+    """
+
+    analysis_engine: str = field(
+        default_factory=lambda: os.environ.get(PERCEPTION_ENGINE_VARIABLE, "")
+    )
+    """
+    The module of RoboKudo's analysis engines that perceives, such as ``tracy_cubes``.
+    """
+
+    ros_node: Optional[Node] = field(default=None, init=False)
+    """
+    The node the plans reach RoboKudo through while plans are performed, else None.
+    """
+
+    @contextmanager
+    def running(self, world: World) -> Iterator[None]:
+        """
+        Differs from :meth:`PhysicalExecution.running` in also answering RoboKudo's
+        query action from the analysis engine while the block runs.
+
+        :raises PerceptionEngineNotNamed: When no analysis engine is named.
+        """
+        if not self.analysis_engine:
+            raise PerceptionEngineNotNamed(PERCEPTION_ENGINE_VARIABLE)
+        with super().running(world), ExitStack() as perceiving:
+            if not rclpy.ok():
+                rclpy.init()
+                perceiving.callback(rclpy.try_shutdown)
+            service = QueryService(
+                analysis_engine=ModuleLoader().load_ae(
+                    ros_pkg_name=PACKAGE_NAME, module_name=self.analysis_engine
+                ),
+                world=world,
+            )
+            service.start()
+            perceiving.callback(service.stop)
+            node = rclpy.create_node(PERCEIVING_NODE_NAME)
+            perceiving.callback(node.destroy_node)
+            spinner = SingleThreadedExecutor()
+            spinner.add_node(node)
+            Thread(target=spinner.spin, daemon=True, name=PERCEIVING_NODE_NAME).start()
+            perceiving.callback(spinner.shutdown)
+            self.ros_node = node
+            perceiving.callback(setattr, self, "ros_node", None)
+            yield
+
+    def executor(
+        self,
+        context: StatechartContext,
+        collision_avoidance: bool,
+        extensions: Sequence[ExecutorExtension],
+    ) -> PlanExecutor:
+        """
+        Differs from :meth:`PhysicalExecution.executor` in detecting every grasped
+        object with RoboKudo before the grasp's final approach.
+        """
+        if self.simulation is None or self.ros_node is None:
+            raise ExecutionNotRunning(ExecutorKind.PERCEIVED_PHYSICS)
+        return PhysicallySimulatedPlanExecutor(
+            context,
+            simulation=self.simulation,
+            collision_avoidance=collision_avoidance,
+            extensions=list(extensions),
+            ros_node=self.ros_node,
+            plan_adaptations=[
+                LetContactCarryTheBodies(),
+                DetectBeforeGrasp(),
+                DetectWithRoboKudo(),
+            ],
+        )
+
+
 EXECUTIONS: MappingProxyType[ExecutorKind, Type[PlanExecution]] = MappingProxyType(
     {
         ExecutorKind.KINEMATIC: KinematicExecution,
         ExecutorKind.PHYSICS: PhysicalExecution,
+        ExecutorKind.PERCEIVED_PHYSICS: PerceivingPhysicalExecution,
     }
 )
 """
