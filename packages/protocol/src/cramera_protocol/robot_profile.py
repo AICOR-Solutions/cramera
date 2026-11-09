@@ -1,6 +1,7 @@
 """
 A robot profile: how the plan builder is set up for one robot at one site, which robot
-plans start with and the environment it stands in.
+plans start with, the environment it stands in, the skills people compose plans from and
+the plans they start from.
 
 A deployment names its profile with :attr:`RobotProfileVariable.PROFILE`; without one
 the plan builder offers every robot and action of the CRAM workspace.
@@ -13,7 +14,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Optional, Self
+from typing_extensions import Any, Dict, List, Optional, Self
 
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.version import ProtocolVersion
@@ -32,6 +33,87 @@ class RobotProfileVariable(StrEnum):
     PROFILE = "CRAMERA_ROBOT_PROFILE"
     """
     The path of the robot profile's JSON file.
+    """
+
+
+class SkillKey(StrEnum):
+    """
+    The keys of a skill.
+    """
+
+    IDENTIFIER = "id"
+    """
+    The skill's stable identity, which plans name.
+    """
+
+    LABEL = "label"
+    """
+    The skill's name in the palette.
+    """
+
+    ACTION = "action"
+    """
+    The native action the skill carries out.
+    """
+
+    VALUES = "values"
+    """
+    The values the skill sets on its action's fields.
+    """
+
+    FIELDS = "fields"
+    """
+    The action's fields a person edits.
+    """
+
+    DOCUMENTATION = "documentation"
+    """
+    What the skill does, in a sentence.
+    """
+
+
+@dataclass(kw_only=True)
+class Skill(JsonDocument):
+    """
+    A capability the robot offers people, carried out by a native action with some of
+    its fields set.
+
+    A plan names the skill by its identifier, so the platform can map the skill to
+    another action without breaking saved plans.
+    """
+
+    identifier: str = document_field(SkillKey.IDENTIFIER)
+    """
+    The skill's stable identity, which a step keeps across platform versions.
+    """
+
+    label: str = document_field(SkillKey.LABEL)
+    """
+    The skill's name in the palette and on its steps.
+    """
+
+    action: str = document_field(SkillKey.ACTION)
+    """
+    The identifier of the native action that carries the skill out, as the catalog's
+    action schemas name it.
+    """
+
+    values: Dict[str, Any] = document_field(SkillKey.VALUES, default_factory=dict)
+    """
+    The JSON values a new step of the skill starts with, by field name.
+    """
+
+    fields: Optional[List[str]] = document_field(SkillKey.FIELDS, default=None)
+    """
+    The names of the action's fields a person edits on a step of the skill; the others
+    keep their values.
+
+    None shows every field.
+    """
+
+    documentation: str = document_field(SkillKey.DOCUMENTATION, default="")
+    """
+    What the skill does, shown with its palette entry.
     """
 
 
@@ -60,6 +142,21 @@ class RobotProfileKey(StrEnum):
     The environment bundle the robot stands in.
     """
 
+    PLATFORM_VERSION = "platformVersion"
+    """
+    The version of the platform the profile belongs to.
+    """
+
+    SKILLS = "skills"
+    """
+    The skills people compose plans from.
+    """
+
+    TEMPLATES = "templates"
+    """
+    The files of the plans people start from.
+    """
+
 
 @dataclass(kw_only=True)
 class RobotProfile(JsonDocument):
@@ -84,6 +181,26 @@ class RobotProfile(JsonDocument):
     The environment bundle a new plan is set in, or None for an empty floor.
     """
 
+    platform_version: Optional[str] = document_field(
+        RobotProfileKey.PLATFORM_VERSION, default=None
+    )
+    """
+    The version of the platform the profile belongs to, which plans saved with it
+    record; None outside a platform.
+    """
+
+    skills: List[Skill] = document_field(RobotProfileKey.SKILLS, default_factory=list)
+    """
+    The skills the palette offers, in order; empty offers every native action.
+    """
+
+    templates: List[str] = document_field(
+        RobotProfileKey.TEMPLATES, default_factory=list
+    )
+    """
+    The plan files a new plan can start from, relative to the profile's file.
+    """
+
     format_version: ProtocolVersion = document_field(
         RobotProfileKey.FORMAT_VERSION, default=PROFILE_FORMAT_VERSION
     )
@@ -93,6 +210,16 @@ class RobotProfile(JsonDocument):
 
     def __post_init__(self) -> None:
         self.format_version.require_readable_by(PROFILE_FORMAT_VERSION)
+
+    def skill_named(self, identifier: str) -> Optional[Skill]:
+        """
+        :param identifier: A skill's identifier.
+        :return: The profile's skill of that identifier, or None when it has none.
+        """
+        for skill in self.skills:
+            if skill.identifier == identifier:
+                return skill
+        return None
 
     @classmethod
     def from_file(cls, path: Path) -> Self:

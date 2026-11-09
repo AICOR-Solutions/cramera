@@ -18,6 +18,8 @@ import {
   PlannedRobotKey,
   PlanStepKey,
   RobotModelKey,
+  RobotProfileKey,
+  SkillKey,
   StepConstraintKey,
 } from '../../../protocol.js';
 import { PlanPose, PoseIndex } from './poses.js';
@@ -90,6 +92,12 @@ export class PlanState {
    * @type {Object}
    */
   #catalog;
+
+  /**
+   * Whether the palette offers every native action rather than the profile's skills.
+   * @type {boolean}
+   */
+  #developerMode = false;
 
   /**
    * The plan document.
@@ -244,6 +252,101 @@ export class PlanState {
     if (!schema[ActionSchemaKey.AVAILABLE]) return schema[ActionSchemaKey.UNAVAILABLE_REASON] ?? 'unavailable';
     const lacking = PlanState.fields(schema).find((field) => field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] === ActionFieldKind.ENUM && this.choices(robot, field).length === 0);
     return lacking ? `${this.modelLabel(robot[PlannedRobotKey.MODEL])} offers no ${lacking[ActionFieldKey.ENUM_TYPE]} for field '${lacking[ActionFieldKey.NAME]}'` : null;
+  }
+
+  // %% skills
+
+  /**
+   * @returns {boolean} Whether the palette offers every native action rather than the
+   *   robot profile's skills.
+   */
+  developerMode() {
+    return this.#developerMode;
+  }
+
+  /**
+   * @param {boolean} enabled Whether the palette offers every native action.
+   */
+  setDeveloperMode(enabled) {
+    this.#developerMode = enabled;
+  }
+
+  /**
+   * @returns {Array<Object>} The robot profile's skills, in its order; empty without a
+   *   profile.
+   */
+  skills() {
+    return this.#catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.SKILLS] ?? [];
+  }
+
+  /**
+   * @returns {boolean} Whether the palette offers the profile's skills: there are skills
+   *   and developer mode is off.
+   */
+  curated() {
+    return this.skills().length > 0 && !this.#developerMode;
+  }
+
+  /**
+   * @param {string} identifier A skill's identifier.
+   * @returns {Object|null} The profile's skill of that identifier, or null.
+   */
+  skill(identifier) {
+    return this.skills().find((skill) => skill[SkillKey.IDENTIFIER] === identifier) ?? null;
+  }
+
+  /**
+   * @param {Object} robot A robot of the plan.
+   * @returns {Array<Object>} The profile's skills whose action the robot can take.
+   */
+  offeredSkills(robot) {
+    return this.skills().filter((skill) => {
+      const schema = this.schema(skill[SkillKey.ACTION]);
+      return schema !== null && this.refusal(robot, schema) === null;
+    });
+  }
+
+  /**
+   * Add a step of a skill to the edited robot: a step of its action, starting with the
+   * skill's values.
+   * @param {string} identifier A skill of the robot profile.
+   * @param {number=} index Where the step goes; at the end by default.
+   * @returns {string} The step's identity.
+   * @throws {PlanRefused} When the profile has no such skill or the robot cannot take
+   *   its action.
+   */
+  addSkill(identifier, index = this.steps().length) {
+    const skill = this.skill(identifier);
+    if (skill === null) throw new PlanRefused(`The robot profile has no skill ${identifier}.`);
+    const added = this.addStep(skill[SkillKey.ACTION], index);
+    const step = this.step(added);
+    step[PlanStepKey.SKILL] = identifier;
+    Object.assign(step[PlanStepKey.VALUES], structuredClone(skill[SkillKey.VALUES] ?? {}));
+    return added;
+  }
+
+  /**
+   * @param {Object} step A step of a robot.
+   * @returns {string} The step's name: its skill's label, else its action's label, else
+   *   its action's identifier.
+   */
+  stepLabel(step) {
+    const skill = step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
+    if (skill) return skill[SkillKey.LABEL];
+    return this.schema(step[PlanStepKey.ACTION])?.[ActionSchemaKey.LABEL] ?? step[PlanStepKey.ACTION];
+  }
+
+  /**
+   * @param {Object} step A step of a robot.
+   * @param {Object} schema Its action.
+   * @returns {Array<Object>} The fields a person edits on the step: those its skill
+   *   names while the palette offers skills, else every field.
+   */
+  shownFields(step, schema) {
+    const skill = step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
+    const names = this.curated() ? skill?.[SkillKey.FIELDS] : null;
+    const fields = PlanState.fields(schema);
+    return names ? fields.filter((field) => names.includes(field[ActionFieldKey.NAME])) : fields;
   }
 
   /**

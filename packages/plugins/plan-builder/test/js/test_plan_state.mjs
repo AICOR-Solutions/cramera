@@ -16,6 +16,8 @@ import {
   PlannedRobotKey,
   PlanStepKey,
   RobotModelKey,
+  RobotProfileKey,
+  SkillKey,
   StepConstraintKey,
 } from 'cramera-viewer/protocol.js';
 import { IdentityPrefix, NEW_PLAN_NAME, PlanRefused, PlanState } from '../../src/cramera_plan_builder/web/builder/plan-state.js';
@@ -334,4 +336,56 @@ test('a saved plan is edited as it was saved', () => {
   assert.throws(() => reopened.robot('robot_9'), PlanRefused);
   assert.throws(() => reopened.step('step_9'), PlanRefused);
   assert.throws(() => reopened.object('milk'), PlanRefused);
+});
+
+// %% skills of the robot profile
+
+const PROFILE = {
+  [RobotProfileKey.ROBOT]: 'tracy',
+  [RobotProfileKey.LABEL]: 'Tracy',
+  [RobotProfileKey.SKILLS]: [
+    { [SkillKey.IDENTIFIER]: 'park', [SkillKey.LABEL]: 'Park arms', [SkillKey.ACTION]: 'park_arms', [SkillKey.VALUES]: { arm: 'both' }, [SkillKey.FIELDS]: [] },
+    { [SkillKey.IDENTIFIER]: 'pick', [SkillKey.LABEL]: 'Pick', [SkillKey.ACTION]: 'pick_up', [SkillKey.FIELDS]: ['object_designator'] },
+  ],
+};
+const profiled = () => PlanState.empty({ ...catalog(), [PlanBuilderCatalogKey.PROFILE]: PROFILE }, 'lab', 'tracy');
+
+test('with a profile of skills the palette offers the skills the robot can take', () => {
+  const state = profiled();
+  assert.equal(state.curated(), true);
+  assert.deepEqual(state.offeredSkills(state.activeRobot()).map((skill) => skill[SkillKey.IDENTIFIER]), ['park', 'pick']);
+});
+
+test('a step of a skill names the skill and starts with its values', () => {
+  const state = profiled();
+  const identifier = state.addSkill('park');
+  const step = state.step(identifier);
+  assert.equal(step[PlanStepKey.SKILL], 'park');
+  assert.equal(step[PlanStepKey.ACTION], 'park_arms');
+  assert.equal(step[PlanStepKey.VALUES].arm, 'both');
+  assert.equal(state.stepLabel(step), 'Park arms');
+});
+
+test('a step of a skill shows only the fields the skill names', () => {
+  const state = profiled();
+  const step = state.step(state.addSkill('pick'));
+  assert.deepEqual(state.shownFields(step, state.schema('pick_up')).map((field) => field[ActionFieldKey.NAME]), ['object_designator']);
+});
+
+test('in developer mode the palette offers native actions and every field', () => {
+  const state = profiled();
+  const step = state.step(state.addSkill('pick'));
+  state.setDeveloperMode(true);
+  assert.equal(state.curated(), false);
+  assert.equal(state.shownFields(step, state.schema('pick_up')).length, state.schema('pick_up')[ActionSchemaKey.FIELDS].length);
+});
+
+test('an unknown skill is refused', () => {
+  assert.throws(() => profiled().addSkill('dance'), PlanRefused);
+});
+
+test('without a profile there are no skills and the palette offers native actions', () => {
+  const state = PlanState.empty(catalog(), 'lab', 'tracy');
+  assert.deepEqual(state.skills(), []);
+  assert.equal(state.curated(), false);
 });

@@ -26,10 +26,10 @@ from cramera_plan_builder.exceptions import (
     NotAUrdfFile,
 )
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
+from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
-from cramera_protocol.robot_profile import RobotProfile
 from cramera_protocol.plan_builder import (
     ActionSchema,
     ConstraintText,
@@ -157,9 +157,9 @@ class PlanBuilderRoutes:
     Lists the folders the URDF picker browses.
     """
 
-    profile: Optional[RobotProfile] = None
+    profile: ConfiguredProfile = field(default_factory=ConfiguredProfile)
     """
-    The robot profile new plans start from, or None when the deployment configured none.
+    The robot profile new plans start from and its templates; none by default.
     """
 
     def declarations(self) -> List[RouteDeclaration]:
@@ -224,7 +224,8 @@ class PlanBuilderRoutes:
             plans=self.plans.summaries(),
             limits=self.limits,
             missing=workspace.missing(),
-            profile=self.profile,
+            profile=self.profile.profile,
+            templates=self.profile.templates,
         )
 
     def answer_catalog(self, request: Request) -> Response:
@@ -355,9 +356,12 @@ class PlanBuilderRoutes:
         :param plan: A plan as it was saved or sent.
         :return: The plan naming actions and robots by the catalog's identifiers; a plan
             of the planner's class names is translated through the names the catalog
-            lists them as having been saved under.
+            lists them as having been saved under, and a step of a profile's skill names
+            the action the profile maps the skill to now.
         """
-        return SavedNames.of_catalog(self.catalog()).translated(plan)
+        return self.profile.resolved(
+            SavedNames.of_catalog(self.catalog()).translated(plan)
+        )
 
     def runnable(self, plan: PlanDocument) -> DemoDocument:
         """

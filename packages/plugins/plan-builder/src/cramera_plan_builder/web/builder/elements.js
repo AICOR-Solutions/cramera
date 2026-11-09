@@ -34,6 +34,9 @@ export const PlanAction = Object.freeze({
   ROBOT_LABEL: 'robot-label',
   POSE: 'pose',
   ADD_STEP: 'add-step',
+  ADD_SKILL: 'add-skill',
+  DEVELOPER_MODE: 'developer-mode',
+  NEW_FROM_TEMPLATE: 'new-from-template',
   REMOVE_STEP: 'remove-step',
   MOVE_STEP_UP: 'move-step-up',
   MOVE_STEP_DOWN: 'move-step-down',
@@ -69,7 +72,7 @@ export const DomEvent = Object.freeze({
 /**
  * What a dragged palette entry carries, as `<kind>:<value>` in the drag's text.
  */
-export const DragKind = Object.freeze({ STEP: 'step', CONSTRAINT: 'constraint' });
+export const DragKind = Object.freeze({ STEP: 'step', SKILL: 'skill', CONSTRAINT: 'constraint' });
 
 /**
  * The media type of a drag's text.

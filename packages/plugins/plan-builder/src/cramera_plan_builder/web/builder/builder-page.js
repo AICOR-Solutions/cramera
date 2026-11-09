@@ -23,6 +23,7 @@ import {
   PlanSummaryKey,
   RobotInstanceKey,
   RobotProfileKey,
+  PlanTemplateKey,
   RunMode,
   RunState,
   RunStatusKey,
@@ -64,6 +65,16 @@ export const URDF_FOLDER_KEY = 'cramera.plan-builder.urdf-folder';
  * The choice of the saved plans' select that opens none.
  */
 const OPEN_PROMPT = Object.freeze({ value: '', label: 'Open a saved plan…' });
+
+/**
+ * The first option of the template choice, which starts no plan.
+ */
+const TEMPLATE_PROMPT = Object.freeze({ value: '', label: 'Start from a template…' });
+
+/**
+ * Where the browser keeps whether the palette offers every native action.
+ */
+export const DEVELOPER_MODE_KEY = 'cramera.plan-builder.developer-mode';
 
 /**
  * How people read each state of the demo process.
@@ -278,7 +289,7 @@ export class BuilderPage {
     const profile = catalog[PlanBuilderCatalogKey.PROFILE];
     const configured = profile?.[RobotProfileKey.ENVIRONMENT] ?? null;
     const environment = environments.includes(asked) ? asked : (configured ?? environments[0] ?? null);
-    this.state = PlanState.empty(catalog, environment, profile?.[RobotProfileKey.ROBOT] ?? null);
+    this.#adopt(PlanState.empty(catalog, environment, profile?.[RobotProfileKey.ROBOT] ?? null));
     this.#layout(statusLine);
     const saved = query.get(PlanBuilderPageParameter.PLAN);
     if (saved) await this.#open(saved);
@@ -484,9 +495,51 @@ export class BuilderPage {
   #newPlan() {
     this.#planIdentifier = null;
     const profile = this.state.catalog[PlanBuilderCatalogKey.PROFILE];
-    this.state = PlanState.empty(this.state.catalog, this.state.field(PlanKey.ENVIRONMENT) || null, profile?.[RobotProfileKey.ROBOT] ?? null);
+    this.#adopt(PlanState.empty(this.state.catalog, this.state.field(PlanKey.ENVIRONMENT) || null, profile?.[RobotProfileKey.ROBOT] ?? null));
     this.report('New plan.');
     this.render();
+  }
+
+  /**
+   * Start a new plan as a copy of one of the robot profile's templates.
+   * @param {string} identifier The template's identity.
+   */
+  #newFromTemplate(identifier) {
+    const template = this.state.catalog[PlanBuilderCatalogKey.TEMPLATES].find((entry) => entry[PlanTemplateKey.IDENTIFIER] === identifier);
+    if (!template) return;
+    this.#planIdentifier = null;
+    this.#adopt(new PlanState(this.state.catalog, structuredClone(template[PlanTemplateKey.PLAN])));
+    this.report(`New plan from the template ${template[PlanTemplateKey.PLAN][PlanKey.NAME]}.`);
+    this.render();
+  }
+
+  /**
+   * Show a plan, keeping the palette's mode.
+   * @param {PlanState} state The plan to show.
+   */
+  #adopt(state) {
+    state.setDeveloperMode(this.#environment.storage.getItem(DEVELOPER_MODE_KEY) === String(true));
+    this.state = state;
+  }
+
+  /**
+   * Switch the palette between the robot profile's skills and every native action.
+   * @param {boolean} enabled Whether the palette offers every native action.
+   */
+  #setDeveloperMode(enabled) {
+    this.#environment.storage.setItem(DEVELOPER_MODE_KEY, String(enabled));
+    this.state.setDeveloperMode(enabled);
+    this.report(enabled ? 'Developer mode: every native action is offered.' : 'The robot profile\'s skills are offered.');
+    this.render();
+  }
+
+  /**
+   * @returns {Array<{value: string, label: string}>} The prompt and the robot profile's
+   *   templates.
+   */
+  #templateChoices() {
+    const templates = this.state.catalog[PlanBuilderCatalogKey.TEMPLATES] ?? [];
+    return [TEMPLATE_PROMPT, ...templates.map((template) => ({ value: template[PlanTemplateKey.IDENTIFIER], label: template[PlanTemplateKey.PLAN][PlanKey.NAME] }))];
   }
 
   /**
@@ -500,7 +553,7 @@ export class BuilderPage {
     });
     if (!record) return;
     this.#planIdentifier = record[PlanRecordKey.IDENTIFIER];
-    this.state = new PlanState(this.state.catalog, record[PlanRecordKey.DOCUMENT]);
+    this.#adopt(new PlanState(this.state.catalog, record[PlanRecordKey.DOCUMENT]));
   }
 
   /**
@@ -744,6 +797,18 @@ export class BuilderPage {
     const bar = elements.create('header', 'bar builder-bar');
     const plansRow = elements.create('div', 'button-row');
     plansRow.append(elements.button('New', PlanAction.NEW, () => this.#newPlan()), parts.saved, elements.button('Save', PlanAction.SAVE, () => this.#save()));
+    if ((this.state.catalog[PlanBuilderCatalogKey.TEMPLATES] ?? []).length > 0) {
+      parts.templates = elements.select(PlanAction.NEW_FROM_TEMPLATE, this.#templateChoices(), TEMPLATE_PROMPT.value, (value) => {
+        if (value) this.#newFromTemplate(value);
+        parts.templates.value = TEMPLATE_PROMPT.value;
+      });
+      plansRow.append(parts.templates);
+    }
+    if (this.state.skills().length > 0) {
+      parts.developer = elements.input('checkbox', PlanAction.DEVELOPER_MODE, () => this.#setDeveloperMode(parts.developer.checked));
+      parts.developer.checked = this.state.developerMode();
+      plansRow.append(elements.label('developer mode', parts.developer));
+    }
     bar.append(elements.create('strong', 'builder-title', 'Plan builder'), elements.label('name', parts.name), elements.label('task', parts.task), plansRow);
 
     parts.robots = new RobotsView(document, this);

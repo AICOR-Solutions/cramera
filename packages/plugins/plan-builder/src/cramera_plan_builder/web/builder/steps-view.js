@@ -15,6 +15,7 @@ import {
   PlanBuilderCatalogKey,
   PlannedObjectKey,
   PlanStepKey,
+  SkillKey,
   StepConstraintKey,
 } from '../../../protocol.js';
 import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
@@ -162,6 +163,13 @@ export class StepsView {
       entries.push(notice);
     }
     if (!robot) return entries;
+    if (state.curated()) {
+      const section = elements.create('div', ViewClass.GROUP);
+      section.dataset.group = 'skills';
+      section.append(elements.create('h3', '', 'Skills'), ...state.offeredSkills(robot).map((skill) => this.#skillBlock(skill)));
+      entries.push(section);
+      return entries;
+    }
     const groups = new Map();
     const refused = [];
     for (const schema of state.actions()) {
@@ -196,6 +204,22 @@ export class StepsView {
     block.dataset.palette = String(this.#paletteIndex(name));
     block.title = schema[ActionSchemaKey.DOCUMENTATION] || name;
     this.#shown.draggable(block, DragText.of(DragKind.STEP, name));
+    return block;
+  }
+
+  /**
+   * @param {Object} skill A skill of the robot profile the robot can take.
+   * @returns {HTMLElement} Its palette entry, clicked or dragged into the plan.
+   */
+  #skillBlock(skill) {
+    const identifier = skill[SkillKey.IDENTIFIER];
+    const action = skill[SkillKey.ACTION];
+    const block = this.#shown.button(skill[SkillKey.LABEL], PlanAction.ADD_SKILL, () => this.#addSkill(identifier, this.#editor.state.steps().length));
+    block.className = ViewClass.BLOCK;
+    block.dataset.skill = identifier;
+    block.dataset.palette = String(this.#paletteIndex(action));
+    block.title = skill[SkillKey.DOCUMENTATION] || skill[SkillKey.LABEL];
+    this.#shown.draggable(block, DragText.of(DragKind.SKILL, identifier));
     return block;
   }
 
@@ -242,7 +266,7 @@ export class StepsView {
     const identifier = step[PlanStepKey.IDENTIFIER];
     const action = step[PlanStepKey.ACTION];
     const schema = this.#editor.state.schema(action);
-    const view = new StepCard(elements, index + 1, schema?.[ActionSchemaKey.LABEL] ?? action, schema?.[ActionSchemaKey.DOCUMENTATION] || action, this.#paletteIndex(action));
+    const view = new StepCard(elements, index + 1, this.#editor.state.stepLabel(step), schema?.[ActionSchemaKey.DOCUMENTATION] || action, this.#paletteIndex(action));
     const card = view.card;
     card.dataset.step = identifier;
     if (status) view.showStatus(status);
@@ -270,7 +294,7 @@ export class StepsView {
     const elements = this.#shown;
     const required = elements.create('div', ViewClass.PARAMETERS);
     const optional = elements.create('div', ViewClass.PARAMETERS);
-    for (const field of PlanState.fields(schema)) {
+    for (const field of this.#editor.state.shownFields(step, schema)) {
       const box = field[ActionFieldKey.REQUIRED] ? required : optional;
       box.append(...this.#control(step, field));
     }
@@ -558,6 +582,11 @@ export class StepsView {
       this.#add(action, index);
       return;
     }
+    const skill = DragText.valueOf(text, DragKind.SKILL);
+    if (skill !== null) {
+      this.#addSkill(skill, index);
+      return;
+    }
     const sentence = DragText.valueOf(text, DragKind.CONSTRAINT);
     if (sentence !== null && identifier !== undefined) this.#editor.attachConstraint(identifier, sentence);
   }
@@ -568,6 +597,14 @@ export class StepsView {
    */
   #add(action, index) {
     this.#edit(() => this.#editor.state.addStep(action, index));
+  }
+
+  /**
+   * @param {string} skill A skill of the robot profile.
+   * @param {number} index Where the step goes.
+   */
+  #addSkill(skill, index) {
+    this.#edit(() => this.#editor.state.addSkill(skill, index));
   }
 
   /**

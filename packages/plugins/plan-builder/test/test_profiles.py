@@ -1,0 +1,96 @@
+"""
+The robot profile a deployment configures: its templates and how its skills keep saved
+plans current.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from cramera_plan_builder.profiles import ConfiguredProfile
+from cramera_protocol.geometry import Pose
+from cramera_protocol.plan_builder import PlanDocument, PlannedRobot, PlanStep
+from cramera_protocol.robot_profile import RobotProfileVariable
+
+# %% reading
+
+
+@pytest.fixture
+def profile_file() -> Path:
+    """
+    :return: The test dataset's profile of Tracy, with one template.
+    """
+    return Path(__file__).parent / "dataset" / "profile" / "tracy.json"
+
+
+@pytest.fixture
+def configured(profile_file) -> ConfiguredProfile:
+    """
+    :return: The test dataset's profile with its templates.
+    """
+    return ConfiguredProfile.of_file(profile_file)
+
+
+def test_the_templates_are_read_relative_to_the_profile_file(configured):
+    [template] = configured.templates
+    assert template.identifier == "park"
+    assert template.plan.robots[0].steps[0].skill == "park"
+
+
+def test_the_environment_names_the_profile_file(profile_file, configured):
+    named = ConfiguredProfile.of_environment(
+        {RobotProfileVariable.PROFILE: str(profile_file)}
+    )
+    assert named == configured
+
+
+def test_without_a_named_file_there_is_no_profile():
+    assert ConfiguredProfile.of_environment({}) == ConfiguredProfile()
+
+
+# %% resolving skills
+
+
+def plan_of(*steps: PlanStep) -> PlanDocument:
+    """
+    :param steps: The steps of the plan's one robot.
+    :return: A plan of Tracy taking the steps.
+    """
+    return PlanDocument(
+        name="plan",
+        robots=[
+            PlannedRobot(
+                identifier="robot-1",
+                model="tracy",
+                label="Tracy",
+                pose=Pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
+                steps=list(steps),
+            )
+        ],
+    )
+
+
+def test_a_step_of_a_skill_names_the_action_the_profile_maps_it_to(configured):
+    step = PlanStep(identifier="step-1", skill="pick", action="grasp_older_name")
+    resolved = configured.resolved(plan_of(step))
+    pick = configured.profile.skill_named("pick")
+    assert resolved.robots[0].steps[0].action == pick.action
+
+
+def test_a_step_of_a_native_action_or_an_unknown_skill_keeps_its_action(configured):
+    native = PlanStep(identifier="step-1", action="navigate")
+    unknown = PlanStep(identifier="step-2", skill="dance", action="navigate")
+    resolved = configured.resolved(plan_of(native, unknown))
+    assert resolved.robots[0].steps == [native, unknown]
+
+
+def test_a_resolved_plan_carries_the_profiles_platform_version(configured):
+    resolved = configured.resolved(plan_of())
+    assert resolved.platform_version == configured.profile.platform_version
+
+
+def test_without_a_profile_a_plan_stays_as_it_is():
+    plan = plan_of(PlanStep(identifier="step-1", skill="pick", action="x"))
+    assert ConfiguredProfile().resolved(plan) == plan

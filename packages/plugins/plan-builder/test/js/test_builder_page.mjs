@@ -32,10 +32,12 @@ import {
   StepConstraintKey,
   ViewerEvent,
   RobotProfileKey,
+  SkillKey,
+  PlanTemplateKey,
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -923,4 +925,39 @@ test('unfolded options stay unfolded while the plan changes', async () => {
   unfolded.dispatch(DomEvent.TOGGLE);
   block(root, 'move_torso').click();
   assert.equal(root.findAll((element) => element.className === 'more-options')[0].open, false);
+});
+
+// %% robot profile
+
+const SKILLED_PROFILE = {
+  [RobotProfileKey.ROBOT]: 'tracy',
+  [RobotProfileKey.LABEL]: 'Tracy',
+  [RobotProfileKey.SKILLS]: [{ [SkillKey.IDENTIFIER]: 'park', [SkillKey.LABEL]: 'Park arms', [SkillKey.ACTION]: 'park_arms', [SkillKey.VALUES]: { arm: 'both' }, [SkillKey.FIELDS]: [] }],
+};
+
+test('with a profile of skills the palette offers skills until developer mode is on', async () => {
+  const { root, page, storage } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = SKILLED_PROFILE;
+  }, { robot: false });
+  assert.equal(byAction(root, PlanAction.ADD_STEP).length, 0);
+  byAction(root, PlanAction.ADD_SKILL)[0].click();
+  assert.equal(page.state.steps()[0][PlanStepKey.SKILL], 'park');
+  const developer = byAction(root, PlanAction.DEVELOPER_MODE)[0];
+  developer.checked = true;
+  developer.dispatch(DomEvent.CHANGE);
+  assert.equal(byAction(root, PlanAction.ADD_SKILL).length, 0);
+  assert.equal(byAction(root, PlanAction.ADD_STEP).length, page.state.offeredActions(page.state.activeRobot()).length);
+  assert.equal(storage.getItem(DEVELOPER_MODE_KEY), 'true');
+});
+
+test('a template of the profile starts a new plan as its copy', async () => {
+  const template = { [PlanKey.NAME]: 'Park both arms', [PlanKey.ROBOTS]: [] };
+  const { root, page } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = SKILLED_PROFILE;
+    api.catalogAnswer[PlanBuilderCatalogKey.TEMPLATES] = [{ [PlanTemplateKey.IDENTIFIER]: 'park', [PlanTemplateKey.PLAN]: template }];
+  }, { robot: false });
+  const picker = byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.field(PlanKey.NAME), 'Park both arms');
 });

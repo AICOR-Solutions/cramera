@@ -748,6 +748,11 @@ class PlanStepKey(StrEnum):
     The step's identity within the plan.
     """
 
+    SKILL = "skill"
+    """
+    The robot profile's skill the step was added as.
+    """
+
     ACTION = "action"
     """
     The native action the step is.
@@ -780,6 +785,13 @@ class PlanStep(JsonDocument):
     action: str = document_field(PlanStepKey.ACTION)
     """
     The native action's identifier, as the catalog's action schemas name it.
+    """
+
+    skill: Optional[str] = document_field(PlanStepKey.SKILL, default=None)
+    """
+    The stable identifier of the robot profile's skill the step was added as, which
+    names its action again when the profile maps the skill to another one; None for a
+    step added as a native action.
     """
 
     values: Dict[str, Any] = document_field(PlanStepKey.VALUES, default_factory=dict)
@@ -1238,6 +1250,11 @@ class PlanKey(StrEnum):
     The format version the plan is written in.
     """
 
+    PLATFORM_VERSION = "platformVersion"
+    """
+    The version of the platform the plan was saved with.
+    """
+
     NAME = "name"
     """
     The plan's name.
@@ -1315,6 +1332,15 @@ class PlanDocument(JsonDocument):
     objects: List[PlannedObject] = document_field(PlanKey.OBJECTS, default_factory=list)
     """
     The free objects, in the order they were added.
+    """
+
+    platform_version: Optional[str] = document_field(
+        PlanKey.PLATFORM_VERSION, default=None
+    )
+    """
+    The version of the platform whose robot profile the plan was last saved with, for
+    migrating it when a later platform maps its skills differently; None for a plan
+    saved without a profile.
     """
 
     def __post_init__(self) -> None:
@@ -2148,6 +2174,39 @@ class ObjectModel(JsonDocument):
     """
 
 
+class PlanTemplateKey(StrEnum):
+    """
+    The keys of a plan template.
+    """
+
+    IDENTIFIER = "id"
+    """
+    The template's identity within its robot profile.
+    """
+
+    PLAN = "plan"
+    """
+    The plan a new plan copies.
+    """
+
+
+@dataclass(kw_only=True)
+class PlanTemplate(JsonDocument):
+    """
+    A plan a robot profile offers to start from, whose values a person then adjusts.
+    """
+
+    identifier: str = document_field(PlanTemplateKey.IDENTIFIER)
+    """
+    The template's identity within its robot profile.
+    """
+
+    plan: PlanDocument = document_field(PlanTemplateKey.PLAN)
+    """
+    The plan a new plan copies; its name is the template's name.
+    """
+
+
 class PlanBuilderCatalogKey(StrEnum):
     """
     The keys of the plan builder's catalog.
@@ -2216,6 +2275,11 @@ class PlanBuilderCatalogKey(StrEnum):
     PROFILE = "profile"
     """
     The robot profile the deployment configured.
+    """
+
+    TEMPLATES = "templates"
+    """
+    The plans the robot profile offers to start from.
     """
 
 
@@ -2316,6 +2380,13 @@ class PlanBuilderCatalog(JsonDocument):
     )
     """
     The robot profile new plans start from, or None when the deployment configured none.
+    """
+
+    templates: List[PlanTemplate] = document_field(
+        PlanBuilderCatalogKey.TEMPLATES, default_factory=list
+    )
+    """
+    The plans the robot profile offers to start from, in the profile's order.
     """
 
 

@@ -191,6 +191,7 @@ from cramera_protocol.plan_builder import (
     RobotModelKey,
     ObjectModelKey,
     PlanBuilderCatalogKey,
+    PlanTemplateKey,
     DemoSourceKey,
     SavedDemoKey,
     RunMode,
@@ -324,7 +325,7 @@ from cramera_protocol.query_steps import (
     SteppingRequestKey,
     VariableRole,
 )
-from cramera_protocol.robot_profile import RobotProfileKey
+from cramera_protocol.robot_profile import RobotProfileKey, SkillKey
 from cramera_protocol.resolutions import (
     BackendDescriptionKey,
     ContactReadingKey,
@@ -695,6 +696,8 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     RunRequestKey,
     RunStatusKey,
     RobotProfileKey,
+    SkillKey,
+    PlanTemplateKey,
 )
 """
 The enumerations the browser application reads.

@@ -408,3 +408,17 @@ def test_the_catalog_carries_the_robot_profile_the_environment_names(
 def test_without_a_configured_profile_the_catalog_carries_none(get):
     answer = get(PlanBuilderRoute.CATALOG)
     assert PlanBuilderCatalog.from_json(json.loads(answer.body)).profile is None
+
+
+def test_the_catalog_carries_the_profiles_templates(serve, output, workspace_loader):
+    profile_file = DATASET / "profile" / "tracy.json"
+    plugin = PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(profile_file),
+        },
+        workspace=workspace_loader,
+    )
+    answer = send(serve(plugin), HttpMethod.GET, PlanBuilderRoute.CATALOG)
+    catalog = PlanBuilderCatalog.from_json(json.loads(answer.body))
+    assert [template.identifier for template in catalog.templates] == ["park"]
