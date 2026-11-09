@@ -289,6 +289,30 @@ class StepArguments:
             and Destination.from_json(self.step.values[offered.name]).is_grounded_late
         ]
 
+    def objects_expected_in_place(self) -> List[str]:
+        """
+        :return: The identities of the objects the step expects where the steps before
+            it left them: those it acts on, unless it puts its object down, which it
+            holds then, and the object it puts it on top of.
+        """
+        destinations = [
+            Destination.from_json(self.step.values[offered.name])
+            for offered in self.action.schema.fields
+            if offered.accepts_surface and offered.name in self.step.values
+        ]
+        if not destinations:
+            return [
+                self.step.values[offered.name]
+                for offered in self.action.schema.fields
+                if offered.kind is ActionFieldKind.BODY
+                and offered.name in self.step.values
+            ]
+        return [
+            destination.object
+            for destination in destinations
+            if destination.placement is PlacementMode.ON_TOP_OF
+        ]
+
     def resolved_destinations(self) -> Dict[str, Any]:
         """
         :return: The value of each field whose destination is only known once the plan

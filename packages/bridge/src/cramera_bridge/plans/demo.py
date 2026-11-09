@@ -11,26 +11,28 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
 
-from typing_extensions import Dict, Iterator, List
+from typing_extensions import Callable, Dict, Iterator, List, Optional
 
 from coraplex.perception import WorldPerception
 from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
 from cramera_bridge.geometry import NumericPose
-from cramera_bridge.performing import TaskContext
+from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.grounding import PlanGrounding
+from cramera_bridge.plans.run_log import RunLog
 from cramera_bridge.plans.site import RobotSite
-from cramera_bridge.plans.steps import StepActions, StepArguments
+from cramera_bridge.plans.step_run import AttemptPlan, ScheduledStep, StepRun
+from cramera_bridge.plans.steps import StepArguments
 from cramera_bridge.plans.workspace import RobotAnnotations
 from cramera_bridge.plans.world import EmptyFloor, PlannedObjects
 from cramera_bridge.scenes.bundle_world import PoseText
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.index import SceneName
 from cramera_protocol.geometry import Pose as PlannedPose
-from cramph.composites import Sequence
+from cramph.executor import ExecutorExtension
 from cramph.node import StatechartNode
 from cramera_protocol.plan_builder import (
     ActionFieldKind,
@@ -187,6 +189,32 @@ class PlannedTaskDemo(RobotTaskDemo):
     each destination only known once grounded resolved to its pose.
     """
 
+    retries: int = field(default=2, kw_only=True)
+    """
+    How often a failed step is attempted again before the plan is aborted.
+    """
+
+    regrounding_distance: float = field(default=0.02, kw_only=True)
+    """
+    How far, in metres, an object a step expects in place may lie from where the plan
+    was grounded with it before the step is grounded anew.
+    """
+
+    run_log: RunLog = field(default_factory=RunLog, kw_only=True)
+    """
+    Where every attempt at a step is written.
+    """
+
+    step_run: Optional[StepRun] = field(default=None, init=False)
+    """
+    Runs the steps with retries, once the plan was built.
+    """
+
+    first_attempt: Optional[AttemptPlan] = field(default=None, init=False)
+    """
+    The plan of the first attempt at every step, once the plan was built.
+    """
+
     @cached_property
     def discovered_actions(self) -> DiscoveredActions:
         """
@@ -258,35 +286,61 @@ class PlannedTaskDemo(RobotTaskDemo):
     def build_plan(self, context: TaskContext) -> StatechartNode:
         """
         :param context: The world and the performing robot.
-        :return: The performing robot's steps as their native actions, one after
-            another.
+        :return: The performing robot's steps one after another, each its native action
+            after the check of the objects it expects in place, and beside the monitor
+            of its look-at.
         :raises StepNotGrounded: When a step leaves its arm open and the plan cannot be
             grounded.
         """
         steps = self.grounded_steps(context)
-        self.performed_steps = steps
+        self.performed_steps = [scheduled.resolved for scheduled in steps]
         self.bodies.update(
             DetectedObjects(
                 context, self.bodies, self.discovered_actions, site=self.site
-            ).resolve(steps)
+            ).resolve(self.performed_steps)
         )
-        actions = StepActions(
-            context, self.bodies, self.discovered_actions, site=self.site
+        self.step_run = StepRun(
+            context=context,
+            bodies=self.bodies,
+            actions=self.discovered_actions,
+            site=self.site,
+            run_log=self.run_log,
+            retries=self.retries,
+            regrounding_distance=self.regrounding_distance,
+            steps=steps,
         )
-        return Sequence(nodes=[actions.action(step) for step in steps])
+        self.first_attempt = self.step_run.attempt_plan(0)
+        return self.first_attempt.plan
 
-    def grounded_steps(self, context: TaskContext) -> List[PlanStep]:
+    def perform_plan(
+        self,
+        plan: StatechartNode,
+        context: TaskContext,
+        performance: PlanPerformance,
+        extensions: Callable[[], List[ExecutorExtension]],
+    ) -> None:
+        """
+        Differs from :meth:`RobotTaskDemo.perform_plan` in attempting a failed step
+        again, and in measuring where the steps as they were grounded last put their
+        objects.
+
+        :raises StepAbandoned: When a step failed every attempt it had.
+        """
+        self.step_run.perform(performance, extensions, self.first_attempt)
+        self.performed_steps = [scheduled.resolved for scheduled in self.step_run.steps]
+
+    def grounded_steps(self, context: TaskContext) -> List[ScheduledStep]:
         """
         :param context: The world and the performing robot.
         :return: The performing robot's steps, each leaving its arm open naming the arm
             that reaches and each destination only known once grounded naming the pose
             it resolves to, as a grounding of the plan in a copy of the world on the
-            twin's objects finds them.
+            twin's objects finds them, with the positions it expects its objects at.
         :raises StepNotGrounded: When a step fails that grounding.
         """
         steps = self.steps()
         if not any(self.is_left_open(context, step) for step in steps):
-            return steps
+            return [ScheduledStep(step=step, resolved=step) for step in steps]
         grounded = PlanGrounding(
             context=context,
             bodies=dict(self.bodies),
@@ -298,7 +352,10 @@ class PlannedTaskDemo(RobotTaskDemo):
             if not grounded_step.succeeded:
                 validation = grounded_step.to_step_validation()
                 raise StepNotGrounded(validation.step, validation.detail)
-        return [grounded_step.resolved_step() for grounded_step in grounded]
+        return [
+            ScheduledStep.from_grounded_step(grounded_step)
+            for grounded_step in grounded
+        ]
 
     def is_left_open(self, context: TaskContext, step: PlanStep) -> bool:
         """

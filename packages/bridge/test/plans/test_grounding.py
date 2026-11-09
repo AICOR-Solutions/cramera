@@ -174,8 +174,10 @@ def test_a_plan_runs_with_the_arm_its_grounding_chose(pick_and_place):
 
     plan = demo.build_plan(context)
 
-    pick = plan.nodes[1]
-    assert isinstance(pick, PickUpAction)
+    step = plan.nodes[1]
+    [pick] = [
+        node for node in [step, *step.descendants] if isinstance(node, PickUpAction)
+    ]
     assert pick.arm is context.robot.get_right_arm_if_specified()
 
 

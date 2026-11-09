@@ -211,6 +211,7 @@ class PlanBuilderPlugin(ViewerPlugin):
         :return: The plan builder's routes.
         """
         storage = PlanBuilderStorage.of(context.locations, self.environment)
+        profile = ConfiguredProfile.of_environment(self.environment)
         demos = DemoDirectory(storage.demos)
         port = self.port()
         return PlanBuilderRoutes(
@@ -220,7 +221,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             annotations=EnvironmentAnnotationCache(self.workspace),
             robot_files=RobotModelFiles(self.workspace, storage.robots),
             plans=PlanStore(storage.plans),
-            compiler=ConstraintCompiler.of_file(),
+            compiler=ConstraintCompiler.of_file(camera_mount=profile.camera_mount()),
             demos=demos,
             runner=DemoRunner(
                 directory=demos,
@@ -231,7 +232,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             limits=self.limits,
             live_url=f"{LIVE_SCHEME}://{LIVE_HOST}:{port}",
             template=self.template,
-            profile=ConfiguredProfile.of_environment(self.environment),
+            profile=profile,
             scans=self.scans,
             validations=self.validations,
             reaches=self.reaches,

@@ -20,6 +20,7 @@ from cramera_protocol.plan_builder import (
     RunMode,
 )
 from cramera_protocol.robot_profile import (
+    CameraMount,
     ExecutorKind,
     RobotProfile,
     RobotProfileVariable,
@@ -87,6 +88,13 @@ class ConfiguredProfile:
                 else cls.plan_file(path.parent / profile.simulated_scene).objects
             ),
         )
+
+    def camera_mount(self) -> Optional[CameraMount]:
+        """
+        :return: How the profile's robot has its camera mounted; None without a
+            profile or when it does not say.
+        """
+        return None if self.profile is None else self.profile.camera_mount
 
     @staticmethod
     def plan_file(path: Path) -> PlanDocument:

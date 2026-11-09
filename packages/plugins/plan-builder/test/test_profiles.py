@@ -20,6 +20,7 @@ from cramera_protocol.plan_builder import (
     RunMode,
 )
 from cramera_protocol.robot_profile import (
+    CameraMount,
     ExecutorKind,
     RobotProfile,
     RobotProfileKey,
@@ -67,6 +68,14 @@ def test_the_simulated_scene_is_read_relative_to_the_profile_file(configured):
         "left_cup",
         "right_cup",
     ]
+
+
+def test_the_profile_names_how_its_robots_camera_is_mounted(configured):
+    assert configured.camera_mount() is CameraMount.FIXED
+
+
+def test_without_a_profile_the_camera_mount_is_unknown():
+    assert ConfiguredProfile().camera_mount() is None
 
 
 def test_without_a_simulated_scene_the_robot_perceives_its_own(tmp_path, profile_file):

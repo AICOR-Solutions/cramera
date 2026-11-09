@@ -23,6 +23,7 @@ from coraplex.plans.validation import (
     ValidationVerdict,
 )
 from cramera_bridge.exceptions import PlacementNotFound
+from cramera_bridge.geometry import NumericPose
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
@@ -72,6 +73,12 @@ class GroundedStep:
     """
     The value of each field whose destination was only known once the plan was grounded,
     as the pose it resolved to.
+    """
+
+    expected_positions: Dict[str, List[float]] = field(default_factory=dict)
+    """
+    Where the objects the step expects in place lay when it was grounded, by their
+    identity, in the world's coordinates.
     """
 
     @property
@@ -231,6 +238,15 @@ class PlanGrounding:
             step=step,
             site=self.site,
         )
+        expected = {
+            identifier: list(
+                NumericPose.of_entity(
+                    self.copied_context.world, self.copied_bodies[identifier]
+                ).position
+            )
+            for identifier in arguments.objects_expected_in_place()
+            if identifier in self.copied_bodies
+        }
         open_field = arguments.find_open_arm_field()
         try:
             resolved = arguments.resolved_destinations()
@@ -245,7 +261,12 @@ class PlanGrounding:
             ).action(replace(step, values={**step.values, **resolved}))
         )
         if open_field is None or check.grounded_action is None:
-            return GroundedStep(step=step, check=check, resolved_destinations=resolved)
+            return GroundedStep(
+                step=step,
+                check=check,
+                resolved_destinations=resolved,
+                expected_positions=expected,
+            )
         return GroundedStep(
             step=step,
             check=check,
@@ -254,6 +275,7 @@ class PlanGrounding:
             ),
             arm_field=open_field,
             resolved_destinations=resolved,
+            expected_positions=expected,
         )
 
     def ground_detection(self, step: PlanStep) -> GroundedStep:

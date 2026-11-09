@@ -24,7 +24,12 @@ from cramera_protocol.live_messages import (
     MonitorSpecification,
     SurfaceDescription,
 )
-from cramera_protocol.robot_profile import ExecutorKind, RobotProfile, Zone
+from cramera_protocol.robot_profile import (
+    CameraMount,
+    ExecutorKind,
+    RobotProfile,
+    Zone,
+)
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
 PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
@@ -695,6 +700,11 @@ class ConstraintRuleKey(StrEnum):
     The boolean field of the step's action the constraint turns on.
     """
 
+    CAMERA_MOUNT = "cameraMount"
+    """
+    The camera mount of the robots the rule is offered to.
+    """
+
 
 @dataclass(kw_only=True)
 class ConstraintRule(JsonDocument):
@@ -754,6 +764,27 @@ class ConstraintRule(JsonDocument):
     The name of the boolean field the constraint turns on; it applies to a step whose
     action has a boolean field of that name.
     """
+
+    camera_mount: Optional[CameraMount] = document_field(
+        ConstraintRuleKey.CAMERA_MOUNT, default=None
+    )
+    """
+    The camera mount of the robots the rule is offered to; None offers it to every
+    robot.
+    """
+
+    def is_offered_to(self, camera_mount: Optional[CameraMount]) -> bool:
+        """
+        :param camera_mount: How a robot's camera is mounted, None when it is unknown.
+        :return: Whether the rule is offered to that robot: a rule naming no mount to
+            every robot, one naming a mount to a robot of that mount or of an unknown
+            one.
+        """
+        return (
+            self.camera_mount is None
+            or camera_mount is None
+            or self.camera_mount is camera_mount
+        )
 
 
 class ConstraintRuleBookKey(StrEnum):

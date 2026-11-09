@@ -716,6 +716,34 @@ class TaskFailed(DemoError):
 
 
 @dataclass
+class StepAbandoned(DemoError):
+    """
+    A step of a plan that failed every attempt it had, which aborts the plan.
+    """
+
+    step: str
+    """
+    The identity of the step.
+    """
+
+    attempts: int
+    """
+    How many attempts it had.
+    """
+
+    reason: str
+    """
+    Why its last attempt failed.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{self.step} failed all {self.attempts} attempts, so the plan was "
+            f"aborted: {self.reason}"
+        )
+
+
+@dataclass
 class ExecutionNotRunning(DemoError):
     """
     An executor asked of an execution whose world is not set up for it, such as a

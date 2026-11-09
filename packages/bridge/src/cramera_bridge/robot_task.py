@@ -19,7 +19,16 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, Iterator, List, Optional, Self, Sequence, Tuple
+from typing_extensions import (
+    Any,
+    Callable,
+    Iterator,
+    List,
+    Optional,
+    Self,
+    Sequence,
+    Tuple,
+)
 
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
@@ -50,6 +59,7 @@ from cramera_protocol.live_messages import (
     SceneDestination,
 )
 from cramera_protocol.query_steps import StepPhase
+from cramph.executor import ExecutorExtension
 from cramph.node import StatechartNode
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.world import World
@@ -319,10 +329,12 @@ class RobotTaskDemo(ABC):
                 performance = self.performance()
                 with self.execution.running(world):
                     for plan in plans:
-                        extensions = [visualization.progress()]
-                        if self.stepper is not None:
-                            extensions.append(self.stepper.progress())
-                        performance.perform(plan, context, extensions)
+                        self.perform_plan(
+                            plan,
+                            context,
+                            performance,
+                            lambda: self.executor_extensions(visualization),
+                        )
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
             run = visualization.publisher.save_recording(
@@ -338,6 +350,36 @@ class RobotTaskDemo(ABC):
             visualization.stop()
         self.complete(run, metrics)
         return SavedScene(scene=run.scene)
+
+    def executor_extensions(
+        self, visualization: LiveVisualization
+    ) -> List[ExecutorExtension]:
+        """
+        :param visualization: The started visualization publishing this run.
+        :return: New extensions of the executor of a plan: publishing its progress, and
+            stepping through its queries when the run does.
+        """
+        extensions: List[ExecutorExtension] = [visualization.progress()]
+        if self.stepper is not None:
+            extensions.append(self.stepper.progress())
+        return extensions
+
+    def perform_plan(
+        self,
+        plan: StatechartNode,
+        context: TaskContext,
+        performance: PlanPerformance,
+        extensions: Callable[[], List[ExecutorExtension]],
+    ) -> None:
+        """
+        Perform one of the task's plans until it ended.
+
+        :param plan: The plan.
+        :param context: The world and the robot the task is performed with.
+        :param performance: How the task's plans are performed.
+        :param extensions: Gives new extensions of the executor of a plan.
+        """
+        performance.perform(plan, context, extensions())
 
     def prepare(self, world: World) -> Tuple[TaskContext, List[StatechartNode]]:
         """

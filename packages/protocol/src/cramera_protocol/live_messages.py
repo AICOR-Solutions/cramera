@@ -2004,6 +2004,11 @@ class ConstraintMonitorType(StrEnum):
     Observes whether a point's distance lies within limits.
     """
 
+    IN_FIELD_OF_VIEW = "InFieldOfView"
+    """
+    Observes whether a body lies inside the field of view of the robot's camera.
+    """
+
 
 class ConstraintActivation(StrEnum):
     """
@@ -2145,6 +2150,16 @@ class MonitorParameterKey(StrEnum):
     UPPER_LIMIT = "upper_limit"
     """
     The highest allowed height or distance.
+    """
+
+    TARGET = "target"
+    """
+    The body a field of view monitor keeps in view.
+    """
+
+    MARGIN = "margin"
+    """
+    The angle in radians a body kept in view keeps from every edge of the view.
     """
 
 

@@ -65,6 +65,23 @@ class ExecutorKind(StrEnum):
     """
 
 
+class CameraMount(StrEnum):
+    """
+    How a robot's camera is mounted, which decides how a step keeps an object in view.
+    """
+
+    FIXED = "fixed"
+    """
+    The camera cannot be turned, so keeping an object in view is observed.
+    """
+
+    HEAD = "head"
+    """
+    The camera turns with a head, so keeping an object in view is a gaze the robot
+    actuates.
+    """
+
+
 class SkillKey(StrEnum):
     """
     The keys of a skill.
@@ -246,6 +263,11 @@ class RobotProfileKey(StrEnum):
     The named zones on the robot's table.
     """
 
+    CAMERA_MOUNT = "cameraMount"
+    """
+    How the robot's camera is mounted.
+    """
+
 
 @dataclass(kw_only=True)
 class RobotProfile(JsonDocument):
@@ -310,6 +332,14 @@ class RobotProfile(JsonDocument):
     zones: List[Zone] = document_field(RobotProfileKey.ZONES, default_factory=list)
     """
     The named zones on the robot's table that steps put objects into or look in.
+    """
+
+    camera_mount: Optional[CameraMount] = document_field(
+        RobotProfileKey.CAMERA_MOUNT, default=None
+    )
+    """
+    How the robot's camera is mounted, which decides the constraints keeping an object
+    in view it is offered; None offers every one.
     """
 
     format_version: ProtocolVersion = document_field(

@@ -157,6 +157,22 @@ def test_a_tower_is_stacked_on_the_cube_placed_into_the_zone_before(tower):
     )
 
 
+def test_a_step_expects_the_cube_it_picks_or_stacks_onto_where_it_was_grounded(
+    tower,
+):
+    steps = {step.step.identifier: step for step in grounded(tower, [CENTRE])}
+
+    [red] = [item for item in tower.objects if item.identifier == "red_cube"]
+    assert steps["step_2"].expected_positions["red_cube"] == pytest.approx(
+        red.pose.to_json()[:3], abs=1e-3
+    )
+    assert steps["step_3"].expected_positions == {}
+    assert list(steps["step_5"].expected_positions) == ["red_cube"]
+    assert steps["step_5"].expected_positions["red_cube"][:2] == pytest.approx(
+        resolved_position(steps["step_3"])[:2], abs=1e-3
+    )
+
+
 def test_a_zone_holding_a_cube_at_its_centre_takes_the_next_one_beside_it(tower):
     [park, pick_red, place_red, pick_yellow, *_] = tower.performing_robot().steps
     place_yellow = replace(
