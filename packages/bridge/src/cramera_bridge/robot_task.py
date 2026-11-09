@@ -281,8 +281,9 @@ class RobotTaskDemo(ABC):
         )[0]
         return TaskContext(world=world, robot=robot)
 
-    def performance(self) -> PlanPerformance:
+    def performance(self, context: TaskContext) -> PlanPerformance:
         """
+        :param context: The world and the robot the task is performed with.
         :return: How the task's plans are performed.
         """
         return PlanPerformance(
@@ -326,7 +327,7 @@ class RobotTaskDemo(ABC):
                     prepared = self.prepare(world)
                 context, plans = prepared
                 self.enter_phase(StepPhase.EXECUTION)
-                performance = self.performance()
+                performance = self.performance(context)
                 with self.execution.running(world):
                     for plan in plans:
                         self.perform_plan(

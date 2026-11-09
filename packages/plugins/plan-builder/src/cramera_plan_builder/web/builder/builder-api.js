@@ -256,6 +256,14 @@ export class PlanBuilderApi {
   }
 
   /**
+   * @returns {Promise<Object>} The status of the demo started last, its safety stop
+   *   acknowledged.
+   */
+  acknowledge() {
+    return this.#client.post(this.url(PlanBuilderRoute.RUN_ACKNOWLEDGE), {});
+  }
+
+  /**
    * @param {Object} plan A plan document, whose robot looks.
    * @param {string} region A `RegionKind` value: where the robot looks.
    * @returns {Promise<Object>} The `SceneScan`: the plan's objects after the scan.

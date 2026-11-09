@@ -43,6 +43,7 @@ from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNa
 from cramera_protocol.robot_profile import ExecutorKind
 from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
+from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from robokudo.defs import PACKAGE_NAME
 from robokudo.query_service import QueryService
 from robokudo.utils.module_loader import ModuleLoader
@@ -64,6 +65,31 @@ PERCEIVING_NODE_NAME = "cramera_perception_client"
 """
 The name of the node a perceiving execution's plans reach RoboKudo through.
 """
+
+# %% starting posture
+
+
+@dataclass(frozen=True)
+class StartingPosture:
+    """
+    The posture the arms of every robot of a world start a run in.
+    """
+
+    posture: StaticJointState = StaticJointState.PARK
+    """
+    The posture, applied to every arm that has one.
+    """
+
+    def apply(self, world: World) -> None:
+        """
+        :param world: The world before the run starts, its arms put in :attr:`posture`.
+        """
+        for robot in world.get_semantic_annotations_by_type(AbstractRobot):
+            for arm in robot.all_arms:
+                if arm.has_joint_state_of_type(self.posture):
+                    arm.get_joint_state_by_type(self.posture).apply_to(world)
+        world.notify_state_change()
+
 
 # %% execution
 
@@ -97,6 +123,7 @@ class PlanExecution(ABC):
         context: StatechartContext,
         collision_avoidance: bool,
         extensions: Sequence[ExecutorExtension],
+        safety: SafetyEnvelope,
     ) -> PlanExecutor:
         """
         :param context: The context of the plan the executor runs; it serves one
@@ -104,6 +131,7 @@ class PlanExecution(ABC):
         :param collision_avoidance: Whether every motion avoids collisions with the
             environment.
         :param extensions: Added to the executor.
+        :param safety: The safety constraints every motion of the plan is held to.
         :return: A new executor running one plan, inside :meth:`running`.
         """
 
@@ -119,11 +147,13 @@ class KinematicExecution(PlanExecution):
         context: StatechartContext,
         collision_avoidance: bool,
         extensions: Sequence[ExecutorExtension],
+        safety: SafetyEnvelope,
     ) -> PlanExecutor:
         return KinematicallySimulatedPlanExecutor(
             context,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
+            safety=safety,
         )
 
 
@@ -218,11 +248,7 @@ class PhysicalExecution(PlanExecution):
 
         :param world: The world before the physics starts.
         """
-        for robot in world.get_semantic_annotations_by_type(AbstractRobot):
-            for arm in robot.all_arms:
-                if arm.has_joint_state_of_type(self.starting_posture):
-                    arm.get_joint_state_by_type(self.starting_posture).apply_to(world)
-        world.notify_state_change()
+        StartingPosture(self.starting_posture).apply(world)
         ContactParameters.create_for_grasped_object().apply_to(
             graspable.root
             for graspable in world.get_semantic_annotations_by_type(HasGraspCandidates)
@@ -234,6 +260,7 @@ class PhysicalExecution(PlanExecution):
         context: StatechartContext,
         collision_avoidance: bool,
         extensions: Sequence[ExecutorExtension],
+        safety: SafetyEnvelope,
     ) -> PlanExecutor:
         """
         :raises ExecutionNotRunning: Outside :meth:`running`, where no physics runs.
@@ -245,6 +272,7 @@ class PhysicalExecution(PlanExecution):
             simulation=self.simulation,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
+            safety=safety,
         )
 
 
@@ -306,6 +334,7 @@ class PerceivingPhysicalExecution(PhysicalExecution):
         context: StatechartContext,
         collision_avoidance: bool,
         extensions: Sequence[ExecutorExtension],
+        safety: SafetyEnvelope,
     ) -> PlanExecutor:
         """
         Differs from :meth:`PhysicalExecution.executor` in detecting every grasped
@@ -318,6 +347,7 @@ class PerceivingPhysicalExecution(PhysicalExecution):
             simulation=self.simulation,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
+            safety=safety,
             ros_node=self.ros_node,
             plan_adaptations=[
                 LetContactCarryTheBodies(),

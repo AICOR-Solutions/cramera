@@ -22,6 +22,7 @@ from cramph.context import ContextExtension, StatechartContext
 from cramph.executor import ExecutorExtension
 from cramph.node import StatechartNode
 from cramph.statechart import Statechart
+from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from krrood.entity_query_language.backends import (
     EntityQueryLanguageGenerativeBackend,
     QueryBackend,
@@ -135,6 +136,11 @@ class PlanPerformance:
     Added to every executor, such as the extension publishing its plan.
     """
 
+    safety: SafetyEnvelope = field(default_factory=SafetyEnvelope)
+    """
+    The safety constraints every motion of every plan is held to.
+    """
+
     def executor(
         self,
         context: TaskContext,
@@ -149,6 +155,7 @@ class PlanPerformance:
             context.take_statechart_context(),
             collision_avoidance=self.collision_avoidance,
             extensions=[*self.extensions, *extensions],
+            safety=self.safety,
         )
 
     def perform(
@@ -166,6 +173,7 @@ class PlanPerformance:
         :return: The executor that ran the plan, holding its statechart.
         :raises MotionDidNotFinish: If the plan did not succeed, or another
             :class:`~coraplex.plans.failures.PlanFailure`.
+        :raises SafetyConstraintViolated: If a motion broke one of :attr:`safety`.
         """
         executor = self.executor(context, extensions)
         statechart = Statechart(context=executor.context)

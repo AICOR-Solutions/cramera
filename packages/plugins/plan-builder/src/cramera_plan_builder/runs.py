@@ -17,13 +17,14 @@ from pathlib import Path
 from typing_extensions import IO, List, Optional
 
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
-from cramera_plan_builder.exceptions import DemoNotStarted
+from cramera_plan_builder.exceptions import DemoNotStarted, SafetyStopNotAcknowledged
 from cramera_protocol.plan_builder import (
     DemoDocument,
     DemoOption,
     RunMode,
     RunState,
     RunStatus,
+    SafetyStop,
 )
 from cramera_protocol.robot_profile import ExecutorKind
 
@@ -141,6 +142,11 @@ class DemoProcess:
     Whether the demo was stopped rather than ending on its own.
     """
 
+    acknowledged: bool = False
+    """
+    Whether a person acknowledged the safety stop that cancelled the demo.
+    """
+
     @classmethod
     def start(
         cls, command: List[str], path: Path, mode: RunMode, log: OutputLog
@@ -173,18 +179,43 @@ class DemoProcess:
 
     def state(self) -> RunState:
         """
-        :return: Whether the demo runs, ended on its own or was stopped.
+        :return: Whether the demo runs, ended on its own, was cancelled by a safety
+            stop or was stopped.
         """
         return_code = self.process.poll()
         if return_code is None:
             return RunState.RUNNING
         if self.stopped:
             return RunState.STOPPED
-        return RunState.FINISHED if return_code == 0 else RunState.FAILED
+        if return_code == 0:
+            return RunState.FINISHED
+        if self.safety_stop() is not None:
+            return RunState.SAFETY_STOPPED
+        return RunState.FAILED
+
+    def safety_stop(self) -> Optional[SafetyStop]:
+        """
+        :return: The safety stop that cancelled the demo once it ended, as far as a
+            person acknowledged it, or None.
+        """
+        if self.process.poll() in (None, 0) or self.stopped:
+            return None
+        stop = SafetyStop.from_output(self.log.text())
+        if stop is None:
+            return None
+        stop.acknowledged = self.acknowledged
+        return stop
+
+    def awaits_acknowledgement(self) -> bool:
+        """
+        :return: Whether a safety stop cancelled the demo and nobody acknowledged it.
+        """
+        stop = self.safety_stop()
+        return stop is not None and not stop.acknowledged
 
     def status(self) -> RunStatus:
         """
-        :return: The demo's state and newest output.
+        :return: The demo's state, newest output and safety stop.
         """
         return RunStatus(
             state=self.state(),
@@ -192,6 +223,7 @@ class DemoProcess:
             return_code=self.process.poll(),
             log=self.log.text(),
             path=str(self.path),
+            safety_stop=self.safety_stop(),
         )
 
     def stop(self, timeout: float = STOP_TIMEOUT) -> None:
@@ -280,8 +312,11 @@ class DemoRunner:
             when None.
         :return: The started demo's state.
         :raises DemoNotStarted: When the operating system cannot start it.
+        :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop
+            of the demo started last.
         """
         with self.lock:
+            self.refuse_before_acknowledgement()
             self.release()
             saved = self.directory.write(self.template.render(demo))
             path = Path(saved.path)
@@ -332,6 +367,26 @@ class DemoRunner:
         """
         with self.lock:
             return RunStatus() if self.current is None else self.current.status()
+
+    def acknowledge(self) -> RunStatus:
+        """
+        Acknowledge the safety stop of the demo started last, so a demo may start again.
+
+        :return: The state of the demo started last, or the idle state.
+        """
+        with self.lock:
+            if self.current is None:
+                return RunStatus()
+            self.current.acknowledged = True
+            return self.current.status()
+
+    def refuse_before_acknowledgement(self) -> None:
+        """
+        :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
+            the demo started last.
+        """
+        if self.current is not None and self.current.awaits_acknowledgement():
+            raise SafetyStopNotAcknowledged(self.current.safety_stop().constraint)
 
     def release(self) -> None:
         """

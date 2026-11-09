@@ -702,6 +702,20 @@ def test_a_demo_carries_the_profiles_zones_a_place_step_names(profiled, plan):
     assert [zone.identifier for zone in document.zones] == ["left_tray"]
 
 
+def test_a_demo_carries_the_profiles_safety_limits(profiled, plan):
+    answer = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(plan.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.OK, answer.body
+    document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
+    profile = RobotProfile.from_file(DATASET / "profile" / "tracy.json")
+    assert document.safety == profile.safety
+
+
 @pytest.mark.parametrize(
     "destination",
     [

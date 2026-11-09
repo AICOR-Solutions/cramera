@@ -49,6 +49,7 @@ import { MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode 
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
+import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
 import { REASON_TEXTS, StepsView } from './steps-view.js';
 
 /**
@@ -91,6 +92,7 @@ const RUN_LABELS = Object.freeze({
   [RunState.FINISHED]: 'The demo finished.',
   [RunState.FAILED]: 'The demo failed; its output is below.',
   [RunState.STOPPED]: 'The demo was stopped.',
+  [RunState.SAFETY_STOPPED]: 'A safety limit stopped the demo; the robot holds.',
 });
 
 /**
@@ -275,6 +277,11 @@ export class BuilderPage {
    * @type {Object}
    */
   #run = { [RunStatusKey.STATE]: RunState.IDLE };
+
+  /**
+   * The banner of the safety stop of the demo started last.
+   */
+  #safetyBanner = new SafetyStopBanner();
 
   /**
    * What the live world showed last: its object keys, poses and plan statuses.
@@ -736,6 +743,7 @@ export class BuilderPage {
       return null;
     });
     if (!status) return;
+    this.#safetyBanner.reset();
     this.#world = PageWorld.empty();
     this.#attached.clear();
     this.#run = status;
@@ -805,6 +813,59 @@ export class BuilderPage {
     this.#run = await this.#environment.api.stop();
     this.#world = PageWorld.empty();
     this.render();
+  }
+
+  // %% safety stops
+
+  /**
+   * Acknowledge the safety stop of the demo, after which the plan restarts from its
+   * beginning or is aborted.
+   * @returns {Promise<void>} Settles once the plan builder acknowledged it.
+   */
+  async #acknowledgeStop() {
+    const status = await this.#environment.api.acknowledge().catch((error) => {
+      this.report(error.message);
+      return null;
+    });
+    if (!status) return;
+    this.#run = status;
+    this.render();
+  }
+
+  /**
+   * Run the plan again from its beginning, in the mode the stopped demo ran in.
+   * @returns {Promise<void>} Settles once the run started or was refused.
+   */
+  async #restartPlan() {
+    const mode = this.#run[RunStatusKey.MODE];
+    this.#safetyBanner.settle();
+    if (mode === RunMode.ROBOT) await this.#runOnRobot();
+    else await this.#start(mode);
+    this.render();
+  }
+
+  /**
+   * Leave the plan stopped and the banner closed.
+   */
+  #abortPlan() {
+    this.#safetyBanner.settle();
+    this.report('The plan was aborted after its safety stop.');
+    this.render();
+  }
+
+  /**
+   * Show the banner of the demo's safety stop, if one is to be dealt with.
+   */
+  #showSafetyStop() {
+    const state = this.#safetyBanner.state(this.#run);
+    const parts = this.#parts;
+    parts.safety.hidden = state === SafetyBannerState.HIDDEN;
+    parts.safety.dataset.state = state;
+    if (state === SafetyBannerState.HIDDEN) return;
+    parts.safetyMessage.textContent = this.#safetyBanner.message(this.#run);
+    parts.acknowledgeStop.hidden = state !== SafetyBannerState.VIOLATED;
+    parts.restartPlan.hidden = state !== SafetyBannerState.ACKNOWLEDGED;
+    parts.abortPlan.hidden = state !== SafetyBannerState.ACKNOWLEDGED;
   }
 
   /**
@@ -953,10 +1014,11 @@ export class BuilderPage {
     this.#parts.log.textContent = this.#run[RunStatusKey.LOG] ?? '';
     this.#parts.stop.disabled = !running;
     this.#parts.capture.disabled = !live;
-    const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0;
+    const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run);
     for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;
     const passed = this.#validationPassed();
     this.#parts.robot.disabled = !runnable || !(passed || this.state.developerMode());
+    this.#showSafetyStop();
     this.#parts.validationState.textContent = this.#validationState(passed);
     this.#parts.validationState.dataset.passed = String(passed);
   }
@@ -1045,6 +1107,14 @@ export class BuilderPage {
     parts.robot = elements.button('Run on robot', PlanAction.RUN_ON_ROBOT, () => this.#runOnRobot());
     parts.stop = elements.button('Stop', PlanAction.STOP, () => this.#stop());
     parts.capture = elements.button('Capture live poses', PlanAction.CAPTURE, () => this.#capture());
+    parts.safetyMessage = elements.create('strong', 'safety-message');
+    parts.acknowledgeStop = elements.button('Acknowledge', PlanAction.ACKNOWLEDGE_STOP, () => this.#acknowledgeStop());
+    parts.restartPlan = elements.button('Restart from the beginning', PlanAction.RESTART_PLAN, () => this.#restartPlan());
+    parts.abortPlan = elements.button('Abort', PlanAction.ABORT_PLAN, () => this.#abortPlan());
+    parts.safety = elements.create('div', 'safety-banner');
+    parts.safety.setAttribute('role', 'alert');
+    parts.safety.hidden = true;
+    parts.safety.append(parts.safetyMessage, parts.acknowledgeStop, parts.restartPlan, parts.abortPlan);
     let turning = false;
     const turn = elements.button('Turn', PlanAction.TURN, () => {
       turning = !turning;
@@ -1076,7 +1146,7 @@ export class BuilderPage {
     const controls = elements.create('div', 'builder-controls');
     const lines = elements.create('div', 'status-row');
     lines.append(parts.runState, parts.validationState, parts.message);
-    controls.append(runRow, lines, statusLine);
+    controls.append(parts.safety, runRow, lines, statusLine);
     const output = elements.create('div', 'builder-output');
     output.append(this.#details('Demo output', parts.log), this.#details('Generated demo', parts.output));
     const view = elements.create('section', 'builder-view');

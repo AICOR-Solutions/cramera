@@ -229,6 +229,11 @@ class PlanBuilderRoutes:
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.RUN, self.answer_run_status),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.RUN, self.answer_run),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.RUN_STOP, self.answer_stop),
+            PluginRoute(
+                HttpMethod.POST,
+                PlanBuilderRoute.RUN_ACKNOWLEDGE,
+                self.answer_acknowledge,
+            ),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.SCAN, self.answer_scan),
             PluginRoute(
                 HttpMethod.POST, PlanBuilderRoute.VALIDATE, self.answer_validate
@@ -421,16 +426,19 @@ class PlanBuilderRoutes:
         """
         :param plan: A checked plan.
         :return: The plan with its environment's directory, found among the viewer's
-            scenes, and the robot profile's zones.
+            scenes, and the robot profile's zones and safety limits.
         """
-        zones = [] if self.profile.profile is None else self.profile.profile.zones
+        profile = self.profile.profile
+        zones = [] if profile is None else list(profile.zones)
+        safety = None if profile is None else profile.safety
         if plan.environment is None:
-            return DemoDocument(plan=plan, zones=list(zones))
+            return DemoDocument(plan=plan, zones=zones, safety=safety)
         directory = self.scenes.directory_of(plan.environment).path / plan.environment
         return DemoDocument(
             plan=plan,
             environment_directory=str(directory.resolve()),
-            zones=list(zones),
+            zones=zones,
+            safety=safety,
         )
 
     def answer_demo(self, request: Request) -> Response:
@@ -483,6 +491,13 @@ class PlanBuilderRoutes:
         """
         return Response.of_json(self.runner.stop())
 
+    def answer_acknowledge(self, request: Request) -> Response:
+        """
+        :param request: A request acknowledging the safety stop of the demo.
+        :return: The state of the demo started last, its stop acknowledged.
+        """
+        return Response.of_json(self.runner.acknowledge())
+
     # %% scans
 
     def answer_scan(self, request: Request) -> Response:
@@ -517,7 +532,10 @@ class PlanBuilderRoutes:
 
         :param request: A request whose body is a :class:`ValidationRequest`.
         :return: The :class:`ValidationReport`.
+        :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
+            the demo started last.
         """
+        self.runner.refuse_before_acknowledgement()
         demo = self.runnable(ValidationRequest.from_json(self.body(request)).plan)
         report = self.report_unoffered_skills(demo.plan) or self.validations.validate(
             ValidationOrder(demo=demo, simulated_objects=self.profile.simulated_objects)

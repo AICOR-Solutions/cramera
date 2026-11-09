@@ -28,6 +28,7 @@ from cramera_protocol.robot_profile import (
     CameraMount,
     ExecutorKind,
     RobotProfile,
+    SafetyLimits,
     Zone,
 )
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
@@ -133,6 +134,12 @@ class PlanBuilderRoute(StrEnum):
     RUN_STOP = "run/stop"
     """
     Stops the demo process.
+    """
+
+    RUN_ACKNOWLEDGE = "run/acknowledge"
+    """
+    Acknowledges the safety stop of the demo started last, after which a demo may start
+    again.
     """
 
     SCAN = "scan"
@@ -2529,6 +2536,11 @@ class DemoDocumentKey(StrEnum):
     The named zones of the robot profile.
     """
 
+    SAFETY = "safety"
+    """
+    The safety limits of the robot profile.
+    """
+
 
 @dataclass(kw_only=True)
 class DemoDocument(JsonDocument):
@@ -2552,6 +2564,13 @@ class DemoDocument(JsonDocument):
     zones: List[Zone] = document_field(DemoDocumentKey.ZONES, default_factory=list)
     """
     The robot profile's named zones the plan's steps may name.
+    """
+
+    safety: Optional[SafetyLimits] = document_field(
+        DemoDocumentKey.SAFETY, default=None
+    )
+    """
+    The robot profile's safety limits every motion of the run is held to, or None.
     """
 
 
@@ -2744,6 +2763,11 @@ class RunState(StrEnum):
     The demo was stopped.
     """
 
+    SAFETY_STOPPED = "safety_stopped"
+    """
+    The demo was cancelled because a motion broke a safety limit; nothing resumes it.
+    """
+
 
 class RunRequestKey(StrEnum):
     """
@@ -2791,6 +2815,74 @@ class RunRequest(JsonDocument):
     """
 
 
+class RunOutputMarker(StrEnum):
+    """
+    What a line of a demo's output starts with when it tells the plan builder something.
+    """
+
+    SAFETY_STOP = "[safety stop]"
+    """
+    A motion broke a safety limit, which the rest of the line names.
+    """
+
+
+class SafetyStopKey(StrEnum):
+    """
+    The keys of a safety stop.
+    """
+
+    CONSTRAINT = "constraint"
+    """
+    The broken safety limit.
+    """
+
+    ACKNOWLEDGED = "acknowledged"
+    """
+    Whether a person acknowledged the stop.
+    """
+
+
+@dataclass(kw_only=True)
+class SafetyStop(JsonDocument):
+    """
+    A demo cancelled because a motion broke a safety limit.
+
+    No demo starts until a person acknowledged it, and then only from the plan's
+    beginning.
+    """
+
+    constraint: str = document_field(SafetyStopKey.CONSTRAINT)
+    """
+    The broken safety limit and how it was broken, as a person reads it.
+    """
+
+    acknowledged: bool = document_field(SafetyStopKey.ACKNOWLEDGED, default=False)
+    """
+    Whether a person acknowledged the stop.
+    """
+
+    def to_output_line(self) -> str:
+        """
+        :return: The line of a demo's output reporting the stop.
+        """
+        return f"{RunOutputMarker.SAFETY_STOP} {self.constraint}"
+
+    @classmethod
+    def from_output(cls, output: str) -> Optional[Self]:
+        """
+        :param output: A demo's output.
+        :return: The last stop the output reports, unacknowledged, or None.
+        """
+        reported = [
+            line.removeprefix(RunOutputMarker.SAFETY_STOP).strip()
+            for line in output.splitlines()
+            if line.startswith(RunOutputMarker.SAFETY_STOP)
+        ]
+        if not reported:
+            return None
+        return cls(constraint=reported[-1])
+
+
 class RunStatusKey(StrEnum):
     """
     The keys of the demo process's state.
@@ -2819,6 +2911,11 @@ class RunStatusKey(StrEnum):
     PATH = "path"
     """
     The demo file.
+    """
+
+    SAFETY_STOP = "safetyStop"
+    """
+    The safety stop that cancelled the demo.
     """
 
 
@@ -2852,6 +2949,13 @@ class RunStatus(JsonDocument):
     path: Optional[str] = document_field(RunStatusKey.PATH, default=None)
     """
     The started demo file.
+    """
+
+    safety_stop: Optional[SafetyStop] = document_field(
+        RunStatusKey.SAFETY_STOP, default=None
+    )
+    """
+    The safety stop that cancelled the demo, or None.
     """
 
 

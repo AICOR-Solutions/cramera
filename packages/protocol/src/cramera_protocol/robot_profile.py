@@ -17,7 +17,7 @@ from pathlib import Path
 from typing_extensions import Any, Dict, List, Optional, Self
 
 from cramera_protocol.document import JsonDocument, document_field
-from cramera_protocol.geometry import FloorRectangle
+from cramera_protocol.geometry import AxisAlignedBox, FloorRectangle
 from cramera_protocol.version import ProtocolVersion
 
 PROFILE_FORMAT_VERSION = ProtocolVersion(major=1, minor=0)
@@ -208,6 +208,101 @@ class Zone(JsonDocument):
     """
 
 
+class ArmWorkspaceKey(StrEnum):
+    """
+    The keys of the workspace of an arm.
+    """
+
+    ARM = "arm"
+    """
+    The arm, as a step names it.
+    """
+
+    LABEL = "label"
+    """
+    The workspace's name shown to people.
+    """
+
+    BOX = "box"
+    """
+    The box the arm's tool stays inside.
+    """
+
+
+@dataclass(kw_only=True)
+class ArmWorkspace(JsonDocument):
+    """
+    The box an arm's tool stays inside while the robot moves; leaving it stops the run.
+    """
+
+    arm: str = document_field(ArmWorkspaceKey.ARM)
+    """
+    The arm, by the name a step gives its side, such as ``left``.
+    """
+
+    label: str = document_field(ArmWorkspaceKey.LABEL)
+    """
+    The workspace's name, which a safety stop on leaving it shows.
+    """
+
+    box: AxisAlignedBox = document_field(ArmWorkspaceKey.BOX)
+    """
+    The box, in metres, in the frame of the pose a plan stands the robot at.
+    """
+
+
+class SafetyLimitsKey(StrEnum):
+    """
+    The keys of the safety limits of a robot.
+    """
+
+    WORKSPACES = "workspaces"
+    """
+    The workspace of each arm.
+    """
+
+    MAXIMUM_JOINT_VELOCITY = "maximumJointVelocity"
+    """
+    The velocity no arm joint may exceed.
+    """
+
+    MAXIMUM_TOOL_VELOCITY = "maximumToolVelocity"
+    """
+    The speed no arm's tool may exceed.
+    """
+
+
+@dataclass(kw_only=True)
+class SafetyLimits(JsonDocument):
+    """
+    The safety limits every motion of a robot's runs is held to; breaking one stops the
+    run, which nothing resumes.
+
+    The robot's own safety controller stays authoritative.
+    """
+
+    workspaces: List[ArmWorkspace] = document_field(
+        SafetyLimitsKey.WORKSPACES, default_factory=list
+    )
+    """
+    The box each arm's tool stays inside; an arm without one is not held to a box.
+    """
+
+    maximum_joint_velocity: Optional[float] = document_field(
+        SafetyLimitsKey.MAXIMUM_JOINT_VELOCITY, default=None
+    )
+    """
+    The velocity, in radians per second, no joint of an arm may exceed; None sets none.
+    """
+
+    maximum_tool_velocity: Optional[float] = document_field(
+        SafetyLimitsKey.MAXIMUM_TOOL_VELOCITY, default=None
+    )
+    """
+    The speed, in metres per second, no arm's tool may exceed; None sets none.
+    """
+
+
 class RobotProfileKey(StrEnum):
     """
     The keys of a robot profile.
@@ -266,6 +361,11 @@ class RobotProfileKey(StrEnum):
     CAMERA_MOUNT = "cameraMount"
     """
     How the robot's camera is mounted.
+    """
+
+    SAFETY = "safety"
+    """
+    The safety limits the robot's runs are held to.
     """
 
 
@@ -340,6 +440,14 @@ class RobotProfile(JsonDocument):
     """
     How the robot's camera is mounted, which decides the constraints keeping an object
     in view it is offered; None offers every one.
+    """
+
+    safety: Optional[SafetyLimits] = document_field(
+        RobotProfileKey.SAFETY, default=None
+    )
+    """
+    The safety limits every motion of the robot's runs is held to; None holds them to
+    none.
     """
 
     format_version: ProtocolVersion = document_field(

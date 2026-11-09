@@ -23,8 +23,9 @@ from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera.lifeline import Lifeline
 from cramera_protocol.live import LIVE_PORT
 from cramera_protocol.live_messages import SavedScene
-from cramera_protocol.plan_builder import DemoDocument, DemoOption
+from cramera_protocol.plan_builder import DemoDocument, DemoOption, SafetyStop
 from cramera_protocol.robot_profile import ExecutorKind
+from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
 
 STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 """
@@ -101,6 +102,8 @@ class PlanDemoCommand:
         """
         :param arguments: The command's arguments.
         :return: The saved or published recording, or None for a staged world.
+        :raises SafetyConstraintViolated: When a motion broke a safety limit, after
+            the output reported the stop to the plan builder.
         """
         plan = self.document.plan
         parser = ArgumentParser(description=plan.task or plan.name)
@@ -135,6 +138,14 @@ class PlanDemoCommand:
         if options.stage:
             StagedWorld(demo).run()
             return None
-        return TaskCommand(demo).main(
-            [*remaining, TaskArgument.PORT, str(options.port)]
-        )
+        # The process boundary, where a safety stop becomes the line the plan builder
+        # reads; the run still ends with the violation.
+        try:
+            return TaskCommand(demo).main(
+                [*remaining, TaskArgument.PORT, str(options.port)]
+            )
+        except SafetyConstraintViolated as violation:
+            print(
+                SafetyStop(constraint=violation.constraint).to_output_line(), flush=True
+            )
+            raise

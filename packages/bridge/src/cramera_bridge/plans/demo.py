@@ -15,6 +15,7 @@ from typing_extensions import Callable, Dict, Iterator, List, Optional
 
 from coraplex.perception import WorldPerception
 from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
+from cramera_bridge.execution import StartingPosture
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
@@ -23,6 +24,7 @@ from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.run_log import RunLog
+from cramera_bridge.plans.safety import RobotSafety
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.step_run import AttemptPlan, ScheduledStep, StepRun
 from cramera_bridge.plans.steps import StepArguments
@@ -274,11 +276,27 @@ class PlannedTaskDemo(RobotTaskDemo):
     def build_world(self) -> World:
         """
         :return: A new world holding the environment, every robot at its start pose
-            and posture, and the plan's objects.
+            and posture, and the plan's objects; a run held to safety limits starts
+            with the arms parked, as the real robot stands inside its workspaces.
         """
         world = self.robot_scene.build_world(self.environment)
+        if self.document.safety is not None:
+            StartingPosture().apply(world)
         self.bodies = PlannedObjects(self.plan.objects).spawn(world)
         return world
+
+    def performance(self, context: TaskContext) -> PlanPerformance:
+        """
+        Differs from :meth:`RobotTaskDemo.performance` in holding every motion to the
+        safety limits of the robot profile.
+        """
+        performance = super().performance(context)
+        if self.document.safety is None:
+            return performance
+        performance.safety = RobotSafety(
+            limits=self.document.safety, site=self.site
+        ).envelope(context)
+        return performance
 
     def build_context(self, world: World) -> TaskContext:
         return TaskContext(world=world, robot=self.robot_scene.selected_robot(world))
@@ -325,6 +343,8 @@ class PlannedTaskDemo(RobotTaskDemo):
         objects.
 
         :raises StepAbandoned: When a step failed every attempt it had.
+        :raises SafetyConstraintViolated: When a motion broke a safety limit, which ends
+            the run without another attempt.
         """
         self.step_run.perform(performance, extensions, self.first_attempt)
         self.performed_steps = [scheduled.resolved for scheduled in self.step_run.steps]

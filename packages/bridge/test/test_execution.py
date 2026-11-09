@@ -31,6 +31,7 @@ from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
 from cramera_protocol.robot_profile import ExecutorKind
 from cramera_protocol.viewer import EnvironmentVariable
+from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from cramph.context import StatechartContext
 from cramph.statechart import Statechart
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
@@ -128,7 +129,7 @@ def test_a_task_is_executed_kinematically_unless_asked_otherwise():
 def test_a_physical_execution_gives_no_executor_before_its_physics_runs():
     with pytest.raises(ExecutionNotRunning):
         PhysicalExecution().executor(
-            StatechartContext.with_extensions(World(), []), False, []
+            StatechartContext.with_extensions(World(), []), False, [], SafetyEnvelope()
         )
 
 

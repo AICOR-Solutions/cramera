@@ -57,11 +57,14 @@ from cramera_protocol.plan_builder import (
     RunMode,
     RunRequest,
     RunState,
+    RunOutputMarker,
     RunStatus,
+    SafetyStop,
+    SafetyStopKey,
     RunStatusKey,
     StepConstraintKey,
 )
-from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.robot_profile import ExecutorKind, SafetyLimits
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED
 
 # %% plans
@@ -427,6 +430,27 @@ def test_the_run_status_reads_the_exit_and_the_log(read_json):
     assert status.log == data[RunStatusKey.LOG]
 
 
+def test_a_safety_stop_is_read_back_from_the_line_reporting_it():
+    stop = SafetyStop(constraint="Left arm workspace (tool 0.004 m outside)")
+    output = f"building the world\n{stop.to_output_line()}\nTraceback ...\n"
+
+    assert SafetyStop.from_output(output) == stop
+    assert stop.to_output_line().startswith(RunOutputMarker.SAFETY_STOP)
+
+
+def test_output_reporting_no_safety_stop_reads_as_none():
+    assert SafetyStop.from_output("the plan finished\n") is None
+
+
+def test_a_run_status_carries_its_safety_stop():
+    status = RunStatus(
+        state=RunState.SAFETY_STOPPED,
+        safety_stop=SafetyStop(constraint="Left arm workspace", acknowledged=True),
+    )
+    assert RunStatus.from_json(status.to_json()) == status
+    assert SafetyStopKey in BROWSER_ENUMERATIONS
+
+
 def test_an_idle_status_names_no_mode_and_no_exit():
     written = RunStatus().to_json()
     assert written[RunStatusKey.STATE] == RunState.IDLE
@@ -469,3 +493,12 @@ def test_a_demo_document_carries_the_plan_and_its_environment(read_json):
 def test_a_demo_on_an_empty_floor_names_no_environment_directory():
     written = DemoDocument(plan=PlanDocument(name="x")).to_json()
     assert DemoDocumentKey.ENVIRONMENT_DIRECTORY not in written
+
+
+def test_a_demo_document_carries_the_profiles_safety_limits():
+    demo = DemoDocument(
+        plan=PlanDocument(name="x"),
+        safety=SafetyLimits(maximum_joint_velocity=0.5, maximum_tool_velocity=0.5),
+    )
+    assert DemoDocument.from_json(demo.to_json()) == demo
+    assert DemoDocumentKey.SAFETY not in DemoDocument(plan=demo.plan).to_json()

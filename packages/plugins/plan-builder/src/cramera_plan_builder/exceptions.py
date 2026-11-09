@@ -758,6 +758,28 @@ class PlanNotValidated(PlanBuilderError):
         )
 
 
+@dataclass
+class SafetyStopNotAcknowledged(PlanBuilderError):
+    """
+    A run or a validation asked for while nobody acknowledged the safety stop that
+    cancelled the demo started last.
+    """
+
+    constraint: str
+    """
+    The broken safety limit.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.CONFLICT
+
+    def message(self) -> str:
+        return (
+            f"Safety constraint violated: {self.constraint}. Acknowledge the stop "
+            f"before the plan runs or is validated again."
+        )
+
+
 # %% reach
 
 

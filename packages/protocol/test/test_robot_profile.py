@@ -10,13 +10,17 @@ import pytest
 
 from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.exceptions import UnsupportedProtocolVersion
-from cramera_protocol.geometry import FloorRectangle
+from cramera_protocol.geometry import AxisAlignedBox, BoxKey, FloorRectangle
 from cramera_protocol.plan_builder import RunMode
 from cramera_protocol.robot_profile import (
     PROFILE_FORMAT_VERSION,
+    ArmWorkspace,
+    ArmWorkspaceKey,
     ExecutorKind,
     RobotProfile,
     RobotProfileKey,
+    SafetyLimits,
+    SafetyLimitsKey,
     Zone,
     ZoneKey,
 )
@@ -137,3 +141,49 @@ def test_a_profile_names_its_zones_on_the_robots_table():
     assert profile.zone_named("right_tray") is None
     assert RobotProfile.from_json(profile.to_json()) == profile
     assert ZoneKey in BROWSER_ENUMERATIONS
+
+
+# %% safety limits
+
+
+def test_a_profile_holds_its_arms_to_workspaces_and_velocity_limits():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "tracy",
+            RobotProfileKey.LABEL: "Tracy",
+            RobotProfileKey.SAFETY: {
+                SafetyLimitsKey.WORKSPACES: [
+                    {
+                        ArmWorkspaceKey.ARM: "left",
+                        ArmWorkspaceKey.LABEL: "Left arm workspace",
+                        ArmWorkspaceKey.BOX: {
+                            BoxKey.MIN_X: 0.3,
+                            BoxKey.MAX_X: 1.2,
+                            BoxKey.MIN_Y: -0.3,
+                            BoxKey.MAX_Y: 0.7,
+                            BoxKey.MIN_Z: 0.875,
+                            BoxKey.MAX_Z: 1.6,
+                        },
+                    }
+                ],
+                SafetyLimitsKey.MAXIMUM_JOINT_VELOCITY: 0.5,
+            },
+        }
+    )
+    assert profile.safety == SafetyLimits(
+        workspaces=[
+            ArmWorkspace(
+                arm="left",
+                label="Left arm workspace",
+                box=AxisAlignedBox(
+                    min_x=0.3, max_x=1.2, min_y=-0.3, max_y=0.7, min_z=0.875, max_z=1.6
+                ),
+            )
+        ],
+        maximum_joint_velocity=0.5,
+    )
+    assert RobotProfile.from_json(profile.to_json()) == profile
+
+
+def test_a_profile_without_safety_limits_holds_its_runs_to_none(profile_file):
+    assert RobotProfile.from_file(profile_file).safety is None

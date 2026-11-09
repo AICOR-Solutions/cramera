@@ -13,7 +13,7 @@ import pytest
 from typing_extensions import Callable
 
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
-from cramera_plan_builder.exceptions import DemoNotStarted
+from cramera_plan_builder.exceptions import DemoNotStarted, SafetyStopNotAcknowledged
 from cramera_plan_builder.runs import DemoRunner, OutputLog
 from cramera_protocol.plan_builder import (
     DemoDocument,
@@ -21,6 +21,7 @@ from cramera_protocol.plan_builder import (
     RunMode,
     RunState,
     RunStatus,
+    SafetyStop,
 )
 from cramera_protocol.robot_profile import ExecutorKind
 
@@ -217,6 +218,51 @@ def test_a_demo_whose_interpreter_is_missing_is_not_started(tmp_path, demo):
     )
     with pytest.raises(DemoNotStarted):
         runner.start(demo, RunMode.STAGE)
+
+
+# %% safety stops
+
+
+@pytest.fixture
+def safety_stopped(tmp_path, demo) -> DemoRunner:
+    """
+    :return: A runner whose demo was cancelled by a safety stop.
+    """
+    runner = runner_of(tmp_path, "safety_stopped_demo.py")
+    runner.start(demo, RunMode.SIMULATE)
+    wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    yield runner
+    runner.stop()
+
+
+def test_a_demo_cancelled_by_a_safety_stop_names_the_broken_limit(safety_stopped):
+    status = safety_stopped.status()
+    assert status.state is RunState.SAFETY_STOPPED
+    assert status.safety_stop == SafetyStop.from_output(status.log)
+    assert not status.safety_stop.acknowledged
+
+
+@pytest.mark.parametrize("mode", list(RunMode))
+def test_no_demo_starts_before_the_safety_stop_is_acknowledged(
+    safety_stopped, demo, mode
+):
+    with pytest.raises(SafetyStopNotAcknowledged):
+        safety_stopped.start(demo, mode)
+    assert safety_stopped.status().state is RunState.SAFETY_STOPPED
+
+
+def test_a_new_run_starts_from_the_beginning_once_the_stop_is_acknowledged(
+    safety_stopped, demo
+):
+    acknowledged = safety_stopped.acknowledge()
+    started = safety_stopped.start(demo, RunMode.SIMULATE)
+
+    assert acknowledged.safety_stop.acknowledged
+    assert started.state is RunState.RUNNING and started.safety_stop is None
+
+
+def test_acknowledging_without_a_demo_leaves_the_runner_idle(runner):
+    assert runner.acknowledge() == RunStatus()
 
 
 # %% output

@@ -33,6 +33,7 @@ import {
   RunMode,
   RunState,
   RunStatusKey,
+  SafetyStopKey,
   SavedDemoKey,
   StepConstraintKey,
   StepFailureReason,
@@ -54,6 +55,7 @@ import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_bui
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
@@ -181,6 +183,13 @@ class FakeApi {
   }
 
   async runStatus() {
+    return structuredClone(this.status);
+  }
+
+  async acknowledge() {
+    this.acknowledged = (this.acknowledged ?? 0) + 1;
+    const stop = this.status[RunStatusKey.SAFETY_STOP];
+    if (stop) this.status = { ...this.status, [RunStatusKey.SAFETY_STOP]: { ...stop, [SafetyStopKey.ACKNOWLEDGED]: true } };
     return structuredClone(this.status);
   }
 
@@ -1159,6 +1168,66 @@ test('the physics run is an optional dry-run, not gated by the validation', asyn
   const dryRun = byAction(root, PlanAction.SIMULATE)[0];
   assert.equal(dryRun.textContent, 'Dry-run in physics');
   assert.equal(dryRun.disabled, false);
+});
+
+// %% safety stops
+
+/**
+ * Open a page, dry-run a plan in physics and have a safety limit stop it.
+ */
+async function safetyStopped() {
+  const opened = await openPage();
+  const { root, api, timer } = opened;
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'park_arms').click();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  api.status = {
+    [RunStatusKey.STATE]: RunState.SAFETY_STOPPED,
+    [RunStatusKey.MODE]: RunMode.SIMULATE,
+    [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'Left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false },
+  };
+  await timer.tick();
+  return opened;
+}
+
+const banner = (root) => root.findAll((element) => element.className === 'safety-banner')[0];
+const runButtons = (root) => [PlanAction.STAGE, PlanAction.PERFORM, PlanAction.SIMULATE, PlanAction.VALIDATE, PlanAction.RUN_ON_ROBOT].map((action) => byAction(root, action)[0]);
+
+test('a safety stop shows its banner and blocks every run until it is acknowledged', async () => {
+  const { root, api } = await safetyStopped();
+  assert.equal(banner(root).hidden, false);
+  const shown = root.findAll((element) => element.className === 'safety-message')[0].textContent;
+  assert.equal(shown, new SafetyStopBanner().message(api.status));
+  assert.ok(runButtons(root).every((button) => button.disabled));
+  assert.equal(byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].hidden, false);
+  assert.equal(byAction(root, PlanAction.RESTART_PLAN)[0].hidden, true);
+  assert.equal(api.runs.length, 1);
+});
+
+test('an acknowledged safety stop restarts the plan from its beginning', async () => {
+  const { root, api } = await safetyStopped();
+  byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
+  await settled();
+  assert.equal(api.acknowledged, 1);
+  assert.equal(byAction(root, PlanAction.RESTART_PLAN)[0].hidden, false);
+  assert.equal(byAction(root, PlanAction.SIMULATE)[0].disabled, false);
+  byAction(root, PlanAction.RESTART_PLAN)[0].click();
+  await settled();
+  assert.deepEqual(api.runs.map((run) => run.mode), [RunMode.SIMULATE, RunMode.SIMULATE]);
+  assert.deepEqual(api.runs[1].plan, api.runs[0].plan);
+  assert.equal(banner(root).hidden, true);
+});
+
+test('an acknowledged safety stop can be aborted without running again', async () => {
+  const { root, api } = await safetyStopped();
+  byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
+  await settled();
+  byAction(root, PlanAction.ABORT_PLAN)[0].click();
+  await settled();
+  assert.equal(banner(root).hidden, true);
+  assert.equal(api.runs.length, 1);
+  assert.equal(byAction(root, PlanAction.SIMULATE)[0].disabled, false);
 });
 
 // %% placing

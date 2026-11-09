@@ -525,6 +525,8 @@ class StepRun:
         :param extensions: Gives the executor extensions of each plan performed.
         :param attempt: The plan of the first attempt, from the first step on.
         :raises StepAbandoned: When a step failed every attempt it had.
+        :raises SafetyConstraintViolated: When a motion broke a safety limit, which is
+            no failure of the step and never attempted again.
         """
         while True:
             failure = self.perform_plan(
