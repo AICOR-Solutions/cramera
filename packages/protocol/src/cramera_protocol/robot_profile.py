@@ -36,6 +36,27 @@ class RobotProfileVariable(StrEnum):
     """
 
 
+class ExecutorKind(StrEnum):
+    """
+    How a run of a plan executes its motions, which picks the plan executor the
+    generated program runs the plan with.
+
+    A robot executing on its real hardware is added here with the executor that drives
+    it, and a profile names it for the run mode that runs on the robot.
+    """
+
+    KINEMATIC = "kinematic"
+    """
+    Moves the world kinematically, as fast as the controller computes the motions.
+    """
+
+    PHYSICS = "physics"
+    """
+    Runs the motions against a physics simulation of the world (MuJoCo), where an object
+    is held by friction alone.
+    """
+
+
 class SkillKey(StrEnum):
     """
     The keys of a skill.
@@ -157,6 +178,11 @@ class RobotProfileKey(StrEnum):
     The files of the plans people start from.
     """
 
+    EXECUTORS = "executors"
+    """
+    How each run mode the robot offers executes its plan.
+    """
+
 
 @dataclass(kw_only=True)
 class RobotProfile(JsonDocument):
@@ -201,6 +227,14 @@ class RobotProfile(JsonDocument):
     The plan files a new plan can start from, relative to the profile's file.
     """
 
+    executors: Dict[str, ExecutorKind] = document_field(
+        RobotProfileKey.EXECUTORS, default_factory=dict
+    )
+    """
+    How a run of each mode the robot offers executes, by the run mode's value; empty
+    offers every run mode with its default executor.
+    """
+
     format_version: ProtocolVersion = document_field(
         RobotProfileKey.FORMAT_VERSION, default=PROFILE_FORMAT_VERSION
     )
@@ -220,6 +254,19 @@ class RobotProfile(JsonDocument):
             if skill.identifier == identifier:
                 return skill
         return None
+
+    def executor_for(
+        self, mode: str, default: Optional[ExecutorKind]
+    ) -> Optional[ExecutorKind]:
+        """
+        :param mode: The value of a run mode that performs the plan.
+        :param default: How the mode executes unless the profile says otherwise.
+        :return: How the profile executes a run of that mode: the executor it names,
+            the default when it names none at all, or None when it names others only.
+        """
+        if not self.executors:
+            return default
+        return self.executors.get(mode)
 
     @classmethod
     def from_file(cls, path: Path) -> Self:

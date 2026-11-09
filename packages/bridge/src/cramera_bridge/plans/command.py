@@ -1,6 +1,7 @@
 """
-The command line of a generated demo: perform the plan and save its recording, publish a
-saved recording, or only stage the plan's world so its objects can be placed by hand.
+The command line of a generated demo: perform the plan, executed kinematically or in
+physics, and save its recording, publish a saved recording, or only stage the plan's
+world so its objects can be placed by hand.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Any, Optional, Sequence
 
+from cramera_bridge.execution import PlanExecution
 from cramera_bridge.robot_task import TaskArgument, TaskCommand
 from cramera_bridge.visualization import LiveVisualization
 from cramera_bridge.plans.demo import PlannedTaskDemo
@@ -22,6 +24,7 @@ from cramera.lifeline import Lifeline
 from cramera_protocol.live import LIVE_PORT
 from cramera_protocol.live_messages import SavedScene
 from cramera_protocol.plan_builder import DemoDocument, DemoOption
+from cramera_protocol.robot_profile import ExecutorKind
 
 STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 """
@@ -117,10 +120,18 @@ class PlanDemoCommand:
             default=LIVE_PORT,
             help="the port the world is published on",
         )
+        parser.add_argument(
+            DemoOption.EXECUTOR,
+            type=ExecutorKind,
+            choices=list(ExecutorKind),
+            default=ExecutorKind.KINEMATIC,
+            help="how the plan's motions are executed",
+        )
         options, remaining = parser.parse_known_args(list(arguments))
         if options.lifeline:
             Lifeline(sys.stdin.fileno()).watch()
         demo = PlannedTaskDemo.of_document(self.document, port=options.port)
+        demo.execution = PlanExecution.of_kind(options.executor)
         if options.stage:
             StagedWorld(demo).run()
             return None

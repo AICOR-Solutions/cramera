@@ -49,7 +49,11 @@ from cramera_protocol.plan_builder import (
     StepConstraint,
     UrdfEnvironment,
 )
-from cramera_protocol.robot_profile import RobotProfile, RobotProfileVariable
+from cramera_protocol.robot_profile import (
+    ExecutorKind,
+    RobotProfile,
+    RobotProfileVariable,
+)
 from cramera_protocol.viewer import ErrorKey
 
 from .conftest import DEMO_PORT, send
@@ -408,6 +412,33 @@ def test_the_catalog_carries_the_robot_profile_the_environment_names(
 def test_without_a_configured_profile_the_catalog_carries_none(get):
     answer = get(PlanBuilderRoute.CATALOG)
     assert PlanBuilderCatalog.from_json(json.loads(answer.body)).profile is None
+
+
+def test_a_run_mode_the_profile_does_not_offer_is_refused(
+    serve, output, workspace_loader, tmp_path, plan
+):
+    profile = RobotProfile(
+        robot="tracy",
+        label="Tracy",
+        executors={RunMode.PERFORM: ExecutorKind.KINEMATIC},
+    )
+    path = tmp_path / "tracy.json"
+    path.write_text(json.dumps(profile.to_json()), encoding="utf-8")
+    plugin = PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(path),
+        },
+        workspace=workspace_loader,
+        template=DemoTemplate(DATASET / "templates" / "waiting_demo.py"),
+    )
+    answer = send(
+        serve(plugin),
+        HttpMethod.POST,
+        PlanBuilderRoute.RUN,
+        json.dumps(RunRequest(plan=plan, mode=RunMode.SIMULATE).to_json()).encode(),
+    )
+    assert answer.status == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_the_catalog_carries_the_profiles_templates(serve, output, workspace_loader):

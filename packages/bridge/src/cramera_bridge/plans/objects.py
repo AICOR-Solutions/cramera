@@ -84,6 +84,29 @@ class CollectionKey(StrEnum):
     A model's name for people.
     """
 
+    GRASP = "grasp"
+    """
+    How a model is taken hold of, an :class:`ObjectGrasp` value; from any side when it
+    is left out.
+    """
+
+
+class ObjectGrasp(StrEnum):
+    """
+    How the robot takes hold of a library model.
+    """
+
+    ANY_SIDE = "any_side"
+    """
+    Around the model's origin, from any side, as nothing more is known of its shape.
+    """
+
+    FROM_ABOVE = "from_above"
+    """
+    From straight above, around the middle of its collision geometry, as a small block
+    standing on a table is taken.
+    """
+
 
 # %% library
 
@@ -134,14 +157,34 @@ class ObjectLibrary:
         """
         :return: The names the library's collection files give, by slug.
         """
-        names: Dict[str, str] = {}
+        return {
+            entry[CollectionKey.SLUG]: entry[CollectionKey.NAME]
+            for entry in self.collection_entries()
+            if CollectionKey.NAME in entry
+        }
+
+    def grasps(self) -> Dict[str, ObjectGrasp]:
+        """
+        :return: How the library's collection files say their models are taken hold
+            of, by slug, for the models whose entry says so.
+        """
+        return {
+            entry[CollectionKey.SLUG]: ObjectGrasp(entry[CollectionKey.GRASP])
+            for entry in self.collection_entries()
+            if CollectionKey.GRASP in entry
+        }
+
+    def collection_entries(self) -> List[Dict[str, str]]:
+        """
+        :return: The model entries of every collection file of the library.
+        """
+        entries: List[Dict[str, str]] = []
         for collection in sorted(
             (self.directory / LibraryFile.OBJECTS).rglob(LibraryFile.COLLECTION)
         ):
             document = json.loads(collection.read_text(encoding="utf-8"))
-            for entry in document.get(CollectionKey.OBJECTS, []):
-                names[entry[CollectionKey.SLUG]] = entry[CollectionKey.NAME]
-        return names
+            entries.extend(document.get(CollectionKey.OBJECTS, []))
+        return entries
 
     @staticmethod
     def slug(description: Path) -> str:
@@ -211,6 +254,20 @@ class ObjectLibraries:
         :return: Each library's root by its name.
         """
         return {library.name: library.directory for library in self.libraries}
+
+    def grasp_of(self, identifier: str) -> ObjectGrasp:
+        """
+        :param identifier: An object model's identifier.
+        :return: How the model is taken hold of: as its library's collection says, else
+            from any side.
+        """
+        library, _, relative = identifier.partition(SEPARATOR)
+        for candidate in self.libraries:
+            if relative and candidate.name == library:
+                return candidate.grasps().get(
+                    ObjectLibrary.slug(Path(relative)), ObjectGrasp.ANY_SIDE
+                )
+        return ObjectGrasp.ANY_SIDE
 
     def path_of(self, identifier: str, directory: Path) -> Path:
         """

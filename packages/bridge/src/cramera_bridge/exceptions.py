@@ -716,6 +716,22 @@ class TaskFailed(DemoError):
 
 
 @dataclass
+class ExecutionNotRunning(DemoError):
+    """
+    An executor asked of an execution whose world is not set up for it, such as a
+    physical execution whose physics was not started.
+    """
+
+    kind: str
+    """
+    The value of the execution's executor kind.
+    """
+
+    def message(self) -> str:
+        return f"The {self.kind} execution runs no world; start it before its plans."
+
+
+@dataclass
 class EnvironmentBundleHoldsRobot(DemoError):
     """
     A task demo asked to start from a bundle that holds a robot model; a task's robot

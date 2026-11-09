@@ -88,6 +88,15 @@ const RUN_LABELS = Object.freeze({
 });
 
 /**
+ * What the page says once a demo of each run mode started.
+ */
+const RUN_MESSAGES = Object.freeze({
+  [RunMode.STAGE]: 'Starting the live scene; building the world takes a while.',
+  [RunMode.PERFORM]: 'Running the plan; watch it in the 3D view or the viewer.',
+  [RunMode.SIMULATE]: 'Running the plan in physics; watch it in the 3D view or the viewer.',
+});
+
+/**
  * The run states in which the live world is published.
  */
 const LIVE_STATES = Object.freeze([RunState.RUNNING]);
@@ -615,7 +624,7 @@ export class BuilderPage {
     this.#world = PageWorld.empty();
     this.#attached.clear();
     this.#run = status;
-    this.report(mode === RunMode.STAGE ? 'Starting the live scene; building the world takes a while.' : 'Running the plan; watch it in the 3D view or the viewer.');
+    this.report(RUN_MESSAGES[mode]);
     this.render();
   }
 
@@ -689,7 +698,7 @@ export class BuilderPage {
     for (const surface of surfaces[SurfacesKey.SURFACES] ?? []) {
       byType.set(surface[SurfaceKey.TYPE], [...(byType.get(surface[SurfaceKey.TYPE]) ?? []), surface[SurfaceKey.NAME]]);
     }
-    if (this.#run[RunStatusKey.MODE] === RunMode.PERFORM) await this.#sendConstraints(plan);
+    if (this.#run[RunStatusKey.MODE] !== RunMode.STAGE) await this.#sendConstraints(plan);
     return new PageWorld({ keys, objects, robots, statuses, observations, surfaces: byType, published: true });
   }
 
@@ -759,7 +768,7 @@ export class BuilderPage {
     this.#parts.stop.disabled = !running;
     this.#parts.capture.disabled = !live;
     const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0;
-    for (const button of [this.#parts.stage, this.#parts.perform]) button.disabled = !runnable;
+    for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate]) button.disabled = !runnable;
   }
 
   /**
@@ -829,6 +838,7 @@ export class BuilderPage {
 
     parts.stage = elements.button('Start live scene', PlanAction.STAGE, () => this.#start(RunMode.STAGE));
     parts.perform = elements.button('Run plan', PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
+    parts.simulate = elements.button('Run in physics', PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
     parts.stop = elements.button('Stop', PlanAction.STOP, () => this.#stop());
     parts.capture = elements.button('Capture live poses', PlanAction.CAPTURE, () => this.#capture());
     let turning = false;
@@ -842,6 +852,7 @@ export class BuilderPage {
     runRow.append(
       parts.stage,
       parts.perform,
+      parts.simulate,
       parts.stop,
       parts.capture,
       turn,

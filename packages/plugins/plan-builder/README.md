@@ -86,15 +86,19 @@ cramera
   names; never into a CRAM checkout. A demo carries its plan as JSON and runs it as
   `cramera_bridge.plans`' `RobotTaskDemo`: `python <demo>.py` performs the selected
   robot's steps, each built generically from its action's class and values, and saves
-  the recording into the local scenes directory, `--stage` only publishes the world
-  until it is stopped, `--port` chooses where it is published.
+  the recording into the local scenes directory, `--executor physics` performs them in
+  a MuJoCo physics simulation instead of kinematically, `--stage` only publishes the
+  world until it is stopped, `--port` chooses where it is published.
 - **Replays.** When the viewer shows a recording with a plan, the panel comes to the
   front and lists the plan's steps as the builder's cards (`web/steps.css`, shared
   with the builder page): a plan's steps are its outermost actions, one list per
   recorded plan, titled with the robot that performed it. The step whose recorded
   frames hold the playhead is marked running and scrolled into sight; a click on a
   step asks the viewer for its first frame.
-- **Runs.** The builder starts one demo at a time as a child process of the viewer, in
+- **Runs.** "Run plan" performs the plan kinematically, "Run in physics" in MuJoCo; a
+  robot profile's `executors` say which executor each run mode uses and which modes
+  the robot offers at all (by default `perform` is kinematic and `simulate` physics).
+  The builder starts one demo at a time as a child process of the viewer, in
   its own process group, keeps the newest 64 KiB of its output, and stops it with its
   group. The demo ends by itself when the viewer goes away, since it watches the pipe
   the viewer holds open. Demos publish on the live publisher's port, or on

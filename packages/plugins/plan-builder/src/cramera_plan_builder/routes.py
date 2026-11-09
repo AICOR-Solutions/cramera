@@ -404,7 +404,10 @@ class PlanBuilderRoutes:
         :return: The state of the started demo.
         """
         run = RunRequest.from_json(self.body(request))
-        return Response.of_json(self.runner.start(self.runnable(run.plan), run.mode))
+        executor = self.profile.executor_for(run.mode)
+        return Response.of_json(
+            self.runner.start(self.runnable(run.plan), run.mode, executor)
+        )
 
     def answer_run_status(self, request: Request) -> Response:
         """

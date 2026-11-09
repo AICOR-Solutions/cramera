@@ -22,6 +22,7 @@ from cramera_protocol.plan_builder import (
     RunState,
     RunStatus,
 )
+from cramera_protocol.robot_profile import ExecutorKind
 
 from .dataset.given_workspace import DATASET
 
@@ -130,6 +131,29 @@ def test_a_performing_demo_ends_on_its_own(runner, demo):
     assert ended.path == str(
         (runner.directory.directory / "milk_to_table.py").resolve()
     )
+
+
+@pytest.mark.parametrize(
+    "mode, executor, expected",
+    [
+        (RunMode.PERFORM, None, ExecutorKind.KINEMATIC),
+        (RunMode.SIMULATE, None, ExecutorKind.PHYSICS),
+        (RunMode.PERFORM, ExecutorKind.PHYSICS, ExecutorKind.PHYSICS),
+    ],
+)
+def test_a_performing_demo_is_told_how_to_execute_the_plan(
+    runner, demo, mode, executor, expected
+):
+    runner.start(demo, mode, executor)
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    assert ended.mode is mode
+    assert f"{DemoOption.EXECUTOR} {expected}" in ended.log
+
+
+def test_a_staged_demo_executes_nothing(runner, demo):
+    runner.start(demo, RunMode.STAGE, ExecutorKind.PHYSICS)
+    shown = wait_for(runner, lambda status: DemoOption.STAGE in status.log)
+    assert DemoOption.EXECUTOR not in shown.log
 
 
 def test_a_demo_watching_its_owner_ends_cleanly_on_its_own(tmp_path, demo):

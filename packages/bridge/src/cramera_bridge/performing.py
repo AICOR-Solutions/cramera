@@ -13,13 +13,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from typing_extensions import List, Optional, Sequence, Type
+from typing_extensions import List, Optional, Sequence
 
 from coraplex.plans.context_extensions import RobotAccess, StatementGrounding
-from coraplex.plans.executors import (
-    KinematicallySimulatedPlanExecutor,
-    PlanExecutor,
-)
+from coraplex.plans.executors import PlanExecutor
+from cramera_bridge.execution import KinematicExecution, PlanExecution
 from cramph.context import ContextExtension, StatechartContext
 from cramph.executor import ExecutorExtension
 from cramph.node import StatechartNode
@@ -111,13 +109,14 @@ class TaskContext:
 @dataclass
 class PlanPerformance:
     """
-    How the plans of a task are performed: by which executor, with which settings and
+    How the plans of a task are performed: by which execution, with which settings and
     which further executor extensions.
     """
 
-    executor_type: Type[PlanExecutor] = KinematicallySimulatedPlanExecutor
+    execution: PlanExecution = field(default_factory=KinematicExecution)
     """
-    The executor running each plan, which decides how its motions are executed.
+    Gives each plan the executor that runs it, which decides how its motions are
+    executed.
     """
 
     collision_avoidance: bool = False
@@ -140,7 +139,7 @@ class PlanPerformance:
         :param extensions: Added to the executor after :attr:`extensions`.
         :return: A new executor with a context of its own.
         """
-        return self.executor_type(
+        return self.execution.executor(
             context.take_statechart_context(),
             collision_avoidance=self.collision_avoidance,
             extensions=[*self.extensions, *extensions],

@@ -10,15 +10,28 @@ import pytest
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.plans.objects import ObjectLibraries, ObjectLibrary
 from cramera_bridge.plans.workspace import PlanWorkspace
-from cramera_bridge.plans.world import PlannedGraspable, PlannedObjects
+from cramera_bridge.plans.world import (
+    PlannedGraspable,
+    PlannedGraspableFromAbove,
+    PlannedObjects,
+)
 from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import PlannedObject
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
+from semantic_digital_twin.exceptions import NoGraspGeometry
+from semantic_digital_twin.specifications.connections import (
+    Connection6DoFSpecification,
+)
+from semantic_digital_twin.specifications.kinematic_structure_entities import (
+    BodySpecification,
+)
 from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.geometry import Scale
 from semantic_digital_twin.world_description.connections import Connection6DoF
 from semantic_digital_twin.world_description.world_entity import Body
 
-from .test_objects import CUP, LIBRARY
+from .test_objects import BOX, CUP, LIBRARY
 
 LIBRARIES = ObjectLibraries([ObjectLibrary(LIBRARY)])
 """
@@ -51,6 +64,40 @@ def test_a_library_model_joins_the_world_free_and_graspable_where_the_plan_puts_
     assert PlannedGraspable.of(body).root is body
     lid = world.get_kinematic_structure_entity_by_name(PrefixedName("cup_lid", "cup_"))
     assert lid.parent_connection.parent is body
+
+
+def test_a_model_its_collection_takes_from_above_is_annotated_so(world):
+    planned = [
+        PlannedObject(identifier=name, model=model, pose=Pose.from_json([0] * 6 + [1]))
+        for name, model in (("cup", CUP), ("box", BOX))
+    ]
+    bodies = PlannedObjects(planned, libraries=LIBRARIES).spawn(world)
+    assert isinstance(PlannedGraspable.of(bodies["cup"]), PlannedGraspableFromAbove)
+    assert type(PlannedGraspable.of(bodies["box"])) is PlannedGraspable
+
+
+def test_a_block_taken_from_above_is_approached_downwards_to_its_middle(world):
+    block = BodySpecification.box(
+        "block",
+        Scale(0.05, 0.05, 0.05),
+        origin=HomogeneousTransformationMatrix.from_xyz_rpy(z=0.025),
+        connection_specification=Connection6DoFSpecification(),
+    ).spawn(world, parent_T_self=HomogeneousTransformationMatrix.from_xyz_rpy(1, 0, 0))
+    with world.modify_world():
+        graspable = PlannedGraspableFromAbove(root=block)
+        world.add_semantic_annotation(graspable)
+    [grasp] = graspable.grasp_candidates()
+    object_T_grasp = grasp.grasp_pose.to_np()
+    assert object_T_grasp[:3, 3] == pytest.approx([0, 0, 0.025])
+    assert object_T_grasp[:3, 0] == pytest.approx([0, 0, -1])
+
+
+def test_an_object_without_collision_cannot_be_taken_from_above(world):
+    with world.modify_world():
+        graspable = PlannedGraspableFromAbove(root=world.root)
+        world.add_semantic_annotation(graspable)
+    with pytest.raises(NoGraspGeometry):
+        graspable.grasp_candidates()
 
 
 def test_the_catalog_offers_the_library_models_after_the_meshes(tmp_path):

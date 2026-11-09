@@ -15,6 +15,7 @@ export const PlanAction = Object.freeze({
   WRITE_DEMO: 'write-demo',
   STAGE: 'stage',
   PERFORM: 'perform',
+  SIMULATE: 'simulate',
   STOP: 'stop',
   CAPTURE: 'capture',
   NAME: 'name',

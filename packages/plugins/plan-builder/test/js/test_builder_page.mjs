@@ -364,6 +364,7 @@ test('without the CRAM workspace the page composes but does not run', async () =
   assert.match(document.documentElement.dataset[PageStateAttribute.STATUS], /coraplex/);
   assert.equal(byAction(root, PlanAction.STAGE)[0].disabled, true);
   assert.equal(byAction(root, PlanAction.PERFORM)[0].disabled, true);
+  assert.equal(byAction(root, PlanAction.SIMULATE)[0].disabled, true);
 });
 
 // %% composing
@@ -811,6 +812,21 @@ test('a performing run shows the live statuses and attaches its constraints once
   assert.equal(live.attached[0][ConstraintRequestKey.TEXT], page.state.steps()[1][PlanStepKey.CONSTRAINTS][0][StepConstraintKey.TEXT]);
   assert.deepEqual(root.findAll((element) => element.className === 'observation').map((element) => element.textContent), ['TRUE']);
   assert.match(root.findAll((element) => element.className === 'run-state')[0].textContent, /live/);
+});
+
+test('a run in physics asks for the physics run mode and attaches its constraints', async () => {
+  const { root, api, live, timer } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'park_arms').click();
+  block(root, 'pick_up').click();
+  drop(steps(root)[1], DragText.of(DragKind.CONSTRAINT, RULES[0][ConstraintRuleKey.SENTENCE]));
+  await settled();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  await timer.tick();
+  assert.equal(api.runs[0].mode, RunMode.SIMULATE);
+  assert.match(message(root), /physics/);
+  assert.equal(live.attached.length, 1);
 });
 
 test('live poses are captured into the plan and the surfaces offered', async () => {

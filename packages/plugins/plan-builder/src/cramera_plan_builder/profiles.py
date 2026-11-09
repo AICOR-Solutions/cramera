@@ -11,8 +11,13 @@ from pathlib import Path
 
 from typing_extensions import List, Mapping, Optional
 
-from cramera_protocol.plan_builder import PlanDocument, PlanStep, PlanTemplate
-from cramera_protocol.robot_profile import RobotProfile, RobotProfileVariable
+from cramera_plan_builder.exceptions import RunModeNotOffered
+from cramera_protocol.plan_builder import PlanDocument, PlanStep, PlanTemplate, RunMode
+from cramera_protocol.robot_profile import (
+    ExecutorKind,
+    RobotProfile,
+    RobotProfileVariable,
+)
 
 # %% configured profile
 
@@ -61,6 +66,21 @@ class ConfiguredProfile:
                 for template in profile.templates
             ],
         )
+
+    def executor_for(self, mode: RunMode) -> Optional[ExecutorKind]:
+        """
+        :param mode: How a plan is to be run.
+        :return: How a run of the mode executes the plan: as the profile says, else
+            the mode's default; None for a mode that performs nothing.
+        :raises RunModeNotOffered: When the profile names executors, but none for a
+            mode that performs the plan.
+        """
+        if mode.default_executor is None or self.profile is None:
+            return mode.default_executor
+        executor = self.profile.executor_for(mode, mode.default_executor)
+        if executor is None:
+            raise RunModeNotOffered(mode.value, self.profile.label)
+        return executor
 
     def resolved(self, plan: PlanDocument) -> PlanDocument:
         """

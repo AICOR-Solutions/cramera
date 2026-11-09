@@ -9,10 +9,20 @@ from pathlib import Path
 
 import pytest
 
+from cramera_plan_builder.exceptions import RunModeNotOffered
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_protocol.geometry import Pose
-from cramera_protocol.plan_builder import PlanDocument, PlannedRobot, PlanStep
-from cramera_protocol.robot_profile import RobotProfileVariable
+from cramera_protocol.plan_builder import (
+    PlanDocument,
+    PlannedRobot,
+    PlanStep,
+    RunMode,
+)
+from cramera_protocol.robot_profile import (
+    ExecutorKind,
+    RobotProfile,
+    RobotProfileVariable,
+)
 
 # %% reading
 
@@ -94,3 +104,25 @@ def test_a_resolved_plan_carries_the_profiles_platform_version(configured):
 def test_without_a_profile_a_plan_stays_as_it_is():
     plan = plan_of(PlanStep(identifier="step-1", skill="pick", action="x"))
     assert ConfiguredProfile().resolved(plan) == plan
+
+
+# %% executors
+
+
+@pytest.mark.parametrize("mode", list(RunMode))
+def test_without_a_profile_each_mode_runs_on_its_default_executor(mode):
+    assert ConfiguredProfile().executor_for(mode) is mode.default_executor
+
+
+def test_a_profile_chooses_the_executor_of_each_mode_it_offers():
+    configured = ConfiguredProfile(
+        RobotProfile(
+            robot="tracy",
+            label="Tracy",
+            executors={RunMode.PERFORM: ExecutorKind.PHYSICS},
+        )
+    )
+    assert configured.executor_for(RunMode.STAGE) is None
+    assert configured.executor_for(RunMode.PERFORM) is ExecutorKind.PHYSICS
+    with pytest.raises(RunModeNotOffered):
+        configured.executor_for(RunMode.SIMULATE)

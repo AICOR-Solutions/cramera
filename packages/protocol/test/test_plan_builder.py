@@ -61,6 +61,7 @@ from cramera_protocol.plan_builder import (
     RunStatusKey,
     StepConstraintKey,
 )
+from cramera_protocol.robot_profile import ExecutorKind
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED
 
 # %% plans
@@ -396,6 +397,12 @@ def test_a_run_request_with_an_unknown_mode_is_refused(read_json):
         RunRequest.from_json(
             read_json("plan_builder/invalid/run_request_with_unknown_mode.json")
         )
+
+
+def test_each_mode_that_performs_executes_on_its_default_executor():
+    assert RunMode.STAGE.default_executor is None
+    assert RunMode.PERFORM.default_executor is ExecutorKind.KINEMATIC
+    assert RunMode.SIMULATE.default_executor is ExecutorKind.PHYSICS
 
 
 def test_the_run_status_reads_the_exit_and_the_log(read_json):

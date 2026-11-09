@@ -24,7 +24,7 @@ from cramera_protocol.live_messages import (
     MonitorSpecification,
     SurfaceDescription,
 )
-from cramera_protocol.robot_profile import RobotProfile
+from cramera_protocol.robot_profile import ExecutorKind, RobotProfile
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
 PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
@@ -2451,6 +2451,12 @@ class DemoOption(StrEnum):
     ends.
     """
 
+    EXECUTOR = "--executor"
+    """
+    How the plan's motions are executed, an :class:`ExecutorKind` value; kinematically
+    when it is left out.
+    """
+
 
 class DemoSourceKey(StrEnum):
     """
@@ -2536,6 +2542,29 @@ class RunMode(StrEnum):
     """
     Performs the selected robot's plan, records it and saves the recording.
     """
+
+    SIMULATE = "simulate"
+    """
+    Performs the selected robot's plan in a physics simulation, records it and saves the
+    recording.
+    """
+
+    @property
+    def default_executor(self) -> Optional[ExecutorKind]:
+        """
+        How a run of this mode executes unless the robot profile says otherwise; None
+        for a mode that performs nothing.
+        """
+        return DEFAULT_EXECUTORS.get(self)
+
+
+DEFAULT_EXECUTORS = MappingProxyType(
+    {RunMode.PERFORM: ExecutorKind.KINEMATIC, RunMode.SIMULATE: ExecutorKind.PHYSICS}
+)
+"""
+How each run mode that performs the plan executes it unless a robot profile names
+another executor.
+"""
 
 
 class RunState(StrEnum):

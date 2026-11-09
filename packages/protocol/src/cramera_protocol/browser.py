@@ -325,7 +325,7 @@ from cramera_protocol.query_steps import (
     SteppingRequestKey,
     VariableRole,
 )
-from cramera_protocol.robot_profile import RobotProfileKey, SkillKey
+from cramera_protocol.robot_profile import ExecutorKind, RobotProfileKey, SkillKey
 from cramera_protocol.resolutions import (
     BackendDescriptionKey,
     ContactReadingKey,
@@ -692,6 +692,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     DemoSourceKey,
     SavedDemoKey,
     RunMode,
+    ExecutorKind,
     RunState,
     RunRequestKey,
     RunStatusKey,

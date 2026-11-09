@@ -499,6 +499,29 @@ class UnreadablePlan(PlanBuilderError):
 
 
 @dataclass
+class RunModeNotOffered(PlanBuilderError):
+    """
+    A run mode the robot profile offers no executor for.
+    """
+
+    mode: str
+    """
+    The run mode's value.
+    """
+
+    robot: str
+    """
+    The label of the profile's robot.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"{self.robot} offers no {self.mode!r} run."
+
+
+@dataclass
 class UnsafeStoragePath(PlanBuilderError):
     """
     A storage directory or file that is a symbolic link, which could lead writes

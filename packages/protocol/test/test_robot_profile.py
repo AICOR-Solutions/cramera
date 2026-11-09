@@ -10,8 +10,10 @@ import pytest
 
 from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.exceptions import UnsupportedProtocolVersion
+from cramera_protocol.plan_builder import RunMode
 from cramera_protocol.robot_profile import (
     PROFILE_FORMAT_VERSION,
+    ExecutorKind,
     RobotProfile,
     RobotProfileKey,
 )
@@ -62,3 +64,34 @@ def test_a_profile_of_a_newer_major_version_is_refused():
 
 def test_the_browser_reads_the_profile_keys():
     assert RobotProfileKey in BROWSER_ENUMERATIONS
+
+
+# %% executors
+
+
+def test_a_profile_naming_no_executors_runs_every_mode_on_its_default():
+    profile = RobotProfile(robot="tracy", label="Tracy")
+    assert (
+        profile.executor_for(RunMode.SIMULATE, ExecutorKind.PHYSICS)
+        is ExecutorKind.PHYSICS
+    )
+
+
+def test_a_profile_runs_the_modes_it_names_on_their_executors_and_no_others():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "tracy",
+            RobotProfileKey.LABEL: "Tracy",
+            RobotProfileKey.EXECUTORS: {RunMode.PERFORM: ExecutorKind.PHYSICS},
+        }
+    )
+    assert (
+        profile.executor_for(RunMode.PERFORM, ExecutorKind.KINEMATIC)
+        is ExecutorKind.PHYSICS
+    )
+    assert profile.executor_for(RunMode.SIMULATE, ExecutorKind.PHYSICS) is None
+    assert RobotProfile.from_json(profile.to_json()) == profile
+
+
+def test_the_browser_reads_the_executor_kinds():
+    assert ExecutorKind in BROWSER_ENUMERATIONS

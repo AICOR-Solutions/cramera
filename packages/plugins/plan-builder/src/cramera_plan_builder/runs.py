@@ -25,6 +25,7 @@ from cramera_protocol.plan_builder import (
     RunState,
     RunStatus,
 )
+from cramera_protocol.robot_profile import ExecutorKind
 
 READ_SIZE = 4096
 """
@@ -266,10 +267,17 @@ class DemoRunner:
     Lets one request at a time start, stop or read the demo.
     """
 
-    def start(self, demo: DemoDocument, mode: RunMode) -> RunStatus:
+    def start(
+        self,
+        demo: DemoDocument,
+        mode: RunMode,
+        executor: Optional[ExecutorKind] = None,
+    ) -> RunStatus:
         """
         :param demo: A checked plan and its environment.
         :param mode: What the demo does.
+        :param executor: How a demo performing the plan executes it; the mode's default
+            when None.
         :return: The started demo's state.
         :raises DemoNotStarted: When the operating system cannot start it.
         """
@@ -278,14 +286,21 @@ class DemoRunner:
             saved = self.directory.write(self.template.render(demo))
             path = Path(saved.path)
             self.current = DemoProcess.start(
-                self.command(path, mode), path, mode, OutputLog(self.log_limit)
+                self.command(path, mode, executor),
+                path,
+                mode,
+                OutputLog(self.log_limit),
             )
             return self.current.status()
 
-    def command(self, path: Path, mode: RunMode) -> List[str]:
+    def command(
+        self, path: Path, mode: RunMode, executor: Optional[ExecutorKind] = None
+    ) -> List[str]:
         """
         :param path: A demo file.
         :param mode: What the demo does.
+        :param executor: How a demo performing the plan executes it; the mode's default
+            when None.
         :return: The command running it, ending with the viewer's process.
         """
         command = [
@@ -297,6 +312,8 @@ class DemoRunner:
         ]
         if mode is RunMode.STAGE:
             command.append(DemoOption.STAGE)
+            return command
+        command.extend((DemoOption.EXECUTOR, executor or mode.default_executor))
         return command
 
     def stop(self) -> RunStatus:

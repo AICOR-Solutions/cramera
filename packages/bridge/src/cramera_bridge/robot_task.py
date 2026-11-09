@@ -19,12 +19,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, Iterator, List, Optional, Self, Sequence, Tuple, Type
+from typing_extensions import Any, Iterator, List, Optional, Self, Sequence, Tuple
 
-from coraplex.plans.executors import (
-    KinematicallySimulatedPlanExecutor,
-    PlanExecutor,
-)
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
 from cramera_bridge.database.runs import StoredRun
@@ -34,6 +30,7 @@ from cramera_bridge.exceptions import (
     RecordingNotSaved,
     SceneNameTaken,
 )
+from cramera_bridge.execution import KinematicExecution, PlanExecution
 from cramera_bridge.export.scene_index import SceneIndexFile
 from cramera_bridge.live.query_steps import HeldQueries
 from cramera_bridge.live.server import LIVE_PORT
@@ -137,9 +134,10 @@ class RobotTaskDemo(ABC):
     The port the run is published on while it runs.
     """
 
-    executor_type: Type[PlanExecutor] = KinematicallySimulatedPlanExecutor
+    execution: PlanExecution = field(default_factory=KinematicExecution)
     """
-    The executor running each plan, which decides how its motions are executed.
+    How each plan's motions are executed, which sets the world up while the plans run
+    and gives each plan its executor.
     """
 
     collision_avoidance: bool = False
@@ -278,7 +276,7 @@ class RobotTaskDemo(ABC):
         :return: How the task's plans are performed.
         """
         return PlanPerformance(
-            executor_type=self.executor_type,
+            execution=self.execution,
             collision_avoidance=self.collision_avoidance,
         )
 
@@ -319,11 +317,12 @@ class RobotTaskDemo(ABC):
                 context, plans = prepared
                 self.enter_phase(StepPhase.EXECUTION)
                 performance = self.performance()
-                for plan in plans:
-                    extensions = [visualization.progress()]
-                    if self.stepper is not None:
-                        extensions.append(self.stepper.progress())
-                    performance.perform(plan, context, extensions)
+                with self.execution.running(world):
+                    for plan in plans:
+                        extensions = [visualization.progress()]
+                        if self.stepper is not None:
+                            extensions.append(self.stepper.progress())
+                        performance.perform(plan, context, extensions)
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
             run = visualization.publisher.save_recording(
