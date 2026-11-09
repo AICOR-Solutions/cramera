@@ -32,6 +32,7 @@ from cramera_plan_builder.exceptions import (
     ValueOutOfRange,
 )
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanFile, PlanStore
+from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
 from cramera_protocol.plan_builder import (
     CLASS_NAME_FORMAT_VERSION,
     ActionCatalog,
@@ -44,6 +45,7 @@ from cramera_protocol.plan_builder import (
     PlanDocument,
     PlanKey,
     PlanRecord,
+    PlanStep,
     SavedNames,
     StepConstraint,
 )
@@ -341,3 +343,54 @@ def test_a_migrated_plan_passes_the_catalog(
         migrated = SavedNames.of_catalog(catalog).translated(loaded)
         check.check(migrated)
         catalog_check.check(migrated)
+
+
+# %% objects found by an earlier step
+
+
+def with_detection(plan: PlanDocument, index: int) -> PlanStep:
+    """
+    Put a step looking for objects on the whole table into the plan's first robot.
+
+    :param plan: The plan.
+    :param index: Where the step goes among the robot's steps.
+    :return: The step.
+    """
+    detect = PlanStep(
+        identifier="look",
+        action="detect",
+        values={"region": DetectionRegion().to_json(), "color": "red"},
+    )
+    plan.robots[0].steps.insert(index, detect)
+    return detect
+
+
+def pick_step(plan: PlanDocument) -> PlanStep:
+    """
+    :return: The step of the plan's first robot that picks an object up.
+    """
+    [pick] = [step for step in plan.robots[0].steps if step.action == "pick_up"]
+    return pick
+
+
+def test_a_step_names_the_object_an_earlier_detection_finds(catalog_check, plan):
+    detect = with_detection(plan, 0)
+    pick = pick_step(plan)
+    pick.values["object_designator"] = DetectedObjectReference(detect.identifier).text
+    catalog_check.check(plan)
+
+
+def test_a_step_cannot_name_the_object_a_later_detection_finds(catalog_check, plan):
+    detect = with_detection(plan, len(plan.robots[0].steps))
+    pick = pick_step(plan)
+    pick.values["object_designator"] = DetectedObjectReference(detect.identifier).text
+    with pytest.raises(UnknownReference) as refusal:
+        catalog_check.check(plan)
+    assert refusal.value.reference == pick.values["object_designator"]
+
+
+def test_a_region_that_is_no_region_is_refused(catalog_check, plan):
+    detect = with_detection(plan, 0)
+    detect.values["region"] = "the table"
+    with pytest.raises(InvalidStepValue):
+        catalog_check.check(plan)

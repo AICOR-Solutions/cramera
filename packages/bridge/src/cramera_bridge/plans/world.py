@@ -14,6 +14,7 @@ from typing_extensions import Dict, List, Type
 
 from cramera_bridge.scenes.bundle_world import ColorText, PoseText
 from cramera_bridge.scenes.environment import SceneEnvironment
+from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.plans.objects import ObjectGrasp, ObjectLibraries
 from cramera_bridge.plans.workspace import OBJECT_DIRECTORY
 from cramera_protocol.plan_builder import PlannedObject
@@ -135,6 +136,18 @@ GRASPABLE_TYPES: MappingProxyType[ObjectGrasp, Type[PlannedGraspable]] = (
 )
 """
 The annotation a free object of a plan gets, by how its model is taken hold of.
+"""
+
+OBJECT_TYPE_ANNOTATIONS: MappingProxyType[ObjectType, Type[PlannedGraspable]] = (
+    MappingProxyType(
+        {
+            ObjectType.OBJECT: PlannedGraspable,
+            ObjectType.BLOCK: PlannedGraspableFromAbove,
+        }
+    )
+)
+"""
+The annotation of each kind of free object.
 """
 
 

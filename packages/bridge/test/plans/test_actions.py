@@ -27,6 +27,7 @@ from cramera_bridge.plans.actions import (
     DiscoveredActions,
 )
 from cramera_bridge.plans.arms import Arms
+from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.exceptions import UnknownAction
 from cramera_protocol.plan_builder import ActionFieldKind, ActionGroup
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
@@ -214,6 +215,21 @@ def test_detect_offers_the_color_to_look_for_as_an_enumeration(native):
         ENUM_NAMES.member_identifier(ColorName, member) for member in ColorName
     ]
     assert color.required is False
+
+
+def test_detect_offers_the_region_it_looks_in(native):
+    schema = native.named(ACTION_NAMES.identifier_of(DetectAction)).schema
+    assert schema.field_named("region").kind is ActionFieldKind.REGION
+
+
+def test_detect_offers_the_kind_of_object_to_look_for_as_an_enumeration(native):
+    schema = native.named(ACTION_NAMES.identifier_of(DetectAction)).schema
+    kind = schema.field_named("object_sem_annotation")
+    assert kind.kind is ActionFieldKind.ENUM
+    assert kind.enum_type == ENUM_NAMES.identifier_of(ObjectType)
+    assert kind.members == [
+        ENUM_NAMES.member_identifier(ObjectType, member) for member in ObjectType
+    ]
 
 
 def test_core_actions_come_first(native):

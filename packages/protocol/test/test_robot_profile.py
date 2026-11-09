@@ -95,3 +95,15 @@ def test_a_profile_runs_the_modes_it_names_on_their_executors_and_no_others():
 
 def test_the_browser_reads_the_executor_kinds():
     assert ExecutorKind in BROWSER_ENUMERATIONS
+
+
+def test_a_profile_names_the_simulated_scene_its_camera_sees():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "tracy",
+            RobotProfileKey.LABEL: "Tracy",
+            RobotProfileKey.SIMULATED_SCENE: "scenes/cubes.json",
+        }
+    )
+    assert profile.simulated_scene == "scenes/cubes.json"
+    assert profile.to_json()[RobotProfileKey.SIMULATED_SCENE] == "scenes/cubes.json"

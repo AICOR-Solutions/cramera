@@ -12,7 +12,13 @@ from pathlib import Path
 from typing_extensions import List, Mapping, Optional
 
 from cramera_plan_builder.exceptions import RunModeNotOffered
-from cramera_protocol.plan_builder import PlanDocument, PlanStep, PlanTemplate, RunMode
+from cramera_protocol.plan_builder import (
+    PlanDocument,
+    PlannedObject,
+    PlanStep,
+    PlanTemplate,
+    RunMode,
+)
 from cramera_protocol.robot_profile import (
     ExecutorKind,
     RobotProfile,
@@ -38,6 +44,12 @@ class ConfiguredProfile:
     The plans the profile offers to start from, in the profile's order.
     """
 
+    simulated_objects: Optional[List[PlannedObject]] = None
+    """
+    The objects of the simulated scene the robot's camera sees, or None when the robot's
+    own perception sees the scene.
+    """
+
     @classmethod
     def of_environment(cls, environment: Mapping[str, str]) -> ConfiguredProfile:
         """
@@ -51,7 +63,8 @@ class ConfiguredProfile:
     def of_file(cls, path: Path) -> ConfiguredProfile:
         """
         :param path: A profile's JSON file.
-        :return: The profile with the templates it names, read relative to the file.
+        :return: The profile with the templates and the simulated scene it names, read
+            relative to the file.
         """
         profile = RobotProfile.from_file(path)
         return cls(
@@ -59,13 +72,24 @@ class ConfiguredProfile:
             templates=[
                 PlanTemplate(
                     identifier=Path(template).stem,
-                    plan=PlanDocument.from_json(
-                        json.loads((path.parent / template).read_text("utf-8"))
-                    ),
+                    plan=cls.plan_file(path.parent / template),
                 )
                 for template in profile.templates
             ],
+            simulated_objects=(
+                None
+                if profile.simulated_scene is None
+                else cls.plan_file(path.parent / profile.simulated_scene).objects
+            ),
         )
+
+    @staticmethod
+    def plan_file(path: Path) -> PlanDocument:
+        """
+        :param path: A plan's JSON file.
+        :return: The plan it holds.
+        """
+        return PlanDocument.from_json(json.loads(path.read_text("utf-8")))
 
     def executor_for(self, mode: RunMode) -> Optional[ExecutorKind]:
         """

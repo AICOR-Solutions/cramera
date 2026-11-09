@@ -90,6 +90,12 @@ class CollectionKey(StrEnum):
     is left out.
     """
 
+    COLOR = "color"
+    """
+    The name perception gives a model's color, such as ``red``; left out for a model of
+    no single color.
+    """
+
 
 class ObjectGrasp(StrEnum):
     """
@@ -142,7 +148,7 @@ class ObjectLibrary:
         descriptions = sorted(
             (self.directory / LibraryFile.OBJECTS).rglob(LibraryFile.MODEL)
         )
-        names = self.names()
+        names = self.entry_values(CollectionKey.NAME)
         return [
             ObjectModel(
                 identifier=SEPARATOR.join(
@@ -153,25 +159,16 @@ class ObjectLibrary:
             for description in descriptions
         ]
 
-    def names(self) -> Dict[str, str]:
+    def entry_values(self, key: CollectionKey) -> Dict[str, str]:
         """
-        :return: The names the library's collection files give, by slug.
-        """
-        return {
-            entry[CollectionKey.SLUG]: entry[CollectionKey.NAME]
-            for entry in self.collection_entries()
-            if CollectionKey.NAME in entry
-        }
-
-    def grasps(self) -> Dict[str, ObjectGrasp]:
-        """
-        :return: How the library's collection files say their models are taken hold
-            of, by slug, for the models whose entry says so.
+        :param key: A key of a collection's model entries.
+        :return: The value the library's collection files give under the key, by slug,
+            for the models whose entry gives one.
         """
         return {
-            entry[CollectionKey.SLUG]: ObjectGrasp(entry[CollectionKey.GRASP])
+            entry[CollectionKey.SLUG]: entry[key]
             for entry in self.collection_entries()
-            if CollectionKey.GRASP in entry
+            if key in entry
         }
 
     def collection_entries(self) -> List[Dict[str, str]]:
@@ -261,13 +258,31 @@ class ObjectLibraries:
         :return: How the model is taken hold of: as its library's collection says, else
             from any side.
         """
+        grasp = self.entry_value(identifier, CollectionKey.GRASP)
+        return ObjectGrasp.ANY_SIDE if grasp is None else ObjectGrasp(grasp)
+
+    def color_of(self, identifier: str) -> Optional[str]:
+        """
+        :param identifier: An object model's identifier.
+        :return: The name perception gives the model's color, as its library's
+            collection says, or None when it says none.
+        """
+        return self.entry_value(identifier, CollectionKey.COLOR)
+
+    def entry_value(self, identifier: str, key: CollectionKey) -> Optional[str]:
+        """
+        :param identifier: An object model's identifier.
+        :param key: A key of a collection's model entries.
+        :return: The value the model's entry in its library's collection gives under the
+            key, or None for a model no library entry gives one.
+        """
         library, _, relative = identifier.partition(SEPARATOR)
         for candidate in self.libraries:
             if relative and candidate.name == library:
-                return candidate.grasps().get(
-                    ObjectLibrary.slug(Path(relative)), ObjectGrasp.ANY_SIDE
+                return candidate.entry_values(key).get(
+                    ObjectLibrary.slug(Path(relative))
                 )
-        return ObjectGrasp.ANY_SIDE
+        return None
 
     def path_of(self, identifier: str, directory: Path) -> Path:
         """

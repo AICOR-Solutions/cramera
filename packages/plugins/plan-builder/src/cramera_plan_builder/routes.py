@@ -28,8 +28,10 @@ from cramera_plan_builder.exceptions import (
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.runs import DemoRunner
+from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
+from cramera_protocol.detection import ScanRequest, SceneScanOrder
 from cramera_protocol.plan_builder import (
     ActionSchema,
     ConstraintText,
@@ -162,6 +164,11 @@ class PlanBuilderRoutes:
     The robot profile new plans start from and its templates; none by default.
     """
 
+    scans: SceneScans = field(default_factory=SceneScans)
+    """
+    Scans the scene for a plan's objects.
+    """
+
     def declarations(self) -> List[RouteDeclaration]:
         """
         :return: The routes, below the plugin's prefix.
@@ -194,6 +201,7 @@ class PlanBuilderRoutes:
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.RUN, self.answer_run_status),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.RUN, self.answer_run),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.RUN_STOP, self.answer_stop),
+            PluginRoute(HttpMethod.POST, PlanBuilderRoute.SCAN, self.answer_scan),
             PluginPrefixRoute(
                 HttpMethod.GET, PlanBuilderRoute.OBJECT_FILES, self.answer_object_file
             ),
@@ -375,6 +383,14 @@ class PlanBuilderRoutes:
         check.check(plan)
         check.complete(plan)
         CatalogCheck(self.catalog(), self.limits).check(plan)
+        return self.demo_document(plan)
+
+    def demo_document(self, plan: PlanDocument) -> DemoDocument:
+        """
+        :param plan: A checked plan.
+        :return: The plan with its environment's directory, found among the viewer's
+            scenes.
+        """
         if plan.environment is None:
             return DemoDocument(plan=plan)
         directory = self.scenes.directory_of(plan.environment).path / plan.environment
@@ -422,6 +438,30 @@ class PlanBuilderRoutes:
         :return: The state of the stopped demo.
         """
         return Response.of_json(self.runner.stop())
+
+    # %% scans
+
+    def answer_scan(self, request: Request) -> Response:
+        """
+        Scan the scene the plan's robot sees: the simulated scene the profile names, or
+        what the robot's own perception sees.
+
+        :param request: A request whose body is a :class:`ScanRequest`.
+        :return: The :class:`SceneScan`, the plan's objects after the scan.
+        """
+        scan = ScanRequest.from_json(self.body(request))
+        plan = self.translated(scan.plan)
+        PlanCheck(self.limits).check(plan)
+        CatalogCheck(self.catalog(), self.limits).check(plan)
+        return Response.of_json(
+            self.scans.scan(
+                SceneScanOrder(
+                    demo=self.demo_document(plan),
+                    region=scan.region,
+                    simulated_objects=self.profile.simulated_objects,
+                )
+            )
+        )
 
     def body(self, request: Request) -> Any:
         """

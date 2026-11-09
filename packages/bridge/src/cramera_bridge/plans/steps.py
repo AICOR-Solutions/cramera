@@ -2,8 +2,9 @@
 A plan's steps as the native coraplex actions they name: each value converted by the
 kind and type of its field, an arm into the robot's part, an object into its body, its
 annotation or the grasp of it closest to the robot, a gripper and its state into the
-gripper's configuration, the constraints' switches turned on, and the action constructed
-with keyword arguments.
+gripper's configuration, a region into its box, a kind of object into the annotation its
+objects carry, the constraints' switches turned on, and the action constructed with
+keyword arguments.
 """
 
 from __future__ import annotations
@@ -22,9 +23,12 @@ from cramera_bridge.plans.actions import (
     GripperConfigurationPart,
 )
 from cramera_bridge.plans.arms import ArmField, Arms, RobotArms
+from cramera_bridge.plans.object_types import ObjectType
+from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.surfaces import SurfaceTargets
-from cramera_bridge.plans.world import PlannedGraspable
+from cramera_bridge.plans.world import OBJECT_TYPE_ANNOTATIONS, PlannedGraspable
 from cramera_bridge.exceptions import AnnotationNotInWorld, ObjectNotGraspable
+from cramera_protocol.detection import DetectionRegion
 from cramera_protocol.geometry import Pose as PlannedPose
 from cramera_protocol.plan_builder import (
     ActionField,
@@ -35,6 +39,7 @@ from cramera_protocol.plan_builder import (
 )
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
 from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -86,6 +91,7 @@ class StepArguments:
             ActionFieldKind.INTEGER: self.plain,
             ActionFieldKind.BOOLEAN: self.plain,
             ActionFieldKind.TEXT: self.plain,
+            ActionFieldKind.REGION: self.region,
         }
         schema = self.action.schema
         parts = self.action.configuration_parts()
@@ -157,13 +163,24 @@ class StepArguments:
         """
         :param offered: An enumeration field, or one taking the robot's arms.
         :param value: A member's identifier, or the name a plan saved it under before.
-        :return: The member, or the robot's parts the arms it names stand for.
+        :return: The member, the robot's parts the arms it names stand for, or the
+            annotation the objects of the kind it names carry.
         """
         field_type = self.action.field_types[offered.name]
         if ArmField(field_type).part() is not None:
             arms = ENUM_NAMES.member(Arms, value)
             return RobotArms(self.context.robot).value(arms, field_type)
+        if field_type is ObjectType:
+            return OBJECT_TYPE_ANNOTATIONS[ENUM_NAMES.member(ObjectType, value)]
         return ENUM_NAMES.member(field_type, value)
+
+    def region(self, offered: ActionField, value: Any) -> VolumetricBoundingBox:
+        """
+        :param offered: A region field.
+        :param value: A :class:`DetectionRegion`.
+        :return: The box the region spans around the robot that performs the step.
+        """
+        return RegionBoxes(self.context.robot).box(DetectionRegion.from_json(value))
 
     def pose(self, offered: ActionField, value: Any) -> Pose:
         """

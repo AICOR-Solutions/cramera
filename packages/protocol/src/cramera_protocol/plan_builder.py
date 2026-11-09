@@ -130,6 +130,12 @@ class PlanBuilderRoute(StrEnum):
     Stops the demo process.
     """
 
+    SCAN = "scan"
+    """
+    Looks for the objects in a region of the scene; a posted scan request answers with
+    the plan's objects after the scan.
+    """
+
     OBJECT_FILES = "objects/"
     """
     The prefix of the object models' files: ``objects/<file>``.
@@ -1651,6 +1657,12 @@ class ActionFieldKind(StrEnum):
     GRASP = "grasp"
     """
     A grasp, never entered: the demo derives it from the action's arm and object.
+    """
+
+    REGION = "region"
+    """
+    A region of the scene objects are looked for in, a
+    :class:`~cramera_protocol.detection.DetectionRegion`.
     """
 
 

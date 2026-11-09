@@ -5,6 +5,7 @@ plans current.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,7 @@ from cramera_protocol.plan_builder import (
 from cramera_protocol.robot_profile import (
     ExecutorKind,
     RobotProfile,
+    RobotProfileKey,
     RobotProfileVariable,
 )
 
@@ -58,6 +60,22 @@ def test_the_environment_names_the_profile_file(profile_file, configured):
 
 def test_without_a_named_file_there_is_no_profile():
     assert ConfiguredProfile.of_environment({}) == ConfiguredProfile()
+
+
+def test_the_simulated_scene_is_read_relative_to_the_profile_file(configured):
+    assert [item.identifier for item in configured.simulated_objects] == [
+        "left_cup",
+        "right_cup",
+    ]
+
+
+def test_without_a_simulated_scene_the_robot_perceives_its_own(tmp_path, profile_file):
+    without = tmp_path / "tracy.json"
+    document = json.loads(profile_file.read_text("utf-8"))
+    del document[RobotProfileKey.SIMULATED_SCENE]
+    without.write_text(json.dumps(document), "utf-8")
+    (tmp_path / "templates").symlink_to(profile_file.parent / "templates")
+    assert ConfiguredProfile.of_file(without).simulated_objects is None
 
 
 # %% resolving skills

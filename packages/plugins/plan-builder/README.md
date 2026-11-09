@@ -66,6 +66,8 @@ cramera
   | `Pose \| Iterable[Pose]` | pose or surface | a pose, or a surface sampled when the step runs |
   | `float`, `int`, `bool`, `str` | number, integer, boolean, text | inputs, the default as placeholder |
   | `GraspDescription` | grasp | none: derived from the action's arm and object |
+  | `VolumetricBoundingBox` | region | the regions of the scene: for now the whole table |
+  | `type[SemanticAnnotation]` | enum | the kinds of the plan's free objects (`object`, `block`) |
 
   `Optional[X]` is classified by `X`. A field of another type, or one whose type cannot
   be resolved, is left at its default and listed as hidden; without a default it makes
@@ -106,6 +108,16 @@ cramera
   group. The demo ends by itself when the viewer goes away, since it watches the pipe
   the viewer holds open. Demos publish on the live publisher's port, or on
   `CRAMERA_PLAN_BUILDER_PORT`.
+- **Detecting.** A step whose action looks in a region (Detect) starts looking at the
+  whole table. A later step of the same robot can name what it finds in an object
+  field, as `detected:<step id>`: when the plan is built, that is the one object of the
+  plan the detection's query finds, which the detection perceives again when it runs.
+  "Scan scene" in the objects list posts the plan to the `scan` route, which runs
+  `cramera_bridge.plans.scanning` as a child process: the robot looks at the table live
+  where its camera sees it, else the twin's objects are taken as assumed; a robot
+  profile's `simulatedScene` names a plan file whose objects a simulated camera sees.
+  Found objects move the plan's objects, and one the plan lacks becomes a copy of the
+  library model of its type and the `color` its collection names.
 - **Constraints** are compiled by the rule book `rules/constraints.json` into the
   monitor the live publisher observes (`VectorsAligned`, `HeightMonitor`,
   `DistanceMonitor`) and into switches of the step's own action: a rule's switch names

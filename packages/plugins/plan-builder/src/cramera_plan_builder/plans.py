@@ -49,6 +49,7 @@ from cramera_plan_builder.exceptions import (
     ValueOutOfRange,
 )
 from cramera_protocol.bundle.index import SceneName
+from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
 from cramera_protocol.document import JsonValue
 from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.geometry import Pose
@@ -126,6 +127,11 @@ class ExpectedValue(StrEnum):
     IDENTITY = "the identity of one of the plan's objects"
     """
     A body field's value.
+    """
+
+    REGION = "a region of the scene to look in"
+    """
+    A region field's value.
     """
 
     NAME = "the name of an annotated entity"
@@ -375,7 +381,8 @@ class StepValueCheck:
 
     objects: FrozenSet[str]
     """
-    The identities of the plan's objects.
+    The identities of the plan's objects, and the references to the objects the earlier
+    steps of the robot find.
     """
 
     plan_check: PlanCheck
@@ -412,6 +419,16 @@ class StepValueCheck:
             ):
                 raise MissingStepParameter(values_location, offered.name)
 
+    def looks_for_objects(self, location: str, step: PlanStep) -> bool:
+        """
+        :param location: Where the step sits.
+        :param step: A step that fits its action's schema.
+        :return: Whether its action looks for objects in a region, so later steps can
+            name the object it finds.
+        """
+        schema = self.schema(PlanCheck.location(location, PlanStepKey.ACTION), step)
+        return any(offered.kind is ActionFieldKind.REGION for offered in schema.fields)
+
     def schema(self, location: str, step: PlanStep) -> ActionSchema:
         """
         :param location: Where the step's action sits.
@@ -444,6 +461,7 @@ class StepValueCheck:
             ActionFieldKind.BOOLEAN: self.boolean,
             ActionFieldKind.TEXT: self.text,
             ActionFieldKind.GRASP: self.derived,
+            ActionFieldKind.REGION: self.region,
         }
         checks[offered.kind](location, offered, value)
 
@@ -451,7 +469,8 @@ class StepValueCheck:
         """
         :param location: Where the value sits.
         :param offered: A body field.
-        :param value: Its value, an object's identity.
+        :param value: Its value, an object's identity or a reference to the object an
+            earlier step finds.
         """
         if not isinstance(value, str):
             raise InvalidStepValue(location, value, ExpectedValue.IDENTITY)
@@ -516,6 +535,14 @@ class StepValueCheck:
                 destination.surface_type,
                 self.catalog.surface_types,
             )
+
+    def region(self, location: str, offered: ActionField, value: Any) -> None:
+        """
+        :param location: Where the value sits.
+        :param offered: A region field.
+        :param value: Its value, a region of the scene.
+        """
+        self.read(location, DetectionRegion, value, ExpectedValue.REGION)
 
     @staticmethod
     def read(
@@ -620,7 +647,8 @@ class CatalogCheck:
             the catalog does not offer; without the CRAM workspace only the environment
             is checked, since the catalog then offers no robots, objects and actions.
         :raises PlanBuilderError: For a step that does not fit its action's schema, see
-            :meth:`StepValueCheck.check`.
+            :meth:`StepValueCheck.check`; a step may name the object an earlier step of
+            its robot that looks for objects finds.
         """
         environments = [entry.name for entry in self.catalog.environments]
         if plan.environment is not None:
@@ -645,19 +673,20 @@ class CatalogCheck:
                 robot.model,
                 list(models),
             )
-            values = StepValueCheck(
-                catalog=self.catalog,
-                robot=models[robot.model],
-                objects=planned,
-                plan_check=PlanCheck(self.limits),
-            )
+            objects = planned
             for step in robot.steps:
-                values.check(
-                    PlanCheck.location(
-                        location, PlannedRobotKey.STEPS, step.identifier
-                    ),
-                    step,
+                values = StepValueCheck(
+                    catalog=self.catalog,
+                    robot=models[robot.model],
+                    objects=objects,
+                    plan_check=PlanCheck(self.limits),
                 )
+                location_of_step = PlanCheck.location(
+                    location, PlannedRobotKey.STEPS, step.identifier
+                )
+                values.check(location_of_step, step)
+                if values.looks_for_objects(location_of_step, step):
+                    objects = objects | {DetectedObjectReference(step.identifier).text}
 
     @staticmethod
     def offered(location: str, value: str, offered: List[str]) -> None:

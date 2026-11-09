@@ -10,11 +10,13 @@ import {
   ActionFieldKind,
   ActionSchemaKey,
   DestinationKey,
+  DetectionRegionKey,
   FailedActionModuleKey,
   PlacementMode,
   PlanBuilderCatalogKey,
   PlannedObjectKey,
   PlanStepKey,
+  RegionKind,
   SkillKey,
   StepConstraintKey,
 } from '../../../protocol.js';
@@ -37,6 +39,13 @@ const PLACEMENT_LABELS = Object.freeze({
  * The surface choice that lets the step take any surface of its type.
  */
 const ANY_SURFACE = Object.freeze({ value: '', label: 'any of the type' });
+
+/**
+ * How people read each region a step looks in.
+ */
+const REGION_LABELS = Object.freeze({
+  [RegionKind.TABLE]: 'whole table',
+});
 
 /**
  * The choice of an optional field that leaves the action's default.
@@ -336,6 +345,7 @@ export class StepsView {
       [ActionFieldKind.BOOLEAN]: () => this.#checkbox(step, field),
       [ActionFieldKind.TEXT]: () => this.#textInput(step, field),
       [ActionFieldKind.GRASP]: () => this.#derivedNote(field),
+      [ActionFieldKind.REGION]: () => this.#regionPicker(step, field),
     };
     return (controls[field[ActionFieldKey.KIND]] ?? (() => []))();
   }
@@ -375,13 +385,26 @@ export class StepsView {
   /**
    * @param {Object} step A step.
    * @param {Object} field A body field.
-   * @returns {Array<HTMLElement>} A choice of the plan's objects.
+   * @returns {Array<HTMLElement>} A choice of the plan's objects and of the objects
+   *   earlier steps find.
    */
   #objectPicker(step, field) {
-    const objects = this.#editor.state.objects().map((item) => ({ value: item[PlannedObjectKey.IDENTIFIER], label: item[PlannedObjectKey.IDENTIFIER] }));
+    const objects = this.#editor.state.objectChoices(step[PlanStepKey.IDENTIFIER]);
     if (objects.length === 0) return [this.#shown.create('p', ViewClass.EMPTY, `Add an object for ${field[ActionFieldKey.LABEL]}.`)];
     const choices = field[ActionFieldKey.REQUIRED] ? objects : [{ value: DEFAULT_CHOICE, label: 'none' }, ...objects];
     const select = this.#shown.select(PlanAction.STEP_PARAMETER, choices, StepsView.#value(step, field) ?? DEFAULT_CHOICE, (value) => this.#set(step, field, value || null));
+    return [this.#labelled(step, field, select)];
+  }
+
+  /**
+   * @param {Object} step A step.
+   * @param {Object} field A region field.
+   * @returns {Array<HTMLElement>} A choice of the regions the step can look in.
+   */
+  #regionPicker(step, field) {
+    const regions = Object.values(RegionKind).map((kind) => ({ value: kind, label: REGION_LABELS[kind] ?? kind }));
+    const current = StepsView.#value(step, field)?.[DetectionRegionKey.KIND] ?? RegionKind.TABLE;
+    const select = this.#shown.select(PlanAction.STEP_PARAMETER, regions, current, (kind) => this.#set(step, field, { [DetectionRegionKey.KIND]: kind }));
     return [this.#labelled(step, field, select)];
   }
 

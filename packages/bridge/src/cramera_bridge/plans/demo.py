@@ -18,6 +18,7 @@ from cramera_bridge.performing import TaskContext
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
+from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.workspace import RobotAnnotations
 from cramera_bridge.plans.world import EmptyFloor, PlannedObjects
@@ -164,7 +165,8 @@ class PlannedTaskDemo(RobotTaskDemo):
 
     bodies: Dict[str, Body] = field(default_factory=dict, init=False)
     """
-    The plan's objects by identity, once the world is built.
+    The plan's objects by identity once the world is built, and once the plan is built
+    the objects its detection steps find by the references later steps name them with.
     """
 
     discovery: ActionDiscovery = field(default_factory=ActionDiscovery, kw_only=True)
@@ -239,6 +241,11 @@ class PlannedTaskDemo(RobotTaskDemo):
         :return: The performing robot's steps as their native actions, one after
             another.
         """
+        self.bodies.update(
+            DetectedObjects(context, self.bodies, self.discovered_actions).resolve(
+                self.steps()
+            )
+        )
         actions = StepActions(context, self.bodies, self.discovered_actions)
         return Sequence(nodes=[actions.action(step) for step in self.steps()])
 

@@ -977,3 +977,73 @@ class UnknownAction(PlanError):
 
     def message(self) -> str:
         return f"The CRAM workspace defines no action {self.name!r}."
+
+
+# %% detections
+
+
+@dataclass
+class RobotHasNoTable(PlanError):
+    """
+    A region on the table named for a robot that is mounted on none.
+    """
+
+    robot: str
+    """
+    The robot's class name.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"The robot {self.robot} stands at no table to look on."
+
+
+@dataclass
+class DetectedObjectNotInTwin(PlanError):
+    """
+    A step naming the object a detection step finds, where the twin holds no object that
+    detection would find.
+    """
+
+    step: str
+    """
+    The identity of the detection step.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"The twin holds no object the detection of {self.step} finds; scan the "
+            f"scene so the plan's objects show what stands there."
+        )
+
+
+@dataclass
+class AmbiguousDetectedObject(PlanError):
+    """
+    A step naming the object a detection step finds, where that detection would find
+    several objects of the twin.
+    """
+
+    step: str
+    """
+    The identity of the detection step.
+    """
+
+    count: int
+    """
+    How many objects it would find.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"The detection of {self.step} finds {self.count} objects of the twin; give "
+            f"it a color or type that tells them apart."
+        )

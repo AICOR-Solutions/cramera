@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 from http import HTTPStatus
+from importlib.machinery import ModuleSpec
 
 import pytest
 
@@ -18,6 +19,8 @@ from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
+from cramera_plan_builder.profiles import ConfiguredProfile
+from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.plugin import (
     PlanBuilderPlugin,
     PlanBuilderStorage,
@@ -29,6 +32,7 @@ from cramera_plan_builder.workspace import (
     MissingWorkspace,
     WorkspaceLoader,
 )
+from cramera_protocol.detection import ScanRequest, SceneScan
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT
 from cramera_protocol.plan_builder import (
     ConstraintText,
@@ -453,3 +457,34 @@ def test_the_catalog_carries_the_profiles_templates(serve, output, workspace_loa
     answer = send(serve(plugin), HttpMethod.GET, PlanBuilderRoute.CATALOG)
     catalog = PlanBuilderCatalog.from_json(json.loads(answer.body))
     assert [template.identifier for template in catalog.templates] == ["park"]
+
+
+# %% scanning the scene
+
+
+def test_a_scan_sees_the_simulated_scene_the_profile_names(
+    serve, output, workspace_loader, plan
+):
+    profile_file = DATASET / "profile" / "tracy.json"
+    plugin = PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(profile_file),
+        },
+        workspace=workspace_loader,
+        scans=SceneScans(
+            interpreter=str(DATASET / "scanning_interpreter.py"),
+            modules=CramModules(
+                finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
+            ),
+        ),
+    )
+    answer = send(
+        serve(plugin),
+        HttpMethod.POST,
+        PlanBuilderRoute.SCAN,
+        json.dumps(ScanRequest(plan=plan).to_json()).encode(),
+    )
+    assert answer.status == HTTPStatus.OK, answer.body
+    scan = SceneScan.from_json(json.loads(answer.body))
+    assert scan.objects == ConfiguredProfile.of_file(profile_file).simulated_objects

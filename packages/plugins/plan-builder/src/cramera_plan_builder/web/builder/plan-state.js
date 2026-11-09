@@ -9,6 +9,8 @@ import {
   ActionFieldKind,
   ActionSchemaKey,
   DestinationKey,
+  DetectedObjectText,
+  DetectionRegionKey,
   ObjectModelKey,
   PlacementMode,
   PlanBuilderCatalogKey,
@@ -17,6 +19,7 @@ import {
   PlannedObjectKey,
   PlannedRobotKey,
   PlanStepKey,
+  RegionKind,
   RobotModelKey,
   RobotProfileKey,
   SkillKey,
@@ -563,7 +566,8 @@ export class PlanState {
       if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] === ActionFieldKind.BODY && this.objects().length > 0) values[field[ActionFieldKey.NAME]] = this.objects()[0][PlannedObjectKey.IDENTIFIER];
     }
     for (const field of PlanState.fields(schema)) {
-      if (!field[ActionFieldKey.REQUIRED]) continue;
+      // a step looking for objects looks at the whole table unless told otherwise
+      if (!field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] !== ActionFieldKind.REGION) continue;
       const value = this.#defaultValue(robot, schema, field, step);
       if (value !== undefined) values[field[ActionFieldKey.NAME]] = value;
     }
@@ -677,7 +681,7 @@ export class PlanState {
     for (const [name, value] of Object.entries(values)) {
       const field = fields.get(name);
       if (!field) problems.push(`${schema[ActionSchemaKey.LABEL]} has no field '${name}'.`);
-      else if (!this.#fits(robot, field, value)) problems.push(`Field '${name}' cannot be ${JSON.stringify(value)}.`);
+      else if (!this.#fits(robot, field, value, step)) problems.push(`Field '${name}' cannot be ${JSON.stringify(value)}.`);
     }
     for (const field of fields.values()) {
       if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] !== ActionFieldKind.GRASP && values[field[ActionFieldKey.NAME]] === undefined) problems.push(`Field '${field[ActionFieldKey.NAME]}' needs a value.`);
@@ -781,6 +785,40 @@ export class PlanState {
   }
 
   /**
+   * @param {string} identifier A step of the edited robot.
+   * @returns {Array<{value: string, label: string}>} What the step's object fields can
+   *   name: the plan's objects, then the object each earlier step of the robot that
+   *   looks for objects finds.
+   */
+  objectChoices(identifier) {
+    const choices = this.objects().map((item) => ({ value: item[PlannedObjectKey.IDENTIFIER], label: item[PlannedObjectKey.IDENTIFIER] }));
+    for (const step of this.steps()) {
+      if (step[PlanStepKey.IDENTIFIER] === identifier) break;
+      if (!this.looksForObjects(step)) continue;
+      choices.push({ value: `${DetectedObjectText.PREFIX}${step[PlanStepKey.IDENTIFIER]}`, label: `found by ${this.stepLabel(step)} (${step[PlanStepKey.IDENTIFIER]})` });
+    }
+    return choices;
+  }
+
+  /**
+   * @param {Object} step A step of the plan.
+   * @returns {boolean} Whether its action looks for objects in a region, so later steps
+   *   can name the object it finds.
+   */
+  looksForObjects(step) {
+    return PlanState.fields(this.schema(step[PlanStepKey.ACTION]) ?? {}).some((field) => field[ActionFieldKey.KIND] === ActionFieldKind.REGION);
+  }
+
+  /**
+   * Take over the plan's objects as a scan of the scene found them.
+   * @param {Array<Object>} objects The plan's objects after the scan: those it held,
+   *   moved, and the ones found new.
+   */
+  replaceObjects(objects) {
+    this.#plan[PlanKey.OBJECTS] = objects;
+  }
+
+  /**
    * @param {string} identifier The object's identity.
    * @param {Array<number>} pose Where it starts.
    */
@@ -803,13 +841,14 @@ export class PlanState {
   /**
    * @param {Object} robot The robot taking the step.
    * @param {Object} schema The step's action.
-   * @param {Object} field A required field of it.
+   * @param {Object} field A required field of it, or its region field.
    * @param {Object} step The step being added, with its objects chosen.
    * @returns {*} The field's starting value, or undefined to leave it for the person.
    */
   #defaultValue(robot, schema, field, step) {
     const kind = field[ActionFieldKey.KIND];
     if (kind === ActionFieldKind.ENUM) return this.#defaultMember(robot, field);
+    if (kind === ActionFieldKind.REGION) return { [DetectionRegionKey.KIND]: RegionKind.TABLE };
     if (POSE_KINDS.includes(kind) && field[ActionFieldKey.ACCEPTS_SURFACE]) return { [DestinationKey.PLACEMENT]: PlacementMode.POSE, [DestinationKey.POSE]: this.#besideObject(step) };
     if (kind === ActionFieldKind.POSE) return this.#nextTarget(robot, schema, field);
     if (kind in PLAIN_TYPES && kind !== ActionFieldKind.ANNOTATION) return field[ActionFieldKey.DEFAULT] ?? undefined;
@@ -864,12 +903,14 @@ export class PlanState {
    * @param {Object} robot The robot taking the step.
    * @param {Object} field A field of the step's action.
    * @param {*} value A value of the step.
+   * @param {Object} step The step.
    * @returns {boolean} Whether the value fits the field's kind and the robot's choices.
    */
-  #fits(robot, field, value) {
+  #fits(robot, field, value, step) {
     const kind = field[ActionFieldKey.KIND];
     if (kind === ActionFieldKind.GRASP) return false;
-    if (kind === ActionFieldKind.BODY) return this.objects().some((item) => item[PlannedObjectKey.IDENTIFIER] === value);
+    if (kind === ActionFieldKind.BODY) return this.objectChoices(step[PlanStepKey.IDENTIFIER]).some((choice) => choice.value === value);
+    if (kind === ActionFieldKind.REGION) return Object.values(RegionKind).includes(value?.[DetectionRegionKey.KIND]);
     if (kind === ActionFieldKind.ENUM) return this.choices(robot, field).includes(value);
     if (kind === ActionFieldKind.INTEGER) return Number.isInteger(value);
     if (kind in PLAIN_TYPES) return typeof value === PLAIN_TYPES[kind];

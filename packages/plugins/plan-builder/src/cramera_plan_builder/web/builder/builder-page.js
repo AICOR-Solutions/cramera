@@ -6,6 +6,7 @@
 
 import {
   DemoSourceKey,
+  DetectionGrounding,
   EnvironmentAnnotationsKey,
   IndexEntryKey,
   LoadedEnvironmentKey,
@@ -28,6 +29,7 @@ import {
   RunState,
   RunStatusKey,
   SavedDemoKey,
+  SceneScanKey,
   StepConstraintKey,
   ConstraintObservationKey,
   ConstraintTextKey,
@@ -117,6 +119,21 @@ export function loadedMessage(label, missing) {
   const more = missing.length > NAMED_MISSING_MESHES ? ', …' : '';
   const count = missing.length === 1 ? '1 mesh it names was' : `${missing.length} meshes it names were`;
   return `Loaded ${label}; ${count} not found and left out: ${named}${more}`;
+}
+
+/**
+ * @param {Object} scan A `SceneScan`.
+ * @returns {string} What the page says about the scan: how many objects the plan holds,
+ *   whether they were seen or assumed from the twin, and how many found objects no
+ *   model matches.
+ */
+export function scanMessage(scan) {
+  const count = scan[SceneScanKey.OBJECTS].length;
+  const objects = count === 1 ? '1 object' : `${count} objects`;
+  const source = scan[SceneScanKey.GROUNDING] === DetectionGrounding.ASSUMED ? 'assumed from the twin, since the camera does not see the table; they are perceived again when the plan runs' : 'seen by the camera';
+  const unrecognized = scan[SceneScanKey.UNRECOGNIZED];
+  const left = unrecognized > 0 ? ` ${unrecognized} more found matched no object model and were left out.` : '';
+  return `The scene holds ${objects}, ${source}.${left}`;
 }
 
 // %% environment
@@ -733,6 +750,22 @@ export class BuilderPage {
       return;
     }
     this.placeObject(selection.identifier, pose);
+  }
+
+  /**
+   * Fill the plan's objects with what the robot finds on its table: where its camera
+   * sees the table now through its perception, else as the twin holds them.
+   * @returns {Promise<void>} Settles once the objects are filled or the scan refused.
+   */
+  async scanScene() {
+    this.report('Scanning the scene…');
+    const scan = await this.#environment.api.scan(this.state.document).catch((error) => {
+      this.report(error.message);
+      return null;
+    });
+    if (!scan) return;
+    this.edit(() => this.state.replaceObjects(scan[SceneScanKey.OBJECTS]));
+    this.report(scanMessage(scan));
   }
 
   /**

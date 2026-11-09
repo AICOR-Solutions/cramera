@@ -28,6 +28,7 @@ from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.environments import EnvironmentAnnotationCache
 from cramera_plan_builder.routes import PlanBuilderRoutes
 from cramera_plan_builder.runs import DemoRunner
+from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT
 from cramera_protocol.plan_builder import (
@@ -174,6 +175,11 @@ class PlanBuilderPlugin(ViewerPlugin):
     Renders a plan into its demo.
     """
 
+    scans: SceneScans = field(default_factory=SceneScans)
+    """
+    Scans the scene for a plan's objects.
+    """
+
     def name(self) -> str:
         return PlanBuilderName.PLUGIN
 
@@ -214,6 +220,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             live_url=f"{LIVE_SCHEME}://{LIVE_HOST}:{port}",
             template=self.template,
             profile=ConfiguredProfile.of_environment(self.environment),
+            scans=self.scans,
         ).declarations()
 
     def web_directory(self) -> Optional[Path]:

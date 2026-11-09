@@ -544,6 +544,14 @@ ENUMS = (
         ),
     ),
     PinnedEnum(
+        "object_type",
+        "cramera_bridge.plans.object_types.ObjectType",
+        (
+            "object",
+            "block",
+        ),
+    ),
+    PinnedEnum(
         "cutting_technique",
         "coraplex.datastructures.enums.CuttingTechnique",
         (

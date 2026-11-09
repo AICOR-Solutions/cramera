@@ -190,6 +190,11 @@ class RobotProfileKey(StrEnum):
     How each run mode the robot offers executes its plan.
     """
 
+    SIMULATED_SCENE = "simulatedScene"
+    """
+    The file of the objects a simulated robot's camera sees.
+    """
+
 
 @dataclass(kw_only=True)
 class RobotProfile(JsonDocument):
@@ -240,6 +245,15 @@ class RobotProfile(JsonDocument):
     """
     How a run of each mode the robot offers executes, by the run mode's value; empty
     offers every run mode with its default executor.
+    """
+
+    simulated_scene: Optional[str] = document_field(
+        RobotProfileKey.SIMULATED_SCENE, default=None
+    )
+    """
+    The plan file whose objects stand in the simulated scene the robot's camera is
+    rendered from while no real robot perceives, relative to the profile's file; None
+    asks the robot's own perception.
     """
 
     format_version: ProtocolVersion = document_field(

@@ -5,6 +5,11 @@ import { readFileSync } from 'node:fs';
 import {
   ActionCatalogKey,
   ActionSchemaKey,
+  DetectedObjectText,
+  DetectionGrounding,
+  DetectionRegionKey,
+  RegionKind,
+  SceneScanKey,
   ConstraintRequestKey,
   ConstraintRuleKey,
   ConstraintTextKey,
@@ -37,7 +42,7 @@ import {
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -83,6 +88,13 @@ class FakeApi {
     this.listed = [];
     this.annotationsAsked = [];
     this.annotationsAnswer = { [EnvironmentAnnotationsKey.ANNOTATIONS]: [] };
+    this.scanned = [];
+    this.scanAnswer = { [SceneScanKey.OBJECTS]: [], [SceneScanKey.GROUNDING]: DetectionGrounding.PERCEIVED, [SceneScanKey.UNRECOGNIZED]: 0 };
+  }
+
+  async scan(plan, region) {
+    this.scanned.push({ plan, region });
+    return structuredClone(this.scanAnswer);
   }
 
   async environmentAnnotations(environment) {
@@ -720,6 +732,60 @@ test('a robot is added as the model the person used last', async () => {
   assert.equal(model.value, 'tracy');
   byAction(root, PlanAction.ADD_ROBOT)[0].click();
   assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
+});
+
+// %% detecting
+
+const SCANNED_CUBES = [
+  { [PlannedObjectKey.IDENTIFIER]: 'red_cube', [PlannedObjectKey.MODEL]: 'aicor/objects/cubes/red_cube/model.urdf', [PlannedObjectKey.POSE]: [0.55, 0.1, 0.909, 0, 0, 0, 1] },
+  { [PlannedObjectKey.IDENTIFIER]: 'blue_cube', [PlannedObjectKey.MODEL]: 'aicor/objects/cubes/blue_cube/model.urdf', [PlannedObjectKey.POSE]: [0.55, 0.3, 0.909, 0, 0, 0, 1] },
+];
+
+test('scanning the scene fills the objects with what the robot finds', async () => {
+  const { root, page, api } = await openPage();
+  api.scanAnswer[SceneScanKey.OBJECTS] = SCANNED_CUBES;
+  byAction(root, PlanAction.SCAN_SCENE)[0].click();
+  await settled();
+  assert.equal(api.scanned.length, 1);
+  assert.deepEqual(page.state.objects(), SCANNED_CUBES);
+  assert.equal(message(root), scanMessage(api.scanAnswer));
+});
+
+test('a scan assumed from the twin says it is checked again when the plan runs', () => {
+  const scan = { [SceneScanKey.OBJECTS]: SCANNED_CUBES, [SceneScanKey.GROUNDING]: DetectionGrounding.ASSUMED, [SceneScanKey.UNRECOGNIZED]: 2 };
+  assert.match(scanMessage(scan), /assumed from the twin.*perceived again when the plan runs.*2 more found/);
+});
+
+test('a detect step looks at the whole table', async () => {
+  const { root, page } = await openPage();
+  block(root, 'detect').click();
+  assert.deepEqual(page.state.steps()[0][PlanStepKey.VALUES].region, { [DetectionRegionKey.KIND]: RegionKind.TABLE });
+  assert.equal(parameter(root, 'region').value, RegionKind.TABLE);
+});
+
+test('a later step names the object a detect step finds', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'detect').click();
+  block(root, 'pick_up').click();
+  const [detect, pick] = page.state.steps();
+  const found = `${DetectedObjectText.PREFIX}${detect[PlanStepKey.IDENTIFIER]}`;
+  const object = parameter(root, 'object_designator');
+  assert.ok(object.children.map((option) => option.value).includes(found));
+  object.value = found;
+  object.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.step(pick[PlanStepKey.IDENTIFIER])[PlanStepKey.VALUES].object_designator, found);
+  assert.deepEqual(page.state.problems(page.state.step(pick[PlanStepKey.IDENTIFIER])), []);
+});
+
+test('a step before the detect step cannot name what it finds', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'pick_up').click();
+  block(root, 'detect').click();
+  const [pick, detect] = page.state.steps();
+  const choices = page.state.objectChoices(pick[PlanStepKey.IDENTIFIER]).map((choice) => choice.value);
+  assert.equal(choices.includes(`${DetectedObjectText.PREFIX}${detect[PlanStepKey.IDENTIFIER]}`), false);
 });
 
 // %% 3D view

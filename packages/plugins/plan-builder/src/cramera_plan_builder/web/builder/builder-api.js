@@ -2,7 +2,7 @@
  * The plan builder's routes as the builder page calls them.
  */
 
-import { EnvironmentAnnotationsParameter, ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RunRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ViewerRoute } from '../../../protocol.js';
+import { DetectionRegionKey, EnvironmentAnnotationsParameter, ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RegionKind, RunRequestKey, ScanRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ViewerRoute } from '../../../protocol.js';
 
 /**
  * The media type of JSON bodies, which also explain errors.
@@ -232,6 +232,15 @@ export class PlanBuilderApi {
    */
   stop() {
     return this.#client.post(this.url(PlanBuilderRoute.RUN_STOP), {});
+  }
+
+  /**
+   * @param {Object} plan A plan document, whose robot looks.
+   * @param {string} region A `RegionKind` value: where the robot looks.
+   * @returns {Promise<Object>} The `SceneScan`: the plan's objects after the scan.
+   */
+  scan(plan, region = RegionKind.TABLE) {
+    return this.#client.post(this.url(PlanBuilderRoute.SCAN), { [ScanRequestKey.PLAN]: plan, [ScanRequestKey.REGION]: { [DetectionRegionKey.KIND]: region } });
   }
 
   /**

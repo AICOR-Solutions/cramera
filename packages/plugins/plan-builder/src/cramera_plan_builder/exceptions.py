@@ -692,3 +692,24 @@ class DemoNotStarted(PlanBuilderError):
 
     def message(self) -> str:
         return f"The demo {str(self.path)!r} could not be started: {self.reason}"
+
+
+# %% scans
+
+
+@dataclass
+class ScanFailed(PlanBuilderError):
+    """
+    A scan of the scene whose process ended without a scan.
+    """
+
+    output: str
+    """
+    The newest output of the scan's process.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.BAD_GATEWAY
+
+    def message(self) -> str:
+        return f"The scene could not be scanned:\n{self.output}"

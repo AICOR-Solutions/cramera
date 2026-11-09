@@ -7,5 +7,6 @@
     {"id": "park", "label": "Park arms", "action": "park_arms", "values": {"arm": "both"}, "fields": []},
     {"id": "pick", "label": "Pick", "action": "pick_up", "fields": ["object_designator"]}
   ],
-  "templates": ["templates/park.json"]
+  "templates": ["templates/park.json"],
+  "simulatedScene": "scenes/two_cups.json"
 }

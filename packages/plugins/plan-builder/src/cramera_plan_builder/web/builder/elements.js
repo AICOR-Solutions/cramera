@@ -44,6 +44,7 @@ export const PlanAction = Object.freeze({
   STEP_PARAMETER: 'step-parameter',
   USE_LIVE_POSE: 'use-live-pose',
   ADD_OBJECT: 'add-object',
+  SCAN_SCENE: 'scan-scene',
   OBJECT_MODEL: 'object-model',
   SELECT_OBJECT: 'select-object',
   REMOVE_OBJECT: 'remove-object',
