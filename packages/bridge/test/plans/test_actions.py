@@ -9,6 +9,7 @@ import pytest
 
 from coraplex.datastructures.trajectory import PoseTrajectory
 from coraplex.robot_plans.actions.composite.searching import SearchAction
+from coraplex.robot_plans.actions.core.misc import DetectAction
 from coraplex.robot_plans.actions.core.navigation import LookAtAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
@@ -29,6 +30,7 @@ from cramera_bridge.plans.arms import Arms
 from cramera_bridge.exceptions import UnknownAction
 from cramera_protocol.plan_builder import ActionFieldKind, ActionGroup
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
+from semantic_digital_twin.world_description.color_names import ColorName
 
 from ..dataset import mimic_actions
 from ..dataset.mimic_actions.gestures import waving
@@ -201,6 +203,17 @@ def test_set_gripper_offers_its_configuration_as_two_enumerations(native):
     assert discovered.configuration_parts() == {
         offered.name for offered in schema.fields
     }
+
+
+def test_detect_offers_the_color_to_look_for_as_an_enumeration(native):
+    schema = native.named(ACTION_NAMES.identifier_of(DetectAction)).schema
+    color = schema.field_named("color")
+    assert color.kind is ActionFieldKind.ENUM
+    assert color.enum_type == ENUM_NAMES.identifier_of(ColorName)
+    assert color.members == [
+        ENUM_NAMES.member_identifier(ColorName, member) for member in ColorName
+    ]
+    assert color.required is False
 
 
 def test_core_actions_come_first(native):

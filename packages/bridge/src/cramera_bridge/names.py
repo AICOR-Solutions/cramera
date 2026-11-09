@@ -529,6 +529,21 @@ ENUMS = (
         ),
     ),
     PinnedEnum(
+        "color",
+        "semantic_digital_twin.world_description.color_names.ColorName",
+        (
+            "red",
+            "yellow",
+            "green",
+            "cyan",
+            "blue",
+            "magenta",
+            "white",
+            "black",
+            "grey",
+        ),
+    ),
+    PinnedEnum(
         "cutting_technique",
         "coraplex.datastructures.enums.CuttingTechnique",
         (
@@ -616,6 +631,8 @@ FIELDS = {
         "region",
         "trust_detected_orientation",
         "accept_first_if_multiple",
+        "color",
+        "attributes",
     ),
     "elevator_navigation": (
         "elevator",
