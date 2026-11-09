@@ -5,6 +5,9 @@ annotation or the grasp of it closest to the robot, a gripper and its state into
 gripper's configuration, a region into its box, a kind of object into the annotation its
 objects carry, the constraints' switches turned on, and the action constructed with
 keyword arguments.
+
+A step leaving its arm to be chosen becomes a statement grounded to the arm that
+reaches.
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from typing_extensions import Any, Callable, Dict, Iterable, Optional
 
 from coraplex.querying.grasp_closeness import GraspsByCloseness
 from coraplex.robot_plans.actions.base import Action
+from cramph.composites import StatementNode
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.actions import (
@@ -37,6 +41,7 @@ from cramera_protocol.plan_builder import (
     PlacementMode,
     PlanStep,
 )
+from krrood.entity_query_language.factories import a
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
@@ -118,6 +123,24 @@ class StepArguments:
             if constraint.switch is not None and self.is_switch(constraint.switch):
                 arguments[self.action.field_name(constraint.switch)] = True
         return arguments
+
+    def find_open_arm_field(self) -> Optional[str]:
+        """
+        :return: The identifier of the field taking one arm, or one arm's end effector,
+            whose arm the step leaves to be chosen; None when it chooses every arm
+            itself.
+        """
+        for offered in self.action.schema.fields:
+            field_type = ArmField(self.action.field_types.get(offered.name))
+            if (
+                offered.name in self.step.values
+                and field_type.part() is not None
+                and not field_type.takes_several()
+                and ENUM_NAMES.member(Arms, self.step.values[offered.name])
+                is Arms.AUTOMATIC
+            ):
+                return offered.name
+        return None
 
     def is_switch(self, name: str) -> bool:
         """
@@ -286,14 +309,18 @@ class StepActions:
     The workspace's actions, which steps name by class name.
     """
 
-    def action(self, step: PlanStep) -> Action:
+    def action(self, step: PlanStep) -> Action | StatementNode:
         """
         :param step: A step the plan builder checked against its action's schema.
-        :return: The native action the step stands for.
+        :return: The native action the step stands for; for a step leaving its arm to
+            be chosen, the statement of its action with an arm of the robot open.
         :raises UnknownAction: When the workspace has no action of the step's name.
         """
         discovered = self.actions.named(step.action)
-        arguments = StepArguments(
+        step_arguments = StepArguments(
             context=self.context, bodies=self.bodies, action=discovered, step=step
-        ).arguments()
+        )
+        arguments = step_arguments.arguments()
+        if step_arguments.find_open_arm_field() is not None:
+            return StatementNode(statement=a(discovered.action_class)(**arguments))
         return discovered.action_class(**arguments)

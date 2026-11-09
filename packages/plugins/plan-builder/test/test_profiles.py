@@ -127,9 +127,25 @@ def test_without_a_profile_a_plan_stays_as_it_is():
 # %% executors
 
 
-@pytest.mark.parametrize("mode", list(RunMode))
+@pytest.mark.parametrize(
+    "mode",
+    [mode for mode in RunMode if mode.default_executor or not mode.performs_plan],
+)
 def test_without_a_profile_each_mode_runs_on_its_default_executor(mode):
     assert ConfiguredProfile().executor_for(mode) is mode.default_executor
+
+
+def test_a_run_on_the_robot_needs_a_profile_naming_its_executor():
+    with pytest.raises(RunModeNotOffered):
+        ConfiguredProfile().executor_for(RunMode.ROBOT)
+    with pytest.raises(RunModeNotOffered):
+        ConfiguredProfile(
+            RobotProfile(
+                robot="tracy",
+                label="Tracy",
+                executors={RunMode.SIMULATE: ExecutorKind.PERCEIVED_PHYSICS},
+            )
+        ).executor_for(RunMode.ROBOT)
 
 
 def test_a_profile_chooses_the_executor_of_each_mode_it_offers():

@@ -35,6 +35,10 @@ import {
   RunStatusKey,
   SavedDemoKey,
   StepConstraintKey,
+  StepFailureReason,
+  StepValidationKey,
+  StepVerdict,
+  ValidationReportKey,
   ViewerEvent,
   RobotProfileKey,
   SkillKey,
@@ -48,7 +52,7 @@ import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../..
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
-import { STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
@@ -88,8 +92,16 @@ class FakeApi {
     this.listed = [];
     this.annotationsAsked = [];
     this.annotationsAnswer = { [EnvironmentAnnotationsKey.ANNOTATIONS]: [] };
+    this.validated = [];
+    this.validationAnswer = (steps) => steps.map((step) => ({ [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER], [StepValidationKey.VERDICT]: StepVerdict.VALID }));
     this.scanned = [];
     this.scanAnswer = { [SceneScanKey.OBJECTS]: [], [SceneScanKey.GROUNDING]: DetectionGrounding.PERCEIVED, [SceneScanKey.UNRECOGNIZED]: 0 };
+  }
+
+  async validate(plan) {
+    this.validated.push(plan);
+    const robot = plan[PlanKey.ROBOTS].find((candidate) => candidate[PlannedRobotKey.IDENTIFIER] === plan[PlanKey.SELECTED_ROBOT]) ?? plan[PlanKey.ROBOTS][0];
+    return { [ValidationReportKey.STEPS]: this.validationAnswer(robot[PlannedRobotKey.STEPS]), [ValidationReportKey.SECONDS]: 2.5 };
   }
 
   async scan(plan, region) {
@@ -154,8 +166,8 @@ class FakeApi {
     return { [SavedDemoKey.PATH]: `/demos/${plan[PlanKey.NAME]}.py`, [SavedDemoKey.COMMAND]: `python /demos/${plan[PlanKey.NAME]}.py` };
   }
 
-  async run(plan, mode) {
-    this.runs.push({ plan, mode });
+  async run(plan, mode, overrideValidation = false) {
+    this.runs.push({ plan, mode, overrideValidation });
     this.status = { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: mode, [RunStatusKey.LOG]: 'building the world' };
     return structuredClone(this.status);
   }
@@ -1042,4 +1054,101 @@ test('a template of the profile starts a new plan as its copy', async () => {
   picker.value = 'park';
   picker.dispatch(DomEvent.CHANGE);
   assert.equal(page.state.field(PlanKey.NAME), 'Park both arms');
+});
+
+// %% validation
+
+const robotRun = (root) => byAction(root, PlanAction.RUN_ON_ROBOT)[0];
+const validation = (root) => root.findAll((element) => element.className === 'step-validation').map((element) => element.textContent);
+
+/**
+ * Open a page whose plan parks the arms, picks an object up and places it.
+ * @param {function(Object): void} prepare Prepares the fake API and storage.
+ */
+async function pickAndPlace(prepare = () => {}) {
+  const opened = await openPage('', prepare);
+  byAction(opened.root, PlanAction.ADD_OBJECT)[0].click();
+  for (const action of ['park_arms', 'pick_up', 'place']) block(opened.root, action).click();
+  return opened;
+}
+
+test('the run on the robot stays disabled until the plan passes its validation', async () => {
+  const { root, api } = await pickAndPlace();
+  assert.equal(robotRun(root).disabled, true);
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  assert.equal(api.validated.length, 1);
+  assert.equal(robotRun(root).disabled, false);
+  assert.deepEqual(steps(root).map((card) => card.dataset.validation), [StepVerdict.VALID, StepVerdict.VALID, StepVerdict.VALID]);
+  assert.match(message(root), /valid/);
+  robotRun(root).click();
+  await settled();
+  assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
+});
+
+test('a pick out of reach fails its validation as unreachable and the robot run stays disabled', async () => {
+  const { root } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: [StepVerdict.VALID, StepVerdict.FAILED, StepVerdict.UNCHECKED][index],
+      ...(index === 1 ? { [StepValidationKey.REASON]: StepFailureReason.UNREACHABLE } : {}),
+    }));
+  });
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  const failing = steps(root).filter((card) => card.dataset.validation === StepVerdict.FAILED);
+  assert.equal(failing.length, 1);
+  assert.equal(failing[0], steps(root)[1]);
+  assert.match(validation(root)[1], new RegExp(REASON_TEXTS[StepFailureReason.UNREACHABLE]));
+  assert.match(message(root), /step 2: unreachable/);
+  assert.equal(robotRun(root).disabled, true);
+});
+
+test('an assumed step and the arm chosen automatically are shown on their steps', async () => {
+  const { root } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: index === 0 ? StepVerdict.ASSUMED : StepVerdict.VALID,
+      ...(index === 1 ? { [StepValidationKey.ARM]: 'right' } : {}),
+    }));
+  });
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  assert.match(validation(root)[0], /Assumed/);
+  assert.match(validation(root)[1], /Arm: right, chosen automatically/);
+  assert.equal(robotRun(root).disabled, false);
+  assert.match(message(root), /1 step is assumed/);
+});
+
+test('an edit of the plan or its scene invalidates the validation', async () => {
+  const { root, page } = await pickAndPlace();
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  const object = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  page.placeObject(object, PlanPose.of(3, 3, 0, 0));
+  assert.equal(robotRun(root).disabled, true);
+  assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Changed since its validation/);
+});
+
+test('developer mode runs on the robot without a passed validation', async () => {
+  const { root, api } = await openPage('', ({ api: fake }) => {
+    fake.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = SKILLED_PROFILE;
+  }, { robot: false });
+  byAction(root, PlanAction.ADD_SKILL)[0].click();
+  assert.equal(robotRun(root).disabled, true);
+  const developer = byAction(root, PlanAction.DEVELOPER_MODE)[0];
+  developer.checked = true;
+  developer.dispatch(DomEvent.CHANGE);
+  assert.equal(robotRun(root).disabled, false);
+  robotRun(root).click();
+  await settled();
+  assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, true]);
+});
+
+test('the physics run is an optional dry-run, not gated by the validation', async () => {
+  const { root } = await pickAndPlace();
+  const dryRun = byAction(root, PlanAction.SIMULATE)[0];
+  assert.equal(dryRun.textContent, 'Dry-run in physics');
+  assert.equal(dryRun.disabled, false);
 });

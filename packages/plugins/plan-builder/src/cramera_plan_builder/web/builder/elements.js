@@ -16,6 +16,8 @@ export const PlanAction = Object.freeze({
   STAGE: 'stage',
   PERFORM: 'perform',
   SIMULATE: 'simulate',
+  VALIDATE: 'validate',
+  RUN_ON_ROBOT: 'run-on-robot',
   STOP: 'stop',
   CAPTURE: 'capture',
   NAME: 'name',

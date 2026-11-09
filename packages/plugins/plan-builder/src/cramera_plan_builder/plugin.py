@@ -29,6 +29,7 @@ from cramera_plan_builder.environments import EnvironmentAnnotationCache
 from cramera_plan_builder.routes import PlanBuilderRoutes
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.scans import SceneScans
+from cramera_plan_builder.validations import PlanValidations
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT
 from cramera_protocol.plan_builder import (
@@ -180,6 +181,11 @@ class PlanBuilderPlugin(ViewerPlugin):
     Scans the scene for a plan's objects.
     """
 
+    validations: PlanValidations = field(default_factory=PlanValidations)
+    """
+    Validates plans.
+    """
+
     def name(self) -> str:
         return PlanBuilderName.PLUGIN
 
@@ -221,6 +227,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             template=self.template,
             profile=ConfiguredProfile.of_environment(self.environment),
             scans=self.scans,
+            validations=self.validations,
         ).declarations()
 
     def web_directory(self) -> Optional[Path]:

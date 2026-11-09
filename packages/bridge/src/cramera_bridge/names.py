@@ -526,6 +526,7 @@ ENUMS = (
             "left",
             "right",
             "both",
+            "automatic",
         ),
     ),
     PinnedEnum(

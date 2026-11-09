@@ -2,7 +2,7 @@
  * The plan builder's routes as the builder page calls them.
  */
 
-import { DetectionRegionKey, EnvironmentAnnotationsParameter, ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RegionKind, RunRequestKey, ScanRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ViewerRoute } from '../../../protocol.js';
+import { DetectionRegionKey, EnvironmentAnnotationsParameter, ErrorKey, PlanBuilderName, PlanBuilderRoute, PlanRecordKey, RegionKind, RunRequestKey, ScanRequestKey, UrdfEnvironmentKey, UrdfFolderParameter, ValidationRequestKey, ViewerRoute } from '../../../protocol.js';
 
 /**
  * The media type of JSON bodies, which also explain errors.
@@ -214,10 +214,22 @@ export class PlanBuilderApi {
   /**
    * @param {Object} plan A plan document.
    * @param {string} mode A `RunMode` value.
+   * @param {boolean} overrideValidation Whether a run needing a validated plan starts
+   *   without one, as developer mode allows.
    * @returns {Promise<Object>} The started demo's status.
    */
-  run(plan, mode) {
-    return this.#client.post(this.url(PlanBuilderRoute.RUN), { [RunRequestKey.PLAN]: plan, [RunRequestKey.MODE]: mode });
+  run(plan, mode, overrideValidation = false) {
+    const override = overrideValidation ? { [RunRequestKey.OVERRIDE_VALIDATION]: true } : {};
+    return this.#client.post(this.url(PlanBuilderRoute.RUN), { [RunRequestKey.PLAN]: plan, [RunRequestKey.MODE]: mode, ...override });
+  }
+
+  /**
+   * @param {Object} plan A plan document.
+   * @returns {Promise<Object>} The `ValidationReport`: how each step of the selected
+   *   robot fared in a copy of the twin.
+   */
+  validate(plan) {
+    return this.#client.post(this.url(PlanBuilderRoute.VALIDATE), { [ValidationRequestKey.PLAN]: plan });
   }
 
   /**

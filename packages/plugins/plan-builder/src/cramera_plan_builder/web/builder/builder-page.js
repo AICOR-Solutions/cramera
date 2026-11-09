@@ -31,6 +31,9 @@ import {
   SavedDemoKey,
   SceneScanKey,
   StepConstraintKey,
+  StepValidationKey,
+  StepVerdict,
+  ValidationReportKey,
   ConstraintObservationKey,
   ConstraintTextKey,
   SurfaceKey,
@@ -45,7 +48,7 @@ import { MarkerKind, PlanSceneListeners, Selection, TransformMode } from './plan
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
-import { StepsView } from './steps-view.js';
+import { REASON_TEXTS, StepsView } from './steps-view.js';
 
 /**
  * How often a started demo and its live world are asked for their state, in
@@ -95,7 +98,8 @@ const RUN_LABELS = Object.freeze({
 const RUN_MESSAGES = Object.freeze({
   [RunMode.STAGE]: 'Starting the live scene; building the world takes a while.',
   [RunMode.PERFORM]: 'Running the plan; watch it in the 3D view or the viewer.',
-  [RunMode.SIMULATE]: 'Running the plan in physics; watch it in the 3D view or the viewer.',
+  [RunMode.SIMULATE]: 'Dry-running the plan in physics; watch it in the 3D view or the viewer.',
+  [RunMode.ROBOT]: 'Running the plan on the robot; watch it in the 3D view or the viewer.',
 });
 
 /**
@@ -119,6 +123,25 @@ export function loadedMessage(label, missing) {
   const more = missing.length > NAMED_MISSING_MESHES ? ', …' : '';
   const count = missing.length === 1 ? '1 mesh it names was' : `${missing.length} meshes it names were`;
   return `Loaded ${label}; ${count} not found and left out: ${named}${more}`;
+}
+
+/**
+ * @param {Object} report A `ValidationReport`.
+ * @param {Array<Object>} steps The steps of the validated robot, in order.
+ * @returns {string} What the page says about the validation: that it passed and how
+ *   many steps are assumed, or the first step that fails and why.
+ */
+export function validationMessage(report, steps) {
+  const validations = report[ValidationReportKey.STEPS];
+  const seconds = `${report[ValidationReportKey.SECONDS].toFixed(1)} s`;
+  const failed = validations.findIndex((step) => step[StepValidationKey.VERDICT] === StepVerdict.FAILED);
+  if (failed >= 0) {
+    const position = steps.findIndex((step) => step[PlanStepKey.IDENTIFIER] === validations[failed][StepValidationKey.STEP]);
+    return `Validation failed at step ${position + 1}: ${REASON_TEXTS[validations[failed][StepValidationKey.REASON]] ?? 'it did not succeed'}. The plan cannot run on the robot (${seconds}).`;
+  }
+  const assumed = validations.filter((step) => step[StepValidationKey.VERDICT] === StepVerdict.ASSUMED).length;
+  const note = assumed ? ` ${assumed === 1 ? '1 step is' : `${assumed} steps are`} assumed from the twin and checked again when the plan runs.` : '';
+  return `The plan is valid and may run on the robot (${seconds}).${note}`;
 }
 
 /**
@@ -265,6 +288,13 @@ export class BuilderPage {
   #attached = new Set();
 
   /**
+   * The latest validation: the plan as it was validated, as JSON text, and the
+   * `ValidationReport`; null before one. A plan that changed since is not validated.
+   * @type {{plan: string, report: Object}|null}
+   */
+  #validation = null;
+
+  /**
    * The handle of the polling, or null.
    * @type {*}
    */
@@ -336,7 +366,7 @@ export class BuilderPage {
     parts.environment.render();
     this.#elements.options(parts.saved, this.#planChoices(), OPEN_PROMPT.value);
     parts.robots.render();
-    parts.steps.render(this.#world.statuses, this.#world.observations);
+    parts.steps.render(this.#world.statuses, this.#world.observations, this.#stepValidations());
     parts.objects.render(this.#selection()?.kind === MarkerKind.OBJECT ? this.#selection().identifier : null);
     parts.constraints.render();
     const robot = state.activeRobot();
@@ -630,10 +660,12 @@ export class BuilderPage {
 
   /**
    * @param {string} mode A `RunMode` value.
+   * @param {boolean} overrideValidation Whether a run needing a validated plan starts
+   *   without one.
    * @returns {Promise<void>} Settles once the demo started or was refused.
    */
-  async #start(mode) {
-    const status = await this.#environment.api.run(this.state.document, mode).catch((error) => {
+  async #start(mode, overrideValidation = false) {
+    const status = await this.#environment.api.run(this.state.document, mode, overrideValidation).catch((error) => {
       this.report(error.message);
       return null;
     });
@@ -643,6 +675,61 @@ export class BuilderPage {
     this.#run = status;
     this.report(RUN_MESSAGES[mode]);
     this.render();
+  }
+
+  /**
+   * Run the plan on the robot: once it passed its validation unchanged, or without one
+   * in developer mode.
+   * @returns {Promise<void>} Settles once the run started or was refused.
+   */
+  async #runOnRobot() {
+    await this.#start(RunMode.ROBOT, !this.#validationPassed() && this.state.developerMode());
+  }
+
+  // %% validation
+
+  /**
+   * Validate the plan as it stands: every step of its robot is tried in a copy of the
+   * twin, nothing moves.
+   * @returns {Promise<void>} Settles once the report is shown or the validation refused.
+   */
+  async validate() {
+    const plan = structuredClone(this.state.document);
+    this.report('Validating the plan in a copy of the twin; nothing moves…');
+    const report = await this.#environment.api.validate(plan).catch((error) => {
+      this.report(error.message);
+      return null;
+    });
+    if (!report) return;
+    this.#validation = { plan: JSON.stringify(plan), report };
+    this.render();
+    this.report(validationMessage(report, this.state.steps()));
+  }
+
+  /**
+   * @returns {Object|null} The `ValidationReport` of the plan as it stands, null when it
+   *   changed since its latest validation or none ran.
+   */
+  validatedReport() {
+    if (this.#validation === null || this.#validation.plan !== JSON.stringify(this.state.document)) return null;
+    return this.#validation.report;
+  }
+
+  /**
+   * @returns {boolean} Whether the plan as it stands passed its latest validation.
+   */
+  #validationPassed() {
+    const report = this.validatedReport();
+    return report !== null && report[ValidationReportKey.STEPS].every((step) => [StepVerdict.VALID, StepVerdict.ASSUMED].includes(step[StepValidationKey.VERDICT]));
+  }
+
+  /**
+   * @returns {Map<string, Object>} How each step fared in the validation of the plan as
+   *   it stands, by the step's identity; empty when it is not validated.
+   */
+  #stepValidations() {
+    const report = this.validatedReport();
+    return new Map((report?.[ValidationReportKey.STEPS] ?? []).map((step) => [step[StepValidationKey.STEP], step]));
   }
 
   /**
@@ -801,7 +888,23 @@ export class BuilderPage {
     this.#parts.stop.disabled = !running;
     this.#parts.capture.disabled = !live;
     const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0;
-    for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate]) button.disabled = !runnable;
+    for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;
+    const passed = this.#validationPassed();
+    this.#parts.robot.disabled = !runnable || !(passed || this.state.developerMode());
+    this.#parts.validationState.textContent = this.#validationState(passed);
+    this.#parts.validationState.dataset.passed = String(passed);
+  }
+
+  /**
+   * @param {boolean} passed Whether the plan as it stands passed its validation.
+   * @returns {string} What the page says of the plan's validation beside the buttons.
+   */
+  #validationState(passed) {
+    if (passed) return 'Validated: the plan may run on the robot.';
+    if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
+    const override = this.state.developerMode() ? ' Developer mode lets it run on the robot anyway.' : '';
+    const changed = this.#validation === null ? 'Not validated' : 'Changed since its validation';
+    return `${changed}: validate the plan before it runs on the robot.${override}`;
   }
 
   /**
@@ -871,7 +974,9 @@ export class BuilderPage {
 
     parts.stage = elements.button('Start live scene', PlanAction.STAGE, () => this.#start(RunMode.STAGE));
     parts.perform = elements.button('Run plan', PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
-    parts.simulate = elements.button('Run in physics', PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
+    parts.simulate = elements.button('Dry-run in physics', PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
+    parts.validate = elements.button('Validate', PlanAction.VALIDATE, () => this.validate());
+    parts.robot = elements.button('Run on robot', PlanAction.RUN_ON_ROBOT, () => this.#runOnRobot());
     parts.stop = elements.button('Stop', PlanAction.STOP, () => this.#stop());
     parts.capture = elements.button('Capture live poses', PlanAction.CAPTURE, () => this.#capture());
     let turning = false;
@@ -886,6 +991,8 @@ export class BuilderPage {
       parts.stage,
       parts.perform,
       parts.simulate,
+      parts.validate,
+      parts.robot,
       parts.stop,
       parts.capture,
       turn,
@@ -894,6 +1001,7 @@ export class BuilderPage {
       elements.button('Write demo', PlanAction.WRITE_DEMO, () => this.#writeDemo()),
     );
     parts.runState = elements.create('span', 'run-state');
+    parts.validationState = elements.create('span', 'validation-state');
     parts.message = elements.create('span', 'message');
     parts.log = elements.create('pre', 'run-log');
     parts.output = elements.create('pre', 'demo-source');
@@ -901,7 +1009,7 @@ export class BuilderPage {
     const stage = elements.create('div', 'builder-stage');
     const controls = elements.create('div', 'builder-controls');
     const lines = elements.create('div', 'status-row');
-    lines.append(parts.runState, parts.message);
+    lines.append(parts.runState, parts.validationState, parts.message);
     controls.append(runRow, lines, statusLine);
     const output = elements.create('div', 'builder-output');
     output.append(this.#details('Demo output', parts.log), this.#details('Generated demo', parts.output));

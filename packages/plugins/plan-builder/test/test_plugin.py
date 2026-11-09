@@ -5,6 +5,7 @@ The plan builder's routes as the viewer serves them.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from http import HTTPStatus
 from importlib.machinery import ModuleSpec
 
@@ -19,8 +20,10 @@ from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
+from cramera_plan_builder.exceptions import PlanNotValidated, RunModeNotOffered
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.scans import SceneScans
+from cramera_plan_builder.validations import PlanValidations
 from cramera_plan_builder.plugin import (
     PlanBuilderPlugin,
     PlanBuilderStorage,
@@ -57,6 +60,12 @@ from cramera_protocol.robot_profile import (
     ExecutorKind,
     RobotProfile,
     RobotProfileVariable,
+)
+from cramera_protocol.validation import (
+    StepFailureReason,
+    StepVerdict,
+    ValidationReport,
+    ValidationRequest,
 )
 from cramera_protocol.viewer import ErrorKey
 
@@ -488,3 +497,137 @@ def test_a_scan_sees_the_simulated_scene_the_profile_names(
     assert answer.status == HTTPStatus.OK, answer.body
     scan = SceneScan.from_json(json.loads(answer.body))
     assert scan.objects == ConfiguredProfile.of_file(profile_file).simulated_objects
+
+
+# %% validating
+
+
+def validating_plugin(output, workspace_loader, profile_file) -> PlanBuilderPlugin:
+    """
+    :return: A plan builder of the profile whose validator is the stand-in that fails
+        the step a plan's task names as unreachable.
+    """
+    return PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(profile_file),
+        },
+        workspace=workspace_loader,
+        template=DemoTemplate(DATASET / "templates" / "waiting_demo.py"),
+        validations=PlanValidations(
+            interpreter=str(DATASET / "validating_interpreter.py"),
+            modules=CramModules(
+                finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
+            ),
+        ),
+    )
+
+
+def validate(answer, plan) -> ValidationReport:
+    """
+    :return: The report of the plan's validation.
+    """
+    validation = send(
+        answer,
+        HttpMethod.POST,
+        PlanBuilderRoute.VALIDATE,
+        json.dumps(ValidationRequest(plan=plan).to_json()).encode(),
+    )
+    assert validation.status == HTTPStatus.OK, validation.body
+    return ValidationReport.from_json(json.loads(validation.body))
+
+
+def run_on_the_robot(answer, plan, override: bool = False) -> HTTPStatus:
+    """
+    :return: The status the plan builder answers a run of the plan on the robot with.
+    """
+    request = RunRequest(plan=plan, mode=RunMode.ROBOT, override_validation=override)
+    return send(
+        answer,
+        HttpMethod.POST,
+        PlanBuilderRoute.RUN,
+        json.dumps(request.to_json()).encode(),
+    ).status
+
+
+@pytest.fixture
+def validating(serve, output, workspace_loader):
+    """
+    :return: Answers requests to a plan builder of Tracy's test profile, which names no
+        executor for the robot's run, with the stand-in validator.
+    """
+    return serve(
+        validating_plugin(output, workspace_loader, DATASET / "profile" / "tracy.json")
+    )
+
+
+def test_a_validation_answers_the_validators_report(validating, plan):
+    report = validate(validating, plan)
+
+    assert report.passed
+    assert [step.step for step in report.steps] == [
+        step.identifier for step in plan.performing_robot().steps
+    ]
+    assert report.seconds > 0
+
+
+def test_a_robot_run_of_a_plan_never_validated_is_refused(validating, plan):
+    assert (
+        run_on_the_robot(validating, plan) == PlanNotValidated(RunMode.ROBOT).status()
+    )
+
+
+def test_a_robot_run_of_the_validated_plan_passes_the_gate(validating, plan):
+    validate(validating, plan)
+
+    # Tracy's test profile names no executor for the robot's run.
+    assert (
+        run_on_the_robot(validating, plan)
+        == RunModeNotOffered(RunMode.ROBOT, "Tracy").status()
+    )
+
+
+def test_a_plan_changed_after_its_validation_is_not_run_on_the_robot(validating, plan):
+    validate(validating, plan)
+    [robot, *others] = plan.robots
+    changed = replace(plan, robots=[replace(robot, steps=robot.steps[:-1]), *others])
+
+    assert (
+        run_on_the_robot(validating, changed)
+        == PlanNotValidated(RunMode.ROBOT).status()
+    )
+
+
+def test_a_failed_validation_closes_the_gate(validating, plan):
+    validate(validating, plan)
+    failing = replace(plan, task=plan.performing_robot().steps[0].identifier)
+
+    report = validate(validating, failing)
+
+    assert not report.passed
+    assert report.steps[0].reason is StepFailureReason.UNREACHABLE
+    assert (
+        run_on_the_robot(validating, failing)
+        == PlanNotValidated(RunMode.ROBOT).status()
+    )
+
+
+def test_developer_mode_overrides_the_gate(validating, plan):
+    assert (
+        run_on_the_robot(validating, plan, override=True)
+        == RunModeNotOffered(RunMode.ROBOT, "Tracy").status()
+    )
+
+
+def test_a_step_of_a_skill_the_profile_lacks_fails_without_trying(validating, plan):
+    [robot, *others] = plan.robots
+    [first, *rest] = robot.steps
+    unoffered = replace(
+        plan,
+        robots=[replace(robot, steps=[replace(first, skill="juggle"), *rest]), *others],
+    )
+
+    report = validate(validating, unoffered)
+
+    assert report.steps[0].reason is StepFailureReason.SKILL_NOT_OFFERED
+    assert {step.verdict for step in report.steps[1:]} == {StepVerdict.UNCHECKED}

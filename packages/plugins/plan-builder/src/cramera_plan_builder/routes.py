@@ -1,6 +1,6 @@
 """
 The plan builder's routes: the catalog, saved plans, constraint compilation, generated
-demos, the demo process and the object and robot models' files.
+demos, validation, the demo process and the object and robot models' files.
 """
 
 from __future__ import annotations
@@ -24,12 +24,14 @@ from cramera_plan_builder.exceptions import (
     ContentTooLarge,
     MalformedRequestBody,
     NotAUrdfFile,
+    PlanNotValidated,
 )
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.scans import SceneScans
 from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
+from cramera_plan_builder.validations import PlanValidations, ValidationGate
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.detection import ScanRequest, SceneScanOrder
 from cramera_protocol.plan_builder import (
@@ -47,6 +49,14 @@ from cramera_protocol.plan_builder import (
     UrdfEnvironment,
     UrdfFolderParameter,
     EnvironmentAnnotationsParameter,
+)
+from cramera_protocol.validation import (
+    StepFailureReason,
+    StepValidation,
+    StepVerdict,
+    ValidationOrder,
+    ValidationReport,
+    ValidationRequest,
 )
 
 # %% request bodies
@@ -169,6 +179,16 @@ class PlanBuilderRoutes:
     Scans the scene for a plan's objects.
     """
 
+    validations: PlanValidations = field(default_factory=PlanValidations)
+    """
+    Validates plans.
+    """
+
+    gate: ValidationGate = field(default_factory=ValidationGate)
+    """
+    The plan whose validation passed last, which alone may run where a run needs one.
+    """
+
     def declarations(self) -> List[RouteDeclaration]:
         """
         :return: The routes, below the plugin's prefix.
@@ -202,6 +222,9 @@ class PlanBuilderRoutes:
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.RUN, self.answer_run),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.RUN_STOP, self.answer_stop),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.SCAN, self.answer_scan),
+            PluginRoute(
+                HttpMethod.POST, PlanBuilderRoute.VALIDATE, self.answer_validate
+            ),
             PluginPrefixRoute(
                 HttpMethod.GET, PlanBuilderRoute.OBJECT_FILES, self.answer_object_file
             ),
@@ -418,12 +441,19 @@ class PlanBuilderRoutes:
         """
         :param request: A request whose body is a :class:`RunRequest`.
         :return: The state of the started demo.
+        :raises PlanNotValidated: When the mode needs a validated plan, the plan is not
+            the one whose validation passed last and the request does not override it.
         """
         run = RunRequest.from_json(self.body(request))
+        demo = self.runnable(run.plan)
+        if (
+            run.mode.needs_validation
+            and not run.override_validation
+            and not self.gate.admits(demo.plan)
+        ):
+            raise PlanNotValidated(run.mode.value)
         executor = self.profile.executor_for(run.mode)
-        return Response.of_json(
-            self.runner.start(self.runnable(run.plan), run.mode, executor)
-        )
+        return Response.of_json(self.runner.start(demo, run.mode, executor))
 
     def answer_run_status(self, request: Request) -> Response:
         """
@@ -461,6 +491,53 @@ class PlanBuilderRoutes:
                     simulated_objects=self.profile.simulated_objects,
                 )
             )
+        )
+
+    # %% validation
+
+    def answer_validate(self, request: Request) -> Response:
+        """
+        Validate a plan the plan builder checked: a step naming a skill the robot
+        profile does not offer fails it, else every step is tried in a copy of the twin.
+        The plan may run where a run needs a validated plan once it passed.
+
+        :param request: A request whose body is a :class:`ValidationRequest`.
+        :return: The :class:`ValidationReport`.
+        """
+        demo = self.runnable(ValidationRequest.from_json(self.body(request)).plan)
+        report = self.report_unoffered_skills(demo.plan) or self.validations.validate(
+            ValidationOrder(demo=demo, simulated_objects=self.profile.simulated_objects)
+        )
+        self.gate.record(demo.plan, report)
+        return Response.of_json(report)
+
+    def report_unoffered_skills(self, plan: PlanDocument) -> Optional[ValidationReport]:
+        """
+        :param plan: A checked plan.
+        :return: The report failing every step of the performing robot that names a
+            skill the robot profile does not offer, the others unchecked; None when
+            every step's skill is offered.
+        """
+        unoffered = {
+            step.identifier for step in self.profile.find_unoffered_steps(plan)
+        }
+        if not unoffered:
+            return None
+        return ValidationReport(
+            steps=[
+                (
+                    StepValidation(
+                        step=step.identifier,
+                        verdict=StepVerdict.FAILED,
+                        reason=StepFailureReason.SKILL_NOT_OFFERED,
+                    )
+                    if step.identifier in unoffered
+                    else StepValidation(
+                        step=step.identifier, verdict=StepVerdict.UNCHECKED
+                    )
+                )
+                for step in plan.performing_robot().steps
+            ]
         )
 
     def body(self, request: Request) -> Any:

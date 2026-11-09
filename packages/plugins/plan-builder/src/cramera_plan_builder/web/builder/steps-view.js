@@ -1,8 +1,8 @@
 /**
  * The edited robot's plan: the palette of the actions the CRAM workspace offers, grouped
  * as the catalog groups them, and the steps with forms built from their actions' fields,
- * their constraints and live state; actions are dragged or clicked into the plan,
- * constraints dragged onto a step.
+ * their constraints, live state and validation; actions are dragged or clicked into the
+ * plan, constraints dragged onto a step.
  */
 
 import {
@@ -19,6 +19,9 @@ import {
   RegionKind,
   SkillKey,
   StepConstraintKey,
+  StepFailureReason,
+  StepValidationKey,
+  StepVerdict,
 } from '../../../protocol.js';
 import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
 import { PlanState } from './plan-state.js';
@@ -48,6 +51,40 @@ const REGION_LABELS = Object.freeze({
 });
 
 /**
+ * What a step's validation says of a step that did not fail, by its verdict.
+ */
+export const VERDICT_TEXTS = Object.freeze({
+  [StepVerdict.VALID]: 'Valid.',
+  [StepVerdict.ASSUMED]: 'Assumed from the twin, since the camera does not see it now; perceived again when the plan runs.',
+  [StepVerdict.UNCHECKED]: 'Not checked, since an earlier step fails.',
+});
+
+/**
+ * Why a step failed its validation, as people read it, by the reason.
+ */
+export const REASON_TEXTS = Object.freeze({
+  [StepFailureReason.UNREACHABLE]: 'unreachable: the robot cannot reach where the step asks',
+  [StepFailureReason.COLLISION]: 'collision: the motion would collide',
+  [StepFailureReason.NOT_PERCEIVED]: 'not perceived: nothing matching was seen in the region',
+  [StepFailureReason.AMBIGUOUS]: 'ambiguous: several objects match and nothing tells them apart',
+  [StepFailureReason.SKILL_NOT_OFFERED]: 'the robot does not offer this skill',
+  [StepFailureReason.UNSUCCESSFUL]: 'the step did not succeed',
+});
+
+/**
+ * @param {Object} validation A `StepValidation`.
+ * @returns {string} What the step's card says of how the step fared, with the arm it
+ *   was given when the arm was chosen automatically.
+ */
+export function validationText(validation) {
+  const verdict = validation[StepValidationKey.VERDICT];
+  const reason = validation[StepValidationKey.REASON];
+  const text = verdict === StepVerdict.FAILED ? `Fails: ${REASON_TEXTS[reason] ?? reason}.` : VERDICT_TEXTS[verdict];
+  const arm = validation[StepValidationKey.ARM];
+  return arm ? `${text} Arm: ${arm}, chosen automatically.` : text;
+}
+
+/**
  * The choice of an optional field that leaves the action's default.
  */
 const DEFAULT_CHOICE = '';
@@ -71,6 +108,7 @@ const ViewClass = Object.freeze({
   PARAMETERS: 'step-parameters',
   MORE: 'more-options',
   PROBLEM: 'step-problem',
+  VALIDATION: 'step-validation',
   DERIVED: 'derived',
   CHIPS: 'chips',
   CHIP: 'chip',
@@ -141,8 +179,11 @@ export class StepsView {
    * @param {Array<string|null>} statuses The live status of each step, by position.
    * @param {Array<Map<string, string|null>>} observations What each step's constraints
    *   observe in the live plan, by their text, by position.
+   * @param {Map<string, Object>} validations How each step fared in the plan's current
+   *   validation, as a `StepValidation`, by the step's identity; empty while the plan
+   *   as it stands is not validated.
    */
-  render(statuses = [], observations = []) {
+  render(statuses = [], observations = [], validations = new Map()) {
     this.#shown.dispose();
     this.#shown = new Elements(this.#frame.document);
     this.palette.replaceChildren(...this.#paletteEntries());
@@ -151,7 +192,7 @@ export class StepsView {
       this.list.replaceChildren(this.#shown.create('li', ViewClass.DROP, 'Drag actions here, or click them, to build the plan.'));
       return;
     }
-    this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map())));
+    this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map(), validations.get(step[PlanStepKey.IDENTIFIER]) ?? null)));
   }
 
   // %% palette
@@ -268,9 +309,11 @@ export class StepsView {
    * @param {number} index Its position.
    * @param {string|null} status Its live status, or null.
    * @param {Map<string, string|null>} observations What its constraints observe live.
+   * @param {Object|null} validation How it fared in the plan's current validation, or
+   *   null.
    * @returns {HTMLElement} The step's card.
    */
-  #card(step, index, status, observations) {
+  #card(step, index, status, observations, validation) {
     const elements = this.#shown;
     const identifier = step[PlanStepKey.IDENTIFIER];
     const action = step[PlanStepKey.ACTION];
@@ -287,6 +330,12 @@ export class StepsView {
     );
     view.head.append(controls);
     for (const problem of this.#editor.state.problems(step)) card.append(elements.create('p', ViewClass.PROBLEM, problem));
+    if (validation) {
+      card.dataset.validation = validation[StepValidationKey.VERDICT];
+      const line = elements.create('p', ViewClass.VALIDATION, validationText(validation));
+      line.title = validation[StepValidationKey.DETAIL] ?? '';
+      card.append(line);
+    }
     if (schema) card.append(...this.#form(step, schema));
     card.append(this.#chips(step, observations));
     elements.dropTarget(card, ViewClass.DRAG_OVER, (text) => this.#dropped(text, index, identifier));

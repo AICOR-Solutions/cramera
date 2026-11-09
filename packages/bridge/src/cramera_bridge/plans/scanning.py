@@ -15,42 +15,28 @@ Run as ``python -m cramera_bridge.plans.scanning <order.json> <scan.json>``, it 
 from __future__ import annotations
 
 import json
-import os
 import sys
-from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from threading import Thread
 
-import rclpy
-from rclpy.executors import SingleThreadedExecutor
-from typing_extensions import Dict, Iterator, List, Optional, Sequence
+from typing_extensions import Dict, List, Optional, Sequence
 
 from coraplex.perception import (
     DetectedScene,
     Detection,
-    PerceptionInterface,
     PerceptionQuery,
-    RoboKudoPerception,
     ValidationPerception,
 )
-from cramera_bridge.exceptions import PerceptionEngineNotNamed
-from cramera_bridge.execution import (
-    PERCEIVING_NODE_NAME,
-    PERCEPTION_ENGINE_VARIABLE,
-    PhysicalExecution,
-)
+from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.plans.objects import ObjectLibraries, ObjectLibrary
 from cramera_bridge.plans.regions import RegionBoxes
+from cramera_bridge.plans.robot_perception import RobotPerception
 from cramera_bridge.plans.world import GRASPABLE_TYPES, OBJECT_TYPE_ANNOTATIONS
 from cramera_protocol.detection import DetectionGrounding, SceneScan, SceneScanOrder
 from cramera_protocol.plan_builder import PlannedObject
-from robokudo.defs import PACKAGE_NAME
-from robokudo.query_service import QueryService
-from robokudo.utils.module_loader import ModuleLoader
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -73,12 +59,15 @@ class SceneScanner:
     The object libraries the models of new objects come from.
     """
 
-    analysis_engine: str = field(
-        default_factory=lambda: os.environ.get(PERCEPTION_ENGINE_VARIABLE, "")
-    )
+    perception: RobotPerception = field(init=False)
     """
-    The module of RoboKudo's analysis engines a simulated scene is perceived with.
+    The perception of the plan's robot.
     """
+
+    def __post_init__(self) -> None:
+        self.perception = RobotPerception(
+            demo=self.order.demo, simulated_objects=self.order.simulated_objects
+        )
 
     def scan(self) -> SceneScan:
         """
@@ -98,7 +87,7 @@ class SceneScanner:
             context.robot,
             world,
         )
-        with self.perception() as live:
+        with self.perception.perceiving() as live:
             grounded = ValidationPerception(live).look_for(query)
         bodies = DetectedScene(grounded.detections, query.region).apply_to(world)
         known = set(believed.bodies.values())
@@ -187,59 +176,6 @@ class SceneScanner:
             identifier = f"{base}_{number}"
             number += 1
         return identifier
-
-    @contextmanager
-    def perception(self) -> Iterator[PerceptionInterface]:
-        """
-        Reach the robot's perception over RoboKudo's query action while the block runs;
-        for a simulated scene, also answer that action from the analysis engine
-        rendering the robot's camera from a world holding the scene's objects.
-
-        :raises PerceptionEngineNotNamed: When a simulated scene is perceived and no
-            analysis engine is named.
-        """
-        with ExitStack() as perceiving:
-            if not rclpy.ok():
-                rclpy.init()
-                perceiving.callback(rclpy.try_shutdown)
-            if self.order.simulated_objects is not None:
-                self.serve_simulated_scene(perceiving)
-            node = rclpy.create_node(PERCEIVING_NODE_NAME)
-            perceiving.callback(node.destroy_node)
-            spinner = SingleThreadedExecutor()
-            spinner.add_node(node)
-            Thread(target=spinner.spin, daemon=True, name=PERCEIVING_NODE_NAME).start()
-            perceiving.callback(spinner.shutdown)
-            yield RoboKudoPerception(ros_node=node)
-
-    def serve_simulated_scene(self, perceiving: ExitStack) -> None:
-        """
-        Answer RoboKudo's query action from the analysis engine, rendering the robot's
-        camera from a world of the plan's robot, its arms parked, and the scene's
-        objects, until ``perceiving`` closes.
-
-        :param perceiving: Stops the analysis engine when it closes.
-        :raises PerceptionEngineNotNamed: When no analysis engine is named.
-        """
-        if not self.analysis_engine:
-            raise PerceptionEngineNotNamed(PERCEPTION_ENGINE_VARIABLE)
-        demo = self.order.demo
-        scene = PlannedTaskDemo.of_document(
-            replace(
-                demo, plan=replace(demo.plan, objects=self.order.simulated_objects)
-            ),
-            port=0,
-        )
-        world = scene.build_world()
-        PhysicalExecution().prepare(world)
-        service = QueryService(
-            analysis_engine=ModuleLoader().load_ae(
-                ros_pkg_name=PACKAGE_NAME, module_name=self.analysis_engine
-            ),
-            world=world,
-        )
-        service.start()
-        perceiving.callback(service.stop)
 
 
 # %% command

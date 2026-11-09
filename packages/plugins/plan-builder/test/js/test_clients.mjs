@@ -19,6 +19,7 @@ import {
   RunMode,
   RunRequestKey,
   StepConstraintKey,
+  ValidationRequestKey,
   ViewerRoute,
 } from 'cramera-viewer/protocol.js';
 import { PlanBuilderApi, RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
@@ -61,6 +62,16 @@ test('a run names the plan and what the demo does', async () => {
   assert.deepEqual(started.body, { [RunRequestKey.PLAN]: { name: 'x' }, [RunRequestKey.MODE]: RunMode.PERFORM });
   assert.equal(read.url, route(PlanBuilderRoute.RUN));
   assert.equal(stopped.url, route(PlanBuilderRoute.RUN_STOP));
+});
+
+test('a validation names the plan and a robot run may override it', async () => {
+  const fake = new FakeFetch({ [route(PlanBuilderRoute.VALIDATE)]: {}, [route(PlanBuilderRoute.RUN)]: {} });
+  const api = new PlanBuilderApi(fake.fetch, VIEWER);
+  await api.validate({ name: 'x' });
+  await api.run({ name: 'x' }, RunMode.ROBOT, true);
+  const [validated, started] = fake.requests;
+  assert.deepEqual(validated.body, { [ValidationRequestKey.PLAN]: { name: 'x' } });
+  assert.deepEqual(started.body, { [RunRequestKey.PLAN]: { name: 'x' }, [RunRequestKey.MODE]: RunMode.ROBOT, [RunRequestKey.OVERRIDE_VALIDATION]: true });
 });
 
 test('every route is asked at its own address', async () => {

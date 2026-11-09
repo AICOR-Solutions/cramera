@@ -136,6 +136,12 @@ class PlanBuilderRoute(StrEnum):
     the plan's objects after the scan.
     """
 
+    VALIDATE = "validate"
+    """
+    Tries every step of a posted plan in a copy of the twin without moving anything; a
+    posted validation request answers with the validation's report.
+    """
+
     OBJECT_FILES = "objects/"
     """
     The prefix of the object models' files: ``objects/<file>``.
@@ -1352,6 +1358,16 @@ class PlanDocument(JsonDocument):
     def __post_init__(self) -> None:
         self.format_version.require_readable_by(CURRENT_VERSION)
 
+    def performing_robot(self) -> Optional[PlannedRobot]:
+        """
+        :return: The robot whose steps run: the selected one, else the first; None for
+            a plan without robots.
+        """
+        for robot in self.robots:
+            if robot.identifier == self.selected_robot:
+                return robot
+        return self.robots[0] if self.robots else None
+
     @classmethod
     def read_at(cls, data: Any, location: ValueLocation) -> Self:
         """
@@ -2561,13 +2577,34 @@ class RunMode(StrEnum):
     recording.
     """
 
+    ROBOT = "robot"
+    """
+    Performs the selected robot's plan on the real robot, once the plan passed its
+    validation; it has no executor unless the robot profile names one.
+    """
+
     @property
     def default_executor(self) -> Optional[ExecutorKind]:
         """
         How a run of this mode executes unless the robot profile says otherwise; None
-        for a mode that performs nothing.
+        for a mode that performs nothing and for one only a profile can execute.
         """
         return DEFAULT_EXECUTORS.get(self)
+
+    @property
+    def performs_plan(self) -> bool:
+        """
+        Whether a run of this mode performs the plan, rather than only staging its
+        world.
+        """
+        return self is not RunMode.STAGE
+
+    @property
+    def needs_validation(self) -> bool:
+        """
+        Whether a run of this mode starts only for a plan that passed its validation.
+        """
+        return self is RunMode.ROBOT
 
 
 DEFAULT_EXECUTORS = MappingProxyType(
@@ -2625,6 +2662,11 @@ class RunRequestKey(StrEnum):
     What the demo does.
     """
 
+    OVERRIDE_VALIDATION = "overrideValidation"
+    """
+    Whether the run starts without the plan's passed validation.
+    """
+
 
 @dataclass(kw_only=True)
 class RunRequest(JsonDocument):
@@ -2640,6 +2682,14 @@ class RunRequest(JsonDocument):
     mode: RunMode = document_field(RunRequestKey.MODE, default=RunMode.STAGE)
     """
     What the demo does.
+    """
+
+    override_validation: bool = document_field(
+        RunRequestKey.OVERRIDE_VALIDATION, default=False
+    )
+    """
+    Whether a run of a mode needing a passed validation starts without one, as developer
+    mode allows.
     """
 
 

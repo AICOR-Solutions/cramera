@@ -50,6 +50,11 @@ class ConfiguredProfile:
     own perception sees the scene.
     """
 
+    unprofiled_label: str = "This deployment"
+    """
+    How a deployment without a profile is named where it offers no run.
+    """
+
     @classmethod
     def of_environment(cls, environment: Mapping[str, str]) -> ConfiguredProfile:
         """
@@ -96,15 +101,37 @@ class ConfiguredProfile:
         :param mode: How a plan is to be run.
         :return: How a run of the mode executes the plan: as the profile says, else
             the mode's default; None for a mode that performs nothing.
-        :raises RunModeNotOffered: When the profile names executors, but none for a
-            mode that performs the plan.
+        :raises RunModeNotOffered: When neither the profile nor the mode's default
+            names an executor for a mode that performs the plan.
         """
-        if mode.default_executor is None or self.profile is None:
-            return mode.default_executor
-        executor = self.profile.executor_for(mode, mode.default_executor)
+        if not mode.performs_plan:
+            return None
+        executor = (
+            mode.default_executor
+            if self.profile is None
+            else self.profile.executor_for(mode, mode.default_executor)
+        )
         if executor is None:
-            raise RunModeNotOffered(mode.value, self.profile.label)
+            raise RunModeNotOffered(
+                mode.value,
+                self.unprofiled_label if self.profile is None else self.profile.label,
+            )
         return executor
+
+    def find_unoffered_steps(self, plan: PlanDocument) -> List[PlanStep]:
+        """
+        :param plan: A plan.
+        :return: The performing robot's steps naming a skill the profile does not offer;
+            none without a profile.
+        """
+        robot = plan.performing_robot()
+        if self.profile is None or robot is None:
+            return []
+        return [
+            step
+            for step in robot.steps
+            if step.skill is not None and self.profile.skill_named(step.skill) is None
+        ]
 
     def resolved(self, plan: PlanDocument) -> PlanDocument:
         """

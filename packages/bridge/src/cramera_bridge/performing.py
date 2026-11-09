@@ -81,17 +81,23 @@ class TaskContext:
         """
         if self.next_context is None:
             self.next_context = StatechartContext.with_extensions(
-                self.world,
-                [
-                    RobotAccess(self.robot),
-                    StatementGrounding(
-                        query_backend=self.query_backend,
-                        sampling_seed=self.sampling_seed,
-                    ),
-                    *self.extensions,
-                ],
+                self.world, self.context_extensions()
             )
         return self.next_context
+
+    def context_extensions(self) -> List[ContextExtension]:
+        """
+        :return: New context extensions of a plan of the task: the task's robot, how
+            its statements are grounded and :attr:`extensions`.
+        """
+        return [
+            RobotAccess(self.robot),
+            StatementGrounding(
+                query_backend=self.query_backend,
+                sampling_seed=self.sampling_seed,
+            ),
+            *self.extensions,
+        ]
 
     def take_statechart_context(self) -> StatechartContext:
         """

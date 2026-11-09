@@ -1047,3 +1047,27 @@ class AmbiguousDetectedObject(PlanError):
             f"The detection of {self.step} finds {self.count} objects of the twin; give "
             f"it a color or type that tells them apart."
         )
+
+
+@dataclass
+class StepNotGrounded(PlanError):
+    """
+    A step of a plan to run that failed when the plan was grounded in a copy of its
+    world, such as a pick no arm of the robot reaches.
+    """
+
+    step: str
+    """
+    The identity of the step.
+    """
+
+    failure: str
+    """
+    What failed it, in the planner's words.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return f"{self.step} cannot be carried out: {self.failure}"

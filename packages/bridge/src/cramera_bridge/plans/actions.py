@@ -710,6 +710,14 @@ class DiscoveredAction:
         """
         return self.field_names.get(identifier, identifier)
 
+    def looks_for_objects(self) -> bool:
+        """
+        :return: Whether the action looks for objects in a region it is given.
+        """
+        return any(
+            offered.kind is ActionFieldKind.REGION for offered in self.schema.fields
+        )
+
 
 @dataclass
 class ActionSchemaBuilder:

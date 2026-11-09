@@ -1,6 +1,7 @@
 """
 A plan run as a robot task demo: the plan's robots and objects in its environment, the
-performing robot's steps as native actions, and the placements measured afterwards.
+performing robot's steps as native actions, each step leaving its arm open given the arm
+its grounding chose, and the placements measured afterwards.
 """
 
 from __future__ import annotations
@@ -12,14 +13,16 @@ from pathlib import Path
 
 from typing_extensions import Dict, Iterator, List
 
-from cramera_bridge.exceptions import TaskFailed
+from coraplex.perception import WorldPerception
+from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
-from cramera_bridge.plans.steps import StepActions
+from cramera_bridge.plans.grounding import PlanGrounding
+from cramera_bridge.plans.steps import StepActions, StepArguments
 from cramera_bridge.plans.workspace import RobotAnnotations
 from cramera_bridge.plans.world import EmptyFloor, PlannedObjects
 from cramera_bridge.scenes.bundle_world import PoseText
@@ -115,10 +118,7 @@ class PlannedRobots:
         """
         :return: The robot whose steps run: the selected one, else the first.
         """
-        for robot in self.plan.robots:
-            if robot.identifier == self.plan.selected_robot:
-                return robot
-        return self.plan.robots[0]
+        return self.plan.performing_robot()
 
     def placement(self, robot: PlannedRobot) -> RobotPlacement:
         """
@@ -240,14 +240,48 @@ class PlannedTaskDemo(RobotTaskDemo):
         :param context: The world and the performing robot.
         :return: The performing robot's steps as their native actions, one after
             another.
+        :raises StepNotGrounded: When a step leaves its arm open and the plan cannot be
+            grounded.
         """
+        steps = self.grounded_steps(context)
         self.bodies.update(
             DetectedObjects(context, self.bodies, self.discovered_actions).resolve(
-                self.steps()
+                steps
             )
         )
         actions = StepActions(context, self.bodies, self.discovered_actions)
-        return Sequence(nodes=[actions.action(step) for step in self.steps()])
+        return Sequence(nodes=[actions.action(step) for step in steps])
+
+    def grounded_steps(self, context: TaskContext) -> List[PlanStep]:
+        """
+        :param context: The world and the performing robot.
+        :return: The performing robot's steps, each leaving its arm open naming the arm
+            that reaches, as a grounding of the plan in a copy of the world on the twin's
+            objects chooses it.
+        :raises StepNotGrounded: When a step fails that grounding.
+        """
+        steps = self.steps()
+        if not any(
+            StepArguments(
+                context=context,
+                bodies=self.bodies,
+                action=self.discovered_actions.named(step.action),
+                step=step,
+            ).find_open_arm_field()
+            for step in steps
+        ):
+            return steps
+        grounded = PlanGrounding(
+            context=context,
+            bodies=dict(self.bodies),
+            actions=self.discovered_actions,
+            perception=WorldPerception(reports_unseen_bodies=True),
+        ).ground(steps)
+        for grounded_step in grounded:
+            if not grounded_step.succeeded:
+                validation = grounded_step.to_step_validation()
+                raise StepNotGrounded(validation.step, validation.detail)
+        return [grounded_step.resolved_step() for grounded_step in grounded]
 
     def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """

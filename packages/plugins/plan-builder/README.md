@@ -100,14 +100,28 @@ cramera
   recorded plan, titled with the robot that performed it. The step whose recorded
   frames hold the playhead is marked running and scrolled into sight; a click on a
   step asks the viewer for its first frame.
-- **Runs.** "Run plan" performs the plan kinematically, "Run in physics" in MuJoCo; a
-  robot profile's `executors` say which executor each run mode uses and which modes
-  the robot offers at all (by default `perform` is kinematic and `simulate` physics).
+- **Runs.** "Run plan" performs the plan kinematically, "Dry-run in physics" in MuJoCo
+  and "Run on robot" on the real robot; a robot profile's `executors` say which
+  executor each run mode uses and which modes the robot offers at all (by default
+  `perform` is kinematic and `simulate` physics; `robot` has no executor unless the
+  profile names one).
   The builder starts one demo at a time as a child process of the viewer, in
   its own process group, keeps the newest 64 KiB of its output, and stops it with its
   group. The demo ends by itself when the viewer goes away, since it watches the pipe
   the viewer holds open. Demos publish on the live publisher's port, or on
   `CRAMERA_PLAN_BUILDER_PORT`.
+- **Validation.** "Validate" posts the plan to the `validate` route, which runs
+  `cramera_bridge.plans.validating` as a child process: every step of the selected
+  robot is tried one after another in a copy of the twin, kinematically, so nothing
+  moves (coraplex's `PlanValidation`). Each step's card shows whether it is valid,
+  assumed (a detection the camera does not see now, answered from the twin), failed
+  with its reason (unreachable, collision, not perceived, ambiguous, a skill the
+  profile does not offer) or unchecked after a failure. A step whose arm is
+  `automatic` (the default of a profile's pick) is given the arm that reaches, shown on
+  its card; the run grounds it the same way before it starts. "Run on robot" is enabled
+  only for the plan as it passed its validation: any edit of the plan or its objects
+  invalidates it, and the `run` route refuses a robot run of any other plan unless the
+  request overrides the gate, which developer mode does.
 - **Detecting.** A step whose action looks in a region (Detect) starts looking at the
   whole table. A later step of the same robot can name what it finds in an object
   field, as `detected:<step id>`: when the plan is built, that is the one object of the

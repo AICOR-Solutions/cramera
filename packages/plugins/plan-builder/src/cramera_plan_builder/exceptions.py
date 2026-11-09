@@ -713,3 +713,46 @@ class ScanFailed(PlanBuilderError):
 
     def message(self) -> str:
         return f"The scene could not be scanned:\n{self.output}"
+
+
+# %% validation
+
+
+@dataclass
+class ValidationFailed(PlanBuilderError):
+    """
+    A validation of a plan whose process ended without a report.
+    """
+
+    output: str
+    """
+    The newest output of the validation's process.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.BAD_GATEWAY
+
+    def message(self) -> str:
+        return f"The plan could not be validated:\n{self.output}"
+
+
+@dataclass
+class PlanNotValidated(PlanBuilderError):
+    """
+    A run that needs the plan's passed validation, of a plan whose latest version did
+    not pass one.
+    """
+
+    mode: str
+    """
+    The run mode's value.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.CONFLICT
+
+    def message(self) -> str:
+        return (
+            f"A {self.mode!r} run needs the plan to pass its validation first; validate "
+            f"the plan as it stands now."
+        )
