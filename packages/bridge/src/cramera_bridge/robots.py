@@ -202,16 +202,15 @@ class RobotRoster:
         """
         :param robot: A robot of the world.
         :return: The frame the robot's description starts at, where a viewer draws the
-            description: the ancestor of the robot's root attached to its localization
-            frame, as Tracy's table hangs 0.88 m above it, or the robot's root when it
-            hangs directly below the world's root.
+            description: the robot's root when its drive attaches it to its odometry,
+            and otherwise the ancestor of the robot's root directly below the world's
+            root, as Tracy's table hangs 0.88 m above it.
         """
         entity = robot.root
+        if robot.drive is not None:
+            return entity
         parent = entity.parent_kinematic_structure_entity
-        while parent is not None and parent.parent_kinematic_structure_entity not in (
-            None,
-            self.world.root,
-        ):
+        while parent is not None and parent is not self.world.root:
             entity, parent = parent, parent.parent_kinematic_structure_entity
         return entity
 

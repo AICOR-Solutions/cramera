@@ -87,7 +87,7 @@ class RobotPlacement:
         :return: The native description placing the robot at its start pose.
         """
         return RobotSpecification(
-            semantic_annotation_type=self.robot_type, world_T_odom=self.pose
+            semantic_annotation_type=self.robot_type, localization_pose=self.pose
         )
 
     def place(self, world: World) -> AbstractRobot:
