@@ -1200,3 +1200,14 @@ class RealRobotNotReady(DemoError):
 
     def message(self) -> str:
         return f"The real robot is not ready to run a plan:\n{self.report}"
+
+
+@dataclass
+class RealRunTerminated(DemoError):
+    """
+    A run on the real robot asked to end, by SIGTERM, before it finished; the robot was
+    halted and Giskard ended as the run unwound.
+    """
+
+    def message(self) -> str:
+        return "The run on the real robot was asked to end; the robot was halted."

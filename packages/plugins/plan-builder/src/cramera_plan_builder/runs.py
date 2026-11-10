@@ -36,9 +36,10 @@ READ_SIZE = 4096
 How many bytes of the demo's output are read at once.
 """
 
-STOP_TIMEOUT = 5.0
+STOP_TIMEOUT = 15.0
 """
-How long a demo may take to end after it was asked to, in seconds, before it is killed.
+How long a demo may take to end after it was asked to, in seconds, before it is killed;
+a run on the real robot spends it halting the arms and ending Giskard.
 """
 
 STOP_POLL_INTERVAL = 0.05

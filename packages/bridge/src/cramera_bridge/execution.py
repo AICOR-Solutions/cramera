@@ -14,11 +14,12 @@ the robot, and the run's world is the one Giskard reports, kept in step with it.
 from __future__ import annotations
 
 import os
+import signal
 from abc import ABC, abstractmethod
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
-from types import MappingProxyType
+from types import FrameType, MappingProxyType
 
 import mujoco
 from rclpy.executors import MultiThreadedExecutor
@@ -40,10 +41,12 @@ from cramera_bridge.exceptions import (
     ExecutionNotRunning,
     PerceptionEngineNotNamed,
     RealRobotNotReady,
+    RealRunTerminated,
 )
 from cramera_bridge.real_robot import (
-    GiskardLaunchFile,
+    ArmHalt,
     GiskardProcess,
+    GiskardScript,
     RealRobotPreflight,
 )
 from cramera_bridge.ros_node import SpinningNode
@@ -355,8 +358,8 @@ class PerceivingPhysicalExecution(PhysicalExecution):
         safety: SafetyEnvelope,
     ) -> PlanExecutor:
         """
-        Differs from :meth:`PhysicalExecution.executor` in answering every detection
-        of the plan with RoboKudo.
+        Differs from :meth:`PhysicalExecution.executor` in answering every detection of
+        the plan with RoboKudo.
         """
         if self.simulation is None or self.ros_node is None:
             raise ExecutionNotRunning(ExecutorKind.PERCEIVED_PHYSICS)
@@ -385,11 +388,11 @@ class RealExecution(PlanExecution):
     The robot starts where it stands; nothing parks it before the first plan.
     """
 
-    giskard_launch_file: GiskardLaunchFile = field(
-        default_factory=lambda: GiskardLaunchFile.from_environment(os.environ)
+    giskard_script: GiskardScript = field(
+        default_factory=lambda: GiskardScript.from_environment(os.environ)
     )
     """
-    The launch file Giskard is started with.
+    The script Giskard is started with.
     """
 
     world_fetch_timeout: float = 300.0
@@ -416,18 +419,27 @@ class RealExecution(PlanExecution):
     def attached(self) -> Iterator[None]:
         """
         Check the robot's drivers, start Giskard and keep the world it serves in step
-        with it while the block runs; stop Giskard when the block ends.
+        with it while the block runs. When the block ends, or SIGTERM ends it, Giskard
+        is interrupted, so it commands zero velocities, and ended; then every arm is
+        commanded zero velocities once more, in case Giskard had to be killed.
 
         :raises RealRobotNotReady: When the preflight misses a driver the run needs.
+        :raises RealRunTerminated: When SIGTERM ended the block.
         """
         with ExitStack() as attached:
             node = attached.enter_context(
                 SpinningNode(self.node_name, MultiThreadedExecutor).running()
             )
-            report = RealRobotPreflight(self.giskard_launch_file).check(node)
+            report = RealRobotPreflight(self.giskard_script).check(node)
             if not report.ready:
                 raise RealRobotNotReady(report.to_text())
-            attached.enter_context(GiskardProcess(self.giskard_launch_file).running())
+            attached.callback(
+                signal.signal, signal.SIGTERM, signal.getsignal(signal.SIGTERM)
+            )
+            signal.signal(signal.SIGTERM, self.terminate)
+            halt = attached.enter_context(ArmHalt().ready(node))
+            attached.callback(halt.command)
+            attached.enter_context(GiskardProcess(self.giskard_script).running())
             world = fetch_world_from_service(
                 node=node, timeout_seconds=self.world_fetch_timeout
             )
@@ -436,6 +448,18 @@ class RealExecution(PlanExecution):
             self.ros_node = node
             attached.callback(self.detach)
             yield
+
+    @staticmethod
+    def terminate(signal_number: int, frame: Optional[FrameType]) -> None:
+        """
+        End a run asked to end, ignoring further requests while it halts the robot.
+
+        :param signal_number: The signal received.
+        :param frame: The frame the signal interrupted.
+        :raises RealRunTerminated: Always, so the run unwinds through :meth:`attached`.
+        """
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        raise RealRunTerminated()
 
     def detach(self) -> None:
         """

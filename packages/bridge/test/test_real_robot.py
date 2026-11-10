@@ -5,15 +5,19 @@ reading where it stands.
 
 from __future__ import annotations
 
+import json
+import signal
 import subprocess
 import threading
 import sys
 import time
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
 import pytest
+from typing_extensions import Iterator
 
 pytest.importorskip("control_msgs")
 
@@ -23,7 +27,7 @@ from cramera_bridge.plans.command import PlanDemoCommand
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.validating import PlanValidator
 from cramera_bridge.real_robot import (
-    GiskardLaunchFile,
+    GiskardScript,
     GiskardProcess,
     OrbbecCameraTopic,
     PreflightCheck,
@@ -47,8 +51,10 @@ from semantic_digital_twin.robots.tracy import (
     TracyJoint,
     TracyParallelGripperCommandTopic,
     TracyTopic,
+    TracyVelocityCommandTopic,
 )
 from semantic_digital_twin.world import World
+from std_msgs.msg import Float64MultiArray
 
 from .dataset.real_robot import (
     GripperDriverStandIn,
@@ -58,8 +64,8 @@ from .dataset.real_robot import (
 from .test_execution import PARKED_TRACY_PLAN, needs_tracy
 
 pytestmark = pytest.mark.skipif(
-    not GiskardProcess(GiskardLaunchFile.STANDALONE).is_installed,
-    reason="giskardpy_ros is not installed",
+    not GiskardProcess(GiskardScript.STANDALONE).is_installed,
+    reason="giskardpy's Tracy scripts are not installed",
 )
 
 # %% preflight
@@ -83,7 +89,7 @@ def missing_requirements(report) -> set:
 
 def test_the_preflight_names_every_driver_the_real_run_misses(node):
     report = RealRobotPreflight(
-        giskard_launch_file=GiskardLaunchFile.VELOCITY, wait_seconds=0.2
+        giskard_script=GiskardScript.VELOCITY, wait_seconds=0.2
     ).check(node)
 
     assert not report.ready
@@ -108,7 +114,7 @@ def test_a_gripper_without_its_action_server_is_reported_missing(node):
     left = TracyParallelGripperCommandTopic.LEFT_GRIPPER
     server = GripperDriverStandIn(left.value).serve(node)
     report = RealRobotPreflight(
-        giskard_launch_file=GiskardLaunchFile.STANDALONE, wait_seconds=1.0
+        giskard_script=GiskardScript.STANDALONE, wait_seconds=1.0
     ).check(node)
     server.destroy()
 
@@ -123,7 +129,7 @@ def test_a_gripper_without_its_action_server_is_reported_missing(node):
 def test_a_preflight_finding_everything_is_ready(node):
     with tracy_gripper_drivers(node):
         report = RealRobotPreflight(
-            giskard_launch_file=GiskardLaunchFile.STANDALONE, wait_seconds=1.0
+            giskard_script=GiskardScript.STANDALONE, wait_seconds=1.0
         ).check(node)
 
     assert report.ready
@@ -136,9 +142,7 @@ def test_gripper_servers_discovered_while_the_preflight_waits_are_found(node):
         3.0, lambda: serving.enter_context(tracy_gripper_drivers(node))
     )
     discovered_later.start()
-    report = RealRobotPreflight(giskard_launch_file=GiskardLaunchFile.STANDALONE).check(
-        node
-    )
+    report = RealRobotPreflight(giskard_script=GiskardScript.STANDALONE).check(node)
     discovered_later.join()
     serving.close()
 
@@ -335,9 +339,7 @@ def giskard_simulating_the_arms(monkeypatch) -> None:
     """
     Have real runs start a Giskard that simulates Tracy's arms, as no driver runs.
     """
-    monkeypatch.setenv(
-        RealRobotVariable.GISKARD_LAUNCH_FILE, GiskardLaunchFile.STANDALONE
-    )
+    monkeypatch.setenv(RealRobotVariable.GISKARD_SCRIPT, GiskardScript.STANDALONE)
 
 
 @needs_tracy
@@ -404,3 +406,72 @@ def test_the_world_of_a_real_run_follows_the_robot_as_giskard_reports_it(
             parked = arm.get_joint_state_by_type(StaticJointState.PARK)
             for connection, position in zip(parked.connections, parked.target_values):
                 assert connection.position == pytest.approx(position, abs=0.02)
+
+
+# %% stopping a run on the real robot
+
+REAL_RUN = (
+    Path(__file__).parent / "dataset" / "scripts" / "real_run_until_terminated.py"
+)
+"""
+Performs a plan in a run on the real robot until it ends or is asked to end.
+"""
+
+
+@dataclass
+class VelocityCommandRecorder:
+    """
+    Records the commands every arm's velocity controller would receive.
+    """
+
+    commands: dict[str, list[list[float]]] = field(default_factory=dict)
+    """
+    The velocities of every command received, by topic, in the order received.
+    """
+
+    @contextmanager
+    def recording(self, node) -> Iterator[VelocityCommandRecorder]:
+        """
+        Record from `node` while the block runs.
+        """
+        with ExitStack() as recording:
+            for topic in TracyVelocityCommandTopic:
+                received = self.commands.setdefault(topic.value, [])
+                subscription = node.create_subscription(
+                    Float64MultiArray,
+                    topic.value,
+                    lambda message, received=received: received.append(
+                        list(message.data)
+                    ),
+                    10,
+                )
+                recording.callback(node.destroy_subscription, subscription)
+            yield self
+
+
+@needs_tracy
+def test_a_real_run_asked_to_end_halts_the_arms_and_ends_giskard(
+    giskard_simulating_the_arms, node
+):
+    with (
+        tracy_gripper_drivers(node),
+        VelocityCommandRecorder().recording(node) as recorder,
+    ):
+        run = subprocess.Popen(
+            [sys.executable, str(REAL_RUN), json.dumps(PARKED_TRACY_PLAN)],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        started = [Path("/proc") / pid for pid in run.stdout.readline().split()]
+        assert run.stdout.readline().strip() == "moving"
+        time.sleep(3.0)
+        run.send_signal(signal.SIGTERM)
+        run.wait(timeout=30)
+        time.sleep(0.5)
+
+    assert run.returncode != 0
+    assert started
+    assert not any(process.exists() for process in started)
+    assert {topic: received[-1:] for topic, received in recorder.commands.items()} == {
+        topic.value: [[0.0] * 6] for topic in TracyVelocityCommandTopic
+    }

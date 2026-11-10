@@ -10,6 +10,7 @@ missing.
 from __future__ import annotations
 
 import ctypes
+import importlib.util
 import os
 import signal
 import subprocess
@@ -19,14 +20,15 @@ import time
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from pathlib import Path
 
-from ament_index_python.packages import get_packages_with_prefixes
 from control_msgs.action import ParallelGripperCommand
 from rclpy.action import ActionClient
 from rclpy.action.graph import get_action_names_and_types
+from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.publisher import Publisher
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64MultiArray
 from typing_extensions import Callable, Iterator, Mapping, Sequence
 
 from cramera_bridge.exceptions import JointStatesNotReceived
@@ -34,6 +36,7 @@ from cramera_bridge.ros_node import SpinningNode
 from semantic_digital_twin.robots.tracy import (
     TracyParallelGripperCommandTopic,
     TracyTopic,
+    TracyVelocityCommandTopic,
 )
 from semantic_digital_twin.world import World
 
@@ -45,44 +48,53 @@ class RealRobotVariable(StrEnum):
     The environment variables a deployment configures its real runs with.
     """
 
-    GISKARD_LAUNCH_FILE = "CRAMERA_GISKARD_LAUNCH_FILE"
+    GISKARD_SCRIPT = "CRAMERA_GISKARD_SCRIPT"
     """
-    The :class:`GiskardLaunchFile` a real run starts Giskard with; the one commanding
-    the real robot when it is not set.
-    """
-
-
-class GiskardLaunchFile(StrEnum):
-    """
-    The launch files of ``giskardpy_ros`` that bring up a Giskard for Tracy.
+    The :class:`GiskardScript` a real run starts Giskard with; the one commanding the
+    real robot when it is not set.
     """
 
-    VELOCITY = "giskardpy_tracy_velocity.launch.py"
+
+class GiskardScript(StrEnum):
+    """
+    The scripts of giskardpy that run a Giskard for Tracy as a ROS node, started as a
+    process of their own; no launch file, so nothing else, such as RViz or an
+    interactive marker sending goals, starts with them.
+    """
+
+    VELOCITY = "tracy_velocity"
     """
     A Giskard commanding the velocity controllers of the real Tracy, reading its joint
-    states and robot description from its drivers.
+    states and its robot description (``/robot_description``) from its drivers.
     """
 
-    STANDALONE = "giskardpy_tracy_standalone.launch.py"
+    STANDALONE = "tracy_standalone"
     """
     A Giskard simulating Tracy's arms instead of commanding them, needing no driver.
     """
+
+    @property
+    def module(self) -> str:
+        """
+        The module running the Giskard as its main module.
+        """
+        return f"giskardpy.middleware.ros2.scripts.iai_robots.tracy.{self.value}"
 
     @property
     def commands_the_real_robot(self) -> bool:
         """
         Whether the Giskard it starts moves the real robot, and reads its drivers.
         """
-        return self is GiskardLaunchFile.VELOCITY
+        return self is GiskardScript.VELOCITY
 
     @classmethod
-    def from_environment(cls, environment: Mapping[str, str]) -> GiskardLaunchFile:
+    def from_environment(cls, environment: Mapping[str, str]) -> GiskardScript:
         """
-        :param environment: The process environment, which may name the launch file.
-        :return: The launch file it names, else :attr:`VELOCITY`.
+        :param environment: The process environment, which may name the script.
+        :return: The script it names, else :attr:`VELOCITY`.
         """
         return cls(
-            environment.get(RealRobotVariable.GISKARD_LAUNCH_FILE, cls.VELOCITY.value)
+            environment.get(RealRobotVariable.GISKARD_SCRIPT, cls.VELOCITY.value)
         )
 
 
@@ -100,49 +112,40 @@ class ProcessControl(IntEnum):
 @dataclass(frozen=True)
 class GiskardProcess:
     """
-    A Giskard launched as a process group of its own, so that stopping it stops every
-    node its launch file started and nothing else; the launch is interrupted as well
-    when the process that started it ends without stopping it, such as when killed.
+    A Giskard run as a process group of its own, so that stopping it stops Giskard and
+    nothing else; it is interrupted as well when the process that started it ends
+    without stopping it, such as when killed.
+
+    Interrupted, Giskard commands the robot's controllers zero velocities and ends.
     """
 
-    launch_file: GiskardLaunchFile
+    script: GiskardScript
     """
-    The launch file Giskard is started with.
-    """
-
-    package: str = "giskardpy_ros"
-    """
-    The ROS package holding the launch file.
+    The script Giskard is started with.
     """
 
-    stop_timeout: float = 20.0
+    stop_timeout: float = 3.0
     """
-    How long, in seconds, Giskard may take to end once asked to before it is killed.
+    How long, in seconds, Giskard may take to end once interrupted before it is killed.
     """
 
     @property
     def is_installed(self) -> bool:
         """
-        Whether the ROS workspace holds the launch file.
+        Whether this interpreter finds the script's module.
         """
-        prefix = get_packages_with_prefixes().get(self.package)
-        return (
-            prefix is not None
-            and (
-                Path(prefix) / "share" / self.package / "launch" / self.launch_file
-            ).is_file()
-        )
+        return importlib.util.find_spec(self.script.module) is not None
 
     @contextmanager
     def running(self) -> Iterator[subprocess.Popen]:
         """
         Run Giskard while the block runs, then end it.
 
-        :return: The launch process.
+        :return: Giskard's process.
         """
         with ExitStack() as running:
             process = subprocess.Popen(
-                ["ros2", "launch", self.package, self.launch_file.value],
+                [sys.executable, "-m", self.script.module],
                 start_new_session=True,
                 preexec_fn=self.interruption_with_starting_process(),
             )
@@ -152,7 +155,7 @@ class GiskardProcess:
     @staticmethod
     def interruption_with_starting_process() -> Callable[[], None]:
         """
-        :return: What the launch process runs before it starts, so that it is
+        :return: What Giskard's process runs before it starts, so that it is
             interrupted once the process starting it ends; looked up beforehand, as
             the forked child must not load libraries while other threads ran.
         """
@@ -163,9 +166,9 @@ class GiskardProcess:
 
     def stop(self, process: subprocess.Popen) -> None:
         """
-        End the launch's process group, killing it once :attr:`stop_timeout` passed.
+        Interrupt Giskard's process group, killing it once :attr:`stop_timeout` passed.
 
-        :param process: The launch process.
+        :param process: Giskard's process.
         """
         if process.poll() is not None:
             return
@@ -176,6 +179,64 @@ class GiskardProcess:
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
             process.wait()
+
+
+# %% halting the arms
+
+
+@dataclass
+class ArmHalt:
+    """
+    Commands every arm's velocity controller zero velocities, as Giskard does when it
+    ends; sent once Giskard ended, so the controllers hold still even when Giskard was
+    killed before it could.
+    """
+
+    command_topics: Sequence[str] = tuple(TracyVelocityCommandTopic)
+    """
+    The topics the arms' velocity controllers take their commands on.
+    """
+
+    joints_per_arm: int = 6
+    """
+    How many joints each controller commands; it refuses a command of another length.
+    """
+
+    acknowledgement_timeout: float = 1.0
+    """
+    How long, in seconds, each controller may take to acknowledge the command.
+    """
+
+    publishers: list[Publisher] = field(default_factory=list, init=False)
+    """
+    The publishers of the commands while :meth:`ready`.
+    """
+
+    @contextmanager
+    def ready(self, node: Node) -> Iterator[ArmHalt]:
+        """
+        Keep a publisher on every command topic while the block runs, so the
+        controllers have discovered it once :meth:`command` is called.
+
+        :param node: A spinning node.
+        :return: This halt.
+        """
+        with ExitStack() as ready:
+            for topic in self.command_topics:
+                publisher = node.create_publisher(Float64MultiArray, topic, 10)
+                ready.callback(node.destroy_publisher, publisher)
+                self.publishers.append(publisher)
+            ready.callback(self.publishers.clear)
+            yield self
+
+    def command(self) -> None:
+        """
+        Command zero velocities on every topic and wait until they were acknowledged.
+        """
+        for publisher in self.publishers:
+            publisher.publish(Float64MultiArray(data=[0.0] * self.joints_per_arm))
+        for publisher in self.publishers:
+            publisher.wait_for_all_acked(Duration(seconds=self.acknowledgement_timeout))
 
 
 # %% preflight
@@ -197,9 +258,9 @@ class RequirementKind(StrEnum):
     What a real run needs from the robot's drivers and the ROS workspace.
     """
 
-    GISKARD_LAUNCH_FILE = "Giskard launch file installed"
+    GISKARD_SCRIPT = "Giskard script installed"
     """
-    The launch file the run starts Giskard with.
+    The script the run starts Giskard with.
     """
 
     NO_OTHER_GISKARD = "no other Giskard running"
@@ -300,12 +361,12 @@ class RealRobotPreflight:
     defaults are those of Tracy.
     """
 
-    giskard_launch_file: GiskardLaunchFile = field(
-        default_factory=lambda: GiskardLaunchFile.from_environment(os.environ)
+    giskard_script: GiskardScript = field(
+        default_factory=lambda: GiskardScript.from_environment(os.environ)
     )
     """
-    The launch file the run starts Giskard with; one simulating the arms needs no arm
-    driver and no camera.
+    The script the run starts Giskard with; one simulating the arms needs no arm driver
+    and no camera.
     """
 
     wait_seconds: float = 15.0
@@ -351,9 +412,9 @@ class RealRobotPreflight:
         deadline = time.monotonic() + self.wait_seconds
         checks = [
             PreflightCheck(
-                RequirementKind.GISKARD_LAUNCH_FILE,
-                self.giskard_launch_file.value,
-                GiskardProcess(self.giskard_launch_file).is_installed,
+                RequirementKind.GISKARD_SCRIPT,
+                self.giskard_script.value,
+                GiskardProcess(self.giskard_script).is_installed,
             ),
             *(
                 PreflightCheck(
@@ -364,7 +425,7 @@ class RealRobotPreflight:
                 for server in self.gripper_action_servers
             ),
         ]
-        if self.giskard_launch_file.commands_the_real_robot:
+        if self.giskard_script.commands_the_real_robot:
             checks.extend(self.driver_checks(node, deadline))
         checks.append(
             PreflightCheck(
@@ -536,7 +597,7 @@ class ReportedPosture:
 def main() -> None:
     """
     ``cramera-preflight``: print what a real run would miss of the robot's drivers,
-    ending with status 1 when anything is missing; the launch file the run would start
+    ending with status 1 when anything is missing; the script the run would start
     Giskard with is read from the environment.
     """
     with SpinningNode("cramera_preflight").running() as node:
