@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from typing_extensions import List, Tuple
+from typing_extensions import List, Optional, Tuple
 
 from cramera_bridge.exceptions import UnknownZone
 from cramera_protocol.geometry import FloorRectangle
@@ -53,10 +53,19 @@ class RobotSite:
         :return: The zone.
         :raises UnknownZone: When the profile names no such zone.
         """
-        for zone in self.zones:
-            if zone.identifier == identifier:
-                return zone
-        raise UnknownZone(identifier)
+        zone = self.find_zone(identifier)
+        if zone is None:
+            raise UnknownZone(identifier)
+        return zone
+
+    def find_zone(self, identifier: str) -> Optional[Zone]:
+        """
+        :param identifier: A zone's identifier.
+        :return: The zone, or None when the profile names no such zone.
+        """
+        return next(
+            (zone for zone in self.zones if zone.identifier == identifier), None
+        )
 
     def to_world(self, x: float, y: float) -> Tuple[float, float]:
         """

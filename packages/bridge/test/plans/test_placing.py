@@ -13,6 +13,7 @@ from dataclasses import replace
 import pytest
 
 from coraplex.perception import WorldPerception
+from cramera_bridge.exceptions import UnknownZone
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import GroundedStep, PlanGrounding
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
@@ -203,6 +204,7 @@ def test_a_zone_the_profile_does_not_name_fails_its_step(tower):
 
     assert steps[2].check.verdict.name == "FAILED"
     assert steps[2].to_step_validation().verdict is StepVerdict.FAILED
+    assert isinstance(steps[2].check.failure, UnknownZone)
     assert "center" in steps[2].to_step_validation().detail
 
 

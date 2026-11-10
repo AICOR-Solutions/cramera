@@ -14,9 +14,14 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-from typing_extensions import Dict, Iterator, List, Tuple
+from typing_extensions import Dict, Iterator, List, Optional, Tuple
 
-from cramera_bridge.exceptions import NoFreeSpotInZone, UnknownSupportingObject
+from cramera_bridge.exceptions import (
+    NoFreeSpotInZone,
+    PlacementNotFound,
+    UnknownSupportingObject,
+    UnknownZone,
+)
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.regions import RegionBoxes
@@ -199,12 +204,37 @@ class PlacingTargets:
         """
         :param destination: A destination resolved once the plan is grounded.
         :return: The pose the object is put down at.
+        :raises PlacementNotFound: When the destination resolves to no pose, see
+            :meth:`not_found`.
+        """
+        pose = self.find_pose(destination)
+        if pose is None:
+            raise self.not_found(destination)
+        return pose
+
+    def find_pose(self, destination: Destination) -> Optional[Pose]:
+        """
+        :param destination: A destination resolved once the plan is grounded.
+        :return: The pose the object is put down at, or None when the destination
+            resolves to none.
         """
         if destination.placement is PlacementMode.ZONE:
             return self.in_zone(destination.zone)
         if destination.placement is PlacementMode.ON_TOP_OF:
             return self.on_top_of(destination.object)
         return self.at_marker(destination.pose)
+
+    def not_found(self, destination: Destination) -> PlacementNotFound:
+        """
+        :param destination: A destination that resolves to no pose, see
+            :meth:`find_pose`.
+        :return: Why it resolves to none.
+        """
+        if destination.placement is not PlacementMode.ZONE:
+            return UnknownSupportingObject(destination.object)
+        if self.site.find_zone(destination.zone) is None:
+            return UnknownZone(destination.zone)
+        return NoFreeSpotInZone(destination.zone, self.object_identifier)
 
     @property
     def body(self) -> Body:
@@ -213,16 +243,16 @@ class PlacingTargets:
         """
         return self.bodies[self.object_identifier]
 
-    def on_top_of(self, identifier: str) -> Pose:
+    def on_top_of(self, identifier: str) -> Optional[Pose]:
         """
         :param identifier: The identity of the object below, or the reference to the
             object a detection finds.
         :return: The object put down resting centred on the top of the object below,
-            keeping its current orientation.
-        :raises UnknownSupportingObject: When the plan holds no such object.
+            keeping its current orientation, or None when the plan holds no such
+            object.
         """
         if identifier not in self.bodies:
-            raise UnknownSupportingObject(identifier)
+            return None
         below = self.bodies[identifier]
         top = float(ObjectExtent(below).world_box().max_z)
         position = below.global_pose.to_np()[:3, 3]
@@ -245,22 +275,27 @@ class PlacingTargets:
             reference_frame=self.world.root,
         )
 
-    def in_zone(self, identifier: str) -> Pose:
+    def in_zone(self, identifier: str) -> Optional[Pose]:
         """
         :param identifier: A zone of the robot profile.
         :return: The object put down resting on the table at the zone's free spot
-            within reach that lies nearest its centre.
-        :raises UnknownZone: When the profile names no such zone.
-        :raises NoFreeSpotInZone: When every spot is taken or out of reach.
+            within reach that lies nearest its centre, or None when the profile names
+            no such zone or every spot is taken or out of reach.
         """
-        zone = self.site.zone(identifier)
+        zone = self.site.find_zone(identifier)
+        if zone is None:
+            return None
         height = float(RegionBoxes(self.robot).table().min_z)
         lift = ObjectExtent(self.body).bottom_offset()
         reach = ArmReaches(self.robot)
-        for x, y in self.spots(zone.area):
-            if self.is_free(x, y) and reach.reaches(x, y, height + lift):
-                return self.resting(x, y, height)
-        raise NoFreeSpotInZone(identifier, self.object_identifier)
+        return next(
+            (
+                self.resting(x, y, height)
+                for x, y in self.spots(zone.area)
+                if self.is_free(x, y) and reach.reaches(x, y, height + lift)
+            ),
+            None,
+        )
 
     def spots(self, area: FloorRectangle) -> Iterator[Tuple[float, float]]:
         """

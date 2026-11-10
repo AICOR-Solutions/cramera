@@ -59,8 +59,10 @@ from cramph.executor import (
     TickingExecutorExtension,
 )
 from cramph.node import StatechartNode
-from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
 from giskardpy.motion_statechart.monitors.cartesian_monitors import OutOfFieldOfView
+from giskardpy.motion_statechart.monitors.safety_monitors import (
+    CancelOnSafetyViolation,
+)
 from krrood_spatial_math.spatial_types import Point3
 from semantic_digital_twin.world_description.color_names import ColorName
 from semantic_digital_twin.world_description.world_entity import Body
@@ -307,8 +309,8 @@ class WatchedTarget:
 @dataclass
 class AttemptProgress(TickingExecutorExtension):
     """
-    Writes to the run log every step of an attempt's plan that succeeded and every
-    change of what a step's look-at observes.
+    Writes to the run log every step of an attempt's plan that succeeded, every change
+    of what a step's look-at observes, and a safety stop that cancelled the plan.
     """
 
     run_log: RunLog
@@ -382,6 +384,44 @@ class AttemptProgress(TickingExecutorExtension):
     def after_run(self, executor: StatechartExecutor) -> None:
         for attempted in self.steps:
             self.write_success(attempted)
+        self.write_safety_stop(executor)
+
+    def write_safety_stop(self, executor: StatechartExecutor) -> None:
+        """
+        :param executor: The executor whose run stopped; when a motion broke a safety
+            limit, which cancelled the run, the step whose motion it was and the stop
+            are written.
+        """
+        stop = next(
+            (
+                node
+                for node in executor.statechart.get_nodes_by_type(
+                    CancelOnSafetyViolation
+                )
+                if node.life_cycle_state is not LifeCycleValues.NOT_STARTED
+            ),
+            None,
+        )
+        if stop is None:
+            return
+        constraint = stop.create_exception().constraint
+        # the steps run one after another, so the first that did not succeed was stopped
+        attempted = next(
+            attempted
+            for attempted in self.steps
+            if attempted.node.life_cycle_state is not LifeCycleValues.SUCCEEDED
+        )
+        self.run_log.write(
+            StepAttempt(
+                step=attempted.step,
+                number=attempted.number,
+                attempts=self.attempts,
+                outcome=AttemptOutcome.STOPPED,
+                reason=constraint,
+                arm=attempted.arm,
+            )
+        )
+        self.run_log.write(SafetyStopped(constraint=constraint, step=attempted.step))
 
     def write_success(self, attempted: AttemptedStep) -> None:
         """
@@ -691,10 +731,13 @@ class StepRun:
         :param attempt: The plan of the first attempt, from the first step on.
         :raises StepAbandoned: When a step failed every attempt it had.
         :raises SafetyConstraintViolated: When a motion broke a safety limit, which is
-            no failure of the step and never attempted again.
+            no failure of the step and never attempted again; the attempt's progress
+            wrote the stop to the run log.
         """
         while True:
-            failure = self.perform_attempt(attempt, performance, extensions)
+            failure = self.perform_plan(
+                attempt.plan, performance, [*extensions(), attempt.progress]
+            )
             if failure is None:
                 return
             position = attempt.failed_position()
@@ -707,44 +750,6 @@ class StepRun:
                 extensions,
             )
             attempt = self.attempt_plan(position)
-
-    def perform_attempt(
-        self,
-        attempt: AttemptPlan,
-        performance: PlanPerformance,
-        extensions: Callable[[], Sequence[ExecutorExtension]],
-    ) -> Optional[ExecutionFailure]:
-        """
-        :param attempt: The plan of an attempt.
-        :param performance: How it is performed.
-        :param extensions: Gives the executor extensions of each plan performed.
-        :return: The failure that ended it, or None when it succeeded.
-        :raises SafetyConstraintViolated: When a motion broke a safety limit, after the
-            step whose motion it was and the stop were written to the run log.
-        """
-        # a safety stop ends the run; it is caught only to tell the run log of it
-        try:
-            return self.perform_plan(
-                attempt.plan, performance, [*extensions(), attempt.progress]
-            )
-        except SafetyConstraintViolated as violation:
-            attempted = attempt.progress.steps[
-                attempt.failed_position() - attempt.first
-            ]
-            self.run_log.write(
-                StepAttempt(
-                    step=attempted.step,
-                    number=attempted.number,
-                    attempts=self.attempts,
-                    outcome=AttemptOutcome.STOPPED,
-                    reason=violation.constraint,
-                    arm=attempted.arm,
-                )
-            )
-            self.run_log.write(
-                SafetyStopped(constraint=violation.constraint, step=attempted.step)
-            )
-            raise
 
     def perform_plan(
         self,

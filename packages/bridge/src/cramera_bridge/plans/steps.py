@@ -33,7 +33,11 @@ from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.surfaces import SurfaceTargets
 from cramera_bridge.plans.world import OBJECT_TYPE_ANNOTATIONS, PlannedGraspable
-from cramera_bridge.exceptions import AnnotationNotInWorld, ObjectNotGraspable
+from cramera_bridge.exceptions import (
+    AnnotationNotInWorld,
+    ObjectNotGraspable,
+    PlacementNotFound,
+)
 from cramera_bridge.geometry import NumericPose
 from cramera_protocol.detection import DetectionRegion
 from cramera_protocol.geometry import Pose as PlannedPose
@@ -333,7 +337,8 @@ class StepArguments:
         """
         :return: The value of each field whose destination is only known once the plan
             is grounded, as the pose it resolves to in the world as it is now.
-        :raises PlacementNotFound: When a destination resolves to no pose.
+        :raises PlacementNotFound: When a destination resolves to no pose, which
+            :meth:`placement_failure` tells beforehand.
         """
         resolved = {}
         for offered in self.late_destination_fields():
@@ -345,6 +350,19 @@ class StepArguments:
                 pose=NumericPose.of_matrix(pose.to_np()).published(),
             ).to_json()
         return resolved
+
+    def placement_failure(self) -> Optional[PlacementNotFound]:
+        """
+        :return: Why the first field whose destination is only known once the plan is
+            grounded resolves to no pose in the world as it is now, or None when each
+            resolves to one.
+        """
+        placing = self.placing()
+        for offered in self.late_destination_fields():
+            destination = Destination.from_json(self.step.values[offered.name])
+            if placing.find_pose(destination) is None:
+                return placing.not_found(destination)
+        return None
 
     def object_identifier(self) -> Optional[str]:
         """

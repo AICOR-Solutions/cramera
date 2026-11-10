@@ -20,12 +20,12 @@ from cramera_bridge.execution import PlanExecution
 from cramera_bridge.robot_task import TaskArgument, TaskCommand
 from cramera_bridge.visualization import LiveVisualization
 from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.run_log import RunLogEntry, SafetyStopped
 from cramera.lifeline import Lifeline
 from cramera_protocol.live import LIVE_PORT
 from cramera_protocol.live_messages import SavedScene
 from cramera_protocol.plan_builder import DemoDocument, DemoOption, SafetyStop
 from cramera_protocol.robot_profile import ExecutorKind
-from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
 
 STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 """
@@ -138,14 +138,17 @@ class PlanDemoCommand:
         if options.stage:
             StagedWorld(demo).run()
             return None
-        # The process boundary, where a safety stop becomes the line the plan builder
-        # reads; the run still ends with the violation.
-        try:
-            return TaskCommand(demo).main(
-                [*remaining, TaskArgument.PORT, str(options.port)]
-            )
-        except SafetyConstraintViolated as violation:
-            print(
-                SafetyStop(constraint=violation.constraint).to_output_line(), flush=True
-            )
-            raise
+        demo.run_log.listeners.append(self.report_safety_stop)
+        return TaskCommand(demo).main(
+            [*remaining, TaskArgument.PORT, str(options.port)]
+        )
+
+    @staticmethod
+    def report_safety_stop(entry: RunLogEntry) -> None:
+        """
+        :param entry: An entry of the run log, which is reported to the plan builder as
+            the line it reads when a safety stop ended the run.
+        """
+        if not isinstance(entry, SafetyStopped):
+            return
+        print(SafetyStop(constraint=entry.constraint).to_output_line(), flush=True)

@@ -22,7 +22,6 @@ from coraplex.plans.validation import (
     StepCheck,
     ValidationVerdict,
 )
-from cramera_bridge.exceptions import PlacementNotFound
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
@@ -248,13 +247,15 @@ class PlanGrounding:
             if identifier in self.copied_bodies
         }
         open_field = arguments.find_open_arm_field()
-        try:
-            resolved = arguments.resolved_destinations()
-        except PlacementNotFound as error:
+        placement_failure = arguments.placement_failure()
+        if placement_failure is not None:
             return GroundedStep(
                 step=step,
-                check=StepCheck(verdict=ValidationVerdict.FAILED, failure=error),
+                check=StepCheck(
+                    verdict=ValidationVerdict.FAILED, failure=placement_failure
+                ),
             )
+        resolved = arguments.resolved_destinations()
         check = self.validation.check(
             StepActions(
                 self.copied_context, self.copied_bodies, self.actions, site=self.site

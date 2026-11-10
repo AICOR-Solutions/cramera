@@ -6,6 +6,7 @@ at the box's boundary, without another attempt at the pick.
 
 from __future__ import annotations
 
+import io
 import json
 from dataclasses import dataclass
 
@@ -15,7 +16,13 @@ import pytest
 from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
-from cramera_bridge.plans.run_log import AttemptOutcome, StepAttempt
+from cramera_bridge.plans.command import PlanDemoCommand
+from cramera_bridge.plans.run_log import (
+    AttemptOutcome,
+    RunLog,
+    SafetyStopped,
+    StepAttempt,
+)
 from cramera_protocol.geometry import AxisAlignedBox
 from cramera_protocol.plan_builder import (
     DemoDocument,
@@ -24,6 +31,7 @@ from cramera_protocol.plan_builder import (
     RunEvent,
     RunEventKind,
     RunMonitor,
+    SafetyStop,
     StepState,
 )
 from cramera_protocol.robot_profile import ArmWorkspace, SafetyLimits
@@ -146,4 +154,12 @@ def test_the_run_events_tell_which_step_the_safety_stop_ended(stopped_run):
     assert pick == [StepState.PENDING, StepState.RUNNING, StepState.FAILED]
     assert stop == RunEvent(
         kind=RunEventKind.SAFETY_STOP, step="step_2", constraint=LOW_WORKSPACE.label
+    )
+
+
+def test_a_demos_safety_stop_is_reported_as_the_line_the_plan_builder_reads(capsys):
+    log = RunLog(stream=io.StringIO(), listeners=[PlanDemoCommand.report_safety_stop])
+    log.write(SafetyStopped(constraint=LOW_WORKSPACE.label, step="step_2"))
+    assert SafetyStop.from_output(capsys.readouterr().out) == SafetyStop(
+        constraint=LOW_WORKSPACE.label
     )
