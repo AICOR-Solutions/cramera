@@ -1,8 +1,8 @@
 """
 Grounding and validating a plan of Tracy's: its steps are tried in a copy of the twin
-without moving anything, a pick leaving its arm open is given the arm that reaches, a
-cube out of reach fails the pick as unreachable, and the plan then runs with the arm its
-grounding chose.
+without moving anything, a pick leaving its arm open is given the arm that reaches, the
+nearer one first, a cube out of reach fails the pick as unreachable, and the plan then
+runs with the arm its grounding chose.
 """
 
 from __future__ import annotations
@@ -72,6 +72,11 @@ RIGHT_ARM_ONLY = (0.55, -1.2)
 Where beside Tracy's table only its right arm reaches a cube.
 """
 
+RIGHT_OF_CENTRE = (0.55, -0.15)
+"""
+Where on Tracy's table both arms reach a cube, the right one from nearer.
+"""
+
 # %% fixtures
 
 
@@ -110,7 +115,7 @@ def validated(plan: PlanDocument) -> ValidationReport:
 # %% validating
 
 
-def test_a_plan_in_reach_passes_with_the_first_arm_that_reaches(pick_and_place):
+def test_a_plan_in_reach_passes_with_the_nearer_arm_that_reaches(pick_and_place):
     report = validated(pick_and_place)
 
     assert report.passed
@@ -130,6 +135,13 @@ def test_a_cube_out_of_reach_fails_the_pick_as_unreachable(pick_and_place):
 
 def test_a_cube_only_the_right_arm_reaches_is_picked_with_it(pick_and_place):
     report = validated(with_red_cube_at(pick_and_place, *RIGHT_ARM_ONLY))
+
+    assert report.passed
+    assert report.steps[1].arm == Arms.RIGHT.name.lower()
+
+
+def test_a_cube_both_arms_reach_is_picked_with_the_nearer_one(pick_and_place):
+    report = validated(with_red_cube_at(pick_and_place, *RIGHT_OF_CENTRE))
 
     assert report.passed
     assert report.steps[1].arm == Arms.RIGHT.name.lower()

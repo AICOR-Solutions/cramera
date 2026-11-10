@@ -214,6 +214,11 @@ from cramera_protocol.plan_builder import (
     RunRequestKey,
     RunStatusKey,
     SafetyStopKey,
+    StepState,
+    RunEventKind,
+    RunMonitor,
+    MonitorObservation,
+    RunEventKey,
 )
 from cramera_protocol.plugins import PluginName
 from cramera_protocol.scene_runs import (
@@ -724,6 +729,11 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     RunRequestKey,
     RunStatusKey,
     SafetyStopKey,
+    StepState,
+    RunEventKind,
+    RunMonitor,
+    MonitorObservation,
+    RunEventKey,
     RobotProfileKey,
     SkillKey,
     ZoneKey,

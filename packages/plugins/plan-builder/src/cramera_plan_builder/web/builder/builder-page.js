@@ -2,6 +2,12 @@
  * The builder page: lays out the plan's robots, actions, objects and constraints, the
  * steps, the 3D view and the demo controls, and connects them to the plan, the plan
  * builder's routes and the live publisher a started demo publishes on.
+ *
+ * Once a plan performs, the plan column shows the run view in place of the editable
+ * steps until the person goes back to editing: each step's state, attempt, arm and
+ * monitors, the perceived objects, the latest camera image and the run log, from the
+ * events the run reports; the 3D view shows the live robot and objects as the run's world
+ * holds them, read from the live publisher, the seam a real robot's joint states feed.
  */
 
 import {
@@ -13,7 +19,9 @@ import {
   UrdfFolderKey,
   ObjectPosesKey,
   LiveInfoKey,
+  LivePlanKey,
   LivePlanNodeKey,
+  PerceptionImageKey,
   PlanBuilderCatalogKey,
   PlanBuilderPageParameter,
   PlanKey,
@@ -49,6 +57,7 @@ import { MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode 
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
+import { RunProgress, RunView } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
 import { REASON_TEXTS, StepsView } from './steps-view.js';
 
@@ -290,6 +299,19 @@ export class BuilderPage {
   #world = PageWorld.empty();
 
   /**
+   * Whether the plan column shows the run view rather than the editable steps.
+   * @type {boolean}
+   */
+  #runShown = false;
+
+  /**
+   * The images of the latest perception step the live plan showed, each with the URL
+   * it is served at; kept once the run ended.
+   * @type {Array<Object>}
+   */
+  #cameraImages = [];
+
+  /**
    * The constraint requests sent to the live plan, by node and text.
    * @type {Set<string>}
    */
@@ -385,7 +407,6 @@ export class BuilderPage {
     parts.objects.render(this.#selection()?.kind === MarkerKind.OBJECT ? this.#selection().identifier : null);
     parts.constraints.render();
     const robot = state.activeRobot();
-    parts.planTitle.textContent = `Plan of ${robot?.[PlannedRobotKey.LABEL] ?? 'no robot'}`;
     if (robot) this.#environment.storage.setItem(ROBOT_MODEL_KEY, robot[PlannedRobotKey.MODEL]);
     this.#showRun();
     this.#askReach();
@@ -744,6 +765,8 @@ export class BuilderPage {
     });
     if (!status) return;
     this.#safetyBanner.reset();
+    this.#runShown = mode !== RunMode.STAGE;
+    this.#cameraImages = [];
     this.#world = PageWorld.empty();
     this.#attached.clear();
     this.#run = status;
@@ -899,6 +922,7 @@ export class BuilderPage {
     const before = this.#run[RunStatusKey.STATE];
     this.#run = run;
     const world = LIVE_STATES.includes(run[RunStatusKey.STATE]) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
+    if (world.images.length > 0) this.#cameraImages = world.images;
     const changed = before !== run[RunStatusKey.STATE] || world.published !== this.#world.published || world.signature() !== this.#world.signature();
     this.#world = world;
     this.#polled = false;
@@ -930,7 +954,9 @@ export class BuilderPage {
       byType.set(surface[SurfaceKey.TYPE], [...(byType.get(surface[SurfaceKey.TYPE]) ?? []), surface[SurfaceKey.NAME]]);
     }
     if (this.#run[RunStatusKey.MODE] !== RunMode.STAGE) await this.#sendConstraints(plan);
-    return new PageWorld({ keys, objects, robots, statuses, observations, surfaces: byType, published: true });
+    const seen = (plan[LivePlanKey.NODES] ?? []).filter((node) => (node[LivePlanNodeKey.IMAGES] ?? []).length > 0).at(-1);
+    const images = (seen?.[LivePlanNodeKey.IMAGES] ?? []).map((image) => ({ ...image, url: live.perceptionImageUrl(image[PerceptionImageKey.FILE]) }));
+    return new PageWorld({ keys, objects, robots, statuses, observations, surfaces: byType, images, published: true });
   }
 
   /**
@@ -1019,8 +1045,25 @@ export class BuilderPage {
     const passed = this.#validationPassed();
     this.#parts.robot.disabled = !runnable || !(passed || this.state.developerMode());
     this.#showSafetyStop();
+    this.#showRunView();
     this.#parts.validationState.textContent = this.#validationState(passed);
     this.#parts.validationState.dataset.passed = String(passed);
+  }
+
+  /**
+   * Show the run view in the plan column while a run is to be followed, else the
+   * editable steps.
+   */
+  #showRunView() {
+    const parts = this.#parts;
+    const robot = this.state.activeRobot();
+    parts.steps.list.hidden = this.#runShown;
+    parts.runView.element.hidden = !this.#runShown;
+    parts.runToggle.textContent = this.#runShown ? 'Edit plan' : 'Show run';
+    parts.runToggle.hidden = !this.#runShown && (this.#run[RunStatusKey.EVENTS] ?? []).length === 0;
+    parts.planTitle.textContent = `${this.#runShown ? 'Run' : 'Plan'} of ${robot?.[PlannedRobotKey.LABEL] ?? 'no robot'}`;
+    if (!this.#runShown) return;
+    parts.runView.render(RunProgress.of(this.state.steps(), (step) => this.state.stepLabel(step), this.#run), this.#cameraImages);
   }
 
   /**
@@ -1047,7 +1090,18 @@ export class BuilderPage {
       this.#scene.showEnvironment(environment).then(() => this.#scene?.frame());
     }
     const robots = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.POSE]]));
-    this.#scene.show(this.state, { objects: this.#world.objects, robots }, this.#overlay());
+    const postures = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.JOINT_POSITIONS] ?? {}]));
+    this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors() }, this.#overlay());
+  }
+
+  /**
+   * @returns {Map<string, string>} The color each object a run perceived shows, by the
+   *   object's identity, which the 3D view tints it with.
+   */
+  #perceivedColors() {
+    if (!this.#runShown) return new Map();
+    const progress = RunProgress.of(this.state.steps(), (step) => this.state.stepLabel(step), this.#run);
+    return new Map(progress.perceived.filter((seen) => seen.color).map((seen) => [seen.target, seen.color]));
   }
 
   // %% layout
@@ -1097,8 +1151,15 @@ export class BuilderPage {
       this.#section('Constraints', parts.constraints.element, 'Drag a sentence onto a step.'),
     );
     parts.planTitle = elements.create('h2');
+    parts.runView = new RunView(elements);
+    parts.runToggle = elements.button('Show run', PlanAction.TOGGLE_RUN, () => {
+      this.#runShown = !this.#runShown;
+      this.render();
+    });
+    const planHead = elements.create('div', 'plan-head');
+    planHead.append(parts.planTitle, parts.runToggle);
     const planColumn = elements.create('section', 'builder-plan');
-    planColumn.append(parts.planTitle, parts.steps.list);
+    planColumn.append(planHead, parts.steps.list, parts.runView.element);
 
     parts.stage = elements.button('Start live scene', PlanAction.STAGE, () => this.#start(RunMode.STAGE));
     parts.perform = elements.button('Run plan', PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
@@ -1266,6 +1327,12 @@ export class PageWorld {
      */
     this.surfaces = parts.surfaces;
     /**
+     * The images of the latest perception step of the live plan, each with the `url`
+     * it is served at.
+     * @type {Array<Object>}
+     */
+    this.images = parts.images ?? [];
+    /**
      * Whether a world is published.
      * @type {boolean}
      */
@@ -1276,13 +1343,13 @@ export class PageWorld {
    * @returns {PageWorld} The state without a live world.
    */
   static empty() {
-    return new PageWorld({ keys: new Map(), objects: new Map(), robots: new Map(), statuses: [], observations: [], surfaces: new Map(), published: false });
+    return new PageWorld({ keys: new Map(), objects: new Map(), robots: new Map(), statuses: [], observations: [], surfaces: new Map(), images: [], published: false });
   }
 
   /**
    * @returns {string} What decides whether the parts besides the 3D view change.
    */
   signature() {
-    return JSON.stringify([this.statuses, this.observations.map((observed) => [...observed]), [...this.surfaces], [...this.keys]]);
+    return JSON.stringify([this.statuses, this.observations.map((observed) => [...observed]), [...this.surfaces], [...this.keys], this.images.map((image) => image.url)]);
   }
 }

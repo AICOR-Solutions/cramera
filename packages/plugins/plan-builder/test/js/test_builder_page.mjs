@@ -32,8 +32,11 @@ import {
   PlanStepKey,
   RunMode,
   RunState,
+  RunEventKey,
+  RunEventKind,
   RunStatusKey,
   SafetyStopKey,
+  StepState,
   SavedDemoKey,
   StepConstraintKey,
   StepFailureReason,
@@ -1228,6 +1231,41 @@ test('an acknowledged safety stop can be aborted without running again', async (
   assert.equal(banner(root).hidden, true);
   assert.equal(api.runs.length, 1);
   assert.equal(byAction(root, PlanAction.SIMULATE)[0].disabled, false);
+});
+
+// %% run view
+
+const runView = (root) => root.findAll((element) => element.className === 'run-view')[0];
+
+test('a performing run shows the run view in place of the steps until the person edits again', async () => {
+  const { root, api } = await safetyStopped();
+  const [step] = api.runs[0].plan[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS];
+  const identifier = step[PlanStepKey.IDENTIFIER];
+  api.status = {
+    ...api.status,
+    [RunStatusKey.EVENTS]: [
+      { [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: StepState.PENDING },
+      { [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: StepState.FAILED, [RunEventKey.ATTEMPT]: 1, [RunEventKey.ATTEMPTS]: 3, [RunEventKey.REASON]: 'Left arm workspace' },
+      { [RunEventKey.KIND]: RunEventKind.SAFETY_STOP, [RunEventKey.STEP]: identifier, [RunEventKey.CONSTRAINT]: 'Left arm workspace' },
+    ],
+  };
+  byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
+  await settled();
+  assert.equal(runView(root).hidden, false);
+  assert.equal(banner(root).hidden, false);
+  const [shown] = runView(root).findAll((element) => element.className === 'run-step');
+  assert.equal(shown.dataset.state, StepState.FAILED);
+  assert.match(runView(root).innerText, /Stopped by a safety limit in 1\. /);
+  byAction(root, PlanAction.TOGGLE_RUN)[0].click();
+  assert.equal(runView(root).hidden, true);
+  assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, false);
+});
+
+test('a staged live scene keeps the editable steps', async () => {
+  const { root } = await openPage();
+  byAction(root, PlanAction.STAGE)[0].click();
+  await settled();
+  assert.equal(runView(root).hidden, true);
 });
 
 // %% placing

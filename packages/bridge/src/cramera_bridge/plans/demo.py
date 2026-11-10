@@ -23,7 +23,7 @@ from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.grounding import PlanGrounding
-from cramera_bridge.plans.run_log import RunLog
+from cramera_bridge.plans.run_log import RunLog, SafetyWatched
 from cramera_bridge.plans.safety import RobotSafety
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.step_run import AttemptPlan, ScheduledStep, StepRun
@@ -328,6 +328,9 @@ class PlannedTaskDemo(RobotTaskDemo):
             steps=steps,
         )
         self.first_attempt = self.step_run.attempt_plan(0)
+        if self.document.safety is not None:
+            self.run_log.write(SafetyWatched())
+        self.step_run.announce()
         return self.first_attempt.plan
 
     def perform_plan(

@@ -58,7 +58,13 @@ from cramera_protocol.plan_builder import (
     RunRequest,
     RunState,
     RunOutputMarker,
+    MonitorObservation,
+    RunEvent,
+    RunEventKey,
+    RunEventKind,
+    RunMonitor,
     RunStatus,
+    StepState,
     SafetyStop,
     SafetyStopKey,
     RunStatusKey,
@@ -449,6 +455,62 @@ def test_a_run_status_carries_its_safety_stop():
     )
     assert RunStatus.from_json(status.to_json()) == status
     assert SafetyStopKey in BROWSER_ENUMERATIONS
+
+
+# %% run events
+
+
+def test_a_run_event_is_read_back_from_the_line_reporting_it():
+    event = RunEvent(
+        kind=RunEventKind.STEP,
+        step="step_3",
+        state=StepState.RETRYING,
+        attempt=1,
+        attempts=3,
+        arm="left",
+        reason="red_cube moved 0.05 m since the plan was grounded.",
+        next_attempt="detects its objects again and grounds the plan anew",
+    )
+
+    line = event.to_output_line()
+
+    assert line.startswith(RunOutputMarker.RUN_EVENT)
+    assert "\n" not in line
+    assert RunEvent.from_output_line(line) == event
+
+
+def test_a_line_reporting_no_event_reads_as_none():
+    assert RunEvent.from_output_line("[run log] step_1: attempt 1/3 succeeded") is None
+
+
+def test_an_event_leaves_out_what_does_not_concern_it():
+    event = RunEvent(
+        kind=RunEventKind.MONITOR,
+        step="step_3",
+        monitor=RunMonitor.LOOK_AT,
+        observation=MonitorObservation.HOLDS,
+        target="red_cube",
+    )
+    assert set(event.to_json()) == {
+        RunEventKey.KIND,
+        RunEventKey.STEP,
+        RunEventKey.MONITOR,
+        RunEventKey.OBSERVATION,
+        RunEventKey.TARGET,
+    }
+
+
+def test_a_run_status_carries_its_events():
+    status = RunStatus(
+        state=RunState.RUNNING,
+        events=[
+            RunEvent(kind=RunEventKind.STEP, step="step_1", state=StepState.PENDING),
+            RunEvent(kind=RunEventKind.SAFETY_STOP, constraint="Left arm workspace"),
+        ],
+    )
+    assert RunStatus.from_json(status.to_json()) == status
+    for enumeration in (StepState, RunEventKind, RunMonitor, MonitorObservation):
+        assert enumeration in BROWSER_ENUMERATIONS
 
 
 def test_an_idle_status_names_no_mode_and_no_exit():

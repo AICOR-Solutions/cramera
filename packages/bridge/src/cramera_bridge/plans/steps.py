@@ -150,6 +150,20 @@ class StepArguments:
                 return offered.name
         return None
 
+    def acted_on(self) -> Optional[Body]:
+        """
+        :return: The first object of the plan the step names, or None.
+        """
+        return next(
+            (
+                self.bodies[self.step.values[offered.name]]
+                for offered in self.action.schema.fields
+                if offered.kind is ActionFieldKind.BODY
+                and self.step.values.get(offered.name) in self.bodies
+            ),
+            None,
+        )
+
     def is_switch(self, name: str) -> bool:
         """
         :param name: A field name a constraint turns on.
@@ -200,7 +214,9 @@ class StepArguments:
         field_type = self.action.field_types[offered.name]
         if ArmField(field_type).part() is not None:
             arms = ENUM_NAMES.member(Arms, value)
-            return RobotArms(self.context.robot).value(arms, field_type)
+            return RobotArms(self.context.robot, near=self.acted_on()).value(
+                arms, field_type
+            )
         if field_type is ObjectType:
             return OBJECT_TYPE_ANNOTATIONS[ENUM_NAMES.member(ObjectType, value)]
         return ENUM_NAMES.member(field_type, value)

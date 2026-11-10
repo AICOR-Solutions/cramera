@@ -1,6 +1,6 @@
 /**
  * The builder's 3D view: the environment bundle as the viewer shows it, and over it the
- * plan's robots as their models at rest, objects and the edited robot's targets as
+ * plan's robots as their models, at rest or in the posture a live world reports, objects and the edited robot's targets as
  * markers that are picked by a click and moved or turned with handles, the robot
  * profile's zones on the table, and a map of the world's axes.
  *
@@ -31,6 +31,11 @@ export const MarkerKind = Object.freeze({ ROBOT: 'robot', OBJECT: 'object', TARG
  * What the handles change.
  */
 export const TransformMode = Object.freeze({ MOVE: 'translate', TURN: 'rotate' });
+
+/**
+ * What separates the namespaces of a live joint's prefixed name from the joint's name.
+ */
+const JOINT_NAMESPACE_SEPARATOR = '/';
 
 /**
  * The suffix of an object library model's description.
@@ -428,12 +433,15 @@ export class PlanScene {
    * Show the plan's robots and objects, and the edited robot's targets; poses the live
    * world reports win over the plan's while it runs.
    * @param {import('./plan-state.js').PlanState} state The plan.
-   * @param {{objects: Map<string, Array<number>>, robots: Map<string, Array<number>>}=} live
-   *   The live world's poses by the plan's identities.
+   * @param {{objects: Map<string, Array<number>>, robots: Map<string, Array<number>>, postures: Map<string, Object<string, number>>=, colors: Map<string, string>=}=} live
+   *   The live world's poses by the plan's identities, each robot's joint positions by
+   *   prefixed joint name, and the colors objects were perceived in.
    * @param {SceneOverlay=} overlay The zones and whether each free-place marker is
    *   reached.
    */
   show(state, live = { objects: new Map(), robots: new Map() }, overlay = new SceneOverlay()) {
+    const postures = live.postures ?? new Map();
+    const colors = live.colors ?? new Map();
     this.#showZones(overlay.zones);
     const wanted = new Map();
     const want = (selection, pose, signature, grounded, build, slides = false) => wanted.set(selection.key, { selection, pose, signature, grounded, build, slides });
@@ -449,7 +457,7 @@ export class PlanScene {
     for (const item of state.objects()) {
       const identifier = item[PlannedObjectKey.IDENTIFIER];
       const model = item[PlannedObjectKey.MODEL];
-      const color = item[PlannedObjectKey.COLOR] ?? null;
+      const color = colors.get(identifier) ?? item[PlannedObjectKey.COLOR] ?? null;
       want(new Selection(MarkerKind.OBJECT, identifier), live.objects.get(identifier) ?? item[PlannedObjectKey.POSE], `${model}${color}`, false, () => this.#objectMarker(model, color, false));
     }
     for (const step of state.steps()) {
@@ -484,6 +492,10 @@ export class PlanScene {
       if (!(this.#handles.dragging && this.#handles.object === marker)) {
         this.#pose(marker, entry.pose);
         if (entry.slides) PlanScene.#tint(marker, overlay.reachable.get(key) ?? null);
+      }
+      if (entry.selection.kind === MarkerKind.ROBOT) {
+        marker.userData.posture = postures.get(entry.selection.identifier) ?? {};
+        PlanScene.#bend(marker);
       }
     }
     this.select(this.#selection && this.#byKey.has(this.#selection.key) ? this.#selection : null);
@@ -571,12 +583,28 @@ export class PlanScene {
         });
         group.remove(disc, arrow);
         group.add(copy);
+        group.userData.model = copy;
+        PlanScene.#bend(group);
         name.position.z = new THREE.Box3().setFromObject(copy).max.z + MarkerSize.LABEL_LIFT;
         this.#view.requestRender();
       },
       () => {},
     );
     return group;
+  }
+
+  /**
+   * Put a robot's model into the posture its marker holds: each joint the posture
+   * names, by its name after the robot's namespace, that the model has.
+   * @param {THREE.Object3D} marker A robot's marker.
+   */
+  static #bend(marker) {
+    const model = marker.userData.model;
+    if (!model?.setJointValue) return;
+    for (const [name, position] of Object.entries(marker.userData.posture ?? {})) {
+      const joint = name.split(JOINT_NAMESPACE_SEPARATOR).at(-1);
+      if (model.joints?.[joint]) model.setJointValue(joint, position);
+    }
   }
 
   /**

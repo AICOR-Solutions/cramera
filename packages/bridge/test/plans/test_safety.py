@@ -17,7 +17,15 @@ from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.run_log import AttemptOutcome, StepAttempt
 from cramera_protocol.geometry import AxisAlignedBox
-from cramera_protocol.plan_builder import DemoDocument, PlanDocument
+from cramera_protocol.plan_builder import (
+    DemoDocument,
+    MonitorObservation,
+    PlanDocument,
+    RunEvent,
+    RunEventKind,
+    RunMonitor,
+    StepState,
+)
 from cramera_protocol.robot_profile import ArmWorkspace, SafetyLimits
 from cramera_protocol.viewer import EnvironmentVariable
 from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
@@ -122,4 +130,20 @@ def test_a_safety_stop_is_never_attempted_again(stopped_run):
         for entry in stopped_run.demo.run_log.entries
         if isinstance(entry, StepAttempt)
     ]
-    assert outcomes == [AttemptOutcome.SUCCEEDED]
+    assert outcomes == [AttemptOutcome.SUCCEEDED, AttemptOutcome.STOPPED]
+
+
+def test_the_run_events_tell_which_step_the_safety_stop_ended(stopped_run):
+    events = stopped_run.demo.run_log.events()
+    [watched, *_] = [event for event in events if event.monitor is RunMonitor.SAFETY]
+    [stop] = [event for event in events if event.kind is RunEventKind.SAFETY_STOP]
+    pick = [
+        event.state
+        for event in events
+        if event.kind is RunEventKind.STEP and event.step == "step_2"
+    ]
+    assert watched.observation is MonitorObservation.HOLDS
+    assert pick == [StepState.PENDING, StepState.RUNNING, StepState.FAILED]
+    assert stop == RunEvent(
+        kind=RunEventKind.SAFETY_STOP, step="step_2", constraint=LOW_WORKSPACE.label
+    )

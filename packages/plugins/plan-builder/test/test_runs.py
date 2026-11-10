@@ -14,14 +14,17 @@ from typing_extensions import Callable
 
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import DemoNotStarted, SafetyStopNotAcknowledged
-from cramera_plan_builder.runs import DemoRunner, OutputLog
+from cramera_plan_builder.runs import DemoRunner, OutputLog, RunEventLines
 from cramera_protocol.plan_builder import (
     DemoDocument,
     DemoOption,
+    RunEvent,
+    RunEventKind,
     RunMode,
     RunState,
     RunStatus,
     SafetyStop,
+    StepState,
 )
 from cramera_protocol.robot_profile import ExecutorKind
 
@@ -273,3 +276,45 @@ def test_the_log_drops_its_oldest_bytes_beyond_the_limit():
     log.append(b"abc")
     log.append(b"def")
     assert log.text() == "cdef"
+
+
+# %% run events
+
+
+def test_a_demo_reports_its_events_apart_from_its_log(tmp_path, demo):
+    runner = runner_of(tmp_path, "reporting_demo.py")
+    runner.start(demo, RunMode.SIMULATE)
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    runner.stop()
+
+    assert ended.state is RunState.FINISHED, ended.log
+    assert ended.events == [
+        RunEvent(kind=RunEventKind.STEP, step="step_1", state=StepState.PENDING),
+        RunEvent(
+            kind=RunEventKind.STEP,
+            step="step_1",
+            state=StepState.DONE,
+            attempt=1,
+            attempts=3,
+        ),
+    ]
+    assert ended.log == (
+        "building the world\n[run log] step_1: attempt 1/3 succeeded\n"
+    )
+
+
+def test_events_are_kept_however_little_of_the_log_is():
+    log = OutputLog(limit=4)
+    event = RunEvent(kind=RunEventKind.STEP, step="step_1", state=StepState.RUNNING)
+    log.append(f"{event.to_output_line()}\nabcdef\n".encode())
+    assert log.events() == [event]
+    assert log.text() == "def\n"
+
+
+def test_an_unfinished_line_passes_unless_it_may_report_an_event():
+    lines = RunEventLines()
+    assert lines.split(b"progress 10%") == b"progress 10%"
+    assert lines.split(b"[run event] within a line\n") == b"[run event] within a line\n"
+    assert lines.split(b"[run ev") == b""
+    assert lines.split(b"ent] garbled\n") == b"[run event] garbled\n"
+    assert lines.events == []

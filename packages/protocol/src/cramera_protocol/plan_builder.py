@@ -10,6 +10,7 @@ The generated demo builds the world and the native actions from it.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from types import MappingProxyType
@@ -2825,6 +2826,272 @@ class RunOutputMarker(StrEnum):
     A motion broke a safety limit, which the rest of the line names.
     """
 
+    RUN_EVENT = "[run event]"
+    """
+    Something happened while the plan ran, which the rest of the line holds as the JSON
+    of a :class:`RunEvent`.
+    """
+
+
+# %% run events
+
+
+class StepState(StrEnum):
+    """
+    Where a step of a running plan stands.
+    """
+
+    PENDING = "pending"
+    """
+    The step has not started yet.
+    """
+
+    RUNNING = "running"
+    """
+    An attempt at the step runs.
+    """
+
+    RETRYING = "retrying"
+    """
+    An attempt at the step failed and the step is attempted again.
+    """
+
+    DONE = "done"
+    """
+    The step succeeded.
+    """
+
+    FAILED = "failed"
+    """
+    The step failed for good: it used up its attempts or a safety limit stopped it.
+    """
+
+
+class RunEventKind(StrEnum):
+    """
+    What a run event tells.
+    """
+
+    STEP = "step"
+    """
+    A step changed its state.
+    """
+
+    MONITOR = "monitor"
+    """
+    What a monitor observes changed.
+    """
+
+    PERCEIVED = "perceived"
+    """
+    A step perceived an object, and the color it shows.
+    """
+
+    SAFETY_STOP = "safetyStop"
+    """
+    A motion broke a safety limit, and the run ends.
+    """
+
+
+class RunMonitor(StrEnum):
+    """
+    A monitor of a run whose observations the run reports.
+    """
+
+    LOOK_AT = "lookAt"
+    """
+    Whether the robot's camera keeps a step's object in view.
+    """
+
+    SAFETY = "safety"
+    """
+    Whether every motion keeps to the robot profile's safety limits.
+    """
+
+
+class MonitorObservation(StrEnum):
+    """
+    What a run's monitor observes.
+    """
+
+    HOLDS = "holds"
+    """
+    What the monitor watches holds: the object is in view, the limits are kept.
+    """
+
+    VIOLATED = "violated"
+    """
+    What the monitor watches is violated.
+    """
+
+
+class RunEventKey(StrEnum):
+    """
+    The keys of a run event.
+    """
+
+    KIND = "kind"
+    """
+    What the event tells.
+    """
+
+    STEP = "step"
+    """
+    The identity of the step it concerns.
+    """
+
+    STATE = "state"
+    """
+    The state the step changed to.
+    """
+
+    ATTEMPT = "attempt"
+    """
+    Which attempt at the step, counting from 1.
+    """
+
+    ATTEMPTS = "attempts"
+    """
+    How many attempts the step has at most.
+    """
+
+    ARM = "arm"
+    """
+    The arm the attempt uses.
+    """
+
+    REASON = "reason"
+    """
+    Why the attempt failed.
+    """
+
+    NEXT_ATTEMPT = "nextAttempt"
+    """
+    How the next attempt differs.
+    """
+
+    MONITOR = "monitor"
+    """
+    The monitor whose observation changed.
+    """
+
+    OBSERVATION = "observation"
+    """
+    What the monitor observes now.
+    """
+
+    TARGET = "target"
+    """
+    The object the event concerns.
+    """
+
+    COLOR = "color"
+    """
+    The color a perceived object shows.
+    """
+
+    CONSTRAINT = "constraint"
+    """
+    The broken safety limit.
+    """
+
+
+@dataclass(kw_only=True)
+class RunEvent(JsonDocument):
+    """
+    One thing that happened while a plan ran, as the run view follows it: a step changed
+    its state, a monitor its observation, a step perceived an object, or a safety limit
+    stopped the run.
+
+    The fields beside :attr:`kind` that do not concern it are None.
+    """
+
+    kind: RunEventKind = document_field(RunEventKey.KIND)
+    """
+    What the event tells.
+    """
+
+    step: Optional[str] = document_field(RunEventKey.STEP, default=None)
+    """
+    The identity of the step it concerns, None for the whole run.
+    """
+
+    state: Optional[StepState] = document_field(RunEventKey.STATE, default=None)
+    """
+    For a step event: the state the step changed to.
+    """
+
+    attempt: Optional[int] = document_field(RunEventKey.ATTEMPT, default=None)
+    """
+    For a step event: which attempt at the step, counting from 1.
+    """
+
+    attempts: Optional[int] = document_field(RunEventKey.ATTEMPTS, default=None)
+    """
+    For a step event: how many attempts the step has at most.
+    """
+
+    arm: Optional[str] = document_field(RunEventKey.ARM, default=None)
+    """
+    For a step event: the arm the step uses, by the protocol's identifier, None when its
+    grounding chose none.
+    """
+
+    reason: Optional[str] = document_field(RunEventKey.REASON, default=None)
+    """
+    For a step that is retried or failed: why, as a person reads it.
+    """
+
+    next_attempt: Optional[str] = document_field(RunEventKey.NEXT_ATTEMPT, default=None)
+    """
+    For a step that is retried: how the next attempt differs, as a person reads it.
+    """
+
+    monitor: Optional[RunMonitor] = document_field(RunEventKey.MONITOR, default=None)
+    """
+    For a monitor event: the monitor.
+    """
+
+    observation: Optional[MonitorObservation] = document_field(
+        RunEventKey.OBSERVATION, default=None
+    )
+    """
+    For a monitor event: what the monitor observes now.
+    """
+
+    target: Optional[str] = document_field(RunEventKey.TARGET, default=None)
+    """
+    The identity of the object a look-at keeps in view or a step perceived.
+    """
+
+    color: Optional[str] = document_field(RunEventKey.COLOR, default=None)
+    """
+    For a perceived object: the color it shows, by the protocol's identifier.
+    """
+
+    constraint: Optional[str] = document_field(RunEventKey.CONSTRAINT, default=None)
+    """
+    For a safety stop: the broken safety limit and how it was broken.
+    """
+
+    def to_output_line(self) -> str:
+        """
+        :return: The line of a demo's output reporting the event.
+        """
+        return f"{RunOutputMarker.RUN_EVENT} {json.dumps(self.to_json())}"
+
+    @classmethod
+    def from_output_line(cls, line: str) -> Optional[Self]:
+        """
+        :param line: A line of a demo's output, without its line break.
+        :return: The event it reports, or None for a line reporting none.
+        """
+        if not line.startswith(RunOutputMarker.RUN_EVENT):
+            return None
+        return cls.from_json(
+            json.loads(line.removeprefix(RunOutputMarker.RUN_EVENT).strip())
+        )
+
 
 class SafetyStopKey(StrEnum):
     """
@@ -2918,6 +3185,11 @@ class RunStatusKey(StrEnum):
     The safety stop that cancelled the demo.
     """
 
+    EVENTS = "events"
+    """
+    What happened while the demo ran.
+    """
+
 
 @dataclass(kw_only=True)
 class RunStatus(JsonDocument):
@@ -2956,6 +3228,11 @@ class RunStatus(JsonDocument):
     )
     """
     The safety stop that cancelled the demo, or None.
+    """
+
+    events: List[RunEvent] = document_field(RunStatusKey.EVENTS, default_factory=list)
+    """
+    Every event the demo reported, in order; its lines are not part of :attr:`log`.
     """
 
 

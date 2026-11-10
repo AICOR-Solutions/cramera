@@ -7,7 +7,8 @@ robot's camera that gives the step up once the object leaves its field of view. 
 that fails is attempted again from where the run stopped, the steps after it grounded
 anew: with the other arm first where a motion failed, after detecting its objects again
 where they were lost track of. Once a step used up its attempts the plan is aborted.
-Every attempt and every change of what the camera keeps in view goes to the run log.
+Every step as it is scheduled and starts, every attempt, every change of what the camera
+keeps in view, every object a detection perceived and a safety stop go to the run log.
 """
 
 from __future__ import annotations
@@ -34,14 +35,18 @@ from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.run_log import (
     AttemptOutcome,
     LookAt,
+    ObjectPerceived,
     RunLog,
+    SafetyStopped,
     StepAttempt,
+    StepScheduled,
+    StepStarted,
     View,
 )
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.steps import StepActions, StepArguments
 from cramera_bridge.plans.world import PlannedGraspable
-from cramera_protocol.detection import DetectionRegion
+from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorParameterKey
 from cramera_protocol.plan_builder import PlanStep, StepConstraint
 from cramph.composites import CancelledWhenTrue
@@ -54,8 +59,10 @@ from cramph.executor import (
     TickingExecutorExtension,
 )
 from cramph.node import StatechartNode
+from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
 from giskardpy.motion_statechart.monitors.cartesian_monitors import OutOfFieldOfView
 from krrood_spatial_math.spatial_types import Point3
+from semantic_digital_twin.world_description.color_names import ColorName
 from semantic_digital_twin.world_description.world_entity import Body
 
 # %% steps as they run
@@ -214,6 +221,55 @@ class AttemptedStep:
     Which attempt at the step the node is.
     """
 
+    arm: Optional[str] = None
+    """
+    The arm the attempt uses, by the protocol's identifier; None when its grounding
+    chose none.
+    """
+
+    detected: Optional[DetectedObject] = None
+    """
+    For a step detecting an object later steps name: that object, written as perceived
+    once the step succeeded.
+    """
+
+
+@dataclass(frozen=True)
+class DetectedObject:
+    """
+    The object a detection step finds for later steps.
+    """
+
+    step: str
+    """
+    The identity of the detection step.
+    """
+
+    target: str
+    """
+    The identity of the object.
+    """
+
+    body: Body
+    """
+    The object's body, whose color perception updates.
+    """
+
+    def perceived(self) -> ObjectPerceived:
+        """
+        :return: The object as perceived now, with the one color it shows, if any.
+        """
+        colors = self.body.visual.color_names()
+        return ObjectPerceived(
+            step=self.step,
+            target=self.target,
+            color=(
+                ENUM_NAMES.member_identifier(ColorName, next(iter(colors)))
+                if len(colors) == 1
+                else None
+            ),
+        )
+
 
 @dataclass(frozen=True)
 class WatchedTarget:
@@ -269,16 +325,48 @@ class AttemptProgress(TickingExecutorExtension):
     The identities of the steps whose success was written.
     """
 
+    started: set[str] = field(default_factory=set, init=False)
+    """
+    The identities of the steps whose start was written.
+    """
+
     views: Dict[str, View] = field(default_factory=dict, init=False)
     """
     What each step's look-at observed last, by the step's identity.
     """
 
     def after_tick(self, executor: StatechartExecutor) -> None:
-        for watched in self.watched:
-            self.write_view(watched)
         for attempted in self.steps:
             self.write_success(attempted)
+        # the steps run one after another, so the first that did not succeed runs
+        current = next(
+            (
+                attempted
+                for attempted in self.steps
+                if attempted.node.life_cycle_state is not LifeCycleValues.SUCCEEDED
+            ),
+            None,
+        )
+        if current is not None:
+            self.write_start(current)
+        for watched in self.watched:
+            self.write_view(watched)
+
+    def write_start(self, attempted: AttemptedStep) -> None:
+        """
+        :param attempted: A step of the plan that started, written once.
+        """
+        if attempted.step in self.started:
+            return
+        self.started.add(attempted.step)
+        self.run_log.write(
+            StepStarted(
+                step=attempted.step,
+                number=attempted.number,
+                attempts=self.attempts,
+                arm=attempted.arm,
+            )
+        )
 
     def after_run(self, executor: StatechartExecutor) -> None:
         for attempted in self.steps:
@@ -292,13 +380,17 @@ class AttemptProgress(TickingExecutorExtension):
             return
         if attempted.node.life_cycle_state is not LifeCycleValues.SUCCEEDED:
             return
+        self.write_start(attempted)
         self.succeeded.add(attempted.step)
+        if attempted.detected is not None:
+            self.run_log.write(attempted.detected.perceived())
         self.run_log.write(
             StepAttempt(
                 step=attempted.step,
                 number=attempted.number,
                 attempts=self.attempts,
                 outcome=AttemptOutcome.SUCCEEDED,
+                arm=attempted.arm,
             )
         )
 
@@ -452,6 +544,8 @@ class StepRun:
                     node=node,
                     step=identifier,
                     number=self.attempt_numbers.get(identifier, 1),
+                    arm=self.arm_of(scheduled),
+                    detected=self.detected_by(scheduled),
                 )
             )
             nodes.append(node)
@@ -510,6 +604,58 @@ class StepRun:
             ]
         )
 
+    # %% reporting
+
+    def announce(self) -> None:
+        """
+        Write every step as scheduled, with the arm its grounding chose.
+        """
+        for scheduled in self.steps:
+            self.run_log.write(
+                StepScheduled(
+                    step=scheduled.step.identifier, arm=self.arm_of(scheduled)
+                )
+            )
+
+    def arm_of(self, scheduled: ScheduledStep) -> Optional[str]:
+        """
+        :param scheduled: A step.
+        :return: The arm its grounding chose for it, by the protocol's identifier, when
+            the step leaves its arm to be chosen; else None.
+        """
+        arguments = StepArguments(
+            context=self.context,
+            bodies=self.bodies,
+            action=self.actions.named(scheduled.step.action),
+            step=scheduled.step,
+            site=self.site,
+        )
+        open_field = arguments.find_open_arm_field()
+        if open_field is None:
+            return None
+        return scheduled.resolved.values.get(open_field)
+
+    def detected_by(self, scheduled: ScheduledStep) -> Optional[DetectedObject]:
+        """
+        :param scheduled: A step.
+        :return: The object the step detects for later steps, when it is such a
+            detection; else None.
+        """
+        reference = DetectedObjectReference(scheduled.step.identifier).text
+        body = self.bodies.get(reference)
+        if body is None:
+            return None
+        target = next(
+            (
+                identifier
+                for identifier, named in self.bodies.items()
+                if named is body
+                and DetectedObjectReference.from_value(identifier) is None
+            ),
+            body.name.name,
+        )
+        return DetectedObject(step=scheduled.step.identifier, target=target, body=body)
+
     # %% running
 
     def perform(
@@ -529,9 +675,7 @@ class StepRun:
             no failure of the step and never attempted again.
         """
         while True:
-            failure = self.perform_plan(
-                attempt.plan, performance, [*extensions(), attempt.progress]
-            )
+            failure = self.perform_attempt(attempt, performance, extensions)
             if failure is None:
                 return
             position = attempt.failed_position()
@@ -544,6 +688,44 @@ class StepRun:
                 extensions,
             )
             attempt = self.attempt_plan(position)
+
+    def perform_attempt(
+        self,
+        attempt: AttemptPlan,
+        performance: PlanPerformance,
+        extensions: Callable[[], Sequence[ExecutorExtension]],
+    ) -> Optional[ExecutionFailure]:
+        """
+        :param attempt: The plan of an attempt.
+        :param performance: How it is performed.
+        :param extensions: Gives the executor extensions of each plan performed.
+        :return: The failure that ended it, or None when it succeeded.
+        :raises SafetyConstraintViolated: When a motion broke a safety limit, after the
+            step whose motion it was and the stop were written to the run log.
+        """
+        # a safety stop ends the run; it is caught only to tell the run log of it
+        try:
+            return self.perform_plan(
+                attempt.plan, performance, [*extensions(), attempt.progress]
+            )
+        except SafetyConstraintViolated as violation:
+            attempted = attempt.progress.steps[
+                attempt.failed_position() - attempt.first
+            ]
+            self.run_log.write(
+                StepAttempt(
+                    step=attempted.step,
+                    number=attempted.number,
+                    attempts=self.attempts,
+                    outcome=AttemptOutcome.STOPPED,
+                    reason=violation.constraint,
+                    arm=attempted.arm,
+                )
+            )
+            self.run_log.write(
+                SafetyStopped(constraint=violation.constraint, step=attempted.step)
+            )
+            raise
 
     def perform_plan(
         self,
@@ -585,6 +767,7 @@ class StepRun:
         tried: List[Alternative] = []
         while True:
             number = self.attempt_numbers.get(identifier, 1)
+            arm = self.arm_of(self.steps[position])
             if number >= self.attempts:
                 self.run_log.write(
                     StepAttempt(
@@ -593,6 +776,7 @@ class StepRun:
                         attempts=self.attempts,
                         outcome=AttemptOutcome.ABORTED,
                         reason=failed.reason,
+                        arm=arm,
                     )
                 )
                 raise StepAbandoned(identifier, self.attempts, failed.reason)
@@ -606,6 +790,7 @@ class StepRun:
                     outcome=AttemptOutcome.RETRYING,
                     reason=failed.reason,
                     next_attempt=alternative.value,
+                    arm=arm,
                 )
             )
             self.attempt_numbers[identifier] = number + 1

@@ -20,14 +20,26 @@ from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.run_log import (
     AttemptOutcome,
     LookAt,
+    ObjectPerceived,
     RunLog,
     RunLogEntry,
+    SafetyStopped,
     StepAttempt,
+    StepScheduled,
+    StepStarted,
     View,
 )
 from cramera_bridge.plans.step_run import Alternative
 from cramera_protocol.geometry import FloorRectangle
-from cramera_protocol.plan_builder import DemoDocument, PlanDocument
+from cramera_protocol.plan_builder import (
+    DemoDocument,
+    MonitorObservation,
+    PlanDocument,
+    RunEvent,
+    RunEventKind,
+    RunMonitor,
+    StepState,
+)
 from cramera_protocol.robot_profile import Zone
 from cramera_protocol.viewer import EnvironmentVariable
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
@@ -86,13 +98,59 @@ def test_every_entry_is_a_line_of_the_runs_output():
 
     run_log.write(entry)
 
-    assert stream.getvalue() == f"{RunLog.line_prefix} {entry.line()}\n"
+    assert stream.getvalue() == (
+        f"{RunLog.line_prefix} {entry.line()}\n{entry.event().to_output_line()}\n"
+    )
     assert run_log.entries == [entry]
+    assert run_log.events() == [entry.event()]
+
+
+@pytest.mark.parametrize(
+    "outcome, state",
+    [
+        (AttemptOutcome.SUCCEEDED, StepState.DONE),
+        (AttemptOutcome.RETRYING, StepState.RETRYING),
+        (AttemptOutcome.ABORTED, StepState.FAILED),
+        (AttemptOutcome.STOPPED, StepState.FAILED),
+    ],
+)
+def test_an_attempt_ends_its_step_in_the_state_of_its_outcome(outcome, state):
+    entry = StepAttempt(
+        step="step_3", number=2, attempts=3, outcome=outcome, arm="right"
+    )
+    assert entry.event() == RunEvent(
+        kind=RunEventKind.STEP,
+        step="step_3",
+        state=state,
+        attempt=2,
+        attempts=3,
+        arm="right",
+    )
+
+
+def test_a_step_is_pending_then_running_with_the_arm_its_grounding_chose():
+    scheduled = StepScheduled(step="step_3", arm="left")
+    started = StepStarted(step="step_3", number=1, attempts=3, arm="left")
+    assert scheduled.event().state is StepState.PENDING
+    assert started.event().state is StepState.RUNNING
+    assert "left arm" in scheduled.line() and "left arm" in started.line()
+
+
+def test_a_perceived_object_and_a_safety_stop_are_events_of_their_own():
+    perceived = ObjectPerceived(step="step_2", target="red_cube", color="red")
+    stopped = SafetyStopped(constraint="Left arm workspace", step="step_3")
+    assert perceived.event().kind is RunEventKind.PERCEIVED
+    assert perceived.line() == "step_2: perceived red_cube (red)"
+    assert stopped.event() == RunEvent(
+        kind=RunEventKind.SAFETY_STOP, step="step_3", constraint="Left arm workspace"
+    )
 
 
 def test_a_look_at_says_whether_its_target_is_in_view():
     entry = LookAt(step="step_3", target="red_cube", view=View.IN_VIEW)
     assert f"look-at: {View.IN_VIEW}" in entry.line()
+    assert entry.event().monitor is RunMonitor.LOOK_AT
+    assert entry.event().observation is MonitorObservation.HOLDS
 
 
 def test_a_failed_attempt_names_why_and_what_the_next_one_does():
@@ -241,3 +299,28 @@ def test_a_cube_taken_away_aborts_the_plan_once_its_step_used_up_its_attempts(
     assert disturbed_run.failure == StepAbandoned(
         "step_5", attempts[-1].attempts, attempts[-1].reason
     )
+
+
+def test_the_run_events_follow_every_step_through_its_retries(disturbed_run):
+    events = [entry.event() for entry in disturbed_run.entries]
+    states = {
+        step: [
+            event.state
+            for event in events
+            if event.kind is RunEventKind.STEP and event.step == step
+        ]
+        for step in ("step_2", "step_3", "step_5")
+    }
+    assert states["step_2"] == [StepState.PENDING, StepState.RUNNING, StepState.DONE]
+    assert StepState.RETRYING in states["step_3"]
+    assert states["step_3"][-1] is StepState.DONE
+    assert states["step_5"].count(StepState.RETRYING) == 2
+    assert states["step_5"][-1] is StepState.FAILED
+    [perceived, *_] = [e for e in events if e.kind is RunEventKind.PERCEIVED]
+    assert (perceived.target, perceived.color) == ("red_cube", "red")
+    [picked] = [
+        event
+        for event in events
+        if event.step == "step_3" and event.state is StepState.DONE
+    ]
+    assert picked.arm in ("left", "right")

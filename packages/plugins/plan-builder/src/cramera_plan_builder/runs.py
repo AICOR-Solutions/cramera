@@ -18,10 +18,13 @@ from typing_extensions import IO, List, Optional
 
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import DemoNotStarted, SafetyStopNotAcknowledged
+from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.plan_builder import (
     DemoDocument,
     DemoOption,
+    RunEvent,
     RunMode,
+    RunOutputMarker,
     RunState,
     RunStatus,
     SafetyStop,
@@ -52,6 +55,89 @@ The encoding the demo's output is read in; undecodable bytes are replaced.
 
 
 @dataclass
+class RunEventLines:
+    """
+    Takes the lines reporting run events out of a process's output as it arrives: each
+    becomes a :class:`RunEvent`, the rest of the output passes on unchanged.
+
+    A line that is not complete yet is held back only while it may still become one
+    reporting an event.
+    """
+
+    events: List[RunEvent] = field(default_factory=list)
+    """
+    The events reported so far, in order.
+    """
+
+    held: bytearray = field(default_factory=bytearray)
+    """
+    The start of a line that may report an event, until its line break arrives.
+    """
+
+    mid_line: bool = False
+    """
+    Whether the output passed on last ended within a line, which then reports no event.
+    """
+
+    @classmethod
+    def marker(cls) -> bytes:
+        """
+        :return: What a line reporting an event starts with.
+        """
+        return RunOutputMarker.RUN_EVENT.encode(LOG_ENCODING)
+
+    def split(self, chunk: bytes) -> bytes:
+        """
+        :param chunk: Output that arrived.
+        :return: The output not reporting events, to keep as the log; its events are
+            added to :attr:`events`.
+        """
+        data = bytes(self.held) + chunk
+        self.held.clear()
+        passed = bytearray()
+        start = 0
+        while start < len(data):
+            end = data.find(b"\n", start)
+            line = data[start:] if end < 0 else data[start : end + 1]
+            if self.mid_line:
+                passed.extend(line)
+            elif end < 0 and self.may_report_event(line):
+                self.held.extend(line)
+                break
+            elif not self.take_event(line):
+                passed.extend(line)
+            self.mid_line = end < 0
+            start = len(data) if end < 0 else end + 1
+        return bytes(passed)
+
+    def may_report_event(self, start: bytes) -> bool:
+        """
+        :param start: The start of a line.
+        :return: Whether the line may still turn out to report an event.
+        """
+        marker = self.marker()
+        return start.startswith(marker) or marker.startswith(start)
+
+    def take_event(self, line: bytes) -> bool:
+        """
+        :param line: A line of output, with its line break if it has one.
+        :return: Whether it reported an event, which was added to :attr:`events`; a
+            line that starts like one but does not hold an event's JSON stays output.
+        """
+        if not line.startswith(self.marker()):
+            return False
+        # the process boundary, where a garbled line stays output a person can read
+        try:
+            event = RunEvent.from_output_line(
+                line.decode(LOG_ENCODING, errors="replace").rstrip("\r\n")
+            )
+        except (ValueError, ProtocolError):
+            return False
+        self.events.append(event)
+        return True
+
+
+@dataclass
 class OutputLog:
     """
     The newest output of a process, at most :attr:`limit` bytes of it; written by the
@@ -68,18 +154,23 @@ class OutputLog:
     The kept bytes.
     """
 
+    event_lines: RunEventLines = field(default_factory=RunEventLines)
+    """
+    Takes the lines reporting run events out of the output, which are all kept.
+    """
+
     lock: threading.Lock = field(default_factory=threading.Lock)
     """
-    Guards :attr:`data`.
+    Guards :attr:`data` and :attr:`event_lines`.
     """
 
     def append(self, chunk: bytes) -> None:
         """
-        :param chunk: Output that arrived; the oldest bytes beyond the limit are
-            dropped.
+        :param chunk: Output that arrived; its lines reporting run events become
+            events, and of the rest the oldest bytes beyond the limit are dropped.
         """
         with self.lock:
-            self.data.extend(chunk)
+            self.data.extend(self.event_lines.split(chunk))
             excess = len(self.data) - self.limit
             if excess > 0:
                 del self.data[:excess]
@@ -90,6 +181,13 @@ class OutputLog:
         """
         with self.lock:
             return self.data.decode(LOG_ENCODING, errors="replace")
+
+    def events(self) -> List[RunEvent]:
+        """
+        :return: Every run event the output reported, in order.
+        """
+        with self.lock:
+            return list(self.event_lines.events)
 
     def follow(self, stream: IO[bytes]) -> None:
         """
@@ -224,6 +322,7 @@ class DemoProcess:
             log=self.log.text(),
             path=str(self.path),
             safety_stop=self.safety_stop(),
+            events=self.log.events(),
         )
 
     def stop(self, timeout: float = STOP_TIMEOUT) -> None:

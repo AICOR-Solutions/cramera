@@ -60,6 +60,7 @@ export const PlanAction = Object.freeze({
   DETACH_CONSTRAINT: 'detach-constraint',
   TURN: 'turn',
   FRAME: 'frame',
+  TOGGLE_RUN: 'toggle-run',
 });
 
 /**
