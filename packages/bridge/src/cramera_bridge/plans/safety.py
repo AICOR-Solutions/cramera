@@ -1,7 +1,8 @@
 """
 The safety limits of a robot profile as the constraints every motion of a run is held
 to: a workspace box per arm, written in the frame of the pose the plan stands the robot
-at, and the velocities no arm joint and no tool may exceed.
+at, and the speed no tool may exceed; and the velocity no arm joint may exceed, which
+the robot's description sets.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ import itertools
 from dataclasses import dataclass, field
 
 import numpy as np
-from typing_extensions import List
+from typing_extensions import List, Optional
 
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
@@ -42,6 +43,12 @@ class RobotSafety:
     site: RobotSite = field(default_factory=RobotSite)
     """
     Where the plan stands the robot, whose frame the workspaces are written in.
+    """
+
+    on_the_real_robot: bool = False
+    """
+    Whether the run moves the real robot, which holds its tools to the limits' speed for
+    the real robot where they set one.
     """
 
     def envelope(self, context: TaskContext) -> SafetyEnvelope:
@@ -95,38 +102,51 @@ class RobotSafety:
             maximum=Point3(*corners.max(axis=0), reference_frame=robot.root),
         )
 
+    @property
+    def maximum_tool_velocity(self) -> Optional[float]:
+        """
+        The speed, in metres per second, no tool of the run may exceed; None sets none.
+        """
+        if (
+            self.on_the_real_robot
+            and self.limits.maximum_real_robot_tool_velocity is not None
+        ):
+            return self.limits.maximum_real_robot_tool_velocity
+        return self.limits.maximum_tool_velocity
+
     def velocity_limits(self, context: TaskContext) -> List[SafetyConstraint]:
         """
         :param context: The world and the performing robot.
-        :return: For every arm, the velocity its joints and its tool may not exceed,
-            those the limits set.
+        :return: For every arm, the velocity its joints may not exceed, as the robot's
+            description sets it, and the speed its tool may not exceed, as far as they
+            are set.
         """
         robot = context.robot
         arms = RobotArms(robot)
+        joint_velocity = robot.maximum_safe_joint_velocity
+        tool_velocity = self.maximum_tool_velocity
         constraints: List[SafetyConstraint] = []
         for arm in robot.all_arms:
             side = ENUM_NAMES.member_identifier(Arms, arms.find_side(arm))
-            if self.limits.maximum_joint_velocity is not None:
+            if joint_velocity is not None:
                 constraints.append(
                     MaximumJointVelocity(
-                        constraint=f"{side} arm joint velocity "
-                        f"({self.limits.maximum_joint_velocity} rad/s)",
+                        constraint=f"{side} arm joint velocity ({joint_velocity} rad/s)",
                         connections=[
                             connection
                             for connection in arm.connections
                             if isinstance(connection, ActiveConnection1DOF)
                         ],
-                        maximum_velocity=self.limits.maximum_joint_velocity,
+                        maximum_velocity=joint_velocity,
                     )
                 )
-            if self.limits.maximum_tool_velocity is not None:
+            if tool_velocity is not None:
                 constraints.append(
                     MaximumToolVelocity(
-                        constraint=f"{side} tool velocity "
-                        f"({self.limits.maximum_tool_velocity} m/s)",
+                        constraint=f"{side} tool velocity ({tool_velocity} m/s)",
                         root_link=robot.root,
                         tool=arm.end_effector.tool_frame,
-                        maximum_velocity=self.limits.maximum_tool_velocity,
+                        maximum_velocity=tool_velocity,
                     )
                 )
         return constraints

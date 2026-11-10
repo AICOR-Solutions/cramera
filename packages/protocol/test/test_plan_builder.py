@@ -568,7 +568,9 @@ def test_a_demo_on_an_empty_floor_names_no_environment_directory():
 def test_a_demo_document_carries_the_profiles_safety_limits():
     demo = DemoDocument(
         plan=PlanDocument(name="x"),
-        safety=SafetyLimits(maximum_joint_velocity=0.5, maximum_tool_velocity=0.5),
+        safety=SafetyLimits(
+            maximum_tool_velocity=0.5, maximum_real_robot_tool_velocity=0.1
+        ),
     )
     assert DemoDocument.from_json(demo.to_json()) == demo
     assert DemoDocumentKey.SAFETY not in DemoDocument(plan=demo.plan).to_json()

@@ -166,7 +166,7 @@ def test_a_profile_holds_its_arms_to_workspaces_and_velocity_limits():
                         },
                     }
                 ],
-                SafetyLimitsKey.MAXIMUM_JOINT_VELOCITY: 0.5,
+                SafetyLimitsKey.MAXIMUM_REAL_ROBOT_TOOL_VELOCITY: 0.1,
             },
         }
     )
@@ -180,7 +180,7 @@ def test_a_profile_holds_its_arms_to_workspaces_and_velocity_limits():
                 ),
             )
         ],
-        maximum_joint_velocity=0.5,
+        maximum_real_robot_tool_velocity=0.1,
     )
     assert RobotProfile.from_json(profile.to_json()) == profile
 

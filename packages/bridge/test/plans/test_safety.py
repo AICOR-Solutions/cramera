@@ -17,6 +17,8 @@ from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.command import PlanDemoCommand
+from cramera_bridge.performing import TaskContext
+from cramera_bridge.plans.safety import RobotSafety
 from cramera_bridge.plans.run_log import (
     AttemptOutcome,
     RunLog,
@@ -37,9 +39,14 @@ from cramera_protocol.plan_builder import (
 from cramera_protocol.robot_profile import ArmWorkspace, SafetyLimits
 from cramera_protocol.viewer import EnvironmentVariable
 from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
+from giskardpy.motion_statechart.monitors.safety_monitors import (
+    MaximumJointVelocity,
+    MaximumToolVelocity,
+)
 from semantic_digital_twin.robots.tracy import Tracy
 
 from ..dataset.bundles import DATASET
+from ..test_execution import needs_tracy, tracy_with_a_block
 
 CUBE_LIBRARY = DATASET / "cube_library"
 """
@@ -110,7 +117,6 @@ def stopped_run(tmp_path_factory) -> StoppedRun:
         plan = PlanDocument.from_json(json.loads(PICK.read_text("utf-8")))
         safety = SafetyLimits(
             workspaces=[LOW_WORKSPACE],
-            maximum_joint_velocity=0.5,
             maximum_tool_velocity=0.5,
         )
         demo = PlannedTaskDemo.of_document(
@@ -163,3 +169,58 @@ def test_a_demos_safety_stop_is_reported_as_the_line_the_plan_builder_reads(caps
     assert SafetyStop.from_output(capsys.readouterr().out) == SafetyStop(
         constraint=LOW_WORKSPACE.label
     )
+
+
+# %% velocity limits
+
+
+@pytest.fixture
+def tracy_context(tracy_with_a_block) -> TaskContext:
+    """
+    :return: The world of Tracy and a block, Tracy performing.
+    """
+    [tracy] = tracy_with_a_block.get_semantic_annotations_by_type(Tracy)
+    return TaskContext(world=tracy_with_a_block, robot=tracy)
+
+
+TOOL_LIMITS = SafetyLimits(
+    maximum_tool_velocity=0.5, maximum_real_robot_tool_velocity=0.1
+)
+"""
+A tool velocity for every run, and a lower one for a run on the real robot.
+"""
+
+
+@needs_tracy
+def test_the_joints_are_held_to_the_velocity_the_robot_description_sets(tracy_context):
+    envelope = RobotSafety(limits=SafetyLimits()).envelope(tracy_context)
+
+    limits = [
+        constraint.maximum_velocity
+        for constraint in envelope.constraints
+        if isinstance(constraint, MaximumJointVelocity)
+    ]
+    assert limits == [Tracy.maximum_safe_joint_velocity] * 2
+
+
+@needs_tracy
+@pytest.mark.parametrize(
+    "on_the_real_robot, expected",
+    [
+        (False, TOOL_LIMITS.maximum_tool_velocity),
+        (True, TOOL_LIMITS.maximum_real_robot_tool_velocity),
+    ],
+)
+def test_a_run_on_the_real_robot_holds_the_tools_to_its_own_velocity(
+    tracy_context, on_the_real_robot, expected
+):
+    envelope = RobotSafety(
+        limits=TOOL_LIMITS, on_the_real_robot=on_the_real_robot
+    ).envelope(tracy_context)
+
+    limits = [
+        constraint.maximum_velocity
+        for constraint in envelope.constraints
+        if isinstance(constraint, MaximumToolVelocity)
+    ]
+    assert limits == [expected] * 2

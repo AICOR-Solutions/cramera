@@ -303,7 +303,9 @@ class PlannedTaskDemo(RobotTaskDemo):
         if self.document.safety is None:
             return performance
         performance.safety = RobotSafety(
-            limits=self.document.safety, site=self.site
+            limits=self.document.safety,
+            site=self.site,
+            on_the_real_robot=self.execution.reported_world() is not None,
         ).envelope(context)
         return performance
 

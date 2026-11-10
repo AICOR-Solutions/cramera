@@ -326,7 +326,6 @@ TRACY_SAFETY = SafetyLimits(
             ),
         ),
     ],
-    maximum_joint_velocity=0.5,
     maximum_tool_velocity=0.5,
 )
 """

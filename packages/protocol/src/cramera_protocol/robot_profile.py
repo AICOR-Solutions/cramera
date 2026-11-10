@@ -291,14 +291,14 @@ class SafetyLimitsKey(StrEnum):
     The workspace of each arm.
     """
 
-    MAXIMUM_JOINT_VELOCITY = "maximumJointVelocity"
-    """
-    The velocity no arm joint may exceed.
-    """
-
     MAXIMUM_TOOL_VELOCITY = "maximumToolVelocity"
     """
     The speed no arm's tool may exceed.
+    """
+
+    MAXIMUM_REAL_ROBOT_TOOL_VELOCITY = "maximumRealRobotToolVelocity"
+    """
+    The speed no arm's tool may exceed in a run on the real robot.
     """
 
 
@@ -308,7 +308,8 @@ class SafetyLimits(JsonDocument):
     The safety limits every motion of a robot's runs is held to; breaking one stops the
     run, which nothing resumes.
 
-    The robot's own safety controller stays authoritative.
+    The robot's own safety controller stays authoritative. The velocity no arm joint
+    may exceed is the robot's own, set by its description.
     """
 
     workspaces: List[ArmWorkspace] = document_field(
@@ -318,18 +319,19 @@ class SafetyLimits(JsonDocument):
     The box each arm's tool stays inside; an arm without one is not held to a box.
     """
 
-    maximum_joint_velocity: Optional[float] = document_field(
-        SafetyLimitsKey.MAXIMUM_JOINT_VELOCITY, default=None
-    )
-    """
-    The velocity, in radians per second, no joint of an arm may exceed; None sets none.
-    """
-
     maximum_tool_velocity: Optional[float] = document_field(
         SafetyLimitsKey.MAXIMUM_TOOL_VELOCITY, default=None
     )
     """
     The speed, in metres per second, no arm's tool may exceed; None sets none.
+    """
+
+    maximum_real_robot_tool_velocity: Optional[float] = document_field(
+        SafetyLimitsKey.MAXIMUM_REAL_ROBOT_TOOL_VELOCITY, default=None
+    )
+    """
+    The speed, in metres per second, no arm's tool may exceed in a run on the real
+    robot; None holds it to :attr:`maximum_tool_velocity`.
     """
 
 
