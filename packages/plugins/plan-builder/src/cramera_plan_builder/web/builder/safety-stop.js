@@ -4,7 +4,7 @@
  * resumes on its own, and no run or validation starts before the acknowledgement.
  */
 
-import { RunStatusKey, SafetyStopKey } from 'cramera-viewer/protocol.js';
+import { RunStatusKey, SafetyStopKey } from '../../../protocol.js';
 
 /**
  * What the banner shows.

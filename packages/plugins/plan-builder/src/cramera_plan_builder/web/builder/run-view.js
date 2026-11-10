@@ -15,7 +15,7 @@ import {
   RunMonitor,
   RunStatusKey,
   StepState,
-} from 'cramera-viewer/protocol.js';
+} from '../../../protocol.js';
 
 /**
  * How a person reads each step state.
