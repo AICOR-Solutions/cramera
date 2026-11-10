@@ -85,7 +85,7 @@ def test_a_model_its_collection_takes_from_above_is_annotated_so(world):
     assert type(PlannedGraspable.of(bodies["box"])) is PlannedGraspable
 
 
-def test_a_block_taken_from_above_is_approached_downwards_to_its_middle(world):
+def test_a_block_taken_from_above_is_held_its_grasp_depth_below_its_top(world):
     block = BodySpecification.box(
         "block",
         Scale(0.05, 0.05, 0.05),
@@ -97,7 +97,8 @@ def test_a_block_taken_from_above_is_approached_downwards_to_its_middle(world):
         world.add_semantic_annotation(graspable)
     [grasp] = graspable.grasp_candidates()
     object_T_grasp = grasp.grasp_pose.to_np()
-    assert object_T_grasp[:3, 3] == pytest.approx([0, 0, 0.025])
+    top = block.collision.max_point.to_np()[2]
+    assert object_T_grasp[:3, 3] == pytest.approx([0, 0, top - graspable.grasp_depth])
     assert object_T_grasp[:3, 0] == pytest.approx([0, 0, -1])
 
 

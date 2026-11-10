@@ -93,14 +93,22 @@ class PlannedGraspable(HasGraspCandidates):
 @dataclass(eq=False)
 class PlannedGraspableFromAbove(PlannedGraspable):
     """
-    A free object of a plan that is taken from straight above, around the middle of its
+    A free object of a plan that is taken from straight above, near the top of its
     collision geometry, as a small block standing on a table is.
+    """
+
+    grasp_depth: float = 0.01
+    """
+    How far, in metres, below the top of its collision geometry the object is held, so
+    the part above the pads stays clear of the gripper's knuckles, which push the object
+    away while the gripper opens.
     """
 
     def default_grasp_candidates(self) -> List[GraspCandidate]:
         """
         :return: The grasp approaching straight down along the object's own z-axis to
-            the centre of its collision geometry, closing along the object's x-axis.
+            the middle of its collision geometry's footprint, :attr:`grasp_depth` below
+            its top, closing along the object's x-axis.
         :raises NoGraspGeometry: When the object has no collision geometry.
         """
         if not self.root.has_collision():
@@ -115,7 +123,7 @@ class PlannedGraspableFromAbove(PlannedGraspable):
                     position=Point3(
                         (bounding_box.min_x + bounding_box.max_x) / 2,
                         (bounding_box.min_y + bounding_box.max_y) / 2,
-                        (bounding_box.min_z + bounding_box.max_z) / 2,
+                        bounding_box.max_z - self.grasp_depth,
                         reference_frame=self.root,
                     ),
                     orientation=RotationMatrix.from_vectors(

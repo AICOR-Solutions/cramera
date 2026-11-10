@@ -38,6 +38,7 @@ from coraplex.robot_plans.plan_transformations import (
     DetectBeforeGrasp,
     DetectWithRoboKudo,
     LetContactCarryTheBodies,
+    MoveStraightNearTheObject,
 )
 from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
 from cramera_protocol.robot_profile import ExecutorKind
@@ -350,6 +351,7 @@ class PerceivingPhysicalExecution(PhysicalExecution):
             safety=safety,
             ros_node=self.ros_node,
             plan_adaptations=[
+                MoveStraightNearTheObject(),
                 LetContactCarryTheBodies(),
                 DetectBeforeGrasp(),
                 DetectWithRoboKudo(),
