@@ -69,6 +69,12 @@ import { REASON_TEXTS, StepsView } from './steps-view.js';
 export const POLL_INTERVAL = 1000;
 
 /**
+ * How far, in metres, a live object may lie from its pose in the plan before the scene
+ * counts as changed since the plan's validation.
+ */
+export const SCENE_TOLERANCE = 0.02;
+
+/**
  * The storage key of the robot model the person used last, which a robot is added as.
  */
 export const ROBOT_MODEL_KEY = 'cramera.plan-builder.robot-model';
@@ -319,9 +325,10 @@ export class BuilderPage {
   #attached = new Set();
 
   /**
-   * The latest validation: the plan as it was validated, as JSON text, and the
-   * `ValidationReport`; null before one. A plan that changed since is not validated.
-   * @type {{plan: string, report: Object}|null}
+   * The latest validation: the plan as it was validated, as JSON text, the
+   * `ValidationReport` and whether the live scene changed since; null before one. A
+   * plan or a scene that changed since is not validated.
+   * @type {{plan: string, report: Object, sceneChanged: boolean}|null}
    */
   #validation = null;
 
@@ -813,18 +820,35 @@ export class BuilderPage {
       return null;
     });
     if (!report) return;
-    this.#validation = { plan: JSON.stringify(plan), report };
+    this.#validation = { plan: JSON.stringify(plan), report, sceneChanged: false };
     this.render();
     this.report(validationMessage(report, this.state.steps()));
   }
 
   /**
    * @returns {Object|null} The `ValidationReport` of the plan as it stands, null when it
-   *   changed since its latest validation or none ran.
+   *   or its scene changed since its latest validation or none ran.
    */
   validatedReport() {
-    if (this.#validation === null || this.#validation.plan !== JSON.stringify(this.state.document)) return null;
+    if (this.#validation === null || this.#validation.sceneChanged || this.#validation.plan !== JSON.stringify(this.state.document)) return null;
     return this.#validation.report;
+  }
+
+  /**
+   * Invalidate the validation for good once a live object lies farther than
+   * `SCENE_TOLERANCE` from its pose in the plan, which the validation took it at.
+   */
+  #noteSceneChange() {
+    if (this.#validation === null || this.#validation.sceneChanged) return;
+    const moved = this.state.objects().some((object) => {
+      const live = this.#world.objects.get(object[PlannedObjectKey.IDENTIFIER]);
+      if (live === undefined) return false;
+      const planned = object[PlannedObjectKey.POSE];
+      return Math.hypot(live[0] - planned[0], live[1] - planned[1], live[2] - planned[2]) > SCENE_TOLERANCE;
+    });
+    if (!moved) return;
+    this.#validation.sceneChanged = true;
+    this.render();
   }
 
   /**
@@ -941,6 +965,7 @@ export class BuilderPage {
     const changed = before !== run[RunStatusKey.STATE] || world.published !== this.#world.published || world.signature() !== this.#world.signature();
     this.#world = world;
     this.#polled = false;
+    this.#noteSceneChange();
     if (changed) this.render();
     else {
       this.#showRun();
@@ -986,6 +1011,7 @@ export class BuilderPage {
     this.#followed = false;
     if (!answer || !this.#world.published || !this.state) return;
     this.#world.move(...answer, this.#robotIdentities());
+    this.#noteSceneChange();
     this.#showScene();
   }
 
@@ -1112,7 +1138,7 @@ export class BuilderPage {
     if (passed) return 'Validated: the plan may run on the robot.';
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
     const override = this.state.developerMode() ? ' Developer mode lets it run on the robot anyway.' : '';
-    const changed = this.#validation === null ? 'Not validated' : 'Changed since its validation';
+    const changed = this.#validation === null ? 'Not validated' : this.#validation.sceneChanged ? 'The scene changed since its validation' : 'Changed since its validation';
     return `${changed}: validate the plan before it runs on the robot.${override}`;
   }
 

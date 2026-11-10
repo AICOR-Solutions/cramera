@@ -14,6 +14,7 @@ from pathlib import Path
 from typing_extensions import Callable, Dict, Iterator, List, Optional
 
 from coraplex.perception import WorldPerception
+from coraplex.robot_plans.plan_transformations import DetectBeforeGrasp
 from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
 from cramera_bridge.execution import StartingPosture
 from cramera_bridge.geometry import NumericPose
@@ -287,10 +288,12 @@ class PlannedTaskDemo(RobotTaskDemo):
 
     def performance(self, context: TaskContext) -> PlanPerformance:
         """
-        Differs from :meth:`RobotTaskDemo.performance` in holding every motion to the
+        Differs from :meth:`RobotTaskDemo.performance` in having every grasp detect its
+        object first, whichever execution runs it, and in holding every motion to the
         safety limits of the robot profile.
         """
         performance = super().performance(context)
+        performance.plan_transformations = [DetectBeforeGrasp()]
         if self.document.safety is None:
             return performance
         performance.safety = RobotSafety(

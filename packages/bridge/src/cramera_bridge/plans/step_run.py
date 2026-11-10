@@ -8,7 +8,7 @@ that fails is attempted again from where the run stopped, the steps after it gro
 anew: with the other arm first where a motion failed, after detecting its objects again
 where they were lost track of. Once a step used up its attempts the plan is aborted.
 Every step as it is scheduled and starts, every attempt, every change of what the camera
-keeps in view, every object a detection perceived and a safety stop go to the run log.
+keeps in view, every object a step perceived and a safety stop go to the run log.
 """
 
 from __future__ import annotations
@@ -229,20 +229,31 @@ class AttemptedStep:
 
     detected: Optional[DetectedObject] = None
     """
-    For a step detecting an object later steps name: that object, written as perceived
-    once the step succeeded.
+    The object the step perceives: the one a detection step finds for later steps, else
+    the one the step acts on, such as a pick's; written as perceived once the step
+    succeeded after a perception below it did.
     """
+
+    def has_perceived(self) -> bool:
+        """
+        :return: Whether a perception below the step's node succeeded.
+        """
+        return any(
+            isinstance(node, PerceptionTask)
+            and node.life_cycle_state is LifeCycleValues.SUCCEEDED
+            for node in self.node.descendants
+        )
 
 
 @dataclass(frozen=True)
 class DetectedObject:
     """
-    The object a detection step finds for later steps.
+    The object a step perceives.
     """
 
     step: str
     """
-    The identity of the detection step.
+    The identity of the step.
     """
 
     target: str
@@ -382,7 +393,7 @@ class AttemptProgress(TickingExecutorExtension):
             return
         self.write_start(attempted)
         self.succeeded.add(attempted.step)
-        if attempted.detected is not None:
+        if attempted.detected is not None and attempted.has_perceived():
             self.run_log.write(attempted.detected.perceived())
         self.run_log.write(
             StepAttempt(
@@ -638,11 +649,19 @@ class StepRun:
     def detected_by(self, scheduled: ScheduledStep) -> Optional[DetectedObject]:
         """
         :param scheduled: A step.
-        :return: The object the step detects for later steps, when it is such a
-            detection; else None.
+        :return: The object the step perceives if it perceives one: the one it detects
+            for later steps, when it is such a detection, else the one it acts on; None
+            when it names no object.
         """
         reference = DetectedObjectReference(scheduled.step.identifier).text
-        body = self.bodies.get(reference)
+        acted_on = StepArguments(
+            context=self.context,
+            bodies=self.bodies,
+            action=self.actions.named(scheduled.step.action),
+            step=scheduled.resolved,
+            site=self.site,
+        ).object_identifier()
+        body = self.bodies.get(reference) or self.bodies.get(acted_on)
         if body is None:
             return None
         target = next(

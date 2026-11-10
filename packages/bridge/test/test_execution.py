@@ -13,7 +13,6 @@ import pytest
 from cramera.locations import DataLocations
 from coraplex.datastructures.enums import PerceptionSource
 from coraplex.perception import PerceptionTask
-from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
 from cramera_bridge.execution import (
     EXECUTIONS,
@@ -23,9 +22,10 @@ from cramera_bridge.execution import (
     PhysicalExecution,
     PlanExecution,
 )
-from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.plans.command import PlanDemoCommand
 from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.objects import LIBRARY_VARIABLE
+from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.world import PlannedGraspableFromAbove
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
@@ -50,10 +50,22 @@ from semantic_digital_twin.world_description.contact import ContactParameters
 from semantic_digital_twin.world_description.geometry import Scale
 from semantic_digital_twin.world_description.world_entity import Body
 
+from .dataset.bundles import DATASET
+
 needs_tracy = pytest.mark.skipif(
     not Tracy.is_description_installed(),
     reason="iai_tracy_description is not installed",
 )
+
+TRACY_PICK = DATASET / "plans" / "tracy_pick.json"
+"""
+Tracy parks its arms, then picks up the red cube with the left arm.
+"""
+
+CUBE_LIBRARY = DATASET / "cube_library"
+"""
+A red, a yellow and a blue cube, each named by its color.
+"""
 
 needs_robokudo_messages = pytest.mark.skipif(
     find_spec("robokudo_msgs") is None,
@@ -169,31 +181,48 @@ def test_a_perceiving_execution_needs_the_analysis_engine_it_perceives_with(
             pass
 
 
+@pytest.mark.parametrize(
+    "execution, answered_by",
+    [
+        pytest.param(
+            KinematicExecution(), PerceptionSource.WORLD_MODEL, id="kinematic"
+        ),
+        pytest.param(PhysicalExecution(), PerceptionSource.WORLD_MODEL, id="physics"),
+        pytest.param(
+            PerceivingPhysicalExecution(analysis_engine=TRACY_CUBES),
+            PerceptionSource.ROBOKUDO,
+            id="perceived_physics",
+            marks=needs_robokudo_messages,
+        ),
+    ],
+)
 @needs_tracy
-@needs_robokudo_messages
-def test_a_perceiving_execution_has_robokudo_detect_an_object_before_grasping_it(
-    tracy_with_a_block, monkeypatch
+def test_every_pick_of_a_plan_detects_its_object_first_in_every_execution(
+    locations, monkeypatch, execution, answered_by
 ):
     """
-    The plan is the real robot's: the grasp first detects its object, and RoboKudo
-    answers, looking through the camera of the simulated world.
+    The grasp of a plan's pick first detects its object, answered by the simulated
+    world where no camera is simulated and by RoboKudo, looking through the camera of
+    the simulated world, where one is.
     """
-    monkeypatch.setenv(PERCEPTION_ENGINE_VARIABLE, TRACY_CUBES)
-    world = tracy_with_a_block
-    [tracy] = world.get_semantic_annotations_by_type(Tracy)
-    [block] = world.get_semantic_annotations_by_type(PlannedGraspableFromAbove)
-    execution = PerceivingPhysicalExecution()
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    plan = PlanDocument.from_json(json.loads(TRACY_PICK.read_text("utf-8")))
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    demo.execution = execution
+    world = demo.build_world()
+    context = demo.build_context(world)
+    [_, pick_step] = demo.steps()
     with execution.running(world):
-        executor = PlanPerformance(execution=execution).executor(
-            TaskContext(world=world, robot=tracy)
+        executor = demo.performance(context).executor(context)
+        pick = StepActions(context, demo.bodies, demo.discovered_actions).action(
+            pick_step
         )
-        plan = PickUpAction(grasp=block.grasp_candidates()[0], arm=tracy.left_arm)
         statechart = Statechart(context=executor.context)
-        statechart.add_node(plan)
+        statechart.add_node(pick)
         executor.prepare(statechart)
         executor.close()
-    tasks = [node for node in plan.descendants if isinstance(node, PerceptionTask)]
-    assert [task.answered_by for task in tasks] == [PerceptionSource.ROBOKUDO]
+    tasks = [node for node in pick.descendants if isinstance(node, PerceptionTask)]
+    assert [task.answered_by for task in tasks] == [answered_by]
 
 
 # %% the generated demo's command

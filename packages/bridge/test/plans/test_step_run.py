@@ -53,6 +53,11 @@ CUBE_LIBRARY = DATASET / "cube_library"
 A red, a yellow and a blue cube, each named by its color.
 """
 
+TRACY_PICK = DATASET / "plans" / "tracy_pick.json"
+"""
+Tracy parks its arms, then picks up the red cube with the left arm.
+"""
+
 NUDGED_CUBES = DATASET / "plans" / "tracy_nudged_cubes.json"
 """
 Tracy detects the red cube and puts it into the centre zone, then the blue cube into the
@@ -166,6 +171,28 @@ def test_a_failed_attempt_names_why_and_what_the_next_one_does():
         f"step_3: attempt 1/3 {AttemptOutcome.RETRYING}: the cube moved. "
         f"Next attempt {Alternative.OTHER_ARM.value}."
     )
+
+
+# %% perceiving while the plan runs
+
+
+def test_a_pick_reports_the_object_its_grasp_perceived_first(tmp_path, monkeypatch):
+    if not Tracy.is_description_installed():
+        pytest.skip("iai_tracy_description is not installed")
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "data"))
+    plan = PlanDocument.from_json(json.loads(TRACY_PICK.read_text("utf-8")))
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    [_, pick] = plan.robots[0].steps
+
+    demo.run()
+
+    perceived = [
+        entry for entry in demo.run_log.entries if isinstance(entry, ObjectPerceived)
+    ]
+    assert perceived == [
+        ObjectPerceived(step=pick.identifier, target="red_cube", color="red")
+    ]
 
 
 # %% nudging and taking away cubes while the plan runs in physics

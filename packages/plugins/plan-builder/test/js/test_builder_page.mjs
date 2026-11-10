@@ -52,7 +52,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1179,6 +1179,32 @@ test('an edit of the plan or its scene invalidates the validation', async () => 
   assert.equal(robotRun(root).disabled, true);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
   assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Changed since its validation/);
+});
+
+test('a live object moved away from its pose in the plan invalidates the validation for good', async () => {
+  const { root, page, live, timer } = await openPage();
+  addMilk(root);
+  for (const action of ['park_arms', 'pick_up', 'place']) block(root, action).click();
+  const planned = page.state.objects()[0][PlannedObjectKey.POSE];
+  const standing = structuredClone(live.world);
+  standing.captured.objects['key-milk'] = structuredClone(planned);
+  live.world = standing;
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  byAction(root, PlanAction.STAGE)[0].click();
+  await settled();
+  await timer.tick();
+  const validatedWhileLive = robotRun(root).disabled === false;
+  const moved = structuredClone(standing);
+  moved.captured.objects['key-milk'] = [planned[0] + 2 * SCENE_TOLERANCE, ...planned.slice(1)];
+  live.world = moved;
+  await timer.tickEvery(PollInterval.STATE);
+  live.world = standing;
+  await timer.tick();
+  assert.equal(validatedWhileLive, true);
+  assert.equal(robotRun(root).disabled, true);
+  assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /scene changed since its validation/);
 });
 
 test('developer mode runs on the robot without a passed validation', async () => {

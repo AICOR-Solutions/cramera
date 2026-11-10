@@ -88,11 +88,13 @@ cramera
   names; never into a CRAM checkout. A demo carries its plan as JSON and runs it as
   `cramera_bridge.plans`' `RobotTaskDemo`: `python <demo>.py` performs the selected
   robot's steps, each built generically from its action's class and values, and saves
-  the recording into the local scenes directory, `--executor physics` performs them in
-  a MuJoCo physics simulation instead of kinematically, `--executor perceived_physics`
-  does so with every grasp first detecting its object through RoboKudo (the analysis
-  engine `CRAMERA_PERCEPTION_ENGINE` names, looking through the robot's simulated
-  camera, hosted in the demo's process), `--stage` only publishes the
+  the recording into the local scenes directory. Every grasp first detects its object
+  (coraplex's `DetectBeforeGrasp`), whichever executor runs it. `--executor physics`
+  performs the steps in a MuJoCo physics simulation instead of kinematically, both
+  answering a detection from the simulated world as far as the robot's camera sees it;
+  `--executor perceived_physics` does so answering every detection through RoboKudo
+  (the analysis engine `CRAMERA_PERCEPTION_ENGINE` names, looking through the robot's
+  simulated camera, hosted in the demo's process), `--stage` only publishes the
   world until it is stopped, `--port` chooses where it is published.
 - **Replays.** When the viewer shows a recording with a plan, the panel comes to the
   front and lists the plan's steps as the builder's cards (`web/steps.css`, shared
@@ -120,8 +122,10 @@ cramera
   `automatic` (the default of a profile's pick) is given the arm that reaches, shown on
   its card; the run grounds it the same way before it starts. "Run on robot" is enabled
   only for the plan as it passed its validation: any edit of the plan or its objects
-  invalidates it, and the `run` route refuses a robot run of any other plan unless the
-  request overrides the gate, which developer mode does.
+  invalidates it, as does a live object found more than 2 cm from its pose in the
+  plan (`SCENE_TOLERANCE`), until the plan is validated again; the `run` route refuses
+  a robot run of any other plan unless the request overrides the gate, which developer
+  mode does.
 - **Detecting.** A step whose action looks in a region (Detect) starts looking at the
   whole table. A later step of the same robot can name what it finds in an object
   field, as `detected:<step id>`: when the plan is built, that is the one object of the

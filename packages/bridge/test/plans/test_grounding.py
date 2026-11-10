@@ -18,9 +18,10 @@ from importlib.util import find_spec
 import numpy as np
 import pytest
 
+from coraplex.exceptions import NothingPerceived
 from coraplex.perception import WorldPerception
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
-from cramera_bridge.exceptions import StepNotGrounded
+from cramera_bridge.exceptions import StepAbandoned, StepNotGrounded
 from cramera_bridge.execution import PERCEPTION_ENGINE_VARIABLE
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.plans.arms import Arms
@@ -29,6 +30,8 @@ from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.validating import PlanValidator
+from cramera_bridge.plans.world import PlannedGraspableFromAbove
+from cramera_protocol.detection import DetectionRegion, RegionKind
 from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import DemoDocument, PlanDocument
 from cramera_protocol.validation import (
@@ -37,6 +40,7 @@ from cramera_protocol.validation import (
     ValidationOrder,
     ValidationReport,
 )
+from cramera_protocol.viewer import EnvironmentVariable
 from cramph.composites import StatementNode
 from semantic_digital_twin.robots.tracy import Tracy
 
@@ -70,6 +74,21 @@ Where on the floor beyond Tracy's table no arm reaches a cube.
 RIGHT_ARM_ONLY = (0.55, -1.2)
 """
 Where beside Tracy's table only its right arm reaches a cube.
+"""
+
+BEHIND_TRACY = (-1.0, 0.0)
+"""
+Where on the floor behind Tracy its camera does not look.
+"""
+
+CUBE_HALF_HEIGHT = 0.025
+"""
+How high, in metres, the centre of a cube standing on the floor is.
+"""
+
+REGION_FIELD = "region"
+"""
+The field of a detection naming the region it looks in.
 """
 
 RIGHT_OF_CENTRE = (0.55, -0.15)
@@ -201,6 +220,57 @@ def test_a_plan_no_arm_reaches_is_refused_before_it_runs(pick_and_place):
 
     with pytest.raises(StepNotGrounded):
         demo.build_plan(demo.build_context(world))
+
+
+# %% detecting what the camera does not see
+
+
+@pytest.fixture
+def detection_out_of_view() -> PlanDocument:
+    """
+    :return: A plan of Tracy detecting the red cube on the floor behind it, where its
+        camera does not look, the cube standing there in the twin.
+    """
+    cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
+    [robot] = cubes.robots
+    [detect, *_] = robot.steps
+    behind = DetectionRegion(
+        kind=RegionKind.MARKER, pose=Pose(*BEHIND_TRACY, 0.0, 0, 0, 0, 1)
+    )
+    looking_behind = replace(
+        detect, values={**detect.values, REGION_FIELD: behind.to_json()}
+    )
+    [red, *others] = cubes.objects
+    on_the_floor = replace(red, pose=Pose(*BEHIND_TRACY, CUBE_HALF_HEIGHT, 0, 0, 0, 1))
+    return replace(
+        cubes,
+        robots=[replace(robot, steps=[looking_behind])],
+        objects=[on_the_floor, *others],
+    )
+
+
+def test_a_detection_assumed_from_the_twin_is_checked_again_when_the_plan_runs(
+    detection_out_of_view, tmp_path, monkeypatch
+):
+    """
+    The validation takes the cube from the twin; the run looks for it again through
+    Tracy's camera, which does not see it, so the detection fails instead of trusting
+    the twin.
+    """
+    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "data"))
+    report = validated(detection_out_of_view)
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=detection_out_of_view), port=0)
+
+    with pytest.raises(StepAbandoned) as abandoned:
+        demo.run()
+
+    [detect] = report.steps
+    assert detect.verdict is StepVerdict.ASSUMED
+    assert abandoned.value == StepAbandoned(
+        detect.step,
+        demo.step_run.attempts,
+        NothingPerceived(PlannedGraspableFromAbove).error_message(),
+    )
 
 
 # %% detecting through the simulated camera

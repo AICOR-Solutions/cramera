@@ -35,7 +35,6 @@ from coraplex.plans.executors import (
     PlanExecutor,
 )
 from coraplex.robot_plans.plan_transformations import (
-    DetectBeforeGrasp,
     DetectWithRoboKudo,
     LetContactCarryTheBodies,
     MoveStraightNearTheObject,
@@ -283,7 +282,7 @@ class PerceivingPhysicalExecution(PhysicalExecution):
     Runs the motions in physics as :class:`PhysicalExecution` does, and answers the
     plans' detections the way the real robot does: a RoboKudo analysis engine looks
     through the robot's camera, rendered from the simulated world, over RoboKudo's query
-    action, and every grasp first detects the object it reaches for.
+    action.
     """
 
     analysis_engine: str = field(
@@ -338,8 +337,8 @@ class PerceivingPhysicalExecution(PhysicalExecution):
         safety: SafetyEnvelope,
     ) -> PlanExecutor:
         """
-        Differs from :meth:`PhysicalExecution.executor` in detecting every grasped
-        object with RoboKudo before the grasp's final approach.
+        Differs from :meth:`PhysicalExecution.executor` in answering every detection
+        of the plan with RoboKudo.
         """
         if self.simulation is None or self.ros_node is None:
             raise ExecutionNotRunning(ExecutorKind.PERCEIVED_PHYSICS)
@@ -353,7 +352,6 @@ class PerceivingPhysicalExecution(PhysicalExecution):
             plan_adaptations=[
                 MoveStraightNearTheObject(),
                 LetContactCarryTheBodies(),
-                DetectBeforeGrasp(),
                 DetectWithRoboKudo(),
             ],
         )

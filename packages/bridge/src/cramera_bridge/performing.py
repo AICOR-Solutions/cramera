@@ -17,6 +17,7 @@ from typing_extensions import List, Optional, Sequence
 
 from coraplex.plans.context_extensions import RobotAccess, StatementGrounding
 from coraplex.plans.executors import PlanExecutor
+from coraplex.plans.plan_transformation import PlanRewriting, PlanTransformation
 from cramera_bridge.execution import KinematicExecution, PlanExecution
 from cramph.context import ContextExtension, StatechartContext
 from cramph.executor import ExecutorExtension
@@ -141,6 +142,13 @@ class PlanPerformance:
     The safety constraints every motion of every plan is held to.
     """
 
+    plan_transformations: Sequence[PlanTransformation] = ()
+    """
+    The transformations rewriting every plan performed, whichever execution runs it,
+    after those of the plan's own
+    :class:`~coraplex.plans.plan_transformation.PlanRewriting`.
+    """
+
     def executor(
         self,
         context: TaskContext,
@@ -149,10 +157,22 @@ class PlanPerformance:
         """
         :param context: The world and the robot the plan is performed with.
         :param extensions: Added to the executor after :attr:`extensions`.
-        :return: A new executor with a context of its own.
+        :return: A new executor with a context of its own, which rewrites the plan with
+            :attr:`plan_transformations` too.
         """
+        statechart_context = context.take_statechart_context()
+        if self.plan_transformations:
+            rewriting = (
+                statechart_context.get_extension(PlanRewriting) or PlanRewriting()
+            )
+            statechart_context.extensions[PlanRewriting] = PlanRewriting(
+                transformations=[
+                    *rewriting.transformations,
+                    *self.plan_transformations,
+                ]
+            )
         return self.execution.executor(
-            context.take_statechart_context(),
+            statechart_context,
             collision_avoidance=self.collision_avoidance,
             extensions=[*self.extensions, *extensions],
             safety=self.safety,
