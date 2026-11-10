@@ -3,7 +3,7 @@ Validating a plan before it runs on the robot: the performing robot's steps are 
 one after another in a copy of the plan's twin, so nothing moves, and the report says
 how each fared. A detection perceives where the robot's camera sees its region now,
 through the robot's perception or that of its simulated scene, else it is assumed from
-the twin.
+the twin. For the real robot, the twin's robot stands as the real one reports.
 
 Run as ``python -m cramera_bridge.plans.validating <order.json> <report.json>``, it reads
 a :class:`~cramera_protocol.validation.ValidationOrder` and writes the
@@ -25,8 +25,10 @@ from coraplex.perception import PerceptionInterface, WorldPerception
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.robot_perception import RobotPerception
+from cramera_bridge.real_robot import ReportedPosture
 from cramera_protocol.plan_builder import PlanStep
 from cramera_protocol.validation import ValidationOrder, ValidationReport
+from semantic_digital_twin.world import World
 
 # %% validating
 
@@ -44,11 +46,11 @@ class PlanValidator:
 
     def validate(self) -> ValidationReport:
         """
-        :return: How each step of the performing robot fared, starting from the posture
-            the plan gives the robot.
+        :return: How each step of the performing robot fared, starting where
+            :meth:`build_world` stands the robot.
         """
         demo = PlannedTaskDemo.of_document(self.order.demo, port=0)
-        world = demo.build_world()
+        world = self.build_world(demo)
         context = demo.build_context(world)
         steps = demo.steps()
         with self.perception(demo, steps) as live:
@@ -60,6 +62,18 @@ class PlanValidator:
                 site=demo.site,
             ).ground(steps)
         return ValidationReport(steps=[step.to_step_validation() for step in grounded])
+
+    def build_world(self, demo: PlannedTaskDemo) -> World:
+        """
+        :param demo: The plan's demo.
+        :return: The plan's twin, the robot standing as the real one reports when the
+            order says so, else in the posture the plan gives it.
+        :raises JointStatesNotReceived: When the real robot reports no joint positions.
+        """
+        world = demo.build_world()
+        if self.order.reads_robot_posture:
+            ReportedPosture().apply(world)
+        return world
 
     @contextmanager
     def perception(

@@ -7,10 +7,8 @@ execution differs, as the plan builder's run mode and the robot profile choose i
 :class:`~cramera_protocol.robot_profile.ExecutorKind`. An execution sets the world up
 for its kind while the plans run, and gives each plan the executor that runs it.
 
-Executing on the real robot is another kind of execution: a subclass whose
-:meth:`PlanExecution.executor` returns coraplex's
-:class:`~coraplex.plans.executors.RealRobotPlanExecutor`, registered in
-:data:`EXECUTIONS` under the executor kind a robot profile names for its real runs.
+Executing on the real robot is another kind of execution: it starts Giskard to command
+the robot, and the run's world is the one Giskard reports, kept in step with it.
 """
 
 from __future__ import annotations
@@ -20,12 +18,10 @@ from abc import ABC, abstractmethod
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
-from threading import Thread
 from types import MappingProxyType
 
 import mujoco
-import rclpy
-from rclpy.executors import SingleThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from typing_extensions import Iterator, Optional, Sequence, Type
 
@@ -33,13 +29,24 @@ from coraplex.plans.executors import (
     KinematicallySimulatedPlanExecutor,
     PhysicallySimulatedPlanExecutor,
     PlanExecutor,
+    RealRobotPlanExecutor,
 )
 from coraplex.robot_plans.plan_transformations import (
     DetectWithRoboKudo,
     LetContactCarryTheBodies,
     MoveStraightNearTheObject,
 )
-from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
+from cramera_bridge.exceptions import (
+    ExecutionNotRunning,
+    PerceptionEngineNotNamed,
+    RealRobotNotReady,
+)
+from cramera_bridge.real_robot import (
+    GiskardLaunchFile,
+    GiskardProcess,
+    RealRobotPreflight,
+)
+from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.robot_profile import ExecutorKind
 from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
@@ -48,6 +55,8 @@ from robokudo.defs import PACKAGE_NAME
 from robokudo.query_service import QueryService
 from robokudo.utils.module_loader import ModuleLoader
 from semantic_digital_twin.adapters.multi_sim import MujocoSim
+from semantic_digital_twin.adapters.ros.world_fetcher import fetch_world_from_service
+from semantic_digital_twin.adapters.ros.world_synchronizer import WorldSynchronizer
 from semantic_digital_twin.datastructures.definitions import StaticJointState
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
@@ -107,6 +116,21 @@ class PlanExecution(ABC):
         :return: A new execution of that kind with its default settings.
         """
         return EXECUTIONS[kind]()
+
+    @contextmanager
+    def attached(self) -> Iterator[None]:
+        """
+        Reach the robot the plans move while the block runs the whole task, its world
+        built inside; a simulated execution reaches nothing.
+        """
+        yield
+
+    def reported_world(self) -> Optional[World]:
+        """
+        :return: The world as the robot reports it while :meth:`attached`, which the
+            task is performed in; None where the task builds its world itself.
+        """
+        return None
 
     @contextmanager
     def running(self, world: World) -> Iterator[None]:
@@ -308,9 +332,9 @@ class PerceivingPhysicalExecution(PhysicalExecution):
         if not self.analysis_engine:
             raise PerceptionEngineNotNamed(PERCEPTION_ENGINE_VARIABLE)
         with super().running(world), ExitStack() as perceiving:
-            if not rclpy.ok():
-                rclpy.init()
-                perceiving.callback(rclpy.try_shutdown)
+            node = perceiving.enter_context(
+                SpinningNode(PERCEIVING_NODE_NAME).running()
+            )
             service = QueryService(
                 analysis_engine=ModuleLoader().load_ae(
                     ros_pkg_name=PACKAGE_NAME, module_name=self.analysis_engine
@@ -319,12 +343,6 @@ class PerceivingPhysicalExecution(PhysicalExecution):
             )
             service.start()
             perceiving.callback(service.stop)
-            node = rclpy.create_node(PERCEIVING_NODE_NAME)
-            perceiving.callback(node.destroy_node)
-            spinner = SingleThreadedExecutor()
-            spinner.add_node(node)
-            Thread(target=spinner.spin, daemon=True, name=PERCEIVING_NODE_NAME).start()
-            perceiving.callback(spinner.shutdown)
             self.ros_node = node
             perceiving.callback(setattr, self, "ros_node", None)
             yield
@@ -357,11 +375,106 @@ class PerceivingPhysicalExecution(PhysicalExecution):
         )
 
 
+@dataclass
+class RealExecution(PlanExecution):
+    """
+    Moves the real robot: Giskard, started for the task, commands its controllers and
+    its grippers' drivers, the task's world is the one Giskard reports and follows the
+    robot's joint positions, and RoboKudo answers the plans' detections.
+
+    The robot starts where it stands; nothing parks it before the first plan.
+    """
+
+    giskard_launch_file: GiskardLaunchFile = field(
+        default_factory=lambda: GiskardLaunchFile.from_environment(os.environ)
+    )
+    """
+    The launch file Giskard is started with.
+    """
+
+    world_fetch_timeout: float = 300.0
+    """
+    How long, in seconds, Giskard may take to serve its world once started.
+    """
+
+    node_name: str = "cramera_real_robot"
+    """
+    The name of the node the plans reach Giskard and RoboKudo through.
+    """
+
+    world: Optional[World] = field(default=None, init=False)
+    """
+    The world Giskard reports while :meth:`attached`, else None.
+    """
+
+    ros_node: Optional[Node] = field(default=None, init=False)
+    """
+    The node the plans reach Giskard through while :meth:`attached`, else None.
+    """
+
+    @contextmanager
+    def attached(self) -> Iterator[None]:
+        """
+        Check the robot's drivers, start Giskard and keep the world it serves in step
+        with it while the block runs; stop Giskard when the block ends.
+
+        :raises RealRobotNotReady: When the preflight misses a driver the run needs.
+        """
+        with ExitStack() as attached:
+            node = attached.enter_context(
+                SpinningNode(self.node_name, MultiThreadedExecutor).running()
+            )
+            report = RealRobotPreflight(self.giskard_launch_file).check(node)
+            if not report.ready:
+                raise RealRobotNotReady(report.to_text())
+            attached.enter_context(GiskardProcess(self.giskard_launch_file).running())
+            world = fetch_world_from_service(
+                node=node, timeout_seconds=self.world_fetch_timeout
+            )
+            attached.callback(WorldSynchronizer(_world=world, node=node).close)
+            self.world = world
+            self.ros_node = node
+            attached.callback(self.detach)
+            yield
+
+    def detach(self) -> None:
+        """
+        Forget the world and the node of the robot once it is no longer reached.
+        """
+        self.world = None
+        self.ros_node = None
+
+    def reported_world(self) -> Optional[World]:
+        return self.world
+
+    def executor(
+        self,
+        context: StatechartContext,
+        collision_avoidance: bool,
+        extensions: Sequence[ExecutorExtension],
+        safety: SafetyEnvelope,
+    ) -> PlanExecutor:
+        """
+        :raises ExecutionNotRunning: Outside :meth:`attached`, where Giskard does not
+            run.
+        """
+        if self.ros_node is None:
+            raise ExecutionNotRunning(ExecutorKind.REAL)
+        return RealRobotPlanExecutor(
+            context,
+            ros_node=self.ros_node,
+            collision_avoidance=collision_avoidance,
+            extensions=list(extensions),
+            safety=safety,
+        )
+
+
 EXECUTIONS: MappingProxyType[ExecutorKind, Type[PlanExecution]] = MappingProxyType(
     {
         ExecutorKind.KINEMATIC: KinematicExecution,
         ExecutorKind.PHYSICS: PhysicalExecution,
         ExecutorKind.PERCEIVED_PHYSICS: PerceivingPhysicalExecution,
+        ExecutorKind.REAL: RealExecution,
     }
 )
 """

@@ -1166,3 +1166,37 @@ class UnknownSupportingObject(PlacementNotFound):
 
     def message(self) -> str:
         return f"The plan holds no object {self.object_identifier} to put anything on."
+
+
+@dataclass
+class JointStatesNotReceived(DemoError):
+    """
+    The real robot's drivers sent no joint positions on topics they publish them on.
+    """
+
+    topics: List[str]
+    """
+    The topics that stayed silent.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The real robot reported no joint positions on {', '.join(self.topics)}; "
+            f"check that its drivers run."
+        )
+
+
+@dataclass
+class RealRobotNotReady(DemoError):
+    """
+    A real run that would miss what the robot's drivers have to provide, found by the
+    preflight before Giskard starts.
+    """
+
+    report: str
+    """
+    The preflight's report, a line per requirement.
+    """
+
+    def message(self) -> str:
+        return f"The real robot is not ready to run a plan:\n{self.report}"

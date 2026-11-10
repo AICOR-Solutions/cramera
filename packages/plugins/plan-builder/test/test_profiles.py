@@ -13,7 +13,9 @@ import pytest
 from cramera_plan_builder.exceptions import RunModeNotOffered
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_protocol.geometry import Pose
+from cramera_protocol.validation import ValidationOrder
 from cramera_protocol.plan_builder import (
+    DemoDocument,
     PlanDocument,
     PlannedRobot,
     PlanStep,
@@ -23,6 +25,7 @@ from cramera_protocol.robot_profile import (
     CameraMount,
     ExecutorKind,
     RobotProfile,
+    RobotConnection,
     RobotProfileKey,
     RobotProfileVariable,
 )
@@ -169,3 +172,62 @@ def test_a_profile_chooses_the_executor_of_each_mode_it_offers():
     assert configured.executor_for(RunMode.PERFORM) is ExecutorKind.PHYSICS
     with pytest.raises(RunModeNotOffered):
         configured.executor_for(RunMode.SIMULATE)
+
+
+# %% the real robot
+
+
+@pytest.fixture
+def profile_with_a_real_run(tmp_path, profile_file) -> Path:
+    """
+    :return: The test dataset's profile, its robot run executed on the real robot.
+    """
+    document = json.loads(profile_file.read_text("utf-8"))
+    document[RobotProfileKey.EXECUTORS] = {
+        RunMode.PERFORM: ExecutorKind.KINEMATIC,
+        RunMode.ROBOT: ExecutorKind.REAL,
+    }
+    real = tmp_path / "tracy.json"
+    real.write_text(json.dumps(document), "utf-8")
+    for referenced in ("templates", "scenes"):
+        (tmp_path / referenced).symlink_to(profile_file.parent / referenced)
+    return real
+
+
+def test_a_deployment_attached_to_the_real_robot_runs_on_it_and_perceives_with_it(
+    profile_with_a_real_run,
+):
+    configured = ConfiguredProfile.of_environment(
+        {
+            RobotProfileVariable.PROFILE: str(profile_with_a_real_run),
+            RobotProfileVariable.CONNECTION: RobotConnection.REAL,
+        }
+    )
+    assert configured.connection is RobotConnection.REAL
+    assert configured.executor_for(RunMode.ROBOT) is ExecutorKind.REAL
+    assert configured.simulated_objects is None
+
+
+def test_a_validation_starts_where_the_attached_real_robot_stands(
+    profile_with_a_real_run,
+):
+    demo = DemoDocument(plan=plan_of())
+    attached = ConfiguredProfile.of_file(profile_with_a_real_run, RobotConnection.REAL)
+    simulated = ConfiguredProfile.of_file(profile_with_a_real_run)
+    assert attached.validation_order(demo).reads_robot_posture is True
+    assert simulated.validation_order(demo) == ValidationOrder(
+        demo=demo, simulated_objects=simulated.simulated_objects
+    )
+
+
+def test_a_simulated_deployment_offers_no_run_on_the_real_robot(
+    profile_with_a_real_run,
+):
+    configured = ConfiguredProfile.of_environment(
+        {RobotProfileVariable.PROFILE: str(profile_with_a_real_run)}
+    )
+    assert configured.connection is RobotConnection.SIMULATED
+    assert configured.profile.executors == {RunMode.PERFORM: ExecutorKind.KINEMATIC}
+    with pytest.raises(RunModeNotOffered):
+        configured.executor_for(RunMode.ROBOT)
+    assert configured.simulated_objects is not None

@@ -239,6 +239,11 @@ class ValidationOrderKey(StrEnum):
     The objects of the simulated scene the camera is rendered from.
     """
 
+    READS_ROBOT_POSTURE = "readsRobotPosture"
+    """
+    Whether the robot starts from the joint positions the real robot reports.
+    """
+
 
 @dataclass(kw_only=True)
 class ValidationOrder(JsonDocument):
@@ -258,4 +263,12 @@ class ValidationOrder(JsonDocument):
     """
     The objects standing in a simulated scene that the robot's camera is rendered from,
     or None to ask the robot's own perception.
+    """
+
+    reads_robot_posture: bool = document_field(
+        ValidationOrderKey.READS_ROBOT_POSTURE, default=False
+    )
+    """
+    Whether the robot starts from the joint positions the real robot reports, rather
+    than from the posture the plan gives it.
     """

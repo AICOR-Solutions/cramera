@@ -53,11 +53,11 @@ from cramera_protocol.plan_builder import (
     EnvironmentAnnotationsParameter,
 )
 from cramera_protocol.reach import ReachRequest, ReachRequestKey
+from cramera_protocol.robot_profile import ExecutorKind
 from cramera_protocol.validation import (
     StepFailureReason,
     StepValidation,
     StepVerdict,
-    ValidationOrder,
     ValidationReport,
     ValidationRequest,
 )
@@ -465,6 +465,7 @@ class PlanBuilderRoutes:
         :return: The state of the started demo.
         :raises PlanNotValidated: When the mode needs a validated plan, the plan is not
             the one whose validation passed last and the request does not override it.
+            A run on the real robot moves it, so the next run needs a new validation.
         """
         run = RunRequest.from_json(self.body(request))
         demo = self.runnable(run.plan)
@@ -475,7 +476,10 @@ class PlanBuilderRoutes:
         ):
             raise PlanNotValidated(run.mode.value)
         executor = self.profile.executor_for(run.mode)
-        return Response.of_json(self.runner.start(demo, run.mode, executor))
+        status = self.runner.start(demo, run.mode, executor)
+        if executor is ExecutorKind.REAL:
+            self.gate.close()
+        return Response.of_json(status)
 
     def answer_run_status(self, request: Request) -> Response:
         """
@@ -538,7 +542,7 @@ class PlanBuilderRoutes:
         self.runner.refuse_before_acknowledgement()
         demo = self.runnable(ValidationRequest.from_json(self.body(request)).plan)
         report = self.report_unoffered_skills(demo.plan) or self.validations.validate(
-            ValidationOrder(demo=demo, simulated_objects=self.profile.simulated_objects)
+            self.profile.validation_order(demo)
         )
         self.gate.record(demo.plan, report)
         return Response.of_json(report)

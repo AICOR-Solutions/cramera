@@ -36,14 +36,38 @@ class RobotProfileVariable(StrEnum):
     The path of the robot profile's JSON file.
     """
 
+    CONNECTION = "CRAMERA_ROBOT_CONNECTION"
+    """
+    Whether the deployment is attached to the real robot, a :class:`RobotConnection`
+    value; simulated when it is not set.
+    """
+
+
+class RobotConnection(StrEnum):
+    """
+    What a deployment's robot is: the real one, or only its simulation.
+    """
+
+    SIMULATED = "simulated"
+    """
+    No real robot is attached: scans and validations look at the profile's simulated
+    scene, and no run executes on the real robot.
+    """
+
+    REAL = "real"
+    """
+    The real robot is attached: scans and validations ask its own perception, a
+    validation starts from the joint positions it reports, and the robot run mode
+    executes on it.
+    """
+
 
 class ExecutorKind(StrEnum):
     """
     How a run of a plan executes its motions, which picks the plan executor the
     generated program runs the plan with.
 
-    A robot executing on its real hardware is added here with the executor that drives
-    it, and a profile names it for the run mode that runs on the robot.
+    A profile names :attr:`REAL` for the run mode that runs on the robot.
     """
 
     KINEMATIC = "kinematic"
@@ -62,6 +86,12 @@ class ExecutorKind(StrEnum):
     Runs the motions in physics as :attr:`PHYSICS` does, and has a RoboKudo pipeline
     look through the robot's simulated camera for the objects the plan detects, as the
     real robot's perception does.
+    """
+
+    REAL = "real"
+    """
+    Moves the real robot: Giskard commands its controllers, the plan's world follows the
+    joint positions it reports, and RoboKudo looks through its camera.
     """
 
 

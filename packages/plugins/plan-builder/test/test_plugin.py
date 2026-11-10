@@ -62,7 +62,9 @@ from cramera_protocol.plan_builder import (
 )
 from cramera_protocol.robot_profile import (
     ExecutorKind,
+    RobotConnection,
     RobotProfile,
+    RobotProfileKey,
     RobotProfileVariable,
 )
 from cramera_protocol.reach import ReachRequest, RobotReach
@@ -507,15 +509,22 @@ def test_a_scan_sees_the_simulated_scene_the_profile_names(
 # %% validating
 
 
-def validating_plugin(output, workspace_loader, profile_file) -> PlanBuilderPlugin:
+def validating_plugin(
+    output,
+    workspace_loader,
+    profile_file,
+    connection: RobotConnection = RobotConnection.SIMULATED,
+) -> PlanBuilderPlugin:
     """
     :return: A plan builder of the profile whose validator is the stand-in that fails
-        the step a plan's task names as unreachable.
+        the step a plan's task names as unreachable, attached to the robot as
+        `connection` says.
     """
     return PlanBuilderPlugin(
         environment={
             PlanBuilderVariable.OUTPUT: str(output),
             RobotProfileVariable.PROFILE: str(profile_file),
+            RobotProfileVariable.CONNECTION: connection,
         },
         workspace=workspace_loader,
         template=DemoTemplate(DATASET / "templates" / "waiting_demo.py"),
@@ -636,6 +645,37 @@ def test_a_step_of_a_skill_the_profile_lacks_fails_without_trying(validating, pl
 
     assert report.steps[0].reason is StepFailureReason.SKILL_NOT_OFFERED
     assert {step.verdict for step in report.steps[1:]} == {StepVerdict.UNCHECKED}
+
+
+@pytest.fixture
+def attached_to_the_real_robot(serve, output, workspace_loader, tmp_path):
+    """
+    :return: Answers requests to a plan builder attached to the real robot, whose
+        profile runs the robot run mode on it, with the stand-in validator.
+    """
+    profile_file = DATASET / "profile" / "tracy.json"
+    document = json.loads(profile_file.read_text("utf-8"))
+    document[RobotProfileKey.EXECUTORS] = {RunMode.ROBOT: ExecutorKind.REAL}
+    real = tmp_path / "profile" / "tracy.json"
+    real.parent.mkdir()
+    real.write_text(json.dumps(document), "utf-8")
+    for referenced in ("templates", "scenes"):
+        (real.parent / referenced).symlink_to(profile_file.parent / referenced)
+    return serve(
+        validating_plugin(output, workspace_loader, real, RobotConnection.REAL)
+    )
+
+
+def test_a_run_on_the_real_robot_needs_a_new_validation_for_the_next_run(
+    attached_to_the_real_robot, plan
+):
+    validate(attached_to_the_real_robot, plan)
+
+    assert run_on_the_robot(attached_to_the_real_robot, plan) == HTTPStatus.OK
+    assert (
+        run_on_the_robot(attached_to_the_real_robot, plan)
+        == PlanNotValidated(RunMode.ROBOT).status()
+    )
 
 
 # %% placing

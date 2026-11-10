@@ -45,6 +45,7 @@ import {
   ValidationReportKey,
   ViewerEvent,
   RobotProfileKey,
+  ExecutorKind,
   SkillKey,
   PlanTemplateKey,
   ZoneKey,
@@ -1134,6 +1135,36 @@ test('the run on the robot stays disabled until the plan passes its validation',
   robotRun(root).click();
   await settled();
   assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
+});
+
+/**
+ * @param {Object<string, string>} executors The executor of each run mode.
+ * @returns {function(Object): void} Prepares the fake API to serve a profile of Tracy
+ *   whose run modes execute so.
+ */
+const profileRunning = (executors) => ({ api }) => {
+  api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = { [RobotProfileKey.ROBOT]: 'tracy', [RobotProfileKey.LABEL]: 'Tracy', [RobotProfileKey.EXECUTORS]: executors };
+};
+
+test('a profile running the robot run mode on the real robot marks it and offers it for a validated plan only', async () => {
+  const { root, api } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  assert.equal(robotRun(root).hidden, false);
+  assert.match(robotRun(root).textContent, /real robot/);
+  assert.equal(robotRun(root).classList.contains('real-robot'), true);
+  assert.equal(robotRun(root).disabled, true);
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  assert.equal(robotRun(root).disabled, false);
+  robotRun(root).click();
+  await settled();
+  assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
+  assert.match(message(root), /real robot/);
+  assert.equal(robotRun(root).disabled, true);
+});
+
+test('a profile offering no run on the robot hides its button', async () => {
+  const { root } = await pickAndPlace(profileRunning({ [RunMode.PERFORM]: ExecutorKind.KINEMATIC }));
+  assert.equal(robotRun(root).hidden, true);
 });
 
 test('a pick out of reach fails its validation as unreachable and the robot run stays disabled', async () => {

@@ -10,10 +10,7 @@ from __future__ import annotations
 import os
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field, replace
-from threading import Thread
 
-import rclpy
-from rclpy.executors import SingleThreadedExecutor
 from typing_extensions import Iterator, List, Optional
 
 from coraplex.perception import PerceptionInterface, RoboKudoPerception
@@ -24,6 +21,7 @@ from cramera_bridge.execution import (
     PhysicalExecution,
 )
 from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.plan_builder import DemoDocument, PlannedObject
 from robokudo.defs import PACKAGE_NAME
 from robokudo.query_service import QueryService
@@ -67,17 +65,11 @@ class RobotPerception:
             analysis engine is named.
         """
         with ExitStack() as perceiving:
-            if not rclpy.ok():
-                rclpy.init()
-                perceiving.callback(rclpy.try_shutdown)
+            node = perceiving.enter_context(
+                SpinningNode(PERCEIVING_NODE_NAME).running()
+            )
             if self.simulated_objects is not None:
                 self.serve_simulated_scene(perceiving)
-            node = rclpy.create_node(PERCEIVING_NODE_NAME)
-            perceiving.callback(node.destroy_node)
-            spinner = SingleThreadedExecutor()
-            spinner.add_node(node)
-            Thread(target=spinner.spin, daemon=True, name=PERCEIVING_NODE_NAME).start()
-            perceiving.callback(spinner.shutdown)
             yield RoboKudoPerception(ros_node=node)
 
     def serve_simulated_scene(self, perceiving: ExitStack) -> None:

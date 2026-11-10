@@ -276,13 +276,19 @@ class PlannedTaskDemo(RobotTaskDemo):
 
     def build_world(self) -> World:
         """
-        :return: A new world holding the environment, every robot at its start pose
-            and posture, and the plan's objects; a run held to safety limits starts
-            with the arms parked, as the real robot stands inside its workspaces.
+        :return: The world the execution reports from the real robot, which stands as
+            it is and is named as the plan names it, holding the plan's objects; where
+            no real robot is reached, a new world holding the environment, every robot
+            at its start pose and posture and the plan's objects, a run held to safety
+            limits with its arms parked, as the real robot stands inside its workspaces.
         """
-        world = self.robot_scene.build_world(self.environment)
-        if self.document.safety is not None:
-            StartingPosture().apply(world)
+        world = self.execution.reported_world()
+        if world is None:
+            world = self.robot_scene.build_world(self.environment)
+            if self.document.safety is not None:
+                StartingPosture().apply(world)
+        else:
+            self.robot_scene.selected_placement().name_reported_robot(world)
         self.bodies = PlannedObjects(self.plan.objects).spawn(world)
         return world
 
@@ -302,7 +308,18 @@ class PlannedTaskDemo(RobotTaskDemo):
         return performance
 
     def build_context(self, world: World) -> TaskContext:
-        return TaskContext(world=world, robot=self.robot_scene.selected_robot(world))
+        """
+        Differs from :meth:`RobotTaskDemo.build_context` in performing with the plan's
+        selected robot, which in the world a real robot reports is the one robot of its
+        model.
+        """
+        placement = self.robot_scene.selected_placement()
+        robot = (
+            placement.resolve(world)
+            if self.execution.reported_world() is None
+            else placement.resolve_by_model(world)
+        )
+        return TaskContext(world=world, robot=robot)
 
     def build_plan(self, context: TaskContext) -> StatechartNode:
         """

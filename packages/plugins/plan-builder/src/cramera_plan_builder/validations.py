@@ -84,6 +84,14 @@ class ValidationGate:
         with self.lock:
             return self.validated is not None and self.validated == self.serialize(plan)
 
+    def close(self) -> None:
+        """
+        Admit no plan until the next validation passes, as once the robot moved the
+        latest validation no longer describes where it stands.
+        """
+        with self.lock:
+            self.validated = None
+
     @staticmethod
     def serialize(plan: PlanDocument) -> str:
         """

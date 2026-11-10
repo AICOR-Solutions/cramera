@@ -13,6 +13,7 @@ from typing_extensions import List, Mapping, Optional
 
 from cramera_plan_builder.exceptions import RunModeNotOffered
 from cramera_protocol.plan_builder import (
+    DemoDocument,
     PlanDocument,
     PlannedObject,
     PlanStep,
@@ -22,9 +23,11 @@ from cramera_protocol.plan_builder import (
 from cramera_protocol.robot_profile import (
     CameraMount,
     ExecutorKind,
+    RobotConnection,
     RobotProfile,
     RobotProfileVariable,
 )
+from cramera_protocol.validation import ValidationOrder
 
 # %% configured profile
 
@@ -51,6 +54,11 @@ class ConfiguredProfile:
     own perception sees the scene.
     """
 
+    connection: RobotConnection = RobotConnection.SIMULATED
+    """
+    Whether the deployment is attached to the real robot.
+    """
+
     unprofiled_label: str = "This deployment"
     """
     How a deployment without a profile is named where it offers no run.
@@ -59,20 +67,37 @@ class ConfiguredProfile:
     @classmethod
     def of_environment(cls, environment: Mapping[str, str]) -> ConfiguredProfile:
         """
-        :param environment: The process environment, which may name the profile's file.
+        :param environment: The process environment, which may name the profile's file
+            and whether the real robot is attached.
         :return: The profile it names with its templates, or no profile.
         """
         path = environment.get(RobotProfileVariable.PROFILE)
-        return cls.of_file(Path(path).expanduser()) if path else cls()
+        connection = RobotConnection(
+            environment.get(RobotProfileVariable.CONNECTION, RobotConnection.SIMULATED)
+        )
+        return cls.of_file(Path(path).expanduser(), connection) if path else cls()
 
     @classmethod
-    def of_file(cls, path: Path) -> ConfiguredProfile:
+    def of_file(
+        cls, path: Path, connection: RobotConnection = RobotConnection.SIMULATED
+    ) -> ConfiguredProfile:
         """
         :param path: A profile's JSON file.
+        :param connection: Whether the deployment is attached to the real robot.
         :return: The profile with the templates and the simulated scene it names, read
-            relative to the file.
+            relative to the file; attached to the real robot, the robot perceives the
+            scene itself, else no run mode executes on the real robot.
         """
         profile = RobotProfile.from_file(path)
+        if connection is RobotConnection.SIMULATED:
+            profile = replace(
+                profile,
+                executors={
+                    mode: executor
+                    for mode, executor in profile.executors.items()
+                    if executor is not ExecutorKind.REAL
+                },
+            )
         return cls(
             profile=profile,
             templates=[
@@ -84,9 +109,22 @@ class ConfiguredProfile:
             ],
             simulated_objects=(
                 None
-                if profile.simulated_scene is None
+                if profile.simulated_scene is None or connection is RobotConnection.REAL
                 else cls.plan_file(path.parent / profile.simulated_scene).objects
             ),
+            connection=connection,
+        )
+
+    def validation_order(self, demo: DemoDocument) -> ValidationOrder:
+        """
+        :param demo: A checked plan and its environment.
+        :return: Its validation in the scene the robot's camera sees, starting where the
+            real robot stands when the deployment is attached to it.
+        """
+        return ValidationOrder(
+            demo=demo,
+            simulated_objects=self.simulated_objects,
+            reads_robot_posture=self.connection is RobotConnection.REAL,
         )
 
     def camera_mount(self) -> Optional[CameraMount]:

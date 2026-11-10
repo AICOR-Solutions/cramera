@@ -10,7 +10,6 @@ from importlib.util import find_spec
 
 import pytest
 
-from cramera.locations import DataLocations
 from coraplex.datastructures.enums import PerceptionSource
 from coraplex.perception import PerceptionTask
 from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
@@ -30,7 +29,6 @@ from cramera_bridge.plans.world import PlannedGraspableFromAbove
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
 from cramera_protocol.robot_profile import ExecutorKind
-from cramera_protocol.viewer import EnvironmentVariable
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from cramph.context import StatechartContext
 from cramph.statechart import Statechart
@@ -92,16 +90,6 @@ PARKED_TRACY_PLAN = {
 """
 A plan in which Tracy parks its arms.
 """
-
-
-@pytest.fixture
-def locations(tmp_path, monkeypatch) -> DataLocations:
-    """
-    :return: Data locations below the test's directory, which demos read from the
-        environment.
-    """
-    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "data"))
-    return DataLocations(data=tmp_path / "data", shared_scenes=None)
 
 
 @pytest.fixture

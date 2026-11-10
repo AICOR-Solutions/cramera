@@ -216,6 +216,7 @@ details.more-options summary { cursor: pointer; font-size: 12px; color: var(--te
 .run-state[data-state="failed"] { color: var(--danger); }
 .run-state[data-state="safety_stopped"] { color: var(--danger); }
 .safety-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border: 2px solid var(--danger); border-radius: 4px; color: var(--danger); }
+.real-robot { border: 2px solid var(--danger); color: var(--danger); font-weight: bold; }
 .safety-banner[hidden] { display: none; }
 .safety-banner .safety-message { flex: 1 1 auto; }
 .validation-state { color: var(--text-muted); }

@@ -33,6 +33,7 @@ import {
   RobotInstanceKey,
   RobotProfileKey,
   PlanTemplateKey,
+  ExecutorKind,
   RunMode,
   RunState,
   RunStatusKey,
@@ -120,6 +121,11 @@ const RUN_MESSAGES = Object.freeze({
   [RunMode.SIMULATE]: 'Dry-running the plan in physics; watch it in the 3D view or the viewer.',
   [RunMode.ROBOT]: 'Running the plan on the robot; watch it in the 3D view or the viewer.',
 });
+
+/**
+ * What the page says once a run on the real robot started.
+ */
+const REAL_ROBOT_RUN_MESSAGE = 'Running the plan on the real robot; keep the emergency stop at hand. The next run needs a new validation.';
 
 /**
  * The run states in which the live world is published.
@@ -786,14 +792,27 @@ export class BuilderPage {
       return null;
     });
     if (!status) return;
+    const real = mode === RunMode.ROBOT && this.#robotExecutor() === ExecutorKind.REAL;
+    if (real) this.#validation = null;
     this.#safetyBanner.reset();
     this.#runShown = mode !== RunMode.STAGE;
     this.#cameraImages = [];
     this.#world = PageWorld.empty();
     this.#attached.clear();
     this.#run = status;
-    this.report(RUN_MESSAGES[mode]);
+    this.report(real ? REAL_ROBOT_RUN_MESSAGE : RUN_MESSAGES[mode]);
     this.render();
+  }
+
+  /**
+   * @returns {string|null|undefined} The `ExecutorKind` the robot profile runs the robot
+   *   run mode with; null when the profile names executors but none for it, so the page
+   *   offers no run on the robot; undefined when the server decides alone.
+   */
+  #robotExecutor() {
+    const executors = this.state.catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.EXECUTORS] ?? {};
+    if (Object.keys(executors).length === 0) return undefined;
+    return executors[RunMode.ROBOT] ?? null;
   }
 
   /**
@@ -1229,7 +1248,14 @@ export class BuilderPage {
     parts.perform = elements.button('Run plan', PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
     parts.simulate = elements.button('Dry-run in physics', PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
     parts.validate = elements.button('Validate', PlanAction.VALIDATE, () => this.validate());
-    parts.robot = elements.button('Run on robot', PlanAction.RUN_ON_ROBOT, () => this.#runOnRobot());
+    const robotExecutor = this.#robotExecutor();
+    const onRealRobot = robotExecutor === ExecutorKind.REAL;
+    parts.robot = elements.button(onRealRobot ? 'Run on the real robot' : 'Run on robot', PlanAction.RUN_ON_ROBOT, () => this.#runOnRobot());
+    parts.robot.hidden = robotExecutor === null;
+    if (onRealRobot) {
+      parts.robot.classList.add('real-robot');
+      parts.robot.title = 'Moves the real robot. Runs a plan that passed its validation against where the robot stands now; keep the emergency stop at hand.';
+    }
     parts.stop = elements.button('Stop', PlanAction.STOP, () => this.#stop());
     parts.capture = elements.button('Capture live poses', PlanAction.CAPTURE, () => this.#capture());
     parts.safetyMessage = elements.create('strong', 'safety-message');

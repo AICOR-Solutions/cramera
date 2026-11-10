@@ -1,0 +1,390 @@
+"""
+The real robot: the preflight checking that its drivers are up before a real run, and
+reading where it stands.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+import time
+from contextlib import ExitStack
+from pathlib import Path
+
+
+import pytest
+
+pytest.importorskip("control_msgs")
+
+from cramera_bridge.exceptions import JointStatesNotReceived, RealRobotNotReady
+from cramera_bridge.execution import RealExecution
+from cramera_bridge.plans.command import PlanDemoCommand
+from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.validating import PlanValidator
+from cramera_bridge.real_robot import (
+    GiskardLaunchFile,
+    GiskardProcess,
+    OrbbecCameraTopic,
+    PreflightCheck,
+    RealRobotPreflight,
+    RealRobotVariable,
+    ReportedPosture,
+    RequirementKind,
+    main,
+)
+from cramera_bridge.ros_node import SpinningNode
+from cramera_protocol.bundle.files import BundleFile
+from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
+from cramera_protocol.geometry import AxisAlignedBox
+from cramera_protocol.robot_profile import ArmWorkspace, ExecutorKind, SafetyLimits
+from cramera_protocol.validation import ValidationOrder
+from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
+from semantic_digital_twin.datastructures.definitions import StaticJointState
+from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
+from semantic_digital_twin.robots.tracy import (
+    Tracy,
+    TracyJoint,
+    TracyParallelGripperCommandTopic,
+    TracyTopic,
+)
+from semantic_digital_twin.world import World
+
+from .dataset.real_robot import (
+    GripperDriverStandIn,
+    JointStatePublisherStandIn,
+    tracy_gripper_drivers,
+)
+from .test_execution import PARKED_TRACY_PLAN, needs_tracy
+
+pytestmark = pytest.mark.skipif(
+    not GiskardProcess(GiskardLaunchFile.STANDALONE).is_installed,
+    reason="giskardpy_ros is not installed",
+)
+
+# %% preflight
+
+
+@pytest.fixture
+def node():
+    """
+    :return: A spinning node the stand-ins and the preflight share.
+    """
+    with SpinningNode("cramera_real_robot_test").running() as running:
+        yield running
+
+
+def missing_requirements(report) -> set:
+    """
+    :return: What the report found missing, by kind and name.
+    """
+    return {(check.kind, check.name) for check in report.missing}
+
+
+def test_the_preflight_names_every_driver_the_real_run_misses(node):
+    report = RealRobotPreflight(
+        giskard_launch_file=GiskardLaunchFile.VELOCITY, wait_seconds=0.2
+    ).check(node)
+
+    assert not report.ready
+    assert missing_requirements(report) == {
+        (RequirementKind.ROBOT_DESCRIPTION, "/robot_description"),
+        *(
+            (RequirementKind.JOINT_STATES, topic.value)
+            for topic in (
+                TracyTopic.LEFT_ARM_JOINT_STATES,
+                TracyTopic.RIGHT_ARM_JOINT_STATES,
+            )
+        ),
+        *(
+            (RequirementKind.GRIPPER_ACTION_SERVER, topic.value)
+            for topic in TracyParallelGripperCommandTopic
+        ),
+        *((RequirementKind.CAMERA_TOPIC, topic.value) for topic in OrbbecCameraTopic),
+    }
+
+
+def test_a_gripper_without_its_action_server_is_reported_missing(node):
+    left = TracyParallelGripperCommandTopic.LEFT_GRIPPER
+    server = GripperDriverStandIn(left.value).serve(node)
+    report = RealRobotPreflight(
+        giskard_launch_file=GiskardLaunchFile.STANDALONE, wait_seconds=1.0
+    ).check(node)
+    server.destroy()
+
+    assert missing_requirements(report) == {
+        (
+            RequirementKind.GRIPPER_ACTION_SERVER,
+            TracyParallelGripperCommandTopic.RIGHT_GRIPPER.value,
+        )
+    }
+
+
+def test_a_preflight_finding_everything_is_ready(node):
+    with tracy_gripper_drivers(node):
+        report = RealRobotPreflight(
+            giskard_launch_file=GiskardLaunchFile.STANDALONE, wait_seconds=1.0
+        ).check(node)
+
+    assert report.ready
+    assert report.missing == []
+
+
+def test_the_preflight_command_prints_what_is_missing_and_fails(
+    giskard_simulating_the_arms, capsys
+):
+    with pytest.raises(SystemExit) as ended:
+        main()
+
+    assert ended.value.code == 1
+    printed = capsys.readouterr().out
+    for topic in TracyParallelGripperCommandTopic:
+        assert (
+            PreflightCheck(
+                RequirementKind.GRIPPER_ACTION_SERVER, topic.value, False
+            ).to_text()
+            in printed
+        )
+
+
+# %% Giskard
+
+GISKARD_OWNER = Path(__file__).parent / "dataset" / "scripts" / "giskard_owner.py"
+"""
+Starts a Giskard and waits until it is killed.
+"""
+
+
+def test_giskard_ends_with_the_process_that_started_it_however_that_ends():
+    owner = subprocess.Popen(
+        [sys.executable, str(GISKARD_OWNER)], stdout=subprocess.PIPE, text=True
+    )
+    launch = Path("/proc") / owner.stdout.readline().strip()
+    owner.kill()
+    owner.wait()
+
+    deadline = time.monotonic() + 30
+    while launch.exists() and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert not launch.exists()
+
+
+# %% where the real robot stands
+
+STANDING_POSITIONS = {
+    TracyTopic.LEFT_ARM_JOINT_STATES.value: {
+        TracyJoint.LEFT_SHOULDER_PAN.value: 0.3,
+        TracyJoint.LEFT_ELBOW.value: -1.1,
+    },
+    TracyTopic.RIGHT_ARM_JOINT_STATES.value: {TracyJoint.RIGHT_WRIST_2.value: 0.7},
+}
+"""
+Joint positions the stand-ins of the arms' drivers report, by topic.
+"""
+
+
+@pytest.fixture
+def tracy_plan_world() -> World:
+    """
+    :return: The world of a plan in which Tracy parks its arms.
+    """
+    plan = PlanDocument.from_json(PARKED_TRACY_PLAN)
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    return demo.build_world()
+
+
+@pytest.fixture
+def standing_robot(node):
+    """
+    Report :data:`STANDING_POSITIONS` from stand-ins of the arms' drivers.
+    """
+    with ExitStack() as publishing:
+        for topic, positions in STANDING_POSITIONS.items():
+            publishing.enter_context(
+                JointStatePublisherStandIn(topic, positions).publishing(node)
+            )
+        yield
+
+
+def reported_positions(world: World) -> dict:
+    """
+    :return: The positions the world holds of the joints the stand-ins report.
+    """
+    return {
+        name: world.get_connection_by_name(name).position
+        for positions in STANDING_POSITIONS.values()
+        for name in positions
+    }
+
+
+@needs_tracy
+def test_the_world_takes_the_joint_positions_the_real_robot_reports(
+    standing_robot, tracy_plan_world
+):
+    ReportedPosture().apply(tracy_plan_world)
+
+    assert reported_positions(tracy_plan_world) == pytest.approx(
+        {
+            name: position
+            for positions in STANDING_POSITIONS.values()
+            for name, position in positions.items()
+        }
+    )
+
+
+@needs_tracy
+def test_a_robot_whose_drivers_stay_silent_has_no_reported_posture(tracy_plan_world):
+    with pytest.raises(JointStatesNotReceived) as raised:
+        ReportedPosture(wait_seconds=0.2).apply(tracy_plan_world)
+    assert raised.value.topics == list(ReportedPosture().joint_state_topics)
+
+
+@needs_tracy
+def test_a_validation_for_the_real_robot_starts_where_it_stands(standing_robot):
+    plan = PlanDocument.from_json(PARKED_TRACY_PLAN)
+    order = ValidationOrder(demo=DemoDocument(plan=plan), reads_robot_posture=True)
+    demo = PlannedTaskDemo.of_document(order.demo, port=0)
+
+    world = PlanValidator(order).build_world(demo)
+
+    assert reported_positions(world) == pytest.approx(
+        {
+            name: position
+            for positions in STANDING_POSITIONS.values()
+            for name, position in positions.items()
+        }
+    )
+
+
+# %% running a plan on the real robot
+
+GRIPPER_PLAN = {
+    **PARKED_TRACY_PLAN,
+    "name": "tracy_grips",
+    "task": "Park the arms, then close and open the left gripper and close the right",
+    "robots": [
+        {
+            **PARKED_TRACY_PLAN["robots"][0],
+            "steps": [
+                {"id": "step_1", "action": "park_arms", "values": {"arms": "both"}},
+                {
+                    "id": "step_2",
+                    "action": "set_gripper",
+                    "values": {"gripper": "left", "motion": "close"},
+                },
+                {
+                    "id": "step_3",
+                    "action": "set_gripper",
+                    "values": {"gripper": "left", "motion": "open"},
+                },
+                {
+                    "id": "step_4",
+                    "action": "set_gripper",
+                    "values": {"gripper": "right", "motion": "close"},
+                },
+            ],
+        }
+    ],
+}
+"""
+A plan in which Tracy parks its arms and moves its grippers.
+"""
+
+TRACY_SAFETY = SafetyLimits(
+    workspaces=[
+        ArmWorkspace(
+            arm="left",
+            label="Left arm workspace",
+            box=AxisAlignedBox(
+                min_x=0.3, max_x=1.2, min_y=-0.3, max_y=0.7, min_z=0.875, max_z=1.6
+            ),
+        ),
+        ArmWorkspace(
+            arm="right",
+            label="Right arm workspace",
+            box=AxisAlignedBox(
+                min_x=0.3, max_x=1.2, min_y=-0.7, max_y=0.3, min_z=0.875, max_z=1.6
+            ),
+        ),
+    ],
+    maximum_joint_velocity=0.5,
+    maximum_tool_velocity=0.5,
+)
+"""
+The safety limits of Tracy's profile.
+"""
+
+
+@pytest.fixture
+def giskard_simulating_the_arms(monkeypatch) -> None:
+    """
+    Have real runs start a Giskard that simulates Tracy's arms, as no driver runs.
+    """
+    monkeypatch.setenv(
+        RealRobotVariable.GISKARD_LAUNCH_FILE, GiskardLaunchFile.STANDALONE
+    )
+
+
+@needs_tracy
+def test_a_plan_runs_on_the_real_robot_and_drives_its_grippers_through_their_drivers(
+    locations, giskard_simulating_the_arms, node
+):
+    command = PlanDemoCommand(DemoDocument(plan=PlanDocument.from_json(GRIPPER_PLAN)))
+    with tracy_gripper_drivers(node) as drivers:
+        saved = command.main(
+            [DemoOption.PORT, "0", DemoOption.EXECUTOR, ExecutorKind.REAL]
+        )
+
+    assert (locations.local_scenes / saved.scene / BundleFile.SCENE).is_file()
+    left, right = TracyParallelGripperCommandTopic
+    assert len(drivers[left.value].commanded_positions) == 2
+    assert len(drivers[right.value].commanded_positions) == 1
+
+
+@needs_tracy
+def test_giskard_stops_a_real_run_that_breaks_a_safety_limit(
+    locations, giskard_simulating_the_arms, node
+):
+    """
+    Giskard's simulated Tracy stands with its arms stretched out beside the table, far
+    outside the profile's workspaces, and a real run starts where the robot stands.
+    """
+    command = PlanDemoCommand(
+        DemoDocument(plan=PlanDocument.from_json(GRIPPER_PLAN), safety=TRACY_SAFETY)
+    )
+    with (
+        tracy_gripper_drivers(node),
+        pytest.raises(SafetyConstraintViolated) as violated,
+    ):
+        command.main([DemoOption.PORT, "0", DemoOption.EXECUTOR, ExecutorKind.REAL])
+
+    assert violated.value.constraint == TRACY_SAFETY.workspaces[0].label
+
+
+@needs_tracy
+def test_a_real_run_is_refused_while_a_gripper_driver_is_missing(
+    locations, giskard_simulating_the_arms
+):
+    command = PlanDemoCommand(DemoDocument(plan=PlanDocument.from_json(GRIPPER_PLAN)))
+    with pytest.raises(RealRobotNotReady):
+        command.main([DemoOption.PORT, "0", DemoOption.EXECUTOR, ExecutorKind.REAL])
+
+
+@needs_tracy
+def test_the_world_of_a_real_run_follows_the_robot_as_giskard_reports_it(
+    giskard_simulating_the_arms, node
+):
+    plan = PlanDocument.from_json(PARKED_TRACY_PLAN)
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    demo.execution = RealExecution()
+    with tracy_gripper_drivers(node), demo.execution.attached():
+        world = demo.build_world()
+        assert world is demo.execution.reported_world()
+        context = demo.build_context(world)
+        demo.performance(context).perform(demo.build_plan(context), context)
+        [tracy] = world.get_semantic_annotations_by_type(Tracy)
+        [planned] = plan.robots
+        assert tracy.name == PrefixedName(planned.label, prefix=planned.identifier)
+        for arm in tracy.all_arms:
+            parked = arm.get_joint_state_by_type(StaticJointState.PARK)
+            for connection, position in zip(parked.connections, parked.target_values):
+                assert connection.position == pytest.approx(position, abs=0.02)
