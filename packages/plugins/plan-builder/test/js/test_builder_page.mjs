@@ -50,6 +50,7 @@ import {
   ZoneKey,
 } from 'cramera-viewer/protocol.js';
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
+import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, URDF_FOLDER_KEY, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
@@ -300,17 +301,29 @@ class FakeScene {
 class FakeTimer {
   constructor() {
     this.callbacks = new Map();
+    this.intervals = new Map();
     this.next = 1;
   }
 
-  repeat(callback) {
+  repeat(callback, interval) {
     const handle = this.next++;
     this.callbacks.set(handle, callback);
+    this.intervals.set(handle, interval);
     return handle;
   }
 
   cancel(handle) {
     this.callbacks.delete(handle);
+    this.intervals.delete(handle);
+  }
+
+  /**
+   * Run only the callbacks repeated every `interval` milliseconds.
+   * @param {number} interval The interval in milliseconds.
+   */
+  async tickEvery(interval) {
+    for (const [handle, callback] of [...this.callbacks]) if (this.intervals.get(handle) === interval) await callback();
+    await settled();
   }
 
   async tick() {
@@ -375,7 +388,7 @@ test('the page starts a plan in the first environment and is ready', async () =>
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), api.catalogAnswer[PlanBuilderCatalogKey.ENVIRONMENTS][0].name);
   assert.deepEqual(scene().environments, [page.state.field(PlanKey.ENVIRONMENT)]);
   assert.equal(byAction(root, PlanAction.ADD_STEP).length, page.state.offeredActions(page.state.activeRobot()).length);
-  assert.equal(timer.callbacks.size, 1);
+  assert.equal(timer.callbacks.size, 2);
 });
 
 test('the page starts in the environment its query names, with the last robot model', async () => {
@@ -910,6 +923,23 @@ test('a performing run shows the live statuses and attaches its constraints once
   assert.equal(live.attached[0][ConstraintRequestKey.TEXT], page.state.steps()[1][PlanStepKey.CONSTRAINTS][0][StepConstraintKey.TEXT]);
   assert.deepEqual(root.findAll((element) => element.className === 'observation').map((element) => element.textContent), ['TRUE']);
   assert.match(root.findAll((element) => element.className === 'run-state')[0].textContent, /live/);
+});
+
+test('a performing run moves the robot and the objects in the 3D view as often as the scene page', async () => {
+  const { root, page, live, timer, scene } = await openPage();
+  addMilk(root);
+  byAction(root, PlanAction.PERFORM)[0].click();
+  await settled();
+  await timer.tick();
+  const moved = structuredClone(live.world);
+  moved.robots.robots[0].jointPositions = { 'robot_1/torso_lift_joint': 0.1 };
+  moved.captured.objects['key-milk'] = [1.25, 0.5, 1.2, 0, 0, 0, 1];
+  live.world = moved;
+  await timer.tickEvery(PollInterval.STATE);
+  const robot = page.state.activeRobot()[PlannedRobotKey.IDENTIFIER];
+  const milk = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  assert.deepEqual(scene().shown.live.postures.get(robot), moved.robots.robots[0].jointPositions);
+  assert.deepEqual(scene().shown.live.objects.get(milk), moved.captured.objects['key-milk']);
 });
 
 test('a run in physics asks for the physics run mode and attaches its constraints', async () => {

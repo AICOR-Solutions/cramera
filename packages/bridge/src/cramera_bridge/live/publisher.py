@@ -10,7 +10,6 @@ thread that owns the world.
 
 from __future__ import annotations
 
-import threading
 import time
 from dataclasses import dataclass, field
 from importlib.metadata import distributions
@@ -54,6 +53,7 @@ from cramera_bridge.live.snapshot_pacing import FRAME_INTERVAL, SnapshotPacing
 from cramera_bridge.live.statechart import StatechartPublisher
 from cramera_bridge.live.teleoperation import TeleoperationDriver
 from cramera_bridge.live.transforms import TransformTracker
+from cramera_bridge.live.world_lock import PublishedWorldLock
 from cramera_bridge.live.world_model import WorldModelView
 from cramera_bridge.live.world_state import WorldStatePublisher
 from cramera_bridge.questions.live import (
@@ -183,10 +183,12 @@ class LivePublisher:
     The robot the live controls act on.
     """
 
-    world_lock: threading.RLock = field(default_factory=threading.RLock, init=False)
+    world_lock: PublishedWorldLock = field(
+        default_factory=PublishedWorldLock, init=False
+    )
     """
-    Held while the world is read or written by the publisher; taken before any lock of a
-    component.
+    Held while the world is read or written by the publisher; taken after the world's
+    own lock and before any lock of a component.
     """
 
     activity: SimulationActivity = field(default_factory=SimulationActivity, init=False)
@@ -305,6 +307,7 @@ class LivePublisher:
         with self.world_lock:
             RecordingStorage(self.locations).discard()
             self.world = world
+            self.world_lock.world = world
             self.model = None
             self.selected_robot = None
             self.desk = WorldQuestionDesk(

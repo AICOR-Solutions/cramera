@@ -1456,7 +1456,7 @@ class RobotInstanceKey(StrEnum):
 
     POSE = "pose"
     """
-    The robot's root pose.
+    Where the robot's description is rooted.
     """
 
     JOINT_POSITIONS = "jointPositions"
@@ -1488,7 +1488,7 @@ class RobotInstance(JsonDocument):
 
     pose: Pose = document_field(RobotInstanceKey.POSE)
     """
-    The robot's root pose in the world.
+    Where the robot's description is rooted in the world, which a viewer draws it at.
     """
 
     joint_positions: Dict[str, float] = document_field(

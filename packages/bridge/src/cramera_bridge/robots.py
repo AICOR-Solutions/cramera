@@ -20,6 +20,7 @@ from semantic_digital_twin.world_description.connections import ActiveConnection
 if TYPE_CHECKING:
     from semantic_digital_twin.world import World
     from semantic_digital_twin.world_description.world_entity import (
+        KinematicStructureEntity,
         SemanticAnnotation,
     )
 
@@ -191,9 +192,28 @@ class RobotRoster:
             identifier=self.identifier(robot),
             label=self.label(robot),
             model=type(robot).__name__,
-            pose=NumericPose.of_entity(self.world, robot.root).published(),
+            pose=NumericPose.of_entity(
+                self.world, self.description_root(robot)
+            ).published(),
             joint_positions=self.joint_positions(robot),
         )
+
+    def description_root(self, robot: AbstractRobot) -> KinematicStructureEntity:
+        """
+        :param robot: A robot of the world.
+        :return: The frame the robot's description starts at, where a viewer draws the
+            description: the ancestor of the robot's root attached to its localization
+            frame, as Tracy's table hangs 0.88 m above it, or the robot's root when it
+            hangs directly below the world's root.
+        """
+        entity = robot.root
+        parent = entity.parent_kinematic_structure_entity
+        while parent is not None and parent.parent_kinematic_structure_entity not in (
+            None,
+            self.world.root,
+        ):
+            entity, parent = parent, parent.parent_kinematic_structure_entity
+        return entity
 
     def root_poses(self) -> Dict[str, NumericPose]:
         """

@@ -57,6 +57,7 @@ import { MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode 
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
+import { PollInterval } from '../../../live/live-session.js';
 import { RunProgress, RunView } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
 import { REASON_TEXTS, StepsView } from './steps-view.js';
@@ -338,6 +339,19 @@ export class BuilderPage {
   #polling = null;
 
   /**
+   * The handle of following the live robots and objects, or null.
+   * @type {*}
+   */
+  #following = null;
+
+  /**
+   * Whether the live robots and objects are asked for right now, so asks do not pile
+   * up.
+   * @type {boolean}
+   */
+  #followed = false;
+
+  /**
    * Whether a poll is answered right now, so polls do not pile up.
    * @type {boolean}
    */
@@ -390,6 +404,7 @@ export class BuilderPage {
     const missing = catalog[PlanBuilderCatalogKey.MISSING];
     this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : 'Compose the plan, then start the live scene or run it.');
     this.#polling = this.#environment.timer.repeat(() => this.#poll(), POLL_INTERVAL);
+    this.#following = this.#environment.timer.repeat(() => this.#follow(), PollInterval.STATE);
   }
 
   /**
@@ -943,9 +958,6 @@ export class BuilderPage {
     if (!info[LiveInfoKey.RUNNING]) return PageWorld.empty();
     const [catalog, captured, roster, plan, surfaces] = await Promise.all([live.objects(), live.capturedObjects(), live.robots(), live.plan(), live.surfaces()]);
     const keys = LiveNames.objectKeys(catalog);
-    const poses = captured[ObjectPosesKey.OBJECTS] ?? {};
-    const objects = new Map([...keys].filter(([, key]) => poses[key]).map(([identifier, key]) => [identifier, poses[key]]));
-    const robots = LiveNames.robots(roster, this.state.robots().map((robot) => robot[PlannedRobotKey.IDENTIFIER]));
     const nodes = LiveNames.stepNodes(plan);
     const statuses = this.state.steps().map((step, index) => nodes[index]?.[LivePlanNodeKey.STATUS] ?? null);
     const observations = this.state.steps().map((step, index) => new Map((nodes[index]?.[LivePlanNodeKey.CONSTRAINTS] ?? []).map((observed) => [observed[ConstraintObservationKey.TEXT], observed[ConstraintObservationKey.OBSERVATION] ?? null])));
@@ -956,7 +968,33 @@ export class BuilderPage {
     if (this.#run[RunStatusKey.MODE] !== RunMode.STAGE) await this.#sendConstraints(plan);
     const seen = (plan[LivePlanKey.NODES] ?? []).filter((node) => (node[LivePlanNodeKey.IMAGES] ?? []).length > 0).at(-1);
     const images = (seen?.[LivePlanNodeKey.IMAGES] ?? []).map((image) => ({ ...image, url: live.perceptionImageUrl(image[PerceptionImageKey.FILE]) }));
-    return new PageWorld({ keys, objects, robots, statuses, observations, surfaces: byType, images, published: true });
+    const world = new PageWorld({ keys, objects: new Map(), robots: new Map(), statuses, observations, surfaces: byType, images, published: true });
+    world.move(roster, captured, this.#robotIdentities());
+    return world;
+  }
+
+  /**
+   * Move the robots and objects of a published live world in the 3D view as often as
+   * the scene page does, between the polls of the run and its other parts.
+   * @returns {Promise<void>} Settles once the live world answered.
+   */
+  async #follow() {
+    if (this.#followed || !this.#world.published) return;
+    this.#followed = true;
+    const live = this.#live;
+    const answer = await Promise.all([live.robots(), live.capturedObjects()]).catch(() => null);
+    this.#followed = false;
+    if (!answer || !this.#world.published || !this.state) return;
+    this.#world.move(...answer, this.#robotIdentities());
+    this.#showScene();
+  }
+
+  /**
+   * @returns {Array<string>} The plan's robot identities, which namespace the live
+   *   robots' names.
+   */
+  #robotIdentities() {
+    return this.state.robots().map((robot) => robot[PlannedRobotKey.IDENTIFIER]);
   }
 
   /**
@@ -1273,8 +1311,9 @@ export class BuilderPage {
    * Stop polling and release every part, the 3D view and the listeners.
    */
   dispose() {
-    if (this.#polling !== null) this.#environment.timer.cancel(this.#polling);
+    for (const handle of [this.#polling, this.#following]) if (handle !== null) this.#environment.timer.cancel(handle);
     this.#polling = null;
+    this.#following = null;
     for (const part of [this.#parts.environment, this.#parts.robots, this.#parts.steps, this.#parts.objects, this.#parts.constraints]) part?.dispose();
     this.#scene?.dispose();
     this.#scene = null;
@@ -1344,6 +1383,18 @@ export class PageWorld {
    */
   static empty() {
     return new PageWorld({ keys: new Map(), objects: new Map(), robots: new Map(), statuses: [], observations: [], surfaces: new Map(), images: [], published: false });
+  }
+
+  /**
+   * Take the live robots and the poses of the live objects this world has keys of.
+   * @param {Object} roster The live robots.
+   * @param {Object} captured Every free object's pose by key.
+   * @param {Array<string>} identities The plan's robot identities.
+   */
+  move(roster, captured, identities) {
+    const poses = captured[ObjectPosesKey.OBJECTS] ?? {};
+    this.objects = new Map([...this.keys].filter(([, key]) => poses[key]).map(([identifier, key]) => [identifier, poses[key]]));
+    this.robots = LiveNames.robots(roster, identities);
   }
 
   /**
