@@ -34,16 +34,25 @@ from cramera_protocol.robot_profile import (
 )
 from cramera_protocol.version import CURRENT_VERSION, ProtocolVersion
 
-PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
+PLAN_FORMAT_VERSION = ProtocolVersion(major=1, minor=4)
 """
 The version plans are written with: steps name an action, its fields, enumeration
-members and surface types, and robots a model, by the protocol's identifiers.
+members and surface types, and robots a model, by the protocol's identifiers; a step
+may name the robot profile's skill it was made from, and the plan the platform version
+it was saved with.
 
 Plans of an earlier version are migrated when they are read: those before
 :data:`CLASS_NAME_FORMAT_VERSION` name a step kind, which becomes an action; those of
 that version name the planner's classes, and those of
 :data:`ACTION_IDENTIFIER_FORMAT_VERSION` its member and annotation names, which
-:class:`SavedNames` translates.
+:class:`SavedNames` translates; those of :data:`IDENTIFIER_FORMAT_VERSION` only take
+the current version.
+"""
+
+IDENTIFIER_FORMAT_VERSION = ProtocolVersion(major=1, minor=3)
+"""
+The version whose plans name everything by the protocol's identifiers but neither a
+step's skill nor the platform version.
 """
 
 ACTION_IDENTIFIER_FORMAT_VERSION = ProtocolVersion(major=1, minor=2)
@@ -3306,6 +3315,8 @@ class SavedNames:
         """
         if plan.format_version >= PLAN_FORMAT_VERSION:
             return plan
+        if plan.format_version >= IDENTIFIER_FORMAT_VERSION:
+            return replace(plan, format_version=PLAN_FORMAT_VERSION)
         if plan.format_version < ACTION_IDENTIFIER_FORMAT_VERSION:
             plan = replace(
                 plan,

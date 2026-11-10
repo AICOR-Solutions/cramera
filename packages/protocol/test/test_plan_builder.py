@@ -187,6 +187,14 @@ def test_a_plan_of_identifiers_is_left_as_it_is(read_json):
     assert CLASS_NAMES.translated(current) is current
 
 
+def test_a_plan_of_format_1_3_is_read_as_the_same_plan_of_format_1_4(read_json):
+    data = read_json("plan_builder/plan.json")
+    current = PlanDocument.from_json(data)
+    earlier = PlanDocument.from_json({**data, PlanKey.FORMAT_VERSION: "1.3"})
+    assert PLAN_FORMAT_VERSION.to_json() == "1.4"
+    assert CLASS_NAMES.translated(earlier) == current
+
+
 def test_names_a_catalog_does_not_list_stay_for_its_check_to_report(read_json):
     legacy = PlanDocument.from_json(read_json("plan_builder/legacy/plan.json"))
     translated = SavedNames(actions={}, robots={}).translated(legacy)
