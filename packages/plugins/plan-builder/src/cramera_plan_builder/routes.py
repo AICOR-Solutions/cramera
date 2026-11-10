@@ -465,14 +465,18 @@ class PlanBuilderRoutes:
         :return: The state of the started demo.
         :raises PlanNotValidated: When the mode needs a validated plan, the plan is not
             the one whose validation passed last and the request does not override it.
-            A run on the real robot moves it, so the next run needs a new validation.
+            No request overrides the gate of a run on the real robot. A run on the
+            real robot moves it, so the next run needs a new validation.
         """
         run = RunRequest.from_json(self.body(request))
         demo = self.runnable(run.plan)
         if (
             run.mode.needs_validation
-            and not run.override_validation
             and not self.gate.admits(demo.plan)
+            and not (
+                run.override_validation
+                and self.profile.executor_for(run.mode) is not ExecutorKind.REAL
+            )
         ):
             raise PlanNotValidated(run.mode.value)
         executor = self.profile.executor_for(run.mode)

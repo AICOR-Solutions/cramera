@@ -817,11 +817,19 @@ export class BuilderPage {
 
   /**
    * Run the plan on the robot: once it passed its validation unchanged, or without one
-   * in developer mode.
+   * in developer mode on a robot that is not the real one.
    * @returns {Promise<void>} Settles once the run started or was refused.
    */
   async #runOnRobot() {
-    await this.#start(RunMode.ROBOT, !this.#validationPassed() && this.state.developerMode());
+    await this.#start(RunMode.ROBOT, !this.#validationPassed() && this.#mayOverrideValidation());
+  }
+
+  /**
+   * @returns {boolean} Whether a run on the robot may start without a passed validation:
+   *   in developer mode, and never on the real robot.
+   */
+  #mayOverrideValidation() {
+    return this.state.developerMode() && this.#robotExecutor() !== ExecutorKind.REAL;
   }
 
   // %% validation
@@ -1126,7 +1134,7 @@ export class BuilderPage {
     const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run);
     for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;
     const passed = this.#validationPassed();
-    this.#parts.robot.disabled = !runnable || !(passed || this.state.developerMode());
+    this.#parts.robot.disabled = !runnable || !(passed || this.#mayOverrideValidation());
     this.#showSafetyStop();
     this.#showRunView();
     this.#parts.validationState.textContent = this.#validationState(passed);
@@ -1156,7 +1164,7 @@ export class BuilderPage {
   #validationState(passed) {
     if (passed) return 'Validated: the plan may run on the robot.';
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
-    const override = this.state.developerMode() ? ' Developer mode lets it run on the robot anyway.' : '';
+    const override = this.#mayOverrideValidation() ? ' Developer mode lets it run on the robot anyway.' : '';
     const changed = this.#validation === null ? 'Not validated' : this.#validation.sceneChanged ? 'The scene changed since its validation' : 'Changed since its validation';
     return `${changed}: validate the plan before it runs on the robot.${override}`;
   }

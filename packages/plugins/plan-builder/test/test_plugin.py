@@ -678,6 +678,27 @@ def test_a_run_on_the_real_robot_needs_a_new_validation_for_the_next_run(
     )
 
 
+def test_no_request_overrides_the_gate_of_a_run_on_the_real_robot(
+    attached_to_the_real_robot, plan
+):
+    assert (
+        run_on_the_robot(attached_to_the_real_robot, plan, override=True)
+        == PlanNotValidated(RunMode.ROBOT).status()
+    )
+
+
+def test_a_real_run_after_the_real_run_of_its_validation_cannot_be_forced(
+    attached_to_the_real_robot, plan
+):
+    validate(attached_to_the_real_robot, plan)
+    run_on_the_robot(attached_to_the_real_robot, plan)
+
+    assert (
+        run_on_the_robot(attached_to_the_real_robot, plan, override=True)
+        == PlanNotValidated(RunMode.ROBOT).status()
+    )
+
+
 # %% placing
 
 

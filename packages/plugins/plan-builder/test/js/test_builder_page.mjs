@@ -1162,6 +1162,20 @@ test('a profile running the robot run mode on the real robot marks it and offers
   assert.equal(robotRun(root).disabled, true);
 });
 
+test('developer mode does not let a plan run on the real robot without a passed validation', async () => {
+  const { root, api } = await pickAndPlace((opened) => {
+    profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL })(opened);
+    opened.storage.setItem(DEVELOPER_MODE_KEY, String(true));
+  });
+  assert.equal(robotRun(root).disabled, true);
+  assert.doesNotMatch(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Developer mode/);
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
+});
+
 test('a profile offering no run on the robot hides its button', async () => {
   const { root } = await pickAndPlace(profileRunning({ [RunMode.PERFORM]: ExecutorKind.KINEMATIC }));
   assert.equal(robotRun(root).hidden, true);
