@@ -6,6 +6,7 @@ reading where it stands.
 from __future__ import annotations
 
 import subprocess
+import threading
 import sys
 import time
 from contextlib import ExitStack
@@ -127,6 +128,21 @@ def test_a_preflight_finding_everything_is_ready(node):
 
     assert report.ready
     assert report.missing == []
+
+
+def test_gripper_servers_discovered_while_the_preflight_waits_are_found(node):
+    serving = ExitStack()
+    discovered_later = threading.Timer(
+        3.0, lambda: serving.enter_context(tracy_gripper_drivers(node))
+    )
+    discovered_later.start()
+    report = RealRobotPreflight(giskard_launch_file=GiskardLaunchFile.STANDALONE).check(
+        node
+    )
+    discovered_later.join()
+    serving.close()
+
+    assert report.ready
 
 
 def test_the_preflight_command_prints_what_is_missing_and_fails(

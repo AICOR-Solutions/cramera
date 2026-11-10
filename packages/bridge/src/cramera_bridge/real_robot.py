@@ -96,6 +96,7 @@ class ProcessControl(IntEnum):
     Have the kernel send the process a signal once the process that started it ends.
     """
 
+
 @dataclass(frozen=True)
 class GiskardProcess:
     """
@@ -226,6 +227,7 @@ class RequirementKind(StrEnum):
     A topic RoboKudo reads the camera's images from.
     """
 
+
 @dataclass(frozen=True)
 class PreflightCheck:
     """
@@ -306,9 +308,10 @@ class RealRobotPreflight:
     driver and no camera.
     """
 
-    wait_seconds: float = 2.0
+    wait_seconds: float = 15.0
     """
-    How long, in seconds, each topic or action is waited for.
+    How long, in seconds, the preflight waits in all for the requirements to be
+    discovered; a requirement found earlier ends its own wait at once.
     """
 
     giskard_command_action: str = "/giskard/command"
@@ -342,69 +345,104 @@ class RealRobotPreflight:
     def check(self, node: Node) -> PreflightReport:
         """
         :param node: A spinning node the checks look through.
-        :return: Which requirements were found.
+        :return: Which requirements were found; another Giskard is looked for once the
+            drivers were waited for, so it had as long to be discovered.
         """
+        deadline = time.monotonic() + self.wait_seconds
         checks = [
             PreflightCheck(
                 RequirementKind.GISKARD_LAUNCH_FILE,
                 self.giskard_launch_file.value,
                 GiskardProcess(self.giskard_launch_file).is_installed,
             ),
+            *(
+                PreflightCheck(
+                    RequirementKind.GRIPPER_ACTION_SERVER,
+                    server,
+                    self.is_gripper_action_served(node, server, deadline),
+                )
+                for server in self.gripper_action_servers
+            ),
+        ]
+        if self.giskard_launch_file.commands_the_real_robot:
+            checks.extend(self.driver_checks(node, deadline))
+        checks.append(
             PreflightCheck(
                 RequirementKind.NO_OTHER_GISKARD,
                 self.giskard_command_action,
                 self.giskard_command_action
                 not in dict(get_action_names_and_types(node)),
+            )
+        )
+        return PreflightReport(checks)
+
+    def driver_checks(self, node: Node, deadline: float) -> list[PreflightCheck]:
+        """
+        :param node: A spinning node.
+        :param deadline: The :func:`time.monotonic` time the waits end at.
+        :return: Whether the robot's description, the arms' joint states and the
+            camera's topics were found.
+        """
+        received = JointStateMessages(self.joint_state_topics).receive(
+            node, seconds_left_until(deadline)
+        )
+        return [
+            PreflightCheck(
+                RequirementKind.ROBOT_DESCRIPTION,
+                self.robot_description_topic,
+                is_published(node, self.robot_description_topic, deadline),
+            ),
+            *(
+                PreflightCheck(RequirementKind.JOINT_STATES, topic, topic in received)
+                for topic in self.joint_state_topics
             ),
             *(
                 PreflightCheck(
-                    RequirementKind.GRIPPER_ACTION_SERVER,
-                    server,
-                    self.is_gripper_action_served(node, server),
+                    RequirementKind.CAMERA_TOPIC,
+                    topic,
+                    is_published(node, topic, deadline),
                 )
-                for server in self.gripper_action_servers
+                for topic in self.camera_topics
             ),
         ]
-        if not self.giskard_launch_file.commands_the_real_robot:
-            return PreflightReport(checks)
-        received = JointStateMessages(self.joint_state_topics).receive(
-            node, self.wait_seconds
-        )
-        return PreflightReport(
-            [
-                *checks,
-                PreflightCheck(
-                    RequirementKind.ROBOT_DESCRIPTION,
-                    self.robot_description_topic,
-                    node.count_publishers(self.robot_description_topic) > 0,
-                ),
-                *(
-                    PreflightCheck(
-                        RequirementKind.JOINT_STATES, topic, topic in received
-                    )
-                    for topic in self.joint_state_topics
-                ),
-                *(
-                    PreflightCheck(
-                        RequirementKind.CAMERA_TOPIC,
-                        topic,
-                        node.count_publishers(topic) > 0,
-                    )
-                    for topic in self.camera_topics
-                ),
-            ]
-        )
 
-    def is_gripper_action_served(self, node: Node, server: str) -> bool:
+    @staticmethod
+    def is_gripper_action_served(node: Node, server: str, deadline: float) -> bool:
         """
         :param node: A spinning node.
         :param server: The name of a gripper's parallel gripper command action.
-        :return: Whether a server of it answered within :attr:`wait_seconds`.
+        :param deadline: The :func:`time.monotonic` time the wait ends at.
+        :return: Whether a server of it was discovered before the deadline.
         """
         client = ActionClient(node, ParallelGripperCommand, server)
-        served = client.wait_for_server(timeout_sec=self.wait_seconds)
+        served = client.wait_for_server(timeout_sec=seconds_left_until(deadline))
         client.destroy()
         return served
+
+
+def seconds_left_until(deadline: float) -> float:
+    """
+    :param deadline: A :func:`time.monotonic` time.
+    :return: The seconds until it, none once it passed.
+    """
+    return max(0.0, deadline - time.monotonic())
+
+
+def is_published(
+    node: Node, topic: str, deadline: float, polling_seconds: float = 0.1
+) -> bool:
+    """
+    :param node: A spinning node.
+    :param topic: The topic.
+    :param deadline: The :func:`time.monotonic` time the wait ends at.
+    :param polling_seconds: How often, in seconds, the publishers are counted.
+    :return: Whether a publisher of the topic was discovered before the deadline.
+    """
+    while node.count_publishers(topic) == 0:
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(polling_seconds)
+    return True
 
 
 # %% joint states

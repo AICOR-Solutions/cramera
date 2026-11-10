@@ -50,6 +50,9 @@ class SpinningNode:
             spinning.callback(node.destroy_node)
             executor = self.executor_type()
             executor.add_node(node)
-            Thread(target=executor.spin, daemon=True, name=self.name).start()
+            spinner = Thread(target=executor.spin, daemon=True, name=self.name)
+            spinner.start()
+            # The spinning thread ends before ROS shuts down, or exiting aborts.
+            spinning.callback(spinner.join)
             spinning.callback(executor.shutdown)
             yield node
