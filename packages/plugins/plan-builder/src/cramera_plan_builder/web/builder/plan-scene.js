@@ -182,6 +182,53 @@ export class Selection {
 }
 
 /**
+ * How an object's marker is coloured: a library model in the colours its URDF gives it,
+ * unless the plan or a perception names one colour for the object, and a put-down target
+ * see-through.
+ */
+export class ObjectPaint {
+  /**
+   * @param {string} model The object model's identifier.
+   * @param {string|null} color The object's colour, or null for the model's own.
+   * @param {boolean} ghost Whether the marker is a see-through put-down target.
+   */
+  constructor(model, color, ghost) {
+    /**
+     * Whether the model keeps the materials its URDF describes.
+     * @type {boolean}
+     */
+    this.ownColors = !ghost && color === null && model.toLowerCase().endsWith(DESCRIPTION_SUFFIX);
+    /**
+     * Whether the marker is a see-through put-down target, which casts no shadow.
+     * @type {boolean}
+     */
+    this.ghost = ghost;
+    /**
+     * The material of every mesh not in its own colours, and of the placeholder.
+     * @type {THREE.MeshStandardMaterial}
+     */
+    this.material = new THREE.MeshStandardMaterial({
+      color: ghost ? MarkerColor.PUT_DOWN : (color ?? MarkerColor.OBJECT),
+      transparent: ghost,
+      opacity: ghost ? TARGET_OPACITY : 1,
+    });
+  }
+
+  /**
+   * Colour a copy of the model's meshes; a mesh in its own colours gets a material of its
+   * own, so tinting one marker leaves the other copies alone.
+   * @param {THREE.Object3D} copy The copy.
+   */
+  paint(copy) {
+    copy.traverse((child) => {
+      if (!child.isMesh) return;
+      child.material = this.ownColors ? child.material.clone() : this.material;
+      child.castShadow = !this.ghost;
+    });
+  }
+}
+
+/**
  * What the view reports to the page.
  */
 export class PlanSceneListeners {
@@ -679,23 +726,14 @@ export class PlanScene {
    * @returns {THREE.Group} The object, a small box until its mesh is loaded.
    */
   #objectMarker(model, color, ghost) {
-    const material = new THREE.MeshStandardMaterial({
-      color: ghost ? MarkerColor.PUT_DOWN : (color ?? MarkerColor.OBJECT),
-      transparent: ghost,
-      opacity: ghost ? TARGET_OPACITY : 1,
-    });
+    const paint = new ObjectPaint(model, color, ghost);
     const group = new THREE.Group();
-    const placeholder = new THREE.Mesh(new THREE.BoxGeometry(MarkerSize.PLACEHOLDER, MarkerSize.PLACEHOLDER, MarkerSize.PLACEHOLDER), material);
+    const placeholder = new THREE.Mesh(new THREE.BoxGeometry(MarkerSize.PLACEHOLDER, MarkerSize.PLACEHOLDER, MarkerSize.PLACEHOLDER), paint.material);
     group.add(placeholder);
     this.#mesh(model)
       .then((mesh) => {
         const copy = mesh.clone();
-        copy.traverse((child) => {
-          if (child.isMesh) {
-            child.material = material;
-            child.castShadow = !ghost;
-          }
-        });
+        paint.paint(copy);
         group.remove(placeholder);
         group.add(copy);
         this.#view.requestRender();

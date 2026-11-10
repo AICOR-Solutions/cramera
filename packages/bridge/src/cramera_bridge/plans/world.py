@@ -25,6 +25,7 @@ from semantic_digital_twin.adapters.package_resolver import (
 )
 from krrood_spatial_math.spatial_types import Point3, Pose, RotationMatrix, Vector3
 from semantic_digital_twin.adapters.urdf import URDFParser
+from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.exceptions import NoGraspGeometry
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
@@ -195,8 +196,9 @@ class PlannedObjects:
         """
         :param world: The world receiving the object below its root.
         :param planned: The object.
-        :return: Its body, free to move: the mesh's, or the root link of the URDF of a
-            library model with every link named below the object's identity.
+        :return: Its body, free to move and named by the object's identity: the mesh's,
+            or the root link of the URDF of a library model, whose other links are named
+            below the identity.
         """
         path = self.libraries.path_of(planned.model, self.directory)
         pose = PoseText(planned.pose).native(world.root)
@@ -223,6 +225,8 @@ class PlannedObjects:
             prefix=planned.identifier + PREFIX_SEPARATOR,
             path_resolver=resolver,
         ).create_world()
+        # the live world names the object as the plan does, as for a mesh
+        model.root.name = PrefixedName(planned.identifier)
         root = model.root.id
         with world.modify_world():
             connection = Connection6DoF.create_with_dofs(

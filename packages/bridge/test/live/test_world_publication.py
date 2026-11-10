@@ -225,3 +225,23 @@ def test_the_simulation_is_busy_right_after_a_tick():
     activity.tick()
     assert activity.is_busy() is True
     assert activity.is_busy() is False
+
+
+def test_an_object_moved_below_another_body_is_published_where_it_stands(
+    publisher, kitchen
+):
+    """
+    A grasp moves an object below the gripper while a plan performs; the snapshot its
+    model change takes shows the object where it stands, not its old offset below the
+    gripper.
+    """
+    kitchen.frame.parent_connection.origin = (
+        HomogeneousTransformationMatrix.from_xyz_rpy(
+            0.5, -0.3, 1.2, roll=3.14159, reference_frame=kitchen.root
+        )
+    )
+    publisher.pacing.plan_started(object())
+    standing = NumericPose.of_entity(kitchen.world, kitchen.milk).published()
+    kitchen.world.move_branch(kitchen.milk, kitchen.frame)
+    published = publisher.current_state().objects[str(kitchen.milk.id)]
+    assert published.to_json() == pytest.approx(standing.to_json(), abs=1e-3)

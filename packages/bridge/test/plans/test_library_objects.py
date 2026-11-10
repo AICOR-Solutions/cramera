@@ -58,10 +58,19 @@ def test_a_library_model_joins_the_world_free_and_graspable_where_the_plan_puts_
         identifier="cup", model=CUP, pose=Pose.from_json([1.0, 0.5, 0.8, 0, 0, 0, 1])
     )
     (body,) = PlannedObjects([planned], libraries=LIBRARIES).spawn(world).values()
-    assert body.name.prefix == "cup_"
     assert isinstance(body.parent_connection, Connection6DoF)
     assert NumericPose.of_entity(world, body).position == pytest.approx((1.0, 0.5, 0.8))
     assert PlannedGraspable.of(body).root is body
+    lid = world.get_kinematic_structure_entity_by_name(PrefixedName("cup_lid", "cup_"))
+    assert lid.parent_connection.parent is body
+
+
+def test_a_library_model_is_named_by_the_object_its_links_below_it(world):
+    planned = PlannedObject(
+        identifier="cup", model=CUP, pose=Pose.from_json([0] * 6 + [1])
+    )
+    (body,) = PlannedObjects([planned], libraries=LIBRARIES).spawn(world).values()
+    assert body.name == PrefixedName(planned.identifier)
     lid = world.get_kinematic_structure_entity_by_name(PrefixedName("cup_lid", "cup_"))
     assert lid.parent_connection.parent is body
 
