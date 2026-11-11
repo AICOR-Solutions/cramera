@@ -21,7 +21,7 @@ from cramera_bridge.real_robot import ArmHalt, JointStateMessages, RealRobotPref
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.plan_builder import ArmHaltLine
 
-DISCOVERY_TIMEOUT = 3.0
+DISCOVERY_TIMEOUT = 5.0
 """
 How long, in seconds, the controllers may take to be discovered once the halt is due.
 """

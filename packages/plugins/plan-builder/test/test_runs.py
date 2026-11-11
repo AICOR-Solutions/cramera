@@ -253,6 +253,18 @@ def test_a_stopped_real_run_whose_halt_nobody_acknowledged_is_not_reported_stopp
     assert ArmHaltLine.NOT_HALTED in stopped.log
 
 
+def test_a_real_run_ending_on_its_own_is_not_halted_again(tmp_path, demo):
+    runner = runner_of(tmp_path, "waiting_demo.py")
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    halt = runner.current.arm_halt.process
+    runner.stop()
+
+    assert ended.state is RunState.FINISHED
+    assert halt.returncode == -signal.SIGKILL
+    assert not (tmp_path / "halt").exists()
+
+
 def test_a_simulated_run_is_stopped_without_halting_the_real_arms(tmp_path, demo):
     runner = runner_of(
         tmp_path, "stuck_real_run_demo.py", stop_timeout=STUBBORN_TIMEOUT

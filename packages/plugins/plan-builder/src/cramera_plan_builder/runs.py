@@ -63,8 +63,8 @@ it stopped a run on the real robot.
 ARM_HALT_TIMEOUT = 20.0
 """
 How long, in seconds from the stop, the plan builder's halt of the arms may take to
-confirm that every arm's controller acknowledged zero velocities; it starts as the run
-is asked to end, so its start overlaps the run's own halt.
+confirm that the arms were commanded zero velocities and stand still; it was started
+with the run, so it reached the controllers long before.
 """
 
 LOG_ENCODING = "utf-8"
@@ -228,10 +228,11 @@ class OutputLog:
 class ArmHaltProcess:
     """
     The plan builder's own halt of the real robot's arms after it stopped a run there,
-    independent of the run, which may have been killed before it could halt them: it
-    reaches the arms' controllers while the run ends and, once its input is closed,
-    commands them zero velocities and ends with status 0 only when every controller
-    acknowledged them.
+    independent of the run, which may have been killed before it could halt them:
+    started with the run, it reaches the arms' controllers while the run goes on and,
+    once its input is closed, commands them zero velocities and ends with status 0 only
+    when both arms then report standing still. The operating system closes its input
+    when the plan builder ends, so the arms are halted then as well.
     """
 
     process: subprocess.Popen
@@ -281,6 +282,17 @@ class ArmHaltProcess:
         self.reader.join(STOP_TIMEOUT)
         return self.process.returncode == 0
 
+    def dismiss(self) -> None:
+        """
+        End the halt without halting, once the run it guarded ended on its own and
+        halted the arms itself.
+        """
+        if self.process.poll() is None:
+            os.killpg(self.process.pid, signal.SIGKILL)
+        self.process.wait()
+        self.reader.join(STOP_TIMEOUT)
+        self.process.stdin.close()
+
 
 # %% one process
 
@@ -322,11 +334,11 @@ class DemoProcess:
     Whether the demo was stopped rather than ending on its own.
     """
 
-    arm_halt_command: Optional[List[str]] = None
+    arm_halt: Optional[ArmHaltProcess] = None
     """
-    The command of the plan builder's own halt of the arms when the demo performs its
-    plan on the real robot, so stopping it ends the Giskard it started and halts the
-    arms in any case; None for any other demo.
+    The plan builder's own halt of the arms, started with a demo performing its plan on
+    the real robot, so stopping the demo ends the Giskard it started and halts the arms
+    in any case; None for any other demo.
     """
 
     halted: bool = False
@@ -381,7 +393,11 @@ class DemoProcess:
             process=process,
             log=log,
             reader=reader,
-            arm_halt_command=arm_halt_command,
+            arm_halt=(
+                None
+                if arm_halt_command is None
+                else ArmHaltProcess.start(arm_halt_command, log)
+            ),
         )
 
     def state(self) -> RunState:
@@ -393,7 +409,7 @@ class DemoProcess:
         if return_code is None:
             return RunState.SAVING if self.saves_its_record() else RunState.RUNNING
         if self.stopped:
-            if self.arm_halt_command is not None and not self.halted:
+            if self.arm_halt is not None and not self.halted:
                 return RunState.HALT_UNCONFIRMED
             return RunState.STOPPED
         if return_code == 0:
@@ -464,11 +480,6 @@ class DemoProcess:
         if self.process.poll() is None:
             self.stopped = True
             started = time.monotonic()
-            halt = (
-                None
-                if self.arm_halt_command is None
-                else ArmHaltProcess.start(self.arm_halt_command, self.log)
-            )
             sessions = self.started_sessions()
             self.signal(signal.SIGTERM)
             deadline = started + timeout
@@ -478,10 +489,12 @@ class DemoProcess:
                 sessions |= self.started_sessions()
                 self.signal(signal.SIGKILL)
             self.process.wait()
-            if halt is not None:
+            if self.arm_halt is not None:
                 ended = all([ProcessSession(leader).end() for leader in sessions])
-                halted = halt.halt(max(deadline, started + ARM_HALT_TIMEOUT))
+                halted = self.arm_halt.halt(max(deadline, started + ARM_HALT_TIMEOUT))
                 self.halted = ended and halted
+        if self.arm_halt is not None:
+            self.arm_halt.dismiss()
         self.process.wait()
         self.reader.join(timeout)
         self.process.stdin.close()
