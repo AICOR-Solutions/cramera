@@ -102,7 +102,8 @@ class ViewerApplication:
 
     def add_plugin_routes(self, router: Router) -> None:
         """
-        :param router: The router receiving each plugin's routes below its prefix.
+        :param router: The router receiving each plugin's routes below its prefix;
+            the plugins start once every plugin's routes are built.
         """
         context = PluginContext(catalog=self.catalog, locations=self.locations)
         for plugin in self.plugins:
@@ -110,6 +111,8 @@ class ViewerApplication:
                 router.add(
                     declaration.route(f"{ViewerRoute.PLUGIN_API}{plugin.name()}/")
                 )
+        for plugin in self.plugins:
+            plugin.start()
 
     def close(self) -> None:
         """

@@ -21,7 +21,12 @@ from cramera_protocol.bundle.index import SceneIndex
 from cramera_protocol.live import Capability
 from cramera_protocol.viewer import NavigationGroup, ViewerInfo, ViewerRoute
 
-from .dataset.plugins import FactoryEntryPoint, QuestionPlugin, SilentPlugin
+from .dataset.plugins import (
+    FactoryEntryPoint,
+    QuestionPlugin,
+    RecordingPlugin,
+    SilentPlugin,
+)
 
 HEADERS = {Header.HOST: "localhost"}
 """
@@ -149,6 +154,13 @@ def test_closing_the_application_closes_every_plugin(catalog, locations, plugin)
     )
     application.close()
     assert plugin.closings == 1
+
+
+def test_plugins_start_once_every_plugins_routes_are_built(catalog, locations):
+    events = []
+    plugins = [RecordingPlugin("first", events), RecordingPlugin("second", events)]
+    ViewerApplication(catalog=catalog, locations=locations, plugins=plugins).router()
+    assert events == ["first routes", "second routes", "first start", "second start"]
 
 
 def test_plugins_are_loaded_from_entry_points_sorted_by_name():

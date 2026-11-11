@@ -4,6 +4,7 @@ Finding out whether the CRAM workspace is importable, and what a workspace serve
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from importlib.machinery import ModuleSpec
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 import pytest
 from typing_extensions import Dict
 
+from cramera.cram_imports import CramImports
 from cramera.exceptions import FileNotInDirectory, PathOutsideDirectory
 from cramera_plan_builder.exceptions import CramUnavailable
 from cramera_plan_builder.workspace import (
@@ -38,6 +40,24 @@ def finder_without(*absent: CramModule):
     return lambda name: (
         None if name in absent else ModuleSpec(name, loader=None, origin=f"{name}.py")
     )
+
+
+def another_thread_may_import_cram() -> bool:
+    """
+    :return: Whether a thread other than the caller could import CRAM right now.
+    """
+    answers = []
+
+    def probe() -> None:
+        acquired = CramImports().lock.acquire(blocking=False)
+        if acquired:
+            CramImports().lock.release()
+        answers.append(acquired)
+
+    probing = threading.Thread(target=probe)
+    probing.start()
+    probing.join()
+    return answers[0]
 
 
 # %% modules
@@ -71,6 +91,16 @@ def test_a_preloaded_workspace_is_read_beside_the_caller_and_kept():
     loader.preload().join()
     assert loader.loaded == MissingWorkspace([CramModule.KRROOD.value])
     assert loader.workspace() is loader.loaded
+
+
+def test_the_preload_keeps_every_other_cram_import_waiting_while_it_reads():
+    free_while_reading = []
+
+    def finder(name: str) -> None:
+        free_while_reading.append(another_thread_may_import_cram())
+
+    WorkspaceLoader(modules=CramModules(finder=finder)).preload().join()
+    assert free_while_reading and not any(free_while_reading)
 
 
 # %% the missing workspace

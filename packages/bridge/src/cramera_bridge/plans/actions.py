@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import ast
 import dataclasses
-import importlib
 import inspect
 import pkgutil
 import re
@@ -42,6 +41,7 @@ from typing_extensions import (
 
 import coraplex.robot_plans.actions
 from coraplex.robot_plans.actions.base import Action
+from cramera.cram_imports import CramImports
 from cramera_bridge.plans.arms import ArmField, Arms
 from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.exceptions import UnknownAction
@@ -224,7 +224,7 @@ class ActionModules:
         :return: The module, or what importing it raised.
         """
         try:
-            return importlib.import_module(name)
+            return CramImports().module(name)
         except Exception as error:
             return FailedActionModule(
                 module=name, error=f"{type(error).__name__}: {error}"

@@ -20,6 +20,7 @@ from cramera.http.messages import HttpMethod, MediaType
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
+from cramera.plugins import PluginContext
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
@@ -162,6 +163,18 @@ def test_the_workspace_is_read_as_the_plan_builder_starts(serve, output):
     while workspace.loaded is None and time.monotonic() < deadline:
         time.sleep(0.01)
     assert workspace.loaded == MissingWorkspace([module.value for module in CramModule])
+
+
+def test_the_workspace_is_not_read_while_the_routes_are_built(
+    output, scenes, locations
+):
+    workspace = WorkspaceLoader(modules=CramModules(finder=lambda name: None))
+    plugin = PlanBuilderPlugin(
+        environment={PlanBuilderVariable.OUTPUT: str(output)}, workspace=workspace
+    )
+    plugin.routes(PluginContext(catalog=scenes, locations=locations))
+    time.sleep(0.2)
+    assert workspace.loaded is None
 
 
 def test_an_object_models_file_is_served(get):

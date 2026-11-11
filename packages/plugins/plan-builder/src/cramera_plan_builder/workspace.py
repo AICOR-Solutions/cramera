@@ -11,7 +11,6 @@ every module is found.
 
 from __future__ import annotations
 
-import importlib
 import importlib.util
 import shutil
 import threading
@@ -24,6 +23,7 @@ from pathlib import Path
 from typing_extensions import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 from cramera.confinement import ConfinedDirectory
+from cramera.cram_imports import CramImports
 from cramera.exceptions import FileNotInDirectory
 from cramera_plan_builder.exceptions import CramUnavailable
 from cramera_protocol.bundle.files import MeshFormat
@@ -360,9 +360,10 @@ class WorkspaceLoader:
     The workspace once it was read.
     """
 
-    lock: threading.Lock = field(default_factory=threading.Lock, init=False)
+    lock: threading.RLock = field(default_factory=lambda: CramImports.lock, init=False)
     """
-    Lets one request read the workspace while others wait for it.
+    The gate of the process's CRAM imports: one thread reads the workspace while
+    others wait for it, and no other thread imports CRAM meanwhile.
     """
 
     def workspace(self) -> CramWorkspace:
@@ -392,9 +393,11 @@ class WorkspaceLoader:
     def warm(self) -> None:
         """
         Read the workspace and list its robots once, which imports the robots' modules
-        the catalog's first answer would otherwise wait for.
+        the catalog's first answer would otherwise wait for; no other thread imports
+        CRAM meanwhile.
         """
-        self.workspace().robots()
+        with self.lock:
+            self.workspace().robots()
 
     def read(self) -> CramWorkspace:
         """
@@ -403,7 +406,7 @@ class WorkspaceLoader:
         missing = self.modules.missing()
         if missing:
             return MissingWorkspace(missing)
-        module = importlib.import_module(WorkspaceModule.INSTALLED)
+        module = CramImports().module(WorkspaceModule.INSTALLED)
         return InstalledWorkspace(module.PlanWorkspace())
 
 

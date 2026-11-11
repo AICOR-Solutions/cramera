@@ -215,7 +215,7 @@ class PlanBuilderPlugin(ViewerPlugin):
     def routes(self, context: PluginContext) -> List[RouteDeclaration]:
         """
         :param context: What the viewer offers the plugin.
-        :return: The plan builder's routes; the CRAM workspace is read meanwhile.
+        :return: The plan builder's routes.
         """
         storage = PlanBuilderStorage.of(context.locations, self.environment)
         profile = ConfiguredProfile.of_environment(self.environment)
@@ -223,7 +223,6 @@ class PlanBuilderPlugin(ViewerPlugin):
         port = self.port()
         if profile.connection is RobotConnection.REAL:
             self.mirror.start()
-        self.workspace.preload()
         return PlanBuilderRoutes(
             scenes=context.catalog,
             local_scenes=context.locations.local_scenes,
@@ -248,6 +247,13 @@ class PlanBuilderPlugin(ViewerPlugin):
             reaches=self.reaches,
             mirror=self.mirror,
         ).declarations()
+
+    def start(self) -> None:
+        """
+        Read the CRAM workspace in the background, so the first catalog request does not
+        wait for CRAM's import.
+        """
+        self.workspace.preload()
 
     def close(self) -> None:
         """
