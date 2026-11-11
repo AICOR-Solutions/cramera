@@ -110,10 +110,12 @@ export const DEVELOPER_MODE_KEY = 'cramera.plan-builder.developer-mode';
 const RUN_LABELS = Object.freeze({
   [RunState.IDLE]: 'No demo runs.',
   [RunState.RUNNING]: 'The demo runs.',
+  [RunState.SAVING]: 'The run is over and the robot holds; saving the run\'s record… Validate or run again once it is saved.',
   [RunState.FINISHED]: 'The demo finished.',
   [RunState.FAILED]: 'The demo failed; its output is below.',
   [RunState.STOPPED]: 'The demo was stopped.',
   [RunState.SAFETY_STOPPED]: 'A safety limit stopped the demo; the robot holds.',
+  [RunState.SAVE_FAILED]: 'The run is over and the robot holds, but saving its record failed; its output is below.',
 });
 
 /**
@@ -130,6 +132,11 @@ const RUN_MESSAGES = Object.freeze({
  * What the page says once a run on the real robot started.
  */
 const REAL_ROBOT_RUN_MESSAGE = 'Running the plan on the real robot; keep the emergency stop at hand. The next run needs a new validation.';
+
+/**
+ * The run states in which the demo's process still runs and only Stop ends it.
+ */
+const ACTIVE_STATES = Object.freeze([RunState.RUNNING, RunState.SAVING]);
 
 /**
  * The run states in which the live world is published.
@@ -555,11 +562,11 @@ export class BuilderPage {
   }
 
   /**
-   * @returns {boolean} Whether a plan runs; a staged live scene runs no plan, and a run
-   *   started beside it replaces it.
+   * @returns {boolean} Whether a plan runs or the record of its run is still saved; a
+   *   staged live scene runs no plan, and a run started beside it replaces it.
    */
   #performing() {
-    return this.#run[RunStatusKey.STATE] === RunState.RUNNING && this.#run[RunStatusKey.MODE] !== RunMode.STAGE;
+    return ACTIVE_STATES.includes(this.#run[RunStatusKey.STATE]) && this.#run[RunStatusKey.MODE] !== RunMode.STAGE;
   }
 
   /**
@@ -1240,12 +1247,13 @@ export class BuilderPage {
   #showRun() {
     const state = this.#run[RunStatusKey.STATE];
     const running = state === RunState.RUNNING;
+    const active = ACTIVE_STATES.includes(state);
     const live = this.#world.published;
     const unanswered = this.#unanswered === null ? '' : ` The plan builder does not answer (${this.#unanswered}); retrying.`;
     this.#parts.runState.textContent = `${RUN_LABELS[state]}${running && live ? ' Its world is live.' : ''}${unanswered}`;
     this.#parts.runState.dataset.state = state;
     this.#parts.log.textContent = this.#run[RunStatusKey.LOG] ?? '';
-    this.#parts.stop.disabled = !running || this.#stopping;
+    this.#parts.stop.disabled = !active || this.#stopping;
     this.#parts.capture.disabled = !live;
     const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run) && !this.busy();
     for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;

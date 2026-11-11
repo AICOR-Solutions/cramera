@@ -780,6 +780,23 @@ class SafetyStopNotAcknowledged(PlanBuilderError):
         )
 
 
+@dataclass
+class RunRecordSaving(PlanBuilderError):
+    """
+    A run or a validation asked for while the demo started last still saves the record
+    of its run, which a new demo would cut short.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.CONFLICT
+
+    def message(self) -> str:
+        return (
+            "The last run's record is still being saved; validate or run the plan "
+            "again once it is saved."
+        )
+
+
 # %% reach
 
 

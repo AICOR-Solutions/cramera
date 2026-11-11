@@ -1564,6 +1564,26 @@ test('while a plan runs only Stop is offered, so nothing replaces the run or val
   assert.equal(scanButton(root).disabled, false);
 });
 
+test('while the run\'s record is saved the page says so, offers only Stop and shows a failed save', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.SAVING };
+  await timer.tick();
+  const runState = root.findAll((element) => element.className === 'run-state')[0];
+  assert.match(runState.textContent, /saving the run's record/i);
+  assert.match(runState.textContent, /robot holds/);
+  assert.deepEqual(runButtons(root).map((button) => button.disabled), [true, true, true, true, true]);
+  assert.equal(scanButton(root).disabled, true);
+  assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.SAVE_FAILED };
+  await timer.tick();
+  assert.match(runState.textContent, /saving its record failed/);
+  assert.equal(validateButton(root).disabled, false);
+});
+
 test('stopping says so until the run ended, and a stop that fails says why', async () => {
   const { root, api } = await openPage();
   byAction(root, PlanAction.SIMULATE)[0].click();

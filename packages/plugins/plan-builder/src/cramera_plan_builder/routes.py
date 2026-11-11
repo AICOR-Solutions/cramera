@@ -561,8 +561,9 @@ class PlanBuilderRoutes:
         :return: The :class:`ValidationReport`.
         :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
             the demo started last.
+        :raises RunRecordSaving: While the demo started last saves its run's record.
         """
-        self.runner.refuse_before_acknowledgement()
+        self.runner.refuse_to_start()
         demo = self.runnable(ValidationRequest.from_json(self.body(request)).plan)
         report = self.report_unoffered_skills(demo.plan) or self.validations.validate(
             self.profile.validation_order(demo)

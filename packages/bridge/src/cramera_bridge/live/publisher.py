@@ -18,7 +18,7 @@ from pathlib import Path
 from typing_extensions import TYPE_CHECKING, Any, Callable, Iterable, List, Optional
 
 from cramera.locations import DataLocations
-from cramera_bridge.database.native_plans import NativePlans
+from cramera_bridge.database.native_plans import PendingPlans
 from cramera_bridge.database.runs import StoredRun
 from cramera_bridge.exceptions import (
     EmptyRecording,
@@ -886,15 +886,33 @@ class LivePublisher:
         :raises RecordingNotWritten: While the finished recording's bundle is still
             being written, so that the save cannot take an older bundle for it.
         """
+        pending = self.save_recording_without_plans(request)
+        pending.store()
+        return pending.run
+
+    def save_recording_without_plans(
+        self, request: RecordingSaveRequest
+    ) -> PendingPlans:
+        """
+        Save the finished recording with its run in the saved bundle's plan database,
+        leaving the plans it performed to be stored later; a refused save changes
+        nothing.
+
+        :param request: The save request.
+        :return: The saved run and the plans it performed, still to be stored.
+        :raises NoRecording: While no finished recording waits to be saved.
+        :raises RecordingNotWritten: While the finished recording's bundle is still
+            being written, so that the save cannot take an older bundle for it.
+        """
         status = self.recording.status()
         if status.state is not RecordingState.FINALIZED:
             raise NoRecording(RecordingState.FINALIZED)
         if status.scene_name is None:
             raise RecordingNotWritten()
         run = RecordingStorage(self.locations).save(request)
-        NativePlans(run).store(self.plan.performed_plans())
+        pending = PendingPlans(run=run, plans=self.plan.performed_plans())
         self.recording.discard()
-        return run
+        return pending
 
     def discard_recording(self) -> Acknowledgement:
         """

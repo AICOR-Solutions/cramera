@@ -275,6 +275,20 @@ class SafetyWatched(RunLogEntry):
         )
 
 
+class RecordSaving(RunLogEntry):
+    """
+    The run is over and its robot released, on the real robot once Giskard ended and the
+    arms were commanded zero velocities; the run's record is saved now, which takes a
+    while.
+    """
+
+    def line(self) -> str:
+        return "run over, robot released; saving the run's record"
+
+    def event(self) -> RunEvent:
+        return RunEvent(kind=RunEventKind.RECORD_SAVING)
+
+
 @dataclass(frozen=True)
 class SafetyStopped(RunLogEntry):
     """

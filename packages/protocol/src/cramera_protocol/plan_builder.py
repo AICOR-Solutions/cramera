@@ -2777,6 +2777,12 @@ class RunState(StrEnum):
     The demo runs.
     """
 
+    SAVING = "saving"
+    """
+    The demo's run is over and its robot released; the demo still saves the run's
+    record.
+    """
+
     FINISHED = "finished"
     """
     The demo ended on its own with success.
@@ -2785,6 +2791,11 @@ class RunState(StrEnum):
     FAILED = "failed"
     """
     The demo ended on its own with an error.
+    """
+
+    SAVE_FAILED = "save_failed"
+    """
+    The demo's run was over and its robot released, but saving the run's record failed.
     """
 
     STOPPED = "stopped"
@@ -2920,6 +2931,11 @@ class RunEventKind(StrEnum):
     A motion broke a safety limit, and the run ends.
     """
 
+    RECORD_SAVING = "recordSaving"
+    """
+    The run is over and its robot released; the run's record is being saved.
+    """
+
 
 class RunMonitor(StrEnum):
     """
@@ -3028,8 +3044,8 @@ class RunEventKey(StrEnum):
 class RunEvent(JsonDocument):
     """
     One thing that happened while a plan ran, as the run view follows it: a step changed
-    its state, a monitor its observation, a step perceived an object, or a safety limit
-    stopped the run.
+    its state, a monitor its observation, a step perceived an object, a safety limit
+    stopped the run, or the run ended and its record is being saved.
 
     The fields beside :attr:`kind` that do not concern it are None.
     """

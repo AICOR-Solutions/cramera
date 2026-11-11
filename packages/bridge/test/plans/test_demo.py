@@ -5,6 +5,7 @@ performing it, and staging its world for the viewer.
 
 from __future__ import annotations
 
+import io
 import json
 import math
 import signal
@@ -31,6 +32,7 @@ from cramera_bridge.plans.demo import (
     PlannedTaskDemo,
 )
 from cramera_bridge.plans.steps import StepActions
+from cramera_bridge.plans.run_log import RunLog
 from cramera_bridge.plans.surfaces import SurfaceTargets
 from cramera_bridge.plans.world import PlannedGraspable
 from cramera_bridge.exceptions import AnnotationNotInWorld, SurfaceNotInWorld
@@ -41,6 +43,8 @@ from cramera_protocol.plan_builder import (
     DemoOption,
     PlanDocument,
     PlanStep,
+    RunEvent,
+    RunEventKind,
     StepConstraint,
 )
 from cramera_protocol.viewer import EnvironmentVariable
@@ -319,6 +323,14 @@ def test_the_plan_is_performed_and_its_recording_saved(document, locations):
     assert saved.scene == document.plan.name
     assert (bundle / BundleFile.SCENE).is_file()
     assert math.isfinite(error) and error <= PLACEMENT_TOLERANCE
+
+
+def test_a_run_whose_robot_was_released_reports_saving_its_record(demo):
+    demo.run_log = RunLog(stream=io.StringIO())
+
+    demo.on_record_saving()
+
+    assert demo.run_log.events() == [RunEvent(kind=RunEventKind.RECORD_SAVING)]
 
 
 def test_a_stopped_stage_restores_the_signal_handlers(demo):

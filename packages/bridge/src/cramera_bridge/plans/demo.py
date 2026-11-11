@@ -30,7 +30,7 @@ from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.grounding import PlanGrounding
-from cramera_bridge.plans.run_log import RunLog, SafetyWatched
+from cramera_bridge.plans.run_log import RecordSaving, RunLog, SafetyWatched
 from cramera_bridge.plans.safety import RobotSafety
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.step_run import AttemptPlan, ScheduledStep, StepRun
@@ -449,6 +449,13 @@ class PlannedTaskDemo(RobotTaskDemo):
         return arguments.find_open_arm_field() is not None or bool(
             arguments.late_destination_fields()
         )
+
+    def on_record_saving(self) -> None:
+        """
+        Report in the run log that the run is over and its robot released, so the plan
+        builder shows the run's record being saved rather than the run running.
+        """
+        self.run_log.write(RecordSaving())
 
     def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """

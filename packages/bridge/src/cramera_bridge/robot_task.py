@@ -32,6 +32,7 @@ from typing_extensions import (
 
 from cramera.locations import DataLocations
 from cramera.scenes import SceneSource
+from cramera_bridge.database.native_plans import PendingPlans
 from cramera_bridge.database.runs import StoredRun
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.exceptions import (
@@ -298,6 +299,12 @@ class RobotTaskDemo(ABC):
         :param visualization: The started visualization publishing this run.
         """
 
+    def on_record_saving(self) -> None:
+        """
+        Called once the run is over and its robot released, as :attr:`execution`
+        detached, and before the plans it performed are stored, which takes long.
+        """
+
     def run(self) -> SavedScene:
         """
         Perform the task while it is published and recorded, measure the outcome and
@@ -305,7 +312,7 @@ class RobotTaskDemo(ABC):
 
         A run stepping through its queries is published from before its setup, so it can
         be held at the first query it asks. The world is built while :attr:`execution`
-        reaches the robot.
+        reaches the robot. The plans it performed are stored once the robot is released.
 
         :return: The saved bundle.
         :raises InvalidSceneName: When the name is no bundle name.
@@ -317,17 +324,20 @@ class RobotTaskDemo(ABC):
         name = self.name_to_record_under()
         self.stepper = None
         with self.execution.attached():
-            run, metrics = self.record(name)
-        self.complete(run, metrics)
-        return SavedScene(scene=run.scene)
+            pending, metrics = self.record(name)
+        self.on_record_saving()
+        pending.store()
+        self.complete(pending.run, metrics)
+        return SavedScene(scene=pending.run.scene)
 
-    def record(self, name: str) -> tuple[StoredRun, AcceptanceMetrics]:
+    def record(self, name: str) -> tuple[PendingPlans, AcceptanceMetrics]:
         """
         Perform the task while it is published and recorded, measure the outcome and
         save the recording, while :attr:`execution` reaches the robot.
 
         :param name: The validated name the recording is saved under.
-        :return: The saved run and its measurements.
+        :return: The saved run with the plans it performed, still to be stored, and its
+            measurements.
         :raises TaskFailed: When the measured outcome is not the task's.
         """
         world = self.build_world()
@@ -353,7 +363,7 @@ class RobotTaskDemo(ABC):
                         )
             metrics = self.measure(context)
             visualization.publisher.finish_recording()
-            run = visualization.publisher.save_recording(
+            pending = visualization.publisher.save_recording_without_plans(
                 RecordingSaveRequest(
                     name=name,
                     destination=SceneDestination.LOCAL,
@@ -364,7 +374,7 @@ class RobotTaskDemo(ABC):
             )
         finally:
             visualization.stop()
-        return run, metrics
+        return pending, metrics
 
     def executor_extensions(
         self, visualization: LiveVisualization

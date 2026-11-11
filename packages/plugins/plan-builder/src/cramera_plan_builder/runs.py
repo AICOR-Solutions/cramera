@@ -17,12 +17,17 @@ from pathlib import Path
 from typing_extensions import IO, List, Optional
 
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
-from cramera_plan_builder.exceptions import DemoNotStarted, SafetyStopNotAcknowledged
+from cramera_plan_builder.exceptions import (
+    DemoNotStarted,
+    RunRecordSaving,
+    SafetyStopNotAcknowledged,
+)
 from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.plan_builder import (
     DemoDocument,
     DemoOption,
     RunEvent,
+    RunEventKind,
     RunMode,
     RunOutputMarker,
     RunState,
@@ -278,19 +283,30 @@ class DemoProcess:
 
     def state(self) -> RunState:
         """
-        :return: Whether the demo runs, ended on its own, was cancelled by a safety
-            stop or was stopped.
+        :return: Whether the demo runs, saves the record of its run once that is over,
+            ended on its own, was cancelled by a safety stop or was stopped.
         """
         return_code = self.process.poll()
         if return_code is None:
-            return RunState.RUNNING
+            return RunState.SAVING if self.saves_its_record() else RunState.RUNNING
         if self.stopped:
             return RunState.STOPPED
         if return_code == 0:
             return RunState.FINISHED
         if self.safety_stop() is not None:
             return RunState.SAFETY_STOPPED
+        if self.saves_its_record():
+            return RunState.SAVE_FAILED
         return RunState.FAILED
+
+    def saves_its_record(self) -> bool:
+        """
+        :return: Whether the demo reported that its run is over and its robot released,
+            and that it saves the run's record.
+        """
+        return any(
+            event.kind is RunEventKind.RECORD_SAVING for event in self.log.events()
+        )
 
     def safety_stop(self) -> Optional[SafetyStop]:
         """
@@ -414,9 +430,10 @@ class DemoRunner:
         :raises DemoNotStarted: When the operating system cannot start it.
         :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop
             of the demo started last.
+        :raises RunRecordSaving: While the demo started last saves its run's record.
         """
         with self.lock:
-            self.refuse_before_acknowledgement()
+            self.refuse_to_start()
             self.release()
             saved = self.directory.write(self.template.render(demo))
             path = Path(saved.path)
@@ -480,13 +497,20 @@ class DemoRunner:
             self.current.acknowledged = True
             return self.current.status()
 
-    def refuse_before_acknowledgement(self) -> None:
+    def refuse_to_start(self) -> None:
         """
+        Refuse a new demo or validation while the demo started last holds it back.
+
         :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
             the demo started last.
+        :raises RunRecordSaving: While the demo started last saves its run's record.
         """
-        if self.current is not None and self.current.awaits_acknowledgement():
+        if self.current is None:
+            return
+        if self.current.awaits_acknowledgement():
             raise SafetyStopNotAcknowledged(self.current.safety_stop().constraint)
+        if self.current.state() is RunState.SAVING:
+            raise RunRecordSaving()
 
     def release(self) -> None:
         """

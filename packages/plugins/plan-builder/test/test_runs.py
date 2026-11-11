@@ -13,7 +13,11 @@ import pytest
 from typing_extensions import Callable
 
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
-from cramera_plan_builder.exceptions import DemoNotStarted, SafetyStopNotAcknowledged
+from cramera_plan_builder.exceptions import (
+    DemoNotStarted,
+    RunRecordSaving,
+    SafetyStopNotAcknowledged,
+)
 from cramera_plan_builder.runs import DemoRunner, OutputLog, RunEventLines
 from cramera_protocol.plan_builder import (
     DemoDocument,
@@ -266,6 +270,61 @@ def test_a_new_run_starts_from_the_beginning_once_the_stop_is_acknowledged(
 
 def test_acknowledging_without_a_demo_leaves_the_runner_idle(runner):
     assert runner.acknowledge() == RunStatus()
+
+
+# %% saving the record
+
+
+@pytest.fixture
+def saving(tmp_path, demo) -> DemoRunner:
+    """
+    :return: A runner whose demo's run is over and which saves the run's record until
+        it is stopped.
+    """
+    runner = runner_of(tmp_path, "saving_demo.py")
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    yield runner
+    runner.stop()
+
+
+def test_a_demo_saving_its_record_no_longer_runs(saving):
+    assert saving.status().state is RunState.SAVING
+
+
+@pytest.mark.parametrize("mode", list(RunMode))
+def test_no_demo_starts_while_the_record_is_saved(saving, demo, mode):
+    with pytest.raises(RunRecordSaving):
+        saving.start(demo, mode)
+    assert saving.status().state is RunState.SAVING
+
+
+def test_no_validation_starts_while_the_record_is_saved(saving):
+    with pytest.raises(RunRecordSaving):
+        saving.refuse_to_start()
+
+
+def test_a_demo_saving_its_record_can_be_stopped(saving):
+    assert saving.stop().state is RunState.STOPPED
+
+
+def test_a_demo_that_saved_its_record_finished(tmp_path, demo):
+    runner = runner_of(tmp_path, "saved_demo.py")
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    ended = wait_for(runner, lambda status: status.return_code is not None)
+    runner.stop()
+
+    assert ended.state is RunState.FINISHED, ended.log
+
+
+def test_a_record_that_could_not_be_saved_is_reported(tmp_path, demo):
+    runner = runner_of(tmp_path, "save_failing_demo.py")
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    ended = wait_for(runner, lambda status: status.return_code is not None)
+    runner.stop()
+
+    assert ended.state is RunState.SAVE_FAILED
+    assert "No space left on device" in ended.log
 
 
 # %% output
