@@ -249,6 +249,14 @@ export class PlanBuilderApi {
   }
 
   /**
+   * @returns {Promise<Object>} The `RobotPosture` the real robot's drivers reported
+   *   last; empty while the plan builder is not attached to the real robot.
+   */
+  posture() {
+    return this.#client.get(this.url(PlanBuilderRoute.POSTURE));
+  }
+
+  /**
    * @returns {Promise<Object>} The stopped demo's status.
    */
   stop() {

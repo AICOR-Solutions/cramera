@@ -71,6 +71,11 @@ class BridgeModule(StrEnum):
     Measures what a robot model reaches.
     """
 
+    MIRROR = "cramera_bridge.plans.mirroring"
+    """
+    Mirrors where the real robot stands.
+    """
+
 
 # %% process
 

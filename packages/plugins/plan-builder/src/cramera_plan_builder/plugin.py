@@ -26,6 +26,7 @@ from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.plans import PlanStore
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.environments import EnvironmentAnnotationCache
+from cramera_plan_builder.mirroring import PostureMirror
 from cramera_plan_builder.routes import PlanBuilderRoutes
 from cramera_plan_builder.runs import DemoRunner
 from cramera_plan_builder.reaches import RobotReaches
@@ -39,6 +40,7 @@ from cramera_protocol.plan_builder import (
     PlanBuilderName,
     PlanBuilderVariable,
 )
+from cramera_protocol.robot_profile import RobotConnection
 from cramera_protocol.viewer import NavigationGroup
 
 WEB_DIRECTORY = Path(__file__).parent / "web"
@@ -192,6 +194,11 @@ class PlanBuilderPlugin(ViewerPlugin):
     Measures what robot models reach.
     """
 
+    mirror: PostureMirror = field(default_factory=PostureMirror)
+    """
+    Mirrors where the real robot stands, while the builder is attached to it.
+    """
+
     def name(self) -> str:
         return PlanBuilderName.PLUGIN
 
@@ -214,6 +221,8 @@ class PlanBuilderPlugin(ViewerPlugin):
         profile = ConfiguredProfile.of_environment(self.environment)
         demos = DemoDirectory(storage.demos)
         port = self.port()
+        if profile.connection is RobotConnection.REAL:
+            self.mirror.start()
         return PlanBuilderRoutes(
             scenes=context.catalog,
             local_scenes=context.locations.local_scenes,
@@ -236,7 +245,14 @@ class PlanBuilderPlugin(ViewerPlugin):
             scans=self.scans,
             validations=self.validations,
             reaches=self.reaches,
+            mirror=self.mirror,
         ).declarations()
+
+    def close(self) -> None:
+        """
+        End the posture mirror.
+        """
+        self.mirror.close()
 
     def web_directory(self) -> Optional[Path]:
         return WEB_DIRECTORY

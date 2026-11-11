@@ -34,6 +34,7 @@ import {
   RunState,
   RunEventKey,
   RunEventKind,
+  RobotPostureKey,
   RunStatusKey,
   SafetyStopKey,
   StepState,
@@ -106,6 +107,11 @@ class FakeApi {
     this.reached = [];
     this.scanned = [];
     this.scanAnswer = { [SceneScanKey.OBJECTS]: [], [SceneScanKey.GROUNDING]: DetectionGrounding.PERCEIVED, [SceneScanKey.UNRECOGNIZED]: 0 };
+    this.mirrored = {};
+  }
+
+  async posture() {
+    return { [RobotPostureKey.JOINT_POSITIONS]: structuredClone(this.mirrored) };
   }
 
   async validate(plan) {
@@ -941,6 +947,18 @@ test('a performing run moves the robot and the objects in the 3D view as often a
   const milk = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
   assert.deepEqual(scene().shown.live.postures.get(robot), moved.robots.robots[0].jointPositions);
   assert.deepEqual(scene().shown.live.objects.get(milk), moved.captured.objects['key-milk']);
+});
+
+test('without a run the robot stands in the posture the real robot reports', async () => {
+  const { page, api, timer, scene } = await openPage();
+  api.mirrored = { left_shoulder_pan_joint: 0.3 };
+  await timer.tickEvery(PollInterval.STATE);
+  const robot = page.state.activeRobot()[PlannedRobotKey.IDENTIFIER];
+  assert.deepEqual(scene().shown.live.postures.get(robot), api.mirrored);
+
+  api.mirrored = { left_shoulder_pan_joint: -0.4 };
+  await timer.tickEvery(PollInterval.STATE);
+  assert.deepEqual(scene().shown.live.postures.get(robot), api.mirrored);
 });
 
 test('a run in physics asks for the physics run mode and attaches its constraints', async () => {

@@ -5,6 +5,7 @@ The plan builder's routes as the viewer serves them.
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import replace
 from http import HTTPStatus
 from importlib.machinery import ModuleSpec
@@ -21,6 +22,7 @@ from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
 from cramera_plan_builder.exceptions import PlanNotValidated, RunModeNotOffered
+from cramera_plan_builder.mirroring import PostureMirror
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.reaches import RobotReaches
 from cramera_plan_builder.scans import SceneScans
@@ -52,6 +54,7 @@ from cramera_protocol.plan_builder import (
     PlanBuilderVariable,
     PlanList,
     PlanRecord,
+    RobotPosture,
     RunMode,
     RunRequest,
     RunState,
@@ -664,6 +667,61 @@ def attached_to_the_real_robot(serve, output, workspace_loader, tmp_path):
     return serve(
         validating_plugin(output, workspace_loader, real, RobotConnection.REAL)
     )
+
+
+def mirroring_plugin(output, workspace_loader, connection) -> PlanBuilderPlugin:
+    """
+    :return: A plan builder attached to the robot as `connection` says, whose posture
+        mirror is the stand-in reporting a turned left shoulder.
+    """
+    return replace(
+        validating_plugin(
+            output, workspace_loader, DATASET / "profile" / "tracy.json", connection
+        ),
+        mirror=PostureMirror(
+            interpreter=str(DATASET / "mirroring_interpreter.py"),
+            modules=CramModules(
+                finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
+            ),
+        ),
+    )
+
+
+def mirrored_posture(answerer) -> RobotPosture:
+    """
+    :return: The posture the plan builder answers, once the mirror reported one or
+        after a few seconds.
+    """
+    deadline = time.monotonic() + 10.0
+    posture = RobotPosture()
+    while not posture.joint_positions and time.monotonic() < deadline:
+        time.sleep(0.05)
+        answer = send(answerer, HttpMethod.GET, PlanBuilderRoute.POSTURE)
+        assert answer.status == HTTPStatus.OK, answer.body
+        posture = RobotPosture.from_json(json.loads(answer.body))
+    return posture
+
+
+def test_attached_to_the_real_robot_the_builder_mirrors_its_posture_without_a_run(
+    serve, output, workspace_loader
+):
+    plugin = mirroring_plugin(output, workspace_loader, RobotConnection.REAL)
+    answerer = serve(plugin)
+
+    posture = mirrored_posture(answerer)
+    plugin.close()
+
+    assert posture.joint_positions == {"left_shoulder_pan_joint": 0.3}
+    assert plugin.mirror.process.poll() is not None
+
+
+def test_a_simulated_robot_has_no_mirrored_posture(serve, output, workspace_loader):
+    plugin = mirroring_plugin(output, workspace_loader, RobotConnection.SIMULATED)
+
+    answer = send(serve(plugin), HttpMethod.GET, PlanBuilderRoute.POSTURE)
+
+    assert RobotPosture.from_json(json.loads(answer.body)).joint_positions == {}
+    assert plugin.mirror.process is None
 
 
 def test_a_run_on_the_real_robot_needs_a_new_validation_for_the_next_run(

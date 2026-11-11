@@ -25,6 +25,7 @@ from cramera_bridge.exceptions import JointStatesNotReceived, RealRobotNotReady
 from cramera_bridge.execution import RealExecution
 from cramera_bridge.plans.command import PlanDemoCommand
 from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.mirroring import PostureMirror
 from cramera_bridge.plans.validating import PlanValidator
 from cramera_bridge.real_robot import (
     GiskardScript,
@@ -39,7 +40,12 @@ from cramera_bridge.real_robot import (
 )
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.bundle.files import BundleFile
-from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
+from cramera_protocol.plan_builder import (
+    DemoDocument,
+    DemoOption,
+    PlanDocument,
+    RobotPosture,
+)
 from cramera_protocol.geometry import AxisAlignedBox
 from cramera_protocol.robot_profile import ArmWorkspace, ExecutorKind, SafetyLimits
 from cramera_protocol.validation import ValidationOrder
@@ -256,6 +262,28 @@ def test_a_robot_whose_drivers_stay_silent_has_no_reported_posture(tracy_plan_wo
     with pytest.raises(JointStatesNotReceived) as raised:
         ReportedPosture(wait_seconds=0.2).apply(tracy_plan_world)
     assert raised.value.topics == list(ReportedPosture().joint_state_topics)
+
+
+def test_the_mirror_reports_the_joint_positions_the_drivers_publish(standing_robot):
+    mirror = subprocess.Popen(
+        [sys.executable, "-m", PostureMirror.__module__],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    with ExitStack() as mirroring:
+        mirroring.callback(mirror.wait, timeout=30)
+        mirroring.callback(mirror.stdin.close)
+        expected = {
+            name: position
+            for positions in STANDING_POSITIONS.values()
+            for name, position in positions.items()
+        }
+        posture = RobotPosture.from_json(json.loads(mirror.stdout.readline()))
+        while posture.joint_positions.keys() != expected.keys():
+            posture = RobotPosture.from_json(json.loads(mirror.stdout.readline()))
+
+    assert posture.joint_positions == pytest.approx(expected)
 
 
 @needs_tracy

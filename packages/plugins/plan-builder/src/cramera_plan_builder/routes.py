@@ -27,6 +27,7 @@ from cramera_plan_builder.exceptions import (
     PlanNotValidated,
     UnsupportedByCatalog,
 )
+from cramera_plan_builder.mirroring import PostureMirror
 from cramera_plan_builder.plans import CatalogCheck, PlanCheck, PlanStore
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.reaches import RobotReaches
@@ -197,12 +198,18 @@ class PlanBuilderRoutes:
     Measures what robot models reach.
     """
 
+    mirror: PostureMirror = field(default_factory=PostureMirror)
+    """
+    Mirrors where the real robot stands, while the builder is attached to it.
+    """
+
     def declarations(self) -> List[RouteDeclaration]:
         """
         :return: The routes, below the plugin's prefix.
         """
         return [
             PluginRoute(HttpMethod.GET, PlanBuilderRoute.CATALOG, self.answer_catalog),
+            PluginRoute(HttpMethod.GET, PlanBuilderRoute.POSTURE, self.answer_posture),
             PluginRoute(
                 HttpMethod.POST, PlanBuilderRoute.ENVIRONMENTS, self.answer_environment
             ),
@@ -491,6 +498,14 @@ class PlanBuilderRoutes:
         :return: The state of the demo started last.
         """
         return Response.of_json(self.runner.status())
+
+    def answer_posture(self, request: Request) -> Response:
+        """
+        :param request: A request for the real robot's posture.
+        :return: The joint positions its drivers reported last; none while the
+            builder is not attached to the real robot.
+        """
+        return Response.of_json(self.mirror.latest)
 
     def answer_stop(self, request: Request) -> Response:
         """

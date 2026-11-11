@@ -198,6 +198,12 @@ class PlanBuilderRoute(StrEnum):
     :class:`UrdfFolderParameter` values name the folder.
     """
 
+    POSTURE = "posture"
+    """
+    The joint positions the real robot's drivers report last, mirrored while the
+    builder is attached to the real robot.
+    """
+
 
 class PlanBuilderPageParameter(StrEnum):
     """
@@ -3242,6 +3248,31 @@ class RunStatus(JsonDocument):
     events: List[RunEvent] = document_field(RunStatusKey.EVENTS, default_factory=list)
     """
     Every event the demo reported, in order; its lines are not part of :attr:`log`.
+    """
+
+
+class RobotPostureKey(StrEnum):
+    """
+    The keys of the posture the real robot's drivers report.
+    """
+
+    JOINT_POSITIONS = "jointPositions"
+    """
+    The position of each joint by its name.
+    """
+
+
+@dataclass(kw_only=True)
+class RobotPosture(JsonDocument):
+    """
+    The joint positions the real robot's drivers reported last.
+    """
+
+    joint_positions: Dict[str, float] = document_field(
+        RobotPostureKey.JOINT_POSITIONS, default_factory=dict
+    )
+    """
+    The position of each joint by its name; empty while nothing was reported.
     """
 
 

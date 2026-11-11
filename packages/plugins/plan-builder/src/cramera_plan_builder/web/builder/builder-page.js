@@ -8,6 +8,8 @@
  * monitors, the perceived objects, the latest camera image and the run log, from the
  * events the run reports; the 3D view shows the live robot and objects as the run's world
  * holds them, read from the live publisher, the seam a real robot's joint states feed.
+ * Without a run's world, the robot whose plan is edited stands in the posture the real
+ * robot's drivers report, which the plan builder mirrors while attached to it.
  */
 
 import {
@@ -31,6 +33,7 @@ import {
   PlanStepKey,
   PlanSummaryKey,
   RobotInstanceKey,
+  RobotPostureKey,
   RobotProfileKey,
   PlanTemplateKey,
   ExecutorKind,
@@ -363,6 +366,13 @@ export class BuilderPage {
    * @type {boolean}
    */
   #followed = false;
+
+  /**
+   * The joint positions the real robot's drivers reported last, by joint name; empty
+   * while the builder is not attached to the real robot.
+   * @type {Object<string, number>}
+   */
+  #mirrored = {};
 
   /**
    * Whether a poll is answered right now, so polls do not pile up.
@@ -1031,7 +1041,8 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the live world answered.
    */
   async #follow() {
-    if (this.#followed || !this.#world.published) return;
+    if (this.#followed) return;
+    if (!this.#world.published) return this.#followPosture();
     this.#followed = true;
     const live = this.#live;
     const answer = await Promise.all([live.robots(), live.capturedObjects()]).catch(() => null);
@@ -1040,6 +1051,20 @@ export class BuilderPage {
     this.#world.move(...answer, this.#robotIdentities());
     this.#noteSceneChange();
     this.#showScene();
+  }
+
+  /**
+   * Put the robot whose plan is edited in the posture the real robot reports, while no
+   * run publishes a world.
+   * @returns {Promise<void>} Settles once the plan builder answered.
+   */
+  async #followPosture() {
+    this.#followed = true;
+    const posture = await this.#environment.api.posture().catch(() => null);
+    this.#followed = false;
+    if (!posture || this.#world.published || !this.state) return;
+    this.#mirrored = posture[RobotPostureKey.JOINT_POSITIONS] ?? {};
+    if (Object.keys(this.#mirrored).length > 0) this.#showScene();
   }
 
   /**
@@ -1182,6 +1207,8 @@ export class BuilderPage {
     }
     const robots = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.POSE]]));
     const postures = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.JOINT_POSITIONS] ?? {}]));
+    const edited = this.state.activeRobot()?.[PlannedRobotKey.IDENTIFIER];
+    if (!this.#world.published && edited !== undefined && Object.keys(this.#mirrored).length > 0) postures.set(edited, this.#mirrored);
     this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors() }, this.#overlay());
   }
 
