@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import socket
+from dataclasses import dataclass
 import urllib.error
 import urllib.request
 from http import HTTPStatus
@@ -13,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from cramera.exceptions import MalformedRequestBody, UnknownScene
+from cramera.exceptions import MalformedRequestBody, UnknownScene, ViewerError
 from cramera.http import server as server_module
 from cramera.http.addresses import (
     EVERY_ADDRESS,
@@ -318,6 +319,51 @@ def test_viewer_and_protocol_errors_become_error_answers():
         json.loads(unknown_answer.body)[ErrorKey.ERROR] == UnknownScene("x").message()
     )
     assert answerer.answer(request(path="/m")).status is HTTPStatus.BAD_REQUEST
+
+
+@dataclass
+class FailureWithOutput(ViewerError):
+    """
+    A refusal whose cause printed more than its message says.
+    """
+
+    output: str
+    """
+    What the cause printed.
+    """
+
+    def message(self) -> str:
+        return "It failed."
+
+    def diagnostic_output(self) -> str:
+        return self.output
+
+
+def test_the_output_behind_an_error_is_answered_apart_from_its_message():
+    def failing(_):
+        raise FailureWithOutput("a traceback\nand warnings")
+
+    router = Router([ExactRoute(HttpMethod.GET, "/f", failing)])
+    answer = RequestAnswerer(router=router, policy=OriginPolicy()).answer(
+        request(path="/f")
+    )
+
+    assert json.loads(answer.body) == {
+        ErrorKey.ERROR: "It failed.",
+        ErrorKey.OUTPUT: "a traceback\nand warnings",
+    }
+
+
+def test_an_error_without_output_is_answered_with_its_message_only():
+    def unknown(_):
+        raise UnknownScene("x")
+
+    router = Router([ExactRoute(HttpMethod.GET, "/u", unknown)])
+    answer = RequestAnswerer(router=router, policy=OriginPolicy()).answer(
+        request(path="/u")
+    )
+
+    assert json.loads(answer.body) == {ErrorKey.ERROR: UnknownScene("x").message()}
 
 
 def test_an_unexpected_error_in_a_route_is_answered_with_its_text_and_logged(caplog):

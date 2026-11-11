@@ -694,46 +694,57 @@ class DemoNotStarted(PlanBuilderError):
         return f"The demo {str(self.path)!r} could not be started: {self.reason}"
 
 
-# %% scans
+# %% bridge processes
 
 
 @dataclass
-class ScanFailed(PlanBuilderError):
+class BridgeProcessFailed(PlanBuilderError):
     """
-    A scan of the scene whose process ended without a scan.
+    A request whose bridge process ended without an answer.
+    """
+
+    reason: str
+    """
+    Why it failed in one short line: the message of the exception the process ended
+    with, or its last printed line.
     """
 
     output: str
     """
-    The newest output of the scan's process.
+    The newest output of the process, warnings and traceback included.
     """
 
     def status(self) -> HTTPStatus:
         return HTTPStatus.BAD_GATEWAY
 
+    def diagnostic_output(self) -> str:
+        return self.output
+
+
+# %% scans
+
+
+@dataclass
+class ScanFailed(BridgeProcessFailed):
+    """
+    A scan of the scene whose process ended without a scan.
+    """
+
     def message(self) -> str:
-        return f"The scene could not be scanned:\n{self.output}"
+        return f"The scene could not be scanned: {self.reason}"
 
 
 # %% validation
 
 
 @dataclass
-class ValidationFailed(PlanBuilderError):
+class ValidationFailed(BridgeProcessFailed):
     """
     A validation of a plan whose process ended without a report.
     """
 
-    output: str
-    """
-    The newest output of the validation's process.
-    """
-
-    def status(self) -> HTTPStatus:
-        return HTTPStatus.BAD_GATEWAY
-
     def message(self) -> str:
-        return f"The plan could not be validated:\n{self.output}"
+        return f"The plan could not be validated: {self.reason}"
 
 
 @dataclass
@@ -823,18 +834,10 @@ class RunRecordSaving(PlanBuilderError):
 
 
 @dataclass
-class ReachNotMeasured(PlanBuilderError):
+class ReachNotMeasured(BridgeProcessFailed):
     """
     A measure of what a robot reaches whose process ended without one.
     """
 
-    output: str
-    """
-    The newest output of the measure's process.
-    """
-
-    def status(self) -> HTTPStatus:
-        return HTTPStatus.BAD_GATEWAY
-
     def message(self) -> str:
-        return f"What the robot reaches could not be measured:\n{self.output}"
+        return f"What the robot reaches could not be measured: {self.reason}"

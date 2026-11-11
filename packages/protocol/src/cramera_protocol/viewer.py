@@ -78,6 +78,12 @@ class ErrorKey(StrEnum):
     The reason the request failed.
     """
 
+    OUTPUT = "output"
+    """
+    The whole output of the process behind the failure, for a person looking into it;
+    absent when no process printed one.
+    """
+
 
 # %% environment
 

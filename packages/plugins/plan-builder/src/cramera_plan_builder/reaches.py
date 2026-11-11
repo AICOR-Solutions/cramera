@@ -39,8 +39,8 @@ class RobotReaches(BridgeProcess):
     def module(self) -> BridgeModule:
         return BridgeModule.REACH
 
-    def describe_failure(self, output: str) -> PlanBuilderError:
-        return ReachNotMeasured(output)
+    def describe_failure(self, reason: str, output: str) -> PlanBuilderError:
+        return ReachNotMeasured(reason, output)
 
     def reach(self, request: ReachRequest) -> RobotReach:
         """

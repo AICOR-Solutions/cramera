@@ -97,7 +97,9 @@ class RequestAnswerer:
         try:
             return self.router.answer(request)
         except ViewerError as error:
-            return Response.of_error(error.status(), error.message())
+            return Response.of_error(
+                error.status(), error.message(), error.diagnostic_output()
+            )
         except ProtocolError as error:
             return Response.of_error(HTTPStatus.BAD_REQUEST, error.message())
         except Exception as error:

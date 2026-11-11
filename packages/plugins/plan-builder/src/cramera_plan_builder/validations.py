@@ -31,8 +31,8 @@ class PlanValidations(BridgeProcess):
     def module(self) -> BridgeModule:
         return BridgeModule.VALIDATOR
 
-    def describe_failure(self, output: str) -> PlanBuilderError:
-        return ValidationFailed(output)
+    def describe_failure(self, reason: str, output: str) -> PlanBuilderError:
+        return ValidationFailed(reason, output)
 
     def validate(self, order: ValidationOrder) -> ValidationReport:
         """

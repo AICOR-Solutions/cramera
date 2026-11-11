@@ -88,6 +88,67 @@ class BridgeModule(StrEnum):
     """
 
 
+# %% output
+
+
+class TracebackHeader(StrEnum):
+    """
+    The line Python starts the traceback of an exception that ends a program with.
+    """
+
+    MOST_RECENT_CALL_LAST = "Traceback (most recent call last):"
+    """
+    The traceback lists the frames down to the exception, then the exception.
+    """
+
+
+@dataclass(frozen=True)
+class ProcessOutput:
+    """
+    What a bridge process printed, its standard error included.
+    """
+
+    text: str
+    """
+    The printed text.
+    """
+
+    def final_error(self, length_limit: int) -> str:
+        """
+        :param length_limit: How many characters the error may have.
+        :return: The message of the exception the process ended with, its type and
+            frames left out and its lines joined into one, else the last line that
+            holds text; cut to the limit.
+        """
+        lines = [line for line in self.text.splitlines() if line.strip()]
+        error = self.exception_message(lines) or (lines[-1].strip() if lines else "")
+        if len(error) <= length_limit:
+            return error
+        return error[: length_limit - 1] + "…"
+
+    @staticmethod
+    def exception_message(lines: List[str]) -> str:
+        """
+        :param lines: The printed lines that hold text.
+        :return: The message of the exception after the last traceback, on one line,
+            or an empty text when no traceback ends in an exception.
+        """
+        if TracebackHeader.MOST_RECENT_CALL_LAST not in lines:
+            return ""
+        header = (
+            len(lines) - 1 - lines[::-1].index(TracebackHeader.MOST_RECENT_CALL_LAST)
+        )
+        after = lines[header + 1 :]
+        first = next(
+            (index for index, line in enumerate(after) if not line.startswith(" ")),
+            None,
+        )
+        if first is None:
+            return ""
+        kind, _, message = after[first].partition(": ")
+        return " ".join(line.strip() for line in [message or kind, *after[first + 1 :]])
+
+
 # %% started processes
 
 
@@ -231,9 +292,14 @@ class BridgeProcess(ABC):
     How long the process may take, in seconds.
     """
 
-    output_limit: int = 4096
+    output_limit: int = 65536
     """
-    How many of the newest characters of a failed process's output its error shows.
+    How many of the newest characters of a failed process's output its error carries.
+    """
+
+    reason_length_limit: int = 300
+    """
+    How many characters the one-line reason of a failed process may have.
     """
 
     modules: CramModules = field(default_factory=CramModules)
@@ -254,9 +320,10 @@ class BridgeProcess(ABC):
         """
 
     @abstractmethod
-    def describe_failure(self, output: str) -> PlanBuilderError:
+    def describe_failure(self, reason: str, output: str) -> PlanBuilderError:
         """
-        :param output: The newest output of a process that ended without an answer.
+        :param reason: Why the process ended without an answer, in one short line.
+        :param output: The newest output of the process.
         :return: The error the failed process is reported as.
         """
 
@@ -290,12 +357,14 @@ class BridgeProcess(ABC):
         answer = answer_file.read_text(encoding="utf-8") if answered else None
         process.end()
         self.next_process.prepare(self.command)
+        final_error = ProcessOutput(output).final_error(self.reason_length_limit)
         if timed_out.is_set():
             raise self.describe_failure(
-                f"{output}\nGave up: no answer within {self.timeout:g} s."
+                f"no answer within {self.timeout:g} s; it last printed: {final_error}",
+                f"{output}\nGave up: no answer within {self.timeout:g} s.",
             )
         if answer is None:
-            raise self.describe_failure(output)
+            raise self.describe_failure(final_error, output)
         logger.info("%s answered in %.1f s", self.module, time.monotonic() - started)
         return json.loads(answer)
 

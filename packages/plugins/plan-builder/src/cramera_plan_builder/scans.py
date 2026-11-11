@@ -25,8 +25,8 @@ class SceneScans(BridgeProcess):
     def module(self) -> BridgeModule:
         return BridgeModule.SCANNER
 
-    def describe_failure(self, output: str) -> PlanBuilderError:
-        return ScanFailed(output)
+    def describe_failure(self, reason: str, output: str) -> PlanBuilderError:
+        return ScanFailed(reason, output)
 
     def scan(self, order: SceneScanOrder) -> SceneScan:
         """

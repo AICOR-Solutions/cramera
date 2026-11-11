@@ -14,7 +14,11 @@ from pathlib import Path
 
 import pytest
 
-from cramera_plan_builder.bridge_processes import BridgeModule, BridgeProcess
+from cramera_plan_builder.bridge_processes import (
+    BridgeModule,
+    BridgeProcess,
+    ProcessOutput,
+)
 from cramera_plan_builder.exceptions import PlanBuilderError, ScanFailed
 from cramera_plan_builder.workspace import CramModules
 from cramera_protocol.document import JsonDocument, document_field
@@ -49,6 +53,11 @@ class Behaviour(StrEnum):
     Writes an answer and then fails.
     """
 
+    RAISE = "raise"
+    """
+    Prints a warning and fails with a traceback.
+    """
+
 
 @dataclass(kw_only=True)
 class BehaviourOrder(JsonDocument):
@@ -72,8 +81,8 @@ class OrderedProcess(BridgeProcess):
     def module(self) -> BridgeModule:
         return BridgeModule.SCANNER
 
-    def describe_failure(self, output: str) -> PlanBuilderError:
-        return ScanFailed(output)
+    def describe_failure(self, reason: str, output: str) -> PlanBuilderError:
+        return ScanFailed(reason, output)
 
 
 def ordered_process(timeout: float = 30.0) -> OrderedProcess:
@@ -167,3 +176,54 @@ def test_a_process_that_ended_while_waiting_is_replaced_by_a_new_one():
     after = answer(process)
 
     assert after["pid"] != waiting.pid
+
+
+def test_a_failed_process_is_reported_by_its_final_error_apart_from_its_output():
+    process = ordered_process()
+
+    with pytest.raises(ScanFailed) as failure:
+        answer(process, Behaviour.RAISE)
+
+    assert failure.value.reason == (
+        "RoboKudo did not answer within 30 s Suggestion: read its log."
+    )
+    assert "a warning before the failure" in failure.value.output
+    assert "Traceback (most recent call last):" in failure.value.output
+    assert failure.value.diagnostic_output() == failure.value.output
+
+
+# %% the reason of a failure
+
+
+def test_the_reason_of_a_failure_is_the_message_of_the_final_exception():
+    output = ProcessOutput(
+        "A module compiled with NumPy 1.x cannot run in NumPy 2\n"
+        "Traceback (most recent call last):\n"
+        '  File "a.py", line 1, in <module>\n'
+        "ImportError: numpy\n"
+        "\n"
+        "During handling of the above exception, another exception occurred:\n"
+        "\n"
+        "Traceback (most recent call last):\n"
+        '  File "scanning.py", line 102, in scan\n'
+        "    grounded = perception.look_for(query)\n"
+        "               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n"
+        "coraplex.exceptions.PerceptionSourceDidNotAnswer: RoboKudo did not answer\n"
+        "Suggestion: read its log.\n"
+    )
+
+    assert output.final_error(length_limit=300) == (
+        "RoboKudo did not answer Suggestion: read its log."
+    )
+
+
+def test_the_reason_of_a_failure_without_a_traceback_is_its_last_line():
+    output = ProcessOutput("process 7\nwaiting for the perception\n\n")
+
+    assert output.final_error(length_limit=300) == "waiting for the perception"
+
+
+def test_the_reason_of_a_failure_is_cut_to_its_length_limit():
+    output = ProcessOutput("x" * 500)
+
+    assert len(output.final_error(length_limit=50)) == 50
