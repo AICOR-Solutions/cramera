@@ -128,6 +128,12 @@ export class RunProgress {
   #steps = new Map();
 
   /**
+   * Whether the run reported any of its steps.
+   * @type {boolean}
+   */
+  #stepReported = false;
+
+  /**
    * @param {Array<{identifier: string, label: string}>} steps The performing robot's
    *   steps, in order.
    * @param {Array<Object>} events The `RunEvent`s the run reported, in order.
@@ -196,6 +202,15 @@ export class RunProgress {
   }
 
   /**
+   * @returns {StepProgress|null} The step the run is at: the one that runs, retries or
+   *   failed, else, once the run reported its steps, the first not done; null before.
+   */
+  underway() {
+    if (this.current() !== null || !this.#stepReported) return this.current();
+    return this.steps().find((step) => step.state !== StepState.DONE) ?? null;
+  }
+
+  /**
    * @returns {string} One sentence on where the run stands.
    */
   summary() {
@@ -235,6 +250,7 @@ export class RunProgress {
    * @param {Object} event A step's `RunEvent`.
    */
   #applyStep(event) {
+    this.#stepReported = true;
     const step = this.step(event[RunEventKey.STEP]);
     step.state = event[RunEventKey.STATE];
     step.attempt = event[RunEventKey.ATTEMPT] ?? step.attempt;

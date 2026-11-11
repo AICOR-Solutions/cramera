@@ -33,14 +33,21 @@ export class RequestRefused extends Error {
   /**
    * @param {number} status The answer's HTTP status.
    * @param {string} reason The reason the server gave, or the status text.
+   * @param {string|null} output The whole output of the process behind the refusal,
+   *   or null when the server gave none.
    */
-  constructor(status, reason) {
+  constructor(status, reason, output = null) {
     super(reason);
     /**
      * The answer's HTTP status.
      * @type {number}
      */
     this.status = status;
+    /**
+     * The whole output of the process behind the refusal, or null.
+     * @type {string|null}
+     */
+    this.output = output;
   }
 }
 
@@ -87,7 +94,9 @@ export class JsonClient {
     const answer = await this.#fetch(url, options);
     const explained = (answer.headers.get(CONTENT_TYPE) ?? '').startsWith(JSON_MEDIA_TYPE);
     if (answer.ok) return answer.json();
-    throw new RequestRefused(answer.status, explained ? (await answer.json())[ErrorKey.ERROR] : answer.statusText);
+    if (!explained) throw new RequestRefused(answer.status, answer.statusText);
+    const refusal = await answer.json();
+    throw new RequestRefused(answer.status, refusal[ErrorKey.ERROR], refusal[ErrorKey.OUTPUT] ?? null);
   }
 }
 

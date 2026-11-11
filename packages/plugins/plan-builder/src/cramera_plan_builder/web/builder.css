@@ -222,7 +222,7 @@ details.more-options summary { cursor: pointer; font-size: 12px; color: var(--te
 .safety-banner button[data-action="acknowledge-stop"] { background: var(--danger); border-color: var(--danger); color: var(--surface); font-weight: bold; }
 .validation-state { color: var(--text-muted); }
 .validation-state[data-passed="true"] { color: var(--success); }
-.message { color: var(--text-muted); }
+.message { color: var(--text-muted); max-height: calc(3 * 1.4em); line-height: 1.4; overflow-y: auto; overflow-wrap: anywhere; }
 .message[data-tone="error"] { color: var(--danger); }
 .status-line { margin: 0; font-size: 12px; color: var(--text-muted); }
 .status-line[data-state="ready"] { display: none; }
@@ -246,7 +246,7 @@ details.more-options summary { cursor: pointer; font-size: 12px; color: var(--te
 .flow-status[data-tone="success"] { --tone: var(--success); }
 .flow-status[data-tone="warning"] { --tone: var(--warning); }
 .flow-status[data-tone="error"] { --tone: var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--surface)); font-weight: 600; }
-.flow-status .run-state { flex: 1 1 auto; color: var(--text); overflow-wrap: anywhere; }
+.flow-status .run-state { flex: 1 1 auto; color: var(--text); overflow-wrap: anywhere; max-height: calc(3 * 1.4em); line-height: 1.4; overflow-y: auto; }
 .flow-status[data-tone="error"] .run-state { color: var(--danger); }
 .flow-status[data-tone="warning"] .run-state { color: var(--warning); }
 .flow-elapsed { font: 12px var(--mono); color: var(--text-muted); white-space: nowrap; }

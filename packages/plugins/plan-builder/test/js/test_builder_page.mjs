@@ -55,7 +55,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, FAILURE_LENGTH_LIMIT, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1839,4 +1839,105 @@ test('a safety stop fills the status area until acknowledged, then says what com
   assert.equal(headline(root), 'Safety stop acknowledged: validate the plan again, then restart or abort it.');
   byAction(root, PlanAction.ABORT_PLAN)[0].click();
   assert.equal(headline(root), 'The plan was aborted after its safety stop.');
+});
+
+// %% failures and plan changes around a run
+
+const runOutput = (root) => root.findAll((element) => element.tagName === 'DETAILS' && element.children[0]?.textContent === 'Run output')[0];
+const runLog = (root) => root.findAll((element) => element.className === 'run-log')[0];
+
+for (const [request, click, method] of [['scan', scanButton, 'scan'], ['validation', validateButton, 'validate']]) {
+  test(`a failed ${request} shows its reason in the status area and the process's output under Run output`, async () => {
+    const { root, api } = await pickAndPlace();
+    const reason = `The ${request} failed: RoboKudo did not answer within 30 s`;
+    api[method] = async () => {
+      throw new RequestRefused(502, reason, 'A module compiled using NumPy 1.x\nTraceback (most recent call last):\nPerceptionSourceDidNotAnswer');
+    };
+    click(root).click();
+    await settled();
+    await settled();
+    assert.equal(headline(root), reason);
+    assert.equal(runOutput(root).open, true);
+    assert.equal(runLog(root).textContent, 'A module compiled using NumPy 1.x\nTraceback (most recent call last):\nPerceptionSourceDidNotAnswer');
+  });
+}
+
+test('the output of a failed request gives way to the run log once something else starts', async () => {
+  const { root, api } = await pickAndPlace();
+  const scan = api.scan.bind(api);
+  api.scan = async () => {
+    throw new RequestRefused(502, 'The scene could not be scanned: no answer', 'Traceback');
+  };
+  scanButton(root).click();
+  await settled();
+  await settled();
+  api.scan = scan;
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  assert.equal(runLog(root).textContent, 'building the world');
+});
+
+test('a failure message is cut to its length limit', () => {
+  const message = failureMessage('The scan', new RequestRefused(502, 'x'.repeat(5 * FAILURE_LENGTH_LIMIT)));
+  assert.equal(message.length, FAILURE_LENGTH_LIMIT);
+  assert.equal(failureMessage('The scan', new RequestRefused(502, 'short')), 'short');
+});
+
+const planButtons = (root) => [PlanAction.NEW, PlanAction.OPEN, PlanAction.SAVE, PlanAction.NEW_FROM_TEMPLATE].map((action) => byAction(root, action)[0]);
+
+/**
+ * Open a page of a profile with a template whose plan picks and places an object.
+ */
+async function withTemplate() {
+  const template = { [PlanKey.NAME]: 'Park both arms', [PlanKey.ROBOTS]: [] };
+  const opened = await pickAndPlace(({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.TEMPLATES] = [{ [PlanTemplateKey.IDENTIFIER]: 'park', [PlanTemplateKey.PLAN]: template }];
+  });
+  return opened;
+}
+
+test('a plan cannot be changed, opened or saved while a run is in progress, and says why', async () => {
+  const { root, api, timer } = await withTemplate();
+  assert.ok(planButtons(root).every((button) => !button.disabled));
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  assert.ok(planButtons(root).every((button) => button.disabled && button.title === 'Wait until the run ends.'));
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
+  await timer.tick();
+  assert.ok(planButtons(root).every((button) => !button.disabled));
+});
+
+test('a plan cannot be changed, opened or saved again while it is saved', async () => {
+  const { root, api } = await withTemplate();
+  const answer = deferred();
+  const save = api.save.bind(api);
+  api.save = (plan, identifier) => answer.promise.then(() => save(plan, identifier));
+  byAction(root, PlanAction.SAVE)[0].click();
+  assert.ok(planButtons(root).every((button) => button.disabled && button.title === 'Wait until the plan is saved.'));
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.ok(planButtons(root).every((button) => !button.disabled));
+});
+
+test('a plan from a template, a new or an opened plan shows no progress of the run before', async () => {
+  const { root, api, timer } = await withTemplate();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  const [first] = api.runs[0].plan[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS];
+  api.status = {
+    ...api.status,
+    [RunStatusKey.STATE]: RunState.FINISHED,
+    [RunStatusKey.EVENTS]: [{ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: first[PlanStepKey.IDENTIFIER], [RunEventKey.STATE]: StepState.DONE }],
+  };
+  await timer.tick();
+  assert.equal(headline(root), 'The simulated run finished.');
+  const picker = byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  await timer.tick();
+  assert.equal(headline(root), 'Ready.');
+  assert.equal(runView(root).hidden, true);
+  assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, true);
+  assert.equal(runLog(root).textContent, '');
 });

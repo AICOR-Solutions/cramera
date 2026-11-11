@@ -124,7 +124,7 @@ function runningStatus(facts) {
   const suffix = real ? ` ${EMERGENCY_STOP}` : '';
   const steps = facts.progress.steps();
   const done = steps.filter((step) => step.state === StepState.DONE).length;
-  const current = facts.progress.current();
+  const current = facts.progress.underway();
   if (current?.state === StepState.RETRYING) return new FlowStatus(Tone.WARNING, `${prefix}: retrying ${current.name} (${done} of ${steps.length} steps done): ${current.reason}.${suffix}`, 'run');
   if (current) return new FlowStatus(Tone.PROGRESS, `${prefix}: running ${current.name} (${done} of ${steps.length} steps done).${suffix}`, 'run');
   return new FlowStatus(Tone.PROGRESS, `${prefix}: preparing the run…${suffix}`, 'run');
@@ -148,7 +148,7 @@ function requestText(request, real) {
  */
 export function flowStatus(facts) {
   if (facts.safety === SafetyBannerState.VIOLATED) return new FlowStatus(Tone.ERROR, 'Safety stop: the robot holds. Acknowledge it in the red banner to go on.');
-  if (facts.safety === SafetyBannerState.ACKNOWLEDGED) {
+  if (facts.safety === SafetyBannerState.ACKNOWLEDGED && facts.request === null) {
     return new FlowStatus(Tone.WARNING, facts.revalidate ? 'Safety stop acknowledged: validate the plan again, then restart or abort it.' : 'Safety stop acknowledged: restart the plan or abort it.');
   }
   if (facts.stopping) return new FlowStatus(Tone.PROGRESS, 'Stopping the run…', 'stop');

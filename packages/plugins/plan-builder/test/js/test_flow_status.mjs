@@ -110,3 +110,17 @@ test('a run that ended says how: a failure gives its reason, from the failed ste
   assert.deepEqual(runOutcome(stopped, progressOf(stopped), true), { tone: Tone.ERROR, text: 'A safety stop ended the run: left arm workspace.' });
   assert.equal(runOutcome(realRun(RunState.IDLE), progressOf(realRun(RunState.IDLE)), true), null);
 });
+
+test('a run names the step it is at as soon as its steps are reported, before one reports running', () => {
+  const scheduled = STEPS.map((planned) => step(planned[PlanStepKey.IDENTIFIER], StepState.PENDING));
+  const announced = flowStatus(facts({ run: realRun(RunState.RUNNING, scheduled), real: true }));
+  assert.equal(announced.text, `Real robot: running 1. park (0 of 3 steps done). ${EMERGENCY_STOP}`);
+  const parked = flowStatus(facts({ run: realRun(RunState.RUNNING, [...scheduled, step('park', StepState.DONE)]), real: true }));
+  assert.equal(parked.text, `Real robot: running 2. pick (1 of 3 steps done). ${EMERGENCY_STOP}`);
+});
+
+test('a validation after an acknowledged safety stop shows its progress as any validation does', () => {
+  const validating = flowStatus(facts({ safety: SafetyBannerState.ACKNOWLEDGED, revalidate: true, request: new FlowRequest(FlowRequest.VALIDATE) }));
+  const plain = flowStatus(facts({ request: new FlowRequest(FlowRequest.VALIDATE) }));
+  assert.deepEqual([validating.tone, validating.text, validating.phase], [plain.tone, plain.text, plain.phase]);
+});

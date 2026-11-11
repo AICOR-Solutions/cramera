@@ -97,6 +97,16 @@ test('a refusal carries the reason the server gave, or the status text', async (
   await assert.rejects(api.catalog(), (error) => error.message === 'Bad Gateway');
 });
 
+test('a refusal carries the output of the process behind it apart from its reason', async () => {
+  const fake = new FakeFetch({
+    [route(PlanBuilderRoute.DEMO)]: new FakeRefusal(502, { [ErrorKey.ERROR]: 'The scene could not be scanned: no answer', [ErrorKey.OUTPUT]: 'a warning\nTraceback' }),
+    [route(PlanBuilderRoute.CATALOG)]: new FakeRefusal(422, { [ErrorKey.ERROR]: 'needs a target' }),
+  });
+  const api = new PlanBuilderApi(fake.fetch, VIEWER);
+  await assert.rejects(api.demo({}), (error) => error.message === 'The scene could not be scanned: no answer' && error.output === 'a warning\nTraceback');
+  await assert.rejects(api.catalog(), (error) => error.output === null);
+});
+
 // %% live publisher
 
 test('the live routes lie below the publisher', async () => {
