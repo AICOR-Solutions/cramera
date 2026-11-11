@@ -93,15 +93,20 @@ class PlannedGraspable(HasGraspCandidates):
 @dataclass(eq=False)
 class PlannedGraspableFromAbove(PlannedGraspable):
     """
-    A free object of a plan that is taken from straight above, near the top of its
+    A free object of a plan that is taken from straight above, at the top of its
     collision geometry, as a small block standing on a table is.
     """
 
-    grasp_depth: float = 0.01
+    grasp_depth: float = 0.0
     """
-    How far, in metres, below the top of its collision geometry the object is held, so
-    the part above the pads stays clear of the gripper's knuckles, which push the object
-    away while the gripper opens.
+    How far, in metres, below the top of its collision geometry the object is held.
+
+    The grasp is the point the fingertips' middles meet at, so held at its top the
+    object stays clear of the gripper's knuckles, which push it away while the gripper
+    opens, and the lower half of the fingertips still holds it. Tracy's Robotiq tips
+    then overlap a 5 cm cube by 2.5 cm and stay 2.5 cm above the table it stands on,
+    so the grasp keeps clear of its workspace floor even where its arm sags 1 cm in
+    physics.
     """
 
     def default_grasp_candidates(self) -> List[GraspCandidate]:
