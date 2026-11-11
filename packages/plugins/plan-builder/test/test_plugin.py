@@ -835,6 +835,20 @@ def test_a_demo_carries_the_profiles_safety_limits(profiled, plan):
     assert document.safety == profile.safety
 
 
+def test_a_demo_carries_the_profiles_perception_settings(profiled, plan):
+    answer = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(plan.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.OK, answer.body
+    document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
+    profile = RobotProfile.from_file(DATASET / "profile" / "tracy.json")
+    assert document.perception == profile.perception
+
+
 @pytest.mark.parametrize(
     "destination",
     [

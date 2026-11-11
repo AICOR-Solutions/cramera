@@ -1,20 +1,24 @@
 """
 Stand-ins for the drivers of the real Tracy: its grippers' parallel gripper command
-servers and its arms' joint state publishers.
+servers and its arms' joint state publishers, and for a RoboKudo that never answers.
 """
 
 from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
+from threading import Event
 
 from control_msgs.action import ParallelGripperCommand
 from rclpy.action import ActionServer
 from rclpy.action.server import ServerGoalHandle
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from typing_extensions import Iterator
 
+from coraplex.perception import ROBOKUDO_QUERY_ACTION_NAME
+from robokudo_msgs.action import Query
 from semantic_digital_twin.robots.tracy import TracyParallelGripperCommandTopic
 
 # %% grippers
@@ -112,4 +116,48 @@ class JointStatePublisherStandIn:
         with ExitStack() as publishing:
             publishing.callback(node.destroy_publisher, publisher)
             publishing.callback(node.destroy_timer, timer)
+            yield
+
+
+# %% perception
+
+
+@dataclass
+class RoboKudoThatNeverAnswers:
+    """
+    Takes up every query on RoboKudo's query action and answers none, as a pipeline does
+    whose camera data never arrives.
+    """
+
+    released: Event = field(default_factory=Event)
+    """
+    Set once the queries taken up may end, unanswered.
+    """
+
+    def execute(self, goal_handle: ServerGoalHandle) -> Query.Result:
+        """
+        :param goal_handle: A query that arrived, held until :attr:`released` is set.
+        :return: An empty result, the query aborted.
+        """
+        self.released.wait()
+        goal_handle.abort()
+        return Query.Result()
+
+    @contextmanager
+    def serving(self, node: Node) -> Iterator[None]:
+        """
+        Serve the query action from `node` while the block runs.
+
+        :param node: A node spun by a multi-threaded executor.
+        """
+        server = ActionServer(
+            node,
+            Query,
+            ROBOKUDO_QUERY_ACTION_NAME,
+            execute_callback=self.execute,
+            callback_group=ReentrantCallbackGroup(),
+        )
+        with ExitStack() as serving:
+            serving.callback(server.destroy)
+            serving.callback(self.released.set)
             yield

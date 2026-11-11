@@ -28,6 +28,7 @@ from cramera_protocol.live_messages import (
 from cramera_protocol.robot_profile import (
     CameraMount,
     ExecutorKind,
+    PerceptionSettings,
     RobotProfile,
     SafetyLimits,
     Zone,
@@ -2557,6 +2558,11 @@ class DemoDocumentKey(StrEnum):
     The safety limits of the robot profile.
     """
 
+    PERCEPTION = "perception"
+    """
+    How the robot profile's perception is asked.
+    """
+
 
 @dataclass(kw_only=True)
 class DemoDocument(JsonDocument):
@@ -2587,6 +2593,13 @@ class DemoDocument(JsonDocument):
     )
     """
     The robot profile's safety limits every motion of the run is held to, or None.
+    """
+
+    perception: PerceptionSettings = document_field(
+        DemoDocumentKey.PERCEPTION, default_factory=PerceptionSettings
+    )
+    """
+    How the robot profile's perception is asked.
     """
 
 

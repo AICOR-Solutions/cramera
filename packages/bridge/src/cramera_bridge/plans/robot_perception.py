@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field, replace
+from datetime import timedelta
 
 from typing_extensions import Iterator, List, Optional
 
@@ -57,9 +58,10 @@ class RobotPerception:
     @contextmanager
     def perceiving(self) -> Iterator[PerceptionInterface]:
         """
-        Reach the robot's perception over RoboKudo's query action while the block runs;
-        for a simulated scene, also answer that action from the analysis engine
-        rendering the robot's camera from a world holding the scene's objects.
+        Reach the robot's perception over RoboKudo's query action while the block runs,
+        waiting for each answer as long as the plan's perception settings allow; for a
+        simulated scene, also answer that action from the analysis engine rendering the
+        robot's camera from a world holding the scene's objects.
 
         :raises PerceptionEngineNotNamed: When a simulated scene is perceived and no
             analysis engine is named.
@@ -70,7 +72,10 @@ class RobotPerception:
             )
             if self.simulated_objects is not None:
                 self.serve_simulated_scene(perceiving)
-            yield RoboKudoPerception(ros_node=node)
+            yield RoboKudoPerception(
+                ros_node=node,
+                answer_timeout=timedelta(seconds=self.demo.perception.answer_timeout),
+            )
 
     def serve_simulated_scene(self, perceiving: ExitStack) -> None:
         """

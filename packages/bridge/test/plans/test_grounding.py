@@ -12,17 +12,20 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from datetime import timedelta
 from importlib.util import find_spec
 
 import numpy as np
 import pytest
 
-from coraplex.exceptions import NothingPerceived
-from coraplex.perception import WorldPerception
+from coraplex.exceptions import NothingPerceived, PerceptionSourceDidNotAnswer
+from coraplex.perception import ROBOKUDO_QUERY_ACTION_NAME, WorldPerception
+from coraplex.plans.executors import KinematicallySimulatedPlanExecutor, PlanExecutor
+from coraplex.robot_plans.plan_transformations import DetectWithRoboKudo
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from cramera_bridge.exceptions import StepAbandoned, StepNotGrounded
-from cramera_bridge.execution import PERCEPTION_ENGINE_VARIABLE
+from cramera_bridge.execution import KinematicExecution, PERCEPTION_ENGINE_VARIABLE
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.demo import PlannedTaskDemo
@@ -31,9 +34,11 @@ from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.validating import PlanValidator
 from cramera_bridge.plans.world import PlannedGraspableFromAbove
+from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.detection import DetectionRegion, RegionKind
 from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import DemoDocument, PlanDocument
+from cramera_protocol.robot_profile import PerceptionSettings
 from cramera_protocol.validation import (
     StepFailureReason,
     StepVerdict,
@@ -42,6 +47,12 @@ from cramera_protocol.validation import (
 )
 from cramera_protocol.viewer import EnvironmentVariable
 from cramph.composites import StatementNode
+from cramph.context import StatechartContext
+from cramph.executor import ExecutorExtension
+from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
+from rclpy.node import Node
+from typing_extensions import Sequence
+from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
 
 from ..dataset.bundles import DATASET
@@ -308,3 +319,93 @@ def test_a_detection_the_simulated_camera_sees_is_valid_and_its_pick_holds(tmp_p
     assert finished.returncode == 0, finished.stderr.decode()[-4000:]
     report = ValidationReport.from_json(json.loads(report_file.read_text("utf-8")))
     assert [step.verdict for step in report.steps] == [StepVerdict.VALID] * 2
+
+
+# %% detecting through a perception that does not answer
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_a_validation_robokudo_does_not_answer_fails_after_the_answer_timeout(
+    monkeypatch,
+):
+    from ..dataset.real_robot import RoboKudoThatNeverAnswers
+
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
+    perception = PerceptionSettings(answer_timeout=0.5)
+    order = ValidationOrder(demo=DemoDocument(plan=cubes, perception=perception))
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        with RoboKudoThatNeverAnswers().serving(node):
+            with pytest.raises(PerceptionSourceDidNotAnswer) as raised:
+                PlanValidator(order).validate()
+
+    assert raised.value.answer_timeout == timedelta(seconds=perception.answer_timeout)
+
+
+@dataclass
+class KinematicExecutionAskingRoboKudo(KinematicExecution):
+    """
+    Moves the world kinematically and answers the plans' detections with RoboKudo, as a
+    run of the real robot does.
+    """
+
+    ros_node: Node
+    """
+    The node the plans reach RoboKudo through.
+    """
+
+    def executor(
+        self,
+        context: StatechartContext,
+        collision_avoidance: bool,
+        extensions: Sequence[ExecutorExtension],
+        safety: SafetyEnvelope,
+    ) -> PlanExecutor:
+        return KinematicallySimulatedPlanExecutor(
+            context,
+            collision_avoidance=collision_avoidance,
+            extensions=list(extensions),
+            safety=safety,
+            ros_node=self.ros_node,
+            plan_adaptations=[DetectWithRoboKudo()],
+        )
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_a_run_robokudo_does_not_answer_fails_its_detection_without_another_attempt(
+    tmp_path, monkeypatch
+):
+    """
+    A pipeline that does not answer would not answer a second attempt either.
+    """
+    from ..dataset.real_robot import RoboKudoThatNeverAnswers
+
+    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "data"))
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
+    [detect, *_] = cubes.robots[0].steps
+    perception = PerceptionSettings(answer_timeout=0.5)
+    demo = PlannedTaskDemo.of_document(
+        DemoDocument(plan=cubes, perception=perception), port=0
+    )
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        demo.execution = KinematicExecutionAskingRoboKudo(ros_node=node)
+        with RoboKudoThatNeverAnswers().serving(node):
+            with pytest.raises(StepAbandoned) as abandoned:
+                demo.run()
+
+    assert abandoned.value == StepAbandoned(
+        detect.identifier,
+        1,
+        PerceptionSourceDidNotAnswer(
+            ROBOKUDO_QUERY_ACTION_NAME,
+            timedelta(seconds=perception.answer_timeout),
+            "",
+        ).error_message(),
+    )

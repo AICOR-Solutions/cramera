@@ -17,6 +17,8 @@ from cramera_protocol.robot_profile import (
     ArmWorkspace,
     ArmWorkspaceKey,
     ExecutorKind,
+    PerceptionSettings,
+    PerceptionSettingsKey,
     RobotProfile,
     RobotProfileKey,
     SafetyLimits,
@@ -187,3 +189,23 @@ def test_a_profile_holds_its_arms_to_workspaces_and_velocity_limits():
 
 def test_a_profile_without_safety_limits_holds_its_runs_to_none(profile_file):
     assert RobotProfile.from_file(profile_file).safety is None
+
+
+# %% perception
+
+
+def test_a_profile_says_how_long_its_robot_s_perception_may_take_to_answer():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "tracy",
+            RobotProfileKey.LABEL: "Tracy",
+            RobotProfileKey.PERCEPTION: {PerceptionSettingsKey.ANSWER_TIMEOUT: 5.0},
+        }
+    )
+
+    assert profile.perception == PerceptionSettings(answer_timeout=5.0)
+    assert RobotProfile.from_json(profile.to_json()) == profile
+
+
+def test_a_profile_without_perception_settings_waits_the_default_time(profile_file):
+    assert RobotProfile.from_file(profile_file).perception == PerceptionSettings()

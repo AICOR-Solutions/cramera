@@ -335,6 +335,32 @@ class SafetyLimits(JsonDocument):
     """
 
 
+class PerceptionSettingsKey(StrEnum):
+    """
+    The keys of the settings of a robot's perception.
+    """
+
+    ANSWER_TIMEOUT = "answerTimeout"
+    """
+    How long the robot's perception may take to answer a query.
+    """
+
+
+@dataclass(kw_only=True)
+class PerceptionSettings(JsonDocument):
+    """
+    How a robot's perception pipeline, answering in a process of its own, is asked.
+    """
+
+    answer_timeout: float = document_field(
+        PerceptionSettingsKey.ANSWER_TIMEOUT, default=30.0
+    )
+    """
+    How long, in seconds, a scan, a validation or a run waits for the pipeline to
+    answer a query before the query fails.
+    """
+
+
 class RobotProfileKey(StrEnum):
     """
     The keys of a robot profile.
@@ -398,6 +424,11 @@ class RobotProfileKey(StrEnum):
     SAFETY = "safety"
     """
     The safety limits the robot's runs are held to.
+    """
+
+    PERCEPTION = "perception"
+    """
+    How the robot's perception is asked.
     """
 
 
@@ -480,6 +511,13 @@ class RobotProfile(JsonDocument):
     """
     The safety limits every motion of the robot's runs is held to; None holds them to
     none.
+    """
+
+    perception: PerceptionSettings = document_field(
+        RobotProfileKey.PERCEPTION, default_factory=PerceptionSettings
+    )
+    """
+    How the robot's perception is asked.
     """
 
     format_version: ProtocolVersion = document_field(

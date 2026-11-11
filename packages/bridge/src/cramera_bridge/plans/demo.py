@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from datetime import timedelta
 from functools import cached_property
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from coraplex.perception import WorldPerception
 from coraplex.plans.plan_transformation import PlanRewriting
 from coraplex.robot_plans.plan_transformations import (
     DetectBeforeGrasp,
+    LimitHowLongDetectionsWait,
     LetOnlyTheObjectTouchTheGripper,
 )
 from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
@@ -306,11 +308,19 @@ class PlannedTaskDemo(RobotTaskDemo):
     def performance(self, context: TaskContext) -> PlanPerformance:
         """
         Differs from :meth:`RobotTaskDemo.performance` in having every grasp detect its
-        object first, whichever execution runs it, and in holding every motion to the
-        safety limits of the robot profile.
+        object first, whichever execution runs it, every detection wait for its answer
+        as long as the robot profile's perception settings allow, and in holding every
+        motion to the safety limits of the robot profile.
         """
         performance = super().performance(context)
-        performance.plan_transformations = [DetectBeforeGrasp()]
+        performance.plan_transformations = [
+            DetectBeforeGrasp(),
+            LimitHowLongDetectionsWait(
+                answer_timeout=timedelta(
+                    seconds=self.document.perception.answer_timeout
+                )
+            ),
+        ]
         if self.document.safety is None:
             return performance
         performance.safety = RobotSafety(

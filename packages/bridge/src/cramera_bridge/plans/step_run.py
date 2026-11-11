@@ -19,7 +19,11 @@ from enum import StrEnum
 from typing_extensions import Callable, Dict, List, Optional, Sequence
 
 from coraplex.datastructures.enums import DetectionTechnique
-from coraplex.exceptions import MotionDidNotFinish, NothingPerceived
+from coraplex.exceptions import (
+    MotionDidNotFinish,
+    NothingPerceived,
+    PerceptionSourceDidNotAnswer,
+)
 from coraplex.perception import PerceptionTask, WorldPerception
 from coraplex.plans.expected_positions import BodiesWhereExpected, ExpectedPosition
 from coraplex.plans.failures import BodiesMovedSinceGrounding, TargetLeftFieldOfView
@@ -155,6 +159,12 @@ class FailedAttempt:
     again comes before anything else.
     """
 
+    may_be_attempted_again: bool = True
+    """
+    Whether another attempt could fare better; a perception that did not answer would
+    not answer it either.
+    """
+
     @classmethod
     def from_failure(
         cls, failure: ExecutionFailure, node: StatechartNode
@@ -180,6 +190,9 @@ class FailedAttempt:
             lost_track=isinstance(
                 failure,
                 (BodiesMovedSinceGrounding, NothingPerceived, TargetLeftFieldOfView),
+            ),
+            may_be_attempted_again=not isinstance(
+                failure, PerceptionSourceDidNotAnswer
             ),
         )
 
@@ -788,14 +801,15 @@ class StepRun:
         :param failed: Why its attempt failed.
         :param performance: How the plans are performed.
         :param extensions: Gives the executor extensions of each plan performed.
-        :raises StepAbandoned: When the step used up its attempts.
+        :raises StepAbandoned: When the step used up its attempts, or its failure may
+            not be attempted again.
         """
         identifier = self.steps[position].step.identifier
         tried: List[Alternative] = []
         while True:
             number = self.attempt_numbers.get(identifier, 1)
             arm = self.arm_of(self.steps[position])
-            if number >= self.attempts:
+            if number >= self.attempts or not failed.may_be_attempted_again:
                 self.run_log.write(
                     StepAttempt(
                         step=identifier,
@@ -806,7 +820,7 @@ class StepRun:
                         arm=arm,
                     )
                 )
-                raise StepAbandoned(identifier, self.attempts, failed.reason)
+                raise StepAbandoned(identifier, number, failed.reason)
             alternative = self.alternative(position, failed, tried)
             tried.append(alternative)
             self.run_log.write(

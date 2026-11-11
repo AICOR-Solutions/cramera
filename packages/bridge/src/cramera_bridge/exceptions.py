@@ -718,7 +718,8 @@ class TaskFailed(DemoError):
 @dataclass
 class StepAbandoned(DemoError):
     """
-    A step of a plan that failed every attempt it had, which aborts the plan.
+    A step of a plan that failed every attempt it had, or an attempt no other could fare
+    better than, which aborts the plan.
     """
 
     step: str
@@ -728,7 +729,7 @@ class StepAbandoned(DemoError):
 
     attempts: int
     """
-    How many attempts it had.
+    How many attempts it made.
     """
 
     reason: str
@@ -738,7 +739,7 @@ class StepAbandoned(DemoError):
 
     def message(self) -> str:
         return (
-            f"{self.step} failed all {self.attempts} attempts, so the plan was "
+            f"{self.step} gave up after {self.attempts} attempt(s), so the plan was "
             f"aborted: {self.reason}"
         )
 

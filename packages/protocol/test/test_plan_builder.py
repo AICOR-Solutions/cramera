@@ -70,7 +70,11 @@ from cramera_protocol.plan_builder import (
     RunStatusKey,
     StepConstraintKey,
 )
-from cramera_protocol.robot_profile import ExecutorKind, SafetyLimits
+from cramera_protocol.robot_profile import (
+    ExecutorKind,
+    PerceptionSettings,
+    SafetyLimits,
+)
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED
 
 # %% plans
@@ -563,6 +567,14 @@ def test_a_demo_document_carries_the_plan_and_its_environment(read_json):
 def test_a_demo_on_an_empty_floor_names_no_environment_directory():
     written = DemoDocument(plan=PlanDocument(name="x")).to_json()
     assert DemoDocumentKey.ENVIRONMENT_DIRECTORY not in written
+
+
+def test_a_demo_document_carries_the_profiles_perception_settings():
+    demo = DemoDocument(
+        plan=PlanDocument(name="x"), perception=PerceptionSettings(answer_timeout=5.0)
+    )
+
+    assert DemoDocument.from_json(demo.to_json()) == demo
 
 
 def test_a_demo_document_carries_the_profiles_safety_limits():

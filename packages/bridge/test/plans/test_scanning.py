@@ -11,19 +11,24 @@ import os
 import subprocess
 import sys
 from dataclasses import replace
+from datetime import timedelta
 from importlib.util import find_spec
 
 import numpy as np
 import pytest
 
+from coraplex.exceptions import PerceptionSourceDidNotAnswer
 from coraplex.perception import Detection
 from cramera_bridge.execution import PERCEPTION_ENGINE_VARIABLE
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.scanning import SceneScanner
 from cramera_bridge.plans.world import PlannedGraspable
+from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.detection import DetectionGrounding, SceneScan, SceneScanOrder
 from cramera_protocol.plan_builder import DemoDocument, PlanDocument, PlannedObject
+from cramera_protocol.robot_profile import PerceptionSettings
 from krrood_spatial_math.spatial_types import Pose
+from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.world_description.color_names import ColorName
 
@@ -150,3 +155,26 @@ def test_a_scan_of_the_simulated_scene_fills_an_empty_twin_with_the_three_cubes(
             standing.pose.to_json()[:2],
             atol=SCANNED_POSITION_TOLERANCE,
         )
+
+
+# %% scanning through a perception that does not answer
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_a_scan_robokudo_does_not_answer_fails_after_the_profiles_answer_timeout(
+    monkeypatch, cubes
+):
+    from ..dataset.real_robot import RoboKudoThatNeverAnswers
+
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    perception = PerceptionSettings(answer_timeout=0.5)
+    order = SceneScanOrder(demo=DemoDocument(plan=cubes, perception=perception))
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        with RoboKudoThatNeverAnswers().serving(node):
+            with pytest.raises(PerceptionSourceDidNotAnswer) as raised:
+                SceneScanner(order).scan()
+
+    assert raised.value.answer_timeout == timedelta(seconds=perception.answer_timeout)

@@ -54,7 +54,7 @@ from cramera_protocol.plan_builder import (
     EnvironmentAnnotationsParameter,
 )
 from cramera_protocol.reach import ReachRequest, ReachRequestKey
-from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.robot_profile import ExecutorKind, PerceptionSettings
 from cramera_protocol.validation import (
     StepFailureReason,
     StepValidation,
@@ -438,14 +438,18 @@ class PlanBuilderRoutes:
         profile = self.profile.profile
         zones = [] if profile is None else list(profile.zones)
         safety = None if profile is None else profile.safety
+        perception = PerceptionSettings() if profile is None else profile.perception
         if plan.environment is None:
-            return DemoDocument(plan=plan, zones=zones, safety=safety)
+            return DemoDocument(
+                plan=plan, zones=zones, safety=safety, perception=perception
+            )
         directory = self.scenes.directory_of(plan.environment).path / plan.environment
         return DemoDocument(
             plan=plan,
             environment_directory=str(directory.resolve()),
             zones=zones,
             safety=safety,
+            perception=perception,
         )
 
     def answer_demo(self, request: Request) -> Response:
