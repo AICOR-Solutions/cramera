@@ -38,9 +38,7 @@ export class ObjectsView {
    * @param {Document} document The page's document.
    * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)`,
    *   `placeObject(identifier, pose)` (moves an object in the plan and, while live, in
-   *   the live world), `select(selection)`, `scanScene()` (fills the objects with
-   *   what the robot sees on the table) and `busy()` (whether a scan may not start
-   *   now).
+   *   the live world) and `select(selection)`.
    */
   constructor(document, editor) {
     this.#editor = editor;
@@ -66,13 +64,7 @@ export class ObjectsView {
       this.#model = value;
     });
     const adding = elements.create('div', 'button-row');
-    const scan = elements.button('Scan scene', PlanAction.SCAN_SCENE, () => this.#editor.scanScene());
-    scan.disabled = this.#editor.busy();
-    adding.append(
-      model,
-      elements.button('Add object', PlanAction.ADD_OBJECT, () => this.#editor.edit(() => state.addObject(model.value))),
-      scan,
-    );
+    adding.append(model, elements.button('Add object', PlanAction.ADD_OBJECT, () => this.#editor.edit(() => state.addObject(model.value))));
     const list = elements.create('ul', 'object-list');
     list.append(...state.objects().map((item) => this.#entry(item, selected)));
     this.element.replaceChildren(adding, list);

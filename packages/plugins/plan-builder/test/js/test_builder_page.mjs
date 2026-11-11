@@ -360,6 +360,7 @@ async function openPage(query = '', prepare = () => {}, { robot = true } = {}) {
   const storage = new FakeStorage();
   prepare({ api, storage });
   let scene = null;
+  const clock = { now: 0 };
   const environment = new BuilderEnvironment({
     document,
     api,
@@ -368,6 +369,7 @@ async function openPage(query = '', prepare = () => {}, { robot = true } = {}) {
     query: new URLSearchParams(query),
     createScene: (container, listeners) => (scene = new FakeScene(listeners)),
     timer,
+    clock: () => clock.now,
   });
   const root = document.createElement('div');
   document.body.append(root);
@@ -375,10 +377,12 @@ async function openPage(query = '', prepare = () => {}, { robot = true } = {}) {
   await page.start();
   await settled();
   if (robot) byAction(root, PlanAction.ADD_ROBOT)[0]?.click();
-  return { document, api, live, timer, storage, root, page, scene: () => scene };
+  return { document, api, live, timer, storage, root, page, clock, scene: () => scene };
 }
 
 const message = (root) => root.findAll((element) => element.className === 'message')[0].textContent;
+const flow = (root) => root.findAll((element) => element.className === 'flow-status')[0];
+const headline = (root) => root.findAll((element) => element.className === 'run-state')[0].textContent;
 const block = (root, action) => root.findAll((element) => element.dataset.action === PlanAction.ADD_STEP && element.dataset.name === action)[0];
 const parameter = (root, field) => byAction(root, PlanAction.STEP_PARAMETER).find((element) => element.dataset.field === field);
 const steps = (root) => root.findAll((element) => element.dataset.step !== undefined);
@@ -807,12 +811,13 @@ test('scanning the scene fills the objects with what the robot finds', async () 
   await settled();
   assert.equal(api.scanned.length, 1);
   assert.deepEqual(page.state.objects(), SCANNED_CUBES);
-  assert.equal(message(root), scanMessage(api.scanAnswer));
+  assert.equal(headline(root), scanMessage(api.scanAnswer));
+  assert.equal(flow(root).dataset.tone, 'success');
 });
 
 test('a scan assumed from the twin says it is checked again when the plan runs', () => {
   const scan = { [SceneScanKey.OBJECTS]: SCANNED_CUBES, [SceneScanKey.GROUNDING]: DetectionGrounding.ASSUMED, [SceneScanKey.UNRECOGNIZED]: 2 };
-  assert.match(scanMessage(scan), /assumed from the twin.*perceived again when the plan runs.*2 more found/);
+  assert.match(scanMessage(scan), /assumed from the twin.*perceived again in the run.*2 more matched no object model/);
 });
 
 test('a detect step looks at the whole table', async () => {
@@ -936,7 +941,7 @@ test('a performing run shows the live statuses and attaches its constraints once
   assert.equal(live.attached.length, 1);
   assert.equal(live.attached[0][ConstraintRequestKey.TEXT], page.state.steps()[1][PlanStepKey.CONSTRAINTS][0][StepConstraintKey.TEXT]);
   assert.deepEqual(root.findAll((element) => element.className === 'observation').map((element) => element.textContent), ['TRUE']);
-  assert.match(root.findAll((element) => element.className === 'run-state')[0].textContent, /live/);
+  assert.match(headline(root), /^Simulation \(the real robot does not move\): /);
 });
 
 test('a performing run moves the robot and the objects in the 3D view as often as the scene page', async () => {
@@ -1031,7 +1036,7 @@ test('a run in physics asks for the physics run mode and attaches its constraint
   await settled();
   await timer.tick();
   assert.equal(api.runs[0].mode, RunMode.SIMULATE);
-  assert.match(message(root), /physics/);
+  assert.match(headline(root), /^Simulation/);
   assert.equal(live.attached.length, 1);
 });
 
@@ -1208,7 +1213,7 @@ test('the run on the robot stays disabled until the plan passes its validation',
   assert.equal(api.validated.length, 1);
   assert.equal(robotRun(root).disabled, false);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [StepVerdict.VALID, StepVerdict.VALID, StepVerdict.VALID]);
-  assert.match(message(root), /valid/);
+  assert.match(headline(root), /^Validated in 2\.5 s: ready to run on the robot\./);
   robotRun(root).click();
   await settled();
   assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
@@ -1235,7 +1240,8 @@ test('a profile running the robot run mode on the real robot marks it and offers
   robotRun(root).click();
   await settled();
   assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
-  assert.match(message(root), /real robot/);
+  assert.match(headline(root), /^Real robot: preparing the run…/);
+  assert.match(headline(root), /emergency stop/);
   assert.equal(robotRun(root).disabled, true);
 });
 
@@ -1272,7 +1278,8 @@ test('a pick out of reach fails its validation as unreachable and the robot run 
   assert.equal(failing.length, 1);
   assert.equal(failing[0], steps(root)[1]);
   assert.match(validation(root)[1], new RegExp(REASON_TEXTS[StepFailureReason.UNREACHABLE]));
-  assert.match(message(root), /step 2: unreachable/);
+  assert.match(headline(root), /step 2: unreachable/);
+  assert.equal(flow(root).dataset.tone, 'error');
   assert.equal(robotRun(root).disabled, true);
 });
 
@@ -1289,7 +1296,7 @@ test('an assumed step and the arm chosen automatically are shown on their steps'
   assert.match(validation(root)[0], /Assumed/);
   assert.match(validation(root)[1], /Arm: right, chosen automatically/);
   assert.equal(robotRun(root).disabled, false);
-  assert.match(message(root), /1 step is assumed/);
+  assert.match(headline(root), /1 step assumed from the twin/);
 });
 
 test('an edit of the plan or its scene invalidates the validation', async () => {
@@ -1300,7 +1307,7 @@ test('an edit of the plan or its scene invalidates the validation', async () => 
   page.placeObject(object, PlanPose.of(3, 3, 0, 0));
   assert.equal(robotRun(root).disabled, true);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
-  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Changed since its validation/);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Plan changed since its validation/);
 });
 
 test('a live object moved away from its pose in the plan invalidates the validation for good', async () => {
@@ -1326,7 +1333,7 @@ test('a live object moved away from its pose in the plan invalidates the validat
   assert.equal(validatedWhileLive, true);
   assert.equal(robotRun(root).disabled, true);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
-  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /scene changed since its validation/);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Scene changed since its validation/);
 });
 
 test('developer mode runs on the robot without a passed validation', async () => {
@@ -1652,12 +1659,12 @@ test('stopping says so until the run ended, and a stop that fails says why', asy
   const stopButton = byAction(root, PlanAction.STOP)[0];
   stopButton.click();
   await settled();
-  assert.match(message(root), /Stopping/);
+  assert.match(headline(root), /Stopping/);
   assert.equal(stopButton.disabled, true);
   answer.resolve();
   await settled();
   await settled();
-  assert.match(message(root), /stopped/);
+  assert.match(headline(root), /stopped/);
 
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.RUNNING };
   api.stop = async () => {
@@ -1667,7 +1674,8 @@ test('stopping says so until the run ended, and a stop that fails says why', asy
   await settled();
   byAction(root, PlanAction.STOP)[0].click();
   await settled();
-  assert.match(message(root), /could not be stopped.*Failed to fetch/);
+  assert.match(headline(root), /could not be stopped.*Failed to fetch/);
+  assert.equal(flow(root).dataset.tone, 'error');
   assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
 });
 
@@ -1680,11 +1688,11 @@ test('a plan builder that stops answering is shown until it answers again', asyn
     throw new TypeError('Failed to fetch');
   };
   await timer.tick();
-  const runState = () => root.findAll((element) => element.className === 'run-state')[0].textContent;
+  const runState = () => headline(root);
   assert.match(runState(), /plan builder does not answer.*Failed to fetch/);
   api.runStatus = runStatus;
   await timer.tick();
-  assert.match(runState(), /^The demo runs\./);
+  assert.match(runState(), /^Simulation \(the real robot does not move\): preparing the run…/);
   assert.doesNotMatch(runState(), /does not answer/);
 });
 
@@ -1722,19 +1730,113 @@ test('a validation or scan without an answer says which request got none, a refu
   validateButton(root).click();
   await settled();
   await settled();
-  assert.match(message(root), /^The validation got no answer from the plan builder \(Failed to fetch\)/);
+  assert.match(headline(root), /^The validation got no answer from the plan builder \(Failed to fetch\)/);
   api.scan = async () => {
     throw new TypeError('NetworkError when attempting to fetch resource.');
   };
   scanButton(root).click();
   await settled();
   await settled();
-  assert.match(message(root), /^The scan got no answer from the plan builder \(NetworkError/);
+  assert.match(headline(root), /^The scan got no answer from the plan builder \(NetworkError/);
   api.validate = async () => {
     throw new RequestRefused(500, 'The plan could not be validated: RoboKudo did not answer within 30 s');
   };
   validateButton(root).click();
   await settled();
   await settled();
-  assert.equal(message(root), 'The plan could not be validated: RoboKudo did not answer within 30 s');
+  assert.equal(headline(root), 'The plan could not be validated: RoboKudo did not answer within 30 s');
+  assert.equal(flow(root).dataset.tone, 'error');
+});
+
+// %% status area
+
+test('a scan waiting for its answer shows a spinner on its button and the seconds it waited', async () => {
+  const { root, api, timer, clock } = await pickAndPlace();
+  const answer = deferred();
+  const scan = api.scan.bind(api);
+  api.scan = (plan) => answer.promise.then(() => scan(plan));
+  clock.now = 1000;
+  scanButton(root).click();
+  assert.equal(headline(root), 'Scanning the scene…');
+  assert.deepEqual([flow(root).dataset.tone, flow(root).dataset.busy], ['progress', 'true']);
+  assert.equal(scanButton(root).dataset.busy, 'true');
+  assert.equal(validateButton(root).dataset.busy, 'false');
+  assert.equal(validateButton(root).title, 'Wait until the current request is answered.');
+  clock.now = 13900;
+  await timer.tick();
+  assert.equal(root.findAll((element) => element.className === 'flow-elapsed')[0].textContent, '12 s');
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.deepEqual([flow(root).dataset.tone, flow(root).dataset.busy], ['success', 'false']);
+  assert.equal(scanButton(root).dataset.busy, 'false');
+  assert.equal(root.findAll((element) => element.className === 'flow-elapsed')[0].textContent, '');
+});
+
+test('a real run that fails says why instead of running on, and opens its output', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  const output = root.findAll((element) => element.tagName === 'DETAILS' && element.children[0]?.textContent === 'Run output')[0];
+  assert.equal(output.open ?? false, false);
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FAILED, [RunStatusKey.LOG]: 'building the world\nPreflight: no /joint_states within 15 s\n' };
+  await timer.tick();
+  assert.equal(headline(root), 'The run on the real robot failed: Preflight: no /joint_states within 15 s');
+  assert.equal(flow(root).dataset.tone, 'error');
+  assert.equal(output.open, true);
+  await timer.tick();
+  assert.match(headline(root), /failed: Preflight/);
+});
+
+test('an error stays in the status area while later routine notes go to the message line', async () => {
+  const { root, api } = await pickAndPlace();
+  api.scan = async () => {
+    throw new RequestRefused(500, 'The scene could not be scanned: RoboKudo did not answer within 30 s');
+  };
+  scanButton(root).click();
+  await settled();
+  await settled();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  await settled();
+  assert.match(message(root), /^Saved/);
+  assert.equal(headline(root), 'The scene could not be scanned: RoboKudo did not answer within 30 s');
+  assert.equal(flow(root).dataset.tone, 'error');
+});
+
+test('the status area starts ready, marks Validate as the next step and says why the robot run waits', async () => {
+  const { root } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  assert.equal(headline(root), 'Ready.');
+  assert.equal(flow(root).dataset.tone, 'idle');
+  assert.equal(validateButton(root).classList.contains('primary'), true);
+  assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
+  assert.equal(byAction(root, PlanAction.SIMULATE)[0].title, 'Simulated: the real robot does not move.');
+  validateButton(root).click();
+  await settled();
+  assert.equal(validateButton(root).classList.contains('primary'), false);
+  assert.match(robotRun(root).title, /^Moves the real robot/);
+});
+
+test('a safety stop fills the status area until acknowledged, then says what comes next', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  api.status = {
+    [RunStatusKey.STATE]: RunState.SAFETY_STOPPED,
+    [RunStatusKey.MODE]: RunMode.ROBOT,
+    [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'Left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false },
+  };
+  await timer.tick();
+  assert.match(headline(root), /^Safety stop: the robot holds/);
+  assert.equal(flow(root).dataset.tone, 'error');
+  assert.equal(robotRun(root).title, 'Acknowledge the safety stop first.');
+  byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
+  await settled();
+  assert.equal(headline(root), 'Safety stop acknowledged: validate the plan again, then restart or abort it.');
+  byAction(root, PlanAction.ABORT_PLAN)[0].click();
+  assert.equal(headline(root), 'The plan was aborted after its safety stop.');
 });
