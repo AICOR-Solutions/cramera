@@ -134,6 +134,7 @@ const ViewEvent = Object.freeze({
   OBJECT_CHANGED: 'objectChange',
   POINTER_DOWN: 'pointerdown',
   POINTER_UP: 'pointerup',
+  CAMERA_MOVE_STARTED: 'start',
 });
 
 /**
@@ -183,6 +184,36 @@ export class Selection {
    */
   get key() {
     return this.field === null ? `${this.kind}:${this.identifier}` : `${this.kind}:${this.identifier}:${this.field}`;
+  }
+}
+
+/**
+ * Whether the view frames the scene once more when the first robot model is loaded: the
+ * view is framed before the model is there, so it would show the disc standing in for
+ * the robot, close up, unless the person moved the camera meanwhile.
+ */
+export class FirstFraming {
+  /**
+   * Whether the scene was framed on a loaded model, or the person moved the camera.
+   * @type {boolean}
+   */
+  #settled = false;
+
+  /**
+   * Note that the person moved the camera, which no loaded model reframes then.
+   */
+  notePersonMoved() {
+    this.#settled = true;
+  }
+
+  /**
+   * @returns {boolean} Whether the view frames the scene now that a robot model is
+   *   loaded: for the first model only, and only while the camera was not moved.
+   */
+  frameOnModelLoaded() {
+    const frame = !this.#settled;
+    this.#settled = true;
+    return frame;
   }
 }
 
@@ -373,6 +404,12 @@ export class PlanScene {
   #robotModels = new Map();
 
   /**
+   * Whether a loaded robot model frames the view once more.
+   * @type {FirstFraming}
+   */
+  #firstFraming = new FirstFraming();
+
+  /**
    * The URL of a robot model's URDF.
    * @type {function(string): string}
    */
@@ -444,6 +481,7 @@ export class PlanScene {
     this.#view.scene.add(this.#lighting.group, this.#zones, this.#markers);
     this.#axes = new SceneAxes(this.#view, container.ownerDocument);
     this.#showFloor();
+    this.#view.controls.addEventListener(ViewEvent.CAMERA_MOVE_STARTED, () => this.#firstFraming.notePersonMoved());
     this.#handles = new TransformControls(this.#view.camera, this.#view.renderer.domElement);
     this.#handles.addEventListener(ViewEvent.DRAGGING_CHANGED, (event) => {
       this.#view.controls.enabled = !event.value;
@@ -644,6 +682,7 @@ export class PlanScene {
         group.userData.greyed = false;
         PlanScene.#grey(group);
         name.position.z = new THREE.Box3().setFromObject(copy).max.z + MarkerSize.LABEL_LIFT;
+        if (this.#firstFraming.frameOnModelLoaded()) this.frame();
         this.#view.requestRender();
       },
       () => {},
