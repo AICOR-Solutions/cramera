@@ -28,6 +28,8 @@ from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.mirroring import PostureMirror
 from cramera_bridge.plans.validating import PlanValidator
 from cramera_bridge.real_robot import (
+    ArmHalt,
+    ArmStandstill,
     GiskardScript,
     GiskardProcess,
     OrbbecCameraTopic,
@@ -506,3 +508,116 @@ def test_a_real_run_asked_to_end_halts_the_arms_and_ends_giskard(
     assert {topic: received[-1:] for topic, received in recorder.commands.items()} == {
         topic.value: [[0.0] * 6] for topic in TracyVelocityCommandTopic
     }
+
+
+# %% holding the arms still while no plan runs
+
+HOLD_PERIOD = 0.1
+"""
+How often, in seconds, a standstill of these tests commands zero velocities.
+"""
+
+
+@contextmanager
+def held_arms(node) -> Iterator[ArmStandstill]:
+    """
+    :return: A standstill holding the arms through `node` while the block runs.
+    """
+    with (
+        ArmHalt().ready(node) as halt,
+        ArmStandstill(halt, hold_period=HOLD_PERIOD).holding() as standstill,
+    ):
+        yield standstill
+
+
+def commands_since(
+    recorder: VelocityCommandRecorder, counts: dict[str, int]
+) -> dict[str, list[list[float]]]:
+    """
+    :param counts: How many commands every topic had received before.
+    :return: The commands every topic received since.
+    """
+    return {
+        topic: received[counts[topic] :]
+        for topic, received in recorder.commands.items()
+    }
+
+
+def command_counts(recorder: VelocityCommandRecorder) -> dict[str, int]:
+    """
+    :return: How many commands every topic received so far.
+    """
+    return {topic: len(received) for topic, received in recorder.commands.items()}
+
+
+def assert_held_still(commands: dict[str, list[list[float]]]) -> None:
+    """
+    Assert that both arms received zero velocities again and again, and nothing else.
+    """
+    assert {topic: received[:2] for topic, received in commands.items()} == {
+        topic.value: [[0.0] * 6] * 2 for topic in TracyVelocityCommandTopic
+    }
+    assert all(
+        command == [0.0] * 6 for received in commands.values() for command in received
+    )
+
+
+def test_the_arms_are_held_still_while_no_plan_runs(node):
+    with (
+        VelocityCommandRecorder().recording(node) as recorder,
+        held_arms(node),
+    ):
+        time.sleep(5 * HOLD_PERIOD)
+
+    assert_held_still(recorder.commands)
+
+
+def test_the_arms_are_not_commanded_while_a_plan_runs(node):
+    with (
+        VelocityCommandRecorder().recording(node) as recorder,
+        held_arms(node) as standstill,
+    ):
+        standstill.after_compile(None)
+        compiled = command_counts(recorder)
+        time.sleep(5 * HOLD_PERIOD)
+
+    assert commands_since(recorder, compiled) == {
+        topic.value: [] for topic in TracyVelocityCommandTopic
+    }
+
+
+def test_the_arms_are_halted_once_a_plan_ends(node):
+    with (
+        VelocityCommandRecorder().recording(node) as recorder,
+        held_arms(node) as standstill,
+    ):
+        standstill.after_compile(None)
+        compiled = command_counts(recorder)
+        standstill.after_run(None)
+        time.sleep(0.2)
+        ended = commands_since(recorder, compiled)
+
+    assert {topic: received[:1] for topic, received in ended.items()} == {
+        topic.value: [[0.0] * 6] for topic in TracyVelocityCommandTopic
+    }
+
+
+@needs_tracy
+def test_the_arms_are_held_still_after_a_plan_ran_on_the_real_robot(
+    giskard_simulating_the_arms, node
+):
+    plan = PlanDocument.from_json(PARKED_TRACY_PLAN)
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    demo.execution = RealExecution()
+    with (
+        tracy_gripper_drivers(node),
+        VelocityCommandRecorder().recording(node) as recorder,
+        demo.execution.attached(),
+    ):
+        context = demo.build_context(demo.build_world())
+        demo.performance(context).perform(demo.build_plan(context), context)
+        ran = command_counts(recorder)
+        time.sleep(3 * ArmStandstill.hold_period)
+        held = commands_since(recorder, ran)
+
+    assert_held_still(held)

@@ -45,6 +45,7 @@ from cramera_bridge.exceptions import (
 )
 from cramera_bridge.real_robot import (
     ArmHalt,
+    ArmStandstill,
     GiskardProcess,
     GiskardScript,
     RealRobotPreflight,
@@ -415,13 +416,19 @@ class RealExecution(PlanExecution):
     The node the plans reach Giskard through while :meth:`attached`, else None.
     """
 
+    standstill: ArmStandstill | None = field(default=None, init=False)
+    """
+    Holds the arms still between the plans while :meth:`attached`, else None.
+    """
+
     @contextmanager
     def attached(self) -> Iterator[None]:
         """
         Check the robot's drivers, start Giskard and keep the world it serves in step
-        with it while the block runs. When the block ends, or SIGTERM ends it, Giskard
-        is interrupted, so it commands zero velocities, and ended; then every arm is
-        commanded zero velocities once more, in case Giskard had to be killed.
+        with it while the block runs, holding the arms still while no plan runs. When the
+        block ends, or SIGTERM ends it, Giskard is interrupted, so it commands zero
+        velocities, and ended; then every arm is commanded zero velocities once more, in
+        case Giskard had to be killed.
 
         :raises RealRobotNotReady: When the preflight misses a driver the run needs.
         :raises RealRunTerminated: When SIGTERM ended the block.
@@ -439,6 +446,7 @@ class RealExecution(PlanExecution):
             signal.signal(signal.SIGTERM, self.terminate)
             halt = attached.enter_context(ArmHalt().ready(node))
             attached.callback(halt.command)
+            standstill = attached.enter_context(ArmStandstill(halt).holding())
             attached.enter_context(GiskardProcess(self.giskard_script).running())
             world = fetch_world_from_service(
                 node=node, timeout_seconds=self.world_fetch_timeout
@@ -446,6 +454,7 @@ class RealExecution(PlanExecution):
             attached.callback(WorldSynchronizer(_world=world, node=node).close)
             self.world = world
             self.ros_node = node
+            self.standstill = standstill
             attached.callback(self.detach)
             yield
 
@@ -463,10 +472,12 @@ class RealExecution(PlanExecution):
 
     def detach(self) -> None:
         """
-        Forget the world and the node of the robot once it is no longer reached.
+        Forget the world, the node and the standstill of the robot once it is no longer
+        reached.
         """
         self.world = None
         self.ros_node = None
+        self.standstill = None
 
     def reported_world(self) -> Optional[World]:
         return self.world
@@ -488,7 +499,7 @@ class RealExecution(PlanExecution):
             context,
             ros_node=self.ros_node,
             collision_avoidance=collision_avoidance,
-            extensions=list(extensions),
+            extensions=[*extensions, self.standstill],
             safety=safety,
         )
 

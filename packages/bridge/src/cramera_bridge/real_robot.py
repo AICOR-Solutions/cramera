@@ -20,8 +20,10 @@ import time
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from threading import Event, Lock, Thread
 
 from control_msgs.action import ParallelGripperCommand
+from cramph.executor import Executor, ExecutorExtension
 from rclpy.action import ActionClient
 from rclpy.action.graph import get_action_names_and_types
 from rclpy.duration import Duration
@@ -237,6 +239,73 @@ class ArmHalt:
             publisher.publish(Float64MultiArray(data=[0.0] * self.joints_per_arm))
         for publisher in self.publishers:
             publisher.wait_for_all_acked(Duration(seconds=self.acknowledgement_timeout))
+
+
+@dataclass
+class ArmStandstill(ExecutorExtension):
+    """
+    Holds every arm still while no plan runs on Giskard: commands zero velocities once
+    a run ends and every :attr:`hold_period` until the next plan is compiled, so no
+    controller keeps a command Giskard left behind.
+    """
+
+    halt: ArmHalt
+    """
+    Commands the arms zero velocities.
+    """
+
+    hold_period: float = 0.5
+    """
+    How often, in seconds, the arms are commanded zero velocities while no plan runs.
+    """
+
+    plan_running: bool = field(default=False, init=False)
+    """
+    Whether a plan was compiled whose run has not ended yet.
+    """
+
+    lock: Lock = field(default_factory=Lock, init=False, repr=False)
+    """
+    Keeps a command of zero velocities from being sent once a plan was compiled.
+    """
+
+    @contextmanager
+    def holding(self) -> Iterator[ArmStandstill]:
+        """
+        Hold the arms still while no plan runs, as long as the block runs.
+
+        :return: This standstill.
+        """
+        with ExitStack() as holding:
+            stopped = Event()
+            holder = Thread(
+                target=self.hold_still, args=(stopped,), name="arm standstill"
+            )
+            holder.start()
+            holding.callback(holder.join)
+            holding.callback(stopped.set)
+            yield self
+
+    def hold_still(self, stopped: Event) -> None:
+        """
+        Command zero velocities every :attr:`hold_period` no plan runs, until `stopped`
+        is set.
+
+        :param stopped: Set once the holding ends.
+        """
+        while not stopped.wait(self.hold_period):
+            with self.lock:
+                if not self.plan_running:
+                    self.halt.command()
+
+    def after_compile(self, executor: Executor) -> None:
+        with self.lock:
+            self.plan_running = True
+
+    def after_run(self, executor: Executor) -> None:
+        with self.lock:
+            self.halt.command()
+            self.plan_running = False
 
 
 # %% preflight
