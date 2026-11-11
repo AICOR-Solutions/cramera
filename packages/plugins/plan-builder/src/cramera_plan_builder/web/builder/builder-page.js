@@ -52,6 +52,7 @@ import {
   SurfacesKey,
 } from '../../../protocol.js';
 import { PageStatus } from '../../../core/page-status.js';
+import { RequestRefused } from './builder-api.js';
 import { ConstraintSentences, ConstraintsView } from './constraints-view.js';
 import { Elements, PlanAction } from './elements.js';
 import { FreePlace } from './free-place.js';
@@ -185,6 +186,17 @@ export function scanMessage(scan) {
   const unrecognized = scan[SceneScanKey.UNRECOGNIZED];
   const left = unrecognized > 0 ? ` ${unrecognized} more found matched no object model and were left out.` : '';
   return `The scene holds ${objects}, ${source}.${left}`;
+}
+
+/**
+ * @param {string} request What the person asked for, as the subject of a sentence.
+ * @param {Error} error Why it failed.
+ * @returns {string} What the page says about it: the plan builder's reason for a
+ *   refusal, else that the request got no answer, as when the connection dropped.
+ */
+export function failureMessage(request, error) {
+  if (error instanceof RequestRefused) return error.message;
+  return `${request} got no answer from the plan builder (${error.message}); check that it still runs, then try again.`;
 }
 
 // %% environment
@@ -850,7 +862,7 @@ export class BuilderPage {
   async #start(mode, overrideValidation = false) {
     if (this.busy()) return;
     const status = await this.#waitFor(() => this.#environment.api.run(this.state.document, mode, overrideValidation)).catch((error) => {
-      this.report(error.message);
+      this.report(failureMessage('The run', error));
       return null;
     });
     if (!status) return;
@@ -906,7 +918,7 @@ export class BuilderPage {
     const plan = structuredClone(this.state.document);
     this.report('Validating the plan in a copy of the twin; nothing moves…');
     const report = await this.#waitFor(() => this.#environment.api.validate(plan)).catch((error) => {
-      this.report(error.message);
+      this.report(failureMessage('The validation', error));
       return null;
     });
     if (!report) return;
@@ -989,7 +1001,7 @@ export class BuilderPage {
    */
   async #acknowledgeStop() {
     const status = await this.#environment.api.acknowledge().catch((error) => {
-      this.report(error.message);
+      this.report(failureMessage('The acknowledgement', error));
       return null;
     });
     if (!status) return;
@@ -1194,7 +1206,7 @@ export class BuilderPage {
     if (this.busy()) return;
     this.report('Scanning the scene…');
     const scan = await this.#waitFor(() => this.#environment.api.scan(this.state.document)).catch((error) => {
-      this.report(error.message);
+      this.report(failureMessage('The scan', error));
       return null;
     });
     if (!scan) return;

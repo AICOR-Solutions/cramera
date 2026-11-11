@@ -62,6 +62,7 @@ import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
+import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
@@ -1633,4 +1634,29 @@ test('a run on the real robot restarts after its safety stop only once the plan 
   restart().click();
   await settled();
   assert.deepEqual(api.runs.map((run) => [run.mode, run.overrideValidation]), [[RunMode.ROBOT, false], [RunMode.ROBOT, false]]);
+});
+
+test('a validation or scan without an answer says which request got none, a refusal says why', async () => {
+  const { root, api } = await pickAndPlace();
+  api.validate = async () => {
+    throw new TypeError('Failed to fetch');
+  };
+  validateButton(root).click();
+  await settled();
+  await settled();
+  assert.match(message(root), /^The validation got no answer from the plan builder \(Failed to fetch\)/);
+  api.scan = async () => {
+    throw new TypeError('NetworkError when attempting to fetch resource.');
+  };
+  scanButton(root).click();
+  await settled();
+  await settled();
+  assert.match(message(root), /^The scan got no answer from the plan builder \(NetworkError/);
+  api.validate = async () => {
+    throw new RequestRefused(500, 'The plan could not be validated: RoboKudo did not answer within 30 s');
+  };
+  validateButton(root).click();
+  await settled();
+  await settled();
+  assert.equal(message(root), 'The plan could not be validated: RoboKudo did not answer within 30 s');
 });
