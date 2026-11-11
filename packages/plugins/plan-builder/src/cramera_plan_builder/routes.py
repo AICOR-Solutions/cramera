@@ -506,10 +506,10 @@ class PlanBuilderRoutes:
     def answer_posture(self, request: Request) -> Response:
         """
         :param request: A request for the real robot's posture.
-        :return: The joint positions its drivers reported last; none while the
-            builder is not attached to the real robot.
+        :return: The joint positions its drivers reported last and how long ago each
+            arm's did; none while the builder is not attached to the real robot.
         """
-        return Response.of_json(self.mirror.latest)
+        return Response.of_json(self.mirror.posture())
 
     def answer_stop(self, request: Request) -> Response:
         """
@@ -562,12 +562,15 @@ class PlanBuilderRoutes:
         :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
             the demo started last.
         :raises RunRecordSaving: While the demo started last saves its run's record.
+        :raises PlanRunning: While a demo performs a plan, or when one started while
+            the plan was validated; the gate stays as it was.
         """
-        self.runner.refuse_to_start()
+        before = self.runner.refuse_to_validate()
         demo = self.runnable(ValidationRequest.from_json(self.body(request)).plan)
         report = self.report_unoffered_skills(demo.plan) or self.validations.validate(
             self.profile.validation_order(demo)
         )
+        self.runner.refuse_validated(before)
         self.gate.record(demo.plan, report)
         return Response.of_json(report)
 

@@ -15,6 +15,7 @@ from typing_extensions import Callable
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import (
     DemoNotStarted,
+    PlanRunning,
     RunRecordSaving,
     SafetyStopNotAcknowledged,
 )
@@ -302,6 +303,46 @@ def test_no_demo_starts_while_the_record_is_saved(saving, demo, mode):
 def test_no_validation_starts_while_the_record_is_saved(saving):
     with pytest.raises(RunRecordSaving):
         saving.refuse_to_start()
+
+
+@pytest.fixture
+def running(tmp_path) -> DemoRunner:
+    """
+    :return: A runner of the stand-in that runs in every mode until it is stopped; its
+        demo is stopped after the test.
+    """
+    runner = runner_of(tmp_path, "running_demo.py")
+    yield runner
+    runner.stop()
+
+
+@pytest.mark.parametrize(
+    "mode, executor",
+    [
+        (RunMode.PERFORM, None),
+        (RunMode.SIMULATE, None),
+        (RunMode.ROBOT, ExecutorKind.PHYSICS),
+        (RunMode.ROBOT, ExecutorKind.REAL),
+    ],
+)
+def test_no_validation_starts_while_a_plan_runs(running, demo, mode, executor):
+    running.start(demo, mode, executor)
+    with pytest.raises(PlanRunning):
+        running.refuse_to_validate()
+    assert running.status().state is RunState.RUNNING
+
+
+def test_a_validation_starts_beside_a_staged_scene_and_after_a_run(running, demo):
+    running.start(demo, RunMode.STAGE)
+    assert running.refuse_to_validate() is running.current
+    running.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    running.stop()
+    assert running.refuse_to_validate() is running.current
+
+
+def test_refusing_a_validation_refuses_it_while_the_record_is_saved(saving):
+    with pytest.raises(RunRecordSaving):
+        saving.refuse_to_validate()
 
 
 def test_a_demo_saving_its_record_can_be_stopped(saving):

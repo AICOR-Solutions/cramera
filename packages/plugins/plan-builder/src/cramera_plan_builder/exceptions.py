@@ -781,6 +781,28 @@ class SafetyStopNotAcknowledged(PlanBuilderError):
 
 
 @dataclass
+class PlanRunning(PlanBuilderError):
+    """
+    A validation asked for while a demo performs a plan, or one during which such a demo
+    started: its report would let the plan run again while it runs.
+    """
+
+    mode: str
+    """
+    The running demo's run mode value.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.CONFLICT
+
+    def message(self) -> str:
+        return (
+            f"A {self.mode!r} run is going on; validate the plan again once it is "
+            f"over or stopped."
+        )
+
+
+@dataclass
 class RunRecordSaving(PlanBuilderError):
     """
     A run or a validation asked for while the demo started last still saves the record

@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from http import HTTPStatus
+from pathlib import Path
 from importlib.machinery import ModuleSpec
 
 import pytest
+from typing_extensions import Callable, List
 
 
 from cramera.application import ViewerApplication
@@ -21,7 +23,11 @@ from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
-from cramera_plan_builder.exceptions import PlanNotValidated, RunModeNotOffered
+from cramera_plan_builder.exceptions import (
+    PlanNotValidated,
+    PlanRunning,
+    RunModeNotOffered,
+)
 from cramera_plan_builder.mirroring import PostureMirror
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_plan_builder.reaches import RobotReaches
@@ -662,11 +668,10 @@ def test_a_step_of_a_skill_the_profile_lacks_fails_without_trying(validating, pl
     assert {step.verdict for step in report.steps[1:]} == {StepVerdict.UNCHECKED}
 
 
-@pytest.fixture
-def attached_to_the_real_robot(serve, output, workspace_loader, tmp_path):
+def real_robot_profile(tmp_path) -> Path:
     """
-    :return: Answers requests to a plan builder attached to the real robot, whose
-        profile runs the robot run mode on it, with the stand-in validator.
+    :return: Tracy's test profile, written into the test's directory, that runs the
+        robot run mode on the real robot.
     """
     profile_file = DATASET / "profile" / "tracy.json"
     document = json.loads(profile_file.read_text("utf-8"))
@@ -676,8 +681,19 @@ def attached_to_the_real_robot(serve, output, workspace_loader, tmp_path):
     real.write_text(json.dumps(document), "utf-8")
     for referenced in ("templates", "scenes"):
         (real.parent / referenced).symlink_to(profile_file.parent / referenced)
+    return real
+
+
+@pytest.fixture
+def attached_to_the_real_robot(serve, output, workspace_loader, tmp_path):
+    """
+    :return: Answers requests to a plan builder attached to the real robot, whose
+        profile runs the robot run mode on it, with the stand-in validator.
+    """
     return serve(
-        validating_plugin(output, workspace_loader, real, RobotConnection.REAL)
+        validating_plugin(
+            output, workspace_loader, real_robot_profile(tmp_path), RobotConnection.REAL
+        )
     )
 
 
@@ -767,6 +783,95 @@ def test_a_real_run_after_the_real_run_of_its_validation_cannot_be_forced(
         run_on_the_robot(attached_to_the_real_robot, plan, override=True)
         == PlanNotValidated(RunMode.ROBOT).status()
     )
+
+
+@dataclass(frozen=True)
+class RunStartingValidations(PlanValidations):
+    """
+    The stand-in validator, after which each of :attr:`starts` is called before the
+    validation answers: a run started while a plan is validated.
+    """
+
+    starts: List[Callable[[], object]] = field(default_factory=list)
+    """
+    Called once a validation's report is in.
+    """
+
+    def validate(self, order):
+        report = super().validate(order)
+        for start in self.starts:
+            start()
+        return report
+
+
+@pytest.fixture
+def real_run_plugin(output, workspace_loader, tmp_path) -> PlanBuilderPlugin:
+    """
+    :return: A plan builder attached to the real robot whose demos run until they are
+        stopped, with the stand-in validator.
+    """
+    plugin = validating_plugin(
+        output, workspace_loader, real_robot_profile(tmp_path), RobotConnection.REAL
+    )
+    return replace(
+        plugin,
+        template=DemoTemplate(DATASET / "templates" / "running_demo.py"),
+        validations=RunStartingValidations(
+            interpreter=plugin.validations.interpreter,
+            modules=plugin.validations.modules,
+        ),
+    )
+
+
+def refused_validation(answer, plan):
+    """
+    :return: The answer to a validation of the plan the plan builder refused.
+    """
+    validation = send(
+        answer,
+        HttpMethod.POST,
+        PlanBuilderRoute.VALIDATE,
+        json.dumps(ValidationRequest(plan=plan).to_json()).encode(),
+    )
+    assert validation.status != HTTPStatus.OK
+    return validation
+
+
+def test_no_validation_while_a_plan_runs_on_the_real_robot(
+    serve, real_run_plugin, plan
+):
+    answer = serve(real_run_plugin)
+    validate(answer, plan)
+    assert run_on_the_robot(answer, plan) == HTTPStatus.OK
+
+    refused = refused_validation(answer, plan)
+
+    assert refused.status == HTTPStatus.CONFLICT
+    assert (
+        json.loads(refused.body)[ErrorKey.ERROR]
+        == PlanRunning(RunMode.ROBOT.value).message()
+    )
+    assert run_on_the_robot(answer, plan) == PlanNotValidated(RunMode.ROBOT).status()
+    send(answer, HttpMethod.POST, PlanBuilderRoute.RUN_STOP)
+
+    assert validate(answer, plan).passed
+    assert run_on_the_robot(answer, plan) == HTTPStatus.OK
+    send(answer, HttpMethod.POST, PlanBuilderRoute.RUN_STOP)
+
+
+def test_a_validation_during_which_a_real_run_started_is_not_recorded(
+    serve, real_run_plugin, plan
+):
+    answer = serve(real_run_plugin)
+    validate(answer, plan)
+    real_run_plugin.validations.starts.append(lambda: run_on_the_robot(answer, plan))
+
+    refused = refused_validation(answer, plan)
+
+    real_run_plugin.validations.starts.clear()
+    assert refused.status == HTTPStatus.CONFLICT
+    assert run_on_the_robot(answer, plan) == PlanNotValidated(RunMode.ROBOT).status()
+    send(answer, HttpMethod.POST, PlanBuilderRoute.RUN_STOP)
 
 
 # %% placing

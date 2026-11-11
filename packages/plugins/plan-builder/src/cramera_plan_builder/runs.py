@@ -19,6 +19,7 @@ from typing_extensions import IO, List, Optional
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import (
     DemoNotStarted,
+    PlanRunning,
     RunRecordSaving,
     SafetyStopNotAcknowledged,
 )
@@ -511,6 +512,41 @@ class DemoRunner:
             raise SafetyStopNotAcknowledged(self.current.safety_stop().constraint)
         if self.current.state() is RunState.SAVING:
             raise RunRecordSaving()
+
+    def refuse_to_validate(self) -> Optional[DemoProcess]:
+        """
+        Refuse a validation while a demo performs a plan, as well as whenever a new demo
+        is refused; a staged live scene performs none.
+
+        :return: The demo started last, which :meth:`refuse_validated` compares with the
+            demo started last once the validation is over.
+        :raises PlanRunning: While a demo that is no staged scene runs.
+        :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
+            the demo started last.
+        :raises RunRecordSaving: While the demo started last saves its run's record.
+        """
+        with self.lock:
+            self.refuse_to_start()
+            if (
+                self.current is not None
+                and self.current.mode is not RunMode.STAGE
+                and self.current.state() is RunState.RUNNING
+            ):
+                raise PlanRunning(self.current.mode.value)
+            return self.current
+
+    def refuse_validated(self, before: Optional[DemoProcess]) -> None:
+        """
+        Refuse a validation's report when any demo started while it was validated: a
+        run on the real robot closes the gate as it starts, and the report must not
+        open it again, not even when a staged scene replaced that run meanwhile.
+
+        :param before: What :meth:`refuse_to_validate` answered before the validation.
+        :raises PlanRunning: When a demo started meanwhile.
+        """
+        with self.lock:
+            if self.current is not before:
+                raise PlanRunning(self.current.mode.value)
 
     def release(self) -> None:
         """
