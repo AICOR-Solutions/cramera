@@ -81,3 +81,17 @@ def test_how_long_the_scanner_took_is_logged(order, caplog):
     [record] = caplog.records
     assert record.getMessage().startswith("cramera_bridge.plans.scanning answered in ")
     assert record.getMessage().endswith(" s")
+
+
+def test_a_scanner_that_does_not_answer_in_time_fails_the_scan_with_its_output(order):
+    scans = SceneScans(
+        interpreter=str(DATASET / "hanging_interpreter.py"),
+        timeout=0.5,
+        modules=installed(),
+    )
+
+    with pytest.raises(ScanFailed) as failure:
+        scans.scan(order)
+
+    assert "no answer within 0.5 s" in failure.value.message()
+    assert "waiting for the perception" in failure.value.message()

@@ -11,6 +11,7 @@ import logging
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -132,7 +133,7 @@ class BridgeProcess(ABC):
         :return: The JSON of the module's answer.
         :raises CramUnavailable: Without the CRAM workspace.
         :raises PlanBuilderError: As :meth:`describe_failure` says, when the process ends
-            without an answer.
+            without an answer or gives none within :attr:`timeout`, when it is killed.
         """
         missing = self.modules.missing()
         if missing:
@@ -142,16 +143,26 @@ class BridgeProcess(ABC):
             answer_file = Path(directory) / ProcessFile.ANSWER
             order_file.write_text(json.dumps(order.to_json()), encoding="utf-8")
             started = time.monotonic()
-            finished = subprocess.run(
+            process = subprocess.Popen(
                 self.command(order_file, answer_file),
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                timeout=self.timeout,
             )
-            if finished.returncode != 0 or not answer_file.is_file():
-                output = finished.stdout.decode("utf-8", errors="replace")
-                raise self.describe_failure(output[-self.output_limit :])
+            timed_out = threading.Event()
+            deadline = threading.Timer(
+                self.timeout, lambda: (timed_out.set(), process.kill())
+            )
+            deadline.start()
+            stdout, _ = process.communicate()
+            deadline.cancel()
+            output = stdout.decode("utf-8", errors="replace")[-self.output_limit :]
+            if timed_out.is_set():
+                raise self.describe_failure(
+                    f"{output}\nGave up: no answer within {self.timeout:g} s."
+                )
+            if process.returncode != 0 or not answer_file.is_file():
+                raise self.describe_failure(output)
             logger.info(
                 "%s answered in %.1f s", self.module, time.monotonic() - started
             )
