@@ -64,6 +64,15 @@ def test_without_a_module_the_loader_answers_the_missing_workspace():
     assert loader.workspace() is workspace
 
 
+def test_a_preloaded_workspace_is_read_beside_the_caller_and_kept():
+    loader = WorkspaceLoader(
+        modules=CramModules(finder=finder_without(CramModule.KRROOD))
+    )
+    loader.preload().join()
+    assert loader.loaded == MissingWorkspace([CramModule.KRROOD.value])
+    assert loader.workspace() is loader.loaded
+
+
 # %% the missing workspace
 
 

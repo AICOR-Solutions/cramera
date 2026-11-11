@@ -145,6 +145,18 @@ def test_without_cram_the_catalog_names_what_is_missing(serve, output):
     assert [entry.name for entry in catalog.environments] == ["lab"]
 
 
+def test_the_workspace_is_read_as_the_plan_builder_starts(serve, output):
+    workspace = WorkspaceLoader(modules=CramModules(finder=lambda name: None))
+    plugin = PlanBuilderPlugin(
+        environment={PlanBuilderVariable.OUTPUT: str(output)}, workspace=workspace
+    )
+    serve(plugin)
+    deadline = time.monotonic() + 5.0
+    while workspace.loaded is None and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert workspace.loaded == MissingWorkspace([module.value for module in CramModule])
+
+
 def test_an_object_models_file_is_served(get):
     answer = get(f"{PlanBuilderRoute.OBJECT_FILES}milk.stl")
     assert answer.status == HTTPStatus.OK

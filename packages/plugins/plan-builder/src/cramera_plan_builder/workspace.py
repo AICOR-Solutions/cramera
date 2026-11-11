@@ -346,8 +346,8 @@ class WorkspaceModule(StrEnum):
 @dataclass
 class WorkspaceLoader:
     """
-    Reads the workspace once, when it is first asked for: importing CRAM takes seconds,
-    which the viewer's start does not wait for.
+    Reads the workspace once, when it is first asked for or preloaded: importing CRAM
+    takes seconds, which the viewer's start does not wait for.
     """
 
     modules: CramModules = field(default_factory=CramModules)
@@ -374,6 +374,27 @@ class WorkspaceLoader:
             if self.loaded is None:
                 self.loaded = self.read()
             return self.loaded
+
+    def preload(self) -> threading.Thread:
+        """
+        Read the workspace in a thread of its own, so the first request asking for it
+        does not wait for CRAM's import as long; a request asking meanwhile waits for
+        it, and one asking after a failed read reads it again.
+
+        :return: The started thread reading it.
+        """
+        reading = threading.Thread(
+            target=self.warm, name="workspace preload", daemon=True
+        )
+        reading.start()
+        return reading
+
+    def warm(self) -> None:
+        """
+        Read the workspace and list its robots once, which imports the robots' modules
+        the catalog's first answer would otherwise wait for.
+        """
+        self.workspace().robots()
 
     def read(self) -> CramWorkspace:
         """

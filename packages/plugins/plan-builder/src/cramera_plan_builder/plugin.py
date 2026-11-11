@@ -215,7 +215,7 @@ class PlanBuilderPlugin(ViewerPlugin):
     def routes(self, context: PluginContext) -> List[RouteDeclaration]:
         """
         :param context: What the viewer offers the plugin.
-        :return: The plan builder's routes.
+        :return: The plan builder's routes; the CRAM workspace is read meanwhile.
         """
         storage = PlanBuilderStorage.of(context.locations, self.environment)
         profile = ConfiguredProfile.of_environment(self.environment)
@@ -223,6 +223,7 @@ class PlanBuilderPlugin(ViewerPlugin):
         port = self.port()
         if profile.connection is RobotConnection.REAL:
             self.mirror.start()
+        self.workspace.preload()
         return PlanBuilderRoutes(
             scenes=context.catalog,
             local_scenes=context.locations.local_scenes,
