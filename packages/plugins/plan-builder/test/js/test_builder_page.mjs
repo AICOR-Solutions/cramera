@@ -1608,3 +1608,29 @@ test('a plan builder that stops answering is shown until it answers again', asyn
   assert.match(runState(), /^The demo runs\./);
   assert.doesNotMatch(runState(), /does not answer/);
 });
+
+test('a run on the real robot restarts after its safety stop only once the plan passed a new validation', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  api.status = {
+    [RunStatusKey.STATE]: RunState.SAFETY_STOPPED,
+    [RunStatusKey.MODE]: RunMode.ROBOT,
+    [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'Left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false },
+  };
+  await timer.tick();
+  byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
+  await settled();
+  const restart = () => byAction(root, PlanAction.RESTART_PLAN)[0];
+  assert.equal(restart().disabled, true);
+  assert.match(root.findAll((element) => element.className === 'safety-message')[0].textContent, /Validate the plan again/);
+  validateButton(root).click();
+  await settled();
+  await settled();
+  assert.equal(restart().disabled, false);
+  restart().click();
+  await settled();
+  assert.deepEqual(api.runs.map((run) => [run.mode, run.overrideValidation]), [[RunMode.ROBOT, false], [RunMode.ROBOT, false]]);
+});

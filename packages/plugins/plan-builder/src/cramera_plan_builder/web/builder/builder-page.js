@@ -1027,7 +1027,9 @@ export class BuilderPage {
     parts.safety.hidden = state === SafetyBannerState.HIDDEN;
     parts.safety.dataset.state = state;
     if (state === SafetyBannerState.HIDDEN) return;
-    parts.safetyMessage.textContent = this.#safetyBanner.message(this.#run);
+    const revalidate = state === SafetyBannerState.ACKNOWLEDGED && this.#run[RunStatusKey.MODE] === RunMode.ROBOT && !this.#validationPassed() && !this.#mayOverrideValidation();
+    parts.safetyMessage.textContent = `${this.#safetyBanner.message(this.#run)}${revalidate ? '. Validate the plan again before it restarts on the robot.' : ''}`;
+    parts.restartPlan.disabled = revalidate || this.busy();
     parts.acknowledgeStop.hidden = state !== SafetyBannerState.VIOLATED;
     parts.restartPlan.hidden = state !== SafetyBannerState.ACKNOWLEDGED;
     parts.abortPlan.hidden = state !== SafetyBannerState.ACKNOWLEDGED;
