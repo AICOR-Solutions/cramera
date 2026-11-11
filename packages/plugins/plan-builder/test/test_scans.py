@@ -5,6 +5,7 @@ scan is read back.
 
 from __future__ import annotations
 
+import logging
 from importlib.machinery import ModuleSpec
 
 import pytest
@@ -69,3 +70,14 @@ def test_without_the_cram_workspace_nothing_is_scanned(order):
 
     with pytest.raises(CramUnavailable):
         scans.scan(order)
+
+
+def test_how_long_the_scanner_took_is_logged(order, caplog):
+    scans = SceneScans(interpreter=str(INTERPRETER), modules=installed())
+
+    with caplog.at_level(logging.INFO, logger="cramera_plan_builder.bridge_processes"):
+        scans.scan(order)
+
+    [record] = caplog.records
+    assert record.getMessage().startswith("cramera_bridge.plans.scanning answered in ")
+    assert record.getMessage().endswith(" s")

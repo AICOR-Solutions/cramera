@@ -7,9 +7,11 @@ plan builder never imports CRAM and every request starts from a fresh world.
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 import sys
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -20,6 +22,8 @@ from typing_extensions import Any, List
 from cramera_plan_builder.exceptions import CramUnavailable, PlanBuilderError
 from cramera_plan_builder.workspace import CramModules
 from cramera_protocol.document import JsonDocument
+
+logger = logging.getLogger(__name__)
 
 # %% files
 
@@ -122,6 +126,8 @@ class BridgeProcess(ABC):
 
     def answer(self, order: JsonDocument) -> Any:
         """
+        Logs how long the process took to answer, its start included.
+
         :param order: What the module is asked.
         :return: The JSON of the module's answer.
         :raises CramUnavailable: Without the CRAM workspace.
@@ -135,6 +141,7 @@ class BridgeProcess(ABC):
             order_file = Path(directory) / ProcessFile.ORDER
             answer_file = Path(directory) / ProcessFile.ANSWER
             order_file.write_text(json.dumps(order.to_json()), encoding="utf-8")
+            started = time.monotonic()
             finished = subprocess.run(
                 self.command(order_file, answer_file),
                 stdin=subprocess.DEVNULL,
@@ -145,6 +152,9 @@ class BridgeProcess(ABC):
             if finished.returncode != 0 or not answer_file.is_file():
                 output = finished.stdout.decode("utf-8", errors="replace")
                 raise self.describe_failure(output[-self.output_limit :])
+            logger.info(
+                "%s answered in %.1f s", self.module, time.monotonic() - started
+            )
             return json.loads(answer_file.read_text(encoding="utf-8"))
 
     def command(self, order_file: Path, answer_file: Path) -> List[str]:
