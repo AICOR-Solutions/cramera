@@ -388,6 +388,13 @@ export class BuilderPage {
   #waiting = false;
 
   /**
+   * Whether a stop waits for the run to end, which takes a run on the real robot a
+   * while as it halts the arms first.
+   * @type {boolean}
+   */
+  #stopping = false;
+
+  /**
    * How far the page is, for people and for tools such as the screenshot command.
    * @type {PageStatus}
    */
@@ -946,11 +953,24 @@ export class BuilderPage {
   }
 
   /**
-   * @returns {Promise<void>} Settles once the demo stopped.
+   * @returns {Promise<void>} Settles once the demo stopped or the stop failed, which is
+   *   reported.
    */
   async #stop() {
-    this.#run = await this.#environment.api.stop();
-    this.#world = PageWorld.empty();
+    if (this.#stopping) return;
+    this.#stopping = true;
+    this.report('Stopping the run…');
+    this.render();
+    const status = await this.#environment.api.stop().catch((error) => {
+      this.report(`The run could not be stopped: ${error.message}. Use the emergency stop if the robot still moves.`);
+      return null;
+    });
+    this.#stopping = false;
+    if (status) {
+      this.#run = status;
+      this.#world = PageWorld.empty();
+      this.report('The run was stopped.');
+    }
     this.render();
   }
 
@@ -1195,7 +1215,7 @@ export class BuilderPage {
     this.#parts.runState.textContent = `${RUN_LABELS[state]}${running && live ? ' Its world is live.' : ''}`;
     this.#parts.runState.dataset.state = state;
     this.#parts.log.textContent = this.#run[RunStatusKey.LOG] ?? '';
-    this.#parts.stop.disabled = !running;
+    this.#parts.stop.disabled = !running || this.#stopping;
     this.#parts.capture.disabled = !live;
     const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run) && !this.busy();
     for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;

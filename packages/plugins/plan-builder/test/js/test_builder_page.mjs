@@ -1562,3 +1562,32 @@ test('while a plan runs only Stop is offered, so nothing replaces the run or val
   assert.equal(validateButton(root).disabled, false);
   assert.equal(scanButton(root).disabled, false);
 });
+
+test('stopping says so until the run ended, and a stop that fails says why', async () => {
+  const { root, api } = await openPage();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  const answer = deferred();
+  const stop = api.stop.bind(api);
+  api.stop = () => answer.promise.then(() => stop());
+  const stopButton = byAction(root, PlanAction.STOP)[0];
+  stopButton.click();
+  await settled();
+  assert.match(message(root), /Stopping/);
+  assert.equal(stopButton.disabled, true);
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.match(message(root), /stopped/);
+
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.RUNNING };
+  api.stop = async () => {
+    throw new Error('Failed to fetch');
+  };
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  byAction(root, PlanAction.STOP)[0].click();
+  await settled();
+  assert.match(message(root), /could not be stopped.*Failed to fetch/);
+  assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
+});
