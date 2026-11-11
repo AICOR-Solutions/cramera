@@ -199,6 +199,7 @@ class PlanGrounding:
             world=self.context.world,
             extensions=self.context.context_extensions(),
             perception=self.perception,
+            collision_avoidance=self.context.collision_avoidance,
         )
         copy = self.validation.copied_world
         self.copied_context = TaskContext(

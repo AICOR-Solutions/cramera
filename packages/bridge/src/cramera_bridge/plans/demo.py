@@ -14,7 +14,11 @@ from pathlib import Path
 from typing_extensions import Callable, Dict, Iterator, List, Optional
 
 from coraplex.perception import WorldPerception
-from coraplex.robot_plans.plan_transformations import DetectBeforeGrasp
+from coraplex.plans.plan_transformation import PlanRewriting
+from coraplex.robot_plans.plan_transformations import (
+    DetectBeforeGrasp,
+    LetOnlyTheObjectTouchTheGripper,
+)
 from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
 from cramera_bridge.execution import StartingPosture
 from cramera_bridge.geometry import NumericPose
@@ -165,6 +169,12 @@ class PlannedTaskDemo(RobotTaskDemo):
     the performing robot's steps one after another.
     """
 
+    collision_avoidance: bool = True
+    """
+    Whether every motion avoids collisions with the environment and the robot itself; a
+    plan's run, its validation and its dry-run agree on it.
+    """
+
     document: DemoDocument = field(kw_only=True)
     """
     The plan and where its environment was found.
@@ -313,7 +323,9 @@ class PlannedTaskDemo(RobotTaskDemo):
         """
         Differs from :meth:`RobotTaskDemo.build_context` in performing with the plan's
         selected robot, which in the world a real robot reports is the one robot of its
-        model.
+        model, and in letting a gripper touch only the object its step acts on, while
+        every motion and every step tried before the run avoids collisions where the
+        demo has :attr:`collision_avoidance`.
         """
         placement = self.robot_scene.selected_placement()
         robot = (
@@ -321,7 +333,14 @@ class PlannedTaskDemo(RobotTaskDemo):
             if self.execution.reported_world() is None
             else placement.resolve_by_model(world)
         )
-        return TaskContext(world=world, robot=robot)
+        return TaskContext(
+            world=world,
+            robot=robot,
+            collision_avoidance=self.collision_avoidance,
+            extensions=[
+                PlanRewriting(transformations=[LetOnlyTheObjectTouchTheGripper()])
+            ],
+        )
 
     def build_plan(self, context: TaskContext) -> StatechartNode:
         """

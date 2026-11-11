@@ -64,6 +64,12 @@ class TaskContext:
     each run.
     """
 
+    collision_avoidance: bool = False
+    """
+    Whether every motion of the task, and every step tried before it runs, avoids
+    collisions with the robot's surroundings and with itself.
+    """
+
     extensions: List[ContextExtension] = field(default_factory=list)
     """
     Further context extensions every plan of the task runs with, such as the
