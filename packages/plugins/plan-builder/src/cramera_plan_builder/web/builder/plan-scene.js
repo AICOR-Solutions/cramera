@@ -106,6 +106,11 @@ const ZONE_OPACITY = 0.18;
 const TARGET_OPACITY = 0.45;
 
 /**
+ * How see-through a robot is whose mirrored posture is not live.
+ */
+const STALE_OPACITY = 0.35;
+
+/**
  * Segments of the round markers.
  */
 const SEGMENTS = 32;
@@ -480,15 +485,17 @@ export class PlanScene {
    * Show the plan's robots and objects, and the edited robot's targets; poses the live
    * world reports win over the plan's while it runs.
    * @param {import('./plan-state.js').PlanState} state The plan.
-   * @param {{objects: Map<string, Array<number>>, robots: Map<string, Array<number>>, postures: Map<string, Object<string, number>>=, colors: Map<string, string>=}=} live
+   * @param {{objects: Map<string, Array<number>>, robots: Map<string, Array<number>>, postures: Map<string, Object<string, number>>=, colors: Map<string, string>=, stale: Set<string>=}=} live
    *   The live world's poses by the plan's identities, each robot's joint positions by
-   *   prefixed joint name, and the colors objects were perceived in.
+   *   prefixed joint name, the colors objects were perceived in, and the robots whose
+   *   posture is not live, which are greyed.
    * @param {SceneOverlay=} overlay The zones and whether each free-place marker is
    *   reached.
    */
   show(state, live = { objects: new Map(), robots: new Map() }, overlay = new SceneOverlay()) {
     const postures = live.postures ?? new Map();
     const colors = live.colors ?? new Map();
+    const stale = live.stale ?? new Set();
     this.#showZones(overlay.zones);
     const wanted = new Map();
     const want = (selection, pose, signature, grounded, build, slides = false) => wanted.set(selection.key, { selection, pose, signature, grounded, build, slides });
@@ -542,7 +549,9 @@ export class PlanScene {
       }
       if (entry.selection.kind === MarkerKind.ROBOT) {
         marker.userData.posture = postures.get(entry.selection.identifier) ?? {};
+        marker.userData.stale = stale.has(entry.selection.identifier);
         PlanScene.#bend(marker);
+        PlanScene.#grey(marker);
       }
     }
     this.select(this.#selection && this.#byKey.has(this.#selection.key) ? this.#selection : null);
@@ -632,6 +641,8 @@ export class PlanScene {
         group.add(copy);
         group.userData.model = copy;
         PlanScene.#bend(group);
+        group.userData.greyed = false;
+        PlanScene.#grey(group);
         name.position.z = new THREE.Box3().setFromObject(copy).max.z + MarkerSize.LABEL_LIFT;
         this.#view.requestRender();
       },
@@ -652,6 +663,36 @@ export class PlanScene {
       const joint = name.split(JOINT_NAMESPACE_SEPARATOR).at(-1);
       if (model.joints?.[joint]) model.setJointValue(joint, position);
     }
+  }
+
+  /**
+   * Grey a robot whose marker says its posture is not live, see-through and colourless,
+   * and give it its own materials back once it is live again.
+   * @param {THREE.Object3D} marker A robot's marker.
+   */
+  static #grey(marker) {
+    const stale = Boolean(marker.userData.stale);
+    if (Boolean(marker.userData.greyed) === stale) return;
+    marker.userData.greyed = stale;
+    marker.traverse((child) => {
+      if (!child.isMesh) return;
+      if (!stale) {
+        if (!child.userData.liveMaterial) return;
+        for (const material of [child.material].flat()) material.dispose();
+        child.material = child.userData.liveMaterial;
+        delete child.userData.liveMaterial;
+        return;
+      }
+      child.userData.liveMaterial ??= child.material;
+      const grey = (material) => {
+        const copy = material.clone();
+        copy.transparent = true;
+        copy.opacity = STALE_OPACITY;
+        copy.color?.setScalar((copy.color.r + copy.color.g + copy.color.b) / 3);
+        return copy;
+      };
+      child.material = Array.isArray(child.material) ? child.material.map(grey) : grey(child.material);
+    });
   }
 
   /**

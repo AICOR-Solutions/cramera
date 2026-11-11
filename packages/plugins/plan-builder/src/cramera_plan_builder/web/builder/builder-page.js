@@ -33,6 +33,7 @@ import {
   PlanStepKey,
   PlanSummaryKey,
   RobotInstanceKey,
+  ArmReportKey,
   RobotPostureKey,
   RobotProfileKey,
   PlanTemplateKey,
@@ -260,6 +261,22 @@ export class BuilderEnvironment {
 
 // %% page
 
+/**
+ * @param {Array<Object>} arms The `ArmReport` of each arm of a mirrored posture.
+ * @returns {string|null} Which arms' drivers went silent and for how long, or null
+ *   while every arm reads as live.
+ */
+export function postureSilence(arms) {
+  if (arms.length === 0) return 'No joint states from the robot yet';
+  const silent = arms.filter((arm) => !arm[ArmReportKey.LIVE]).map((arm) => {
+    const name = arm[ArmReportKey.ARM].replaceAll('_', ' ');
+    const age = arm[ArmReportKey.AGE_SECONDS];
+    const since = age === undefined || age === null ? 'yet' : `for ${Math.ceil(age)} s`;
+    return `${name[0].toUpperCase()}${name.slice(1)}: no joint states ${since}`;
+  });
+  return silent.length === 0 ? null : silent.join('; ');
+}
+
 export class BuilderPage {
   /**
    * What the page needs of the browser.
@@ -392,6 +409,19 @@ export class BuilderPage {
    * @type {Object<string, number>}
    */
   #mirrored = {};
+
+  /**
+   * Why the mirrored posture may not show where the real robot stands, or null while
+   * it does or while the builder is not attached to the real robot.
+   * @type {string|null}
+   */
+  #postureStale = null;
+
+  /**
+   * Whether the plan builder last said it mirrors the real robot's posture.
+   * @type {boolean}
+   */
+  #mirroring = false;
 
   /**
    * Whether a poll is answered right now, so polls do not pile up.
@@ -1156,11 +1186,19 @@ export class BuilderPage {
    */
   async #followPosture() {
     this.#followed = true;
-    const posture = await this.#environment.api.posture().catch(() => null);
+    const answer = await this.#environment.api.posture().catch((error) => error);
     this.#followed = false;
-    if (!posture || this.#world.published || !this.state) return;
-    this.#mirrored = posture[RobotPostureKey.JOINT_POSITIONS] ?? {};
-    if (Object.keys(this.#mirrored).length > 0) this.#showScene();
+    if (this.#world.published || !this.state) return;
+    if (answer instanceof Error) {
+      if (!this.#mirroring) return;
+      this.#postureStale = `The plan builder does not answer (${answer.message})`;
+      this.#showScene();
+      return;
+    }
+    this.#mirrored = answer[RobotPostureKey.JOINT_POSITIONS] ?? {};
+    this.#mirroring = answer[RobotPostureKey.MIRRORED] ?? false;
+    this.#postureStale = this.#mirroring ? postureSilence(answer[RobotPostureKey.ARMS] ?? []) : null;
+    if (this.#mirroring || Object.keys(this.#mirrored).length > 0) this.#showScene();
   }
 
   /**
@@ -1308,7 +1346,10 @@ export class BuilderPage {
     const postures = new Map([...this.#world.robots].map(([identifier, robot]) => [identifier, robot[RobotInstanceKey.JOINT_POSITIONS] ?? {}]));
     const edited = this.state.activeRobot()?.[PlannedRobotKey.IDENTIFIER];
     if (!this.#world.published && edited !== undefined && Object.keys(this.#mirrored).length > 0) postures.set(edited, this.#mirrored);
-    this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors() }, this.#overlay());
+    const stale = !this.#world.published && this.#postureStale !== null ? new Set([edited]) : new Set();
+    this.#parts.posture.hidden = stale.size === 0;
+    this.#parts.posture.textContent = stale.size === 0 ? '' : `${this.#postureStale} — the picture may not match the robot.`;
+    this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors(), stale }, this.#overlay());
   }
 
   /**
@@ -1424,13 +1465,16 @@ export class BuilderPage {
     parts.runState = elements.create('span', 'run-state');
     parts.validationState = elements.create('span', 'validation-state');
     parts.message = elements.create('span', 'message');
+    parts.posture = elements.create('span', 'run-state posture-state');
+    parts.posture.dataset.state = RunState.FAILED;
+    parts.posture.hidden = true;
     parts.log = elements.create('pre', 'run-log');
     parts.output = elements.create('pre', 'demo-source');
     parts.output.hidden = true;
     const stage = elements.create('div', 'builder-stage');
     const controls = elements.create('div', 'builder-controls');
     const lines = elements.create('div', 'status-row');
-    lines.append(parts.runState, parts.validationState, parts.message);
+    lines.append(parts.runState, parts.validationState, parts.posture, parts.message);
     controls.append(parts.safety, runRow, lines, statusLine);
     const output = elements.create('div', 'builder-output');
     output.append(this.#details('Demo output', parts.log), this.#details('Generated demo', parts.output));

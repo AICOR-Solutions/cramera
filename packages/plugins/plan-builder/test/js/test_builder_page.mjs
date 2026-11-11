@@ -34,6 +34,7 @@ import {
   RunState,
   RunEventKey,
   RunEventKind,
+  ArmReportKey,
   RobotPostureKey,
   RunStatusKey,
   SafetyStopKey,
@@ -109,10 +110,15 @@ class FakeApi {
     this.scanned = [];
     this.scanAnswer = { [SceneScanKey.OBJECTS]: [], [SceneScanKey.GROUNDING]: DetectionGrounding.PERCEIVED, [SceneScanKey.UNRECOGNIZED]: 0 };
     this.mirrored = {};
+    this.mirroredArms = null;
+    this.postureFails = false;
   }
 
   async posture() {
-    return { [RobotPostureKey.JOINT_POSITIONS]: structuredClone(this.mirrored) };
+    if (this.postureFails) throw new TypeError('Failed to fetch');
+    const posture = { [RobotPostureKey.JOINT_POSITIONS]: structuredClone(this.mirrored) };
+    if (this.mirroredArms === null) return posture;
+    return { ...posture, [RobotPostureKey.ARMS]: structuredClone(this.mirroredArms), [RobotPostureKey.MIRRORED]: true };
   }
 
   async validate(plan) {
@@ -960,6 +966,58 @@ test('without a run the robot stands in the posture the real robot reports', asy
   api.mirrored = { left_shoulder_pan_joint: -0.4 };
   await timer.tickEvery(PollInterval.STATE);
   assert.deepEqual(scene().shown.live.postures.get(robot), api.mirrored);
+});
+
+const postureLine = (root) => root.findAll((element) => (element.className ?? '').includes('posture-state'))[0];
+const arm = (name, age, live) => ({ [ArmReportKey.ARM]: name, ...(age === null ? {} : { [ArmReportKey.AGE_SECONDS]: age }), [ArmReportKey.LIVE]: live });
+
+test('an arm whose driver went silent greys the robot and says so until it reports again', async () => {
+  const { page, api, timer, scene, root } = await openPage();
+  const robot = page.state.activeRobot()[PlannedRobotKey.IDENTIFIER];
+  api.mirrored = { left_shoulder_pan_joint: 0.3 };
+  api.mirroredArms = [arm('left_arm', 4.2, false), arm('right_arm', 0.05, true)];
+  await timer.tickEvery(PollInterval.STATE);
+  assert.deepEqual([...scene().shown.live.stale], [robot]);
+  assert.equal(postureLine(root).hidden, false);
+  assert.equal(postureLine(root).textContent, 'Left arm: no joint states for 5 s — the picture may not match the robot.');
+
+  api.mirroredArms = [arm('left_arm', 0.05, true), arm('right_arm', 0.05, true)];
+  await timer.tickEvery(PollInterval.STATE);
+  assert.deepEqual([...scene().shown.live.stale], []);
+  assert.equal(postureLine(root).hidden, true);
+});
+
+test('both arms silent, or never reported, are each named', async () => {
+  const { api, timer, root } = await openPage();
+  api.mirroredArms = [arm('left_arm', 2, false), arm('right_arm', null, false)];
+  await timer.tickEvery(PollInterval.STATE);
+  assert.equal(postureLine(root).textContent, 'Left arm: no joint states for 2 s; Right arm: no joint states yet — the picture may not match the robot.');
+});
+
+test('a mirror that never reported greys the robot', async () => {
+  const { page, api, timer, scene, root } = await openPage();
+  api.mirroredArms = [];
+  await timer.tickEvery(PollInterval.STATE);
+  assert.deepEqual([...scene().shown.live.stale], [page.state.activeRobot()[PlannedRobotKey.IDENTIFIER]]);
+  assert.equal(postureLine(root).textContent, 'No joint states from the robot yet — the picture may not match the robot.');
+});
+
+test('a posture the plan builder no longer answers greys the robot', async () => {
+  const { page, api, timer, scene, root } = await openPage();
+  api.mirroredArms = [arm('left_arm', 0.05, true), arm('right_arm', 0.05, true)];
+  await timer.tickEvery(PollInterval.STATE);
+  api.postureFails = true;
+  await timer.tickEvery(PollInterval.STATE);
+  assert.deepEqual([...scene().shown.live.stale], [page.state.activeRobot()[PlannedRobotKey.IDENTIFIER]]);
+  assert.equal(postureLine(root).textContent, 'The plan builder does not answer (Failed to fetch) — the picture may not match the robot.');
+});
+
+test('a simulated robot is never greyed for its posture', async () => {
+  const { api, timer, scene, root } = await openPage();
+  api.postureFails = true;
+  await timer.tickEvery(PollInterval.STATE);
+  assert.equal(scene().shown.live.stale?.size ?? 0, 0);
+  assert.equal(postureLine(root).hidden, true);
 });
 
 test('a run in physics asks for the physics run mode and attaches its constraints', async () => {
