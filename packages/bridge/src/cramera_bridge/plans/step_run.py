@@ -53,6 +53,7 @@ from cramera_bridge.plans.world import PlannedGraspable
 from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorParameterKey
 from cramera_protocol.plan_builder import PlanStep, StepConstraint
+from cramera_protocol.robot_profile import SafetyLimits
 from cramph.composites import CancelledWhenTrue
 from cramph.composites import Sequence as StepSequence
 from cramph.data_types import LifeCycleValues, ObservationStateValues
@@ -567,6 +568,12 @@ class StepRun:
     The steps as they run, each as it was grounded last.
     """
 
+    safety: Optional[SafetyLimits] = None
+    """
+    The safety limits of the robot profile, whose workspace boxes a step grounded anew
+    is held inside, as its validation held it; None for none.
+    """
+
     attempt_numbers: Dict[str, int] = field(default_factory=dict)
     """
     Which attempt each step is at, by the step's identity; the first when it is absent.
@@ -592,6 +599,7 @@ class StepRun:
             actions=self.actions,
             perception=WorldPerception(reports_unseen_bodies=True),
             site=self.site,
+            safety=self.safety,
         )
 
     # %% building an attempt

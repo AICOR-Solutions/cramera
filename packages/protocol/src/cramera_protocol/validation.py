@@ -72,6 +72,13 @@ class StepFailureReason(StrEnum):
     Several objects match the detection and nothing tells them apart.
     """
 
+    SAFETY_LIMIT = "safety_limit"
+    """
+    The step's motion would break a safety limit of the robot profile: an arm's tool
+    would leave its workspace box, or come closer to its edge than a validated plan
+    may.
+    """
+
     SKILL_NOT_OFFERED = "skill_not_offered"
     """
     The step names a skill the robot profile does not offer.

@@ -59,6 +59,7 @@ class PlanValidator:
                 actions=demo.discovered_actions,
                 perception=live,
                 site=demo.site,
+                safety=demo.document.safety,
             ).ground(steps)
         return ValidationReport(steps=[step.to_step_validation() for step in grounded])
 

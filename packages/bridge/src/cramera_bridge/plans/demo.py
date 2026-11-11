@@ -25,6 +25,7 @@ from cramera_bridge.exceptions import StepNotGrounded, TaskFailed
 from cramera_bridge.execution import StartingPosture
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.performing import PlanPerformance, TaskContext
+from cramera_bridge.real_robot import ReportedPosture
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
@@ -378,6 +379,7 @@ class PlannedTaskDemo(RobotTaskDemo):
             retries=self.retries,
             regrounding_distance=self.regrounding_distance,
             steps=steps,
+            safety=self.document.safety,
         )
         self.first_attempt = self.step_run.attempt_plan(0)
         if self.document.safety is not None:
@@ -410,19 +412,25 @@ class PlannedTaskDemo(RobotTaskDemo):
         :return: The performing robot's steps, each leaving its arm open naming the arm
             that reaches and each destination only known once grounded naming the pose
             it resolves to, as a grounding of the plan in a copy of the world on the
-            twin's objects finds them, with the positions it expects its objects at.
+            twin's objects finds them, with the positions it expects its objects at. On
+            the real robot the copy stands as its drivers report, since the world
+            Giskard serves holds no joint positions before its first motion.
         :raises StepNotGrounded: When a step fails that grounding.
         """
         steps = self.steps()
         if not any(self.is_left_open(context, step) for step in steps):
             return [ScheduledStep(step=step, resolved=step) for step in steps]
-        grounded = PlanGrounding(
+        grounding = PlanGrounding(
             context=context,
             bodies=dict(self.bodies),
             actions=self.discovered_actions,
             perception=WorldPerception(reports_unseen_bodies=True),
             site=self.site,
-        ).ground(steps)
+            safety=self.document.safety,
+        )
+        if self.execution.reported_world() is not None:
+            ReportedPosture().apply(grounding.copied_context.world)
+        grounded = grounding.ground(steps)
         for grounded_step in grounded:
             if not grounded_step.succeeded:
                 validation = grounded_step.to_step_validation()

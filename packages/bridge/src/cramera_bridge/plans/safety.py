@@ -2,7 +2,9 @@
 The safety limits of a robot profile as the constraints every motion of a run is held
 to: a workspace box per arm, written in the frame of the pose the plan stands the robot
 at, and the speed no tool may exceed; and every arm joint's velocity limit, which the
-robot's description sets.
+robot's description sets. A plan is validated against the same workspace boxes, held a
+margin inside their edges, so a validated plan does not ride the edge the run is stopped
+at.
 """
 
 from __future__ import annotations
@@ -27,6 +29,13 @@ from giskardpy.motion_statechart.monitors.safety_monitors import (
 )
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Point3
 from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
+
+WORKSPACE_MARGIN = 0.01
+"""
+How far, in metres, inside the edges of its workspace box a validated plan keeps an arm's
+tool, so that the real arm, which follows its motion less exactly than the twin, keeps
+inside the box the run is stopped at.
+"""
 
 
 @dataclass(frozen=True)
@@ -64,15 +73,32 @@ class RobotSafety:
             ]
         )
 
+    def workspace_check(
+        self, context: TaskContext, margin: float = WORKSPACE_MARGIN
+    ) -> SafetyEnvelope:
+        """
+        :param context: The world and the performing robot.
+        :param margin: How far, in metres, inside each box's edges the tool stays.
+        :return: The constraints a plan is validated against: every workspace box of
+            :meth:`envelope`, its edges moved the margin inwards.
+        """
+        return SafetyEnvelope(
+            constraints=[
+                self.workspace_box(context, each, margin)
+                for each in self.limits.workspaces
+            ]
+        )
+
     def workspace_box(
-        self, context: TaskContext, workspace: ArmWorkspace
+        self, context: TaskContext, workspace: ArmWorkspace, margin: float = 0.0
     ) -> WorkspaceBox:
         """
         :param context: The world and the performing robot.
         :param workspace: The workspace of one of its arms.
+        :param margin: How far, in metres, the box's edges are moved inwards.
         :return: The box the arm's tool stays inside: the smallest box in the frame of
             the robot's root holding the workspace, exactly it when both frames share
-            their axes.
+            their axes, the margin inside its edges.
         """
         world, robot = context.world, context.robot
         [arm] = RobotArms(robot).arms(ENUM_NAMES.member(Arms, workspace.arm))
@@ -95,11 +121,14 @@ class RobotSafety:
                 )
             ]
         )
+        label = workspace.label
+        if margin:
+            label = f"{label}, kept {margin * 1000:.0f} mm inside its edges"
         return WorkspaceBox(
-            constraint=workspace.label,
+            constraint=label,
             tool=arm.end_effector.tool_frame,
-            minimum=Point3(*corners.min(axis=0), reference_frame=robot.root),
-            maximum=Point3(*corners.max(axis=0), reference_frame=robot.root),
+            minimum=Point3(*(corners.min(axis=0) + margin), reference_frame=robot.root),
+            maximum=Point3(*(corners.max(axis=0) - margin), reference_frame=robot.root),
         )
 
     @property

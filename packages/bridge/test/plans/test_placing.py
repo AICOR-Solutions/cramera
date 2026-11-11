@@ -274,7 +274,7 @@ def test_a_cube_is_put_on_top_of_the_one_a_detection_found(tower):
 # %% markers
 
 
-def test_a_marker_out_of_reach_fails_its_place_as_unreachable(tower):
+def test_a_marker_no_arm_taking_the_cube_reaches_fails_its_pick_as_unreachable(tower):
     [park, pick_red, place_red, *_] = tower.performing_robot().steps
     at_marker = replace(
         place_red,
@@ -292,8 +292,11 @@ def test_a_marker_out_of_reach_fails_its_place_as_unreachable(tower):
         )
     ).validate()
 
-    assert report.steps[2].verdict is StepVerdict.FAILED
-    assert report.steps[2].reason is StepFailureReason.UNREACHABLE
+    pick = report.steps[1]
+    assert pick.verdict is StepVerdict.FAILED
+    assert pick.reason is StepFailureReason.UNREACHABLE
+    assert f"at ({OUT_OF_REACH.x:.2f}, {OUT_OF_REACH.y:.2f})" in pick.detail
+    assert report.steps[2].verdict is StepVerdict.UNCHECKED
 
 
 def test_tracys_reach_holds_its_table_and_leaves_out_the_floor_beyond_it():

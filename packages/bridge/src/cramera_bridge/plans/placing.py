@@ -432,6 +432,27 @@ class PlacingTargets:
             go, keeps from each the distance the robot's collision avoidance keeps it
             at.
         """
+        return self.find_obstacle(spot) is None
+
+    def find_taker(self, spot: Pose) -> Optional[str]:
+        """
+        :param spot: Where the object is put down.
+        :return: The identity of the first other object of the plan that keeps the
+            object from being put down there, see :meth:`is_free`; None when none does.
+        """
+        obstacle = self.find_obstacle(spot)
+        if obstacle is None:
+            return None
+        return next(
+            identifier for identifier, body in self.bodies.items() if body is obstacle
+        )
+
+    def find_obstacle(self, spot: Pose) -> Optional[Body]:
+        """
+        :param spot: Where the object is put down.
+        :return: The first other object of the plan that keeps the object from being put
+            down there, see :meth:`is_free`; None when none does.
+        """
         position = spot.to_np()[:3, 3]
         reach = ObjectExtent(self.body).half_width() + self.clearance
         shift = position - self.body.global_pose.to_np()[:3, 3]
@@ -443,15 +464,15 @@ class PlacingTargets:
                 and position[1] + reach > box.min_y
                 and position[1] - reach < box.max_y
             ):
-                return False
+                return other
             if any(
                 part.shifted(shift).reaches_into(
                     box, self.gripper_clearance(part.body, other)
                 )
                 for part in self.opened_gripper
             ):
-                return False
-        return True
+                return other
+        return None
 
     @cached_property
     def opened_gripper(self) -> List[GripperPart]:

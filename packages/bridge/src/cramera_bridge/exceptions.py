@@ -1102,6 +1102,50 @@ class StepNotGrounded(PlanError):
         return f"{self.step} cannot be carried out: {self.failure}"
 
 
+@dataclass
+class NoArmCarriesObject(PlanError):
+    """
+    A step leaving its arm to be chosen whose object no arm of the robot can both take
+    and carry through the steps up to where it is put down, each inside the workspace
+    the safety monitor holds the arm to and within its reach.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object.
+    """
+
+    x: float
+    """
+    The object's x coordinate in the world before it is taken, in metres.
+    """
+
+    y: float
+    """
+    The object's y coordinate in the world before it is taken, in metres.
+    """
+
+    destination: str
+    """
+    Where the object is put down, as a person reads it, such as ``into left_tray``.
+    """
+
+    failures: List[str]
+    """
+    Why each arm failed, as a person reads it, nearer arm first.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        return (
+            f"No arm can pick {self.object_identifier} at ({self.x:.2f}, {self.y:.2f}) "
+            f"and put it down {self.destination} inside its workspace and reach: "
+            + "; ".join(self.failures)
+        )
+
+
 # %% placing
 
 
@@ -1151,6 +1195,40 @@ class NoFreeSpotInZone(PlacementNotFound):
         return (
             f"The zone {self.zone} has no free spot within reach for "
             f"{self.object_identifier}."
+        )
+
+
+@dataclass
+class PlaceTaken(PlacementNotFound):
+    """
+    A pose to put an object down at where another object of the plan stands, or so
+    near that the gripper cannot let go beside it.
+    """
+
+    x: float
+    """
+    The pose's x coordinate in the world, in metres.
+    """
+
+    y: float
+    """
+    The pose's y coordinate in the world, in metres.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object put down.
+    """
+
+    taken_by: str
+    """
+    The identity of the object standing there.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The place at ({self.x:.2f}, {self.y:.2f}) for {self.object_identifier} is "
+            f"taken: {self.taken_by} stands there. Move the place or {self.taken_by}."
         )
 
 

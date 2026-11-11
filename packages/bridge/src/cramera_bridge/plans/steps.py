@@ -36,6 +36,7 @@ from cramera_bridge.plans.world import OBJECT_TYPE_ANNOTATIONS, PlannedGraspable
 from cramera_bridge.exceptions import (
     AnnotationNotInWorld,
     ObjectNotGraspable,
+    PlaceTaken,
     PlacementNotFound,
 )
 from cramera_bridge.geometry import NumericPose
@@ -354,15 +355,39 @@ class StepArguments:
     def placement_failure(self) -> Optional[PlacementNotFound]:
         """
         :return: Why the first field whose destination is only known once the plan is
-            grounded resolves to no pose in the world as it is now, or None when each
-            resolves to one.
+            grounded resolves to no pose in the world as it is now, or why the pose a
+            field names is taken by another object; None when each destination resolves
+            to a free pose.
         """
         placing = self.placing()
         for offered in self.late_destination_fields():
             destination = Destination.from_json(self.step.values[offered.name])
             if placing.find_pose(destination) is None:
                 return placing.not_found(destination)
+        for offered in self.pose_destination_fields():
+            pose = Destination.from_json(self.step.values[offered.name]).pose
+            taker = placing.find_taker(
+                Pose.from_xyz_quaternion(
+                    *pose.to_json(), reference_frame=self.context.world.root
+                )
+            )
+            if taker is not None:
+                return PlaceTaken(pose.x, pose.y, placing.object_identifier, taker)
         return None
+
+    def pose_destination_fields(self) -> List[ActionField]:
+        """
+        :return: The step's fields accepting a surface whose destination is a pose the
+            plan names.
+        """
+        return [
+            offered
+            for offered in self.action.schema.fields
+            if offered.accepts_surface
+            and offered.name in self.step.values
+            and Destination.from_json(self.step.values[offered.name]).placement
+            is PlacementMode.POSE
+        ]
 
     def object_identifier(self) -> Optional[str]:
         """

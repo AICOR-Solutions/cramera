@@ -38,8 +38,17 @@ from cramera_bridge.plans.world import PlannedGraspableFromAbove
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.detection import DetectionRegion, RegionKind
 from cramera_protocol.geometry import Pose
-from cramera_protocol.plan_builder import DemoDocument, PlanDocument
-from cramera_protocol.robot_profile import PerceptionSettings
+from cramera_protocol.plan_builder import (
+    DemoDocument,
+    Destination,
+    PlacementMode,
+    PlanDocument,
+)
+from cramera_protocol.robot_profile import (
+    PerceptionSettings,
+    SafetyLimits,
+    Zone,
+)
 from cramera_protocol.validation import (
     StepFailureReason,
     StepVerdict,
@@ -108,6 +117,70 @@ RIGHT_OF_CENTRE = (0.55, -0.15)
 Where on Tracy's table both arms reach a cube, the right one from nearer.
 """
 
+TRACY_SAFETY = SafetyLimits.from_json(
+    {
+        "workspaces": [
+            {
+                "arm": "left",
+                "label": "Left arm workspace",
+                "box": {
+                    "minX": 0.3,
+                    "maxX": 1.4,
+                    "minY": -0.3,
+                    "maxY": 0.9,
+                    "minZ": 0.9,
+                    "maxZ": 1.6,
+                },
+            },
+            {
+                "arm": "right",
+                "label": "Right arm workspace",
+                "box": {
+                    "minX": 0.3,
+                    "maxX": 1.4,
+                    "minY": -0.9,
+                    "maxY": 0.3,
+                    "minZ": 0.9,
+                    "maxZ": 1.6,
+                },
+            },
+        ]
+    }
+)
+"""
+The workspace boxes of Tracy's profile: each arm's box ends where the other arm's half
+of the table begins, 30 cm across the middle.
+"""
+
+LEFT_TRAY = Zone.from_json(
+    {
+        "id": "left_tray",
+        "label": "Left tray",
+        "area": {"minX": 0.6, "maxX": 0.8, "minY": 0.3, "maxY": 0.5},
+    }
+)
+"""
+The tray of Tracy's profile on the left of its table, inside the left arm's workspace
+only.
+"""
+
+SCANNED_RED_CUBE = (0.673, -0.138)
+"""
+Where the scan of the close-to-real stand-in of Tracy's camera sees the red cube: right
+of the table's middle, nearer the right arm, inside both arms' workspaces.
+"""
+
+SCANNED_BLUE_CUBE = (0.662, 0.138)
+"""
+Where the same scan sees the blue cube: on the place the pick-and-place template puts
+the red cube down at.
+"""
+
+RIGHT_ARM_WORKSPACE_ONLY = (0.6, -0.4)
+"""
+Where on Tracy's table a cube lies inside the right arm's workspace only.
+"""
+
 # %% fixtures
 
 
@@ -136,11 +209,69 @@ def with_red_cube_at(plan: PlanDocument, x: float, y: float) -> PlanDocument:
     return replace(plan, objects=[replace(red, pose=Pose(x, y, *pose[2:])), *others])
 
 
-def validated(plan: PlanDocument) -> ValidationReport:
+def validated(plan: PlanDocument, safety: SafetyLimits = None) -> ValidationReport:
     """
-    :return: The report of the plan's validation.
+    :param plan: A plan of Tracy's.
+    :param safety: The safety limits the plan's motions are held to, None for none.
+    :return: The report of the plan's validation, with the left tray of Tracy's profile.
     """
-    return PlanValidator(ValidationOrder(demo=DemoDocument(plan=plan))).validate()
+    return PlanValidator(
+        ValidationOrder(demo=DemoDocument(plan=plan, zones=[LEFT_TRAY], safety=safety))
+    ).validate()
+
+
+def with_cube_at(
+    plan: PlanDocument, identifier: str, x: float, y: float
+) -> PlanDocument:
+    """
+    :return: The plan with the cube standing at the position on the table's height.
+    """
+    return replace(
+        plan,
+        objects=[
+            (
+                replace(planned, pose=Pose(x, y, *planned.pose.to_json()[2:]))
+                if planned.identifier == identifier
+                else planned
+            )
+            for planned in plan.objects
+        ],
+    )
+
+
+def placing_at(plan: PlanDocument, destination: Destination) -> PlanDocument:
+    """
+    :return: The plan with its place step putting the red cube down at the destination.
+    """
+    [robot] = plan.robots
+    steps = [
+        (
+            replace(
+                step,
+                values={**step.values, "target_location": destination.to_json()},
+            )
+            if step.action == "place"
+            else step
+        )
+        for step in robot.steps
+    ]
+    return replace(plan, robots=[replace(robot, steps=steps)])
+
+
+def with_pick_arm(plan: PlanDocument, arm: Arms) -> PlanDocument:
+    """
+    :return: The plan with its pick naming the arm.
+    """
+    [robot] = plan.robots
+    steps = [
+        (
+            replace(step, values={**step.values, "arm": arm.name.lower()})
+            if step.action == "pick_up"
+            else step
+        )
+        for step in robot.steps
+    ]
+    return replace(plan, robots=[replace(robot, steps=steps)])
 
 
 # %% validating
@@ -192,6 +323,71 @@ def test_validating_moves_nothing_of_the_twin(pick_and_place):
     ).ground(demo.steps())
 
     np.testing.assert_array_equal(world.state.positions, before)
+
+
+# %% validating where the safety monitor watches
+
+
+def test_a_place_onto_another_object_fails_saying_which_object_stands_there(
+    pick_and_place,
+):
+    report = validated(with_cube_at(pick_and_place, "blue_cube", *SCANNED_BLUE_CUBE))
+
+    place = report.steps[2]
+    assert place.verdict is StepVerdict.FAILED
+    assert place.reason is StepFailureReason.UNSUCCESSFUL
+    assert "blue_cube" in place.detail
+
+
+def test_a_cube_the_nearer_arm_cannot_put_into_the_zone_is_carried_by_the_other(
+    pick_and_place,
+):
+    plan = placing_at(
+        with_cube_at(pick_and_place, "red_cube", *SCANNED_RED_CUBE),
+        Destination(placement=PlacementMode.ZONE, zone=LEFT_TRAY.identifier),
+    )
+
+    report = validated(plan, TRACY_SAFETY)
+
+    assert report.passed
+    assert report.steps[1].arm == Arms.LEFT.name.lower()
+
+
+def test_a_cube_no_arm_can_pick_and_put_into_the_zone_fails_saying_so(
+    pick_and_place,
+):
+    plan = placing_at(
+        with_cube_at(pick_and_place, "red_cube", *RIGHT_ARM_WORKSPACE_ONLY),
+        Destination(placement=PlacementMode.ZONE, zone=LEFT_TRAY.identifier),
+    )
+
+    report = validated(plan, TRACY_SAFETY)
+
+    pick = report.steps[1]
+    assert pick.verdict is StepVerdict.FAILED
+    assert pick.reason is StepFailureReason.SAFETY_LIMIT
+    assert "No arm can pick red_cube" in pick.detail
+    assert "left_tray" in pick.detail
+
+
+def test_a_place_riding_the_edge_of_its_arms_workspace_fails_validation(
+    pick_and_place,
+):
+    plan = placing_at(
+        with_pick_arm(
+            with_cube_at(pick_and_place, "red_cube", *SCANNED_RED_CUBE), Arms.RIGHT
+        ),
+        Destination(
+            placement=PlacementMode.POSE, pose=Pose(0.7, 0.295, 0.906, 0, 0, 0, 1)
+        ),
+    )
+
+    report = validated(plan, TRACY_SAFETY)
+
+    place = report.steps[2]
+    assert place.verdict is StepVerdict.FAILED
+    assert place.reason is StepFailureReason.SAFETY_LIMIT
+    assert "Right arm workspace" in place.detail
 
 
 # %% validating in a process started before its order
