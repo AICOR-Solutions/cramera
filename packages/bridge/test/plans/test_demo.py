@@ -44,7 +44,10 @@ from cramera_protocol.plan_builder import (
     StepConstraint,
 )
 from cramera_protocol.viewer import EnvironmentVariable
-from semantic_digital_twin.datastructures.definitions import GripperState
+from semantic_digital_twin.datastructures.definitions import (
+    GripperState,
+    StaticJointState,
+)
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
@@ -137,6 +140,25 @@ def test_the_objects_start_where_the_plan_puts_them(document, demo, built):
     milk = document.plan.objects[0]
     position = NumericPose.of_entity(world, demo.bodies[milk.identifier]).position
     assert position == pytest.approx(milk.pose.to_json()[:3])
+
+
+def test_every_robot_starts_with_its_arms_parked_clear_of_the_milk(demo, built):
+    world, _ = built
+    for robot in world.get_semantic_annotations_by_type(PR2):
+        for arm in robot.all_arms:
+            parked = arm.get_joint_state_by_type(StaticJointState.PARK)
+            assert [connection.position for connection in parked.connections] == (
+                pytest.approx(list(parked.target_values))
+            )
+    milk = demo.bodies["milk"]
+    detector = world.collision_manager.collision_detector
+    detector.sync_world_model()
+    detector.sync_world_state()
+    assert all(
+        detector.check_collision_between_bodies(body, milk) is None
+        for body in world.bodies_with_collision
+        if body is not milk
+    )
 
 
 @pytest.fixture

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from functools import cached_property
 
 import numpy as np
 from typing_extensions import Dict, Iterator, List, Optional, Tuple
@@ -32,7 +33,11 @@ from cramera_protocol.geometry import Vector3
 from cramera_protocol.plan_builder import Destination, PlacementMode
 from cramera_protocol.reach import ArmReach
 from krrood_spatial_math.spatial_types import Pose
-from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm
+from semantic_digital_twin.collision_checking.collision_rules import (
+    AvoidCollisionRule,
+)
+from semantic_digital_twin.datastructures.definitions import GripperState
+from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm, EndEffector
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import ActiveConnection
 from semantic_digital_twin.world_description.geometry import AxisAlignedBox
@@ -150,6 +155,101 @@ class ObjectExtent:
         return float(
             max(abs(box.min_x), abs(box.max_x), abs(box.min_y), abs(box.max_y))
         )
+
+
+@dataclass(frozen=True)
+class GripperPart:
+    """
+    A body of a gripper and the box around its collision shapes, in the world's root
+    frame.
+    """
+
+    body: Body
+    """
+    The body.
+    """
+
+    low: np.ndarray
+    """
+    The box's lowest corner.
+    """
+
+    high: np.ndarray
+    """
+    The box's highest corner.
+    """
+
+    @classmethod
+    def of_body(cls, body: Body) -> GripperPart:
+        """
+        :param body: A body of a gripper with collision shapes.
+        :return: The part as the body stands now.
+        """
+        low, high = cls.corners(ObjectExtent(body).world_box())
+        return cls(body=body, low=low, high=high)
+
+    @staticmethod
+    def corners(box: AxisAlignedBox) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        :param box: A box.
+        :return: Its lowest and its highest corner.
+        """
+        return (
+            np.array([box.min_x, box.min_y, box.min_z], dtype=float),
+            np.array([box.max_x, box.max_y, box.max_z], dtype=float),
+        )
+
+    def shifted(self, shift: np.ndarray) -> GripperPart:
+        """
+        :param shift: How far the gripper moves.
+        :return: The part with the gripper moved that far.
+        """
+        return GripperPart(body=self.body, low=self.low + shift, high=self.high + shift)
+
+    def reaches_into(self, box: AxisAlignedBox, distance: float) -> bool:
+        """
+        :param box: The box around another object, in the world's root frame.
+        :param distance: How far the part has to keep from the object.
+        :return: Whether the part comes closer to the box than that distance.
+        """
+        other_low, other_high = self.corners(box)
+        return bool(
+            np.all(self.low - distance < other_high)
+            and np.all(self.high + distance > other_low)
+        )
+
+
+@dataclass(frozen=True)
+class OpenedGripper:
+    """
+    The room a gripper takes once it opens where it stands, as it does to let go of
+    what it holds.
+    """
+
+    world: World
+    """
+    The world the gripper stands in.
+    """
+
+    end_effector: EndEffector
+    """
+    The gripper.
+    """
+
+    def parts(self) -> List[GripperPart]:
+        """
+        :return: Each body of the gripper with collision shapes, the gripper opened,
+            read inside a reset state context that stands the world back up afterwards.
+        """
+        with self.world.reset_state_context():
+            if self.end_effector.has_joint_state_of_type(GripperState.OPEN):
+                self.end_effector.get_joint_state_by_type(GripperState.OPEN).apply_to(
+                    self.world
+                )
+            return [
+                GripperPart.of_body(body)
+                for body in self.end_effector.bodies_with_collision
+            ]
 
 
 # %% targets
@@ -290,9 +390,12 @@ class PlacingTargets:
         reach = ArmReaches(self.robot)
         return next(
             (
-                self.resting(x, y, height)
-                for x, y in self.spots(zone.area)
-                if self.is_free(x, y) and reach.reaches(x, y, height + lift)
+                spot
+                for spot in (
+                    self.resting(x, y, height) for x, y in self.spots(zone.area)
+                )
+                if self.is_free(spot)
+                and reach.reaches(*spot.to_np()[:2, 3], height + lift)
             ),
             None,
         )
@@ -321,22 +424,63 @@ class PlacingTargets:
         for offset_x, offset_y in offsets:
             yield self.site.to_world(centre_x + offset_x, centre_y + offset_y)
 
-    def is_free(self, x: float, y: float) -> bool:
+    def is_free(self, spot: Pose) -> bool:
         """
-        :return: Whether the object, put down at the point, keeps its clearance from
-            every other object of the plan.
+        :param spot: Where the object is put down, as :meth:`resting` gives it.
+        :return: Whether the object, put down there, keeps its clearance from every
+            other object of the plan, and the gripper holding it, opened there to let
+            go, keeps from each the distance the robot's collision avoidance keeps it
+            at.
         """
+        position = spot.to_np()[:3, 3]
         reach = ObjectExtent(self.body).half_width() + self.clearance
+        shift = position - self.body.global_pose.to_np()[:3, 3]
         for other in self.others():
             box = ObjectExtent(other).world_box()
             if (
-                x + reach > box.min_x
-                and x - reach < box.max_x
-                and y + reach > box.min_y
-                and y - reach < box.max_y
+                position[0] + reach > box.min_x
+                and position[0] - reach < box.max_x
+                and position[1] + reach > box.min_y
+                and position[1] - reach < box.max_y
+            ):
+                return False
+            if any(
+                part.shifted(shift).reaches_into(
+                    box, self.gripper_clearance(part.body, other)
+                )
+                for part in self.opened_gripper
             ):
                 return False
         return True
+
+    @cached_property
+    def opened_gripper(self) -> List[GripperPart]:
+        """
+        The gripper holding the object, opened to let go of it where it is now; none
+        when no gripper holds it.
+        """
+        for arm in self.robot.all_arms:
+            if self.body in arm.end_effector.held_bodies:
+                return OpenedGripper(self.world, arm.end_effector).parts()
+        return []
+
+    def gripper_clearance(self, part: Body, other: Body) -> float:
+        """
+        :param part: A body of the gripper.
+        :param other: Another object of the plan.
+        :return: How far the robot's collision avoidance keeps the part from the
+            object, else :attr:`clearance`.
+        """
+        rules = reversed(self.world.collision_manager.rules)
+        distances = (
+            rule.buffer_zone_distance_for(part, other)
+            for rule in rules
+            if isinstance(rule, AvoidCollisionRule)
+        )
+        return next(
+            (distance for distance in distances if distance is not None),
+            self.clearance,
+        )
 
     def others(self) -> List[Body]:
         """

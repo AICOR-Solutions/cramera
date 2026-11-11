@@ -289,14 +289,15 @@ class PlannedTaskDemo(RobotTaskDemo):
         :return: The world the execution reports from the real robot, which stands as
             it is and is named as the plan names it, holding the plan's objects; where
             no real robot is reached, a new world holding the environment, every robot
-            at its start pose and posture and the plan's objects, a run held to safety
-            limits with its arms parked, as the real robot stands inside its workspaces.
+            at its start pose with its arms parked, as a physics run starts them and
+            the real robot stands inside its workspaces, and the plan's objects: a robot
+            whose arms stood out in its description's zero posture could start a run
+            inside an object, which collision avoidance refuses to move from.
         """
         world = self.execution.reported_world()
         if world is None:
             world = self.robot_scene.build_world(self.environment)
-            if self.document.safety is not None:
-                StartingPosture().apply(world)
+            StartingPosture().apply(world)
         else:
             self.robot_scene.selected_placement().name_reported_robot(world)
         self.bodies = PlannedObjects(self.plan.objects).spawn(world)

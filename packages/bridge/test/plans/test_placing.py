@@ -114,9 +114,9 @@ def with_steps(plan: PlanDocument, steps: list[PlanStep]) -> PlanDocument:
     return replace(plan, robots=[replace(robot, steps=steps)])
 
 
-def grounded(plan: PlanDocument, zones: list[Zone]) -> list[GroundedStep]:
+def grounding(plan: PlanDocument, zones: list[Zone]) -> PlanGrounding:
     """
-    :return: How each step of the plan was grounded on the twin.
+    :return: A new grounding of the plan on the twin, before any step is grounded.
     """
     document = DemoDocument(plan=plan, zones=zones)
     demo = PlannedTaskDemo.of_document(document, port=0)
@@ -127,7 +127,14 @@ def grounded(plan: PlanDocument, zones: list[Zone]) -> list[GroundedStep]:
         actions=demo.discovered_actions,
         perception=WorldPerception(),
         site=RobotSite.of_demo(document),
-    ).ground(demo.steps())
+    )
+
+
+def grounded(plan: PlanDocument, zones: list[Zone]) -> list[GroundedStep]:
+    """
+    :return: How each step of the plan was grounded on the twin.
+    """
+    return grounding(plan, zones).ground(plan.performing_robot().steps)
 
 
 def resolved_position(step: GroundedStep) -> list[float]:
@@ -197,6 +204,31 @@ def test_a_zone_holding_a_cube_at_its_centre_takes_the_next_one_beside_it(tower)
     assert CENTRE.area.min_x <= yellow[0] <= CENTRE.area.max_x
     assert CENTRE.area.min_y <= yellow[1] <= CENTRE.area.max_y
     assert yellow[2] == pytest.approx(red[2], abs=1e-3)
+
+
+def test_a_zone_leaves_its_cube_room_for_the_gripper_to_let_go_beside_another(tower):
+    """
+    Tracy holds a cube from above, its fingers closing along the table's x axis: opened
+    to let go, they reach about 5 cm past the cube, so the spot beside the cube at the
+    zone's centre along x would open them into it, and the spot beside it along y not.
+    """
+    [park, pick_red, place_red, pick_yellow, *_] = tower.performing_robot().steps
+    plan = with_steps(tower, [park, pick_red, place_red, pick_yellow])
+    planned = grounding(plan, [CENTRE])
+    assert all(step.succeeded for step in planned.ground(plan.performing_robot().steps))
+    context = planned.copied_context
+    placing = PlacingTargets(
+        world=context.world,
+        robot=context.robot,
+        site=RobotSite.of_demo(DemoDocument(plan=plan, zones=[CENTRE])),
+        bodies=planned.copied_bodies,
+        object_identifier="yellow_cube",
+    )
+    red = planned.copied_bodies["red_cube"].global_pose.to_np()[:3, 3]
+    beside = CUBE_SIZE + 2 * placing.clearance
+
+    assert not placing.is_free(placing.resting(red[0] - beside, red[1], TABLE_TOP))
+    assert placing.is_free(placing.resting(red[0], red[1] - beside, TABLE_TOP))
 
 
 def test_a_zone_the_profile_does_not_name_fails_its_step(tower):
