@@ -111,6 +111,18 @@ test('a run that ended says how: a failure gives its reason, from the failed ste
   assert.equal(runOutcome(realRun(RunState.IDLE), progressOf(realRun(RunState.IDLE)), true), null);
 });
 
+test('a stop on the real robot is only said once its halt was confirmed, else it asks for the emergency stop in red', () => {
+  const halted = realRun(RunState.STOPPED);
+  assert.deepEqual(runOutcome(halted, progressOf(halted), true), { tone: Tone.WARNING, text: 'The run on the real robot was stopped: Giskard ended, both arms were commanded zero velocities and stand still.' });
+  const unconfirmed = realRun(RunState.HALT_UNCONFIRMED);
+  const outcome = runOutcome(unconfirmed, progressOf(unconfirmed), true);
+  assert.equal(outcome.tone, Tone.ERROR);
+  assert.match(outcome.text, /could not confirm that the arms stand still/);
+  assert.match(outcome.text, /Use the emergency stop now/);
+  const simulated = { [RunStatusKey.STATE]: RunState.STOPPED, [RunStatusKey.MODE]: RunMode.PERFORM };
+  assert.equal(runOutcome(simulated, progressOf(simulated), false).text, 'The simulated run was stopped.');
+});
+
 test('a run names the step it is at as soon as its steps are reported, before one reports running', () => {
   const scheduled = STEPS.map((planned) => step(planned[PlanStepKey.IDENTIFIER], StepState.PENDING));
   const announced = flowStatus(facts({ run: realRun(RunState.RUNNING, scheduled), real: true }));

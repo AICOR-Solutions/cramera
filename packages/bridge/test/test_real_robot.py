@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import signal
 import subprocess
 import threading
@@ -22,7 +23,11 @@ from typing_extensions import Iterator
 
 pytest.importorskip("control_msgs")
 
-from cramera_bridge.exceptions import JointStatesNotReceived, RealRobotNotReady
+from cramera_bridge.exceptions import (
+    JointStatesNotReceived,
+    RealRobotNotReady,
+    RealRunTerminated,
+)
 from cramera_bridge.execution import RealExecution
 from cramera_bridge.plans.command import PlanDemoCommand
 from cramera_bridge.plans.demo import PlannedTaskDemo
@@ -39,11 +44,13 @@ from cramera_bridge.real_robot import (
     RealRobotVariable,
     ReportedPosture,
     RequirementKind,
+    RunningGiskard,
     main,
 )
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.plan_builder import (
+    ArmHaltLine,
     ArmReport,
     DemoDocument,
     DemoOption,
@@ -64,6 +71,7 @@ from semantic_digital_twin.robots.tracy import (
     TracyTopic,
     TracyVelocityCommandTopic,
 )
+from rclpy.action.graph import get_action_names_and_types
 from semantic_digital_twin.world import World
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
@@ -198,6 +206,147 @@ def test_giskard_ends_with_the_process_that_started_it_however_that_ends():
     while launch.exists() and time.monotonic() < deadline:
         time.sleep(0.2)
     assert not launch.exists()
+
+
+def blocking_the_stop_signals() -> None:
+    """
+    Block SIGINT and SIGTERM in a process about to start, as the viewer's server blocked
+    them in every process it started until a run ignored its Stop.
+    """
+    signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+
+
+def wait_until_giskard_serves(node) -> None:
+    """
+    Wait until a Giskard serves its command action, as one that runs a goal does.
+    """
+    action = RealRobotPreflight.giskard_command_action
+    deadline = time.monotonic() + 60
+    while action not in dict(get_action_names_and_types(node)):
+        assert time.monotonic() < deadline, "Giskard never served its action"
+        time.sleep(0.2)
+
+
+def test_a_running_giskard_ends_with_the_process_that_started_it_even_one_blocking_the_stop_signals(
+    node,
+):
+    owner = subprocess.Popen(
+        [sys.executable, str(GISKARD_OWNER)],
+        stdout=subprocess.PIPE,
+        text=True,
+        preexec_fn=blocking_the_stop_signals,
+    )
+    launch = Path("/proc") / owner.stdout.readline().strip()
+    wait_until_giskard_serves(node)
+    owner.kill()
+    owner.wait()
+
+    deadline = time.monotonic() + 30
+    while launch.exists() and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert not launch.exists()
+
+
+TERMINATION_WAITER = (
+    Path(__file__).parent / "dataset" / "scripts" / "termination_waiter.py"
+)
+"""
+Waits, as a run on the real robot does, for a request to end.
+"""
+
+
+def test_a_real_run_started_with_the_stop_signals_blocked_still_ends_when_asked_to():
+    waiter = subprocess.Popen(
+        [sys.executable, str(TERMINATION_WAITER)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        preexec_fn=blocking_the_stop_signals,
+    )
+    assert waiter.stdout.readline().strip() == "waiting"
+    waiter.send_signal(signal.SIGTERM)
+
+    assert waiter.wait(timeout=5) != 0
+    assert RealRunTerminated.__name__ in waiter.stderr.read()
+
+
+def test_a_terminated_real_run_performs_no_further_plan_even_when_its_ending_was_caught():
+    execution = RealExecution()
+    with execution.ended_by_termination():
+        with pytest.raises(RealRunTerminated):
+            execution.terminate(signal.SIGTERM, None)
+
+    with pytest.raises(RealRunTerminated):
+        execution.executor(None, False, [], None)
+
+
+LEFT_BEHIND = "giskardpy.left_behind"
+"""
+An argument that makes a sleeping process look like a Giskard.
+"""
+
+
+def sleeping_giskard(environment: dict[str, str]) -> subprocess.Popen:
+    """
+    :param environment: Its environment beside this process's.
+    :return: A process looking like a Giskard, the leader of a session of its own; it is
+        reaped as soon as it ends, as a process left behind by its parent is.
+    """
+    process = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(60)", LEFT_BEHIND],
+        env={**os.environ, **environment},
+        start_new_session=True,
+    )
+    threading.Thread(target=process.wait, daemon=True).start()
+    return process
+
+
+def ended_process() -> int:
+    """
+    :return: The process identity of a process that ended.
+    """
+    process = subprocess.Popen([sys.executable, "-c", "pass"])
+    process.wait()
+    return process.pid
+
+
+def test_a_giskard_a_killed_run_left_behind_is_ended_and_a_foreign_one_kept():
+    left_behind = sleeping_giskard(
+        {RealRobotVariable.GISKARD_OWNER: str(ended_process())}
+    )
+    owned = sleeping_giskard({RealRobotVariable.GISKARD_OWNER: str(os.getpid())})
+    foreign = sleeping_giskard({})
+    try:
+        ended = RunningGiskard.end_left_behind()
+        time.sleep(0.2)
+
+        assert left_behind.pid in ended
+        assert left_behind.poll() is not None
+        assert owned.poll() is None and foreign.poll() is None
+        assert {giskard.pid for giskard in RunningGiskard.all()} >= {
+            owned.pid,
+            foreign.pid,
+        }
+    finally:
+        for process in (left_behind, owned, foreign):
+            process.kill()
+
+
+def test_the_preflight_names_the_giskard_still_running_with_its_process(node):
+    with (
+        tracy_gripper_drivers(node),
+        GiskardProcess(GiskardScript.STANDALONE).running() as giskard,
+    ):
+        wait_until_giskard_serves(node)
+        report = RealRobotPreflight(
+            giskard_script=GiskardScript.STANDALONE, wait_seconds=1.0
+        ).check(node)
+
+    assert not report.ready
+    assert report.to_text().splitlines()[-1] == (
+        "The real robot is not ready: another Giskard is still running "
+        f"(pid {giskard.pid}, started by this platform)."
+    )
 
 
 # %% where the real robot stands
@@ -543,6 +692,79 @@ def test_a_real_run_asked_to_end_halts_the_arms_and_ends_giskard(
     assert {topic: received[-1:] for topic, received in recorder.commands.items()} == {
         topic.value: [[0.0] * 6] for topic in TracyVelocityCommandTopic
     }
+
+
+# %% the plan builder's own halt of the arms
+
+
+def started_arm_halt() -> subprocess.Popen:
+    """
+    :return: The plan builder's halt of the arms, once it said it is ready.
+    """
+    halt = subprocess.Popen(
+        [sys.executable, "-m", "cramera_bridge.arm_halt"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    assert halt.stdout.readline().strip() == ArmHaltLine.READY
+    return halt
+
+
+@contextmanager
+def arms_reporting(node, velocity: float) -> Iterator[None]:
+    """
+    Report every arm's joints moving at `velocity` from stand-ins of the arms' drivers.
+    """
+    with ExitStack() as reporting:
+        for topic, positions in STANDING_POSITIONS.items():
+            reporting.enter_context(
+                JointStatePublisherStandIn(
+                    topic, positions, velocity=velocity
+                ).publishing(node)
+            )
+        yield
+
+
+def test_the_plan_builders_arm_halt_commands_zero_velocities_once_its_input_closes(
+    node,
+):
+    with (
+        arms_reporting(node, velocity=0.0),
+        VelocityCommandRecorder().recording(node) as recorder,
+    ):
+        halt = started_arm_halt()
+        assert recorder.commands == {
+            topic.value: [] for topic in TracyVelocityCommandTopic
+        }
+        output, _ = halt.communicate("", timeout=30)
+        time.sleep(0.2)
+
+    assert halt.returncode == 0
+    assert output.strip() == ArmHaltLine.HALTED
+    assert recorder.commands == {
+        topic.value: [[0.0] * 6] for topic in TracyVelocityCommandTopic
+    }
+
+
+def test_the_plan_builders_arm_halt_is_not_confirmed_while_an_arm_reports_moving(node):
+    with (
+        arms_reporting(node, velocity=0.2),
+        VelocityCommandRecorder().recording(node),
+    ):
+        halt = started_arm_halt()
+        output, _ = halt.communicate("", timeout=30)
+
+    assert halt.returncode == 1
+    assert output.startswith(ArmHaltLine.NOT_HALTED)
+
+
+def test_the_plan_builders_arm_halt_fails_without_controllers():
+    halt = started_arm_halt()
+    output, _ = halt.communicate("", timeout=30)
+
+    assert halt.returncode == 1
+    assert output.startswith(ArmHaltLine.NOT_HALTED)
 
 
 # %% holding the arms still while no plan runs

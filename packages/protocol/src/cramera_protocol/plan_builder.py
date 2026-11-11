@@ -2762,6 +2762,33 @@ another executor.
 """
 
 
+class ArmHaltLine(StrEnum):
+    """
+    The lines the plan builder's halt of the real robot's arms prints: that it is
+    ready, and, once the plan builder closed its input after the stopped run and its
+    Giskard ended, whether it commanded every arm zero velocities and every arm then
+    reported standing still.
+    """
+
+    READY = "arm halt ready"
+    """
+    Printed once the halt reaches the controllers' command topics.
+    """
+
+    HALTED = (
+        "arms halted: zero velocities commanded, every joint reports standing still"
+    )
+    """
+    Printed once every arm was commanded zero velocities and reported standing still.
+    """
+
+    NOT_HALTED = "arms NOT confirmed halted"
+    """
+    Printed when an arm's controller was not found, or an arm did not report standing
+    still in time.
+    """
+
+
 class RunState(StrEnum):
     """
     The state of the demo process.
@@ -2800,7 +2827,15 @@ class RunState(StrEnum):
 
     STOPPED = "stopped"
     """
-    The demo was stopped.
+    The demo was stopped; a run on the real robot only once its Giskard ended, both
+    arms were commanded zero velocities and reported standing still.
+    """
+
+    HALT_UNCONFIRMED = "halt_unconfirmed"
+    """
+    A run on the real robot was stopped, but the plan builder could not confirm in time
+    that its Giskard ended, both arms were commanded zero velocities and reported
+    standing still; the robot may still move.
     """
 
     SAFETY_STOPPED = "safety_stopped"

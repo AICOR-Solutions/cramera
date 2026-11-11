@@ -20,7 +20,9 @@ from cramera_plan_builder.exceptions import (
     SafetyStopNotAcknowledged,
 )
 from cramera_plan_builder.runs import DemoRunner, OutputLog, RunEventLines
+from cramera.process_sessions import ProcessSession
 from cramera_protocol.plan_builder import (
+    ArmHaltLine,
     DemoDocument,
     DemoOption,
     RunEvent,
@@ -60,17 +62,32 @@ WAIT_INTERVAL = 0.05
 How often a test looks at a demo's state, in seconds.
 """
 
+ARM_HALT_STAND_IN = DATASET / "arm_halt_stand_in.py"
+"""
+A stand-in for the plan builder's halt of the real robot's arms.
+"""
+
 STUBBORN_TIMEOUT = 0.5
 """
 How long a demo that ignores termination is given before it is killed, in seconds.
 """
 
 
+def arm_halt_stand_in(tmp_path: Path, answer: str = "acknowledged") -> list[str]:
+    """
+    :param tmp_path: The test's directory, where the stand-in reports.
+    :param answer: ``acknowledged``, or anything else for a halt nobody acknowledged.
+    :return: The command of a stand-in of the plan builder's halt of the arms.
+    """
+    return [sys.executable, str(ARM_HALT_STAND_IN), str(tmp_path / "halt"), answer]
+
+
 def runner_of(tmp_path: Path, template: str, **fields) -> DemoRunner:
     """
     :param tmp_path: The test's directory.
     :param template: The file name of a stand-in template.
-    :param fields: Further fields of the runner.
+    :param fields: Further fields of the runner; the arms are halted by a stand-in
+        whose halt is acknowledged unless they say otherwise.
     :return: A runner rendering the stand-in, writing into the test's directory.
     """
     return DemoRunner(
@@ -78,7 +95,7 @@ def runner_of(tmp_path: Path, template: str, **fields) -> DemoRunner:
         port=PORT,
         log_limit=LOG_LIMIT,
         template=DemoTemplate(TEMPLATES / template),
-        **fields,
+        **{"arm_halt": arm_halt_stand_in(tmp_path), **fields},
     )
 
 
@@ -190,6 +207,65 @@ def test_a_demo_ignoring_termination_is_killed(tmp_path, demo):
     stopped = runner.stop()
     assert stopped.state is RunState.STOPPED
     assert stopped.return_code == -signal.SIGKILL
+
+
+def stand_in_giskard(status: RunStatus) -> Path:
+    """
+    :return: Where the stand-in Giskard the stuck stand-in run printed lives.
+    """
+    [line] = [line for line in status.log.splitlines() if line.startswith("giskard ")]
+    return Path("/proc") / line.split()[1]
+
+
+def test_a_real_run_ignoring_termination_is_killed_its_giskard_ended_and_the_arms_halted(
+    tmp_path, demo
+):
+    runner = runner_of(
+        tmp_path, "stuck_real_run_demo.py", stop_timeout=STUBBORN_TIMEOUT
+    )
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    giskard = stand_in_giskard(wait_for(runner, lambda status: "giskard" in status.log))
+    started = time.monotonic()
+    stopped = runner.stop()
+
+    assert time.monotonic() - started < 10
+    assert stopped.state is RunState.STOPPED
+    assert stopped.return_code == -signal.SIGKILL
+    assert not giskard.exists()
+    assert (tmp_path / "halt").read_text() == "giskard ended"
+    assert ArmHaltLine.HALTED in stopped.log
+
+
+def test_a_stopped_real_run_whose_halt_nobody_acknowledged_is_not_reported_stopped(
+    tmp_path, demo
+):
+    runner = runner_of(
+        tmp_path,
+        "stuck_real_run_demo.py",
+        stop_timeout=STUBBORN_TIMEOUT,
+        arm_halt=arm_halt_stand_in(tmp_path, answer="silence"),
+    )
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    wait_for(runner, lambda status: "giskard" in status.log)
+    stopped = runner.stop()
+
+    assert stopped.state is RunState.HALT_UNCONFIRMED
+    assert ArmHaltLine.NOT_HALTED in stopped.log
+
+
+def test_a_simulated_run_is_stopped_without_halting_the_real_arms(tmp_path, demo):
+    runner = runner_of(
+        tmp_path, "stuck_real_run_demo.py", stop_timeout=STUBBORN_TIMEOUT
+    )
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.PHYSICS)
+    giskard = stand_in_giskard(wait_for(runner, lambda status: "giskard" in status.log))
+    stopped = runner.stop()
+    giskard_lived = giskard.exists()
+    ProcessSession(int(giskard.name)).end()
+
+    assert stopped.state is RunState.STOPPED
+    assert not (tmp_path / "halt").exists()
+    assert giskard_lived
 
 
 def test_a_new_demo_replaces_the_running_one(runner, demo):

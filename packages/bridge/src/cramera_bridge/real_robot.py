@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from threading import Event, Lock, Thread
 
+import psutil
 from control_msgs.action import ParallelGripperCommand
 from cramph.executor import Executor, ExecutorExtension
 from rclpy.action import ActionClient
@@ -31,8 +32,9 @@ from rclpy.node import Node
 from rclpy.publisher import Publisher
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
-from typing_extensions import Callable, Iterator, Mapping, Sequence
+from typing_extensions import Callable, Iterator, Mapping, Optional, Sequence
 
+from cramera.process_sessions import ProcessSession
 from cramera_bridge.exceptions import JointStatesNotReceived
 from cramera_bridge.ros_node import SpinningNode
 from semantic_digital_twin.robots.tracy import (
@@ -55,6 +57,23 @@ class RealRobotVariable(StrEnum):
     The :class:`GiskardScript` a real run starts Giskard with; the one commanding the
     real robot when it is not set.
     """
+
+    GISKARD_OWNER = "CRAMERA_GISKARD_OWNER"
+    """
+    Set in the environment of a Giskard a real run started, to the process identity of
+    that run; it tells a Giskard of this platform from a foreign one.
+    """
+
+
+STOP_SIGNALS = frozenset({signal.SIGINT, signal.SIGTERM})
+"""
+The signals that end a run on the real robot and its Giskard.
+"""
+
+GISKARD_PROGRAM = "giskardpy"
+"""
+How the arguments of a Giskard's process begin, as a module or a launched program.
+"""
 
 
 class GiskardScript(StrEnum):
@@ -116,7 +135,8 @@ class GiskardProcess:
     """
     A Giskard run as a process group of its own, so that stopping it stops Giskard and
     nothing else; it is interrupted as well when the process that started it ends
-    without stopping it, such as when killed.
+    without stopping it, such as when killed. Its environment names the run that started
+    it (:attr:`RealRobotVariable.GISKARD_OWNER`).
 
     Interrupted, Giskard commands the robot's controllers zero velocities and ends.
     """
@@ -150,6 +170,7 @@ class GiskardProcess:
                 [sys.executable, "-m", self.script.module],
                 start_new_session=True,
                 preexec_fn=self.interruption_with_starting_process(),
+                env={**os.environ, RealRobotVariable.GISKARD_OWNER: str(os.getpid())},
             )
             running.callback(self.stop, process)
             yield process
@@ -158,13 +179,18 @@ class GiskardProcess:
     def interruption_with_starting_process() -> Callable[[], None]:
         """
         :return: What Giskard's process runs before it starts, so that it is
-            interrupted once the process starting it ends; looked up beforehand, as
-            the forked child must not load libraries while other threads ran.
+            interrupted once the process starting it ends, and an interruption reaches
+            it even when the starting thread blocked the stop signals, which a started
+            process inherits; looked up beforehand, as the forked child must not load
+            libraries while other threads ran.
         """
         process_control = ctypes.CDLL(None).prctl
-        return lambda: process_control(
-            ProcessControl.SET_PARENT_DEATH_SIGNAL, signal.SIGINT
-        )
+
+        def prepare() -> None:
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, STOP_SIGNALS)
+            process_control(ProcessControl.SET_PARENT_DEATH_SIGNAL, signal.SIGINT)
+
+        return prepare
 
     def stop(self, process: subprocess.Popen) -> None:
         """
@@ -181,6 +207,82 @@ class GiskardProcess:
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
             process.wait()
+
+
+@dataclass(frozen=True)
+class RunningGiskard:
+    """
+    A Giskard process this process sees, and the run that started it if it is one of
+    this platform's.
+    """
+
+    pid: int
+    """
+    Its process identity, which is its session's as well when a run started it.
+    """
+
+    owner: Optional[int]
+    """
+    The process identity of the run that started it; None for a foreign Giskard.
+    """
+
+    @classmethod
+    def all(cls) -> list[RunningGiskard]:
+        """
+        :return: Every Giskard process this process sees but itself; the environment of
+            a process of another user cannot be read, so such a Giskard is foreign.
+        """
+        return [
+            cls(
+                pid=process.info["pid"],
+                owner=cls.owner_in(process.info["environ"] or {}),
+            )
+            for process in psutil.process_iter(["pid", "cmdline", "environ"])
+            if process.info["pid"] != os.getpid()
+            and any(
+                argument.startswith(GISKARD_PROGRAM)
+                or f"/{GISKARD_PROGRAM}" in argument
+                for argument in process.info["cmdline"] or []
+            )
+        ]
+
+    @staticmethod
+    def owner_in(environment: Mapping[str, str]) -> Optional[int]:
+        """
+        :param environment: The environment of a Giskard's process.
+        :return: The run that started it, or None for a foreign Giskard.
+        """
+        owner = environment.get(RealRobotVariable.GISKARD_OWNER)
+        return None if owner is None else int(owner)
+
+    @property
+    def is_left_behind(self) -> bool:
+        """
+        Whether a run of this platform started it and ended without ending it, as a
+        killed run did.
+        """
+        return self.owner is not None and not psutil.pid_exists(self.owner)
+
+    @classmethod
+    def end_left_behind(cls) -> list[int]:
+        """
+        End every Giskard a run of this platform left behind, as its run would have
+        (interrupted, so it commands zero velocities, and killed if it does not end);
+        a foreign Giskard is never touched.
+
+        :return: The process identities of the Giskards ended.
+        """
+        left_behind = [giskard.pid for giskard in cls.all() if giskard.is_left_behind]
+        for pid in left_behind:
+            ProcessSession(pid).end()
+        return left_behind
+
+    def to_text(self) -> str:
+        """
+        :return: Its process and whose it is, as a person reads it.
+        """
+        whose = "foreign" if self.owner is None else "started by this platform"
+        return f"pid {self.pid}, {whose}"
 
 
 # %% halting the arms
@@ -231,14 +333,44 @@ class ArmHalt:
             ready.callback(self.publishers.clear)
             yield self
 
-    def command(self) -> None:
+    def command(self) -> bool:
         """
         Command zero velocities on every topic and wait until they were acknowledged.
+
+        :return: Whether a controller took the command on every topic and acknowledged
+            it in time.
         """
         for publisher in self.publishers:
             publisher.publish(Float64MultiArray(data=[0.0] * self.joints_per_arm))
-        for publisher in self.publishers:
+        acknowledged = [
             publisher.wait_for_all_acked(Duration(seconds=self.acknowledgement_timeout))
+            and publisher.get_subscription_count() > 0
+            for publisher in self.publishers
+        ]
+        return all(acknowledged)
+
+    def controllers(self) -> dict[str, int]:
+        """
+        :return: How many controllers take the commands of every topic.
+        """
+        return {
+            publisher.topic_name: publisher.get_subscription_count()
+            for publisher in self.publishers
+        }
+
+    def discovered(self, timeout: float) -> bool:
+        """
+        :param timeout: How long, in seconds, to wait.
+        :return: Whether a controller subscribed to every topic within `timeout`.
+        """
+        deadline = time.monotonic() + timeout
+        while any(
+            publisher.get_subscription_count() == 0 for publisher in self.publishers
+        ):
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.05)
+        return True
 
 
 @dataclass
@@ -379,11 +511,30 @@ class PreflightCheck:
     Whether it was found.
     """
 
+    other_giskards: tuple[RunningGiskard, ...] = ()
+    """
+    The Giskard processes seen while another Giskard served the command action.
+    """
+
     def to_text(self) -> str:
         """
         :return: A line saying whether the requirement was found.
         """
         return f"{'ok' if self.satisfied else 'MISSING'}  {self.kind}: {self.name}"
+
+    def missing_text(self) -> str:
+        """
+        :return: What is missing, as a person reads it.
+        """
+        if self.kind is not RequirementKind.NO_OTHER_GISKARD:
+            return f"{self.kind}: {self.name}"
+        processes = "; ".join(giskard.to_text() for giskard in self.other_giskards)
+        return (
+            f"another Giskard is still running ({processes})"
+            if processes
+            else f"another Giskard is still running, serving {self.name} from a "
+            "process this platform does not see"
+        )
 
 
 @dataclass(frozen=True)
@@ -415,10 +566,11 @@ class PreflightReport:
         """
         :return: A line per requirement, then whether a real run can start.
         """
+        missing = "; ".join(check.missing_text() for check in self.missing)
         verdict = (
             "The real robot is ready."
             if self.ready
-            else f"The real robot is not ready: {len(self.missing)} missing."
+            else f"The real robot is not ready: {missing}."
         )
         return "\n".join([*(check.to_text() for check in self.checks), verdict])
 
@@ -496,15 +648,29 @@ class RealRobotPreflight:
         ]
         if self.giskard_script.commands_the_real_robot:
             checks.extend(self.driver_checks(node, deadline))
-        checks.append(
-            PreflightCheck(
-                RequirementKind.NO_OTHER_GISKARD,
-                self.giskard_command_action,
-                self.giskard_command_action
-                not in dict(get_action_names_and_types(node)),
-            )
-        )
+        checks.append(self.other_giskard_check(node, deadline))
         return PreflightReport(checks)
+
+    def other_giskard_check(self, node: Node, deadline: float) -> PreflightCheck:
+        """
+        :param node: A spinning node.
+        :param deadline: The :func:`time.monotonic` time the wait ends at.
+        :return: Whether Giskard's command action was no longer served by the deadline,
+            as a Giskard that just ended takes a moment to leave; else the Giskard
+            processes seen.
+        """
+        while self.giskard_command_action in dict(get_action_names_and_types(node)):
+            if time.monotonic() >= deadline:
+                return PreflightCheck(
+                    RequirementKind.NO_OTHER_GISKARD,
+                    self.giskard_command_action,
+                    False,
+                    tuple(RunningGiskard.all()),
+                )
+            time.sleep(0.1)
+        return PreflightCheck(
+            RequirementKind.NO_OTHER_GISKARD, self.giskard_command_action, True
+        )
 
     def driver_checks(self, node: Node, deadline: float) -> list[PreflightCheck]:
         """

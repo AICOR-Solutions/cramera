@@ -10,6 +10,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import webbrowser
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -308,8 +309,12 @@ def serve(arguments: Sequence[str]) -> None:
     """
     locations = DataLocations.from_environment(os.environ, Path.home())
     configuration = ViewerConfiguration.from_arguments(arguments, locations, os.environ)
-    stop_signals = {signal.SIGINT, signal.SIGTERM}
-    signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
+    # The stop signals are handled, not blocked: every thread started here and every
+    # process such a thread starts, such as a run on the real robot, would inherit a
+    # blocked signal, and a run blocking SIGTERM ignored its Stop.
+    stopped = threading.Event()
+    for stop_signal in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(stop_signal, lambda *received: stopped.set())
     if configuration.ends_with_input:
         Lifeline(sys.stdin.fileno()).watch()
     try:
@@ -328,7 +333,7 @@ def serve(arguments: Sequence[str]) -> None:
         configuration.announce_network(server)
         if configuration.open_browser:
             webbrowser.open(server.url())
-        signal.sigwait(stop_signals)
+        stopped.wait()
     finally:
         server.stop()
 

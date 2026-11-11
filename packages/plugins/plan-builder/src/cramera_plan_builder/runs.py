@@ -16,6 +16,7 @@ from pathlib import Path
 
 from typing_extensions import IO, List, Optional
 
+from cramera.process_sessions import ProcessSession
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.exceptions import (
     DemoNotStarted,
@@ -51,6 +52,19 @@ a run on the real robot spends it halting the arms and ending Giskard.
 STOP_POLL_INTERVAL = 0.05
 """
 How often a demo that was asked to end is checked, in seconds.
+"""
+
+ARM_HALT_MODULE = "cramera_bridge.arm_halt"
+"""
+The module of cramera-bridge that halts the real robot's arms for the plan builder once
+it stopped a run on the real robot.
+"""
+
+ARM_HALT_TIMEOUT = 20.0
+"""
+How long, in seconds from the stop, the plan builder's halt of the arms may take to
+confirm that every arm's controller acknowledged zero velocities; it starts as the run
+is asked to end, so its start overlaps the run's own halt.
 """
 
 LOG_ENCODING = "utf-8"
@@ -207,6 +221,67 @@ class OutputLog:
         stream.close()
 
 
+# %% the plan builder's own halt of the arms
+
+
+@dataclass
+class ArmHaltProcess:
+    """
+    The plan builder's own halt of the real robot's arms after it stopped a run there,
+    independent of the run, which may have been killed before it could halt them: it
+    reaches the arms' controllers while the run ends and, once its input is closed,
+    commands them zero velocities and ends with status 0 only when every controller
+    acknowledged them.
+    """
+
+    process: subprocess.Popen
+    """
+    The halt's process.
+    """
+
+    reader: threading.Thread
+    """
+    The thread moving the halt's output into the run's output.
+    """
+
+    @classmethod
+    def start(cls, command: List[str], log: OutputLog) -> ArmHaltProcess:
+        """
+        :param command: The command running the halt.
+        :param log: The run's output, which the halt's output joins.
+        :return: The started halt, waiting for its input to close.
+        """
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        reader = threading.Thread(
+            target=log.follow, args=(process.stdout,), daemon=True
+        )
+        reader.start()
+        return cls(process=process, reader=reader)
+
+    def halt(self, deadline: float) -> bool:
+        """
+        Let the halt command zero velocities, by closing its input.
+
+        :param deadline: The :func:`time.monotonic` time it has to confirm by; it is
+            killed when it did not end by then.
+        :return: Whether every arm's controller acknowledged zero velocities in time.
+        """
+        self.process.stdin.close()
+        while self.process.poll() is None and time.monotonic() < deadline:
+            time.sleep(STOP_POLL_INTERVAL)
+        if self.process.poll() is None:
+            os.killpg(self.process.pid, signal.SIGKILL)
+        self.process.wait()
+        self.reader.join(STOP_TIMEOUT)
+        return self.process.returncode == 0
+
+
 # %% one process
 
 
@@ -247,6 +322,19 @@ class DemoProcess:
     Whether the demo was stopped rather than ending on its own.
     """
 
+    arm_halt_command: Optional[List[str]] = None
+    """
+    The command of the plan builder's own halt of the arms when the demo performs its
+    plan on the real robot, so stopping it ends the Giskard it started and halts the
+    arms in any case; None for any other demo.
+    """
+
+    halted: bool = False
+    """
+    Whether stopping the demo on the real robot was confirmed: its Giskard ended and
+    every arm's controller acknowledged zero velocities.
+    """
+
     acknowledged: bool = False
     """
     Whether a person acknowledged the safety stop that cancelled the demo.
@@ -254,13 +342,20 @@ class DemoProcess:
 
     @classmethod
     def start(
-        cls, command: List[str], path: Path, mode: RunMode, log: OutputLog
+        cls,
+        command: List[str],
+        path: Path,
+        mode: RunMode,
+        log: OutputLog,
+        arm_halt_command: Optional[List[str]] = None,
     ) -> DemoProcess:
         """
         :param command: The command running the demo.
         :param path: The demo file.
         :param mode: What the demo does.
         :param log: Receives the demo's output.
+        :param arm_halt_command: The command of the plan builder's own halt of the
+            arms, for a demo performing its plan on the real robot; else None.
         :return: The started demo.
         :raises DemoNotStarted: When the operating system cannot start the command.
         """
@@ -280,7 +375,14 @@ class DemoProcess:
             target=log.follow, args=(process.stdout,), daemon=True
         )
         reader.start()
-        return cls(path=path, mode=mode, process=process, log=log, reader=reader)
+        return cls(
+            path=path,
+            mode=mode,
+            process=process,
+            log=log,
+            reader=reader,
+            arm_halt_command=arm_halt_command,
+        )
 
     def state(self) -> RunState:
         """
@@ -291,6 +393,8 @@ class DemoProcess:
         if return_code is None:
             return RunState.SAVING if self.saves_its_record() else RunState.RUNNING
         if self.stopped:
+            if self.arm_halt_command is not None and not self.halted:
+                return RunState.HALT_UNCONFIRMED
             return RunState.STOPPED
         if return_code == 0:
             return RunState.FINISHED
@@ -350,19 +454,50 @@ class DemoProcess:
         them. A process the demo started that keeps the output open is not waited for
         longer than the timeout.
 
+        A demo on the real robot is not trusted to have halted it, as it may have been
+        killed: every session it started, such as its Giskard's, is ended (interrupted,
+        so Giskard commands zero velocities, then killed), and the plan builder's own
+        halt commands every arm zero velocities and waits for them to be acknowledged.
+
         :param timeout: How long the demo may take to end, in seconds.
         """
         if self.process.poll() is None:
             self.stopped = True
+            started = time.monotonic()
+            halt = (
+                None
+                if self.arm_halt_command is None
+                else ArmHaltProcess.start(self.arm_halt_command, self.log)
+            )
+            sessions = self.started_sessions()
             self.signal(signal.SIGTERM)
-            deadline = time.monotonic() + timeout
+            deadline = started + timeout
             while self.process.poll() is None and time.monotonic() < deadline:
                 time.sleep(STOP_POLL_INTERVAL)
             if self.process.poll() is None:
+                sessions |= self.started_sessions()
                 self.signal(signal.SIGKILL)
+            self.process.wait()
+            if halt is not None:
+                ended = all([ProcessSession(leader).end() for leader in sessions])
+                halted = halt.halt(max(deadline, started + ARM_HALT_TIMEOUT))
+                self.halted = ended and halted
         self.process.wait()
         self.reader.join(timeout)
         self.process.stdin.close()
+
+    def started_sessions(self) -> set[int]:
+        """
+        :return: The process identities of the demo's own processes, each of which may
+            lead a session of its own, as its Giskard does; asked before the demo ends,
+            as they belong to another process afterwards.
+        """
+        children = subprocess.run(
+            ["pgrep", "--parent", str(self.process.pid)],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        return {int(pid) for pid in children.stdout.split()}
 
     def signal(self, number: signal.Signals) -> None:
         """
@@ -406,6 +541,12 @@ class DemoRunner:
     How long a demo may take to end after it was asked to, in seconds.
     """
 
+    arm_halt: Optional[List[str]] = None
+    """
+    The command of the plan builder's own halt of the real robot's arms; cramera-bridge's
+    when None.
+    """
+
     current: Optional[DemoProcess] = field(default=None, init=False)
     """
     The demo started last, running or ended.
@@ -443,6 +584,11 @@ class DemoRunner:
                 path,
                 mode,
                 OutputLog(self.log_limit),
+                arm_halt_command=(
+                    self.arm_halt_command()
+                    if (executor or mode.default_executor) is ExecutorKind.REAL
+                    else None
+                ),
             )
             return self.current.status()
 
@@ -468,6 +614,17 @@ class DemoRunner:
             return command
         command.extend((DemoOption.EXECUTOR, executor or mode.default_executor))
         return command
+
+    def arm_halt_command(self) -> List[str]:
+        """
+        :return: The command of the plan builder's own halt of the real robot's arms,
+            run by the interpreter the demos run with.
+        """
+        return self.arm_halt or [
+            self.directory.interpreter,
+            "-m",
+            ARM_HALT_MODULE,
+        ]
 
     def stop(self) -> RunStatus:
         """

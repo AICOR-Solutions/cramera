@@ -49,6 +49,8 @@ from cramera_bridge.real_robot import (
     GiskardProcess,
     GiskardScript,
     RealRobotPreflight,
+    RunningGiskard,
+    STOP_SIGNALS,
 )
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.robot_profile import ExecutorKind
@@ -421,29 +423,35 @@ class RealExecution(PlanExecution):
     Holds the arms still between the plans while :meth:`attached`, else None.
     """
 
+    terminated: bool = field(default=False, init=False)
+    """
+    Whether SIGTERM asked the run to end; no plan is performed any more once it did,
+    even when something the run called caught the :class:`RealRunTerminated`.
+    """
+
     @contextmanager
     def attached(self) -> Iterator[None]:
         """
-        Check the robot's drivers, start Giskard and keep the world it serves in step
-        with it while the block runs, holding the arms still while no plan runs. When the
-        block ends, or SIGTERM ends it, Giskard is interrupted, so it commands zero
-        velocities, and ended; then every arm is commanded zero velocities once more, in
-        case Giskard had to be killed.
+        End every Giskard an earlier run of this platform left behind, check the robot's
+        drivers, start Giskard and keep the world it serves in step with it while the
+        block runs, holding the arms still while no plan runs. When the block ends, or
+        SIGTERM ends it, Giskard is interrupted, so it commands zero velocities, and
+        ended; then every arm is commanded zero velocities once more, in case Giskard had
+        to be killed.
 
         :raises RealRobotNotReady: When the preflight misses a driver the run needs.
         :raises RealRunTerminated: When SIGTERM ended the block.
         """
         with ExitStack() as attached:
+            for pid in RunningGiskard.end_left_behind():
+                print(f"Ended a Giskard an earlier run left behind (pid {pid}).")
             node = attached.enter_context(
                 SpinningNode(self.node_name, MultiThreadedExecutor).running()
             )
             report = RealRobotPreflight(self.giskard_script).check(node)
             if not report.ready:
                 raise RealRobotNotReady(report.to_text())
-            attached.callback(
-                signal.signal, signal.SIGTERM, signal.getsignal(signal.SIGTERM)
-            )
-            signal.signal(signal.SIGTERM, self.terminate)
+            attached.enter_context(self.ended_by_termination())
             halt = attached.enter_context(ArmHalt().ready(node))
             attached.callback(halt.command)
             standstill = attached.enter_context(ArmStandstill(halt).holding())
@@ -458,8 +466,23 @@ class RealExecution(PlanExecution):
             attached.callback(self.detach)
             yield
 
-    @staticmethod
-    def terminate(signal_number: int, frame: Optional[FrameType]) -> None:
+    @contextmanager
+    def ended_by_termination(self) -> Iterator[None]:
+        """
+        Turn SIGTERM into :class:`RealRunTerminated` while the block runs, also in a
+        process started with the stop signals blocked, which it would never receive
+        otherwise; the earlier handler is restored afterwards, the signals stay
+        unblocked.
+        """
+        with ExitStack() as ended:
+            ended.callback(
+                signal.signal, signal.SIGTERM, signal.getsignal(signal.SIGTERM)
+            )
+            signal.signal(signal.SIGTERM, self.terminate)
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, STOP_SIGNALS)
+            yield
+
+    def terminate(self, signal_number: int, frame: Optional[FrameType]) -> None:
         """
         End a run asked to end, ignoring further requests while it halts the robot.
 
@@ -467,6 +490,7 @@ class RealExecution(PlanExecution):
         :param frame: The frame the signal interrupted.
         :raises RealRunTerminated: Always, so the run unwinds through :meth:`attached`.
         """
+        self.terminated = True
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         raise RealRunTerminated()
 
@@ -490,9 +514,13 @@ class RealExecution(PlanExecution):
         safety: SafetyEnvelope,
     ) -> PlanExecutor:
         """
+        :raises RealRunTerminated: Once SIGTERM asked the run to end, so no further
+            plan reaches Giskard, not even a retry after the ending was caught.
         :raises ExecutionNotRunning: Outside :meth:`attached`, where Giskard does not
             run.
         """
+        if self.terminated:
+            raise RealRunTerminated()
         if self.ros_node is None:
             raise ExecutionNotRunning(ExecutorKind.REAL)
         return RealRobotPlanExecutor(

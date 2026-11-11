@@ -182,7 +182,9 @@ export function runOutcome(run, progress, real) {
   const mode = run[RunStatusKey.MODE];
   const name = mode === RunMode.STAGE ? 'The live scene' : mode === RunMode.ROBOT && real ? 'The run on the real robot' : mode === RunMode.ROBOT ? 'The run' : 'The simulated run';
   if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: `${name} finished.` };
+  if (state === RunState.STOPPED && mode === RunMode.ROBOT && real) return { tone: Tone.WARNING, text: `${name} was stopped: Giskard ended, both arms were commanded zero velocities and stand still.` };
   if (state === RunState.STOPPED) return { tone: Tone.WARNING, text: `${name} was stopped.` };
+  if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the plan builder could not confirm that the arms stand still and Giskard ended; see Run output. Use the emergency stop now.` };
   if (state === RunState.SAFETY_STOPPED) return { tone: Tone.ERROR, text: `A safety stop ended the run: ${run[RunStatusKey.SAFETY_STOP]?.[SafetyStopKey.CONSTRAINT] ?? 'see Run output'}.` };
   if (state === RunState.SAVE_FAILED) return { tone: Tone.ERROR, text: `Run over, the robot holds, but saving its record failed: ${lastLine(run) || 'see Run output.'}` };
   if (state !== RunState.FAILED) return null;

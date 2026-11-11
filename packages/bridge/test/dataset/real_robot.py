@@ -101,6 +101,11 @@ class JointStatePublisherStandIn:
     How long, in seconds, lies between two messages.
     """
 
+    velocity: float = 0.0
+    """
+    The velocity every joint reports.
+    """
+
     @contextmanager
     def publishing(self, node: Node) -> Iterator[None]:
         """
@@ -110,7 +115,9 @@ class JointStatePublisherStandIn:
         """
         publisher = node.create_publisher(JointState, self.topic, 10)
         message = JointState(
-            name=list(self.positions), position=list(self.positions.values())
+            name=list(self.positions),
+            position=list(self.positions.values()),
+            velocity=[self.velocity] * len(self.positions),
         )
         timer = node.create_timer(self.period, lambda: publisher.publish(message))
         with ExitStack() as publishing:
