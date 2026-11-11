@@ -11,6 +11,7 @@ from pathlib import Path
 from cramera_bridge.plans.objects import (
     LIBRARY_VARIABLE,
     REPOSITORY_RESOURCES,
+    DescribedModel,
     ObjectGrasp,
     ObjectLibraries,
     ObjectLibrary,
@@ -90,3 +91,17 @@ def test_a_model_shows_the_color_its_collection_names():
     assert libraries.color_of("cube_library/objects/cubes/red_cube/model.urdf") == "red"
     assert libraries.color_of(CUP) is None
     assert libraries.color_of("milk.stl") is None
+
+
+def test_every_model_is_described_as_its_identifier_names_its_color_and_grasp():
+    libraries = ObjectLibraries(
+        [ObjectLibrary(DATASET / "cube_library"), ObjectLibrary(LIBRARY)]
+    )
+    assert libraries.described_models() == [
+        DescribedModel(
+            model=model,
+            color=libraries.color_of(model.identifier),
+            grasp=libraries.grasp_of(model.identifier),
+        )
+        for model in libraries.models()
+    ]

@@ -31,7 +31,11 @@ from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.object_types import ObjectType
-from cramera_bridge.plans.objects import ObjectLibraries, ObjectLibrary
+from cramera_bridge.plans.objects import (
+    DescribedModel,
+    ObjectLibraries,
+    ObjectLibrary,
+)
 from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.robot_perception import RobotPerception
 from cramera_bridge.plans.world import GRASPABLE_TYPES, OBJECT_TYPE_ANNOTATIONS
@@ -64,10 +68,17 @@ class SceneScanner:
     The perception of the plan's robot.
     """
 
+    models: List[DescribedModel] = field(init=False)
+    """
+    The models of :attr:`libraries` with their colors and grasps, read once for the
+    scan, since every new detection is matched against all of them.
+    """
+
     def __post_init__(self) -> None:
         self.perception = RobotPerception(
             demo=self.order.demo, simulated_objects=self.order.simulated_objects
         )
+        self.models = self.libraries.described_models()
 
     def scan(self) -> SceneScan:
         """
@@ -91,15 +102,17 @@ class SceneScanner:
             grounded = ValidationPerception(live).look_for(query)
         bodies = DetectedScene(grounded.detections, query.region).apply_to(world)
         known = set(believed.bodies.values())
+        models = [
+            None if body in known else self.matching_model(detection)
+            for detection, body in zip(grounded.detections, bodies)
+        ]
         return SceneScan(
-            objects=self.plan_objects(
-                world, believed.bodies, grounded.detections, bodies
-            ),
+            objects=self.plan_objects(world, believed.bodies, models, bodies),
             grounding=DetectionGrounding(grounded.grounding.value),
             unrecognized=sum(
                 1
-                for detection, body in zip(grounded.detections, bodies)
-                if body not in known and self.matching_model(detection) is None
+                for model, body in zip(models, bodies)
+                if body not in known and model is None
             ),
         )
 
@@ -107,13 +120,14 @@ class SceneScanner:
         self,
         world: World,
         planned: Dict[str, Body],
-        detections: List[Detection],
+        models: List[Optional[str]],
         bodies: List[Body],
     ) -> List[PlannedObject]:
         """
         :param world: The twin after the scan.
         :param planned: The bodies of the plan's objects, by their identity.
-        :param detections: What the scan found.
+        :param models: The model matching each detection whose body is new, see
+            :meth:`matching_model`, None for the others.
         :param bodies: The body each detection moved or added.
         :return: The plan's objects where the twin holds them now, then a copy of the
             matching object model for each new body; a new body no model matches is left
@@ -128,9 +142,7 @@ class SceneScanner:
             )
             for planned_object in self.order.demo.plan.objects
         ]
-        known = set(planned.values())
-        for detection, body in zip(detections, bodies):
-            model = None if body in known else self.matching_model(detection)
+        for model, body in zip(models, bodies):
             if model is None:
                 continue
             objects.append(
@@ -152,14 +164,11 @@ class SceneScanner:
         """
         if detection.color is None:
             return None
-        for model in self.libraries.models():
-            if self.libraries.color_of(
-                model.identifier
-            ) == detection.color.value and issubclass(
-                GRASPABLE_TYPES[self.libraries.grasp_of(model.identifier)],
-                detection.semantic_annotation,
+        for described in self.models:
+            if described.color == detection.color.value and issubclass(
+                GRASPABLE_TYPES[described.grasp], detection.semantic_annotation
             ):
-                return model.identifier
+                return described.model.identifier
         return None
 
     @staticmethod

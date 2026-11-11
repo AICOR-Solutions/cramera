@@ -10,7 +10,8 @@ import json
 import os
 import subprocess
 import sys
-from dataclasses import replace
+from contextlib import contextmanager
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from importlib.util import find_spec
 
@@ -18,9 +19,9 @@ import numpy as np
 import pytest
 
 from coraplex.exceptions import PerceptionSourceDidNotAnswer
-from coraplex.perception import Detection
+from coraplex.perception import Detection, PerceptionQuery
 from cramera_bridge.execution import PERCEPTION_ENGINE_VARIABLE
-from cramera_bridge.plans.objects import LIBRARY_VARIABLE
+from cramera_bridge.plans.objects import LIBRARY_VARIABLE, ObjectLibrary
 from cramera_bridge.plans.scanning import SceneScanner
 from cramera_bridge.plans.world import PlannedGraspable
 from cramera_bridge.ros_node import SpinningNode
@@ -31,6 +32,7 @@ from krrood_spatial_math.spatial_types import Pose
 from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.world_description.color_names import ColorName
+from semantic_digital_twin.world_description.geometry import Scale
 
 from ..dataset.bundles import DATASET
 
@@ -74,6 +76,45 @@ def empty_twin(cubes: PlanDocument) -> PlanDocument:
     return replace(cubes, objects=[], robots=[replace(robot, steps=[])])
 
 
+@dataclass(frozen=True)
+class ReportedColors:
+    """
+    A robot perception that sees one cube of each color it is given, side by side on
+    Tracy's table.
+    """
+
+    colors: tuple[ColorName, ...]
+    """
+    The colors of the cubes seen, in the order they are reported.
+    """
+
+    def look_for(self, query: PerceptionQuery) -> list[Detection]:
+        return [
+            Detection(
+                query.semantic_annotation,
+                Pose.from_xyz_rpy(
+                    0.55, 0.1 * number, 0.906, reference_frame=query.world.root
+                ),
+                color=color,
+                size=Scale(0.05, 0.05, 0.05),
+            )
+            for number, color in enumerate(self.colors)
+        ]
+
+    @contextmanager
+    def perceiving(self):
+        yield self
+
+
+def scanned(order: SceneScanOrder, colors: tuple[ColorName, ...]) -> SceneScan:
+    """
+    :return: The scan of the order while the robot sees one cube of each color.
+    """
+    scanner = SceneScanner(order)
+    scanner.perception = ReportedColors(colors)
+    return scanner.scan()
+
+
 def model_of(scanned: PlannedObject, objects: list[PlannedObject]) -> PlannedObject:
     """
     :return: The object of ``objects`` that is a copy of the scanned object's model.
@@ -107,6 +148,48 @@ def test_a_found_object_of_a_color_no_model_shows_matches_none(monkeypatch, cube
 def test_an_identity_taken_gets_the_next_number(cubes):
     assert SceneScanner.free_identifier("red_cube", cubes.objects) == "red_cube_2"
     assert SceneScanner.free_identifier("green_cube", cubes.objects) == "green_cube"
+
+
+# %% scanning what the robot's perception reports
+
+
+def test_a_scan_adds_a_copy_of_the_matching_model_and_counts_the_unmatched(
+    monkeypatch, empty_twin
+):
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    order = SceneScanOrder(demo=DemoDocument(plan=empty_twin))
+
+    scan = scanned(
+        order, (ColorName.RED, ColorName.WHITE, ColorName.RED, ColorName.GREEN)
+    )
+
+    assert scan.grounding is DetectionGrounding.PERCEIVED
+    assert [(item.identifier, item.model) for item in scan.objects] == [
+        ("red_cube", "cube_library/objects/cubes/red_cube/model.urdf"),
+        ("red_cube_2", "cube_library/objects/cubes/red_cube/model.urdf"),
+    ]
+    assert scan.unrecognized == 2
+
+
+def test_a_scan_reads_the_libraries_as_often_however_many_objects_it_finds(
+    monkeypatch, empty_twin
+):
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    order = SceneScanOrder(demo=DemoDocument(plan=empty_twin))
+    reads = []
+    collection_entries = ObjectLibrary.collection_entries
+    monkeypatch.setattr(
+        ObjectLibrary,
+        "collection_entries",
+        lambda library: reads.append(library) or collection_entries(library),
+    )
+
+    scanned(order, (ColorName.WHITE,))
+    reads_for_one = len(reads)
+    reads.clear()
+    scanned(order, (ColorName.WHITE,) * 5)
+
+    assert len(reads) == reads_for_one
 
 
 # %% scanning through the simulated camera

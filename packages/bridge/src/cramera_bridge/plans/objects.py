@@ -204,6 +204,28 @@ class ObjectLibrary:
 
 
 @dataclass(frozen=True)
+class DescribedModel:
+    """
+    An object model with what its library's collection says about it.
+    """
+
+    model: ObjectModel
+    """
+    The model.
+    """
+
+    color: Optional[str]
+    """
+    The name perception gives the model's color, see :meth:`ObjectLibraries.color_of`.
+    """
+
+    grasp: ObjectGrasp
+    """
+    How the model is taken hold of, see :meth:`ObjectLibraries.grasp_of`.
+    """
+
+
+@dataclass(frozen=True)
 class ObjectLibraries:
     """
     Every library the builder offers.
@@ -245,6 +267,35 @@ class ObjectLibraries:
         :return: The models of every library, library by library.
         """
         return [model for library in self.libraries for model in library.models()]
+
+    def described_models(self) -> List[DescribedModel]:
+        """
+        Reads each library's collections once, where asking :meth:`color_of` and
+        :meth:`grasp_of` for every model reads them once per model.
+
+        :return: The models of every library, as :meth:`models` lists them, each with
+            its color and grasp.
+        """
+        described: List[DescribedModel] = []
+        for library in self.libraries:
+            colors = library.entry_values(CollectionKey.COLOR)
+            grasps = library.entry_values(CollectionKey.GRASP)
+            for model in library.models():
+                _, _, relative = model.identifier.partition(SEPARATOR)
+                slug = ObjectLibrary.slug(Path(relative))
+                grasp = grasps.get(slug)
+                described.append(
+                    DescribedModel(
+                        model=model,
+                        color=colors.get(slug),
+                        grasp=(
+                            ObjectGrasp.ANY_SIDE
+                            if grasp is None
+                            else ObjectGrasp(grasp)
+                        ),
+                    )
+                )
+        return described
 
     def roots(self) -> Dict[str, Path]:
         """
