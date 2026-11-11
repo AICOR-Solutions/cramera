@@ -12,6 +12,7 @@ from threading import Thread
 import rclpy
 from rclpy.executors import Executor, SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.task import Future
 from typing_extensions import Iterator
 
 # %% spinning node
@@ -50,9 +51,18 @@ class SpinningNode:
             spinning.callback(node.destroy_node)
             executor = self.executor_type()
             executor.add_node(node)
-            spinner = Thread(target=executor.spin, daemon=True, name=self.name)
-            spinner.start()
-            # The spinning thread ends before ROS shuts down, or exiting aborts.
-            spinning.callback(spinner.join)
             spinning.callback(executor.shutdown)
+            # The spinning thread ends before ROS shuts down, or exiting aborts. It is
+            # ended through a future, which wakes it: shutting the executor down while it
+            # spins would destroy its wake-up before it waits, so it waited forever.
+            ended = Future()
+            spinner = Thread(
+                target=executor.spin_until_future_complete,
+                args=(ended,),
+                daemon=True,
+                name=self.name,
+            )
+            spinner.start()
+            spinning.callback(spinner.join)
+            spinning.callback(ended.set_result, None)
             yield node

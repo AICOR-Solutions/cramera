@@ -602,7 +602,7 @@ def main() -> None:
     """
     with SpinningNode("cramera_preflight").running() as node:
         report = RealRobotPreflight().check(node)
-    print(report.to_text())
+    print(report.to_text(), flush=True)
     sys.exit(0 if report.ready else 1)
 
 
