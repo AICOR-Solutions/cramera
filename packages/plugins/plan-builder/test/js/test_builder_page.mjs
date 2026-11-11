@@ -1591,3 +1591,20 @@ test('stopping says so until the run ended, and a stop that fails says why', asy
   assert.match(message(root), /could not be stopped.*Failed to fetch/);
   assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
 });
+
+test('a plan builder that stops answering is shown until it answers again', async () => {
+  const { root, api, timer } = await openPage();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  const runStatus = api.runStatus.bind(api);
+  api.runStatus = async () => {
+    throw new TypeError('Failed to fetch');
+  };
+  await timer.tick();
+  const runState = () => root.findAll((element) => element.className === 'run-state')[0].textContent;
+  assert.match(runState(), /plan builder does not answer.*Failed to fetch/);
+  api.runStatus = runStatus;
+  await timer.tick();
+  assert.match(runState(), /^The demo runs\./);
+  assert.doesNotMatch(runState(), /does not answer/);
+});

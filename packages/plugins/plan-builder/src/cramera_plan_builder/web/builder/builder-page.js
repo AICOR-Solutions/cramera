@@ -395,6 +395,12 @@ export class BuilderPage {
   #stopping = false;
 
   /**
+   * Why the plan builder did not answer the latest poll, or null once it answered.
+   * @type {string|null}
+   */
+  #unanswered = null;
+
+  /**
    * How far the page is, for people and for tools such as the screenshot command.
    * @type {PageStatus}
    */
@@ -1054,7 +1060,16 @@ export class BuilderPage {
   async #poll() {
     if (this.#polled || !this.state) return;
     this.#polled = true;
-    const run = await this.#environment.api.runStatus().catch(() => this.#run);
+    const run = await this.#environment.api.runStatus().then(
+      (answer) => {
+        this.#unanswered = null;
+        return answer;
+      },
+      (error) => {
+        this.#unanswered = error.message;
+        return this.#run;
+      },
+    );
     const before = this.#run[RunStatusKey.STATE];
     this.#run = run;
     const world = LIVE_STATES.includes(run[RunStatusKey.STATE]) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
@@ -1212,7 +1227,8 @@ export class BuilderPage {
     const state = this.#run[RunStatusKey.STATE];
     const running = state === RunState.RUNNING;
     const live = this.#world.published;
-    this.#parts.runState.textContent = `${RUN_LABELS[state]}${running && live ? ' Its world is live.' : ''}`;
+    const unanswered = this.#unanswered === null ? '' : ` The plan builder does not answer (${this.#unanswered}); retrying.`;
+    this.#parts.runState.textContent = `${RUN_LABELS[state]}${running && live ? ' Its world is live.' : ''}${unanswered}`;
     this.#parts.runState.dataset.state = state;
     this.#parts.log.textContent = this.#run[RunStatusKey.LOG] ?? '';
     this.#parts.stop.disabled = !running || this.#stopping;
