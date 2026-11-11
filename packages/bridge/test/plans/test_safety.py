@@ -44,6 +44,7 @@ from giskardpy.motion_statechart.monitors.safety_monitors import (
     MaximumToolVelocity,
 )
 from semantic_digital_twin.robots.tracy import Tracy
+from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
 
 from ..dataset.bundles import DATASET
 from ..test_execution import needs_tracy, tracy_with_a_block
@@ -192,15 +193,27 @@ A tool velocity for every run, and a lower one for a run on the real robot.
 
 
 @needs_tracy
-def test_the_joints_are_held_to_the_velocity_the_robot_description_sets(tracy_context):
+def test_every_arm_joint_is_held_to_its_own_velocity_limit(tracy_context):
+    """
+    The joints are held to the limits the robot's description sets each of them, which
+    the controller plans every motion within.
+    """
     envelope = RobotSafety(limits=SafetyLimits()).envelope(tracy_context)
 
-    limits = [
-        constraint.maximum_velocity
+    watched = [
+        connection
         for constraint in envelope.constraints
         if isinstance(constraint, MaximumJointVelocity)
+        for connection in constraint.create_monitor().limited_connections
     ]
-    assert limits == [Tracy.maximum_safe_joint_velocity] * 2
+    arm_joints = {
+        connection
+        for arm in tracy_context.robot.all_arms
+        for connection in arm.connections
+        if isinstance(connection, ActiveConnection1DOF)
+    }
+    assert set(watched) == arm_joints
+    assert len(watched) == len(arm_joints)
 
 
 @needs_tracy

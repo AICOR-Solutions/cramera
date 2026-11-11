@@ -1,8 +1,8 @@
 """
 The safety limits of a robot profile as the constraints every motion of a run is held
 to: a workspace box per arm, written in the frame of the pose the plan stands the robot
-at, and the speed no tool may exceed; and the velocity no arm joint may exceed, which
-the robot's description sets.
+at, and the speed no tool may exceed; and every arm joint's velocity limit, which the
+robot's description sets.
 """
 
 from __future__ import annotations
@@ -117,29 +117,26 @@ class RobotSafety:
     def velocity_limits(self, context: TaskContext) -> List[SafetyConstraint]:
         """
         :param context: The world and the performing robot.
-        :return: For every arm, the velocity its joints may not exceed, as the robot's
-            description sets it, and the speed its tool may not exceed, as far as they
-            are set.
+        :return: For every arm, its joints held to the velocity limits the robot's
+            description sets each of them, and the speed its tool may not exceed, as
+            far as it is set.
         """
         robot = context.robot
         arms = RobotArms(robot)
-        joint_velocity = robot.maximum_safe_joint_velocity
         tool_velocity = self.maximum_tool_velocity
         constraints: List[SafetyConstraint] = []
         for arm in robot.all_arms:
             side = ENUM_NAMES.member_identifier(Arms, arms.find_side(arm))
-            if joint_velocity is not None:
-                constraints.append(
-                    MaximumJointVelocity(
-                        constraint=f"{side} arm joint velocity ({joint_velocity} rad/s)",
-                        connections=[
-                            connection
-                            for connection in arm.connections
-                            if isinstance(connection, ActiveConnection1DOF)
-                        ],
-                        maximum_velocity=joint_velocity,
-                    )
+            constraints.append(
+                MaximumJointVelocity(
+                    constraint=f"{side} arm joint velocity",
+                    connections=[
+                        connection
+                        for connection in arm.connections
+                        if isinstance(connection, ActiveConnection1DOF)
+                    ],
                 )
+            )
             if tool_velocity is not None:
                 constraints.append(
                     MaximumToolVelocity(
