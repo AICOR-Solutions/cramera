@@ -3280,6 +3280,54 @@ class RunStatus(JsonDocument):
     """
 
 
+class ArmReportKey(StrEnum):
+    """
+    The keys of when one arm's driver last reported its joint positions.
+    """
+
+    ARM = "arm"
+    """
+    The arm's name.
+    """
+
+    AGE_SECONDS = "ageSeconds"
+    """
+    Seconds since its driver last reported.
+    """
+
+    LIVE = "live"
+    """
+    Whether its driver reported recently enough for the posture to show the arm.
+    """
+
+
+@dataclass(kw_only=True)
+class ArmReport(JsonDocument):
+    """
+    When one arm's driver last reported its joint positions; one arm's driver can stop
+    while the other's goes on.
+    """
+
+    arm: str = document_field(ArmReportKey.ARM)
+    """
+    The arm's name, the namespace its driver publishes its joint states in, such as
+    ``left_arm``.
+    """
+
+    age_seconds: Optional[float] = document_field(
+        ArmReportKey.AGE_SECONDS, default=None
+    )
+    """
+    Seconds since its driver last reported, or None while it never did.
+    """
+
+    live: bool = document_field(ArmReportKey.LIVE, default=False)
+    """
+    Whether its driver reported recently enough that the posture shows where the arm
+    stands; false unless the plan builder found it so.
+    """
+
+
 class RobotPostureKey(StrEnum):
     """
     The keys of the posture the real robot's drivers report.
@@ -3290,11 +3338,22 @@ class RobotPostureKey(StrEnum):
     The position of each joint by its name.
     """
 
+    ARMS = "arms"
+    """
+    When each arm's driver last reported.
+    """
+
+    MIRRORED = "mirrored"
+    """
+    Whether the plan builder mirrors a real robot's posture.
+    """
+
 
 @dataclass(kw_only=True)
 class RobotPosture(JsonDocument):
     """
-    The joint positions the real robot's drivers reported last.
+    The joint positions the real robot's drivers reported last, and how long ago each
+    arm's driver did.
     """
 
     joint_positions: Dict[str, float] = document_field(
@@ -3302,6 +3361,17 @@ class RobotPosture(JsonDocument):
     )
     """
     The position of each joint by its name; empty while nothing was reported.
+    """
+
+    arms: List[ArmReport] = document_field(RobotPostureKey.ARMS, default_factory=list)
+    """
+    When each arm's driver last reported; empty while the mirror reported nothing.
+    """
+
+    mirrored: bool = document_field(RobotPostureKey.MIRRORED, default=False)
+    """
+    Whether the plan builder mirrors a real robot's posture; false in simulation, where
+    no driver reports.
     """
 
 

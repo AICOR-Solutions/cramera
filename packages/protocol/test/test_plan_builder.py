@@ -18,6 +18,10 @@ from cramera_protocol.live_messages import (
     MonitorSpecificationKey,
 )
 from cramera_protocol.plan_builder import (
+    ArmReport,
+    ArmReportKey,
+    RobotPosture,
+    RobotPostureKey,
     CLASS_NAME_FORMAT_VERSION,
     ActionCatalog,
     ActionCatalogKey,
@@ -523,6 +527,31 @@ def test_a_run_status_carries_its_events():
     assert RunStatus.from_json(status.to_json()) == status
     for enumeration in (StepState, RunEventKind, RunMonitor, MonitorObservation):
         assert enumeration in BROWSER_ENUMERATIONS
+
+
+def test_a_posture_carries_when_each_arm_last_reported():
+    posture = RobotPosture(
+        joint_positions={"left_shoulder_pan_joint": 0.3},
+        arms=[
+            ArmReport(arm="left_arm", age_seconds=0.2, live=True),
+            ArmReport(arm="right_arm"),
+        ],
+        mirrored=True,
+    )
+    assert RobotPosture.from_json(posture.to_json()) == posture
+    assert {ArmReportKey, RobotPostureKey} <= set(BROWSER_ENUMERATIONS)
+
+
+def test_an_arm_that_never_reported_reads_as_not_live():
+    arm = ArmReport.from_json({ArmReportKey.ARM: "left_arm"})
+    assert arm.age_seconds is None
+    assert not arm.live
+
+
+def test_a_posture_reads_as_not_mirrored_and_without_arms_by_default():
+    posture = RobotPosture.from_json({})
+    assert not posture.mirrored
+    assert posture.arms == []
 
 
 def test_an_idle_status_names_no_mode_and_no_exit():

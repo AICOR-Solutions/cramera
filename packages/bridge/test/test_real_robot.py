@@ -5,6 +5,7 @@ reading where it stands.
 
 from __future__ import annotations
 
+import io
 import json
 import signal
 import subprocess
@@ -43,6 +44,7 @@ from cramera_bridge.real_robot import (
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.plan_builder import (
+    ArmReport,
     DemoDocument,
     DemoOption,
     PlanDocument,
@@ -63,6 +65,7 @@ from semantic_digital_twin.robots.tracy import (
     TracyVelocityCommandTopic,
 )
 from semantic_digital_twin.world import World
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 
 from .dataset.real_robot import (
@@ -287,6 +290,38 @@ def test_the_mirror_reports_the_joint_positions_the_drivers_publish(standing_rob
             posture = RobotPosture.from_json(json.loads(mirror.stdout.readline()))
 
     assert posture.joint_positions == pytest.approx(expected)
+
+
+def test_the_mirror_says_how_long_ago_each_arm_reported():
+    now = [10.0]
+    mirror = PostureMirror(clock=lambda: now[0])
+    mirror.keep(
+        TracyTopic.LEFT_ARM_JOINT_STATES,
+        JointState(name=["left_shoulder_pan_joint"], position=[0.3]),
+    )
+    now[0] = 10.25
+
+    posture = mirror.posture()
+
+    assert posture.joint_positions == {"left_shoulder_pan_joint": 0.3}
+    assert posture.arms == [
+        ArmReport(arm="left_arm", age_seconds=pytest.approx(0.25)),
+        ArmReport(arm="right_arm"),
+    ]
+
+
+def test_the_mirror_writes_its_arms_before_any_driver_reported():
+    mirror = PostureMirror(interval=0.01)
+    output = io.StringIO()
+    stopped = threading.Event()
+    threading.Timer(0.05, stopped.set).start()
+
+    mirror.write(output, stopped)
+
+    first = RobotPosture.from_json(json.loads(output.getvalue().splitlines()[0]))
+    assert first == RobotPosture(
+        arms=[ArmReport(arm="left_arm"), ArmReport(arm="right_arm")]
+    )
 
 
 @needs_tracy
