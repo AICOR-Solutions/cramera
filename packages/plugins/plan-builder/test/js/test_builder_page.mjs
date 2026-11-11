@@ -1546,3 +1546,19 @@ test('a validation that has not answered yet cannot be started twice, nor a scan
   assert.equal(scanButton(root).disabled, false);
   assert.equal(robotRun(root).disabled, false);
 });
+
+test('while a plan runs only Stop is offered, so nothing replaces the run or validates beside it', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  await timer.tick();
+  assert.deepEqual(runButtons(root).map((button) => button.disabled), [true, true, true, true, true]);
+  assert.equal(scanButton(root).disabled, true);
+  assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
+  await timer.tick();
+  assert.equal(validateButton(root).disabled, false);
+  assert.equal(scanButton(root).disabled, false);
+});

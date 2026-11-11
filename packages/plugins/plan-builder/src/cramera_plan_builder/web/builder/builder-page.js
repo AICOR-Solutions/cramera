@@ -522,11 +522,19 @@ export class BuilderPage {
   }
 
   /**
-   * @returns {boolean} Whether a validation, a scan or the start of a run waits for its
-   *   answer, so no other of them may start.
+   * @returns {boolean} Whether no validation, scan or run may start now: one of them
+   *   waits for its answer, or a plan runs, which only Stop may end, not another run.
    */
-  waiting() {
-    return this.#waiting;
+  busy() {
+    return this.#waiting || this.#performing();
+  }
+
+  /**
+   * @returns {boolean} Whether a plan runs; a staged live scene runs no plan, and a run
+   *   started beside it replaces it.
+   */
+  #performing() {
+    return this.#run[RunStatusKey.STATE] === RunState.RUNNING && this.#run[RunStatusKey.MODE] !== RunMode.STAGE;
   }
 
   /**
@@ -827,7 +835,7 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the demo started or was refused.
    */
   async #start(mode, overrideValidation = false) {
-    if (this.#waiting) return;
+    if (this.busy()) return;
     const status = await this.#waitFor(() => this.#environment.api.run(this.state.document, mode, overrideValidation)).catch((error) => {
       this.report(error.message);
       return null;
@@ -881,7 +889,7 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the report is shown or the validation refused.
    */
   async validate() {
-    if (this.#waiting) return;
+    if (this.busy()) return;
     const plan = structuredClone(this.state.document);
     this.report('Validating the plan in a copy of the twin; nothing moves…');
     const report = await this.#waitFor(() => this.#environment.api.validate(plan)).catch((error) => {
@@ -1146,7 +1154,7 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the objects are filled or the scan refused.
    */
   async scanScene() {
-    if (this.#waiting) return;
+    if (this.busy()) return;
     this.report('Scanning the scene…');
     const scan = await this.#waitFor(() => this.#environment.api.scan(this.state.document)).catch((error) => {
       this.report(error.message);
@@ -1189,7 +1197,7 @@ export class BuilderPage {
     this.#parts.log.textContent = this.#run[RunStatusKey.LOG] ?? '';
     this.#parts.stop.disabled = !running;
     this.#parts.capture.disabled = !live;
-    const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run) && !this.#waiting;
+    const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run) && !this.busy();
     for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;
     const passed = this.#validationPassed();
     this.#parts.robot.disabled = !runnable || !(passed || this.#mayOverrideValidation());
