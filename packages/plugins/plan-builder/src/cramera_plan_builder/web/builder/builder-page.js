@@ -381,6 +381,13 @@ export class BuilderPage {
   #polled = false;
 
   /**
+   * Whether a validation, a scan or the start of a run waits for its answer, during
+   * which no other of them starts.
+   * @type {boolean}
+   */
+  #waiting = false;
+
+  /**
    * How far the page is, for people and for tools such as the screenshot command.
    * @type {PageStatus}
    */
@@ -512,6 +519,29 @@ export class BuilderPage {
     });
     if (folder) storage.setItem(URDF_FOLDER_KEY, folder[UrdfFolderKey.PATH]);
     return folder;
+  }
+
+  /**
+   * @returns {boolean} Whether a validation, a scan or the start of a run waits for its
+   *   answer, so no other of them may start.
+   */
+  waiting() {
+    return this.#waiting;
+  }
+
+  /**
+   * Send a request no other validation, scan or run start may overlap, the buttons
+   * starting them disabled until it answers.
+   * @param {function(): Promise<*>} send Sends the request.
+   * @returns {Promise<*>} Its answer.
+   */
+  #waitFor(send) {
+    this.#waiting = true;
+    this.render();
+    return send().finally(() => {
+      this.#waiting = false;
+      this.render();
+    });
   }
 
   /**
@@ -797,7 +827,8 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the demo started or was refused.
    */
   async #start(mode, overrideValidation = false) {
-    const status = await this.#environment.api.run(this.state.document, mode, overrideValidation).catch((error) => {
+    if (this.#waiting) return;
+    const status = await this.#waitFor(() => this.#environment.api.run(this.state.document, mode, overrideValidation)).catch((error) => {
       this.report(error.message);
       return null;
     });
@@ -850,9 +881,10 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the report is shown or the validation refused.
    */
   async validate() {
+    if (this.#waiting) return;
     const plan = structuredClone(this.state.document);
     this.report('Validating the plan in a copy of the twin; nothing moves…');
-    const report = await this.#environment.api.validate(plan).catch((error) => {
+    const report = await this.#waitFor(() => this.#environment.api.validate(plan)).catch((error) => {
       this.report(error.message);
       return null;
     });
@@ -1114,8 +1146,9 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the objects are filled or the scan refused.
    */
   async scanScene() {
+    if (this.#waiting) return;
     this.report('Scanning the scene…');
-    const scan = await this.#environment.api.scan(this.state.document).catch((error) => {
+    const scan = await this.#waitFor(() => this.#environment.api.scan(this.state.document)).catch((error) => {
       this.report(error.message);
       return null;
     });
@@ -1156,7 +1189,7 @@ export class BuilderPage {
     this.#parts.log.textContent = this.#run[RunStatusKey.LOG] ?? '';
     this.#parts.stop.disabled = !running;
     this.#parts.capture.disabled = !live;
-    const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run);
+    const runnable = this.state.catalog[PlanBuilderCatalogKey.MISSING].length === 0 && !this.#safetyBanner.blocksRuns(this.#run) && !this.#waiting;
     for (const button of [this.#parts.stage, this.#parts.perform, this.#parts.simulate, this.#parts.validate]) button.disabled = !runnable;
     const passed = this.#validationPassed();
     this.#parts.robot.disabled = !runnable || !(passed || this.#mayOverrideValidation());

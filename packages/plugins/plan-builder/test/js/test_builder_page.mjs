@@ -1503,3 +1503,46 @@ test('a detect step looks in a zone or around a marker', async () => {
   assert.equal(PlanPose.position(marker[DetectionRegionKey.POSE])[2], 0.88);
   assert.deepEqual(page.state.targets(page.state.step(detect)).map((found) => found.marker), [true]);
 });
+
+// %% waiting and failing
+
+/**
+ * @returns {{promise: Promise<*>, resolve: function(*): void, reject: function(*): void}}
+ *   An answer the test gives when it chooses.
+ */
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolving, rejecting) => {
+    resolve = resolving;
+    reject = rejecting;
+  });
+  return { promise, resolve, reject };
+}
+
+const validateButton = (root) => byAction(root, PlanAction.VALIDATE)[0];
+const scanButton = (root) => byAction(root, PlanAction.SCAN_SCENE)[0];
+
+test('a validation that has not answered yet cannot be started twice, nor a scan or a run beside it', async () => {
+  const { root, api } = await pickAndPlace();
+  const answer = deferred();
+  const validate = api.validate.bind(api);
+  api.validate = (plan) => {
+    api.validated.push(plan);
+    return answer.promise.then(() => validate(plan));
+  };
+  validateButton(root).click();
+  await settled();
+  validateButton(root).click();
+  await settled();
+  assert.equal(api.validated.length, 1);
+  assert.equal(validateButton(root).disabled, true);
+  assert.equal(scanButton(root).disabled, true);
+  assert.equal(robotRun(root).disabled, true);
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.equal(validateButton(root).disabled, false);
+  assert.equal(scanButton(root).disabled, false);
+  assert.equal(robotRun(root).disabled, false);
+});
