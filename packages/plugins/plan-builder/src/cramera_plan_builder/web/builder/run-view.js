@@ -415,7 +415,7 @@ export class RunView {
    */
   #camera(images) {
     const elements = this.#elements;
-    if (images.length === 0) return [elements.create('p', RunViewClass.EMPTY, 'No camera image yet: one shows once a perception step ended.')];
+    if (images.length === 0) return [elements.create('p', RunViewClass.EMPTY, 'No camera image yet.')];
     const shown = [];
     for (const image of images) {
       const picture = elements.create('img');
@@ -423,7 +423,7 @@ export class RunView {
       picture.alt = image[PerceptionImageKey.TITLE];
       shown.push(picture);
     }
-    shown.push(elements.create('figcaption', '', `What the camera saw when the latest perception step ended: ${images.map((image) => image[PerceptionImageKey.TITLE]).join(', ')}.`));
+    shown.push(elements.create('figcaption', '', `Latest perception: ${images.map((image) => image[PerceptionImageKey.TITLE]).join(', ')}.`));
     return shown;
   }
 }

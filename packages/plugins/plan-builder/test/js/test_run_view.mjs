@@ -141,5 +141,5 @@ test('the camera panel shows the latest perception images or says none was taken
   const camera = byClass(rendered(progressOf('sort'), [image]), RunViewClass.CAMERA)[0];
   const [picture] = camera.findAll((element) => element.tagName === 'IMG');
   assert.equal(picture.src, image.url);
-  assert.match(camera.innerText, /latest perception step ended: camera/);
+  assert.match(camera.innerText, /Latest perception: camera/);
 });
