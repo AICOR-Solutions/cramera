@@ -5,19 +5,18 @@ the robot standing at the origin, so in the frame of the pose a plan stands it a
 
 Run as ``python -m cramera_bridge.plans.reaching <order.json> <answer.json>``, it reads
 a :class:`~cramera_protocol.reach.ReachRequest` and writes the
-:class:`~cramera_protocol.reach.RobotReach`.
+:class:`~cramera_protocol.reach.RobotReach` once its standard input closes.
 """
 
 from __future__ import annotations
 
-import json
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 
-from typing_extensions import Optional, Sequence
+from typing_extensions import Any, Optional
 
 from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.order_command import OrderCommand
 from cramera_bridge.plans.placing import ArmReaches
 from cramera_bridge.plans.regions import RegionBoxes
 from cramera_protocol.geometry import FloorRectangle
@@ -95,21 +94,13 @@ class RobotReachMeasure:
 
 
 @dataclass(frozen=True)
-class ReachCommand:
+class ReachCommand(OrderCommand):
     """
     Measures the reach of the robot model an order file names and writes it into a file.
     """
 
-    def main(self, arguments: Sequence[str]) -> None:
-        """
-        :param arguments: The order's file and the file the reach is written to.
-        """
-        order_file, answer_file = arguments
-        request = ReachRequest.from_json(
-            json.loads(Path(order_file).read_text(encoding="utf-8"))
-        )
-        reach = RobotReachMeasure(request).measure()
-        Path(answer_file).write_text(json.dumps(reach.to_json()), encoding="utf-8")
+    def answer(self, order: Any) -> RobotReach:
+        return RobotReachMeasure(ReachRequest.from_json(order)).measure()
 
 
 if __name__ == "__main__":

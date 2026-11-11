@@ -7,23 +7,22 @@ the twin. For the real robot, the twin's robot stands as the real one reports.
 
 Run as ``python -m cramera_bridge.plans.validating <order.json> <report.json>``, it reads
 a :class:`~cramera_protocol.validation.ValidationOrder` and writes the
-:class:`~cramera_protocol.validation.ValidationReport`, so each validation has a process
-of its own.
+:class:`~cramera_protocol.validation.ValidationReport` once its standard input closes, so
+each validation has a process of its own.
 """
 
 from __future__ import annotations
 
-import json
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
-from pathlib import Path
 
-from typing_extensions import Iterator, List, Sequence
+from typing_extensions import Any, Iterator, List
 
 from coraplex.perception import PerceptionInterface, WorldPerception
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import PlanGrounding
+from cramera_bridge.plans.order_command import OrderCommand
 from cramera_bridge.plans.robot_perception import RobotPerception
 from cramera_bridge.real_robot import ReportedPosture
 from cramera_protocol.plan_builder import PlanStep
@@ -102,21 +101,13 @@ class PlanValidator:
 
 
 @dataclass(frozen=True)
-class ValidateCommand:
+class ValidateCommand(OrderCommand):
     """
     Validates the plan an order file names and writes the report into a file.
     """
 
-    def main(self, arguments: Sequence[str]) -> None:
-        """
-        :param arguments: The order's file and the file the report is written to.
-        """
-        order_file, report_file = arguments
-        order = ValidationOrder.from_json(
-            json.loads(Path(order_file).read_text(encoding="utf-8"))
-        )
-        report = PlanValidator(order).validate()
-        Path(report_file).write_text(json.dumps(report.to_json()), encoding="utf-8")
+    def answer(self, order: Any) -> ValidationReport:
+        return PlanValidator(ValidationOrder.from_json(order)).validate()
 
 
 if __name__ == "__main__":

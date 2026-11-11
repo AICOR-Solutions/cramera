@@ -221,6 +221,7 @@ def test_a_scan_of_the_simulated_scene_fills_an_empty_twin_with_the_three_cubes(
             LIBRARY_VARIABLE: str(CUBE_LIBRARY),
             PERCEPTION_ENGINE_VARIABLE: "tracy_cubes",
         },
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         timeout=600,
     )

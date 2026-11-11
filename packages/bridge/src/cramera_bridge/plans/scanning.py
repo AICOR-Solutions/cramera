@@ -9,17 +9,16 @@ of its own holding the scene's objects, so the plan's twin can start empty.
 
 Run as ``python -m cramera_bridge.plans.scanning <order.json> <scan.json>``, it reads a
 :class:`~cramera_protocol.detection.SceneScanOrder` and writes the
-:class:`~cramera_protocol.detection.SceneScan`, so each scan has a process of its own.
+:class:`~cramera_protocol.detection.SceneScan`, once its standard input closes, so each scan has a process of its own.
 """
 
 from __future__ import annotations
 
-import json
 import sys
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-from typing_extensions import Dict, List, Optional, Sequence
+from typing_extensions import Any, Dict, List, Optional
 
 from coraplex.perception import (
     DetectedScene,
@@ -31,6 +30,7 @@ from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.object_types import ObjectType
+from cramera_bridge.plans.order_command import OrderCommand
 from cramera_bridge.plans.objects import (
     DescribedModel,
     ObjectLibraries,
@@ -191,21 +191,13 @@ class SceneScanner:
 
 
 @dataclass(frozen=True)
-class ScanCommand:
+class ScanCommand(OrderCommand):
     """
     Scans the scene an order file names and writes the scan into a file.
     """
 
-    def main(self, arguments: Sequence[str]) -> None:
-        """
-        :param arguments: The order's file and the file the scan is written to.
-        """
-        order_file, scan_file = arguments
-        order = SceneScanOrder.from_json(
-            json.loads(Path(order_file).read_text(encoding="utf-8"))
-        )
-        scan = SceneScanner(order).scan()
-        Path(scan_file).write_text(json.dumps(scan.to_json()), encoding="utf-8")
+    def answer(self, order: Any) -> SceneScan:
+        return SceneScanner(SceneScanOrder.from_json(order)).scan()
 
 
 if __name__ == "__main__":

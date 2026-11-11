@@ -12,9 +12,10 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from importlib.util import find_spec
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -193,6 +194,106 @@ def test_validating_moves_nothing_of_the_twin(pick_and_place):
     np.testing.assert_array_equal(world.state.positions, before)
 
 
+# %% validating in a process started before its order
+
+
+@dataclass
+class ValidatorProcess:
+    """
+    A validator process of its own, answering one order through files.
+    """
+
+    directory: Path
+    """
+    The directory holding its order and its report.
+    """
+
+    process: subprocess.Popen = field(init=False)
+    """
+    The running validator.
+    """
+
+    @property
+    def order_file(self) -> Path:
+        """
+        :return: The file the validator reads its order from.
+        """
+        return self.directory / "order.json"
+
+    @property
+    def report_file(self) -> Path:
+        """
+        :return: The file the validator writes its report to.
+        """
+        return self.directory / "report.json"
+
+    def start(self, stdin: int) -> None:
+        """
+        Start the validator, which reads its order once its input closes.
+
+        :param stdin: The validator's input, a pipe to close once the order is written.
+        """
+        self.process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "cramera_bridge.plans.validating",
+                str(self.order_file),
+                str(self.report_file),
+            ],
+            stdin=stdin,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def write_order(self, plan: PlanDocument) -> None:
+        """
+        Write the order to validate the plan.
+        """
+        self.directory.mkdir(exist_ok=True)
+        order = ValidationOrder(demo=DemoDocument(plan=plan))
+        self.order_file.write_text(json.dumps(order.to_json()), encoding="utf-8")
+
+    def report(self) -> ValidationReport:
+        """
+        :return: The report the validator wrote, once it ended.
+        """
+        assert self.process.wait(timeout=600) == 0
+        return ValidationReport.from_json(
+            json.loads(self.report_file.read_text("utf-8"))
+        )
+
+
+def test_a_validator_started_before_its_order_reports_as_one_started_with_it(
+    tmp_path, pick_and_place
+):
+    failing = with_red_cube_at(pick_and_place, *OUT_OF_REACH)
+    plans = [pick_and_place, failing, pick_and_place]
+    started_first = [ValidatorProcess(tmp_path / f"first_{n}") for n in range(3)]
+    started_with_order = [ValidatorProcess(tmp_path / f"with_{n}") for n in range(2)]
+    for validator in started_first:
+        validator.directory.mkdir()
+        validator.start(subprocess.PIPE)
+    for validator, plan in zip(started_with_order, plans):
+        validator.write_order(plan)
+        validator.start(subprocess.DEVNULL)
+
+    reports_started_first = []
+    for validator, plan in zip(started_first, plans):
+        validator.write_order(plan)
+        validator.process.stdin.close()
+        reports_started_first.append(validator.report())
+    reports_started_with_order = [
+        validator.report() for validator in started_with_order
+    ]
+
+    assert [report.passed for report in reports_started_first] == [True, False, True]
+    assert reports_started_first == [
+        *reports_started_with_order,
+        reports_started_with_order[0],
+    ]
+
+
 # %% running with the arm chosen
 
 
@@ -312,6 +413,7 @@ def test_a_detection_the_simulated_camera_sees_is_valid_and_its_pick_holds(tmp_p
             LIBRARY_VARIABLE: str(CUBE_LIBRARY),
             PERCEPTION_ENGINE_VARIABLE: "tracy_cubes",
         },
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         timeout=600,
     )

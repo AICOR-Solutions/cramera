@@ -1,7 +1,8 @@
 """
 Asking cramera-bridge in a child process of its own: a command module of the bridge is
 handed an order document in a file and writes its answer document into another, so the
-plan builder never imports CRAM and every request starts from a fresh world.
+plan builder never imports CRAM and every request starts from a fresh world. The process
+of the next order is started ahead, so its imports are done when the order comes.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, List
+from typing_extensions import Any, Callable, List
 
 from cramera_plan_builder.exceptions import CramUnavailable, PlanBuilderError
 from cramera_plan_builder.workspace import CramModules
@@ -42,6 +43,11 @@ class ProcessFile(StrEnum):
     ANSWER = "answer.json"
     """
     What it answers.
+    """
+
+    OUTPUT = "output.txt"
+    """
+    What it prints.
     """
 
 
@@ -82,6 +88,130 @@ class BridgeModule(StrEnum):
     """
 
 
+# %% started processes
+
+
+@dataclass
+class StartedProcess:
+    """
+    A bridge process of one order, started before the order is written: the command
+    module reads its order once its standard input closes.
+    """
+
+    process: subprocess.Popen
+    """
+    The running process; its output goes to :attr:`output_file`.
+    """
+
+    directory: tempfile.TemporaryDirectory
+    """
+    The directory of the process's order, answer and output, removed by :meth:`end`.
+    """
+
+    @classmethod
+    def start(cls, command: Callable[[Path, Path], List[str]]) -> StartedProcess:
+        """
+        :param command: The command line running the module on an order file and an
+            answer file.
+        :return: The process, started on the files of a new directory.
+        """
+        directory = tempfile.TemporaryDirectory()
+        root = Path(directory.name)
+        with open(root / ProcessFile.OUTPUT, "wb") as output:
+            process = subprocess.Popen(
+                command(root / ProcessFile.ORDER, root / ProcessFile.ANSWER),
+                stdin=subprocess.PIPE,
+                stdout=output,
+                stderr=subprocess.STDOUT,
+            )
+        return cls(process=process, directory=directory)
+
+    def file(self, name: ProcessFile) -> Path:
+        """
+        :param name: One of the process's files.
+        :return: Where the file lies.
+        """
+        return Path(self.directory.name) / name
+
+    def is_waiting(self) -> bool:
+        """
+        :return: Whether the process still runs and has not been handed its order.
+        """
+        return self.process.poll() is None and not self.process.stdin.closed
+
+    def hand_over(self, order: JsonDocument) -> None:
+        """
+        Write the order and close the process's input, so the process reads it.
+        """
+        self.file(ProcessFile.ORDER).write_text(
+            json.dumps(order.to_json()), encoding="utf-8"
+        )
+        self.process.stdin.close()
+
+    def output(self, limit: int) -> str:
+        """
+        :param limit: How many characters are kept.
+        :return: The newest characters the process printed.
+        """
+        return (
+            self.file(ProcessFile.OUTPUT)
+            .read_bytes()
+            .decode("utf-8", errors="replace")[-limit:]
+        )
+
+    def end(self) -> None:
+        """
+        Kill the process if it still runs and remove its directory.
+        """
+        self.process.kill()
+        self.process.wait()
+        self.process.stdin.close()
+        self.directory.cleanup()
+
+
+@dataclass
+class NextProcess:
+    """
+    The process started ahead for the next order; each process answers one order only.
+    """
+
+    waiting: StartedProcess | None = None
+    """
+    The process waiting for its order, None while there is none.
+    """
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    """
+    Hands each waiting process to one order only.
+    """
+
+    def take(self, command: Callable[[Path, Path], List[str]]) -> StartedProcess:
+        """
+        :param command: The command line running the module, see
+            :meth:`StartedProcess.start`.
+        :return: The waiting process, or a new one when none waits or the waiting one
+            ended.
+        """
+        with self.lock:
+            taken, self.waiting = self.waiting, None
+        if taken is not None and taken.is_waiting():
+            return taken
+        if taken is not None:
+            taken.end()
+        return StartedProcess.start(command)
+
+    def prepare(self, command: Callable[[Path, Path], List[str]]) -> None:
+        """
+        Start a process waiting for the next order, unless one waits already.
+
+        :param command: The command line running the module, see
+            :meth:`StartedProcess.start`.
+        """
+        with self.lock:
+            if self.waiting is None:
+                self.waiting = StartedProcess.start(command)
+
+
 # %% process
 
 
@@ -111,6 +241,11 @@ class BridgeProcess(ABC):
     Finds out whether the CRAM workspace the module needs is installed.
     """
 
+    next_process: NextProcess = field(default_factory=NextProcess, compare=False)
+    """
+    The process started for the next order once an order is answered.
+    """
+
     @property
     @abstractmethod
     def module(self) -> BridgeModule:
@@ -127,7 +262,8 @@ class BridgeProcess(ABC):
 
     def answer(self, order: JsonDocument) -> Any:
         """
-        Logs how long the process took to answer, its start included.
+        Hands the order to the process waiting for it, or to a new one, and starts the
+        process of the next order once it ended; logs how long the order took.
 
         :param order: What the module is asked.
         :return: The JSON of the module's answer.
@@ -138,35 +274,30 @@ class BridgeProcess(ABC):
         missing = self.modules.missing()
         if missing:
             raise CramUnavailable(missing)
-        with tempfile.TemporaryDirectory() as directory:
-            order_file = Path(directory) / ProcessFile.ORDER
-            answer_file = Path(directory) / ProcessFile.ANSWER
-            order_file.write_text(json.dumps(order.to_json()), encoding="utf-8")
-            started = time.monotonic()
-            process = subprocess.Popen(
-                self.command(order_file, answer_file),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+        started = time.monotonic()
+        process = self.next_process.take(self.command)
+        timed_out = threading.Event()
+        deadline = threading.Timer(
+            self.timeout, lambda: (timed_out.set(), process.process.kill())
+        )
+        deadline.start()
+        process.hand_over(order)
+        process.process.wait()
+        deadline.cancel()
+        output = process.output(self.output_limit)
+        answer_file = process.file(ProcessFile.ANSWER)
+        answered = process.process.returncode == 0 and answer_file.is_file()
+        answer = answer_file.read_text(encoding="utf-8") if answered else None
+        process.end()
+        self.next_process.prepare(self.command)
+        if timed_out.is_set():
+            raise self.describe_failure(
+                f"{output}\nGave up: no answer within {self.timeout:g} s."
             )
-            timed_out = threading.Event()
-            deadline = threading.Timer(
-                self.timeout, lambda: (timed_out.set(), process.kill())
-            )
-            deadline.start()
-            stdout, _ = process.communicate()
-            deadline.cancel()
-            output = stdout.decode("utf-8", errors="replace")[-self.output_limit :]
-            if timed_out.is_set():
-                raise self.describe_failure(
-                    f"{output}\nGave up: no answer within {self.timeout:g} s."
-                )
-            if process.returncode != 0 or not answer_file.is_file():
-                raise self.describe_failure(output)
-            logger.info(
-                "%s answered in %.1f s", self.module, time.monotonic() - started
-            )
-            return json.loads(answer_file.read_text(encoding="utf-8"))
+        if answer is None:
+            raise self.describe_failure(output)
+        logger.info("%s answered in %.1f s", self.module, time.monotonic() - started)
+        return json.loads(answer)
 
     def command(self, order_file: Path, answer_file: Path) -> List[str]:
         """
