@@ -320,6 +320,45 @@ def test_viewer_and_protocol_errors_become_error_answers():
     assert answerer.answer(request(path="/m")).status is HTTPStatus.BAD_REQUEST
 
 
+def test_an_unexpected_error_in_a_route_is_answered_with_its_text_and_logged(caplog):
+    def broken(_):
+        raise KeyError("missing answer")
+
+    router = Router([ExactRoute(HttpMethod.GET, "/broken", broken)])
+    answerer = RequestAnswerer(router=router, policy=OriginPolicy())
+    with caplog.at_level("ERROR", logger=server_module.__name__):
+        answer = answerer.answer(request(path="/broken"))
+    assert answer.status is HTTPStatus.INTERNAL_SERVER_ERROR
+    assert json.loads(answer.body)[ErrorKey.ERROR] == "KeyError: 'missing answer'"
+    assert "Traceback" in caplog.text and "missing answer" in caplog.text
+
+
+def test_the_server_keeps_serving_after_an_unexpected_error_in_a_route():
+    def broken(_):
+        raise RuntimeError("the answer file is broken")
+
+    def fine(_):
+        return Response.of_json({"fine": True})
+
+    router = Router(
+        [
+            ExactRoute(HttpMethod.GET, "/broken", broken),
+            ExactRoute(HttpMethod.GET, "/fine", fine),
+        ]
+    )
+    answerer = RequestAnswerer(router=router, policy=OriginPolicy())
+    with HttpServer(answerer=answerer) as server:
+        with pytest.raises(urllib.error.HTTPError) as failed:
+            urllib.request.urlopen(server.url() + "/broken")
+        assert failed.value.code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert (
+            json.loads(failed.value.read())[ErrorKey.ERROR]
+            == "RuntimeError: the answer file is broken"
+        )
+        with urllib.request.urlopen(server.url() + "/fine") as answer:
+            assert json.loads(answer.read()) == {"fine": True}
+
+
 def test_the_answerer_refuses_before_routing():
     answerer = RequestAnswerer(router=Router(), policy=OriginPolicy())
     assert (
