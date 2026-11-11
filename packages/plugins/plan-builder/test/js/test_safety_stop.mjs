@@ -42,3 +42,12 @@ test('settling a stop never hides the stop of a later run', () => {
   assert.equal(banner.state(stopped(true)), SafetyBannerState.ACKNOWLEDGED);
   assert.equal(banner.state(stopped(false)), SafetyBannerState.VIOLATED);
 });
+
+test('the banner says how the limit was broken, as the run log wrote it', () => {
+  const constraint = 'left arm joint velocity: tracy/left_shoulder_pan_joint moved at 0.230 rad/s, faster than its limit 0.200 rad/s';
+  const run = {
+    [RunStatusKey.STATE]: RunState.SAFETY_STOPPED,
+    [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: constraint, [SafetyStopKey.ACKNOWLEDGED]: false },
+  };
+  assert.equal(new SafetyStopBanner().message(run), `Safety constraint violated: ${constraint}`);
+});

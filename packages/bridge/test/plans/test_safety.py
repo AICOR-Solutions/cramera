@@ -160,15 +160,35 @@ def test_the_run_events_tell_which_step_the_safety_stop_ended(stopped_run):
     assert watched.observation is MonitorObservation.HOLDS
     assert pick == [StepState.PENDING, StepState.RUNNING, StepState.FAILED]
     assert stop == RunEvent(
-        kind=RunEventKind.SAFETY_STOP, step="step_2", constraint=LOW_WORKSPACE.label
+        kind=RunEventKind.SAFETY_STOP,
+        step="step_2",
+        constraint=f"{LOW_WORKSPACE.label}: {stopped_run.violation.violation}",
     )
 
 
+def test_the_safety_stop_says_how_far_the_tool_left_the_box(stopped_run):
+    """
+    The plan builder's banner shows the stop's constraint as the run log wrote it.
+    """
+    [stop] = [
+        entry
+        for entry in stopped_run.demo.run_log.entries
+        if isinstance(entry, SafetyStopped)
+    ]
+    assert stop.constraint.startswith(f"{LOW_WORKSPACE.label}: ")
+    assert "mm past the box's lower z bound" in stop.constraint
+    assert stop.constraint in stop.line()
+
+
 def test_a_demos_safety_stop_is_reported_as_the_line_the_plan_builder_reads(capsys):
+    stopped = (
+        f"{LOW_WORKSPACE.label}: tracy/left_tool_frame is 20.0 mm past the box's "
+        "lower z bound: z=0.200 m against 0.220 m in tracy/base_footprint"
+    )
     log = RunLog(stream=io.StringIO(), listeners=[PlanDemoCommand.report_safety_stop])
-    log.write(SafetyStopped(constraint=LOW_WORKSPACE.label, step="step_2"))
+    log.write(SafetyStopped(constraint=stopped, step="step_2"))
     assert SafetyStop.from_output(capsys.readouterr().out) == SafetyStop(
-        constraint=LOW_WORKSPACE.label
+        constraint=stopped
     )
 
 

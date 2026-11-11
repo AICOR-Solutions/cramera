@@ -45,6 +45,7 @@ from cramera_protocol.plan_builder import (
     DemoOption,
     PlanDocument,
     RobotPosture,
+    SafetyStop,
 )
 from cramera_protocol.geometry import AxisAlignedBox
 from cramera_protocol.robot_profile import ArmWorkspace, ExecutorKind, SafetyLimits
@@ -387,7 +388,7 @@ def test_a_plan_runs_on_the_real_robot_and_drives_its_grippers_through_their_dri
 
 @needs_tracy
 def test_giskard_stops_a_real_run_that_breaks_a_safety_limit(
-    locations, giskard_simulating_the_arms, node
+    locations, giskard_simulating_the_arms, node, capsys
 ):
     """
     Giskard's simulated Tracy stands with its arms stretched out beside the table, far
@@ -403,6 +404,9 @@ def test_giskard_stops_a_real_run_that_breaks_a_safety_limit(
         command.main([DemoOption.PORT, "0", DemoOption.EXECUTOR, ExecutorKind.REAL])
 
     assert violated.value.constraint == TRACY_SAFETY.workspaces[0].label
+    assert SafetyStop.from_output(capsys.readouterr().out) == SafetyStop(
+        constraint=f"{violated.value.constraint}: {violated.value.violation}"
+    )
 
 
 @needs_tracy

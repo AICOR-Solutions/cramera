@@ -404,7 +404,10 @@ class AttemptProgress(TickingExecutorExtension):
         )
         if stop is None:
             return
-        constraint = stop.create_exception().constraint
+        # the violation the node kept as it cancelled the motion, or, where it could
+        # not keep one, as the monitors observing it describe it now
+        violation = stop.violation or stop.create_exception()
+        constraint = f"{violation.constraint}: {violation.violation}"
         # the steps run one after another, so the first that did not succeed was stopped
         attempted = next(
             attempted
