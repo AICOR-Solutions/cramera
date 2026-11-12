@@ -52,6 +52,17 @@ export class FlowRequest {
 }
 
 /**
+ * How long, in milliseconds, the plan builder may not answer before the status says that
+ * the platform may have stopped and how to start it.
+ */
+export const UNANSWERED_ADVICE_AFTER = 10000;
+
+/**
+ * What the status adds once the plan builder did not answer for a while.
+ */
+const START_ADVICE = 'The platform may have stopped: run ./aicor start in its folder.';
+
+/**
  * What decides the status: the page's state at one moment.
  */
 export class FlowFacts {
@@ -60,6 +71,7 @@ export class FlowFacts {
    *   (whether the run on the robot moves the real robot), `live` (whether a run's world
    *   is published), `request` (the `FlowRequest` waited for, or null), `stopping`,
    *   `unanswered` (why the plan builder did not answer the latest poll, or null),
+   *   `unansweredFor` (how long, in milliseconds, it has not answered),
    *   `safety` (a `SafetyBannerState`), `revalidate` (whether an acknowledged stop's
    *   plan needs a new validation before it restarts), `outcome` (`{tone, text}` of the
    *   latest step, or null) and `missing` (the CRAM packages the workspace lacks).
@@ -72,6 +84,7 @@ export class FlowFacts {
     this.request = parts.request ?? null;
     this.stopping = parts.stopping ?? false;
     this.unanswered = parts.unanswered ?? null;
+    this.unansweredFor = parts.unansweredFor ?? 0;
     this.safety = parts.safety ?? SafetyBannerState.HIDDEN;
     this.revalidate = parts.revalidate ?? false;
     this.outcome = parts.outcome ?? null;
@@ -159,7 +172,8 @@ export function flowStatus(facts) {
   const staged = facts.run[RunStatusKey.MODE] === RunMode.STAGE;
   if (facts.unanswered !== null) {
     const reminder = facts.realRun() && [RunState.RUNNING, RunState.SAVING].includes(state) ? ` ${EMERGENCY_STOP}` : '';
-    return new FlowStatus(Tone.WARNING, `The plan builder does not answer (${facts.unanswered}); retrying.${reminder}`);
+    const advice = facts.unansweredFor >= UNANSWERED_ADVICE_AFTER ? ` ${START_ADVICE}` : '';
+    return new FlowStatus(Tone.WARNING, `The plan builder does not answer (${facts.unanswered}); retrying.${advice}${reminder}`);
   }
   if (state === RunState.RUNNING && !staged) return runningStatus(facts);
   if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, 'Run over, the robot holds. Saving the run\'s record…', 'saving');

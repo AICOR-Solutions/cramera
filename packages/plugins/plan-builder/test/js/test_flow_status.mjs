@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PlanStepKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from 'cramera-viewer/protocol.js';
-import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
+import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, UNANSWERED_ADVICE_AFTER, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RunProgress } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { SafetyBannerState } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 
@@ -84,6 +84,13 @@ test('a safety stop comes before everything else, then its acknowledgement says 
   assert.equal(acknowledged.tone, Tone.WARNING);
   assert.equal(acknowledged.text, 'Safety stop acknowledged: validate the plan again, then restart or abort it.');
   assert.equal(flowStatus(facts({ safety: SafetyBannerState.ACKNOWLEDGED })).text, 'Safety stop acknowledged: restart the plan or abort it.');
+});
+
+test('a plan builder silent for ten seconds says the platform may have stopped and how to start it', () => {
+  const lately = flowStatus(facts({ unanswered: 'Failed to fetch', unansweredFor: UNANSWERED_ADVICE_AFTER - 1 }));
+  assert.equal(lately.text, 'The plan builder does not answer (Failed to fetch); retrying.');
+  const long = flowStatus(facts({ unanswered: 'Failed to fetch', unansweredFor: UNANSWERED_ADVICE_AFTER, run: realRun(RunState.RUNNING), real: true }));
+  assert.equal(long.text, `The plan builder does not answer (Failed to fetch); retrying. The platform may have stopped: run ./aicor start in its folder. ${EMERGENCY_STOP}`);
 });
 
 test('a plan builder that does not answer is a warning above the run it may have lost', () => {

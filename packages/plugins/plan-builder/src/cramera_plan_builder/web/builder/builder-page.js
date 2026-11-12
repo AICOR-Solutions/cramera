@@ -76,6 +76,13 @@ import { REASON_TEXTS, StepsView } from './steps-view.js';
 export const POLL_INTERVAL = 1000;
 
 /**
+ * The longest wait, in milliseconds, between two polls of a plan builder that does not
+ * answer: each poll it did not answer doubles the wait, from `POLL_INTERVAL` on, and
+ * nothing else is asked of it meanwhile.
+ */
+export const UNANSWERED_POLL_LIMIT = 5000;
+
+/**
  * How far, in metres, a live object may lie from its pose in the plan before the scene
  * counts as changed since the plan's validation.
  */
@@ -486,6 +493,20 @@ export class BuilderPage {
    * @type {string|null}
    */
   #unanswered = null;
+
+  /**
+   * Since when, by the environment's clock, the plan builder has not answered, or null
+   * while it answers.
+   * @type {number|null}
+   */
+  #unansweredSince = null;
+
+  /**
+   * When, by the environment's clock, a plan builder that does not answer is polled
+   * next, and the wait after that poll, in milliseconds.
+   * @type {{at: number, wait: number}}
+   */
+  #retry = { at: 0, wait: 0 };
 
   /**
    * How far the page is, for people and for tools such as the screenshot command.
@@ -1212,14 +1233,24 @@ export class BuilderPage {
    */
   async #poll() {
     if (this.#polled || !this.state) return;
+    if (this.#unanswered !== null && this.#environment.clock() < this.#retry.at) {
+      this.#showFlowStatus();
+      return;
+    }
     this.#polled = true;
     const run = await this.#environment.api.runStatus().then(
       (answer) => {
         this.#unanswered = null;
+        this.#unansweredSince = null;
+        this.#retry = { at: 0, wait: 0 };
         return answer;
       },
       (error) => {
+        const now = this.#environment.clock();
         this.#unanswered = error.message;
+        this.#unansweredSince ??= now;
+        const wait = Math.min(Math.max(2 * this.#retry.wait, POLL_INTERVAL), UNANSWERED_POLL_LIMIT);
+        this.#retry = { at: now + wait, wait };
         return this.#run;
       },
     );
@@ -1284,7 +1315,7 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once the live world answered.
    */
   async #follow() {
-    if (this.#followed) return;
+    if (this.#followed || this.#unanswered !== null) return;
     if (!this.#world.published) return this.#followPosture();
     this.#followed = true;
     const live = this.#live;
@@ -1475,6 +1506,7 @@ export class BuilderPage {
       request: this.#request,
       stopping: this.#stopping,
       unanswered: this.#unanswered,
+      unansweredFor: this.#unansweredSince === null ? 0 : this.#environment.clock() - this.#unansweredSince,
       safety: this.#safetyBanner.state(this.#run),
       revalidate: this.#revalidate(),
       outcome: this.#standingOutcome(),

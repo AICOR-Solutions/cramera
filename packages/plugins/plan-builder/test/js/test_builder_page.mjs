@@ -55,7 +55,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1713,7 +1713,7 @@ test('stopping says so until the run ended, and a stop that fails says why', asy
 });
 
 test('a plan builder that stops answering is shown until it answers again', async () => {
-  const { root, api, timer } = await openPage();
+  const { root, api, timer, clock } = await openPage();
   byAction(root, PlanAction.SIMULATE)[0].click();
   await settled();
   const runStatus = api.runStatus.bind(api);
@@ -1724,9 +1724,51 @@ test('a plan builder that stops answering is shown until it answers again', asyn
   const runState = () => headline(root);
   assert.match(runState(), /plan builder does not answer.*Failed to fetch/);
   api.runStatus = runStatus;
+  clock.now += POLL_INTERVAL;
   await timer.tick();
   assert.match(runState(), /^Simulation \(the real robot does not move\): preparing the run…/);
   assert.doesNotMatch(runState(), /does not answer/);
+});
+
+test('a plan builder silent for a while is asked less often, says to start the platform, and is followed closely again once it answers', async () => {
+  const { root, api, timer, clock } = await openPage();
+  const runStatus = api.runStatus.bind(api);
+  const posture = api.posture.bind(api);
+  const asked = { runs: 0, postures: 0 };
+  api.runStatus = async () => {
+    asked.runs += 1;
+    throw new TypeError('Failed to fetch');
+  };
+  api.posture = async () => {
+    asked.postures += 1;
+    throw new TypeError('Failed to fetch');
+  };
+  const passSeconds = async (seconds) => {
+    for (let second = 0; second < seconds; second += 1) {
+      clock.now += POLL_INTERVAL;
+      for (let tick = 0; tick < POLL_INTERVAL / PollInterval.STATE; tick += 1) await timer.tickEvery(PollInterval.STATE);
+      await timer.tickEvery(POLL_INTERVAL);
+    }
+  };
+  await passSeconds(5);
+  assert.match(headline(root), /^The plan builder does not answer \(Failed to fetch\); retrying\.$/);
+  await passSeconds(15);
+  assert.match(headline(root), /The platform may have stopped: run \.\/aicor start in its folder\./);
+  assert.ok(asked.runs <= 8, `asked for the run ${asked.runs} times in 20 s`);
+  assert.ok(asked.postures <= 10, `asked for the posture ${asked.postures} times in 20 s`);
+  api.runStatus = runStatus;
+  api.posture = posture;
+  await passSeconds(6);
+  assert.doesNotMatch(headline(root), /does not answer/);
+  const answered = asked.postures;
+  let postures = 0;
+  api.posture = async () => {
+    postures += 1;
+    return posture();
+  };
+  await timer.tickEvery(PollInterval.STATE);
+  assert.equal(postures, 1);
+  assert.equal(asked.postures, answered);
 });
 
 test('a run on the real robot restarts after its safety stop only once the plan passed a new validation', async () => {
