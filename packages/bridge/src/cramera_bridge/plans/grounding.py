@@ -18,13 +18,19 @@ import numpy as np
 from typing_extensions import Any, Dict, List, Optional
 
 from coraplex.perception import PerceptionInterface
+from coraplex.querying.predicates import GripperHolds
+from coraplex.robot_plans.actions.core.placing import PlaceAction
 from coraplex.plans.validation import (
     FailureCause,
     PlanValidation,
     StepCheck,
     ValidationVerdict,
 )
-from cramera_bridge.exceptions import NoArmCarriesObject, PlacementNotFound
+from cramera_bridge.exceptions import (
+    NoArmCarriesObject,
+    PlaceBeforePick,
+    PlacementNotFound,
+)
 from cramera_bridge.geometry import NumericPose
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
@@ -369,6 +375,18 @@ class PlanGrounding:
                 grounded.append(GroundedStep(step=steps[position]))
                 position += 1
                 continue
+            not_held = self.find_place_before_pick(steps[position])
+            if not_held is not None:
+                grounded.append(
+                    GroundedStep(
+                        step=steps[position],
+                        check=StepCheck(
+                            verdict=ValidationVerdict.FAILED, failure=not_held
+                        ),
+                    )
+                )
+                position += 1
+                continue
             carried = self.carried_steps(steps, position)
             if len(self.arms_to_try(steps[position])) > 1:
                 grounded.extend(self.ground_with_an_arm(carried))
@@ -377,6 +395,25 @@ class PlanGrounding:
                 carried = carried[:1]
             position += len(carried)
         return grounded
+
+    def find_place_before_pick(self, step: PlanStep) -> Optional[PlaceBeforePick]:
+        """
+        :param step: The next step of the performing robot, not carried through by an
+            arm a step before it was given.
+        :return: Why the step fails when it puts down an object of the plan that no
+            arm of the copy holds, since no step before it picked the object up; None
+            otherwise.
+        """
+        if not issubclass(self.actions.named(step.action).action_class, PlaceAction):
+            return None
+        arguments = self.arguments(step)
+        body = arguments.acted_on()
+        if body is None or any(
+            GripperHolds(arm.end_effector, body)()
+            for arm in self.copied_context.robot.all_arms
+        ):
+            return None
+        return PlaceBeforePick(arguments.object_identifier())
 
     def arguments(self, step: PlanStep) -> StepArguments:
         """

@@ -319,6 +319,24 @@ def test_a_cube_both_arms_reach_is_picked_with_the_nearer_one(pick_and_place):
     assert report.steps[1].arm == Arms.RIGHT.name.lower()
 
 
+def test_a_place_before_any_pick_fails_saying_a_pick_must_come_first(pick_and_place):
+    [robot] = pick_and_place.robots
+    park, pick, place, park_again = robot.steps
+    plan = replace(
+        pick_and_place,
+        robots=[replace(robot, steps=[park, place, pick, park_again])],
+    )
+
+    report = validated(plan)
+
+    placing = report.steps[1]
+    assert placing.step == place.identifier
+    assert placing.verdict is StepVerdict.FAILED
+    assert "red cube" in placing.detail
+    assert "Pick" in placing.detail
+    assert [step.verdict for step in report.steps[2:]] == [StepVerdict.UNCHECKED] * 2
+
+
 def test_validating_moves_nothing_of_the_twin(pick_and_place):
     demo = PlannedTaskDemo.of_document(DemoDocument(plan=pick_and_place), port=0)
     world = demo.build_world()

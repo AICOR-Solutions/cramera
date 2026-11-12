@@ -1282,6 +1282,29 @@ class NoFreeSpotInZone(PlacementNotFound):
 
 
 @dataclass
+class PlaceBeforePick(PlanError):
+    """
+    A step putting down an object that no arm holds when the step starts, since no step
+    before it picks the object up.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object to put down.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        shown = self.object_identifier.replace("_", " ")
+        return (
+            f"No arm holds the {shown} when this step starts: put a Pick of the "
+            f"{shown} before it."
+        )
+
+
+@dataclass
 class PlaceTaken(PlacementNotFound):
     """
     A pose to put an object down at where another object of the plan stands, or so
