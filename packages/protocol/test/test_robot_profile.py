@@ -21,6 +21,7 @@ from cramera_protocol.robot_profile import (
     PerceptionSettingsKey,
     RobotProfile,
     RobotProfileKey,
+    RuntimeCheck,
     SafetyLimits,
     SafetyLimitsKey,
     Zone,
@@ -209,3 +210,27 @@ def test_a_profile_says_how_long_its_robot_s_perception_may_take_to_answer():
 
 def test_a_profile_without_perception_settings_waits_the_default_time(profile_file):
     assert RobotProfile.from_file(profile_file).perception == PerceptionSettings()
+
+
+def test_a_profile_says_how_a_run_treats_what_it_perceives_before_a_step():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "tracy",
+            RobotProfileKey.LABEL: "Tracy",
+            RobotProfileKey.PERCEPTION: {
+                PerceptionSettingsKey.RUNTIME_CHECK: RuntimeCheck.LENIENT.value
+            },
+        }
+    )
+
+    assert profile.perception.runtime_check is RuntimeCheck.LENIENT
+    assert RobotProfile.from_json(profile.to_json()) == profile
+
+
+def test_a_profile_without_a_runtime_check_holds_its_runs_to_the_strict_one(
+    profile_file,
+):
+    assert (
+        RobotProfile.from_file(profile_file).perception.runtime_check
+        is RuntimeCheck.STRICT
+    )

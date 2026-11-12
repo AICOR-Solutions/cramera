@@ -345,6 +345,37 @@ class PerceptionSettingsKey(StrEnum):
     How long the robot's perception may take to answer a query.
     """
 
+    RUNTIME_CHECK = "runtimeCheck"
+    """
+    How a run treats what it perceives of a step's objects before the step moves.
+    """
+
+
+class RuntimeCheck(StrEnum):
+    """
+    How a run treats what it perceives of the objects a step expects in place, around
+    where the plan was grounded with them, before the step moves. Neither touches the
+    safety limits, the collision avoidance or the validation before a run.
+    """
+
+    STRICT = "strict"
+    """
+    An object found more than 2 cm from where the plan was grounded with it, or not
+    found there, is detected again on the table and the step grounded anew where it
+    lies; an object found nowhere, or a perception that does not answer, fails the
+    attempt.
+    """
+
+    LENIENT = "lenient"
+    """
+    For first tests on a real robot: an object found anywhere around where the plan was
+    grounded with it is acted on where it was found; one found elsewhere on the table
+    grounds the step anew as :attr:`STRICT` does; one found nowhere, or a perception
+    that does not answer, leaves the step acting where the plan was grounded with the
+    object, which the run log says. A robot whose camera sees the table without turning
+    does not detect the object once more before the final approach of a grasp.
+    """
+
 
 @dataclass(kw_only=True)
 class PerceptionSettings(JsonDocument):
@@ -358,6 +389,13 @@ class PerceptionSettings(JsonDocument):
     """
     How long, in seconds, a scan, a validation or a run waits for the pipeline to
     answer a query before the query fails.
+    """
+
+    runtime_check: RuntimeCheck = document_field(
+        PerceptionSettingsKey.RUNTIME_CHECK, default=RuntimeCheck.STRICT
+    )
+    """
+    How a run treats what it perceives of a step's objects before the step moves.
     """
 
 
