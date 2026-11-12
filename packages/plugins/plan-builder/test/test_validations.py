@@ -82,3 +82,41 @@ def test_a_failed_validation_closes_the_gate(plan):
     gate.record(plan, report_of(StepVerdict.FAILED))
 
     assert not gate.admits(plan)
+
+
+def test_a_run_closes_the_gate(plan):
+    gate = ValidationGate()
+    gate.record(plan, report_of(StepVerdict.VALID))
+    gate.close()
+
+    assert not gate.admits(plan)
+
+
+def test_a_run_refused_before_anything_moved_keeps_the_validation(plan):
+    gate = ValidationGate()
+    gate.record(plan, report_of(StepVerdict.VALID))
+    refused = []
+    gate.close(kept_if=lambda: bool(refused))
+
+    assert not gate.admits(plan)
+    refused.append(True)
+    assert gate.admits(plan)
+    assert not gate.admits(replace(plan, task="something else"))
+
+
+def test_the_validation_kept_passes_on_to_the_next_run_only_if_that_is_refused(plan):
+    gate = ValidationGate()
+    gate.record(plan, report_of(StepVerdict.VALID))
+    gate.close(kept_if=lambda: True)
+    gate.close(kept_if=lambda: False)
+
+    assert not gate.admits(plan)
+
+
+def test_a_validation_after_the_refused_run_replaces_the_kept_one(plan):
+    gate = ValidationGate()
+    gate.record(plan, report_of(StepVerdict.VALID))
+    gate.close(kept_if=lambda: True)
+    gate.record(plan, report_of(StepVerdict.FAILED))
+
+    assert not gate.admits(plan)

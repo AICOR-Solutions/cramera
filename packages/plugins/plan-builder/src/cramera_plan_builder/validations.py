@@ -11,7 +11,7 @@ import threading
 import time
 from dataclasses import dataclass, field, replace
 
-from typing_extensions import Optional
+from typing_extensions import Callable, Optional
 
 from cramera_plan_builder.bridge_processes import BridgeModule, BridgeProcess
 from cramera_plan_builder.exceptions import PlanBuilderError, ValidationFailed
@@ -63,9 +63,20 @@ class ValidationGate:
     validation failed or none ran.
     """
 
+    kept: Optional[str] = None
+    """
+    The JSON text of the plan whose passed validation the run that closed the gate
+    last took away, which it gives back once it was refused before anything moved.
+    """
+
+    kept_if: Callable[[], bool] = lambda: False
+    """
+    Whether the run that closed the gate last was refused before anything moved.
+    """
+
     lock: threading.Lock = field(default_factory=threading.Lock)
     """
-    Guards :attr:`validated`.
+    Guards :attr:`validated`, :attr:`kept` and :attr:`kept_if`.
     """
 
     def record(self, plan: PlanDocument, report: ValidationReport) -> None:
@@ -75,6 +86,7 @@ class ValidationGate:
         """
         with self.lock:
             self.validated = self.serialize(plan) if report.passed else None
+            self.kept = None
 
     def admits(self, plan: PlanDocument) -> bool:
         """
@@ -82,14 +94,31 @@ class ValidationGate:
         :return: Whether it is the plan whose validation passed last, unchanged.
         """
         with self.lock:
-            return self.validated is not None and self.validated == self.serialize(plan)
+            admitted = self.admitted()
+        return admitted is not None and admitted == self.serialize(plan)
 
-    def close(self) -> None:
+    def admitted(self) -> Optional[str]:
+        """
+        :return: The JSON text of the plan admitted now: the one whose validation passed
+            last, unless a run took it away and was not refused before anything moved;
+            the caller holds :attr:`lock`.
+        """
+        if self.validated is not None:
+            return self.validated
+        return self.kept if self.kept is not None and self.kept_if() else None
+
+    def close(self, kept_if: Callable[[], bool] = lambda: False) -> None:
         """
         Admit no plan until the next validation passes, as once the robot moved the
-        latest validation no longer describes where it stands.
+        latest validation no longer describes where it stands; a run refused before
+        anything moved gives the validation back.
+
+        :param kept_if: Whether the run closing the gate was refused before anything
+            moved, asked whenever a plan is to be admitted.
         """
         with self.lock:
+            self.kept = self.admitted()
+            self.kept_if = kept_if
             self.validated = None
 
     @staticmethod

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field, replace
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from typing_extensions import Iterator, List
+from typing_extensions import Iterator, List, Optional
 
 from cramera.locations import DataLocations
 from cramera_bridge.database.native_plans import NativePlans
@@ -248,6 +248,68 @@ def test_a_run_stores_its_plans_only_once_the_robot_is_released(locations):
 
     assert demo.seen_at_saving == [(False, 0)]
     assert stored_plan_count(locations) == 1
+
+
+REFUSAL = "The real robot is not ready: the arm watchdog is not running."
+"""
+Why the stand-in of a real robot refuses a run.
+"""
+
+
+@dataclass
+class RefusingExecution(KinematicExecution):
+    """
+    An execution whose robot's check refuses the run before anything is attached.
+    """
+
+    @contextmanager
+    def attached_when_ready(self) -> Iterator[Optional[str]]:
+        yield REFUSAL
+
+
+@dataclass
+class RefusalNotingTorsoDemo(TorsoDemo):
+    """
+    The torso demo noting the refusals it is told of and whether it recorded anything.
+    """
+
+    execution: RefusingExecution = field(default_factory=RefusingExecution)
+
+    refusals: List[str] = field(default_factory=list)
+    """
+    The refusals the demo was told of, in order.
+    """
+
+    recorded: bool = False
+    """
+    Whether the demo began to build its world and perform its plans.
+    """
+
+    def on_refused(self, refusal: str) -> None:
+        self.refusals.append(refusal)
+
+    def record(self, name: str):
+        self.recorded = True
+        return super().record(name)
+
+
+def test_a_run_its_robot_refused_performs_nothing_saves_nothing_and_says_why(
+    locations,
+):
+    demo = torso_demo(locations, RefusalNotingTorsoDemo)
+
+    assert demo.run() is None
+    assert demo.refusals == [REFUSAL]
+    assert not demo.recorded
+    assert not (locations.local_scenes / SCENE_NAME).exists()
+
+
+def test_an_execution_that_attaches_says_it_is_ready():
+    execution = WatchedExecution()
+
+    with execution.attached_when_ready() as refusal:
+        assert refusal is None
+        assert execution.is_attached
 
 
 def test_a_saved_task_runs_again_as_a_further_run(locations):

@@ -333,6 +333,18 @@ def test_a_run_whose_robot_was_released_reports_saving_its_record(demo):
     assert demo.run_log.events() == [RunEvent(kind=RunEventKind.RECORD_SAVING)]
 
 
+def test_a_run_its_robot_refused_reports_why_in_its_log(demo):
+    stream = io.StringIO()
+    demo.run_log = RunLog(stream=stream)
+
+    demo.on_refused("The arm watchdog is not running.")
+
+    assert demo.run_log.events() == [
+        RunEvent(kind=RunEventKind.REFUSED, reason="The arm watchdog is not running.")
+    ]
+    assert "The arm watchdog is not running." in stream.getvalue()
+
+
 def test_a_stopped_stage_restores_the_signal_handlers(demo):
     handlers = {number: signal.getsignal(number) for number in STOP_SIGNALS}
     staged = StagedWorld(demo)

@@ -322,6 +322,25 @@ class RecordSaving(RunLogEntry):
 
 
 @dataclass(frozen=True)
+class RunRefused(RunLogEntry):
+    """
+    The check of the real robot found something missing, so the run ended before it
+    started Giskard or commanded anything.
+    """
+
+    refusal: str
+    """
+    What is missing and what to do, as a person reads it.
+    """
+
+    def line(self) -> str:
+        return self.refusal
+
+    def event(self) -> RunEvent:
+        return RunEvent(kind=RunEventKind.REFUSED, reason=self.refusal)
+
+
+@dataclass(frozen=True)
 class SafetyStopped(RunLogEntry):
     """
     A motion broke a safety limit, which ended the run.

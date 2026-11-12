@@ -597,11 +597,25 @@ def test_giskard_stops_a_real_run_that_breaks_a_safety_limit(
 
 @needs_tracy
 def test_a_real_run_is_refused_while_a_gripper_driver_is_missing(
-    locations, giskard_simulating_the_arms
+    locations, giskard_simulating_the_arms, capsys
 ):
     command = PlanDemoCommand(DemoDocument(plan=PlanDocument.from_json(GRIPPER_PLAN)))
-    with pytest.raises(RealRobotNotReady):
-        command.main([DemoOption.PORT, "0", DemoOption.EXECUTOR, ExecutorKind.REAL])
+
+    saved = command.main([DemoOption.PORT, "0", DemoOption.EXECUTOR, ExecutorKind.REAL])
+
+    assert saved is None
+    output = capsys.readouterr().out
+    assert "gripper action server present" in output
+    assert '"kind": "refused"' in output
+    assert "Traceback" not in output
+
+
+@needs_tracy
+def test_attaching_to_a_robot_that_is_not_ready_raises_before_anything_runs(
+    giskard_simulating_the_arms,
+):
+    with pytest.raises(RealRobotNotReady), RealExecution().attached():
+        pytest.fail("the block ran although the robot was not ready")
 
 
 @needs_tracy

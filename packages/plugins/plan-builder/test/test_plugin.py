@@ -922,6 +922,36 @@ def real_run_plugin(output, workspace_loader, tmp_path) -> PlanBuilderPlugin:
     )
 
 
+def test_a_real_run_refused_before_anything_moved_keeps_the_plans_validation(
+    serve, output, workspace_loader, tmp_path, plan
+):
+    plugin = validating_plugin(
+        output, workspace_loader, real_robot_profile(tmp_path), RobotConnection.REAL
+    )
+    answer = serve(
+        replace(
+            plugin, template=DemoTemplate(DATASET / "templates" / "refused_demo.py")
+        )
+    )
+    validate(answer, plan)
+
+    assert run_on_the_robot(answer, plan) == HTTPStatus.OK
+    deadline = time.monotonic() + 10.0
+    while plugin_run_state(answer) is not RunState.REFUSED:
+        assert time.monotonic() < deadline
+        time.sleep(0.05)
+
+    assert run_on_the_robot(answer, plan) == HTTPStatus.OK
+
+
+def plugin_run_state(answer) -> RunState:
+    """
+    :return: The state of the plan builder's demo started last.
+    """
+    status = send(answer, HttpMethod.GET, PlanBuilderRoute.RUN)
+    return RunStatus.from_json(json.loads(status.body)).state
+
+
 def refused_validation(answer, plan):
     """
     :return: The answer to a validation of the plan the plan builder refused.

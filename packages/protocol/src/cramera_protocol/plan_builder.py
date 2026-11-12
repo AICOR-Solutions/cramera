@@ -2843,6 +2843,12 @@ class RunState(StrEnum):
     The demo was cancelled because a motion broke a safety limit; nothing resumes it.
     """
 
+    REFUSED = "refused"
+    """
+    A run on the real robot ended before anything moved, as its check of the robot
+    found something missing; the plan keeps its validation.
+    """
+
 
 class RunRequestKey(StrEnum):
     """
@@ -2975,6 +2981,13 @@ class RunEventKind(StrEnum):
     """
     An object a step expects in place was found elsewhere before the step moved
     anything, and the step and the ones after it were grounded anew where it lies.
+    """
+
+    REFUSED = "refused"
+    """
+    The check of the real robot before the run found something missing, so the run
+    ends before it started Giskard or commanded anything; :attr:`RunEvent.reason` says
+    what is missing and what to do.
     """
 
 
@@ -3124,7 +3137,7 @@ class RunEvent(JsonDocument):
 
     reason: Optional[str] = document_field(RunEventKey.REASON, default=None)
     """
-    For a step that is retried or failed: why, as a person reads it.
+    For a step that is retried or failed, or a refused run: why, as a person reads it.
     """
 
     next_attempt: Optional[str] = document_field(RunEventKey.NEXT_ATTEMPT, default=None)

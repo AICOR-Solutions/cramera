@@ -305,7 +305,15 @@ class RobotTaskDemo(ABC):
         detached, and before the plans it performed are stored, which takes long.
         """
 
-    def run(self) -> SavedScene:
+    def on_refused(self, refusal: str) -> None:
+        """
+        Called when :attr:`execution` found its robot not ready, before it reached the
+        robot; the run ends without building its world or performing anything.
+
+        :param refusal: What is missing and what to do, as a person reads it.
+        """
+
+    def run(self) -> Optional[SavedScene]:
         """
         Perform the task while it is published and recorded, measure the outcome and
         save the recording with its measurements.
@@ -314,7 +322,8 @@ class RobotTaskDemo(ABC):
         be held at the first query it asks. The world is built while :attr:`execution`
         reaches the robot. The plans it performed are stored once the robot is released.
 
-        :return: The saved bundle.
+        :return: The saved bundle; None when the robot was not ready, so nothing was
+            performed or saved.
         :raises InvalidSceneName: When the name is no bundle name.
         :raises SceneNameTaken: When the local scenes directory already holds the name
             and the run does not :attr:`adds_a_run`.
@@ -323,7 +332,10 @@ class RobotTaskDemo(ABC):
         """
         name = self.name_to_record_under()
         self.stepper = None
-        with self.execution.attached():
+        with self.execution.attached_when_ready() as refusal:
+            if refusal is not None:
+                self.on_refused(refusal)
+                return None
             pending, metrics = self.record(name)
         self.on_record_saving()
         pending.store()
@@ -562,10 +574,10 @@ class TaskCommand:
     The demo.
     """
 
-    def main(self, arguments: Sequence[str]) -> SavedScene:
+    def main(self, arguments: Sequence[str]) -> Optional[SavedScene]:
         """
         :param arguments: The command's arguments.
-        :return: The saved or published bundle.
+        :return: The saved or published bundle; None for a run its robot refused.
         """
         parser = ArgumentParser(description=self.demo.task)
         parser.add_argument(

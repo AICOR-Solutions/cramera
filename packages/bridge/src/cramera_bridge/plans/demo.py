@@ -31,7 +31,12 @@ from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
 from cramera_bridge.plans.detected_objects import DetectedObjects
 from cramera_bridge.plans.grounding import PlanGrounding
-from cramera_bridge.plans.run_log import RecordSaving, RunLog, SafetyWatched
+from cramera_bridge.plans.run_log import (
+    RecordSaving,
+    RunLog,
+    RunRefused,
+    SafetyWatched,
+)
 from cramera_bridge.plans.safety import RobotSafety
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.step_run import AttemptPlan, ScheduledStep, StepRun
@@ -464,6 +469,15 @@ class PlannedTaskDemo(RobotTaskDemo):
         builder shows the run's record being saved rather than the run running.
         """
         self.run_log.write(RecordSaving())
+
+    def on_refused(self, refusal: str) -> None:
+        """
+        Report in the run log that the robot was not ready and nothing moved, so the
+        plan builder shows the refusal rather than a failed run.
+
+        :param refusal: What is missing and what to do, as a person reads it.
+        """
+        self.run_log.write(RunRefused(refusal))
 
     def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """

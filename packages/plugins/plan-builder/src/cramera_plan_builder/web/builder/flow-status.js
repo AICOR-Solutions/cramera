@@ -7,7 +7,7 @@
  * running plan.
  */
 
-import { RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from '../../../protocol.js';
+import { RunEventKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from '../../../protocol.js';
 import { SafetyBannerState } from './safety-stop.js';
 
 /**
@@ -186,6 +186,10 @@ export function runOutcome(run, progress, real) {
   if (state === RunState.STOPPED) return { tone: Tone.WARNING, text: `${name} was stopped.` };
   if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the plan builder could not confirm that the arms stand still and Giskard ended; see Run output. Use the emergency stop now.` };
   if (state === RunState.SAFETY_STOPPED) return { tone: Tone.ERROR, text: `A safety stop ended the run: ${run[RunStatusKey.SAFETY_STOP]?.[SafetyStopKey.CONSTRAINT] ?? 'see Run output'}.` };
+  if (state === RunState.REFUSED) {
+    const refusal = (run[RunStatusKey.EVENTS] ?? []).find((event) => event[RunEventKey.KIND] === RunEventKind.REFUSED)?.[RunEventKey.REASON];
+    return { tone: Tone.WARNING, text: `${refusal ?? 'The real robot is not ready; no motion was started. See Run output.'} The plan is still validated.` };
+  }
   if (state === RunState.SAVE_FAILED) return { tone: Tone.ERROR, text: `Run over, the robot holds, but saving its record failed: ${lastLine(run) || 'see Run output.'}` };
   if (state !== RunState.FAILED) return null;
   const failed = progress.steps().find((step) => step.state === StepState.FAILED);

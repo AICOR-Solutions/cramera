@@ -131,6 +131,18 @@ class PlanExecution(ABC):
         """
         yield
 
+    @contextmanager
+    def attached_when_ready(self) -> Iterator[Optional[str]]:
+        """
+        Reach the robot as :meth:`attached` does, unless its check finds it not ready.
+
+        :return: None while the robot is reached; else why the robot is not ready, as a
+            person reads it, and the block must not perform anything, as nothing
+            reaches the robot.
+        """
+        with self.attached():
+            yield None
+
     def reported_world(self) -> Optional[World]:
         """
         :return: The world as the robot reports it while :meth:`attached`, which the
@@ -434,6 +446,19 @@ class RealExecution(PlanExecution):
     @contextmanager
     def attached(self) -> Iterator[None]:
         """
+        Reach the robot as :meth:`attached_when_ready` does.
+
+        :raises RealRobotNotReady: When the preflight misses a driver the run needs.
+        :raises RealRunTerminated: When SIGTERM ended the block.
+        """
+        with self.attached_when_ready() as refusal:
+            if refusal is not None:
+                raise RealRobotNotReady(refusal)
+            yield
+
+    @contextmanager
+    def attached_when_ready(self) -> Iterator[Optional[str]]:
+        """
         End every Giskard an earlier run of this platform left behind, check the robot's
         drivers, start Giskard and keep the world it serves in step with it while the
         block runs, holding the arms still while no plan runs. When the block ends, or
@@ -441,7 +466,10 @@ class RealExecution(PlanExecution):
         ended; then every arm is commanded zero velocities once more, in case Giskard had
         to be killed.
 
-        :raises RealRobotNotReady: When the preflight misses a driver the run needs.
+        A preflight that misses a driver the run needs refuses the run before Giskard
+        starts and before anything commands the arms, zero velocities included.
+
+        :return: None while the robot is reached; the preflight's refusal otherwise.
         :raises RealRunTerminated: When SIGTERM ended the block.
         """
         with ExitStack() as attached:
@@ -454,7 +482,9 @@ class RealExecution(PlanExecution):
                 self.giskard_script, requires_arm_watchdog=True
             ).check(node)
             if not report.ready:
-                raise RealRobotNotReady(report.to_text())
+                print(report.to_text(), flush=True)
+                yield report.refusal()
+                return
             attached.enter_context(self.ended_by_termination())
             halt = attached.enter_context(ArmHalt().ready(node))
             attached.callback(halt.command)
@@ -468,7 +498,7 @@ class RealExecution(PlanExecution):
             self.ros_node = node
             self.standstill = standstill
             attached.callback(self.detach)
-            yield
+            yield None
 
     @contextmanager
     def ended_by_termination(self) -> Iterator[None]:

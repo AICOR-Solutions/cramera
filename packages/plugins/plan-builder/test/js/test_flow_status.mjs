@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { PlanStepKey, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from 'cramera-viewer/protocol.js';
+import { PlanStepKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from 'cramera-viewer/protocol.js';
 import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RunProgress } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { SafetyBannerState } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
@@ -109,6 +109,14 @@ test('a run that ended says how: a failure gives its reason, from the failed ste
   const stopped = realRun(RunState.SAFETY_STOPPED, [], { [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false } });
   assert.deepEqual(runOutcome(stopped, progressOf(stopped), true), { tone: Tone.ERROR, text: 'A safety stop ended the run: left arm workspace.' });
   assert.equal(runOutcome(realRun(RunState.IDLE), progressOf(realRun(RunState.IDLE)), true), null);
+});
+
+test('a run its robot refused before anything moved says why in one plain line and that the validation holds', () => {
+  const reason = 'The real robot is not ready: the arm watchdog is not running (no heartbeat on cramera/arm_watchdog/heartbeat). No motion was started. Run ./aicor start in the platform\'s folder to start it again, then run the plan again.';
+  const refused = realRun(RunState.REFUSED, [{ kind: RunEventKind.REFUSED, reason }], { [RunStatusKey.LOG]: `[run] ${reason}` });
+  assert.deepEqual(runOutcome(refused, progressOf(refused), true), { tone: Tone.WARNING, text: `${reason} The plan is still validated.` });
+  const silent = realRun(RunState.REFUSED);
+  assert.deepEqual(runOutcome(silent, progressOf(silent), true), { tone: Tone.WARNING, text: 'The real robot is not ready; no motion was started. See Run output. The plan is still validated.' });
 });
 
 test('a stop on the real robot is only said once its halt was confirmed, else it asks for the emergency stop in red', () => {

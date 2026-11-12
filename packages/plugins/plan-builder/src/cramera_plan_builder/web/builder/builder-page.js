@@ -369,6 +369,13 @@ export class BuilderPage {
   #validation = null;
 
   /**
+   * The validation a run on the real robot took away as it started, which it gives
+   * back when its check refused it before anything moved; null otherwise.
+   * @type {{plan: string, report: Object, sceneChanged: boolean}|null}
+   */
+  #validationTaken = null;
+
+  /**
    * What each robot model reaches, by the model's name: its `RobotReach` once the plan
    * builder answered, null while it is asked or when it could not be measured.
    * @type {Map<string, Object|null>}
@@ -1000,7 +1007,10 @@ export class BuilderPage {
     });
     if (!status) return;
     const real = mode === RunMode.ROBOT && this.#robotExecutor() === ExecutorKind.REAL;
-    if (real) this.#validation = null;
+    if (real) {
+      this.#validationTaken = this.#validation;
+      this.#validation = null;
+    }
     this.#safetyBanner.reset();
     this.#runShown = mode !== RunMode.STAGE;
     this.#progressHidden = false;
@@ -1434,6 +1444,8 @@ export class BuilderPage {
    * its output when it failed.
    */
   #noteRunEnd() {
+    if (this.#run[RunStatusKey.STATE] === RunState.REFUSED && this.#validation === null) this.#validation = this.#validationTaken;
+    this.#validationTaken = null;
     const outcome = runOutcome(this.#run, this.#progress(), this.#robotExecutor() === ExecutorKind.REAL);
     if (outcome === null) return;
     this.#outcome = outcome;

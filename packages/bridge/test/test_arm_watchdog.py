@@ -253,3 +253,42 @@ def test_the_check_before_the_platform_starts_leaves_the_arm_watchdog_out():
         ).check(node)
 
     assert missing_watchdog(report) == []
+
+
+def test_a_run_refused_without_the_arm_watchdog_says_so_and_what_to_do():
+    report = PreflightReport(
+        [
+            PreflightCheck(
+                RequirementKind.GISKARD_SCRIPT, GiskardScript.VELOCITY.value, True
+            ),
+            PreflightCheck(
+                RequirementKind.ARM_WATCHDOG, ArmWatchdogTopic.HEARTBEAT.value, False
+            ),
+        ]
+    )
+
+    assert report.refusal() == (
+        "The real robot is not ready: the arm watchdog is not running (no heartbeat "
+        "on cramera/arm_watchdog/heartbeat). No motion was started. Run ./aicor start "
+        "in the platform's folder to start it again, then run the plan again."
+    )
+    assert report.to_text().splitlines()[-1] == (
+        "The real robot is not ready: the arm watchdog is not running (no heartbeat "
+        "on cramera/arm_watchdog/heartbeat)."
+    )
+
+
+def test_a_run_refused_for_a_missing_driver_says_to_start_it():
+    report = PreflightReport(
+        [
+            PreflightCheck(
+                RequirementKind.GRIPPER_ACTION_SERVER, "left_gripper/gripper_cmd", False
+            )
+        ]
+    )
+
+    assert report.refusal() == (
+        "The real robot is not ready: gripper action server present: "
+        "left_gripper/gripper_cmd. No motion was started. Start what is missing "
+        "(docs/real-tracy.md), then run the plan again."
+    )

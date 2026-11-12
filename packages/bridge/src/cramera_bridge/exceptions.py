@@ -1315,13 +1315,13 @@ class RealRobotNotReady(DemoError):
     preflight before Giskard starts.
     """
 
-    report: str
+    refusal: str
     """
-    The preflight's report, a line per requirement.
+    What the preflight missed and what to do, as a person reads it.
     """
 
     def message(self) -> str:
-        return f"The real robot is not ready to run a plan:\n{self.report}"
+        return self.refusal
 
 
 @dataclass

@@ -544,6 +544,8 @@ class PreflightCheck:
         """
         :return: What is missing, as a person reads it.
         """
+        if self.kind is RequirementKind.ARM_WATCHDOG:
+            return f"the arm watchdog is not running (no heartbeat on {self.name})"
         if self.kind is not RequirementKind.NO_OTHER_GISKARD:
             return f"{self.kind}: {self.name}"
         processes = "; ".join(giskard.to_text() for giskard in self.other_giskards)
@@ -580,17 +582,38 @@ class PreflightReport:
         """
         return not self.missing
 
+    def verdict(self) -> str:
+        """
+        :return: Whether a real run can start, with what is missing when it cannot.
+        """
+        if self.ready:
+            return "The real robot is ready."
+        missing = "; ".join(check.missing_text() for check in self.missing)
+        return f"The real robot is not ready: {missing}."
+
     def to_text(self) -> str:
         """
         :return: A line per requirement, then whether a real run can start.
         """
-        missing = "; ".join(check.missing_text() for check in self.missing)
-        verdict = (
-            "The real robot is ready."
-            if self.ready
-            else f"The real robot is not ready: {missing}."
+        return "\n".join([*(check.to_text() for check in self.checks), self.verdict()])
+
+    def refusal(self) -> str:
+        """
+        :return: Why a run was refused before anything moved and what to do, as a
+            person reads it.
+        """
+        kinds = {check.kind for check in self.missing}
+        remedies = []
+        if RequirementKind.ARM_WATCHDOG in kinds:
+            remedies.append(
+                "Run ./aicor start in the platform's folder to start it again"
+            )
+        if kinds - {RequirementKind.ARM_WATCHDOG}:
+            remedies.append("Start what is missing (docs/real-tracy.md)")
+        return (
+            f"{self.verdict()} No motion was started. {'; '.join(remedies)}, "
+            "then run the plan again."
         )
-        return "\n".join([*(check.to_text() for check in self.checks), verdict])
 
 
 @dataclass(frozen=True)

@@ -1645,6 +1645,23 @@ test('while a plan runs only Stop is offered, so nothing replaces the run or val
   assert.equal(scanButton(root).disabled, false);
 });
 
+test('a run on the real robot its check refused before anything moved keeps the validation and says what to do', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  assert.equal(robotRun(root).disabled, true);
+  const reason = 'The real robot is not ready: the arm watchdog is not running. No motion was started. Run ./aicor start in the platform\'s folder to start it again, then run the plan again.';
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.REFUSED, [RunStatusKey.RETURN_CODE]: 0, [RunStatusKey.LOG]: `[run] ${reason}`, [RunStatusKey.EVENTS]: [{ kind: RunEventKind.REFUSED, reason }] };
+  await timer.tick();
+  assert.equal(headline(root), `${reason} The plan is still validated.`);
+  assert.equal(robotRun(root).disabled, false);
+  robotRun(root).click();
+  await settled();
+  assert.deepEqual(api.runs.map((run) => run.overrideValidation), [false, false]);
+});
+
 test('while the run\'s record is saved the page says so, offers only Stop and shows a failed save', async () => {
   const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
   validateButton(root).click();

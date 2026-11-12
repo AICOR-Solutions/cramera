@@ -477,7 +477,8 @@ class PlanBuilderRoutes:
         :raises PlanNotValidated: When the mode needs a validated plan, the plan is not
             the one whose validation passed last and the request does not override it.
             No request overrides the gate of a run on the real robot. A run on the
-            real robot moves it, so the next run needs a new validation.
+            real robot moves it, so the next run needs a new validation, unless the
+            robot's check refused the run before anything moved.
         """
         run = RunRequest.from_json(self.body(request))
         demo = self.runnable(run.plan)
@@ -493,7 +494,7 @@ class PlanBuilderRoutes:
         executor = self.profile.executor_for(run.mode)
         status = self.runner.start(demo, run.mode, executor)
         if executor is ExecutorKind.REAL:
-            self.gate.close()
+            self.gate.close(kept_if=self.runner.current.refused_before_motion)
         return Response.of_json(status)
 
     def answer_run_status(self, request: Request) -> Response:

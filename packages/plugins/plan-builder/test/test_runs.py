@@ -495,6 +495,39 @@ def test_a_record_that_could_not_be_saved_is_reported(tmp_path, demo):
     assert "No space left on device" in ended.log
 
 
+# %% refused before anything moved
+
+
+def test_a_real_run_its_robot_refused_reads_as_refused_before_anything_moved(
+    tmp_path, demo
+):
+    runner = runner_of(tmp_path, "refused_demo.py")
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    ended = wait_for(runner, lambda status: status.return_code is not None)
+
+    assert ended.state is RunState.REFUSED, ended.log
+    assert runner.current.refused_before_motion()
+    runner.stop()
+    assert runner.status().state is RunState.REFUSED
+
+
+@pytest.mark.parametrize("template", ["failing_demo.py", "saved_demo.py"])
+def test_a_run_that_ended_otherwise_was_not_refused(tmp_path, demo, template):
+    runner = runner_of(tmp_path, template)
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    wait_for(runner, lambda status: status.return_code is not None)
+
+    assert not runner.current.refused_before_motion()
+    runner.stop()
+
+
+def test_a_stopped_run_was_not_refused(runner, demo):
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    runner.stop()
+
+    assert not runner.current.refused_before_motion()
+
+
 # %% output
 
 

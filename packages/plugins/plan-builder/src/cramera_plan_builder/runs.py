@@ -419,6 +419,8 @@ class DemoProcess:
             if self.arm_halt is not None and not self.halted:
                 return RunState.HALT_UNCONFIRMED
             return RunState.STOPPED
+        if self.refused_before_motion():
+            return RunState.REFUSED
         if return_code == 0:
             return RunState.FINISHED
         if self.safety_stop() is not None:
@@ -426,6 +428,17 @@ class DemoProcess:
         if self.saves_its_record():
             return RunState.SAVE_FAILED
         return RunState.FAILED
+
+    def refused_before_motion(self) -> bool:
+        """
+        :return: Whether the demo ended on its own once it reported that its robot's
+            check refused the run, which it reports only before it started Giskard or
+            commanded the arms; a demo that was stopped or reported more is not taken
+            for one.
+        """
+        if self.process.poll() is None or self.stopped:
+            return False
+        return [event.kind for event in self.log.events()] == [RunEventKind.REFUSED]
 
     def saves_its_record(self) -> bool:
         """
