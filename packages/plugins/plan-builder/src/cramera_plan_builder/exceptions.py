@@ -815,10 +815,20 @@ class PlanNotValidated(PlanBuilderError):
     The run mode's value.
     """
 
+    real: bool = False
+    """
+    Whether the run moves the real robot.
+    """
+
     def status(self) -> HTTPStatus:
         return HTTPStatus.CONFLICT
 
     def message(self) -> str:
+        if self.real:
+            return (
+                "A run on the real robot needs the plan to pass its validation first: "
+                "press Validate, then run it."
+            )
         return (
             f"A {self.mode!r} run needs the plan to pass its validation first; validate "
             f"the plan as it stands now."

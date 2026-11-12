@@ -483,15 +483,13 @@ class PlanBuilderRoutes:
         """
         run = RunRequest.from_json(self.body(request))
         demo = self.runnable(run.plan)
+        real = self.profile.moves_real_robot(run.mode)
         if (
             run.mode.needs_validation
             and not self.gate.admits(demo.plan)
-            and not (
-                run.override_validation
-                and self.profile.executor_for(run.mode) is not ExecutorKind.REAL
-            )
+            and not (run.override_validation and not real)
         ):
-            raise PlanNotValidated(run.mode.value)
+            raise PlanNotValidated(run.mode.value, real=real)
         executor = self.profile.executor_for(run.mode)
         status = self.runner.start(demo, run.mode, executor)
         if executor is ExecutorKind.REAL:

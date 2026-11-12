@@ -966,6 +966,24 @@ def test_no_request_overrides_the_gate_of_a_run_on_the_real_robot(
     )
 
 
+def test_a_run_on_the_real_robot_is_refused_in_plain_words_until_validated(
+    attached_to_the_real_robot, plan
+):
+    request = RunRequest(plan=plan, mode=RunMode.ROBOT)
+
+    refused = send(
+        attached_to_the_real_robot,
+        HttpMethod.POST,
+        PlanBuilderRoute.RUN,
+        json.dumps(request.to_json()).encode(),
+    )
+
+    assert json.loads(refused.body)[ErrorKey.ERROR] == (
+        "A run on the real robot needs the plan to pass its validation first: "
+        "press Validate, then run it."
+    )
+
+
 def test_a_real_run_after_the_real_run_of_its_validation_cannot_be_forced(
     attached_to_the_real_robot, plan
 ):

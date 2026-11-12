@@ -164,6 +164,17 @@ class ConfiguredProfile:
             )
         return executor
 
+    def moves_real_robot(self, mode: RunMode) -> bool:
+        """
+        :param mode: How a plan is to be run.
+        :return: Whether a run of the mode moves the real robot, as the profile says.
+        """
+        return (
+            self.profile is not None
+            and self.profile.executor_for(mode, mode.default_executor)
+            is ExecutorKind.REAL
+        )
+
     def find_unoffered_steps(self, plan: PlanDocument) -> List[PlanStep]:
         """
         :param plan: A plan.
