@@ -71,6 +71,17 @@ def test_the_configuration_reads_every_option(locations, tmp_path):
     assert configuration.port == 9000 and not configuration.open_browser
 
 
+def test_the_configuration_reads_the_deployments_build_from_the_environment(
+    locations,
+):
+    configuration = ViewerConfiguration.from_arguments(
+        [], locations, {EnvironmentVariable.DEPLOYMENT: "03a7259-20261112-1830"}
+    )
+
+    assert configuration.deployment == "03a7259-20261112-1830"
+    assert ViewerConfiguration.from_arguments([], locations).deployment is None
+
+
 def test_the_lan_option_listens_on_every_address(locations):
     configuration = ViewerConfiguration.from_arguments([Option.LAN], locations)
     assert configuration.host == EVERY_ADDRESS

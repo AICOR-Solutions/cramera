@@ -67,6 +67,17 @@ def test_info_names_the_viewer_and_its_plugins(plugged):
     assert [plugin.navigation for plugin in info.plugins] == [None, None]
 
 
+def test_info_names_the_deployments_build_it_was_given(catalog, locations):
+    application = ViewerApplication(
+        catalog=catalog, locations=locations, deployment="03a7259-20261112-1830"
+    )
+    answerer = RequestAnswerer(router=application.router(), policy=OriginPolicy())
+
+    info = ViewerInfo.from_json(json.loads(get(answerer, ViewerRoute.INFO).body))
+
+    assert info.deployment == "03a7259-20261112-1830"
+
+
 def test_a_page_entry_names_the_plugins_page_as_a_viewer_route():
     plugin = QuestionPlugin(
         entry=PageEntry("Plan Builder", NavigationGroup.BUILDER, "builder.html")

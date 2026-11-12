@@ -32,6 +32,7 @@ from cramera.plugins import PluginLoader
 from cramera.remote_connection import connect, pipe
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera.viewer_options import DEFAULT_PORT, Announcement, Option, Subcommand
+from cramera_protocol.viewer import EnvironmentVariable
 
 logger = logging.getLogger(__name__)
 """
@@ -98,6 +99,12 @@ class ViewerConfiguration:
     Whether the viewer ends once its standard input closes.
     """
 
+    deployment: Optional[str] = None
+    """
+    Which build of the deployment the viewer runs in, from
+    :attr:`EnvironmentVariable.DEPLOYMENT`; None outside a deployment.
+    """
+
     @classmethod
     def from_arguments(
         cls,
@@ -158,6 +165,7 @@ class ViewerConfiguration:
             branding=branding,
             public_origin=public_origin,
             ends_with_input=parsed.lifeline,
+            deployment=(environment or {}).get(EnvironmentVariable.DEPLOYMENT),
         )
 
     def scene_directories(self) -> List[SceneDirectory]:
@@ -184,6 +192,7 @@ class ViewerConfiguration:
             locations=self.locations,
             plugins=PluginLoader().load(),
             branding=self.branding,
+            deployment=self.deployment,
         )
         answerer = RequestAnswerer(router=application.router(), policy=self.policy())
         return HttpServer(

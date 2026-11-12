@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from importlib.metadata import version
 from pathlib import Path
 
-from typing_extensions import List
+from typing_extensions import List, Optional
 
 from cramera.branding import Branding
 from cramera.confinement import ConfinedDirectory
@@ -70,6 +70,11 @@ class ViewerApplication:
     live_relay: LiveRelay = field(default_factory=LiveRelay)
     """
     Reads the live publisher on this machine for pages of other devices.
+    """
+
+    deployment: Optional[str] = None
+    """
+    Which build of the deployment the viewer runs in, or None outside a deployment.
     """
 
     def router(self) -> Router:
@@ -133,6 +138,7 @@ class ViewerApplication:
                 version=version("cramera"),
                 plugins=[plugin.info() for plugin in self.plugins],
                 logo_text=self.branding.text(),
+                deployment=self.deployment,
             )
         )
 
