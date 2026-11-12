@@ -26,12 +26,17 @@ from coraplex.plans.executors import KinematicallySimulatedPlanExecutor, PlanExe
 from coraplex.robot_plans.plan_transformations import DetectWithRoboKudo
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from cramera_bridge.exceptions import StepAbandoned, StepNotGrounded
-from cramera_bridge.execution import KinematicExecution, PERCEPTION_ENGINE_VARIABLE
+from cramera_bridge.execution import (
+    PERCEPTION_ENGINE_VARIABLE,
+    KinematicExecution,
+    StartingPosture,
+)
 from cramera_bridge.geometry import NumericPose
-from cramera_bridge.plans.arms import Arms
+from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
+from cramera_bridge.plans.safety import WORKSPACE_MARGIN
 from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.validating import PlanValidator
 from cramera_bridge.plans.world import PlannedGraspableFromAbove
@@ -64,6 +69,7 @@ from rclpy.node import Node
 from typing_extensions import Sequence
 from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
+from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
 
 from ..dataset.bundles import DATASET
 
@@ -388,6 +394,88 @@ def test_a_place_riding_the_edge_of_its_arms_workspace_fails_validation(
     assert place.verdict is StepVerdict.FAILED
     assert place.reason is StepFailureReason.SAFETY_LIMIT
     assert "Right arm workspace" in place.detail
+
+
+def parked_left_tool_height(plan: PlanDocument) -> float:
+    """
+    :return: How high, in metres, the left arm's tool stands when the plan starts, its
+        arms parked.
+    """
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    world = demo.build_world()
+    context = demo.build_context(world)
+    [left] = RobotArms(context.robot).arms(Arms.LEFT)
+    return float(NumericPose.of_entity(world, left.end_effector.tool_frame).position[2])
+
+
+def with_left_box_top_at(safety: SafetyLimits, height: float) -> SafetyLimits:
+    """
+    :return: The safety limits with the left arm's workspace box ending at the height.
+    """
+    left, *others = safety.workspaces
+    return replace(
+        safety,
+        workspaces=[replace(left, box=replace(left.box, max_z=height)), *others],
+    )
+
+
+def test_a_plan_starting_with_a_tool_inside_its_box_but_near_its_edge_validates(
+    pick_and_place,
+):
+    height = parked_left_tool_height(pick_and_place) + WORKSPACE_MARGIN / 2
+    plan = with_pick_arm(pick_and_place, Arms.LEFT)
+
+    report = validated(plan, with_left_box_top_at(TRACY_SAFETY, height))
+
+    assert report.passed, report
+
+
+def test_a_plan_starting_with_a_tool_outside_its_box_fails_saying_where_it_stands(
+    pick_and_place,
+):
+    height = parked_left_tool_height(pick_and_place) - 0.006
+
+    report = validated(pick_and_place, with_left_box_top_at(TRACY_SAFETY, height))
+
+    first, *later = report.steps
+    assert first.verdict is StepVerdict.FAILED
+    assert first.reason is StepFailureReason.SAFETY_LIMIT
+    assert "left arm stands outside its workspace box" in first.detail
+    assert "6.0 mm past the box's upper z bound" in first.detail
+    assert "validate again" in first.detail
+    assert all(step.verdict is StepVerdict.UNCHECKED for step in later)
+
+
+def test_a_grounding_holds_the_boxes_where_its_copy_stands_once_it_grounds(
+    pick_and_place,
+):
+    """
+    A run on the real robot puts its grounding's copy where the drivers report the arms
+    only once the grounding is made, as the world Giskard serves holds every arm joint
+    at 0 before its first motion.
+    """
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=pick_and_place), port=0)
+    world = demo.build_world()
+    context = demo.build_context(world)
+    for arm in context.robot.all_arms:
+        for connection in arm.connections:
+            if isinstance(connection, ActiveConnection1DOF):
+                connection.position = 0.0
+    grounding = PlanGrounding(
+        context=context,
+        bodies=dict(demo.bodies),
+        actions=demo.discovered_actions,
+        perception=WorldPerception(),
+        site=demo.site,
+        safety=TRACY_SAFETY,
+    )
+
+    StartingPosture().apply(grounding.copied_context.world)
+    grounded = grounding.ground(demo.steps())
+
+    assert all(step.succeeded for step in grounded), [
+        step.to_step_validation() for step in grounded
+    ]
 
 
 # %% validating in a process started before its order

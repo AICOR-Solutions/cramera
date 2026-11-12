@@ -1103,6 +1103,49 @@ class StepNotGrounded(PlanError):
 
 
 @dataclass
+class ArmOutsideItsWorkspace(PlanError):
+    """
+    An arm whose tool stands outside the workspace box the safety monitor holds it to
+    before the plan moves anything, so the run would be stopped at its first motion.
+    """
+
+    arm: str
+    """
+    The arm, by the protocol's identifier.
+    """
+
+    axis: str
+    """
+    The axis of the plan's frame along which the tool is farthest outside the box.
+    """
+
+    position: float
+    """
+    Where the tool stands along :attr:`axis`, in metres in the plan's frame.
+    """
+
+    bound: float
+    """
+    The edge of the box along :attr:`axis` the tool stands beyond, in metres in the
+    plan's frame.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        side = "lower" if self.position < self.bound else "upper"
+        return (
+            f"The {self.arm} arm stands outside its workspace box: its tool is "
+            f"{abs(self.position - self.bound) * 1000:.1f} mm past the box's {side} "
+            f"{self.axis} bound ({self.axis} = {self.position:.3f} m, the bound is at "
+            f"{self.bound:.3f} m). The real robot stops any motion while a tool is "
+            f"outside its box. Bring the {self.arm} arm back inside its box, for "
+            f"example in free drive on the robot's teach pendant, then validate again."
+        )
+
+
+@dataclass
 class NoArmCarriesObject(PlanError):
     """
     A step leaving its arm to be chosen whose object no arm of the robot can both take

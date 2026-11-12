@@ -178,6 +178,23 @@ class EveryArmFailed(StepCheck):
         return self.first_cause
 
 
+@dataclass
+class RefusedStep(StepCheck):
+    """
+    How a step fared that was refused before it was tried, for a cause its failure alone
+    does not tell.
+    """
+
+    refusal: Optional[FailureCause] = None
+    """
+    Why the step was refused.
+    """
+
+    @property
+    def cause(self) -> Optional[FailureCause]:
+        return self.refusal
+
+
 # %% returning the copy to an earlier point
 
 
@@ -297,9 +314,11 @@ class PlanGrounding:
     it found by the reference later steps name it with.
     """
 
-    workspaces: SafetyEnvelope = field(init=False)
+    workspaces: SafetyEnvelope = field(init=False, default_factory=SafetyEnvelope)
     """
-    The workspace boxes of :attr:`safety` in the copy, a margin inside their edges.
+    The workspace boxes of :attr:`safety` in the copy, a margin inside their edges
+    except where a tool already stands nearer to an edge, as the copy stands when the
+    steps are grounded, see :meth:`ground`.
     """
 
     def __post_init__(self) -> None:
@@ -317,20 +336,32 @@ class PlanGrounding:
             identifier: copy.rebind_world_entities(body)
             for identifier, body in self.bodies.items()
         }
-        self.workspaces = (
-            SafetyEnvelope()
-            if self.safety is None
-            else RobotSafety(limits=self.safety, site=self.site).workspace_check(
-                self.copied_context
-            )
-        )
 
     def ground(self, steps: List[PlanStep]) -> List[GroundedStep]:
         """
-        :param steps: The steps of the performing robot, in order.
+        :param steps: The steps of the performing robot, in order, starting where the
+            copy stands now, which may have been put where the real robot stands after
+            the grounding was made.
         :return: How each was grounded; those after the first that failed are not
-            tried.
+            tried. Where an arm stands outside its workspace box, the first step fails
+            saying so, since the run would be stopped at its first motion.
         """
+        if self.safety is not None:
+            safety = RobotSafety(limits=self.safety, site=self.site)
+            self.workspaces = safety.workspace_check(self.copied_context)
+            outside = safety.arm_outside_its_workspace(self.copied_context)
+            if outside is not None and steps:
+                return [
+                    GroundedStep(
+                        step=steps[0],
+                        check=RefusedStep(
+                            verdict=ValidationVerdict.FAILED,
+                            failure=outside,
+                            refusal=FailureCause.SAFETY_LIMIT,
+                        ),
+                    ),
+                    *[GroundedStep(step=step) for step in steps[1:]],
+                ]
         grounded: List[GroundedStep] = []
         position = 0
         while position < len(steps):

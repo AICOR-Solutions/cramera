@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from typing_extensions import List, Optional
 
+from cramera_bridge.exceptions import ArmOutsideItsWorkspace
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.arms import Arms, RobotArms
@@ -77,38 +78,110 @@ class RobotSafety:
         self, context: TaskContext, margin: float = WORKSPACE_MARGIN
     ) -> SafetyEnvelope:
         """
-        :param context: The world and the performing robot.
+        :param context: The world and the performing robot, standing where the plan
+            starts.
         :param margin: How far, in metres, inside each box's edges the tool stays.
         :return: The constraints a plan is validated against: every workspace box of
-            :meth:`envelope`, its edges moved the margin inwards.
+            :meth:`envelope`, its edges moved the margin inwards, except an edge the
+            arm's tool already stands nearer to than the margin: that edge stays where
+            the run's monitor watches it, so a plan starting there validates as the
+            monitor lets it run, moving the tool inwards from there or along the edge.
         """
-        return SafetyEnvelope(
-            constraints=[
-                self.workspace_box(context, each, margin)
-                for each in self.limits.workspaces
-            ]
-        )
+        constraints = []
+        for workspace in self.limits.workspaces:
+            edges = self.workspace_box(context, workspace)
+            tool = self.tool_position(context, edges)
+            minimum = edges.minimum.to_np()[:3]
+            maximum = edges.maximum.to_np()[:3]
+            constraints.append(
+                WorkspaceBox(
+                    constraint=(
+                        f"{workspace.label}, kept {margin * 1000:.0f} mm inside its "
+                        f"edges"
+                    ),
+                    tool=edges.tool,
+                    minimum=Point3(
+                        *np.where(tool < minimum + margin, minimum, minimum + margin),
+                        reference_frame=edges.minimum.reference_frame,
+                    ),
+                    maximum=Point3(
+                        *np.where(tool > maximum - margin, maximum, maximum - margin),
+                        reference_frame=edges.minimum.reference_frame,
+                    ),
+                )
+            )
+        return SafetyEnvelope(constraints=constraints)
+
+    def arm_outside_its_workspace(
+        self, context: TaskContext
+    ) -> Optional[ArmOutsideItsWorkspace]:
+        """
+        :param context: The world and the performing robot, standing where the plan
+            starts.
+        :return: The first arm whose tool stands outside the workspace box the run's
+            monitor holds it to, which stops the run at its first motion, with how far
+            outside along the axis it is farthest out; None when every tool stands
+            inside its box.
+        """
+        for workspace in self.limits.workspaces:
+            edges = self.workspace_box(context, workspace)
+            tool = self.tool_position(context, edges)
+            below = edges.minimum.to_np()[:3] - tool
+            above = tool - edges.maximum.to_np()[:3]
+            if max(below.max(), above.max()) <= 0.0:
+                continue
+            plan_tool = np.linalg.inv(self.world_T_plan()) @ (
+                context.world.compute_forward_kinematics_np(
+                    context.world.root, edges.tool
+                )[:, 3]
+            )
+            box = workspace.box
+            axis = int(np.argmax(np.maximum(below, above)))
+            lower = (box.min_x, box.min_y, box.min_z)[axis]
+            upper = (box.max_x, box.max_y, box.max_z)[axis]
+            return ArmOutsideItsWorkspace(
+                arm=workspace.arm,
+                axis="xyz"[axis],
+                position=float(plan_tool[axis]),
+                bound=lower if below[axis] > above[axis] else upper,
+            )
+        return None
+
+    @staticmethod
+    def tool_position(context: TaskContext, box: WorkspaceBox) -> np.ndarray:
+        """
+        :param context: The world and the performing robot.
+        :param box: A workspace box of one of its arms.
+        :return: Where the box's tool stands now, in the frame of the box.
+        """
+        return context.world.compute_forward_kinematics_np(
+            box.minimum.reference_frame, box.tool
+        )[:3, 3]
+
+    def world_T_plan(self) -> np.ndarray:
+        """
+        :return: The pose the plan stands the robot at, in the world's frame.
+        """
+        pose = self.site.pose
+        return HomogeneousTransformationMatrix.from_xyz_quaternion(
+            pose.x, pose.y, pose.z, pose.qx, pose.qy, pose.qz, pose.qw
+        ).to_np()
 
     def workspace_box(
-        self, context: TaskContext, workspace: ArmWorkspace, margin: float = 0.0
+        self, context: TaskContext, workspace: ArmWorkspace
     ) -> WorkspaceBox:
         """
         :param context: The world and the performing robot.
         :param workspace: The workspace of one of its arms.
-        :param margin: How far, in metres, the box's edges are moved inwards.
         :return: The box the arm's tool stays inside: the smallest box in the frame of
             the robot's root holding the workspace, exactly it when both frames share
-            their axes, the margin inside its edges.
+            their axes.
         """
         world, robot = context.world, context.robot
         [arm] = RobotArms(robot).arms(ENUM_NAMES.member(Arms, workspace.arm))
-        pose = self.site.pose
-        world_T_plan = HomogeneousTransformationMatrix.from_xyz_quaternion(
-            pose.x, pose.y, pose.z, pose.qx, pose.qy, pose.qz, pose.qw
-        ).to_np()
         root_T_plan = (
             np.linalg.inv(world.compute_forward_kinematics_np(world.root, robot.root))
-            @ world_T_plan
+            @ self.world_T_plan()
         )
         box = workspace.box
         corners = np.array(
@@ -121,14 +194,11 @@ class RobotSafety:
                 )
             ]
         )
-        label = workspace.label
-        if margin:
-            label = f"{label}, kept {margin * 1000:.0f} mm inside its edges"
         return WorkspaceBox(
-            constraint=label,
+            constraint=workspace.label,
             tool=arm.end_effector.tool_frame,
-            minimum=Point3(*(corners.min(axis=0) + margin), reference_frame=robot.root),
-            maximum=Point3(*(corners.max(axis=0) - margin), reference_frame=robot.root),
+            minimum=Point3(*corners.min(axis=0), reference_frame=robot.root),
+            maximum=Point3(*corners.max(axis=0), reference_frame=robot.root),
         )
 
     @property
