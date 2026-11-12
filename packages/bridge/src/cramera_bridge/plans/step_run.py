@@ -39,7 +39,7 @@ from coraplex.plans.expected_positions import BodiesWhereExpected, ExpectedPosit
 from coraplex.plans.failures import BodiesMovedSinceGrounding, TargetLeftFieldOfView
 from coraplex.plans.validation import FailureCause
 from coraplex.robot_plans.actions.core.misc import DetectAction
-from cramera_bridge.exceptions import StepAbandoned
+from cramera_bridge.exceptions import ArmOutsideItsWorkspace, StepAbandoned
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
@@ -78,9 +78,11 @@ from cramph.executor import (
 )
 from cramph.node import StatechartNode
 from cramph.state_history import StateHistory, StateHistoryObserver
+from giskardpy.motion_statechart.exceptions import SafetyConstraintViolated
 from giskardpy.motion_statechart.monitors.cartesian_monitors import OutOfFieldOfView
 from giskardpy.motion_statechart.monitors.safety_monitors import (
     CancelOnSafetyViolation,
+    ToolOutsideWorkspace,
 )
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Point3
 from semantic_digital_twin.world_description.color_names import ColorName
@@ -514,8 +516,9 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
             return
         # the violation the node kept as it cancelled the motion, or, where it could
         # not keep one, as the monitors observing it describe it now
-        violation = stop.violation or stop.create_exception()
-        constraint = f"{violation.constraint}: {violation.violation}"
+        constraint = self.stop_description(
+            stop, stop.violation or stop.create_exception()
+        )
         # the steps run one after another, so the first that did not succeed was stopped
         attempted = next(
             attempted
@@ -533,6 +536,25 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
             )
         )
         self.run_log.write(SafetyStopped(constraint=constraint, step=attempted.step))
+
+    @staticmethod
+    def stop_description(
+        stop: CancelOnSafetyViolation, violation: SafetyConstraintViolated
+    ) -> str:
+        """
+        :param stop: The node that cancelled the run.
+        :param violation: The violation it cancelled the run with.
+        :return: The broken limit and how it was broken, as a person reads it; for a
+            tool that left its workspace box, followed by how to bring its arm back.
+        """
+        description = f"{violation.constraint}: {violation.violation}"
+        if any(
+            isinstance(monitor, ToolOutsideWorkspace)
+            and monitor.constraint == violation.constraint
+            for monitor in stop.monitors
+        ):
+            return f"{description}. {ArmOutsideItsWorkspace.recovery('the arm')}"
+        return description
 
     def write_success(self, attempted: AttemptedStep) -> None:
         """

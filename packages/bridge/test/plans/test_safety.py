@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
+from cramera_bridge.exceptions import ArmOutsideItsWorkspace
 from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
@@ -162,7 +163,10 @@ def test_the_run_events_tell_which_step_the_safety_stop_ended(stopped_run):
     assert stop == RunEvent(
         kind=RunEventKind.SAFETY_STOP,
         step="step_2",
-        constraint=f"{LOW_WORKSPACE.label}: {stopped_run.violation.violation}",
+        constraint=(
+            f"{LOW_WORKSPACE.label}: {stopped_run.violation.violation}. "
+            f"{ArmOutsideItsWorkspace.recovery('the arm')}"
+        ),
     )
 
 
@@ -178,6 +182,15 @@ def test_the_safety_stop_says_how_far_the_tool_left_the_box(stopped_run):
     assert stop.constraint.startswith(f"{LOW_WORKSPACE.label}: ")
     assert "mm past the box's lower z bound" in stop.constraint
     assert stop.constraint in stop.line()
+
+
+def test_a_tool_leaving_its_box_tells_how_to_bring_the_arm_back(stopped_run):
+    [stop] = [
+        entry
+        for entry in stopped_run.demo.run_log.entries
+        if isinstance(entry, SafetyStopped)
+    ]
+    assert stop.constraint.endswith(ArmOutsideItsWorkspace.recovery("the arm"))
 
 
 def test_a_demos_safety_stop_is_reported_as_the_line_the_plan_builder_reads(capsys):

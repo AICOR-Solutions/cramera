@@ -73,7 +73,7 @@ export const REASON_TEXTS = Object.freeze({
   [StepFailureReason.COLLISION]: 'collision: the motion would collide',
   [StepFailureReason.NOT_PERCEIVED]: 'not perceived: nothing matching was seen in the region',
   [StepFailureReason.AMBIGUOUS]: 'ambiguous: several objects match and nothing tells them apart',
-  [StepFailureReason.SAFETY_LIMIT]: 'outside the workspace: an arm would leave the box the safety monitor holds it to',
+  [StepFailureReason.SAFETY_LIMIT]: 'outside the workspace: an arm stands outside, or would leave, the box the safety monitor holds it to; the step says which arm and what to do',
   [StepFailureReason.SKILL_NOT_OFFERED]: 'the robot does not offer this skill',
   [StepFailureReason.UNSUCCESSFUL]: 'the step did not succeed',
 });

@@ -8,6 +8,7 @@ HTTP boundary answers them with their own status.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from http import HTTPStatus
 from pathlib import Path
 
@@ -1140,9 +1141,48 @@ class ArmOutsideItsWorkspace(PlanError):
             f"{abs(self.position - self.bound) * 1000:.1f} mm past the box's {side} "
             f"{self.axis} bound ({self.axis} = {self.position:.3f} m, the bound is at "
             f"{self.bound:.3f} m). The real robot stops any motion while a tool is "
-            f"outside its box. Bring the {self.arm} arm back inside its box, for "
-            f"example in free drive on the robot's teach pendant, then validate again."
+            f"outside its box, and the platform does not move it back. "
+            f"{self.recovery(f'the {self.arm} arm')}."
         )
+
+    @staticmethod
+    def recovery(arm: str) -> str:
+        """
+        :param arm: The arm outside its box as a sentence names it, such as ``the left
+            arm``.
+        :return: What a person does about it, which is done by hand on the robot.
+        """
+        return (
+            f"On the real robot, move {arm} back inside its box by hand on its teach "
+            f"pendant (see {RealRobotGuideSection.ARM_BACK_INTO_ITS_BOX.reference()}), "
+            f"then validate again"
+        )
+
+
+class RealRobotGuideSection(StrEnum):
+    """
+    The sections of the platform's guide to the real Tracy (:meth:`guide_path`) that a
+    message sends a person to, by their headings.
+    """
+
+    ARM_BACK_INTO_ITS_BOX = "Bringing an arm back into its box"
+    """
+    How to move an arm that rests outside its workspace box back inside, on the robot's
+    teach pendant.
+    """
+
+    @staticmethod
+    def guide_path() -> str:
+        """
+        :return: The guide's path, relative to the platform repository's root.
+        """
+        return "docs/real-tracy.md"
+
+    def reference(self) -> str:
+        """
+        :return: Where a person finds the section.
+        """
+        return f"“{self}” in {self.guide_path()}"
 
 
 @dataclass

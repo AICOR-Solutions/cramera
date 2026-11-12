@@ -25,7 +25,11 @@ from coraplex.perception import ROBOKUDO_QUERY_ACTION_NAME, WorldPerception
 from coraplex.plans.executors import KinematicallySimulatedPlanExecutor, PlanExecutor
 from coraplex.robot_plans.plan_transformations import DetectWithRoboKudo
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
-from cramera_bridge.exceptions import StepAbandoned, StepNotGrounded
+from cramera_bridge.exceptions import (
+    ArmOutsideItsWorkspace,
+    StepAbandoned,
+    StepNotGrounded,
+)
 from cramera_bridge.execution import (
     PERCEPTION_ENGINE_VARIABLE,
     KinematicExecution,
@@ -442,7 +446,7 @@ def test_a_plan_starting_with_a_tool_outside_its_box_fails_saying_where_it_stand
     assert first.reason is StepFailureReason.SAFETY_LIMIT
     assert "left arm stands outside its workspace box" in first.detail
     assert "6.0 mm past the box's upper z bound" in first.detail
-    assert "validate again" in first.detail
+    assert ArmOutsideItsWorkspace.recovery("the left arm") in first.detail
     assert all(step.verdict is StepVerdict.UNCHECKED for step in later)
 
 
