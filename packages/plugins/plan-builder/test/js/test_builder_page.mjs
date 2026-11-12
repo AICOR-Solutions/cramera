@@ -47,6 +47,8 @@ import {
   ValidationReportKey,
   ViewerEvent,
   RobotProfileKey,
+  PerceptionSettingsKey,
+  RuntimeCheck,
   ExecutorKind,
   SkillKey,
   PlanTemplateKey,
@@ -1708,6 +1710,98 @@ test('while the run\'s record is saved the page says so, offers only Stop and sh
   await timer.tick();
   assert.match(runState.textContent, /saving its record failed/);
   assert.equal(validateButton(root).disabled, false);
+});
+
+// %% what the run on the real robot tells
+
+const validationLine = (root) => root.findAll((element) => element.className === 'validation-state')[0].textContent;
+const runtimeCheckLabel = (root) => root.findAll((element) => element.className === 'runtime-check')[0];
+
+/**
+ * Validate the pick and place plan and start it on the real robot.
+ * @param {function(Object): void} prepare Prepares the fake API and storage further.
+ */
+async function runningOnTracy(prepare = () => {}) {
+  const opened = await pickAndPlace((parts) => {
+    profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL })(parts);
+    prepare(parts);
+  });
+  validateButton(opened.root).click();
+  await settled();
+  robotRun(opened.root).click();
+  await settled();
+  return opened;
+}
+
+test('a run of a validated plan on the real robot keeps saying the plan was validated for it', async () => {
+  const { root, api, timer } = await runningOnTracy();
+  await timer.tick();
+  assert.equal(validationLine(root), 'Validated for this run; validate again before the next run on the robot.');
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.SAVING };
+  await timer.tick();
+  assert.equal(validationLine(root), 'Validated for this run; validate again before the next run on the robot.');
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
+  await timer.tick();
+  assert.match(validationLine(root), /^Not validated/);
+});
+
+test('a finished run with a step that went ahead without the camera confirming its object is a notice naming the step', async () => {
+  const { root, api, timer, page } = await runningOnTracy();
+  const robotSteps = page.state.steps().map((step) => step[PlanStepKey.IDENTIFIER]);
+  const done = (identifier) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: StepState.DONE });
+  api.status = {
+    ...api.status,
+    [RunStatusKey.STATE]: RunState.FINISHED,
+    [RunStatusKey.EVENTS]: [
+      done(robotSteps[0]),
+      { [RunEventKey.KIND]: RunEventKind.CONTINUED_UNSEEN, [RunEventKey.STEP]: robotSteps[1], [RunEventKey.TARGET]: 'milk_1', [RunEventKey.REASON]: 'RoboKudo did not answer' },
+      done(robotSteps[1]),
+      done(robotSteps[2]),
+    ],
+  };
+  await timer.tick();
+  assert.match(headline(root), /^The run on the real robot finished\. 1 step went ahead without the camera confirming its object: 2\. .* \(milk 1\)\.$/);
+  assert.equal(flow(root).dataset.tone, 'warning');
+  const marked = runView(root).findAll((element) => element.className === 'run-step' && element.dataset.unseen === 'true');
+  assert.deepEqual(marked.map((element) => element.dataset.step), [robotSteps[1]]);
+});
+
+test('a run the plan builder lost to its restart says it was cut off, not only that it is ready', async () => {
+  const { root, api, timer } = await runningOnTracy();
+  await timer.tick();
+  api.status = { [RunStatusKey.STATE]: RunState.IDLE };
+  await timer.tick();
+  assert.equal(headline(root), 'The plan builder restarted while the run on the real robot was going: the run ended there and its record may not be saved. Check where the robot stands before going on.');
+  assert.equal(flow(root).dataset.tone, 'warning');
+});
+
+test('a new plan or another template leaves no step count of the run before', async () => {
+  const { root, api, timer, page } = await runningOnTracy();
+  const robotSteps = page.state.steps().map((step) => step[PlanStepKey.IDENTIFIER]);
+  api.status = {
+    ...api.status,
+    [RunStatusKey.STATE]: RunState.FINISHED,
+    [RunStatusKey.EVENTS]: robotSteps.map((identifier) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: StepState.DONE })),
+  };
+  await timer.tick();
+  const summary = () => runView(root).findAll((element) => element.className === 'run-summary')[0].textContent;
+  assert.equal(summary(), '3 of 3 steps done.');
+  byAction(root, PlanAction.NEW)[0].click();
+  await timer.tick();
+  assert.equal(summary(), '');
+});
+
+test('a profile with the lenient runtime check says so beside the run controls, and a strict one does not', async () => {
+  const { root } = await openPage('', ({ api }) => {
+    profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL })({ api });
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE][RobotProfileKey.PERCEPTION] = { [PerceptionSettingsKey.RUNTIME_CHECK]: RuntimeCheck.LENIENT };
+  });
+  const label = runtimeCheckLabel(root);
+  assert.equal(label.hidden, false);
+  assert.equal(label.textContent, 'Lenient camera check');
+  assert.match(label.title, /^When the camera does not confirm an object, a step goes ahead where the plan was validated/);
+  const strict = await openPage('', profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  assert.equal(runtimeCheckLabel(strict.root).hidden, true);
 });
 
 test('stopping says so until the run ended, and a stop that fails says why', async () => {

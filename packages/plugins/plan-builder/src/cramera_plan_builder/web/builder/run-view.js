@@ -73,6 +73,7 @@ export const RunViewClass = Object.freeze({
   ARM: 'run-step-arm',
   ATTEMPT: 'run-step-attempt',
   REASON: 'run-step-reason',
+  UNSEEN: 'run-step-unseen',
   PERCEIVED: 'run-perceived',
   OBJECT: 'perceived-object',
   SWATCH: 'color-swatch',
@@ -119,6 +120,12 @@ export class StepProgress {
      * @type {Array<Object>}
      */
     this.perceptions = [];
+    /**
+     * The objects it went ahead with where the plan was validated, without the camera
+     * confirming them, as a person reads them, in order.
+     * @type {Array<string>}
+     */
+    this.unseen = [];
   }
 
   /**
@@ -136,6 +143,26 @@ export class StepProgress {
  */
 export function monitorText(monitor, observation) {
   return MONITOR_TEXTS[monitor]?.[observation] ?? `${monitor}: ${observation}`;
+}
+
+/**
+ * @param {string} target The identities of objects a run event names, comma-separated.
+ * @returns {string} Them as a person reads them: `red_cube` as `red cube`.
+ */
+function objectNames(target) {
+  return (target ?? '').replaceAll('_', ' ');
+}
+
+/**
+ * @param {Array<StepProgress>} steps The steps that went ahead without the camera
+ *   confirming their objects.
+ * @returns {string} One sentence counting and naming them, or '' for none.
+ */
+export function unseenSentence(steps) {
+  if (steps.length === 0) return '';
+  const named = steps.map((step) => `${step.name} (${step.unseen.join(', ')})`).join(', ');
+  if (steps.length === 1) return `1 step went ahead without the camera confirming its object: ${named}.`;
+  return `${steps.length} steps went ahead without the camera confirming their objects: ${named}.`;
 }
 
 /**
@@ -243,9 +270,26 @@ export class RunProgress {
   }
 
   /**
-   * @returns {string} One sentence on where the run stands.
+   * @returns {Array<StepProgress>} The steps that went ahead where the plan was
+   *   validated without the camera confirming their objects, in the plan's order.
+   */
+  unseenSteps() {
+    return this.steps().filter((step) => step.unseen.length > 0);
+  }
+
+  /**
+   * @returns {string} Where the run stands, and which steps went ahead without the
+   *   camera confirming their objects.
    */
   summary() {
+    const unseen = unseenSentence(this.unseenSteps());
+    return unseen ? `${this.#where()} ${unseen}` : this.#where();
+  }
+
+  /**
+   * @returns {string} One sentence on where the run stands.
+   */
+  #where() {
     const steps = this.steps();
     const done = steps.filter((step) => step.state === StepState.DONE).length;
     const count = `${done} of ${steps.length} steps done`;
@@ -277,6 +321,9 @@ export class RunProgress {
     } else if (kind === RunEventKind.REGROUNDED) {
       this.log.push(`${this.#name(event)}: ${event[RunEventKey.TARGET]} found elsewhere on the table; the step was grounded again where it lies`);
     } else if (kind === RunEventKind.CONTINUED_UNSEEN) {
+      const step = this.step(event[RunEventKey.STEP]);
+      const names = objectNames(event[RunEventKey.TARGET]);
+      if (!step.unseen.includes(names)) step.unseen.push(names);
       this.log.push(`${this.#name(event)}: ${event[RunEventKey.REASON]}; continuing at the position ${event[RunEventKey.TARGET]} was validated at`);
     } else if (kind === RunEventKind.RECORD_SAVING) {
       this.log.push('Run over; the robot holds while the run\'s record is saved.');
@@ -475,6 +522,14 @@ export class RunView {
   }
 
   /**
+   * Show no run, so nothing of the run before stands in the view.
+   */
+  clear() {
+    for (const part of Object.values(this.#parts)) part.replaceChildren();
+    this.#parts.summary.textContent = '';
+  }
+
+  /**
    * @param {StepProgress} step A step of the run.
    * @returns {HTMLElement} Its line: name, state, attempt, arm, monitor badges and why
    *   its latest attempt failed.
@@ -493,6 +548,10 @@ export class RunView {
     if (step.reason && step.state !== StepState.DONE) {
       const next = step.nextAttempt && step.state === StepState.RETRYING ? ` Next attempt ${step.nextAttempt}.` : '';
       item.append(elements.create('p', RunViewClass.REASON, `${step.reason}${next}`));
+    }
+    if (step.unseen.length > 0) {
+      item.dataset.unseen = 'true';
+      item.append(elements.create('p', RunViewClass.UNSEEN, `Went ahead without the camera confirming ${step.unseen.join(', ')}: it acted where the plan was validated.`));
     }
     const perceived = step.state === StepState.DONE ? null : perceptionSentence(step.perceptions);
     if (perceived) item.append(elements.create('p', PerceptionViewClass.SENTENCE, `Perception: ${perceived}`));

@@ -13,7 +13,7 @@ import {
   StepState,
 } from 'cramera-viewer/protocol.js';
 import { Elements } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { RunProgress, RunView, RunViewClass, STOPPED_STEP } from '../../src/cramera_plan_builder/web/builder/run-view.js';
+import { RunProgress, RunView, RunViewClass, STOPPED_STEP, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
@@ -133,6 +133,39 @@ test('a step acting on an object not seen says so in the log, where it acts', ()
   assert.ok(progress.log.includes(
     '2. label of step_2: red_cube was not seen; continuing at the position red_cube was validated at',
   ), progress.log);
+});
+
+test('a finished run whose step went ahead without the camera confirming its object says so in its summary and on the step', () => {
+  const step = (identifier, state) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: state });
+  const events = [
+    step('step_1', StepState.DONE),
+    { [RunEventKey.KIND]: RunEventKind.CONTINUED_UNSEEN, [RunEventKey.STEP]: 'step_2', [RunEventKey.TARGET]: 'red_cube', [RunEventKey.REASON]: 'RoboKudo did not answer' },
+    step('step_2', StepState.DONE),
+  ];
+  const progress = RunProgress.of(
+    [{ [PlanStepKey.IDENTIFIER]: 'step_1' }, { [PlanStepKey.IDENTIFIER]: 'step_2' }],
+    (shown) => (shown[PlanStepKey.IDENTIFIER] === 'step_1' ? 'Park arms' : 'Pick red cube'),
+    { [RunStatusKey.EVENTS]: events },
+  );
+  assert.deepEqual(progress.unseenSteps().map((shown) => shown.identifier), ['step_2']);
+  assert.equal(progress.summary(), '2 of 2 steps done. 1 step went ahead without the camera confirming its object: 2. Pick red cube (red cube).');
+  const view = rendered(progress);
+  const [, pick] = byClass(view, RunViewClass.STEP);
+  assert.equal(pick.dataset.unseen, 'true');
+  assert.deepEqual(byClass(pick, RunViewClass.UNSEEN).map((element) => element.textContent), ['Went ahead without the camera confirming red cube: it acted where the plan was validated.']);
+  const [park] = byClass(view, RunViewClass.STEP);
+  assert.equal(park.dataset.unseen, undefined);
+});
+
+test('several steps that went ahead unseen are counted and named', () => {
+  const unseen = (identifier, target) => ({ [RunEventKey.KIND]: RunEventKind.CONTINUED_UNSEEN, [RunEventKey.STEP]: identifier, [RunEventKey.TARGET]: target, [RunEventKey.REASON]: `${target} was not seen` });
+  const progress = RunProgress.of(
+    ['a', 'b', 'c'].map((identifier) => ({ [PlanStepKey.IDENTIFIER]: identifier })),
+    (shown) => `Pick ${shown[PlanStepKey.IDENTIFIER]}`,
+    { [RunStatusKey.EVENTS]: [unseen('a', 'red_cube'), unseen('a', 'red_cube'), unseen('c', 'blue_cube')] },
+  );
+  assert.equal(unseenSentence(progress.unseenSteps()), '2 steps went ahead without the camera confirming their objects: 1. Pick a (red cube), 3. Pick c (blue cube).');
+  assert.equal(unseenSentence([]), '');
 });
 
 test('the step a person stopped reads as stopped, not running', () => {

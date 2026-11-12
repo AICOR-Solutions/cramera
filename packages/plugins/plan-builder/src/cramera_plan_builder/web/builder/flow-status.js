@@ -9,6 +9,7 @@
 
 import { RunEventKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from '../../../protocol.js';
 import { SafetyBannerState } from './safety-stop.js';
+import { unseenSentence } from './run-view.js';
 
 /**
  * How the status area colours a status.
@@ -196,7 +197,11 @@ export function runOutcome(run, progress, real) {
   const state = run[RunStatusKey.STATE];
   const mode = run[RunStatusKey.MODE];
   const name = mode === RunMode.STAGE ? 'The live scene' : mode === RunMode.ROBOT && real ? 'The run on the real robot' : mode === RunMode.ROBOT ? 'The run' : 'The simulated run';
-  if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: `${name} finished.` };
+  if (state === RunState.FINISHED) {
+    // a step that went ahead without the camera confirming its object is a notice, not a success
+    const unseen = unseenSentence(progress.unseenSteps());
+    return unseen ? { tone: Tone.WARNING, text: `${name} finished. ${unseen}` } : { tone: Tone.SUCCESS, text: `${name} finished.` };
+  }
   if (state === RunState.STOPPED && mode === RunMode.ROBOT && real) return { tone: Tone.WARNING, text: `${name} was stopped: Giskard ended, both arms were commanded zero velocities and stand still.` };
   if (state === RunState.STOPPED) return { tone: Tone.WARNING, text: `${name} was stopped.` };
   if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the plan builder could not confirm that the arms stand still and Giskard ended; see Run output. Use the emergency stop now.` };
@@ -211,4 +216,18 @@ export function runOutcome(run, progress, real) {
   if (failed) return { tone: Tone.ERROR, text: `${name} failed at ${failed.name}: ${failed.reason ?? 'see Run output'}.` };
   const line = lastLine(run);
   return { tone: Tone.ERROR, text: line ? `${name} failed: ${line}` : `${name} failed; see Run output.` };
+}
+
+/**
+ * @param {Object} before The `RunStatus` the plan builder reported before.
+ * @param {Object} run The `RunStatus` it reports now.
+ * @param {boolean} real Whether a run on the robot moves the real robot.
+ * @returns {{tone: string, text: string}|null} That a run which was going is gone, as the
+ *   plan builder knows no run after it restarted; null when no run was cut off so.
+ */
+export function cutOffOutcome(before, run, real) {
+  const going = [RunState.RUNNING, RunState.SAVING].includes(before[RunStatusKey.STATE]) && before[RunStatusKey.MODE] !== RunMode.STAGE;
+  if (!going || run[RunStatusKey.STATE] !== RunState.IDLE) return null;
+  const name = before[RunStatusKey.MODE] === RunMode.ROBOT && real ? 'the run on the real robot' : 'the run';
+  return { tone: Tone.WARNING, text: `The plan builder restarted while ${name} was going: the run ended there and its record may not be saved. Check where the robot stands before going on.` };
 }

@@ -36,6 +36,8 @@ import {
   ArmReportKey,
   RobotPostureKey,
   RobotProfileKey,
+  PerceptionSettingsKey,
+  RuntimeCheck,
   PlanTemplateKey,
   ExecutorKind,
   RunMode,
@@ -66,7 +68,7 @@ import { EnvironmentView, RobotsView } from './robots-view.js';
 import { PollInterval } from '../../../live/live-session.js';
 import { RunProgress, RunView, withoutStopTraceback } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
-import { FlowFacts, FlowRequest, Tone, flowStatus, runOutcome } from './flow-status.js';
+import { FlowFacts, FlowRequest, Tone, cutOffOutcome, flowStatus, runOutcome } from './flow-status.js';
 import { REASON_TEXTS, StepsView } from './steps-view.js';
 
 /**
@@ -863,6 +865,7 @@ export class BuilderPage {
     this.#runShown = false;
     this.#outcome = null;
     this.#failureOutput = null;
+    this.#parts.runView?.clear();
   }
 
   // %% free placing
@@ -1267,10 +1270,11 @@ export class BuilderPage {
         return this.#run;
       },
     );
-    const before = this.#run[RunStatusKey.STATE];
+    const previous = this.#run;
+    const before = previous[RunStatusKey.STATE];
     this.#run = run;
     if (this.#performing()) this.#progressHidden = false;
-    if (before !== run[RunStatusKey.STATE]) this.#noteRunEnd();
+    if (before !== run[RunStatusKey.STATE]) this.#noteRunEnd(previous);
     const world = this.#publishes(run) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
     if (world.images.length > 0) this.#cameraImages = world.images;
     const changed = before !== run[RunStatusKey.STATE] || world.published !== this.#world.published || world.signature() !== this.#world.signature();
@@ -1485,12 +1489,16 @@ export class BuilderPage {
 
   /**
    * Keep how the run started last ended as the outcome the status area shows, and open
-   * its output when it failed.
+   * its output when it failed; a run the plan builder no longer knows, as it restarted,
+   * was cut off.
+   * @param {Object} previous The `RunStatus` the plan builder reported before.
    */
-  #noteRunEnd() {
+  #noteRunEnd(previous) {
     if (this.#run[RunStatusKey.STATE] === RunState.REFUSED && this.#validation === null) this.#validation = this.#validationTaken;
-    this.#validationTaken = null;
-    const outcome = runOutcome(this.#run, this.#progress(), this.#robotExecutor() === ExecutorKind.REAL);
+    // a run saving its record still runs with the validation it took
+    if (!ACTIVE_STATES.includes(this.#run[RunStatusKey.STATE])) this.#validationTaken = null;
+    const real = this.#robotExecutor() === ExecutorKind.REAL;
+    const outcome = cutOffOutcome(previous, this.#run, real) ?? runOutcome(this.#run, this.#progress(), real);
     if (outcome === null) return;
     this.#outcome = outcome;
     if (outcome.tone === Tone.ERROR) this.#parts.logDetails.open = true;
@@ -1605,6 +1613,8 @@ export class BuilderPage {
    */
   #validationState(passed) {
     if (passed) return 'Validated.';
+    // a run on the real robot takes the validation away as it starts, for the next run
+    if (this.#performing() && this.#validationTaken !== null) return 'Validated for this run; validate again before the next run on the robot.';
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
     const override = this.#mayOverrideValidation() ? ' Developer mode lets it run on the robot anyway.' : '';
     if (this.#validation === null) return `Not validated: validate before running on the robot.${override}`;
@@ -1741,7 +1751,10 @@ export class BuilderPage {
     turn.setAttribute('aria-pressed', 'false');
     // the flow in its order first, then the simulated runs, then the tools
     const flowRow = elements.create('div', 'button-row flow-actions');
-    flowRow.append(parts.scan, parts.validate, parts.robot, parts.stop);
+    const runtimeCheck = elements.create('span', 'runtime-check', 'Lenient camera check');
+    runtimeCheck.title = 'When the camera does not confirm an object, a step goes ahead where the plan was validated, and the run says so; safety limits, collision checks and Stop work as always.';
+    runtimeCheck.hidden = this.state.catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.PERCEPTION]?.[PerceptionSettingsKey.RUNTIME_CHECK] !== RuntimeCheck.LENIENT;
+    flowRow.append(parts.scan, parts.validate, parts.robot, parts.stop, runtimeCheck);
     const simulatedRow = elements.create('div', 'button-row');
     simulatedRow.append(parts.stage, parts.perform, parts.simulate);
     const toolRow = elements.create('div', 'button-row tool-actions');

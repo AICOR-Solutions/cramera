@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PlanStepKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from 'cramera-viewer/protocol.js';
-import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, UNANSWERED_ADVICE_AFTER, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
+import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, UNANSWERED_ADVICE_AFTER, cutOffOutcome, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RunProgress } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { SafetyBannerState } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 
@@ -122,6 +122,33 @@ test('a run that ended says how: a failure gives its reason, from the failed ste
   const stopped = realRun(RunState.SAFETY_STOPPED, [], { [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false } });
   assert.deepEqual(runOutcome(stopped, progressOf(stopped), true), { tone: Tone.ERROR, text: 'A safety stop ended the run: left arm workspace.' });
   assert.equal(runOutcome(realRun(RunState.IDLE), progressOf(realRun(RunState.IDLE)), true), null);
+});
+
+test('a finished run whose step went ahead without the camera confirming its object is a notice that names the step', () => {
+  const finished = realRun(RunState.FINISHED, [
+    step('park', StepState.DONE),
+    { kind: RunEventKind.CONTINUED_UNSEEN, step: 'pick', target: 'red_cube', reason: 'red_cube was not seen' },
+    step('pick', StepState.DONE),
+    step('place', StepState.DONE),
+  ]);
+  assert.deepEqual(runOutcome(finished, progressOf(finished), true), {
+    tone: Tone.WARNING,
+    text: 'The run on the real robot finished. 1 step went ahead without the camera confirming its object: 2. pick (red cube).',
+  });
+});
+
+test('a run the plan builder lost to its restart says it was cut off and to check the robot', () => {
+  const idle = { [RunStatusKey.STATE]: RunState.IDLE };
+  for (const before of [RunState.RUNNING, RunState.SAVING]) {
+    assert.deepEqual(cutOffOutcome(realRun(before), idle, true), {
+      tone: Tone.WARNING,
+      text: 'The plan builder restarted while the run on the real robot was going: the run ended there and its record may not be saved. Check where the robot stands before going on.',
+    });
+  }
+  assert.match(cutOffOutcome(realRun(RunState.RUNNING), idle, false).text, /^The plan builder restarted while the run was going/);
+  assert.equal(cutOffOutcome(realRun(RunState.FINISHED), idle, true), null);
+  assert.equal(cutOffOutcome(realRun(RunState.RUNNING), realRun(RunState.FINISHED), true), null);
+  assert.equal(cutOffOutcome({ [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: RunMode.STAGE }, idle, true), null);
 });
 
 test('a run its robot refused before anything moved says why in one plain line and that the validation holds', () => {
