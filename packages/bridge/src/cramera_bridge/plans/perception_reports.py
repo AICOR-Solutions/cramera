@@ -6,7 +6,11 @@ sentence a person reads beside the step.
 The verdicts follow the rules a run applies: coraplex's RoboKudo client drops an object
 of another color or type and one outside the box looked in, the detection takes the
 first object left, and the step stops before moving when that object lies farther from
-where the plan was validated than the step allows.
+where the step expected it than the step allows. A step expects its objects where the plan
+was validated with them, or, once it was planned again, where they were last seen.
+
+What the perception checks, the type it names, is kept apart from what a person reads,
+the object as the plan names it.
 """
 
 from __future__ import annotations
@@ -32,6 +36,16 @@ Centimetres in a metre.
 MILLIMETRES = 1000.0
 """
 Millimetres in a metre.
+"""
+
+VALIDATED_SPOT = "where the plan was validated"
+"""
+Where a step expects its objects until it is planned again, as a person reads it.
+"""
+
+LAST_SEEN_SPOT = "where it was last seen"
+"""
+Where a step planned again expects its objects, as a person reads it.
 """
 
 # %% answers
@@ -97,6 +111,14 @@ def centimetres(metres: float) -> str:
     return f"{round(value)} cm"
 
 
+def sentence(text: str) -> str:
+    """
+    :param text: A sentence.
+    :return: It starting with a capital letter.
+    """
+    return text[:1].upper() + text[1:]
+
+
 def millimetres(metres: float) -> str:
     """
     :param metres: A distance.
@@ -109,12 +131,13 @@ def millimetres(metres: float) -> str:
 class PerceptionSearch:
     """
     What a step's perception query asks: an object of a type, maybe of a color, inside a
-    box, and where the plan was validated with it.
+    box, and where the step expects it.
     """
 
     type: str
     """
-    The type asked for, as the perception names it.
+    The type asked for, as the perception names it; what an object reported is checked
+    against, never shown to a person.
     """
 
     box: Bounds
@@ -140,8 +163,14 @@ class PerceptionSearch:
 
     grounded: Optional[Vector3] = None
     """
-    Where the plan was validated with the object, None when it expects it nowhere in
-    particular.
+    Where the step expects the object just before the query, None when it expects it
+    nowhere in particular.
+    """
+
+    validated: Optional[Vector3] = None
+    """
+    Where the plan was validated with the object, when the step was planned again since
+    with the object expected elsewhere, at :attr:`grounded`; None otherwise.
     """
 
     tolerance: Optional[float] = None
@@ -157,11 +186,13 @@ class PerceptionSearch:
         objects = [] if answer.objects is None else self.judged(answer.objects)
         return PerceptionReport(
             target=self.target,
+            looked_for=self.looked_for(),
             type=self.type,
             color=self.color,
             box=self.box,
             table_wide=self.table_wide,
             grounded=self.grounded,
+            validated=self.validated,
             tolerance=self.tolerance,
             answered=answer.objects is not None,
             objects=objects,
@@ -233,8 +264,8 @@ class PerceptionSearch:
     def distance(self, position: Vector3) -> Optional[float]:
         """
         :param position: A position in the world's root.
-        :return: How far it lies from where the plan was validated, horizontally, as
-            the step measures it on the table; None when it expects no position.
+        :return: How far it lies from where the step expects the object, horizontally,
+            as the step measures it on the table; None when it expects no position.
         """
         if self.grounded is None:
             return None
@@ -243,8 +274,8 @@ class PerceptionSearch:
     def is_too_far(self, position: Vector3) -> bool:
         """
         :param position: Where the object taken was seen.
-        :return: Whether it lies farther from where the plan was validated than the
-            step allows.
+        :return: Whether it lies farther from where the step expects the object than
+            the step allows.
         """
         distance = self.distance(position)
         return (
@@ -257,9 +288,12 @@ class PerceptionSearch:
 
     def looked_for(self) -> str:
         """
-        :return: The object looked for as a person names it.
+        :return: The object looked for as a person names it: "the red cube" for the
+            plan's red_cube, else by its color.
         """
-        return self.target or self.kind()
+        if self.target:
+            return f"the {self.target.replace('_', ' ')}"
+        return self.kind()
 
     def kind(self) -> str:
         """
@@ -276,7 +310,29 @@ class PerceptionSearch:
         if self.grounded is None:
             return "in the box looked in"
         reach = (self.box.maximum.x - self.box.minimum.x) / 2
-        return f"within {centimetres(reach)} of where the plan was validated"
+        return f"within {centimetres(reach)} of {self.spot()}"
+
+    def spot(self) -> str:
+        """
+        :return: Where the step expects the object, which distances are measured from,
+            as a person reads it.
+        """
+        return VALIDATED_SPOT if self.validated is None else LAST_SEEN_SPOT
+
+    def away(self, position: Vector3, distance: float) -> str:
+        """
+        :param position: Where an object was seen.
+        :param distance: How far it lies from where the step expects the object.
+        :return: How far it lies from there and, for a step planned again, from where
+            the plan was validated, as a person reads it.
+        """
+        away = f"{centimetres(distance)} from {self.spot()}"
+        if self.validated is None:
+            return away
+        from_validated = math.hypot(
+            position.x - self.validated.x, position.y - self.validated.y
+        )
+        return f"{away}, {centimetres(from_validated)} from {VALIDATED_SPOT}"
 
     def summary(self, answered: bool, objects: List[ReportedObject]) -> str:
         """
@@ -285,7 +341,10 @@ class PerceptionSearch:
         :return: The outcome in one sentence.
         """
         if not answered:
-            return f"The perception did not answer the search for {self.looked_for()}."
+            return (
+                f"The object recognition (RoboKudo) did not answer the search for "
+                f"{self.looked_for()}."
+            )
         taken = next(
             (
                 seen
@@ -309,10 +368,10 @@ class PerceptionSearch:
         if outside and self.grounded is not None:
             nearest = min(outside, key=lambda seen: seen.distance)
             width = self.box.maximum.x - self.box.minimum.x
-            return (
-                f"{self.looked_for()} was seen {centimetres(nearest.distance)} from "
-                f"where the plan was validated, outside the {centimetres(width)} box "
-                f"looked in."
+            return sentence(
+                f"{self.looked_for()} was seen "
+                f"{self.away(nearest.position, nearest.distance)}, outside the "
+                f"{centimetres(width)} box looked in."
             )
         nothing = f"no {self.color} object" if self.color else "no object"
         others = len(objects)
@@ -335,9 +394,9 @@ class PerceptionSearch:
         inside = taken.inside_surface
         if inside is None:
             return ""
-        return (
+        return sentence(
             f"{self.looked_for()} was reported {millimetres(inside.depth)} inside the "
-            f"{inside.surface} and was raised onto it."
+            f"{inside.surface.replace('_', ' ')} and was raised onto it."
         )
 
     def found(self, taken: ReportedObject) -> str:
@@ -348,14 +407,11 @@ class PerceptionSearch:
         if self.table_wide:
             return f"A table-wide search found {self.looked_for()}."
         if taken.distance is None:
-            return f"{self.looked_for()} was found {self.where()}."
+            return sentence(f"{self.looked_for()} was found {self.where()}.")
+        away = self.away(taken.position, taken.distance)
         if taken.verdict is ReportedObjectVerdict.TOO_FAR:
-            return (
-                f"{self.looked_for()} was seen {centimetres(taken.distance)} from "
-                f"where the plan was validated; the step allows "
+            return sentence(
+                f"{self.looked_for()} was seen {away}; the step allows "
                 f"{centimetres(self.tolerance)}."
             )
-        return (
-            f"{self.looked_for()} was found {centimetres(taken.distance)} from where "
-            f"the plan was validated."
-        )
+        return sentence(f"{self.looked_for()} was found {away}.")

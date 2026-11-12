@@ -59,6 +59,11 @@ SAME_BOX_METRES = 0.001
 How close the corners of two boxes lie when they are the same box.
 """
 
+SAME_SPOT_METRES = 0.001
+"""
+How close two positions of an object lie when they are the same spot.
+"""
+
 # %% the run log entry
 
 
@@ -132,6 +137,19 @@ class PerceptionReporting(ExecutorExtension):
     with the object, which the plan moves on.
     """
 
+    validated: Dict[str, Dict[str, List[float]]] = field(init=False)
+    """
+    Where each step expected its objects when the run started, as the plan was validated,
+    by the identity of the step and of the object; a step planned again since may expect
+    them where they were last seen instead.
+    """
+
+    def __post_init__(self) -> None:
+        self.validated = {
+            scheduled.step.identifier: dict(scheduled.expected_positions)
+            for scheduled in self.step_run.steps
+        }
+
     def after_compile(self, executor: Executor) -> None:
         """
         Note when the plan started and where its detections look.
@@ -170,7 +188,7 @@ class PerceptionReporting(ExecutorExtension):
             self.last_step = step
             self.run_log.write(
                 PerceptionReported(
-                    report=self.search(task).report(self.answer(answer, task)),
+                    report=self.search(task, step).report(self.answer(answer, task)),
                     step=step,
                 )
             )
@@ -204,16 +222,22 @@ class PerceptionReporting(ExecutorExtension):
 
     # %% what was asked
 
-    def search(self, task: PerceptionTask) -> PerceptionSearch:
+    def search(self, task: PerceptionTask, step: Optional[str]) -> PerceptionSearch:
         """
         :param task: A detection that ran.
-        :return: What it asked: where the plan expects the object, when the step checks
-            that the object lies there, with how far from there it may lie.
+        :param step: The identity of the step it belongs to, None when none is known.
+        :return: What it asked: where the step expects the object, when the step checks
+            that the object lies there, with how far from there it may lie, and where
+            the plan was validated with it when the step expects it elsewhere since.
         """
         query = task.query
         box = self.boxes.get(task) or self.bounds(query.region, query.world)
         expected = self.expected(task, query.region)
-        grounded = None if expected is None else expected[1].position
+        grounded = (
+            None
+            if expected is None
+            else self.in_root(expected[1].position, query.world)
+        )
         return PerceptionSearch(
             type=query.semantic_annotation.__name__.lower(),
             box=box,
@@ -222,11 +246,41 @@ class PerceptionReporting(ExecutorExtension):
             ),
             color=None if query.color is None else query.color.value,
             table_wide=self.is_table(box, query.world),
-            grounded=(
-                None if grounded is None else self.in_root(grounded, query.world)
+            grounded=grounded,
+            validated=(
+                None
+                if expected is None
+                else self.validated_elsewhere(step, expected[1].body, grounded)
             ),
             tolerance=None if expected is None else expected[0].tolerance,
         )
+
+    def validated_elsewhere(
+        self, step: Optional[str], body: Body, grounded: Vector3
+    ) -> Optional[Vector3]:
+        """
+        :param step: The identity of the step whose detection looks for the body.
+        :param body: One of the plan's objects.
+        :param grounded: Where the step expects it now, in the world's root.
+        :return: Where the step expected it when the run started, as the plan was
+            validated, when that is elsewhere; None when it is the same spot or the
+            step expected it nowhere then.
+        """
+        validated = next(
+            (
+                Vector3(*position)
+                for name, position in self.validated.get(step, {}).items()
+                if self.step_run.bodies.get(name) is body
+            ),
+            None,
+        )
+        if validated is None or (
+            abs(validated.x - grounded.x) < SAME_SPOT_METRES
+            and abs(validated.y - grounded.y) < SAME_SPOT_METRES
+            and abs(validated.z - grounded.z) < SAME_SPOT_METRES
+        ):
+            return None
+        return validated
 
     @staticmethod
     def expected(

@@ -3129,7 +3129,7 @@ class ReportedObjectVerdict(StrEnum):
 
     TOO_FAR = "tooFar"
     """
-    The step took it, but it lies farther from where the plan was validated than the
+    The step took it, but it lies farther from where the step expected it than the
     step allows, so the step stops before moving.
     """
 
@@ -3221,7 +3221,7 @@ class ReportedObjectKey(StrEnum):
 
     DISTANCE = "distance"
     """
-    How far it lies from where the plan was validated.
+    How far it lies from where the step expected the object.
     """
 
     INSIDE_SURFACE = "insideSurface"
@@ -3265,8 +3265,9 @@ class ReportedObject(JsonDocument):
         ReportedObjectKey.DISTANCE, default=None
     )
     """
-    How far it lies from where the plan was validated, in metres; None for a query
-    without such a position.
+    How far it lies, horizontally, from where the step expected the object, see
+    :attr:`PerceptionReport.grounded`, in metres; None for a query without such a
+    position.
     """
 
     inside_surface: Optional[SurfaceDepth] = document_field(
@@ -3287,6 +3288,11 @@ class PerceptionReportKey(StrEnum):
     TARGET = "target"
     """
     The plan's object looked for.
+    """
+
+    LOOKED_FOR = "lookedFor"
+    """
+    The object looked for as a person names it.
     """
 
     TYPE = "type"
@@ -3311,7 +3317,13 @@ class PerceptionReportKey(StrEnum):
 
     GROUNDED = "grounded"
     """
-    Where the plan was validated with the object.
+    Where the step expected the object before the query, which distances are
+    measured from.
+    """
+
+    VALIDATED = "validated"
+    """
+    Where the plan was validated with the object, when the step expected it elsewhere.
     """
 
     TOLERANCE = "tolerance"
@@ -3347,9 +3359,15 @@ class PerceptionReport(JsonDocument):
     The identity of the plan's object looked for, None when the query names none.
     """
 
+    looked_for: str = document_field(PerceptionReportKey.LOOKED_FOR, default="")
+    """
+    The object looked for as a person names it, such as "the red cube" or "a red
+    object"; :attr:`type` is what the perception checks.
+    """
+
     type: str = document_field(PerceptionReportKey.TYPE)
     """
-    The type asked for.
+    The type asked for, as the perception names it.
     """
 
     color: Optional[str] = document_field(PerceptionReportKey.COLOR, default=None)
@@ -3372,8 +3390,18 @@ class PerceptionReport(JsonDocument):
         PerceptionReportKey.GROUNDED, default=None
     )
     """
-    Where the plan was validated with the object, None when the step expects it nowhere
-    in particular.
+    Where the step expected the object just before the query, which the distances are
+    measured from: where the plan was validated, or, when the step was planned again
+    since, where the object was last seen; None when the step expects it nowhere in
+    particular.
+    """
+
+    validated: Optional[Vector3] = document_field(
+        PerceptionReportKey.VALIDATED, default=None
+    )
+    """
+    Where the plan was validated with the object, when the step was planned again since
+    with the object expected elsewhere, at :attr:`grounded`; None otherwise.
     """
 
     tolerance: Optional[float] = document_field(
@@ -3397,8 +3425,8 @@ class PerceptionReport(JsonDocument):
 
     summary: str = document_field(PerceptionReportKey.SUMMARY, default="")
     """
-    The outcome as a person reads it, such as "red_cube was seen 19 cm from where the
-    plan was validated, outside the box looked in".
+    The outcome as a person reads it, such as "The red cube was seen 19 cm from where
+    the plan was validated, outside the 15 cm box looked in."
     """
 
 

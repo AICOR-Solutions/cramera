@@ -130,6 +130,42 @@ def reports(tmp_path_factory) -> List[PerceptionReported]:
     ]
 
 
+@dataclass
+class MovedCubeDemo(PlannedTaskDemo):
+    """
+    Runs the pick with the red cube moved, after the plan was validated, to where
+    RoboKudo reported it on the real table.
+    """
+
+    def perform_plan(self, plan, context, performance, extensions) -> None:
+        z = self.step_run.steps[1].expected_positions["red_cube"][2]
+        self.step_run.put_back(self.bodies["red_cube"], [0.79, 0.145, z])
+        super().perform_plan(plan, context, performance, extensions)
+
+
+@pytest.fixture(scope="module")
+def moved_reports(tmp_path_factory) -> List[PerceptionReported]:
+    """
+    :return: What the run of the pick reported of its detections when the cube lay
+        24 cm from where the plan was validated and the step was planned again where it
+        was found.
+    """
+    if not Tracy.is_description_installed():
+        pytest.skip("iai_tracy_description is not installed")
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+        patch.setenv(EnvironmentVariable.DATA, str(tmp_path_factory.mktemp("data")))
+        document = json.loads(TRACY_PICK.read_text("utf-8"))
+        document["robots"][0]["steps"][1]["values"]["arm"] = "automatic"
+        plan = PlanDocument.from_json(document)
+        demo = MovedCubeDemo.of_document(DemoDocument(plan=plan), port=0)
+        demo.execution = AnsweredKinematicExecution(answers=TableAnswers(demo))
+        demo.run()
+    return [
+        entry for entry in demo.run_log.entries if isinstance(entry, PerceptionReported)
+    ]
+
+
 def test_the_check_of_the_picked_cube_reports_it_24_cm_away(reports):
     first = reports[0]
     report = first.report
@@ -141,7 +177,34 @@ def test_the_check_of_the_picked_cube_reports_it_24_cm_away(reports):
         ReportedObjectVerdict.WRONG_COLOR,
         ReportedObjectVerdict.WRONG_COLOR,
     ]
-    assert report.summary.startswith("red_cube was seen 24 cm from where the plan")
+    assert report.summary.startswith("The red cube was seen 24 cm from where the plan")
+
+
+def test_the_report_names_the_object_as_the_person_knows_it(reports):
+    report = reports[0].report
+    assert report.looked_for == "the red cube"
+    assert "planned" not in report.summary.lower()
+
+
+def test_a_step_planned_again_measures_from_where_the_cube_was_last_seen(
+    moved_reports,
+):
+    """
+    The table-wide search found the cube 24 cm away and the step was planned again
+    there; its next detection found it where it was last seen, which is not where the
+    plan was validated.
+    """
+    again = next(
+        entry.report
+        for entry in moved_reports
+        if entry.report.validated is not None and entry.report.objects
+    )
+    assert (again.validated.x, again.validated.y) == pytest.approx((0.55, 0.1))
+    assert (again.grounded.x, again.grounded.y) == pytest.approx((0.79, 0.145))
+    assert again.summary == (
+        "The red cube was found 0 cm from where it was last seen, 24 cm from where "
+        "the plan was validated."
+    )
 
 
 def test_every_detection_the_run_ran_is_reported_as_an_event(reports):

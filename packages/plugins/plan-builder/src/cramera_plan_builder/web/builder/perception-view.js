@@ -17,10 +17,10 @@ import {
  */
 export const VERDICT_TEXTS = Object.freeze({
   [ReportedObjectVerdict.ACCEPTED]: 'taken for the step',
-  [ReportedObjectVerdict.TOO_FAR]: 'taken, but too far from where the plan was validated',
-  [ReportedObjectVerdict.NOT_CHOSEN]: 'would do, another was taken first',
+  [ReportedObjectVerdict.TOO_FAR]: 'taken, but too far away for the step to go on',
+  [ReportedObjectVerdict.NOT_CHOSEN]: 'would also do, another was taken first',
   [ReportedObjectVerdict.WRONG_COLOR]: 'wrong colour',
-  [ReportedObjectVerdict.WRONG_TYPE]: 'wrong type',
+  [ReportedObjectVerdict.WRONG_TYPE]: 'not the kind of object looked for',
   [ReportedObjectVerdict.OUTSIDE_BOX]: 'outside the box looked in',
 });
 
@@ -48,7 +48,39 @@ const cm = (metres) => `${Math.round(metres * 1000) / 10}`;
  * @param {Array<number>} position A position in metres.
  * @returns {string} It as a person reads it, in metres to the centimetre.
  */
-export const at = (position) => `(${position.map((value) => value.toFixed(2)).join(', ')})`;
+export const at = (position) => `(${position.map((value) => value.toFixed(2)).join(', ')}) m`;
+
+/**
+ * Where a step expects its objects until it is planned again.
+ */
+const VALIDATED_SPOT = 'where the plan was validated';
+
+/**
+ * Where a step planned again expects its objects.
+ */
+const LAST_SEEN_SPOT = 'where it was last seen';
+
+/**
+ * @param {Object} report A `PerceptionReport`.
+ * @returns {string} Where the step expected the object, which distances are measured
+ *   from: where the plan was validated, or, for a step planned again since, where the
+ *   object was last seen.
+ */
+export const spotText = (report) => (report[PerceptionReportKey.VALIDATED] ? LAST_SEEN_SPOT : VALIDATED_SPOT);
+
+/**
+ * @param {Object} report A `PerceptionReport`.
+ * @returns {string} The object looked for as a person names it, such as "the red cube";
+ *   a report recorded before it said so names it from the plan's object or its colour.
+ */
+export function lookedForText(report) {
+  const named = report[PerceptionReportKey.LOOKED_FOR];
+  if (named) return named;
+  const target = report[PerceptionReportKey.TARGET];
+  const color = report[PerceptionReportKey.COLOR];
+  if (target) return `the ${target.replaceAll('_', ' ')}`;
+  return color ? `a ${color} object` : 'an object';
+}
 
 /**
  * @param {string} summary A report's summary.
@@ -82,18 +114,17 @@ export function perceptionSentence(reports) {
  * @returns {string} What it asked, as a person reads it.
  */
 export function askedText(report) {
-  const color = report[PerceptionReportKey.COLOR];
-  const what = `${color ? `${color} ` : ''}${report[PerceptionReportKey.TYPE]}`;
-  const target = report[PerceptionReportKey.TARGET];
   const box = report[PerceptionReportKey.BOX];
   const size = box ? `${cm(box[1][0] - box[0][0])} × ${cm(box[1][1] - box[0][1])} cm` : '';
   const grounded = report[PerceptionReportKey.GROUNDED];
+  const validated = report[PerceptionReportKey.VALIDATED];
+  const moved = grounded && validated ? ` (${cm(Math.hypot(grounded[0] - validated[0], grounded[1] - validated[1]))} cm from ${VALIDATED_SPOT})` : '';
   const where = report[PerceptionReportKey.TABLE_WIDE]
     ? 'on the whole table'
     : grounded
-      ? `in the ${size} box around ${at(grounded)}, where the plan was validated (${cm(report[PerceptionReportKey.TOLERANCE] ?? 0)} cm allowed)`
+      ? `in the ${size} box around ${at(grounded)}, ${spotText(report)}${moved}; the step allows ${cm(report[PerceptionReportKey.TOLERANCE] ?? 0)} cm`
       : `in the ${size} box from ${at(box[0])} to ${at(box[1])}`;
-  return `Asked for ${target ? `${target}, ` : ''}a ${what}, ${where}.`;
+  return `Looked for ${lookedForText(report)} ${where}.`;
 }
 
 /**
@@ -110,22 +141,24 @@ export function insideSurfaceText(seen) {
   const inside = seen[ReportedObjectKey.INSIDE_SURFACE];
   if (!inside || !TAKEN.has(seen[ReportedObjectKey.VERDICT])) return '';
   const mm = (metres) => `${Math.max(1, Math.round(metres * 1000))} mm`;
-  return `; reported ${mm(inside[SurfaceDepthKey.DEPTH])} inside the ${inside[SurfaceDepthKey.SURFACE]} and raised onto it`;
+  return `; reported ${mm(inside[SurfaceDepthKey.DEPTH])} inside the ${inside[SurfaceDepthKey.SURFACE].replaceAll('_', ' ')} and raised onto it`;
 }
 
 /**
  * @param {Object} seen A `ReportedObject`.
- * @returns {string} It as a person reads it: colours, size, position, verdict and how
- *   far inside its surface it was reported.
+ * @param {Object} report The `PerceptionReport` it came back in, which says where its
+ *   distance is measured from.
+ * @returns {string} It as a person reads it: colours, size, position, distance, verdict
+ *   and how far inside its surface it was reported; the type the perception reported is
+ *   left out, a class name no person reads.
  */
-export function objectText(seen) {
+export function objectText(seen, report = {}) {
   const colors = (seen[ReportedObjectKey.COLORS] ?? []).join(' and ') || 'no colour';
   const size = seen[ReportedObjectKey.SIZE];
   const extent = size ? `${size.map(cm).join(' × ')} cm` : 'size unknown';
   const distance = seen[ReportedObjectKey.DISTANCE];
-  const away = distance === null || distance === undefined ? '' : `, ${cm(distance)} cm from the validated spot`;
-  const type = seen[ReportedObjectKey.TYPE] ? ` ${seen[ReportedObjectKey.TYPE]}` : '';
-  return `${colors}${type}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}`;
+  const away = distance === null || distance === undefined ? '' : `, ${cm(distance)} cm from ${spotText(report)}`;
+  return `${colors}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}`;
 }
 
 /**
@@ -172,7 +205,7 @@ export class PerceptionReportsView {
           item.dataset.verdict = seen[ReportedObjectKey.VERDICT];
           const swatch = elements.create('span', PerceptionViewClass.SWATCH);
           swatch.style.background = (seen[ReportedObjectKey.COLORS] ?? [])[0] ?? 'transparent';
-          item.append(swatch, elements.create('span', '', objectText(seen)));
+          item.append(swatch, elements.create('span', '', objectText(seen, report)));
           list.append(item);
         }
         block.append(list);

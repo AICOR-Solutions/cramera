@@ -989,9 +989,10 @@ export class PlanScene {
 
   /**
    * Draw what a detection looked in and what came back: the box as orange edges, where
-   * the plan was validated with the object as a white ball, and every reported object
-   * as a box of its size in its first colour, edged green when the step took it, red
-   * when it took it too far from where the plan was validated, grey otherwise.
+   * the step expected the object (where the plan was validated, or where the object was
+   * last seen once the step was planned again) as a white ball, and every reported
+   * object as a box of its size in its first colour, edged green when the step took it,
+   * red when it took it too far from there, grey otherwise.
    * @param {Object|null} report A `PerceptionReport`, or null to draw nothing.
    */
   #showPerception(report) {
