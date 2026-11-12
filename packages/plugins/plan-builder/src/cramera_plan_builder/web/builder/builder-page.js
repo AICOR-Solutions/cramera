@@ -447,9 +447,10 @@ export class BuilderPage {
   #request = null;
 
   /**
-   * How the latest step ended, `{tone, text}`, which the status area shows until
-   * something new starts; null before one.
-   * @type {{tone: string, text: string}|null}
+   * How the latest step ended, `{tone, text, validation}`, which the status area shows
+   * until something new starts; null before one. `validation` marks the outcome of a
+   * validation.
+   * @type {{tone: string, text: string, validation?: boolean}|null}
    */
   #outcome = null;
 
@@ -657,9 +658,11 @@ export class BuilderPage {
    * next step starts or a run ends.
    * @param {string} tone A `Tone` value.
    * @param {string} text What the person should know.
+   * @param {boolean} validation Whether it tells how a validation ended, which stands
+   *   only while the plan and its scene stay as validated.
    */
-  #announce(tone, text) {
-    this.#outcome = { tone, text };
+  #announce(tone, text, validation = false) {
+    this.#outcome = { tone, text, validation };
     this.report('');
     this.render();
   }
@@ -1032,7 +1035,7 @@ export class BuilderPage {
     });
     if (!report) return;
     this.#validation = { plan: JSON.stringify(plan), report, sceneChanged: false };
-    this.#announce(this.#validationPassed() ? Tone.SUCCESS : Tone.ERROR, validationMessage(report, this.state.steps()));
+    this.#announce(this.#validationPassed() ? Tone.SUCCESS : Tone.ERROR, validationMessage(report, this.state.steps()), true);
   }
 
   /**
@@ -1404,6 +1407,16 @@ export class BuilderPage {
   }
 
   /**
+   * @returns {{tone: string, text: string}|null} The outcome the status area shows: the
+   *   latest step's, except that the outcome of a validation whose plan or scene changed
+   *   since says the plan needs validating again.
+   */
+  #standingOutcome() {
+    if (!this.#outcome?.validation || this.#validation === null || this.validatedReport() !== null) return this.#outcome;
+    return { tone: Tone.WARNING, text: this.#validationState(false) };
+  }
+
+  /**
    * Show where the flow stands in the status area: what happens, in the colour of its
    * kind, with a spinner and the seconds waited while the page waits.
    */
@@ -1418,7 +1431,7 @@ export class BuilderPage {
       unanswered: this.#unanswered,
       safety: this.#safetyBanner.state(this.#run),
       revalidate: this.#revalidate(),
-      outcome: this.#outcome,
+      outcome: this.#standingOutcome(),
       missing: this.state.catalog[PlanBuilderCatalogKey.MISSING],
     });
     const status = flowStatus(facts);

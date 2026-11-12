@@ -1308,6 +1308,22 @@ test('an edit of the plan or its scene invalidates the validation', async () => 
   assert.equal(robotRun(root).disabled, true);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
   assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Plan changed since its validation/);
+  assert.match(headline(root), /^Plan changed since its validation: validate again\./);
+  assert.equal(flow(root).dataset.tone, 'warning');
+});
+
+test('an edit after a failed validation no longer shows the failure in the status', async () => {
+  const { root, page } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: index === 1 ? StepVerdict.FAILED : StepVerdict.VALID,
+      ...(index === 1 ? { [StepValidationKey.REASON]: StepFailureReason.UNREACHABLE } : {}),
+    }));
+  });
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  page.placeObject(page.state.objects()[0][PlannedObjectKey.IDENTIFIER], PlanPose.of(3, 3, 0, 0));
+  assert.match(headline(root), /^Plan changed since its validation: validate again\./);
 });
 
 test('a live object moved away from its pose in the plan invalidates the validation for good', async () => {
