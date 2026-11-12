@@ -14,7 +14,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from typing_extensions import List, Optional
+from typing_extensions import Dict, List, Optional
 
 from coraplex.perception import PerceptionTask
 from coraplex.plans.expected_positions import BodiesWhereExpected, ExpectedPosition
@@ -115,8 +115,23 @@ class PerceptionReporting(ExecutorExtension):
     table-wide search after a step lost its object, belongs to.
     """
 
+    boxes: Dict[PerceptionTask, Bounds] = field(default_factory=dict, init=False)
+    """
+    The box each detection of the plan looks in, as it lay when the plan was compiled,
+    by the detection: a box around an object, as a grasp's detection looks in, moves
+    with the object, which the plan moves on.
+    """
+
     def after_compile(self, executor: Executor) -> None:
+        """
+        Note when the plan started and where its detections look.
+        """
         self.started = time.time()
+        self.boxes = {
+            node: self.bounds(node.query.region, node.query.world)
+            for node in executor.statechart.nodes
+            if isinstance(node, PerceptionTask)
+        }
 
     def after_run(self, executor: Executor) -> None:
         """
@@ -186,7 +201,7 @@ class PerceptionReporting(ExecutorExtension):
             that the object lies there, with how far from there it may lie.
         """
         query = task.query
-        box = self.bounds(query.region, query.world)
+        box = self.boxes.get(task) or self.bounds(query.region, query.world)
         expected = self.expected(task, query.region)
         grounded = None if expected is None else expected[1].position
         return PerceptionSearch(

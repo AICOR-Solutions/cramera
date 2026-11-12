@@ -148,3 +148,10 @@ def test_every_detection_the_run_ran_is_reported_as_an_event(reports):
     assert len(reports) >= 2
     assert all(entry.step == "step_2" for entry in reports)
     assert all(entry.event().kind is RunEventKind.PERCEPTION for entry in reports)
+
+
+def test_a_grasp_looks_around_the_cube_where_it_lay_before_the_pick(reports):
+    grasp = reports[-1].report
+    low, high = grasp.box.minimum, grasp.box.maximum
+    centre = ((low.x + high.x) / 2, (low.y + high.y) / 2, (low.z + high.z) / 2)
+    assert centre == pytest.approx((0.55, 0.1, 0.906), abs=0.01)
