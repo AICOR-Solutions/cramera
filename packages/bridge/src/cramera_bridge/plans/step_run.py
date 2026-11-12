@@ -63,11 +63,13 @@ from cramph.composites import Sequence as StepSequence
 from cramph.data_types import LifeCycleValues, ObservationStateValues
 from cramph.exceptions import ExecutionFailure
 from cramph.executor import (
+    Executor,
     ExecutorExtension,
     StatechartExecutor,
     TickingExecutorExtension,
 )
 from cramph.node import StatechartNode
+from cramph.state_history import StateHistory, StateHistoryObserver
 from giskardpy.motion_statechart.monitors.cartesian_monitors import OutOfFieldOfView
 from giskardpy.motion_statechart.monitors.safety_monitors import (
     CancelOnSafetyViolation,
@@ -342,10 +344,15 @@ class WatchedTarget:
 
 
 @dataclass
-class AttemptProgress(TickingExecutorExtension):
+class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
     """
-    Writes to the run log every step of an attempt's plan that succeeded, every change
-    of what a step's look-at observes, and a safety stop that cancelled the plan.
+    Writes to the run log every step of an attempt's plan that started and succeeded,
+    every change of what a step's look-at observes, and a safety stop that cancelled the
+    plan.
+
+    It follows the plan after every tick of its executor and every state the plan's
+    history records, which on the real robot is the only sign of progress: the motion
+    server ticks the plan there, and the executor takes over the states it reports.
     """
 
     run_log: RunLog
@@ -383,7 +390,23 @@ class AttemptProgress(TickingExecutorExtension):
     What each step's look-at observed last, by the step's identity.
     """
 
+    def after_compile(self, executor: Executor) -> None:
+        """
+        Follow every state the compiled plan's history records.
+        """
+        executor.statechart.state_history.add_observer(self)
+
+    def on_state_change(self, history: StateHistory) -> None:
+        self.follow()
+
     def after_tick(self, executor: StatechartExecutor) -> None:
+        self.follow()
+
+    def follow(self) -> None:
+        """
+        Write the steps that started or succeeded and the changed views since the plan
+        was followed last.
+        """
         for attempted in self.steps:
             self.write_success(attempted)
         # the steps run one after another, so the first that did not succeed runs
@@ -417,6 +440,7 @@ class AttemptProgress(TickingExecutorExtension):
         )
 
     def after_run(self, executor: StatechartExecutor) -> None:
+        executor.statechart.state_history.remove_observer(self)
         for attempted in self.steps:
             self.write_success(attempted)
         self.write_safety_stop(executor)

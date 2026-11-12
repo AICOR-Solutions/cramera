@@ -30,8 +30,14 @@ from cramera_bridge.plans.run_log import (
     StepStarted,
     View,
 )
-from cramera_bridge.plans.step_run import Alternative
+from cramera_bridge.plans.step_run import Alternative, AttemptedStep, AttemptProgress
 from cramera_protocol.geometry import FloorRectangle
+from cramph.composites import Sequence
+from cramph.context import StatechartContext
+from cramph.data_types import LifeCycleValues
+from cramph.executor import Executor, StatechartExecutor
+from cramph.monitors import CountTicks
+from cramph.statechart import Statechart
 from cramera_protocol.plan_builder import (
     DemoDocument,
     MonitorObservation,
@@ -45,6 +51,7 @@ from cramera_protocol.robot_profile import Zone
 from cramera_protocol.viewer import EnvironmentVariable
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.robots.tracy import Tracy
+from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
 from ..dataset.bundles import DATASET
@@ -109,6 +116,59 @@ def test_every_entry_is_a_line_of_the_runs_output():
     )
     assert run_log.entries == [entry]
     assert run_log.events() == [entry.event()]
+
+
+@dataclass
+class FollowingExecutor(Executor):
+    """
+    Holds a statechart another process ticks, as the client of the real robot's motion
+    server does, which takes over the states that process reports instead of ticking.
+    """
+
+    def default_context_extensions(self) -> list:
+        return []
+
+    def default_executor_extensions(self) -> list:
+        return []
+
+    def execute(self) -> None:
+        """
+        Runs nothing: the other process ticks the statechart.
+        """
+
+
+def test_the_steps_of_a_plan_ticked_in_another_process_are_followed_as_they_run():
+    """
+    On the real robot the motion server ticks the plan and the run only takes over the
+    states it reports, so no tick of the run's own executor tells how far the plan is;
+    every state taken over has to.
+    """
+    context = StatechartContext(world=World())
+    statechart = Statechart(context=context)
+    first, second = CountTicks(ticks=1), CountTicks(ticks=1)
+    statechart.add_node(Sequence(nodes=[first, second]))
+    stream = io.StringIO()
+    progress = AttemptProgress(run_log=RunLog(stream=stream), attempts=3)
+    progress.steps = [
+        AttemptedStep(node=first, step="step_1", number=1),
+        AttemptedStep(node=second, step="step_2", number=1),
+    ]
+    other_process = StatechartExecutor(context=context)
+    other_process.compile(statechart)
+    following = FollowingExecutor(context=context)
+    following.compile(statechart)
+    progress.after_compile(following)
+    while second.life_cycle_state is not LifeCycleValues.RUNNING:
+        other_process.tick()
+    reported_while_running = [
+        (event.step, event.state) for event in progress.run_log.events()
+    ]
+
+    assert reported_while_running == [
+        ("step_1", StepState.RUNNING),
+        ("step_1", StepState.DONE),
+        ("step_2", StepState.RUNNING),
+    ]
 
 
 @pytest.mark.parametrize(
