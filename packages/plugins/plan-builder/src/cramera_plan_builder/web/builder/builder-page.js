@@ -92,6 +92,13 @@ export const ROBOT_MODEL_KEY = 'cramera.plan-builder.robot-model';
 export const URDF_FOLDER_KEY = 'cramera.plan-builder.urdf-folder';
 
 /**
+ * The storage key of the plan as the page showed it last, `{identifier, document}`:
+ * the identity it was saved under, or null, and the plan. A page loaded again without a
+ * plan named in its query shows it, so a reload or a second tab keeps the plan.
+ */
+export const DRAFT_KEY = 'cramera.plan-builder.draft';
+
+/**
  * The choice of the saved plans' select that opens none.
  */
 const OPEN_PROMPT = Object.freeze({ value: '', label: 'Open a saved plan…' });
@@ -515,7 +522,9 @@ export class BuilderPage {
     this.#adopt(PlanState.empty(catalog, environment, profile?.[RobotProfileKey.ROBOT] ?? null));
     this.#layout(statusLine);
     const saved = query.get(PlanBuilderPageParameter.PLAN);
+    const draft = this.#environment.storage.getItem(DRAFT_KEY);
     if (saved) await this.#open(saved);
+    else if (draft !== null) this.#restore(JSON.parse(draft));
     this.render();
     const missing = catalog[PlanBuilderCatalogKey.MISSING];
     this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : 'Ready.');
@@ -539,6 +548,7 @@ export class BuilderPage {
     parts.constraints.render();
     const robot = state.activeRobot();
     if (robot) this.#environment.storage.setItem(ROBOT_MODEL_KEY, robot[PlannedRobotKey.MODEL]);
+    this.#environment.storage.setItem(DRAFT_KEY, JSON.stringify({ identifier: this.#planIdentifier, document: state.document }));
     this.#showRun();
     this.#askReach();
     this.#showScene();
@@ -913,6 +923,16 @@ export class BuilderPage {
     if (!record) return;
     this.#planIdentifier = record[PlanRecordKey.IDENTIFIER];
     this.#adopt(new PlanState(this.state.catalog, record[PlanRecordKey.DOCUMENT]));
+  }
+
+  /**
+   * Show the plan the page showed last, under the identity it was saved under.
+   * @param {{identifier: string|null, document: Object}} draft The plan as
+   *   `DRAFT_KEY` keeps it.
+   */
+  #restore(draft) {
+    this.#planIdentifier = draft.identifier;
+    this.#adopt(new PlanState(this.state.catalog, draft.document));
   }
 
   /**

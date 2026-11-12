@@ -55,7 +55,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, FAILURE_LENGTH_LIMIT, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1956,4 +1956,43 @@ test('a plan from a template, a new or an opened plan shows no progress of the r
   assert.equal(runView(root).hidden, true);
   assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, true);
   assert.equal(runLog(root).textContent, '');
+});
+
+// %% a reload
+
+/**
+ * @param {Object} opened A page as `openPage` answers it.
+ * @param {function(Object): void} prepare Prepares the fake API of the reloaded page.
+ * @returns {Promise<Object>} The same page loaded again in the same browser: a page of
+ *   its own, sharing the browser's storage.
+ */
+const reload = (opened, prepare = () => {}) => openPage('', (fresh) => {
+  fresh.storage.setItem(DRAFT_KEY, opened.storage.getItem(DRAFT_KEY));
+  prepare(fresh);
+}, { robot: false });
+
+test('a reload keeps the plan as it was edited', async () => {
+  const opened = await pickAndPlace();
+  opened.page.edit(() => opened.page.state.setField(PlanKey.NAME, 'sort the cubes'));
+
+  const { root, page } = await reload(opened);
+
+  assert.equal(page.state.field(PlanKey.NAME), 'sort the cubes');
+  assert.deepEqual(page.state.document, opened.page.state.document);
+  assert.equal(steps(root).length, 3);
+});
+
+test('a page loaded again during a run names the steps of the run as the plan does', async () => {
+  const opened = await pickAndPlace();
+  const [, pick] = opened.page.state.steps();
+  const running = {
+    [RunStatusKey.STATE]: RunState.RUNNING,
+    [RunStatusKey.MODE]: RunMode.SIMULATE,
+    [RunStatusKey.EVENTS]: [{ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: pick[PlanStepKey.IDENTIFIER], [RunEventKey.STATE]: StepState.RUNNING }],
+  };
+
+  const { root, timer } = await reload(opened, ({ api }) => { api.status = running; });
+  await timer.tick();
+
+  assert.match(headline(root), new RegExp(`running 2\\. ${opened.page.state.stepLabel(pick)} `));
 });
