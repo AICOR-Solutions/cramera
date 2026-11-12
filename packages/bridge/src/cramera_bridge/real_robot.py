@@ -31,7 +31,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Empty, Float64MultiArray
 from typing_extensions import Callable, Iterator, Mapping, Optional, Sequence
 
 from cramera.process_sessions import ProcessSession
@@ -454,6 +454,18 @@ class OrbbecCameraTopic(StrEnum):
     COLOR_CAMERA_INFO = "/camera/color/camera_info"
 
 
+class ArmWatchdogTopic(StrEnum):
+    """
+    The topics of the arm watchdog (:mod:`cramera_bridge.arm_watchdog`), which runs
+    apart from the viewer.
+    """
+
+    HEARTBEAT = "cramera/arm_watchdog/heartbeat"
+    """
+    Says, every half second, that the watchdog runs.
+    """
+
+
 class RequirementKind(StrEnum):
     """
     What a real run needs from the robot's drivers and the ROS workspace.
@@ -487,6 +499,12 @@ class RequirementKind(StrEnum):
     CAMERA_TOPIC = "camera topic published"
     """
     A topic RoboKudo reads the camera's images from.
+    """
+
+    ARM_WATCHDOG = "arm watchdog running"
+    """
+    The watchdog that halts an arm whose commands stopped, outside the viewer, says
+    that it runs; without it, a viewer dying mid-motion leaves the arms moving.
     """
 
 
@@ -624,6 +642,12 @@ class RealRobotPreflight:
     The topics RoboKudo reads the camera's images from.
     """
 
+    requires_arm_watchdog: bool = False
+    """
+    Whether the arm watchdog has to say that it runs, as before a run moving the real
+    arms; the check before the platform starts, and with it the watchdog, leaves it out.
+    """
+
     def check(self, node: Node) -> PreflightReport:
         """
         :param node: A spinning node the checks look through.
@@ -648,6 +672,14 @@ class RealRobotPreflight:
         ]
         if self.giskard_script.commands_the_real_robot:
             checks.extend(self.driver_checks(node, deadline))
+            if self.requires_arm_watchdog:
+                checks.append(
+                    PreflightCheck(
+                        RequirementKind.ARM_WATCHDOG,
+                        ArmWatchdogTopic.HEARTBEAT.value,
+                        is_heard_of(node, ArmWatchdogTopic.HEARTBEAT, deadline),
+                    )
+                )
         checks.append(self.other_giskard_check(node, deadline))
         return PreflightReport(checks)
 
@@ -739,6 +771,27 @@ def is_published(
             return False
         time.sleep(polling_seconds)
     return True
+
+
+def is_heard_of(
+    node: Node, topic: str, deadline: float, shortest_wait: float = 1.0
+) -> bool:
+    """
+    :param node: A spinning node.
+    :param topic: A topic of :class:`std_msgs.msg.Empty` messages.
+    :param deadline: The :func:`time.monotonic` time the wait ends at.
+    :param shortest_wait: How long, in seconds, the wait lasts at least, past the
+        deadline if need be: twice as long as a heartbeat takes to repeat.
+    :return: Whether a message arrived on the topic before the deadline, which a
+        process that died does not send, though its publisher may still be listed.
+    """
+    heard = threading.Event()
+    subscription = node.create_subscription(
+        Empty, topic, lambda message: heard.set(), 1
+    )
+    heard.wait(max(seconds_left_until(deadline), shortest_wait))
+    node.destroy_subscription(subscription)
+    return heard.is_set()
 
 
 # %% joint states

@@ -448,7 +448,9 @@ class RealExecution(PlanExecution):
             node = attached.enter_context(
                 SpinningNode(self.node_name, MultiThreadedExecutor).running()
             )
-            report = RealRobotPreflight(self.giskard_script).check(node)
+            report = RealRobotPreflight(
+                self.giskard_script, requires_arm_watchdog=True
+            ).check(node)
             if not report.ready:
                 raise RealRobotNotReady(report.to_text())
             attached.enter_context(self.ended_by_termination())
