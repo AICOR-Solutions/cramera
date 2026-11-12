@@ -564,6 +564,19 @@ test('a step that no longer fits its action shows why', async () => {
   assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, 'search');
 });
 
+test('a required object a step has no value for shows choose… instead of looking chosen', async () => {
+  const { root, page } = await openPage();
+  block(root, 'pick_up').click();
+  addMilk(root);
+  const object = parameter(root, 'object_designator');
+  assert.deepEqual([object.value, object.children[0].textContent], ['', 'choose…']);
+  const milk = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  object.value = milk;
+  object.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps()[0][PlanStepKey.VALUES].object_designator, milk);
+  assert.equal(parameter(root, 'object_designator').children.some((option) => option.textContent === 'choose…'), false);
+});
+
 test('a step is moved and removed with its controls', async () => {
   const { root, page } = await openPage();
   block(root, 'park_arms').click();

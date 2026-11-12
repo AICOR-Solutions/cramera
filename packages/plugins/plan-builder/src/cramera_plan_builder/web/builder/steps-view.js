@@ -452,8 +452,11 @@ export class StepsView {
   #objectPicker(step, field) {
     const objects = this.#editor.state.objectChoices(step[PlanStepKey.IDENTIFIER]);
     if (objects.length === 0) return [this.#shown.create('p', ViewClass.EMPTY, `Add an object for ${field[ActionFieldKey.LABEL]}.`)];
-    const choices = field[ActionFieldKey.REQUIRED] ? objects : [{ value: DEFAULT_CHOICE, label: 'none' }, ...objects];
-    const select = this.#shown.select(PlanAction.STEP_PARAMETER, choices, StepsView.#value(step, field) ?? DEFAULT_CHOICE, (value) => this.#set(step, field, value || null));
+    const value = StepsView.#value(step, field);
+    // A required object without a value says so: a select would otherwise show its first
+    // object as if it were chosen.
+    const first = !field[ActionFieldKey.REQUIRED] ? [{ value: DEFAULT_CHOICE, label: 'none' }] : value == null ? [{ value: DEFAULT_CHOICE, label: 'choose…' }] : [];
+    const select = this.#shown.select(PlanAction.STEP_PARAMETER, [...first, ...objects], value ?? DEFAULT_CHOICE, (picked) => this.#set(step, field, picked || null));
     return [this.#labelled(step, field, select)];
   }
 
