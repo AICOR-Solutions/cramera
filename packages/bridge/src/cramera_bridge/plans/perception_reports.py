@@ -119,6 +119,14 @@ def sentence(text: str) -> str:
     return text[:1].upper() + text[1:]
 
 
+def object_name(identifier: str) -> str:
+    """
+    :param identifier: The identity of one of the plan's objects, such as ``red_cube``.
+    :return: It as a person names it, as the step cards do: "red cube".
+    """
+    return identifier.replace("_", " ")
+
+
 def millimetres(metres: float) -> str:
     """
     :param metres: A distance.
@@ -292,7 +300,7 @@ class PerceptionSearch:
             plan's red_cube, else by its color.
         """
         if self.target:
-            return f"the {self.target.replace('_', ' ')}"
+            return f"the {object_name(self.target)}"
         return self.kind()
 
     def kind(self) -> str:

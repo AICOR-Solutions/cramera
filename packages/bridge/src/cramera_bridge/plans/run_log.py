@@ -16,6 +16,7 @@ from enum import StrEnum
 
 from typing_extensions import Callable, List, Optional, TextIO
 
+from cramera_bridge.plans.perception_reports import object_name
 from cramera_protocol.plan_builder import (
     MonitorObservation,
     RunEvent,
@@ -314,10 +315,8 @@ class StepContinuedUnseen(RunLogEntry):
     """
 
     def line(self) -> str:
-        return (
-            f"{self.step}: {self.reason}; continuing at the position "
-            f"{', '.join(self.targets)} was validated at"
-        )
+        names = ", ".join(object_name(target) for target in self.targets)
+        return f"{self.step}: {self.reason}; continuing where the plan expected {names}"
 
     def event(self) -> RunEvent:
         return RunEvent(

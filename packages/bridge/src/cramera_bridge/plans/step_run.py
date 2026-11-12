@@ -32,6 +32,7 @@ from coraplex.exceptions import (
     NothingPerceived,
     PerceptionSourceDidNotAnswer,
     PerceptionSourceFailed,
+    PerceptionSourceUnavailable,
 )
 from coraplex.perception import PerceptionTask, WorldPerception
 from coraplex.plans import executors
@@ -45,6 +46,7 @@ from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
 from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.grounding import GroundedStep, PlanGrounding
+from cramera_bridge.plans.perception_reports import object_name
 from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.run_log import (
     AttemptOutcome,
@@ -91,6 +93,12 @@ from semantic_digital_twin.world_description.geometry import VolumetricBoundingB
 from semantic_digital_twin.world_description.world_entity import Body
 
 # %% failures the run log reports
+
+OBJECT_RECOGNITION_NOT_RUNNING = "the object recognition (RoboKudo) is not running"
+"""
+Why a step's objects were not looked for when no RoboKudo pipeline serves its query
+action, as a person reads it.
+"""
 
 
 class ErrorsHeldBack(logging.Filter):
@@ -171,6 +179,12 @@ class ScheduledStep:
 
 # %% why an attempt failed
 
+StepFailure = ExecutionFailure | PerceptionSourceUnavailable
+"""
+What ends the run of an attempt at a step: a failure of its plan, or a perception that
+is not running when the step looks for its objects.
+"""
+
 
 class Alternative(StrEnum):
     """
@@ -214,19 +228,20 @@ class FailedAttempt:
 
     unseen: Optional[str] = None
     """
-    What the robot's perception gave nothing for, as a person reads it, when it did not
-    answer or did not find the step's objects on the table again; None otherwise.
+    What the robot's perception gave nothing for, as a person reads it, when it was not
+    running, did not answer or did not find the step's objects on the table again; None
+    otherwise.
     """
 
     @classmethod
-    def from_failure(
-        cls, failure: ExecutionFailure, node: StatechartNode
-    ) -> FailedAttempt:
+    def from_failure(cls, failure: StepFailure, node: StatechartNode) -> FailedAttempt:
         """
         :param failure: What ended the run of the attempt.
         :param node: The node the attempt ran as.
         :return: Why it failed; a plan that did not finish because a detection below
-            the node saw nothing failed as not perceived.
+            the node saw nothing failed as not perceived. A perception that is not
+            running, did not answer or gave up leaves its objects unseen, and is not
+            attempted again unless it gave up.
         """
         if isinstance(failure, MotionDidNotFinish):
             failure = next(
@@ -238,19 +253,29 @@ class FailedAttempt:
                 ),
                 failure,
             )
+        reason = (
+            OBJECT_RECOGNITION_NOT_RUNNING
+            if isinstance(failure, PerceptionSourceUnavailable)
+            else failure.error_message()
+        )
         return cls(
-            reason=failure.error_message(),
+            reason=reason,
             lost_track=isinstance(
                 failure,
                 (BodiesMovedSinceGrounding, NothingPerceived, TargetLeftFieldOfView),
             ),
             may_be_attempted_again=not isinstance(
-                failure, PerceptionSourceDidNotAnswer
+                failure, (PerceptionSourceDidNotAnswer, PerceptionSourceUnavailable)
             ),
             unseen=(
-                failure.error_message()
+                reason
                 if isinstance(
-                    failure, (PerceptionSourceDidNotAnswer, PerceptionSourceFailed)
+                    failure,
+                    (
+                        PerceptionSourceDidNotAnswer,
+                        PerceptionSourceFailed,
+                        PerceptionSourceUnavailable,
+                    ),
                 )
                 else None
             ),
@@ -1164,7 +1189,7 @@ class StepRun:
         plan: StatechartNode,
         performance: PlanPerformance,
         extensions: Sequence[ExecutorExtension],
-    ) -> Optional[ExecutionFailure]:
+    ) -> Optional[StepFailure]:
         """
         :param plan: A plan of the run.
         :param performance: How it is performed.
@@ -1172,11 +1197,13 @@ class StepRun:
         :return: The failure that ended it, or None when it succeeded.
         """
         # A failed attempt is the run's to retry, as an action trial's is the
-        # chooser's: the failure is caught where the next attempt is decided.
+        # chooser's: the failure is caught where the next attempt is decided. A
+        # perception that is not running is no plan failure, but leaves the step's
+        # objects unseen as one that does not answer does.
         with failures_left_to_the_run_log():
             try:
                 performance.perform(plan, self.context, extensions)
-            except ExecutionFailure as failure:
+            except (ExecutionFailure, PerceptionSourceUnavailable) as failure:
                 return failure
         return None
 
@@ -1275,17 +1302,16 @@ class StepRun:
             detection = self.redetection(self.steps[position])
             failure = self.perform_plan(detection, performance, extensions())
             if failure is not None:
-                lost = ", ".join(self.steps[position].expected_positions)
                 redetected = FailedAttempt.from_failure(failure, detection)
-                targets = ", ".join(
-                    self.target_of(name)
+                lost = ", ".join(
+                    f"the {object_name(self.target_of(name))}"
                     for name in self.steps[position].expected_positions
                 )
                 return FailedAttempt(
                     reason=f"{lost} was not detected on the table again: "
                     f"{redetected.reason}",
                     lost_track=True,
-                    unseen=redetected.unseen or f"{targets} was not seen",
+                    unseen=redetected.unseen or f"{lost} was not seen",
                 )
         if alternative is Alternative.OTHER_ARM:
             steps[0] = self.other_arm_step(self.steps[position])

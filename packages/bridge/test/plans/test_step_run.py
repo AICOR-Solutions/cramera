@@ -41,6 +41,7 @@ from cramera_bridge.plans.step_run import (
     Alternative,
     AttemptedStep,
     AttemptProgress,
+    OBJECT_RECOGNITION_NOT_RUNNING,
     failures_left_to_the_run_log,
 )
 from cramera_protocol.geometry import FloorRectangle
@@ -238,17 +239,17 @@ def test_a_step_grounded_again_says_in_one_line_where_its_object_was_found():
 
 def test_a_step_carrying_on_unseen_says_in_one_line_where_it_acts():
     entry = StepContinuedUnseen(
-        step="step_3", targets=["red_cube"], reason="red_cube was not seen"
+        step="step_3", targets=["red_cube"], reason="the red cube was not seen"
     )
     assert entry.line() == (
-        "step_3: red_cube was not seen; continuing at the position red_cube was "
-        "validated at"
+        "step_3: the red cube was not seen; continuing where the plan expected "
+        "red cube"
     )
     assert entry.event() == RunEvent(
         kind=RunEventKind.CONTINUED_UNSEEN,
         step="step_3",
         target="red_cube",
-        reason="red_cube was not seen",
+        reason="the red cube was not seen",
     )
 
 
@@ -668,6 +669,9 @@ def test_strict_gives_up_a_pick_whose_cube_is_seen_nowhere(
     )
 
     assert run.abandoned.step == "step_2"
+    assert run.abandoned.reason.startswith(
+        "the red cube was not detected on the table again: "
+    )
     assert not any(isinstance(entry, StepContinuedUnseen) for entry in run.entries)
 
 
@@ -683,7 +687,7 @@ def test_lenient_picks_a_cube_seen_nowhere_where_it_was_validated(
 
     assert (
         StepContinuedUnseen(
-            step="step_2", targets=["red_cube"], reason="red_cube was not seen"
+            step="step_2", targets=["red_cube"], reason="the red cube was not seen"
         )
         in run.entries
     )
@@ -738,4 +742,59 @@ def test_lenient_picks_where_validated_when_its_perception_does_not_answer(
     ]
     assert continued.step == "step_2"
     assert continued.reason.startswith("RoboKudo did not answer within 0.5 s")
+    assert run.picked_at == pytest.approx(VALIDATED, abs=0.01)
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_strict_gives_up_a_pick_whose_object_recognition_is_not_running(
+    tmp_path, monkeypatch, tracy_installed
+):
+    from .test_grounding import KinematicExecutionAskingRoboKudo
+
+    with SpinningNode("no_robokudo", MultiThreadedExecutor).running() as node:
+        run = run_pick(
+            tmp_path,
+            monkeypatch,
+            RuntimeCheck.STRICT,
+            execution=KinematicExecutionAskingRoboKudo(ros_node=node),
+            abandons=True,
+        )
+
+    assert run.abandoned.step == "step_2"
+    assert run.abandoned.reason == OBJECT_RECOGNITION_NOT_RUNNING
+    assert "object recognition" in run.abandoned.reason
+    assert "not running" in run.abandoned.reason
+    assert not any(isinstance(entry, StepContinuedUnseen) for entry in run.entries)
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_lenient_picks_where_validated_when_its_object_recognition_is_not_running(
+    tmp_path, monkeypatch, tracy_installed
+):
+    """
+    An object in the twin counts as seen; a perception that is not running only leaves
+    the twin's belief unrefined.
+    """
+    from .test_grounding import KinematicExecutionAskingRoboKudo
+
+    with SpinningNode("no_robokudo", MultiThreadedExecutor).running() as node:
+        run = run_pick(
+            tmp_path,
+            monkeypatch,
+            RuntimeCheck.LENIENT,
+            execution=KinematicExecutionAskingRoboKudo(ros_node=node),
+        )
+
+    assert (
+        StepContinuedUnseen(
+            step="step_2",
+            targets=["red_cube"],
+            reason=OBJECT_RECOGNITION_NOT_RUNNING,
+        )
+        in run.entries
+    )
     assert run.picked_at == pytest.approx(VALIDATED, abs=0.01)
