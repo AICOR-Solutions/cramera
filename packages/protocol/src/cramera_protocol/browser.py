@@ -360,7 +360,9 @@ from cramera_protocol.reach import (
 )
 from cramera_protocol.robot_profile import (
     ExecutorKind,
+    PerceptionSettingsKey,
     RobotProfileKey,
+    RuntimeCheck,
     SkillKey,
     ZoneKey,
 )
@@ -747,6 +749,8 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     SurfaceDepthKey,
     PerceptionReportKey,
     RobotProfileKey,
+    PerceptionSettingsKey,
+    RuntimeCheck,
     SkillKey,
     ZoneKey,
     ArmReachKey,

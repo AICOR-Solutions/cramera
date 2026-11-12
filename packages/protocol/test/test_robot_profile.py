@@ -234,3 +234,7 @@ def test_a_profile_without_a_runtime_check_holds_its_runs_to_the_strict_one(
         RobotProfile.from_file(profile_file).perception.runtime_check
         is RuntimeCheck.STRICT
     )
+
+
+def test_the_browser_reads_how_strictly_a_run_checks_what_it_perceives():
+    assert {PerceptionSettingsKey, RuntimeCheck} <= set(BROWSER_ENUMERATIONS)
