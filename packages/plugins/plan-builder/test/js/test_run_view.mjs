@@ -282,3 +282,16 @@ test('the camera panel shows the latest perception images or says none was taken
   assert.equal(picture.src, image.url);
   assert.match(camera.innerText, /Latest perception: camera/);
 });
+
+test('an object perceived at several steps is listed once, in the color it showed last', () => {
+  const perceived = (step, target, color) => ({ [RunEventKey.KIND]: RunEventKind.PERCEIVED, [RunEventKey.STEP]: step, [RunEventKey.TARGET]: target, [RunEventKey.COLOR]: color });
+  const events = [perceived('step_1', 'yellow_cube', 'yellow'), perceived('step_2', 'blue_cube', 'blue'), perceived('step_3', 'yellow_cube', 'yellow')];
+  const progress = RunProgress.of(
+    ['step_1', 'step_2', 'step_3'].map((identifier) => ({ [PlanStepKey.IDENTIFIER]: identifier })),
+    () => 'Pick',
+    { [RunStatusKey.EVENTS]: events },
+  );
+  const view = rendered(progress);
+  assert.deepEqual(byClass(view, RunViewClass.OBJECT).map((chip) => chip.innerText), ['yellow cube (yellow)', 'blue cube (blue)']);
+  assert.equal(progress.log.filter((line) => line.includes('perceived yellow cube')).length, 2);
+});

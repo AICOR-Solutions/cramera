@@ -744,10 +744,10 @@ export class PlanState {
     for (const [name, value] of Object.entries(values)) {
       const field = fields.get(name);
       if (!field) problems.push(`${schema[ActionSchemaKey.LABEL]} has no field '${name}'.`);
-      else if (!this.#fits(robot, field, value, step)) problems.push(`Field '${name}' cannot be ${JSON.stringify(value)}.`);
+      else if (!this.#fits(robot, field, value, step)) problems.push(`“${field[ActionFieldKey.LABEL]}” cannot be ${JSON.stringify(value)}.`);
     }
     for (const field of fields.values()) {
-      if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] !== ActionFieldKind.GRASP && values[field[ActionFieldKey.NAME]] === undefined) problems.push(`Field '${field[ActionFieldKey.NAME]}' needs a value.`);
+      if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] !== ActionFieldKind.GRASP && values[field[ActionFieldKey.NAME]] === undefined) problems.push(`Needs a value for “${field[ActionFieldKey.LABEL]}”.`);
     }
     return problems;
   }

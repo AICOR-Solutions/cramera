@@ -801,6 +801,7 @@ test('a new plan from the bar starts without a robot too', async () => {
   const { root, page } = await openPage();
   assert.equal(page.state.robots().length, 1);
   byAction(root, PlanAction.NEW)[0].click();
+  byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await settled();
   assert.deepEqual(page.state.robots(), []);
 });
@@ -1860,6 +1861,7 @@ test('a new plan or another template leaves no step count of the run before', as
   const summary = () => runView(root).findAll((element) => element.className === 'run-summary')[0].textContent;
   assert.equal(summary(), '3 of 3 steps done.');
   byAction(root, PlanAction.NEW)[0].click();
+  byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await timer.tick();
   assert.equal(summary(), '');
 });
@@ -2205,6 +2207,7 @@ test('a plan cannot be changed, opened or saved while a validation waits for its
   const picker = byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
   picker.value = 'park';
   picker.dispatch(DomEvent.CHANGE);
+  byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await settled();
   assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
 });
@@ -2237,6 +2240,7 @@ test('a plan from a template, a new or an opened plan shows no progress of the r
   const picker = byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
   picker.value = 'park';
   picker.dispatch(DomEvent.CHANGE);
+  byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await timer.tick();
   assert.equal(headline(root), 'Ready.');
   assert.equal(runView(root).hidden, true);
@@ -2347,4 +2351,152 @@ test('a run on the real robot is asked for its live world only once it reported 
 
   assert.equal(askedWhilePreparing, 0);
   assert.ok(asked > 0);
+});
+
+// %% replacing a plan with unsaved changes
+
+const confirmation = (root) => root.findAll((element) => element.className === 'replace-confirm')[0];
+const templatePicker = (root) => byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
+
+test('arrow keys in the template choice only browse it, Enter starts from the template shown', async () => {
+  const { root, page } = await withTemplate();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  const picker = templatePicker(root);
+  picker.dispatch(DomEvent.KEY_DOWN, { key: 'ArrowDown' });
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps().length, 3);
+  picker.dispatch(DomEvent.KEY_DOWN, { key: 'Enter' });
+  assert.equal(page.state.field(PlanKey.NAME), 'Park both arms');
+});
+
+test('a template, a new or a saved plan asks before it replaces a plan with unsaved changes', async () => {
+  const { root, page, api } = await withTemplate();
+  api.saved.push({ [PlanRecordKey.IDENTIFIER]: 'kept', [PlanRecordKey.DOCUMENT]: { [PlanKey.NAME]: 'kept', [PlanKey.ROBOTS]: [] } });
+  const picker = templatePicker(root);
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.steps().length, 3);
+  assert.equal(confirmation(root).hidden, false);
+  assert.match(confirmation(root).innerText, /unsaved changes/);
+  byAction(root, PlanAction.KEEP_PLAN)[0].click();
+  assert.equal(confirmation(root).hidden, true);
+  assert.equal(picker.value, '');
+  assert.equal(page.state.steps().length, 3);
+
+  byAction(root, PlanAction.NEW)[0].click();
+  assert.equal(page.state.steps().length, 3);
+  assert.equal(confirmation(root).hidden, false);
+  byAction(root, PlanAction.KEEP_PLAN)[0].click();
+
+  const open = byAction(root, PlanAction.OPEN)[0];
+  open.value = 'kept';
+  open.dispatch(DomEvent.CHANGE);
+  await settled();
+  assert.equal(page.state.steps().length, 3);
+  byAction(root, PlanAction.REPLACE_PLAN)[0].click();
+  await settled();
+  assert.equal(page.state.field(PlanKey.NAME), 'kept');
+  assert.equal(confirmation(root).hidden, true);
+});
+
+test('a plan saved as it stands, or never changed, is replaced without asking', async () => {
+  const { root, page } = await withTemplate();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  const picker = templatePicker(root);
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.equal(page.state.field(PlanKey.NAME), 'Park both arms');
+  byAction(root, PlanAction.NEW)[0].click();
+  assert.equal(confirmation(root).hidden, true);
+  assert.equal(page.state.robots().length, 0);
+});
+
+test('a reload keeps whether the plan has unsaved changes', async () => {
+  const opened = await withTemplate();
+  byAction(opened.root, PlanAction.SAVE)[0].click();
+  await settled();
+  const { root, page } = await reload(opened);
+  byAction(root, PlanAction.NEW)[0].click();
+  assert.equal(confirmation(root).hidden, true);
+  assert.equal(page.state.steps().length, 0);
+});
+
+// %% editing after a run
+
+test('an edit after a finished run leaves the run view and does not count the run against the changed plan', async () => {
+  const { root, api, timer, page } = await withTemplate();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  const steps = api.runs[0].plan[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS];
+  api.status = {
+    ...api.status,
+    [RunStatusKey.STATE]: RunState.FINISHED,
+    [RunStatusKey.EVENTS]: steps.map((step) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: step[PlanStepKey.IDENTIFIER], [RunEventKey.STATE]: StepState.DONE })),
+  };
+  await timer.tick();
+  assert.equal(runView(root).hidden, false);
+  block(root, 'park_arms').click();
+  assert.equal(page.state.steps().length, 4);
+  assert.equal(runView(root).hidden, true);
+  assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, true);
+  assert.equal(root.findAll((element) => element.tagName === 'H2' && /^Plan of /.test(element.textContent)).length, 1);
+  assert.doesNotMatch(root.innerText, /of 4 steps done/);
+});
+
+// %% a failed validation in the status area
+
+test('a failed validation names the step and repeats what its card says', async () => {
+  const detail = 'No arm holds the yellow cube when this step starts.\nSuggestion: Pick the yellow cube in an earlier step.';
+  const { root, page } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: [StepVerdict.VALID, StepVerdict.FAILED, StepVerdict.UNCHECKED][index],
+      ...(index === 1 ? { [StepValidationKey.REASON]: StepFailureReason.UNSUCCESSFUL, [StepValidationKey.DETAIL]: detail } : {}),
+    }));
+  });
+  validateButton(root).click();
+  await settled();
+  const label = page.state.stepLabel(page.state.steps()[1]);
+  assert.equal(headline(root), `Validation failed at step 2 (${label}): No arm holds the yellow cube when this step starts. Suggestion: Pick the yellow cube in an earlier step. (2.5 s)`);
+});
+
+// %% a missing value on the card
+
+test('a step card names a missing value as the field is labelled, in a plain sentence', async () => {
+  const { root } = await openPage();
+  block(root, 'pick_up').click();
+  const problems = root.findAll((element) => element.className === 'step-problem').map((element) => element.textContent);
+  assert.ok(problems.includes('Needs a value for “object designator”.'), problems.join(' | '));
+  assert.ok(problems.every((problem) => !problem.includes('Field \'')));
+});
+
+// %% reaching the flow by keyboard
+
+/**
+ * @param {Array<Object>} elements Fake elements.
+ * @returns {{focused: Object|null}} Records which of them was focused last.
+ */
+function watchFocus(elements) {
+  const watched = { focused: null };
+  for (const element of elements) element.focus = () => (watched.focused = element);
+  return watched;
+}
+
+test('the page starts with a skip link to the flow buttons, landing on Stop while a run goes on', async () => {
+  const { root, api, timer } = await pickAndPlace();
+  const skip = root.children[0];
+  assert.ok(skip.dataset.action === PlanAction.SKIP_TO_FLOW);
+  const flowButtons = [PlanAction.SCAN_SCENE, PlanAction.VALIDATE, PlanAction.RUN_ON_ROBOT, PlanAction.STOP].map((action) => byAction(root, action)[0]);
+  const watched = watchFocus(flowButtons);
+  skip.click();
+  assert.ok(watched.focused === flowButtons[0]);
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: RunMode.SIMULATE };
+  await timer.tick();
+  skip.click();
+  assert.ok(watched.focused === flowButtons[3]);
 });

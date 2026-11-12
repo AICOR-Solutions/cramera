@@ -61,6 +61,9 @@ export const PlanAction = Object.freeze({
   TURN: 'turn',
   FRAME: 'frame',
   TOGGLE_RUN: 'toggle-run',
+  REPLACE_PLAN: 'replace-plan',
+  KEEP_PLAN: 'keep-plan',
+  SKIP_TO_FLOW: 'skip-to-flow',
 });
 
 /**
@@ -70,6 +73,8 @@ export const DomEvent = Object.freeze({
   CLICK: 'click',
   CHANGE: 'change',
   KEY_DOWN: 'keydown',
+  MOUSE_DOWN: 'mousedown',
+  BLUR: 'blur',
   DRAG_START: 'dragstart',
   DRAG_OVER: 'dragover',
   DRAG_LEAVE: 'dragleave',

@@ -191,7 +191,9 @@ export class RunProgress {
   constructor(steps, events, stopped = false) {
     steps.forEach((step, index) => this.#steps.set(step.identifier, new StepProgress(step.identifier, `${index + 1}. ${step.label}`)));
     /**
-     * The objects steps perceived, in order.
+     * The objects steps perceived, each once, in the order they were first perceived,
+     * with the step that perceived it last and the color it showed then; the run log
+     * keeps every detection.
      * @type {Array<{step: string, target: string, color: string|null}>}
      */
     this.perceived = [];
@@ -316,7 +318,10 @@ export class RunProgress {
     else if (kind === RunEventKind.PERCEIVED) {
       const target = event[RunEventKey.TARGET];
       const color = event[RunEventKey.COLOR] ?? null;
-      this.perceived.push({ step: event[RunEventKey.STEP], target, color });
+      const seen = { step: event[RunEventKey.STEP], target, color };
+      const before = this.perceived.findIndex((earlier) => earlier.target === target);
+      if (before < 0) this.perceived.push(seen);
+      else this.perceived[before] = seen;
       this.log.push(`${this.#name(event)}: perceived ${objectNames(target)}${color ? ` (${color})` : ''}`);
     } else if (kind === RunEventKind.REGROUNDED) {
       this.log.push(`${this.#name(event)}: ${objectNames(event[RunEventKey.TARGET])} found elsewhere on the table; the step was grounded again where it lies`);

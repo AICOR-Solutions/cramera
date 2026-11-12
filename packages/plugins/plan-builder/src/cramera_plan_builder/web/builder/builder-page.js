@@ -57,7 +57,7 @@ import {
 import { PageStatus } from '../../../core/page-status.js';
 import { RequestRefused } from './builder-api.js';
 import { ConstraintSentences, ConstraintsView } from './constraints-view.js';
-import { Elements, PlanAction } from './elements.js';
+import { DomEvent, Elements, PlanAction } from './elements.js';
 import { FreePlace } from './free-place.js';
 import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
@@ -116,6 +116,23 @@ const OPEN_PROMPT = Object.freeze({ value: '', label: 'Open a saved plan…' });
  * The first option of the template choice, which starts no plan.
  */
 const TEMPLATE_PROMPT = Object.freeze({ value: '', label: 'Start from a template…' });
+
+/**
+ * The keys that move through a select's choices without opening it, which in some
+ * browsers change its value at once, as typing a choice's first letter does; a choice
+ * browsed to with them is taken only once the person presses Enter.
+ */
+const BROWSING_KEYS = Object.freeze(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown']);
+
+/**
+ * The key that takes the choice a select was browsed to.
+ */
+const CHOOSING_KEY = 'Enter';
+
+/**
+ * What a select browsed by keyboard says of the choice it shows.
+ */
+const BROWSING_HINT = 'Press Enter to take this choice.';
 
 /**
  * Where the browser keeps whether the palette offers every native action.
@@ -189,16 +206,20 @@ export function loadedMessage(label, missing) {
 /**
  * @param {Object} report A `ValidationReport`.
  * @param {Array<Object>} steps The steps of the validated robot, in order.
+ * @param {function(Object): string} label Names a step as its card does.
  * @returns {string} What the page says about the validation: that it passed and how
- *   many steps are assumed, or the first step that fails and why.
+ *   many steps are assumed, or the first step that fails and why: what the validation
+ *   found, as the step's card shows it, else the kind of failure.
  */
-export function validationMessage(report, steps) {
+export function validationMessage(report, steps, label) {
   const validations = report[ValidationReportKey.STEPS];
   const seconds = `${report[ValidationReportKey.SECONDS].toFixed(1)} s`;
-  const failed = validations.findIndex((step) => step[StepValidationKey.VERDICT] === StepVerdict.FAILED);
-  if (failed >= 0) {
-    const position = steps.findIndex((step) => step[PlanStepKey.IDENTIFIER] === validations[failed][StepValidationKey.STEP]);
-    return `Validation failed at step ${position + 1}: ${REASON_TEXTS[validations[failed][StepValidationKey.REASON]] ?? 'it did not succeed'} (${seconds}).`;
+  const failed = validations.find((step) => step[StepValidationKey.VERDICT] === StepVerdict.FAILED);
+  if (failed) {
+    const position = steps.findIndex((step) => step[PlanStepKey.IDENTIFIER] === failed[StepValidationKey.STEP]);
+    const detail = (failed[StepValidationKey.DETAIL] ?? '').split('\n').map((line) => line.trim()).filter(Boolean).join(' ');
+    if (detail && position >= 0) return `Validation failed at step ${position + 1} (${label(steps[position])}): ${detail} (${seconds})`;
+    return `Validation failed at step ${position + 1}: ${REASON_TEXTS[failed[StepValidationKey.REASON]] ?? 'it did not succeed'} (${seconds}).`;
   }
   const assumed = validations.filter((step) => step[StepValidationKey.VERDICT] === StepVerdict.ASSUMED).length;
   const note = assumed ? ` ${assumed === 1 ? '1 step' : `${assumed} steps`} assumed from the twin, checked again in the run.` : '';
@@ -331,6 +352,21 @@ export class BuilderPage {
    * @type {string|null}
    */
   #planIdentifier = null;
+
+  /**
+   * The plan as it was last saved, opened or started, as JSON text, which tells
+   * whether it has unsaved changes; null when that is not known, as for a plan a reload
+   * restored from an older page.
+   * @type {string|null}
+   */
+  #baseline = null;
+
+  /**
+   * Replaces the plan once the person confirms losing its unsaved changes, or null while
+   * nothing waits for that.
+   * @type {function(): void|null}
+   */
+  #pendingReplace = null;
 
   /**
    * The page's parts.
@@ -494,6 +530,14 @@ export class BuilderPage {
   #progressHidden = false;
 
   /**
+   * The plan the run started last ran, as JSON text, or null when the page did not
+   * start it, as after a reload; once the run ended, its progress counts only while
+   * the plan stays as it ran.
+   * @type {string|null}
+   */
+  #runPlan = null;
+
+  /**
    * The validation, scan or run start waiting for its answer, or null.
    * @type {FlowRequest|null}
    */
@@ -608,7 +652,8 @@ export class BuilderPage {
     parts.constraints.render();
     const robot = state.activeRobot();
     if (robot) this.#environment.storage.setItem(ROBOT_MODEL_KEY, robot[PlannedRobotKey.MODEL]);
-    this.#environment.storage.setItem(DRAFT_KEY, JSON.stringify({ identifier: this.#planIdentifier, document: state.document }));
+    this.#environment.storage.setItem(DRAFT_KEY, JSON.stringify({ identifier: this.#planIdentifier, document: state.document, saved: this.#baseline }));
+    parts.replaceConfirm.hidden = this.#pendingReplace === null;
     this.#showRun();
     this.#askReach();
     this.#showScene();
@@ -621,6 +666,7 @@ export class BuilderPage {
    * @param {function(): *} change The change.
    */
   edit(change) {
+    const before = JSON.stringify(this.state.document);
     // the boundary where an edit the plan refuses becomes a message for the person
     try {
       change();
@@ -628,6 +674,8 @@ export class BuilderPage {
       if (!(error instanceof PlanRefused)) throw error;
       this.report(error.message, Tone.ERROR);
     }
+    // a changed plan is edited, no longer the one the run ended with
+    if (!this.#performing() && JSON.stringify(this.state.document) !== before) this.#runShown = false;
     this.render();
   }
 
@@ -882,8 +930,45 @@ export class BuilderPage {
     state.setDeveloperMode(this.#environment.storage.getItem(DEVELOPER_MODE_KEY) === String(true));
     state.setMarkerSnap((pose) => this.freePlace().snapped(pose));
     this.state = state;
+    this.#baseline = JSON.stringify(state.document);
+    this.#pendingReplace = null;
     // the validation was of the plan shown before, which this one never had
     this.#validation = null;
+  }
+
+  /**
+   * @returns {boolean} Whether the plan changed since it was last saved, opened or
+   *   started, or may have.
+   */
+  #unsaved() {
+    return this.#baseline !== JSON.stringify(this.state.document);
+  }
+
+  /**
+   * Replace the plan at once when it has no unsaved changes, else once the person
+   * confirms losing them.
+   * @param {string} replacement What replaces the plan, as the confirmation names it.
+   * @param {function(): void} replace Replaces the plan.
+   */
+  #replacePlan(replacement, replace) {
+    if (!this.#unsaved()) {
+      replace();
+      return;
+    }
+    this.#parts.replaceText.textContent = `“${this.state.field(PlanKey.NAME)}” has unsaved changes, which ${replacement} replaces. Save it first, or replace it and lose them?`;
+    this.#pendingReplace = replace;
+    this.render();
+  }
+
+  /**
+   * Close the confirmation, replacing the plan when the person confirmed.
+   * @param {boolean} confirmed Whether the person chose to lose the unsaved changes.
+   */
+  #settleReplace(confirmed) {
+    const replace = this.#pendingReplace;
+    this.#pendingReplace = null;
+    if (confirmed && replace) replace();
+    else this.render();
   }
 
   /**
@@ -1007,6 +1092,7 @@ export class BuilderPage {
   #restore(draft) {
     this.#planIdentifier = draft.identifier;
     this.#adopt(new PlanState(this.state.catalog, draft.document));
+    this.#baseline = draft.saved ?? null;
   }
 
   /**
@@ -1016,6 +1102,7 @@ export class BuilderPage {
   async #save() {
     this.#savingPlan = true;
     this.render();
+    const sent = JSON.stringify(this.state.document);
     const saved = await this.#environment.api.save(this.state.document, this.#planIdentifier).catch((error) => {
       this.report(error.message, Tone.ERROR);
       return null;
@@ -1025,6 +1112,7 @@ export class BuilderPage {
     });
     if (!saved) return;
     this.#planIdentifier = saved[PlanRecordKey.IDENTIFIER];
+    this.#baseline = sent;
     const plans = await this.#environment.api.plans();
     this.state.catalog[PlanBuilderCatalogKey.PLANS] = plans[PlanBuilderCatalogKey.PLANS];
     this.report(`Saved ${this.state.field(PlanKey.NAME)}.`);
@@ -1081,6 +1169,7 @@ export class BuilderPage {
     this.#safetyBanner.reset();
     this.#runShown = mode !== RunMode.STAGE;
     this.#progressHidden = false;
+    this.#runPlan = JSON.stringify(this.state.document);
     this.#cameraImages = [];
     this.#world = PageWorld.empty();
     this.#attached.clear();
@@ -1132,7 +1221,7 @@ export class BuilderPage {
     });
     if (!report) return;
     this.#validation = { plan: JSON.stringify(plan), report, sceneChanged: false };
-    this.#announce(this.#validationPassed() ? Tone.SUCCESS : Tone.ERROR, validationMessage(report, this.state.steps()), true);
+    this.#announce(this.#validationPassed() ? Tone.SUCCESS : Tone.ERROR, validationMessage(report, this.state.steps(), (step) => this.state.stepLabel(step)), true);
   }
 
   /**
@@ -1541,8 +1630,18 @@ export class BuilderPage {
    * @returns {RunProgress} Where the run started last stands, by the edited robot's steps.
    */
   #progress() {
-    const run = this.#progressHidden ? { ...this.#run, [RunStatusKey.EVENTS]: [] } : this.#run;
+    const run = this.#runCounted() ? this.#run : { ...this.#run, [RunStatusKey.EVENTS]: [] };
     return RunProgress.of(this.state.steps(), (step) => this.state.stepLabel(step), run);
+  }
+
+  /**
+   * @returns {boolean} Whether the events of the run started last count against the
+   *   plan as it stands: not once the plan was replaced, nor once a run that ended was
+   *   followed by a change of its plan, whose steps it would otherwise count anew.
+   */
+  #runCounted() {
+    if (this.#progressHidden) return false;
+    return this.#performing() || this.#runPlan === null || this.#runPlan === JSON.stringify(this.state.document);
   }
 
   /**
@@ -1623,7 +1722,7 @@ export class BuilderPage {
     for (const button of [parts.scan, parts.validate, parts.stage, parts.perform, parts.simulate]) button.title = button.disabled ? blocked ?? '' : (button.dataset.hint ?? '');
     parts.robot.title = parts.robot.disabled ? blocked ?? this.#validationState(passed) : (parts.robot.dataset.hint ?? '');
     const locked = this.#planLocked();
-    for (const control of [parts.newPlan, parts.saved, parts.save, parts.templates].filter(Boolean)) {
+    for (const control of [parts.newPlan, parts.saved, parts.save, parts.templates, parts.replacePlan].filter(Boolean)) {
       control.disabled = locked !== null;
       control.title = locked ?? '';
     }
@@ -1659,7 +1758,7 @@ export class BuilderPage {
     parts.steps.list.hidden = this.#runShown;
     parts.runView.element.hidden = !this.#runShown;
     parts.runToggle.textContent = this.#runShown ? 'Edit plan' : 'Show run';
-    parts.runToggle.hidden = !this.#runShown && (this.#progressHidden || (this.#run[RunStatusKey.EVENTS] ?? []).length === 0);
+    parts.runToggle.hidden = !this.#runShown && (!this.#runCounted() || (this.#run[RunStatusKey.EVENTS] ?? []).length === 0);
     parts.planTitle.textContent = `${this.#runShown ? 'Run' : 'Plan'} of ${robot?.[PlannedRobotKey.LABEL] ?? 'no robot'}`;
     if (!this.#runShown) return;
     parts.runView.render(this.#progress(), this.#cameraImages);
@@ -1724,20 +1823,23 @@ export class BuilderPage {
     parts.task = elements.input('text', PlanAction.TASK, () => this.edit(() => this.state.setField(PlanKey.TASK, parts.task.value.trim())));
     parts.task.placeholder = 'What the plan does';
     parts.environment = new EnvironmentView(document, this);
-    parts.saved = elements.select(PlanAction.OPEN, this.#planChoices(), OPEN_PROMPT.value, (value) => {
-      if (!value) return;
-      this.#forgetRun();
-      this.#open(value).then(() => this.render());
+    parts.saved = this.#choice(PlanAction.OPEN, this.#planChoices(), OPEN_PROMPT.value, (value) => {
+      const label = this.#planChoices().find((choice) => choice.value === value)?.label ?? value;
+      this.#replacePlan(`opening the saved plan “${label}”`, () => {
+        this.#forgetRun();
+        this.#open(value).then(() => this.render());
+      });
     });
     const bar = elements.create('header', 'bar builder-bar');
     const plansRow = elements.create('div', 'button-row');
-    parts.newPlan = elements.button('New', PlanAction.NEW, () => this.#newPlan());
+    parts.newPlan = elements.button('New', PlanAction.NEW, () => this.#replacePlan('a new plan', () => this.#newPlan()));
     parts.save = elements.button('Save', PlanAction.SAVE, () => this.#save());
     plansRow.append(parts.newPlan, parts.saved, parts.save);
     if ((this.state.catalog[PlanBuilderCatalogKey.TEMPLATES] ?? []).length > 0) {
-      parts.templates = elements.select(PlanAction.NEW_FROM_TEMPLATE, this.#templateChoices(), TEMPLATE_PROMPT.value, (value) => {
-        if (value) this.#newFromTemplate(value);
+      parts.templates = this.#choice(PlanAction.NEW_FROM_TEMPLATE, this.#templateChoices(), TEMPLATE_PROMPT.value, (value) => {
+        const label = this.#templateChoices().find((choice) => choice.value === value)?.label ?? value;
         parts.templates.value = TEMPLATE_PROMPT.value;
+        this.#replacePlan(`the template “${label}”`, () => this.#newFromTemplate(value));
       });
       plansRow.append(parts.templates);
     }
@@ -1746,7 +1848,14 @@ export class BuilderPage {
       parts.developer.checked = this.state.developerMode();
       plansRow.append(elements.label('developer mode', parts.developer));
     }
-    bar.append(elements.create('strong', 'builder-title', 'Plan builder'), elements.label('name', parts.name), elements.label('task', parts.task), plansRow);
+    parts.replaceText = elements.create('span');
+    parts.replacePlan = elements.button('Replace and lose the changes', PlanAction.REPLACE_PLAN, () => this.#settleReplace(true));
+    parts.keepPlan = elements.button('Keep editing', PlanAction.KEEP_PLAN, () => this.#settleReplace(false));
+    parts.replaceConfirm = elements.create('div', 'replace-confirm');
+    parts.replaceConfirm.setAttribute('role', 'alert');
+    parts.replaceConfirm.hidden = true;
+    parts.replaceConfirm.append(parts.replaceText, parts.keepPlan, parts.replacePlan);
+    bar.append(elements.create('strong', 'builder-title', 'Plan builder'), elements.label('name', parts.name), elements.label('task', parts.task), plansRow, parts.replaceConfirm);
 
     parts.robots = new RobotsView(document, this);
     parts.steps = new StepsView(document, this);
@@ -1854,7 +1963,10 @@ export class BuilderPage {
     view.append(controls, stage, output);
     const main = elements.create('div', 'builder-main');
     main.append(side, planColumn, view);
-    this.#root.replaceChildren(bar, main);
+    // the flow sits after the side panel and the steps; the keyboard reaches it first
+    const skip = elements.button('Skip to Scan scene, Validate, Run and Stop', PlanAction.SKIP_TO_FLOW, () => this.#focusFlow(flowRow));
+    skip.className = 'skip-link';
+    this.#root.replaceChildren(skip, bar, main);
     if (this.#environment.createScene) {
       this.#scene = this.#environment.createScene(
         stage,
@@ -1873,6 +1985,62 @@ export class BuilderPage {
     } else {
       stage.append(elements.create('p', 'empty', 'This browser cannot show the 3D view; the plan can still be composed.'));
     }
+  }
+
+  /**
+   * Focus the first flow button that may be pressed now, which during a run is Stop,
+   * else the row holding them.
+   * @param {HTMLElement} flowRow The row of the flow buttons.
+   */
+  #focusFlow(flowRow) {
+    const parts = this.#parts;
+    const button = [parts.scan, parts.validate, parts.robot, parts.stop].find((candidate) => !candidate.disabled && !candidate.hidden);
+    if (button) {
+      button.focus();
+      return;
+    }
+    flowRow.tabIndex = -1;
+    flowRow.focus();
+  }
+
+  /**
+   * A select whose choice is taken only when the person makes it: picked with the
+   * mouse or opened list, or browsed to with the arrow keys and taken with Enter, which
+   * a browser changing the value at every arrow key would take at once otherwise.
+   * @param {string} action The select's `PlanAction` value.
+   * @param {Array<{value: string, label: string}>} options The options; the one with
+   *   the empty value chooses nothing.
+   * @param {string} value The value selected.
+   * @param {function(string): void} choose Called with the chosen value.
+   * @returns {HTMLSelectElement} The select.
+   */
+  #choice(action, options, value, choose) {
+    const elements = this.#elements;
+    let browsing = false;
+    const select = elements.select(action, options, value, (chosen) => {
+      if (!browsing && chosen) choose(chosen);
+    });
+    elements.listen(select, DomEvent.KEY_DOWN, (event) => {
+      if (event.key === CHOOSING_KEY) {
+        browsing = false;
+        select.title = '';
+        if (select.value) choose(select.value);
+      } else if (!event.altKey && !event.ctrlKey && !event.metaKey && (BROWSING_KEYS.includes(event.key) || /^\S$/u.test(event.key))) {
+        browsing = true;
+        select.title = BROWSING_HINT;
+      }
+    });
+    elements.listen(select, DomEvent.MOUSE_DOWN, () => {
+      browsing = false;
+      select.title = '';
+    });
+    elements.listen(select, DomEvent.BLUR, () => {
+      if (!browsing) return;
+      browsing = false;
+      select.title = '';
+      select.value = '';
+    });
+    return select;
   }
 
   /**
