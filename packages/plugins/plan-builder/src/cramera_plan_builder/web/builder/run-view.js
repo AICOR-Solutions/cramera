@@ -2,13 +2,14 @@
  * The run view: what the robot does, what it believes and why it stopped, followed from
  * the events a run reports. Each step shows its state, its attempt and the arm it uses,
  * with the badges of its monitors; the run shows the objects it perceived with their
- * colors, its safety monitor, the latest camera image a perception step took and a log
- * of every attempt and failure reason. The 3D view beside it shows the live robot.
+ * colors, what perception reported for each detection, its safety monitor, the latest
+ * camera image a perception step took and a log of every attempt and failure reason. The 3D view beside it shows the live robot.
  */
 
 import {
   MonitorObservation,
   PerceptionImageKey,
+  PerceptionReportKey,
   PlanStepKey,
   RunEventKey,
   RunEventKind,
@@ -17,6 +18,7 @@ import {
   RunStatusKey,
   StepState,
 } from '../../../protocol.js';
+import { PerceptionReportsView, PerceptionViewClass, perceptionSentence } from './perception-view.js';
 
 /**
  * The state the page shows a step in that was running or retrying when a person stopped
@@ -75,6 +77,7 @@ export const RunViewClass = Object.freeze({
   OBJECT: 'perceived-object',
   SWATCH: 'color-swatch',
   CAMERA: 'run-camera',
+  PERCEPTION: 'run-perception',
   LOG: 'run-log-lines',
   EMPTY: 'empty',
 });
@@ -111,6 +114,11 @@ export class StepProgress {
      * @type {Map<string, {monitor: string, target: string|null, observation: string}>}
      */
     this.monitors = new Map();
+    /**
+     * The `PerceptionReport`s of its detections, in order.
+     * @type {Array<Object>}
+     */
+    this.perceptions = [];
   }
 
   /**
@@ -160,6 +168,11 @@ export class RunProgress {
      * @type {Array<{step: string, target: string, color: string|null}>}
      */
     this.perceived = [];
+    /**
+     * Every perception report of the run with the name of its step, in order.
+     * @type {Array<{name: string, report: Object}>}
+     */
+    this.perceptions = [];
     /**
      * What the safety monitor observes, or null for a run not held to safety limits.
      * @type {string|null}
@@ -250,6 +263,10 @@ export class RunProgress {
    */
   #apply(event) {
     const kind = event[RunEventKey.KIND];
+    if (kind === RunEventKind.PERCEPTION) {
+      this.#applyPerception(event);
+      return;
+    }
     if (kind === RunEventKind.STEP) this.#applyStep(event);
     else if (kind === RunEventKind.MONITOR) this.#applyMonitor(event);
     else if (kind === RunEventKind.PERCEIVED) {
@@ -266,6 +283,18 @@ export class RunProgress {
       this.safetyStop = event[RunEventKey.CONSTRAINT];
       this.log.push(`Safety stop${event[RunEventKey.STEP] ? ` in ${this.#name(event)}` : ''}: ${this.safetyStop}; the robot holds.`);
     }
+  }
+
+  /**
+   * @param {Object} event A perception's `RunEvent`.
+   */
+  #applyPerception(event) {
+    const report = event[RunEventKey.PERCEPTION];
+    const step = event[RunEventKey.STEP] ? this.step(event[RunEventKey.STEP]) : null;
+    step?.perceptions.push(report);
+    const name = step?.name ?? 'Run';
+    this.perceptions.push({ name, report });
+    this.log.push(`${name}: ${report[PerceptionReportKey.SUMMARY]}`);
   }
 
   /**
@@ -379,6 +408,12 @@ export class RunView {
   #parts = {};
 
   /**
+   * Shows the run's perception reports.
+   * @type {PerceptionReportsView}
+   */
+  #reports;
+
+  /**
    * @param {import('./elements.js').Elements} elements Builds the view's elements.
    */
   constructor(elements) {
@@ -390,6 +425,8 @@ export class RunView {
     parts.steps = elements.create('ol', RunViewClass.STEPS);
     parts.perceived = elements.create('div', RunViewClass.PERCEIVED);
     parts.camera = elements.create('figure', RunViewClass.CAMERA);
+    parts.perception = elements.create('div', RunViewClass.PERCEPTION);
+    this.#reports = new PerceptionReportsView(elements);
     parts.log = elements.create('ol', RunViewClass.LOG);
     this.element.append(
       parts.summary,
@@ -397,6 +434,8 @@ export class RunView {
       parts.steps,
       elements.create('h3', '', 'Perceived objects'),
       parts.perceived,
+      elements.create('h3', '', 'What perception reported'),
+      parts.perception,
       elements.create('h3', '', 'Camera'),
       parts.camera,
       elements.create('h3', '', 'Run log'),
@@ -428,6 +467,7 @@ export class RunView {
             return chip;
           })),
     );
+    parts.perception.replaceChildren(...this.#reports.render(progress.perceptions));
     parts.camera.replaceChildren(...this.#camera(images));
     parts.log.replaceChildren(...progress.log.map((line) => elements.create('li', '', line)));
   }
@@ -452,6 +492,8 @@ export class RunView {
       const next = step.nextAttempt && step.state === StepState.RETRYING ? ` Next attempt ${step.nextAttempt}.` : '';
       item.append(elements.create('p', RunViewClass.REASON, `${step.reason}${next}`));
     }
+    const perceived = step.state === StepState.DONE ? null : perceptionSentence(step.perceptions);
+    if (perceived) item.append(elements.create('p', PerceptionViewClass.SENTENCE, `Perception: ${perceived}`));
     return item;
   }
 

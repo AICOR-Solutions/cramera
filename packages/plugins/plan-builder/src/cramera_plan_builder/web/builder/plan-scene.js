@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import URDFLoader from 'urdf-loader';
 
-import { PlannedObjectKey, PlannedRobotKey, PlanStepKey } from '../../../protocol.js';
+import { PerceptionReportKey, PlannedObjectKey, PlannedRobotKey, PlanStepKey, ReportedObjectKey, ReportedObjectVerdict } from '../../../protocol.js';
 import { Bounds } from '../../../scene/bounds.js';
 import { MeshLoading } from '../../../scene/mesh-loading.js';
 import { SceneLighting } from '../../../scene/scene-lighting.js';
@@ -93,7 +93,27 @@ const MarkerColor = Object.freeze({
   REACHABLE: 0x16a34a,
   UNREACHABLE: 0xdc2626,
   ZONE: 0x0284c7,
+  SEARCH_BOX: 0xf59e0b,
+  GROUNDED: 0xffffff,
+  TAKEN: 0x16a34a,
+  TOO_FAR: 0xdc2626,
+  LEFT: 0x94a3b8,
 });
+
+/**
+ * The radius, in metres, of the mark where the plan was validated with an object.
+ */
+const GROUNDED_RADIUS = 0.012;
+
+/**
+ * The size, in metres, a reported object is drawn at at least along each axis.
+ */
+const SMALLEST_REPORTED = 0.01;
+
+/**
+ * How see-through a reported object is.
+ */
+const REPORTED_OPACITY = 0.45;
 
 /**
  * How see-through a zone is.
@@ -313,8 +333,10 @@ export class SceneOverlay {
    *   The zones' corners in world coordinates.
    * @param {Map<string, boolean|null>} reachable Whether an arm may reach each
    *   free-place marker, by its selection's key; null while it is not known.
+   * @param {Object|null} perception The `PerceptionReport` whose box, validated spot
+   *   and reported objects are drawn, or null for none.
    */
-  constructor(zones = [], reachable = new Map()) {
+  constructor(zones = [], reachable = new Map(), perception = null) {
     /**
      * The zones' corners in world coordinates.
      * @type {Array<{identifier: string, label: string, corners: Array<Array<number>>}>}
@@ -325,6 +347,11 @@ export class SceneOverlay {
      * @type {Map<string, boolean|null>}
      */
     this.reachable = reachable;
+    /**
+     * The perception report drawn, or null.
+     * @type {Object|null}
+     */
+    this.perception = perception;
   }
 }
 
@@ -384,6 +411,19 @@ export class PlanScene {
    * @type {string}
    */
   #zoneSignature = '';
+
+  /**
+   * The box a detection looked in, where the plan was validated with its object and
+   * every object perception reported for it.
+   * @type {THREE.Group}
+   */
+  #perception = new THREE.Group();
+
+  /**
+   * The perception report drawn, as JSON, so it is drawn again only when it changes.
+   * @type {string}
+   */
+  #perceptionSignature = 'null';
 
   /**
    * Each object model's mesh once loaded, by model, copied for every object.
@@ -478,7 +518,7 @@ export class PlanScene {
     this.#listeners = listeners;
     this.#loader = new SceneLoader(api);
     this.#view = new SceneView(container);
-    this.#view.scene.add(this.#lighting.group, this.#zones, this.#markers);
+    this.#view.scene.add(this.#lighting.group, this.#zones, this.#perception, this.#markers);
     this.#axes = new SceneAxes(this.#view, container.ownerDocument);
     this.#showFloor();
     this.#view.controls.addEventListener(ViewEvent.CAMERA_MOVE_STARTED, () => this.#firstFraming.notePersonMoved());
@@ -535,6 +575,7 @@ export class PlanScene {
     const colors = live.colors ?? new Map();
     const stale = live.stale ?? new Set();
     this.#showZones(overlay.zones);
+    this.#showPerception(overlay.perception);
     const wanted = new Map();
     const want = (selection, pose, signature, grounded, build, slides = false) => wanted.set(selection.key, { selection, pose, signature, grounded, build, slides });
     const edited = state.activeRobot()?.[PlannedRobotKey.IDENTIFIER];
@@ -944,6 +985,55 @@ export class PlanScene {
       this.#zones.add(fill, outline);
     }
     this.#view.requestRender();
+  }
+
+  /**
+   * Draw what a detection looked in and what came back: the box as orange edges, where
+   * the plan was validated with the object as a white ball, and every reported object
+   * as a box of its size in its first colour, edged green when the step took it, red
+   * when it took it too far from where the plan was validated, grey otherwise.
+   * @param {Object|null} report A `PerceptionReport`, or null to draw nothing.
+   */
+  #showPerception(report) {
+    const signature = JSON.stringify(report);
+    if (signature === this.#perceptionSignature) return;
+    this.#perceptionSignature = signature;
+    this.#perception.clear();
+    if (report) {
+      const [low, high] = report[PerceptionReportKey.BOX];
+      this.#perception.add(PlanScene.#edgedBox(low, high, MarkerColor.SEARCH_BOX));
+      const grounded = report[PerceptionReportKey.GROUNDED];
+      if (grounded) {
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(GROUNDED_RADIUS), new THREE.MeshBasicMaterial({ color: MarkerColor.GROUNDED }));
+        ball.position.set(...grounded);
+        this.#perception.add(ball);
+      }
+      for (const seen of report[PerceptionReportKey.OBJECTS] ?? []) {
+        const centre = seen[ReportedObjectKey.POSITION];
+        const size = (seen[ReportedObjectKey.SIZE] ?? [0, 0, 0]).map((extent) => Math.max(extent, SMALLEST_REPORTED));
+        const low = centre.map((value, axis) => value - size[axis] / 2);
+        const high = centre.map((value, axis) => value + size[axis] / 2);
+        const verdict = seen[ReportedObjectKey.VERDICT];
+        const edge = verdict === ReportedObjectVerdict.ACCEPTED ? MarkerColor.TAKEN : verdict === ReportedObjectVerdict.TOO_FAR ? MarkerColor.TOO_FAR : MarkerColor.LEFT;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshBasicMaterial({ color: new THREE.Color((seen[ReportedObjectKey.COLORS] ?? [])[0] ?? 'white'), transparent: true, opacity: REPORTED_OPACITY, depthWrite: false }));
+        body.position.set(...centre);
+        this.#perception.add(body, PlanScene.#edgedBox(low, high, edge));
+      }
+    }
+    this.#view.requestRender();
+  }
+
+  /**
+   * @param {Array<number>} low A box's lowest corner.
+   * @param {Array<number>} high Its highest corner.
+   * @param {number} color The colour of its edges.
+   * @returns {THREE.LineSegments} The box's edges.
+   */
+  static #edgedBox(low, high, color) {
+    const size = high.map((value, axis) => value - low[axis]);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(...size)), new THREE.LineBasicMaterial({ color }));
+    edges.position.set(...low.map((value, axis) => value + size[axis] / 2));
+    return edges;
   }
 
   /**

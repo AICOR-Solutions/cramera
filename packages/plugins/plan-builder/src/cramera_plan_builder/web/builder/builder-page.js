@@ -918,7 +918,18 @@ export class BuilderPage {
         if (target.marker) reachable.set(new Selection(MarkerKind.TARGET, step[PlanStepKey.IDENTIFIER], target.field).key, place.reaches(target.pose));
       }
     }
-    return new SceneOverlay(place.zones(this.state.zones()), reachable);
+    return new SceneOverlay(place.zones(this.state.zones()), reachable, this.#shownPerception());
+  }
+
+  /**
+   * @returns {Object|null} The perception report the 3D view draws while a run is
+   *   shown: the latest of the step that failed, else the latest of the run.
+   */
+  #shownPerception() {
+    if (!this.#runShown) return null;
+    const progress = this.#progress();
+    const failed = progress.current();
+    return failed?.perceptions.at(-1) ?? progress.perceptions.at(-1)?.report ?? null;
   }
 
   /**
