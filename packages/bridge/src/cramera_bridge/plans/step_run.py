@@ -16,10 +16,12 @@ step perceived or found elsewhere and a safety stop go to the run log.
 
 from __future__ import annotations
 
+import logging
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 
-from typing_extensions import Callable, Dict, List, Optional, Sequence
+from typing_extensions import Callable, Dict, Iterator, List, Optional, Sequence
 
 from coraplex.datastructures.enums import DetectionTechnique
 from coraplex.exceptions import (
@@ -28,6 +30,7 @@ from coraplex.exceptions import (
     PerceptionSourceDidNotAnswer,
 )
 from coraplex.perception import PerceptionTask, WorldPerception
+from coraplex.plans import executors
 from coraplex.plans.expected_positions import BodiesWhereExpected, ExpectedPosition
 from coraplex.plans.failures import BodiesMovedSinceGrounding, TargetLeftFieldOfView
 from coraplex.plans.validation import FailureCause
@@ -78,6 +81,34 @@ from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, P
 from semantic_digital_twin.world_description.color_names import ColorName
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
 from semantic_digital_twin.world_description.world_entity import Body
+
+# %% failures the run log reports
+
+
+class ErrorsHeldBack(logging.Filter):
+    """
+    Holds back the error records of a logger, letting the rest pass.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.levelno < logging.ERROR
+
+
+@contextmanager
+def failures_left_to_the_run_log() -> Iterator[None]:
+    """
+    Hold back, while the block runs, the error the executor logs for each plan that did
+    not finish before it raises: the step run reports every such failure in its run
+    log, as a retry, a step grounded anew or the step given up, so the error line only
+    read like the run failing, as when a check found an object elsewhere before a step.
+    """
+    logger = logging.getLogger(executors.__name__)
+    held_back = ErrorsHeldBack()
+    with ExitStack() as holding:
+        logger.addFilter(held_back)
+        holding.callback(logger.removeFilter, held_back)
+        yield
+
 
 # %% steps as they run
 
@@ -979,10 +1010,11 @@ class StepRun:
         """
         # A failed attempt is the run's to retry, as an action trial's is the
         # chooser's: the failure is caught where the next attempt is decided.
-        try:
-            performance.perform(plan, self.context, extensions)
-        except ExecutionFailure as failure:
-            return failure
+        with failures_left_to_the_run_log():
+            try:
+                performance.perform(plan, self.context, extensions)
+            except ExecutionFailure as failure:
+                return failure
         return None
 
     def retry(

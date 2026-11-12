@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 from dataclasses import dataclass, field
 
 import pytest
 
+from coraplex.plans import executors
 from cramera_bridge.exceptions import StepAbandoned
 from cramera_bridge.execution import PhysicalExecution
 from cramera_bridge.plans.demo import PlannedTaskDemo
@@ -30,7 +32,12 @@ from cramera_bridge.plans.run_log import (
     StepStarted,
     View,
 )
-from cramera_bridge.plans.step_run import Alternative, AttemptedStep, AttemptProgress
+from cramera_bridge.plans.step_run import (
+    Alternative,
+    AttemptedStep,
+    AttemptProgress,
+    failures_left_to_the_run_log,
+)
 from cramera_protocol.geometry import FloorRectangle
 from cramph.composites import Sequence
 from cramph.context import StatechartContext
@@ -246,6 +253,25 @@ def test_a_failed_attempt_names_why_and_what_the_next_one_does():
 
 
 # %% perceiving while the plan runs
+
+
+def test_a_failed_plan_is_left_to_the_run_log_not_logged_as_an_error(caplog):
+    """
+    The executor logs every plan that did not finish as an error before it raises; a
+    step run reports each such failure in the run log, as a retry, a step grounded anew
+    or the step given up, so the error line, which also showed after a person's Stop, is
+    held back while the step run performs its plans.
+    """
+    executor_log = logging.getLogger(executors.__name__)
+    with failures_left_to_the_run_log():
+        executor_log.error("Motion did not finish")
+        executor_log.warning("a warning")
+    executor_log.error("Motion did not finish, outside a step run")
+
+    assert [(record.levelno, record.message) for record in caplog.records] == [
+        (logging.WARNING, "a warning"),
+        (logging.ERROR, "Motion did not finish, outside a step run"),
+    ]
 
 
 def test_a_pick_reports_the_object_its_grasp_perceived_first(tmp_path, monkeypatch):
