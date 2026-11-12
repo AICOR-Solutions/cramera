@@ -57,7 +57,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -65,6 +65,7 @@ import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
+import { cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
@@ -1736,10 +1737,10 @@ async function runningOnTracy(prepare = () => {}) {
 test('a run of a validated plan on the real robot keeps saying the plan was validated for it', async () => {
   const { root, api, timer } = await runningOnTracy();
   await timer.tick();
-  assert.equal(validationLine(root), 'Validated for this run; validate again before the next run on the robot.');
+  assert.equal(validationLine(root), VALIDATED_FOR_THIS_RUN);
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.SAVING };
   await timer.tick();
-  assert.equal(validationLine(root), 'Validated for this run; validate again before the next run on the robot.');
+  assert.equal(validationLine(root), VALIDATED_FOR_THIS_RUN);
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
   await timer.tick();
   assert.match(validationLine(root), /^Not validated/);
@@ -1771,7 +1772,7 @@ test('a run the plan builder lost to its restart says it was cut off, not only t
   await timer.tick();
   api.status = { [RunStatusKey.STATE]: RunState.IDLE };
   await timer.tick();
-  assert.equal(headline(root), 'The plan builder restarted while the run on the real robot was going: the run ended there and its record may not be saved. Check where the robot stands before going on.');
+  assert.equal(headline(root), cutOffOutcome({ [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: RunMode.ROBOT }, api.status, true).text);
   assert.equal(flow(root).dataset.tone, 'warning');
 });
 
@@ -1798,10 +1799,23 @@ test('a profile with the lenient runtime check says so beside the run controls, 
   });
   const label = runtimeCheckLabel(root);
   assert.equal(label.hidden, false);
-  assert.equal(label.textContent, 'Lenient camera check');
-  assert.match(label.title, /^When the camera does not confirm an object, a step goes ahead where the plan was validated/);
+  assert.equal(label.textContent, LENIENT_CHECK.LABEL);
+  assert.equal(label.title, LENIENT_CHECK.TITLE);
   const strict = await openPage('', profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
   assert.equal(runtimeCheckLabel(strict.root).hidden, true);
+});
+
+test('the lenient camera check says a step goes ahead where the plan expects the object, which a step planned again moves', () => {
+  assert.equal(LENIENT_CHECK.LABEL, 'Lenient camera check');
+  assert.match(LENIENT_CHECK.TITLE, /^When the camera does not confirm an object, a step goes ahead where the plan expects it/);
+  assert.doesNotMatch(LENIENT_CHECK.TITLE, /validated/);
+});
+
+test('live poses are offered for capture only from a simulated live scene, not beside the real robot', async () => {
+  const simulated = await openPage();
+  assert.equal(byAction(simulated.root, PlanAction.CAPTURE)[0].hidden, false);
+  const real = await openPage('', profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  assert.equal(byAction(real.root, PlanAction.CAPTURE)[0].hidden, true);
 });
 
 test('stopping says so until the run ended, and a stop that fails says why', async () => {

@@ -43,7 +43,7 @@ from cramera_bridge.exceptions import ArmOutsideItsWorkspace, StepAbandoned
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
-from cramera_bridge.plans.arms import Arms
+from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.grounding import GroundedStep, PlanGrounding
 from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.run_log import (
@@ -85,6 +85,7 @@ from giskardpy.motion_statechart.monitors.safety_monitors import (
     ToolOutsideWorkspace,
 )
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Point3
+from semantic_digital_twin.robots.robot_parts import AbstractRobot
 from semantic_digital_twin.world_description.color_names import ColorName
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
 from semantic_digital_twin.world_description.world_entity import Body
@@ -545,16 +546,38 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
         :param stop: The node that cancelled the run.
         :param violation: The violation it cancelled the run with.
         :return: The broken limit and how it was broken, as a person reads it; for a
-            tool that left its workspace box, followed by how to bring its arm back.
+            tool that left its workspace box, followed by how to bring its arm back,
+            naming the arm.
         """
         description = f"{violation.constraint}: {violation.violation}"
-        if any(
-            isinstance(monitor, ToolOutsideWorkspace)
-            and monitor.constraint == violation.constraint
-            for monitor in stop.monitors
-        ):
-            return f"{description}. {ArmOutsideItsWorkspace.recovery('the arm')}"
-        return description
+        left_its_box = next(
+            (
+                monitor
+                for monitor in stop.monitors
+                if isinstance(monitor, ToolOutsideWorkspace)
+                and monitor.constraint == violation.constraint
+            ),
+            None,
+        )
+        if left_its_box is None:
+            return description
+        arm = AttemptProgress.arm_of(left_its_box.tool)
+        return f"{description}. {ArmOutsideItsWorkspace.recovery(arm)}"
+
+    @staticmethod
+    def arm_of(tool: Body) -> str:
+        """
+        :param tool: The tool of one of the robot's arms.
+        :return: Its arm as a sentence names it: ``the left arm``, or ``the arm`` for
+            the only arm of a robot or a tool no arm carries.
+        """
+        for robot in tool._world.get_semantic_annotations_by_type(AbstractRobot):
+            arms = RobotArms(robot)
+            for arm in robot.all_arms:
+                side = arms.find_side(arm)
+                if arm.end_effector.tool_frame is tool and side is not Arms.BOTH:
+                    return f"the {ENUM_NAMES.member_identifier(Arms, side)} arm"
+        return "the arm"
 
     def write_success(self, attempted: AttemptedStep) -> None:
         """

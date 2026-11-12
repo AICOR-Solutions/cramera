@@ -48,12 +48,12 @@ export const STEP_STATE_TEXTS = Object.freeze({
  */
 export const MONITOR_TEXTS = Object.freeze({
   [RunMonitor.LOOK_AT]: Object.freeze({
-    [MonitorObservation.HOLDS]: 'look-at: in view ✓',
-    [MonitorObservation.VIOLATED]: 'look-at: out of view ✗',
+    [MonitorObservation.HOLDS]: 'object in the camera\'s view ✓',
+    [MonitorObservation.VIOLATED]: 'object out of the camera\'s view ✗',
   }),
   [RunMonitor.SAFETY]: Object.freeze({
-    [MonitorObservation.HOLDS]: 'safety: limits held ✓',
-    [MonitorObservation.VIOLATED]: 'safety: limit violated ✗',
+    [MonitorObservation.HOLDS]: 'within the safety limits ✓',
+    [MonitorObservation.VIOLATED]: 'a safety limit was broken ✗',
   }),
 });
 
@@ -121,7 +121,7 @@ export class StepProgress {
      */
     this.perceptions = [];
     /**
-     * The objects it went ahead with where the plan was validated, without the camera
+     * The objects it went ahead with where the plan expected them, without the camera
      * confirming them, as a person reads them, in order.
      * @type {Array<string>}
      */
@@ -270,8 +270,8 @@ export class RunProgress {
   }
 
   /**
-   * @returns {Array<StepProgress>} The steps that went ahead where the plan was
-   *   validated without the camera confirming their objects, in the plan's order.
+   * @returns {Array<StepProgress>} The steps that went ahead where the plan expected
+   *   their objects without the camera confirming them, in the plan's order.
    */
   unseenSteps() {
     return this.steps().filter((step) => step.unseen.length > 0);
@@ -317,14 +317,15 @@ export class RunProgress {
       const target = event[RunEventKey.TARGET];
       const color = event[RunEventKey.COLOR] ?? null;
       this.perceived.push({ step: event[RunEventKey.STEP], target, color });
-      this.log.push(`${this.#name(event)}: perceived ${target}${color ? ` (${color})` : ''}`);
+      this.log.push(`${this.#name(event)}: perceived ${objectNames(target)}${color ? ` (${color})` : ''}`);
     } else if (kind === RunEventKind.REGROUNDED) {
-      this.log.push(`${this.#name(event)}: ${event[RunEventKey.TARGET]} found elsewhere on the table; the step was grounded again where it lies`);
+      this.log.push(`${this.#name(event)}: ${objectNames(event[RunEventKey.TARGET])} found elsewhere on the table; the step was grounded again where it lies`);
     } else if (kind === RunEventKind.CONTINUED_UNSEEN) {
       const step = this.step(event[RunEventKey.STEP]);
       const names = objectNames(event[RunEventKey.TARGET]);
       if (!step.unseen.includes(names)) step.unseen.push(names);
-      this.log.push(`${this.#name(event)}: ${event[RunEventKey.REASON]}; continuing at the position ${event[RunEventKey.TARGET]} was validated at`);
+      // where the step was grounded with them: where the plan was validated, or where they were found once the step was grounded again
+      this.log.push(`${this.#name(event)}: ${event[RunEventKey.REASON]}; continuing where the plan expected ${names}`);
     } else if (kind === RunEventKind.RECORD_SAVING) {
       this.log.push('Run over; the robot holds while the run\'s record is saved.');
     } else if (kind === RunEventKind.SAFETY_STOP) {
@@ -380,7 +381,7 @@ export class RunProgress {
     }
     const target = event[RunEventKey.TARGET] ?? null;
     if (event[RunEventKey.STEP]) this.step(event[RunEventKey.STEP]).monitors.set(`${monitor}/${target}`, { monitor, target, observation });
-    this.log.push(`${this.#name(event)}: ${monitorText(monitor, observation)}${target ? ` (${target})` : ''}`);
+    this.log.push(`${this.#name(event)}: ${monitorText(monitor, observation)}${target ? ` (${objectNames(target)})` : ''}`);
   }
 
   /**
@@ -512,7 +513,7 @@ export class RunView {
             const swatch = elements.create('span', RunViewClass.SWATCH);
             swatch.style.background = seen.color ?? 'transparent';
             chip.dataset.color = seen.color ?? '';
-            chip.append(swatch, elements.create('span', '', `${seen.target}${seen.color ? ` (${seen.color})` : ''}`));
+            chip.append(swatch, elements.create('span', '', `${objectNames(seen.target)}${seen.color ? ` (${seen.color})` : ''}`));
             return chip;
           })),
     );
@@ -551,7 +552,9 @@ export class RunView {
     }
     if (step.unseen.length > 0) {
       item.dataset.unseen = 'true';
-      item.append(elements.create('p', RunViewClass.UNSEEN, `Went ahead without the camera confirming ${step.unseen.join(', ')}: it acted where the plan was validated.`));
+      const names = step.unseen.join(', ');
+      const pronoun = names.includes(', ') ? 'them' : 'it';
+      item.append(elements.create('p', RunViewClass.UNSEEN, `Went ahead without the camera confirming ${names}: it acted where the plan expected ${pronoun}.`));
     }
     const perceived = step.state === StepState.DONE ? null : perceptionSentence(step.perceptions);
     if (perceived) item.append(elements.create('p', PerceptionViewClass.SENTENCE, `Perception: ${perceived}`));

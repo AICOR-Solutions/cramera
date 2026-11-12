@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { PlanStepKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from 'cramera-viewer/protocol.js';
 import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, UNANSWERED_ADVICE_AFTER, cutOffOutcome, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
-import { RunProgress } from '../../src/cramera_plan_builder/web/builder/run-view.js';
+import { RunProgress, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { SafetyBannerState } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 
 const STEPS = ['park', 'pick', 'place'].map((identifier) => ({ [PlanStepKey.IDENTIFIER]: identifier }));
@@ -135,6 +135,21 @@ test('a finished run whose step went ahead without the camera confirming its obj
     tone: Tone.WARNING,
     text: 'The run on the real robot finished. 1 step went ahead without the camera confirming its object: 2. pick (red cube).',
   });
+});
+
+test('a run that ended otherwise than finished names its steps that went ahead unseen after its own headline', () => {
+  const unseen = { kind: RunEventKind.CONTINUED_UNSEEN, step: 'pick', target: 'red_cube', reason: 'red_cube was not seen' };
+  const sentence = unseenSentence([progressOf(realRun(RunState.FINISHED, [unseen])).step('pick')]);
+  const failed = realRun(RunState.FAILED, [step('park', StepState.DONE), unseen, step('pick', StepState.DONE), step('place', StepState.FAILED, { reason: 'the gripper is empty' })]);
+  const stopped = realRun(RunState.STOPPED, [step('park', StepState.DONE), unseen, step('pick', StepState.RUNNING)]);
+  const safety = realRun(RunState.SAFETY_STOPPED, [unseen], { [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false } });
+  for (const run of [failed, stopped, safety]) {
+    const seen = { ...run, [RunStatusKey.EVENTS]: run[RunStatusKey.EVENTS].filter((event) => event !== unseen) };
+    const headline = runOutcome(seen, progressOf(seen), true);
+    const outcome = runOutcome(run, progressOf(run), true);
+    assert.deepEqual(outcome, { tone: headline.tone, text: `${headline.text} ${sentence}` });
+  }
+  assert.equal(sentence, '1 step went ahead without the camera confirming its object: 2. pick (red cube).');
 });
 
 test('a run the plan builder lost to its restart says it was cut off and to check the robot', () => {

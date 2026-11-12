@@ -1142,7 +1142,7 @@ class ArmOutsideItsWorkspace(PlanError):
             f"{self.axis} bound ({self.axis} = {self.position:.3f} m, the bound is at "
             f"{self.bound:.3f} m). The real robot stops any motion while a tool is "
             f"outside its box, and the platform does not move it back. "
-            f"{self.recovery(f'the {self.arm} arm')}."
+            f"{self.recovery(f'the {self.arm} arm')}, then validate again."
         )
 
     @staticmethod
@@ -1150,12 +1150,12 @@ class ArmOutsideItsWorkspace(PlanError):
         """
         :param arm: The arm outside its box as a sentence names it, such as ``the left
             arm``.
-        :return: What a person does about it, which is done by hand on the robot.
+        :return: What a person does about it, which is done by hand on the robot; what
+            follows it, such as a new validation, is left to the sentence it ends.
         """
         return (
             f"On the real robot, move {arm} back inside its box by hand on its teach "
-            f"pendant (see {RealRobotGuideSection.ARM_BACK_INTO_ITS_BOX.reference()}), "
-            f"then validate again"
+            f"pendant (see {RealRobotGuideSection.ARM_BACK_INTO_ITS_BOX.reference()})"
         )
 
 

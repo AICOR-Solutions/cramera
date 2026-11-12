@@ -8,12 +8,13 @@ import {
   PlanStepKey,
   RunEventKey,
   RunEventKind,
+  RunMonitor,
   RunState,
   RunStatusKey,
   StepState,
 } from 'cramera-viewer/protocol.js';
 import { Elements } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { RunProgress, RunView, RunViewClass, STOPPED_STEP, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
+import { MONITOR_TEXTS, RunProgress, RunView, RunViewClass, STOPPED_STEP, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
@@ -69,7 +70,7 @@ test('a step retried after its cube moved is done on its second attempt, with th
   assert.equal(pick.state, StepState.DONE);
   assert.equal(pick.attempt, 2);
   assert.ok(pick.arm);
-  assert.deepEqual(pick.badges(), ['look-at: in view ✓']);
+  assert.deepEqual(pick.badges(), [MONITOR_TEXTS[RunMonitor.LOOK_AT][MonitorObservation.HOLDS]]);
   assert.ok(progress.log.some((line) => line.startsWith('3. label of step_3: attempt 1/3 failed, retrying: red_cube lies')));
 });
 
@@ -114,7 +115,7 @@ test('a step grounded again where its cube was found elsewhere says so in one li
   assert.equal(progress.step('step_3').state, StepState.DONE);
   assert.equal(progress.step('step_3').attempt, 1);
   assert.ok(progress.log.includes(
-    '1. label of step_3: red_cube found elsewhere on the table; the step was grounded again where it lies',
+    '1. label of step_3: red cube found elsewhere on the table; the step was grounded again where it lies',
   ), progress.log);
 });
 
@@ -131,7 +132,7 @@ test('a step acting on an object not seen says so in the log, where it acts', ()
     { [RunStatusKey.EVENTS]: events },
   );
   assert.ok(progress.log.includes(
-    '2. label of step_2: red_cube was not seen; continuing at the position red_cube was validated at',
+    '2. label of step_2: red_cube was not seen; continuing where the plan expected red cube',
   ), progress.log);
 });
 
@@ -152,7 +153,7 @@ test('a finished run whose step went ahead without the camera confirming its obj
   const view = rendered(progress);
   const [, pick] = byClass(view, RunViewClass.STEP);
   assert.equal(pick.dataset.unseen, 'true');
-  assert.deepEqual(byClass(pick, RunViewClass.UNSEEN).map((element) => element.textContent), ['Went ahead without the camera confirming red cube: it acted where the plan was validated.']);
+  assert.deepEqual(byClass(pick, RunViewClass.UNSEEN).map((element) => element.textContent), ['Went ahead without the camera confirming red cube: it acted where the plan expected it.']);
   const [park] = byClass(view, RunViewClass.STEP);
   assert.equal(park.dataset.unseen, undefined);
 });
@@ -216,11 +217,11 @@ test('the step list shows each step with its state, arm and attempt', () => {
 test('monitor badges show the look-at of a step and the safety monitor of the run', () => {
   const retried = rendered(progressOf('retry'));
   const [lookAt] = byClass(retried, RunViewClass.BADGE);
-  assert.equal(lookAt.textContent, 'look-at: in view ✓');
+  assert.equal(lookAt.textContent, MONITOR_TEXTS[RunMonitor.LOOK_AT][MonitorObservation.HOLDS]);
   assert.equal(lookAt.dataset.observation, MonitorObservation.HOLDS);
   const stopped = rendered(progressOf('safetyStop'));
   const [safety] = byClass(byClass(stopped, RunViewClass.BADGES)[0], RunViewClass.BADGE);
-  assert.equal(safety.textContent, 'safety: limit violated ✗');
+  assert.equal(safety.textContent, MONITOR_TEXTS[RunMonitor.SAFETY][MonitorObservation.VIOLATED]);
   assert.equal(safety.dataset.observation, MonitorObservation.VIOLATED);
 });
 
@@ -236,6 +237,40 @@ test('the perceived cubes show their colors and the log every event', () => {
     log.children.map((line) => line.textContent),
     progress.log,
   );
+});
+
+test('the monitor badges say in plain words what each monitor observes', () => {
+  assert.deepEqual(MONITOR_TEXTS, {
+    [RunMonitor.LOOK_AT]: {
+      [MonitorObservation.HOLDS]: 'object in the camera\'s view ✓',
+      [MonitorObservation.VIOLATED]: 'object out of the camera\'s view ✗',
+    },
+    [RunMonitor.SAFETY]: {
+      [MonitorObservation.HOLDS]: 'within the safety limits ✓',
+      [MonitorObservation.VIOLATED]: 'a safety limit was broken ✗',
+    },
+  });
+});
+
+test('the run log and the perceived objects name each object as the step cards do', () => {
+  const events = [
+    { [RunEventKey.KIND]: RunEventKind.PERCEIVED, [RunEventKey.STEP]: 'step_1', [RunEventKey.TARGET]: 'red_cube', [RunEventKey.COLOR]: 'red' },
+    { [RunEventKey.KIND]: RunEventKind.MONITOR, [RunEventKey.STEP]: 'step_1', [RunEventKey.MONITOR]: RunMonitor.LOOK_AT, [RunEventKey.TARGET]: 'red_cube', [RunEventKey.OBSERVATION]: MonitorObservation.HOLDS },
+    { [RunEventKey.KIND]: RunEventKind.CONTINUED_UNSEEN, [RunEventKey.STEP]: 'step_1', [RunEventKey.TARGET]: 'red_cube, blue_cube', [RunEventKey.REASON]: 'RoboKudo did not answer' },
+  ];
+  const progress = RunProgress.of(
+    [{ [PlanStepKey.IDENTIFIER]: 'step_1' }],
+    () => 'Pick',
+    { [RunStatusKey.EVENTS]: events },
+  );
+  assert.deepEqual(progress.log, [
+    '1. Pick: perceived red cube (red)',
+    `1. Pick: ${MONITOR_TEXTS[RunMonitor.LOOK_AT][MonitorObservation.HOLDS]} (red cube)`,
+    '1. Pick: RoboKudo did not answer; continuing where the plan expected red cube, blue cube',
+  ]);
+  const view = rendered(progress);
+  assert.deepEqual(byClass(view, RunViewClass.OBJECT).map((chip) => chip.innerText), ['red cube (red)']);
+  assert.deepEqual(byClass(view, RunViewClass.UNSEEN).map((element) => element.textContent), ['Went ahead without the camera confirming red cube, blue cube: it acted where the plan expected them.']);
 });
 
 test('the camera panel shows the latest perception images or says none was taken', () => {

@@ -144,6 +144,23 @@ export const FAILURE_LENGTH_LIMIT = 400;
 export const NAMED_MISSING_MESHES = 3;
 
 /**
+ * What the page says of the validation of a plan a run on the real robot took it away
+ * from as it started, while the run goes on.
+ */
+export const VALIDATED_FOR_THIS_RUN = 'Validated for this run; validate again before the next run on the robot.';
+
+/**
+ * The label beside the run controls of a robot profile whose runs check leniently what
+ * the camera perceives, and what it says when pointed at. A step goes ahead where the
+ * plan expects its object: where the plan was validated, or, once the step was planned
+ * again where the object was found, there.
+ */
+export const LENIENT_CHECK = Object.freeze({
+  LABEL: 'Lenient camera check',
+  TITLE: 'When the camera does not confirm an object, a step goes ahead where the plan expects it, and the run says so; safety limits, collision checks and Stop work as always.',
+});
+
+/**
  * @param {string} label The loaded environment's name for people.
  * @param {Array<string>} missing The mesh references that resolved to no file.
  * @returns {string} What the page says about the loaded environment.
@@ -1614,7 +1631,7 @@ export class BuilderPage {
   #validationState(passed) {
     if (passed) return 'Validated.';
     // a run on the real robot takes the validation away as it starts, for the next run
-    if (this.#performing() && this.#validationTaken !== null) return 'Validated for this run; validate again before the next run on the robot.';
+    if (this.#performing() && this.#validationTaken !== null) return VALIDATED_FOR_THIS_RUN;
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
     const override = this.#mayOverrideValidation() ? ' Developer mode lets it run on the robot anyway.' : '';
     if (this.#validation === null) return `Not validated: validate before running on the robot.${override}`;
@@ -1734,6 +1751,8 @@ export class BuilderPage {
     }
     parts.stop = elements.button('Stop', PlanAction.STOP, () => this.#stop());
     parts.capture = elements.button('Capture live poses', PlanAction.CAPTURE, () => this.#capture());
+    // the live scene to capture from is a simulated one, whose poses do not belong in a plan for the real robot
+    parts.capture.hidden = onRealRobot;
     parts.safetyMessage = elements.create('strong', 'safety-message');
     parts.acknowledgeStop = elements.button('Acknowledge', PlanAction.ACKNOWLEDGE_STOP, () => this.#acknowledgeStop());
     parts.restartPlan = elements.button('Restart from the beginning', PlanAction.RESTART_PLAN, () => this.#restartPlan());
@@ -1751,8 +1770,8 @@ export class BuilderPage {
     turn.setAttribute('aria-pressed', 'false');
     // the flow in its order first, then the simulated runs, then the tools
     const flowRow = elements.create('div', 'button-row flow-actions');
-    const runtimeCheck = elements.create('span', 'runtime-check', 'Lenient camera check');
-    runtimeCheck.title = 'When the camera does not confirm an object, a step goes ahead where the plan was validated, and the run says so; safety limits, collision checks and Stop work as always.';
+    const runtimeCheck = elements.create('span', 'runtime-check', LENIENT_CHECK.LABEL);
+    runtimeCheck.title = LENIENT_CHECK.TITLE;
     runtimeCheck.hidden = this.state.catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.PERCEPTION]?.[PerceptionSettingsKey.RUNTIME_CHECK] !== RuntimeCheck.LENIENT;
     flowRow.append(parts.scan, parts.validate, parts.robot, parts.stop, runtimeCheck);
     const simulatedRow = elements.create('div', 'button-row');

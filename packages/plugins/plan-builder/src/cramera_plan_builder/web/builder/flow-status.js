@@ -191,17 +191,30 @@ export function flowStatus(facts) {
  * @param {import('./run-view.js').RunProgress} progress Its progress.
  * @param {boolean} real Whether a run on the robot moves the real robot.
  * @returns {{tone: string, text: string}|null} How it ended, which stands as the
- *   outcome until the next step; null for a state that is no end.
+ *   outcome until the next step, followed by the steps that went ahead without the
+ *   camera confirming their objects; null for a state that is no end.
  */
 export function runOutcome(run, progress, real) {
+  const outcome = runEnd(run, progress, real);
+  const unseen = unseenSentence(progress.unseenSteps());
+  if (outcome === null || !unseen) return outcome;
+  // a step that went ahead without the camera confirming its object is a notice, not a success
+  const tone = outcome.tone === Tone.SUCCESS ? Tone.WARNING : outcome.tone;
+  return { tone, text: `${outcome.text} ${unseen}` };
+}
+
+/**
+ * @param {Object} run The `RunStatus` of a run that just ended.
+ * @param {import('./run-view.js').RunProgress} progress Its progress.
+ * @param {boolean} real Whether a run on the robot moves the real robot.
+ * @returns {{tone: string, text: string}|null} How it ended; null for a state that is
+ *   no end.
+ */
+function runEnd(run, progress, real) {
   const state = run[RunStatusKey.STATE];
   const mode = run[RunStatusKey.MODE];
   const name = mode === RunMode.STAGE ? 'The live scene' : mode === RunMode.ROBOT && real ? 'The run on the real robot' : mode === RunMode.ROBOT ? 'The run' : 'The simulated run';
-  if (state === RunState.FINISHED) {
-    // a step that went ahead without the camera confirming its object is a notice, not a success
-    const unseen = unseenSentence(progress.unseenSteps());
-    return unseen ? { tone: Tone.WARNING, text: `${name} finished. ${unseen}` } : { tone: Tone.SUCCESS, text: `${name} finished.` };
-  }
+  if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: `${name} finished.` };
   if (state === RunState.STOPPED && mode === RunMode.ROBOT && real) return { tone: Tone.WARNING, text: `${name} was stopped: Giskard ended, both arms were commanded zero velocities and stand still.` };
   if (state === RunState.STOPPED) return { tone: Tone.WARNING, text: `${name} was stopped.` };
   if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the plan builder could not confirm that the arms stand still and Giskard ended; see Run output. Use the emergency stop now.` };

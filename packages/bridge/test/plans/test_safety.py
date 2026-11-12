@@ -165,7 +165,7 @@ def test_the_run_events_tell_which_step_the_safety_stop_ended(stopped_run):
         step="step_2",
         constraint=(
             f"{LOW_WORKSPACE.label}: {stopped_run.violation.violation}. "
-            f"{ArmOutsideItsWorkspace.recovery('the arm')}"
+            f"{ArmOutsideItsWorkspace.recovery('the left arm')}"
         ),
     )
 
@@ -190,7 +190,27 @@ def test_a_tool_leaving_its_box_tells_how_to_bring_the_arm_back(stopped_run):
         for entry in stopped_run.demo.run_log.entries
         if isinstance(entry, SafetyStopped)
     ]
-    assert stop.constraint.endswith(ArmOutsideItsWorkspace.recovery("the arm"))
+    assert stop.constraint.endswith(ArmOutsideItsWorkspace.recovery("the left arm"))
+
+
+def test_a_tool_leaving_its_box_leaves_the_new_validation_to_the_page(stopped_run):
+    """
+    The plan builder's banner asks for the new validation once, where one is needed
+    before the restart.
+    """
+    [stop] = [
+        entry
+        for entry in stopped_run.demo.run_log.entries
+        if isinstance(entry, SafetyStopped)
+    ]
+    assert "validate" not in stop.constraint
+
+
+def test_an_arm_outside_its_box_before_a_run_says_to_validate_once_it_is_back():
+    outside = ArmOutsideItsWorkspace(arm="left", axis="z", position=1.0, bound=1.1)
+    assert outside.message().endswith(
+        f"{ArmOutsideItsWorkspace.recovery('the left arm')}, then validate again."
+    )
 
 
 def test_a_demos_safety_stop_is_reported_as_the_line_the_plan_builder_reads(capsys):
