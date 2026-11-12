@@ -97,6 +97,13 @@ class ValidationGate:
             admitted = self.admitted()
         return admitted is not None and admitted == self.serialize(plan)
 
+    def holds_validation(self) -> bool:
+        """
+        :return: Whether a plan is admitted now, see :meth:`admitted`.
+        """
+        with self.lock:
+            return self.admitted() is not None
+
     def admitted(self) -> Optional[str]:
         """
         :return: The JSON text of the plan admitted now: the one whose validation passed

@@ -150,6 +150,19 @@ export const NAMED_MISSING_MESHES = 3;
 export const VALIDATED_FOR_THIS_RUN = 'Validated for this run; validate again before the next run on the robot.';
 
 /**
+ * What the page says once the plan builder no longer holds the validation the page
+ * shows, which it keeps in memory only: after a restart, or once another plan was
+ * validated since.
+ */
+export const VALIDATION_LOST = 'The plan builder restarted or validated another plan since, so this validation is gone: validate the plan again.';
+
+/**
+ * The HTTP status of a request the plan builder refuses as it conflicts with its state,
+ * such as a run of a plan it holds no validation of.
+ */
+const CONFLICT_STATUS = 409;
+
+/**
  * The label beside the run controls of a robot profile whose runs check leniently what
  * the camera perceives, and what it says when pointed at. A step goes ahead where the
  * plan expects its object: where the plan was validated, or, once the step was planned
@@ -1055,8 +1068,8 @@ export class BuilderPage {
    */
   async #start(mode, overrideValidation = false) {
     if (this.busy()) return;
-    const status = await this.#waitFor(() => this.#environment.api.run(this.state.document, mode, overrideValidation), new FlowRequest(FlowRequest.START, mode)).catch((error) => {
-      this.#announceFailure('The run', error);
+    const status = await this.#waitFor(() => this.#environment.api.run(this.state.document, mode, overrideValidation), new FlowRequest(FlowRequest.START, mode)).catch(async (error) => {
+      if (!(await this.#lostValidation(error))) this.#announceFailure('The run', error);
       return null;
     });
     if (!status) return;
@@ -1146,6 +1159,29 @@ export class BuilderPage {
     if (!moved) return;
     this.#validation.sceneChanged = true;
     this.render();
+  }
+
+  /**
+   * Drop the passed validation the page shows once the plan builder holds none, as it
+   * restarted, and say so; the plan builder alone decides whether a plan may run.
+   */
+  #dropLostValidation() {
+    if (!this.#validationPassed()) return;
+    this.#validation = null;
+    this.#announce(Tone.WARNING, VALIDATION_LOST);
+  }
+
+  /**
+   * @param {Error} error Why the plan builder refused to start a run.
+   * @returns {Promise<boolean>} Whether the refusal came as the plan builder holds no
+   *   validation of the plan the page shows as validated, which the page then drops.
+   */
+  async #lostValidation(error) {
+    if (error.status !== CONFLICT_STATUS || !this.#validationPassed()) return false;
+    const run = await this.#environment.api.runStatus().catch(() => null);
+    if (run?.[RunStatusKey.VALIDATION_HELD] !== false) return false;
+    this.#dropLostValidation();
+    return true;
   }
 
   /**
@@ -1271,8 +1307,11 @@ export class BuilderPage {
       return;
     }
     this.#polled = true;
+    const validation = this.#validation;
+    let answered = false;
     const run = await this.#environment.api.runStatus().then(
       (answer) => {
+        answered = true;
         this.#unanswered = null;
         this.#unansweredSince = null;
         this.#retry = { at: 0, wait: 0 };
@@ -1292,6 +1331,8 @@ export class BuilderPage {
     this.#run = run;
     if (this.#performing()) this.#progressHidden = false;
     if (before !== run[RunStatusKey.STATE]) this.#noteRunEnd(previous);
+    // a validation answered while the status was asked for is newer than the status
+    if (answered && this.#validation === validation && run[RunStatusKey.VALIDATION_HELD] === false) this.#dropLostValidation();
     const world = this.#publishes(run) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
     if (world.images.length > 0) this.#cameraImages = world.images;
     const changed = before !== run[RunStatusKey.STATE] || world.published !== this.#world.published || world.signature() !== this.#world.signature();

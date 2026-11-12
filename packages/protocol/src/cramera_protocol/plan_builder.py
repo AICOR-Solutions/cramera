@@ -3701,6 +3701,11 @@ class RunStatusKey(StrEnum):
     What a Stop that came once the run's motions were over did.
     """
 
+    VALIDATION_HELD = "validationHeld"
+    """
+    Whether the plan builder holds a passed validation a run may start with.
+    """
+
 
 @dataclass(kw_only=True)
 class RunStatus(JsonDocument):
@@ -3752,6 +3757,15 @@ class RunStatus(JsonDocument):
     """
     What a Stop did that came once the run's motions were over, which leaves the run's
     record saving and its state as it would have been; None when no such Stop came.
+    """
+
+    validation_held: Optional[bool] = document_field(
+        RunStatusKey.VALIDATION_HELD, default=None
+    )
+    """
+    Whether the plan builder holds a passed validation a run needing one may start
+    with, which it keeps in memory only, so a restart loses it; None where the status
+    does not say, as the demo process's own does not.
     """
 
 

@@ -711,6 +711,34 @@ def test_a_failed_validation_closes_the_gate(validating, plan):
     )
 
 
+def run_status(answer) -> RunStatus:
+    """
+    :return: The status the plan builder answers for its demo started last.
+    """
+    return RunStatus.from_json(
+        json.loads(send(answer, HttpMethod.GET, PlanBuilderRoute.RUN).body)
+    )
+
+
+def test_the_run_status_says_whether_a_validation_is_held(validating, plan):
+    assert run_status(validating).validation_held is False
+
+    validate(validating, plan)
+
+    assert run_status(validating).validation_held is True
+
+
+def test_a_restarted_plan_builder_holds_no_validation(
+    serve, output, workspace_loader, plan
+):
+    profile = DATASET / "profile" / "tracy.json"
+    validate(serve(validating_plugin(output, workspace_loader, profile)), plan)
+
+    restarted = serve(validating_plugin(output, workspace_loader, profile))
+
+    assert run_status(restarted).validation_held is False
+
+
 def test_developer_mode_overrides_the_gate(validating, plan):
     assert (
         run_on_the_robot(validating, plan, override=True)
@@ -911,6 +939,22 @@ def test_a_run_on_the_real_robot_needs_a_new_validation_for_the_next_run(
         run_on_the_robot(attached_to_the_real_robot, plan)
         == PlanNotValidated(RunMode.ROBOT).status()
     )
+
+
+def test_a_run_on_the_real_robot_answers_that_it_took_the_validation(
+    attached_to_the_real_robot, plan
+):
+    validate(attached_to_the_real_robot, plan)
+    request = RunRequest(plan=plan, mode=RunMode.ROBOT)
+
+    started = send(
+        attached_to_the_real_robot,
+        HttpMethod.POST,
+        PlanBuilderRoute.RUN,
+        json.dumps(request.to_json()).encode(),
+    )
+
+    assert RunStatus.from_json(json.loads(started.body)).validation_held is False
 
 
 def test_no_request_overrides_the_gate_of_a_run_on_the_real_robot(

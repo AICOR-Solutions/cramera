@@ -57,7 +57,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1259,6 +1259,78 @@ test('a profile running the robot run mode on the real robot marks it and offers
   assert.match(headline(root), /^Real robot: preparing the run…/);
   assert.match(headline(root), /emergency stop/);
   assert.equal(robotRun(root).disabled, true);
+});
+
+const validationState = (root) => root.findAll((element) => element.className === 'validation-state')[0].textContent;
+
+test('a plan builder that restarted while idle drops the validation the page showed', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  assert.match(validationState(root), /^Validated\./);
+  api.status = { [RunStatusKey.STATE]: RunState.IDLE, [RunStatusKey.VALIDATION_HELD]: false };
+  await timer.tick();
+  assert.doesNotMatch(validationState(root), /^Validated\./);
+  assert.equal(headline(root), VALIDATION_LOST);
+  assert.equal(flow(root).dataset.tone, 'warning');
+  assert.equal(robotRun(root).disabled, true);
+});
+
+test('a plan builder holding the validation keeps it on the page', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  api.status = { [RunStatusKey.STATE]: RunState.IDLE, [RunStatusKey.VALIDATION_HELD]: true };
+  await timer.tick();
+  assert.match(validationState(root), /^Validated\./);
+  assert.equal(robotRun(root).disabled, false);
+});
+
+test('a status asked for before the validation was answered does not drop it', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  let answer = null;
+  api.runStatus = () => new Promise((resolve) => {
+    answer = () => resolve({ [RunStatusKey.STATE]: RunState.IDLE, [RunStatusKey.VALIDATION_HELD]: false });
+  });
+  const polled = timer.tick();
+  await settled();
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  answer();
+  await polled;
+  assert.match(validationState(root), /^Validated\./);
+});
+
+test('a run refused as the restarted plan builder holds no validation says so', async () => {
+  const { root, api } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  api.status = { [RunStatusKey.STATE]: RunState.IDLE, [RunStatusKey.VALIDATION_HELD]: false };
+  api.run = async () => {
+    throw new RequestRefused(409, "A 'robot' run needs the plan to pass its validation first; validate the plan as it stands now.");
+  };
+  robotRun(root).click();
+  await settled();
+  await settled();
+  assert.equal(headline(root), VALIDATION_LOST);
+  assert.doesNotMatch(validationState(root), /^Validated\./);
+  assert.equal(robotRun(root).disabled, true);
+});
+
+test('a run refused while the plan builder holds a validation shows its refusal', async () => {
+  const { root, api } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  api.status = { [RunStatusKey.STATE]: RunState.IDLE, [RunStatusKey.VALIDATION_HELD]: true };
+  const refusal = 'Acknowledge the safety stop first.';
+  api.run = async () => {
+    throw new RequestRefused(409, refusal);
+  };
+  robotRun(root).click();
+  await settled();
+  await settled();
+  assert.match(headline(root), new RegExp(refusal));
+  assert.match(validationState(root), /^Validated\./);
 });
 
 test('developer mode does not let a plan run on the real robot without a passed validation', async () => {

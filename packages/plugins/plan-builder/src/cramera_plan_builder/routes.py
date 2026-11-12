@@ -48,6 +48,7 @@ from cramera_protocol.plan_builder import (
     PlanList,
     PlanRecord,
     RunRequest,
+    RunStatus,
     SavedNames,
     UrdfEnvironment,
     UrdfFolderParameter,
@@ -495,14 +496,23 @@ class PlanBuilderRoutes:
         status = self.runner.start(demo, run.mode, executor)
         if executor is ExecutorKind.REAL:
             self.gate.close(kept_if=self.runner.current.refused_before_motion)
-        return Response.of_json(status)
+        return Response.of_json(self.with_validation_held(status))
 
     def answer_run_status(self, request: Request) -> Response:
         """
         :param request: A request for the demo's state.
         :return: The state of the demo started last.
         """
-        return Response.of_json(self.runner.status())
+        return Response.of_json(self.with_validation_held(self.runner.status()))
+
+    def with_validation_held(self, status: RunStatus) -> RunStatus:
+        """
+        :param status: The state of the demo started last.
+        :return: The state, saying whether the gate holds a passed validation, which
+            the page compares with its own, as a restart of the plan builder empties
+            the gate.
+        """
+        return replace(status, validation_held=self.gate.holds_validation())
 
     def answer_posture(self, request: Request) -> Response:
         """
@@ -517,14 +527,14 @@ class PlanBuilderRoutes:
         :param request: A request to stop the demo.
         :return: The state of the stopped demo.
         """
-        return Response.of_json(self.runner.stop())
+        return Response.of_json(self.with_validation_held(self.runner.stop()))
 
     def answer_acknowledge(self, request: Request) -> Response:
         """
         :param request: A request acknowledging the safety stop of the demo.
         :return: The state of the demo started last, its stop acknowledged.
         """
-        return Response.of_json(self.runner.acknowledge())
+        return Response.of_json(self.with_validation_held(self.runner.acknowledge()))
 
     # %% scans
 
