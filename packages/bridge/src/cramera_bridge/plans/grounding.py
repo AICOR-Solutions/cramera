@@ -19,6 +19,7 @@ from typing_extensions import Any, Dict, List, Optional
 
 from coraplex.perception import PerceptionInterface
 from coraplex.querying.predicates import GripperHolds
+from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
 from coraplex.plans.validation import (
     FailureCause,
@@ -28,6 +29,7 @@ from coraplex.plans.validation import (
 )
 from cramera_bridge.exceptions import (
     NoArmCarriesObject,
+    PickOfHeldObject,
     PlaceBeforePick,
     PlacementNotFound,
 )
@@ -327,6 +329,18 @@ class PlanGrounding:
     steps are grounded, see :meth:`ground`.
     """
 
+    step_numbers: Dict[str, int] = field(init=False, default_factory=dict)
+    """
+    The number of each step given to :meth:`ground` by its identity, counted from one
+    in the order they were given.
+    """
+
+    picked_at: Dict[str, int] = field(init=False, default_factory=dict)
+    """
+    For each object a grounded step picked up, the number of the last step that did, see
+    :attr:`step_numbers`.
+    """
+
     def __post_init__(self) -> None:
         self.validation = PlanValidation(
             world=self.context.world,
@@ -368,6 +382,9 @@ class PlanGrounding:
                     ),
                     *[GroundedStep(step=step) for step in steps[1:]],
                 ]
+        self.step_numbers = {
+            step.identifier: number for number, step in enumerate(steps, start=1)
+        }
         grounded: List[GroundedStep] = []
         position = 0
         while position < len(steps):
@@ -375,13 +392,15 @@ class PlanGrounding:
                 grounded.append(GroundedStep(step=steps[position]))
                 position += 1
                 continue
-            not_held = self.find_place_before_pick(steps[position])
-            if not_held is not None:
+            out_of_order = self.find_place_before_pick(
+                steps[position]
+            ) or self.find_pick_of_held_object(steps[position])
+            if out_of_order is not None:
                 grounded.append(
                     GroundedStep(
                         step=steps[position],
                         check=StepCheck(
-                            verdict=ValidationVerdict.FAILED, failure=not_held
+                            verdict=ValidationVerdict.FAILED, failure=out_of_order
                         ),
                     )
                 )
@@ -414,6 +433,35 @@ class PlanGrounding:
         ):
             return None
         return PlaceBeforePick(arguments.object_identifier())
+
+    def picks_up(self, step: PlanStep) -> bool:
+        """
+        :param step: A step of the performing robot.
+        :return: Whether the step picks an object up.
+        """
+        return issubclass(self.actions.named(step.action).action_class, PickUpAction)
+
+    def find_pick_of_held_object(self, step: PlanStep) -> Optional[PickOfHeldObject]:
+        """
+        :param step: The next step of the performing robot, not carried through by an
+            arm a step before it was given.
+        :return: Why the step fails when it picks up an object an arm of the copy
+            already holds, since a step before it picked the object up and none put it
+            down since; None otherwise.
+        """
+        if not self.picks_up(step):
+            return None
+        arguments = self.arguments(step)
+        body = arguments.acted_on()
+        if body is None or not any(
+            GripperHolds(arm.end_effector, body)()
+            for arm in self.copied_context.robot.all_arms
+        ):
+            return None
+        identifier = arguments.object_identifier()
+        return PickOfHeldObject(
+            object_identifier=identifier, held_since=self.picked_at.get(identifier)
+        )
 
     def arguments(self, step: PlanStep) -> StepArguments:
         """
@@ -450,7 +498,9 @@ class PlanGrounding:
         :param position: The position of a step.
         :return: The step, and, when it leaves its arm open, the steps after it up to
             the first that puts down the object it acts on, which the arm carries it
-            through.
+            through; only the step when a step picks the object up again before one
+            puts it down, which then fails on its own, see
+            :meth:`find_pick_of_held_object`.
         """
         if not self.arms_to_try(steps[position]):
             return steps[position : position + 1]
@@ -458,6 +508,10 @@ class PlanGrounding:
         for end in range(position + 1, len(steps)):
             if self.puts_down(steps[end], carried):
                 return steps[position : end + 1]
+            if self.picks_up(steps[end]) and (
+                self.arguments(steps[end]).object_identifier() == carried
+            ):
+                break
         return steps[position : position + 1]
 
     def puts_down(self, step: PlanStep, identifier: Optional[str]) -> bool:
@@ -605,6 +659,14 @@ class PlanGrounding:
             ).action(replace(step, values={**step.values, **resolved})),
             safety=self.workspaces,
         )
+        if (
+            self.picks_up(step)
+            and check.verdict is not ValidationVerdict.FAILED
+            and step.identifier in self.step_numbers
+        ):
+            self.picked_at[arguments.object_identifier()] = self.step_numbers[
+                step.identifier
+            ]
         if open_field is None or check.grounded_action is None:
             return GroundedStep(
                 step=step,

@@ -1305,6 +1305,35 @@ class PlaceBeforePick(PlanError):
 
 
 @dataclass
+class PickOfHeldObject(PlanError):
+    """
+    A step picking up an object an arm already holds when the step starts, since a step
+    before it picked the object up and no step put it down since.
+    """
+
+    object_identifier: str
+    """
+    The identity of the object to pick up.
+    """
+
+    held_since: Optional[int] = None
+    """
+    The number of the step that picked the object up, counted from one as the page
+    numbers it; None when that step was not grounded together with this one.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def message(self) -> str:
+        shown = self.object_identifier.replace("_", " ")
+        since = "" if self.held_since is None else f" since step {self.held_since}"
+        return (
+            f"The {shown} is already held{since}: place it before picking it up again."
+        )
+
+
+@dataclass
 class PlaceTaken(PlacementNotFound):
     """
     A pose to put an object down at where another object of the plan stands, or so

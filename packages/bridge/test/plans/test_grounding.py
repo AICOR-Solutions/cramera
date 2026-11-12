@@ -337,6 +337,53 @@ def test_a_place_before_any_pick_fails_saying_a_pick_must_come_first(pick_and_pl
     assert [step.verdict for step in report.steps[2:]] == [StepVerdict.UNCHECKED] * 2
 
 
+def test_a_second_pick_of_a_held_cube_fails_naming_the_step_holding_it(
+    pick_and_place,
+):
+    [robot] = pick_and_place.robots
+    park, pick, place, park_again = robot.steps
+    again = replace(pick, identifier="step_5")
+    plan = replace(
+        pick_and_place,
+        robots=[replace(robot, steps=[park, pick, again, place, park_again])],
+    )
+
+    report = validated(plan)
+
+    assert report.steps[1].verdict is StepVerdict.VALID
+    picking_again = report.steps[2]
+    assert picking_again.step == again.identifier
+    assert picking_again.verdict is StepVerdict.FAILED
+    assert "red cube" in picking_again.detail
+    assert "since step 2" in picking_again.detail
+    assert [step.verdict for step in report.steps[3:]] == [StepVerdict.UNCHECKED] * 2
+
+
+def test_a_cube_placed_and_picked_again_validates(pick_and_place):
+    [robot] = pick_and_place.robots
+    park, pick, place, park_again = robot.steps
+    again = replace(pick, identifier="step_5")
+    back = replace(
+        place,
+        identifier="step_6",
+        values={
+            **place.values,
+            "target_location": {
+                "placement": "pose",
+                "pose": [0.68, -0.05, 0.906, 0, 0, 0, 1],
+            },
+        },
+    )
+    plan = replace(
+        pick_and_place,
+        robots=[replace(robot, steps=[park, pick, place, again, back, park_again])],
+    )
+
+    report = validated(plan)
+
+    assert [step.verdict for step in report.steps] == [StepVerdict.VALID] * 6
+
+
 def test_validating_moves_nothing_of_the_twin(pick_and_place):
     demo = PlannedTaskDemo.of_document(DemoDocument(plan=pick_and_place), port=0)
     world = demo.build_world()
