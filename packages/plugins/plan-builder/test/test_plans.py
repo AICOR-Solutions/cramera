@@ -49,6 +49,7 @@ from cramera_protocol.plan_builder import (
     SavedNames,
     StepConstraint,
 )
+from cramera_protocol.robot_profile import RobotProfile, Skill
 
 from .dataset.given_workspace import DATASET, GivenWorkspace
 
@@ -82,6 +83,22 @@ def test_a_complete_plan_passes(check, plan):
 def test_a_malformed_plan_is_refused(check, read_plan, file_name, error):
     with pytest.raises(error):
         check.check(read_plan(f"invalid/{file_name}"))
+
+
+@pytest.mark.parametrize("name", ["Red cube to the centre", "sort  cubes 2"])
+def test_a_plan_name_may_hold_spaces(check, plan, name):
+    plan.name = name
+    check.check(plan)
+
+
+@pytest.mark.parametrize(
+    "name", ["../demo", "a/b", " leading", "trailing ", "x" * 65, "", "milk!"]
+)
+def test_a_plan_name_says_which_characters_it_may_hold(check, plan, name):
+    plan.name = name
+    with pytest.raises(InvalidPlanName) as refusal:
+        check.check(plan)
+    assert "letters, digits, spaces" in refusal.value.message()
 
 
 def test_a_plan_with_more_steps_than_fit_is_refused(plan):
@@ -196,13 +213,11 @@ def test_a_put_down_on_a_surface_needs_its_type(catalog_check, plan):
         ("unknown_action.json", UnknownStepAction),
         ("unavailable_action.json", UnavailableStepAction),
         ("unknown_field.json", UnknownStepField),
-        ("missing_field.json", MissingStepParameter),
         ("gone_member.json", UnsupportedByCatalog),
         ("member_the_robot_lacks.json", UnsupportedByCatalog),
         ("body_of_wrong_type.json", InvalidStepValue),
         ("given_grasp.json", InvalidStepValue),
         ("pose_of_wrong_shape.json", InvalidStepValue),
-        ("destination_without_pose.json", MissingStepParameter),
         ("surface_the_catalog_lacks.json", UnsupportedByCatalog),
         ("number_of_wrong_type.json", InvalidStepValue),
         ("boolean_of_wrong_type.json", InvalidStepValue),
@@ -218,6 +233,45 @@ def test_a_step_that_no_longer_fits_its_action_loads_but_does_not_run(
     with pytest.raises(error) as refusal:
         catalog_check.check(stale)
     assert "robots.robot_1.steps.step_1" in refusal.value.message()
+
+
+@pytest.mark.parametrize(
+    ("file_name", "sentence"),
+    [
+        ("missing_field.json", "Step 1 (Set Gripper) needs a value for “motion”."),
+        (
+            "destination_without_pose.json",
+            "Step 1 (Place) needs a pose for “target location”.",
+        ),
+    ],
+)
+def test_a_step_missing_a_value_is_named_by_its_number_title_and_field(
+    check, catalog_check, read_plan, file_name, sentence
+):
+    stale = read_plan(f"stale/{file_name}")
+    check.check(stale)
+    with pytest.raises(MissingStepParameter) as refusal:
+        catalog_check.check(stale)
+    assert refusal.value.message() == sentence
+    assert refusal.value.location.startswith("robots.robot_1.steps.step_1")
+
+
+def test_a_step_of_a_skill_is_named_by_the_skills_label(catalog_check, plan):
+    catalog_check.catalog.profile = RobotProfile(
+        robot="pr2",
+        label="PR2",
+        skills=[Skill(identifier="carry", label="Carry the milk", action="transport")],
+    )
+    transport = plan.robots[0].steps[3]
+    transport.skill = "carry"
+    transport.values["target_location"] = Destination(
+        placement=PlacementMode.SURFACE
+    ).to_json()
+    with pytest.raises(MissingStepParameter) as refusal:
+        catalog_check.check(plan)
+    assert refusal.value.message() == (
+        "Step 4 (Carry the milk) needs a surface for “target location”."
+    )
 
 
 def test_a_step_acting_on_an_object_the_plan_lacks_is_refused(catalog_check, read_plan):

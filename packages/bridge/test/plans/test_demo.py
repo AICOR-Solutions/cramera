@@ -286,6 +286,19 @@ def test_a_plan_on_an_empty_floor_is_recorded_under_its_name(document, demo):
     assert demo.scene_name() == document.plan.name
 
 
+def test_a_plan_named_with_spaces_is_recorded_with_them_as_underscores(document):
+    document.plan.name = "pick and place"
+    demo = PlannedTaskDemo.of_document(document, port=0)
+    assert demo.scene_name() == "pick_and_place"
+
+
+def test_a_plan_named_with_spaces_in_a_bundle_names_the_recording(document, locations):
+    document.plan.name = "pick and place"
+    document.environment_directory = str(PLANS / "lab")
+    demo = PlannedTaskDemo.of_document(document, port=0)
+    assert demo.scene_name() == "lab_pr2_pick_and_place"
+
+
 def test_a_taken_name_gets_the_next_number(demo, locations):
     (locations.local_scenes / demo.name).mkdir(parents=True)
     assert demo.scene_name() == f"{demo.name}_2"

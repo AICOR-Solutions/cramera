@@ -251,7 +251,8 @@ class PlannedTaskDemo(RobotTaskDemo):
         :param document: A plan the plan builder checked, and its environment.
         :param port: The port the run is published on.
         :return: The demo; a plan in an environment bundle is recorded as
-            ``<bundle>_<robot model>_<plan name>``, otherwise under the plan's name.
+            ``<bundle>_<robot model>_<plan name>``, otherwise under the plan's name, each
+            space of the name as ``_``.
         :raises EnvironmentBundleHoldsRobot: When the environment bundle holds a robot.
         """
         plan = document.plan
@@ -266,11 +267,11 @@ class PlannedTaskDemo(RobotTaskDemo):
             robot_scene=scene,
         )
         if document.environment_directory is None:
-            return cls(environment=EmptyFloor(), name=plan.name, **fields)
+            return cls(environment=EmptyFloor(), name=plan.file_name(), **fields)
         return cls.in_environment_bundle(
             Path(document.environment_directory),
             robot_name=performing.model,
-            task_identifier=plan.name,
+            task_identifier=plan.file_name(),
             **fields,
         )
 
@@ -570,7 +571,7 @@ class PlannedTaskDemo(RobotTaskDemo):
             the plan's, followed by ``_2``, ``_3`` and so on when the local scenes
             directory already holds it.
         """
-        base = self.name if SceneName.is_valid(self.name) else self.plan.name
+        base = self.name if SceneName.is_valid(self.name) else self.plan.file_name()
         name = base
         repeat = FIRST_REPEAT
         while (self.locations.local_scenes / name).exists():

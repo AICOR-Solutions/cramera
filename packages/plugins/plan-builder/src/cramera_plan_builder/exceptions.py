@@ -5,6 +5,7 @@ Requests, plans and configurations the plan builder refuses.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from http import HTTPStatus
 from pathlib import Path
 
@@ -98,7 +99,8 @@ class InvalidPlanText(PlanBuilderError):
 @dataclass
 class InvalidPlanName(PlanBuilderError):
     """
-    A plan name that cannot name a demo file and a recording.
+    A plan name that is not a valid plan name, see
+    :class:`~cramera_protocol.plan_builder.PlanName`.
     """
 
     name: str
@@ -111,8 +113,8 @@ class InvalidPlanName(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"{self.name!r} cannot name a demo and its recording: use 1 to 64 "
-            f"letters, digits, '_' or '-'."
+            f"{self.name!r} cannot be a plan's name: use 1 to 64 letters, digits, "
+            f"spaces, '_' or '-', with no space at the start or end."
         )
 
 
@@ -249,6 +251,37 @@ class UnknownReference(PlanBuilderError):
         )
 
 
+class MissingValue(StrEnum):
+    """
+    What a step's field lacks, as a person reads it.
+    """
+
+    VALUE = "a value"
+    """
+    A required field without any value.
+    """
+
+    POSE = "a pose"
+    """
+    A destination or region at a pose or marker that names no pose.
+    """
+
+    ZONE = "a zone"
+    """
+    A destination or region in a zone that names no zone.
+    """
+
+    OBJECT = "an object"
+    """
+    A destination on top of an object that names no object.
+    """
+
+    SURFACE = "a surface"
+    """
+    A destination on a surface that names no surface type.
+    """
+
+
 @dataclass
 class MissingStepParameter(PlanBuilderError):
     """
@@ -265,11 +298,34 @@ class MissingStepParameter(PlanBuilderError):
     The name of the missing field or key.
     """
 
+    step_number: int
+    """
+    The step's position in its robot's plan, counted from one, as the page numbers it.
+    """
+
+    step_title: str
+    """
+    The step's title as the page shows it: its skill's label, else its action's.
+    """
+
+    field_label: str
+    """
+    The label of the field the value is missing in, as the page shows it.
+    """
+
+    needed: MissingValue
+    """
+    What the field lacks.
+    """
+
     def status(self) -> HTTPStatus:
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"{self.location} needs {self.parameter!r}."
+        return (
+            f"Step {self.step_number} ({self.step_title}) needs {self.needed} for "
+            f"“{self.field_label}”."
+        )
 
 
 @dataclass

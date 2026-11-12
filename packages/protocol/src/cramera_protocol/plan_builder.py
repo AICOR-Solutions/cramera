@@ -11,13 +11,14 @@ The generated demo builds the world and the native actions from it.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from types import MappingProxyType
 
 from typing_extensions import Any, Dict, List, Optional, Self
 
-from cramera_protocol.bundle.index import SceneIndexEntry
+from cramera_protocol.bundle.index import SceneIndexEntry, SceneName
 from cramera_protocol.document import JsonDocument, ValueLocation, document_field
 from cramera_protocol.geometry import Bounds, Pose, Vector3
 from cramera_protocol.live_messages import (
@@ -1410,6 +1411,44 @@ class PlanKey(StrEnum):
     """
 
 
+PLAN_NAME_CHARACTERS = re.compile(r"[A-Za-z0-9_-]+(?: +[A-Za-z0-9_-]+)*")
+"""
+A plan's name: words of letters, digits, ``_`` or ``-``, separated by spaces.
+"""
+
+FILE_NAME_SPACE = "_"
+"""
+What a space of a plan's name becomes in the names of its demo and recording.
+"""
+
+
+@dataclass(frozen=True)
+class PlanName:
+    """
+    A plan's name as a person gives it, and the file name its demo and recording take.
+    """
+
+    text: str
+    """
+    The name.
+    """
+
+    def is_valid(self) -> bool:
+        """
+        :return: Whether it is words of letters, digits, ``_`` or ``-`` separated by
+            spaces, whose file name is a scene name.
+        """
+        return PLAN_NAME_CHARACTERS.fullmatch(
+            self.text
+        ) is not None and SceneName.is_valid(self.file_name())
+
+    def file_name(self) -> str:
+        """
+        :return: The name with each space as :data:`FILE_NAME_SPACE`.
+        """
+        return self.text.replace(" ", FILE_NAME_SPACE)
+
+
 @dataclass(kw_only=True)
 class PlanDocument(JsonDocument):
     """
@@ -1419,7 +1458,8 @@ class PlanDocument(JsonDocument):
 
     name: str = document_field(PlanKey.NAME)
     """
-    The plan's name; the generated demo's file and recording are named after it.
+    The plan's name; the generated demo's file and recording are named after its
+    :meth:`PlanName.file_name`.
     """
 
     format_version: ProtocolVersion = document_field(
@@ -1469,6 +1509,13 @@ class PlanDocument(JsonDocument):
 
     def __post_init__(self) -> None:
         self.format_version.require_readable_by(CURRENT_VERSION)
+
+    def file_name(self) -> str:
+        """
+        :return: The name the plan's demo file and recording take, see
+            :meth:`PlanName.file_name`.
+        """
+        return PlanName(self.name).file_name()
 
     def performing_robot(self) -> Optional[PlannedRobot]:
         """

@@ -36,6 +36,7 @@ from cramera_plan_builder.exceptions import (
     InvalidPlanText,
     InvalidStepValue,
     MissingStepParameter,
+    MissingValue,
     PlanTooLarge,
     PlanWithoutRobot,
     TooManyEntries,
@@ -49,7 +50,6 @@ from cramera_plan_builder.exceptions import (
     UnsupportedByCatalog,
     ValueOutOfRange,
 )
-from cramera_protocol.bundle.index import SceneName
 from cramera_protocol.detection import (
     DetectedObjectReference,
     DetectionRegion,
@@ -70,6 +70,7 @@ from cramera_protocol.plan_builder import (
     PlanBuilderLimits,
     PlanDocument,
     PlanKey,
+    PlanName,
     PlannedObject,
     PlannedObjectKey,
     PlannedRobot,
@@ -203,7 +204,7 @@ class PlanCheck:
     def check(self, plan: PlanDocument) -> None:
         """
         :param plan: A plan as a browser sent it.
-        :raises InvalidPlanName: For a name that cannot name a demo and a recording.
+        :raises InvalidPlanName: For a name that is not a :class:`PlanName`.
         :raises InvalidPlanText: For an empty or overly long text or one with control
             characters.
         :raises InvalidIdentifier: For an identity of other characters.
@@ -213,7 +214,7 @@ class PlanCheck:
         :raises UnknownReference: For a selected robot the plan lacks.
         :raises PlanTooLarge: For a plan whose JSON is too large.
         """
-        if not SceneName.is_valid(plan.name):
+        if not PlanName(plan.name).is_valid():
             raise InvalidPlanName(plan.name)
         if plan.task:
             self.text(PlanKey.TASK, plan.task)
@@ -396,6 +397,16 @@ class StepValueCheck:
     Checks texts and numbers against the builder's limits.
     """
 
+    step_number: int
+    """
+    The step's position in its robot's plan, counted from one.
+    """
+
+    step_title: str
+    """
+    The step's title as the page shows it.
+    """
+
     def check(self, location: str, step: PlanStep) -> None:
         """
         :param location: Where the step sits.
@@ -423,7 +434,9 @@ class StepValueCheck:
                 and offered.kind is not ActionFieldKind.GRASP
                 and offered.name not in step.values
             ):
-                raise MissingStepParameter(values_location, offered.name)
+                raise self.missing(
+                    values_location, offered.name, offered, MissingValue.VALUE
+                )
 
     def looks_for_objects(self, location: str, step: PlanStep) -> bool:
         """
@@ -528,25 +541,33 @@ class StepValueCheck:
         destination = self.read(location, Destination, value, ExpectedValue.DESTINATION)
         if destination.placement in (PlacementMode.POSE, PlacementMode.MARKER):
             if destination.pose is None:
-                raise MissingStepParameter(location, DestinationKey.POSE)
+                raise self.missing(
+                    location, DestinationKey.POSE, offered, MissingValue.POSE
+                )
             self.plan_check.pose(
                 PlanCheck.location(location, DestinationKey.POSE), destination.pose
             )
             return
         if destination.placement is PlacementMode.ZONE:
             self.zone(
-                PlanCheck.location(location, DestinationKey.ZONE), destination.zone
+                PlanCheck.location(location, DestinationKey.ZONE),
+                offered,
+                destination.zone,
             )
             return
         if destination.placement is PlacementMode.ON_TOP_OF:
             object_location = PlanCheck.location(location, DestinationKey.OBJECT)
             if destination.object is None:
-                raise MissingStepParameter(location, DestinationKey.OBJECT)
+                raise self.missing(
+                    location, DestinationKey.OBJECT, offered, MissingValue.OBJECT
+                )
             if destination.object not in self.objects:
                 raise UnknownReference(object_location, destination.object)
             return
         if destination.surface_type is None:
-            raise MissingStepParameter(location, DestinationKey.SURFACE_TYPE)
+            raise self.missing(
+                location, DestinationKey.SURFACE_TYPE, offered, MissingValue.SURFACE
+            )
         if destination.surface_type not in self.catalog.surface_types:
             raise UnsupportedByCatalog(
                 PlanCheck.location(location, DestinationKey.SURFACE_TYPE),
@@ -563,28 +584,56 @@ class StepValueCheck:
         region = self.read(location, DetectionRegion, value, ExpectedValue.REGION)
         if region.kind is RegionKind.ZONE:
             self.zone(
-                PlanCheck.location(location, DetectionRegionKey.ZONE), region.zone
+                PlanCheck.location(location, DetectionRegionKey.ZONE),
+                offered,
+                region.zone,
             )
         if region.kind is RegionKind.MARKER:
             if region.pose is None:
-                raise MissingStepParameter(location, DetectionRegionKey.POSE)
+                raise self.missing(
+                    location, DetectionRegionKey.POSE, offered, MissingValue.POSE
+                )
             self.plan_check.pose(
                 PlanCheck.location(location, DetectionRegionKey.POSE), region.pose
             )
 
-    def zone(self, location: str, identifier: Optional[str]) -> None:
+    def zone(
+        self, location: str, offered: ActionField, identifier: Optional[str]
+    ) -> None:
         """
         :param location: Where the zone's identifier sits.
+        :param offered: The field naming the zone.
         :param identifier: The identifier of a zone of the robot profile, or None.
         :raises MissingStepParameter: When no zone is named.
         :raises UnsupportedByCatalog: When the robot profile names no such zone.
         """
         if identifier is None:
-            raise MissingStepParameter(location, DestinationKey.ZONE)
+            raise self.missing(
+                location, DestinationKey.ZONE, offered, MissingValue.ZONE
+            )
         profile = self.catalog.profile
         zones = [] if profile is None else [zone.identifier for zone in profile.zones]
         if identifier not in zones:
             raise UnsupportedByCatalog(location, identifier, zones)
+
+    def missing(
+        self, location: str, parameter: str, offered: ActionField, needed: MissingValue
+    ) -> MissingStepParameter:
+        """
+        :param location: Where the value is missing.
+        :param parameter: The name of the missing field or key.
+        :param offered: The field the value is missing in.
+        :param needed: What the field lacks.
+        :return: The refusal naming the step and the field as the page shows them.
+        """
+        return MissingStepParameter(
+            location=location,
+            parameter=parameter,
+            step_number=self.step_number,
+            step_title=self.step_title,
+            field_label=offered.label,
+            needed=needed,
+        )
 
     @staticmethod
     def read(
@@ -692,6 +741,40 @@ class CatalogCheck:
             :meth:`StepValueCheck.check`; a step may name the object an earlier step of
             its robot that looks for objects finds.
         """
+        self.check_scene(plan)
+        if self.catalog.missing:
+            return
+        models = {model.name: model for model in self.catalog.robots}
+        planned = frozenset(item.identifier for item in plan.objects)
+        for robot in plan.robots:
+            location = PlanCheck.location(PlanKey.ROBOTS, robot.identifier)
+            objects = planned
+            for position, step in enumerate(robot.steps):
+                values = StepValueCheck(
+                    catalog=self.catalog,
+                    robot=models[robot.model],
+                    objects=objects,
+                    plan_check=PlanCheck(self.limits),
+                    step_number=position + 1,
+                    step_title=self.step_title(step),
+                )
+                location_of_step = PlanCheck.location(
+                    location, PlannedRobotKey.STEPS, step.identifier
+                )
+                values.check(location_of_step, step)
+                if values.looks_for_objects(location_of_step, step):
+                    objects = objects | {DetectedObjectReference(step.identifier).text}
+
+    def check_scene(self, plan: PlanDocument) -> None:
+        """
+        Check what the plan's scene is built of, leaving its steps unchecked, as a scan
+        of the scene needs it while the steps may still lack the objects it finds.
+
+        :param plan: A plan whose limits were checked.
+        :raises UnsupportedByCatalog: For an environment, robot model or object model
+            the catalog does not offer; without the CRAM workspace only the environment
+            is checked.
+        """
         environments = [entry.name for entry in self.catalog.environments]
         if plan.environment is not None:
             self.offered(PlanKey.ENVIRONMENT, plan.environment, environments)
@@ -706,29 +789,34 @@ class CatalogCheck:
                 planned_object.model,
                 objects,
             )
-        models = {model.name: model for model in self.catalog.robots}
-        planned = frozenset(item.identifier for item in plan.objects)
+        models = [model.name for model in self.catalog.robots]
         for robot in plan.robots:
-            location = PlanCheck.location(PlanKey.ROBOTS, robot.identifier)
             self.offered(
-                PlanCheck.location(location, PlannedRobotKey.MODEL),
+                PlanCheck.location(
+                    PlanKey.ROBOTS, robot.identifier, PlannedRobotKey.MODEL
+                ),
                 robot.model,
-                list(models),
+                models,
             )
-            objects = planned
-            for step in robot.steps:
-                values = StepValueCheck(
-                    catalog=self.catalog,
-                    robot=models[robot.model],
-                    objects=objects,
-                    plan_check=PlanCheck(self.limits),
-                )
-                location_of_step = PlanCheck.location(
-                    location, PlannedRobotKey.STEPS, step.identifier
-                )
-                values.check(location_of_step, step)
-                if values.looks_for_objects(location_of_step, step):
-                    objects = objects | {DetectedObjectReference(step.identifier).text}
+
+    def step_title(self, step: PlanStep) -> str:
+        """
+        :param step: A step of a plan.
+        :return: Its title as the page shows it: the label of its skill, else of its
+            action, else the action's name.
+        """
+        profile = self.catalog.profile
+        skill = (
+            None
+            if profile is None or step.skill is None
+            else profile.skill_named(step.skill)
+        )
+        if skill is not None:
+            return skill.label
+        for schema in self.catalog.actions:
+            if schema.name == step.action:
+                return schema.label
+        return step.action
 
     @staticmethod
     def offered(location: str, value: str, offered: List[str]) -> None:

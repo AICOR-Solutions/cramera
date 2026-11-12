@@ -531,7 +531,8 @@ class PlanBuilderRoutes:
     def answer_scan(self, request: Request) -> Response:
         """
         Scan the scene the plan's robot sees: the simulated scene the profile names, or
-        what the robot's own perception sees.
+        what the robot's own perception sees. The plan's steps are not checked, since a
+        scan finds the objects they may still lack.
 
         :param request: A request whose body is a :class:`ScanRequest`.
         :return: The :class:`SceneScan`, the plan's objects after the scan.
@@ -539,7 +540,7 @@ class PlanBuilderRoutes:
         scan = ScanRequest.from_json(self.body(request))
         plan = self.translated(scan.plan)
         PlanCheck(self.limits).check(plan)
-        CatalogCheck(self.catalog(), self.limits).check(plan)
+        CatalogCheck(self.catalog(), self.limits).check_scene(plan)
         return Response.of_json(
             self.scans.scan(
                 SceneScanOrder(

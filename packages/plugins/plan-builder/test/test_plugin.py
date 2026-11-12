@@ -541,6 +541,56 @@ def test_a_scan_sees_the_simulated_scene_the_profile_names(
     assert scan.objects == ConfiguredProfile.of_file(profile_file).simulated_objects
 
 
+def scanning_plugin(output, workspace_loader) -> PlanBuilderPlugin:
+    """
+    :return: A plan builder of Tracy's profile whose scanner is the stand-in that sees
+        the profile's simulated objects.
+    """
+    return PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(DATASET / "profile" / "tracy.json"),
+        },
+        workspace=workspace_loader,
+        scans=SceneScans(
+            interpreter=str(DATASET / "scanning_interpreter.py"),
+            modules=CramModules(
+                finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
+            ),
+        ),
+    )
+
+
+def test_a_scan_does_not_need_the_steps_to_be_complete(
+    serve, output, workspace_loader, plan
+):
+    del plan.robots[0].steps[3].values["object_designator"]
+    plan.robots[0].steps[5].values["target_location"] = Destination(
+        placement=PlacementMode.ZONE
+    ).to_json()
+    answer = send(
+        serve(scanning_plugin(output, workspace_loader)),
+        HttpMethod.POST,
+        PlanBuilderRoute.SCAN,
+        json.dumps(ScanRequest(plan=plan).to_json()).encode(),
+    )
+    assert answer.status == HTTPStatus.OK, answer.body
+
+
+def test_a_scan_refuses_an_object_the_catalog_does_not_offer(
+    serve, output, workspace_loader, plan
+):
+    plan.objects[0].model = "anvil.stl"
+    answer = send(
+        serve(scanning_plugin(output, workspace_loader)),
+        HttpMethod.POST,
+        PlanBuilderRoute.SCAN,
+        json.dumps(ScanRequest(plan=plan).to_json()).encode(),
+    )
+    assert answer.status == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert "anvil.stl" in json.loads(answer.body)[ErrorKey.ERROR]
+
+
 # %% validating
 
 
