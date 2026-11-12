@@ -6,12 +6,15 @@ with them, and checks that they still lie there, before its arm moves; a step ke
 object in view runs beside a monitor of the robot's camera that gives the step up once
 the object leaves its field of view. An object found elsewhere before the step moved
 anything is detected again on the table and the step and the ones after it are grounded
-anew where it lies, without counting an attempt. A step that fails is attempted again
+anew where it lies, without counting an attempt. Under a lenient runtime check, an
+object found anywhere in the box it is looked for in is acted on where it was found, and
+an object found nowhere, or a perception that does not answer, leaves the step acting
+where the plan was grounded with the object. A step that fails is attempted again
 from where the run stopped, the steps after it grounded anew: with the other arm first
 where a motion failed, after detecting its objects again where they were lost track of.
 Once a step used up its attempts the plan is aborted. Every step as it is scheduled and
 starts, every attempt, every change of what the camera keeps in view, every object a
-step perceived or found elsewhere and a safety stop go to the run log.
+step perceived, found elsewhere or acted on unseen and a safety stop go to the run log.
 """
 
 from __future__ import annotations
@@ -28,6 +31,7 @@ from coraplex.exceptions import (
     MotionDidNotFinish,
     NothingPerceived,
     PerceptionSourceDidNotAnswer,
+    PerceptionSourceFailed,
 )
 from coraplex.perception import PerceptionTask, WorldPerception
 from coraplex.plans import executors
@@ -49,6 +53,7 @@ from cramera_bridge.plans.run_log import (
     RunLog,
     SafetyStopped,
     StepAttempt,
+    StepContinuedUnseen,
     StepRegrounded,
     StepScheduled,
     StepStarted,
@@ -60,7 +65,7 @@ from cramera_bridge.plans.world import PlannedGraspable
 from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
 from cramera_protocol.live_messages import ConstraintMonitorType, MonitorParameterKey
 from cramera_protocol.plan_builder import PlanStep, StepConstraint
-from cramera_protocol.robot_profile import SafetyLimits
+from cramera_protocol.robot_profile import RuntimeCheck, SafetyLimits
 from cramph.composites import CancelledWhenTrue
 from cramph.composites import Sequence as StepSequence
 from cramph.data_types import LifeCycleValues, ObservationStateValues
@@ -204,6 +209,12 @@ class FailedAttempt:
     not answer it either.
     """
 
+    unseen: Optional[str] = None
+    """
+    What the robot's perception gave nothing for, as a person reads it, when it did not
+    answer or did not find the step's objects on the table again; None otherwise.
+    """
+
     @classmethod
     def from_failure(
         cls, failure: ExecutionFailure, node: StatechartNode
@@ -232,6 +243,13 @@ class FailedAttempt:
             ),
             may_be_attempted_again=not isinstance(
                 failure, PerceptionSourceDidNotAnswer
+            ),
+            unseen=(
+                failure.error_message()
+                if isinstance(
+                    failure, (PerceptionSourceDidNotAnswer, PerceptionSourceFailed)
+                )
+                else None
             ),
         )
 
@@ -667,6 +685,18 @@ class StepRun:
     found elsewhere before they moved, which happens once per step.
     """
 
+    runtime_check: RuntimeCheck = RuntimeCheck.STRICT
+    """
+    How the run treats what it perceives of a step's objects before the step moves.
+    """
+
+    continued_unseen: set[str] = field(default_factory=set)
+    """
+    The identities of the steps acting where the plan was grounded with their objects,
+    without looking for them, because the robot's perception gave nothing for them
+    under a lenient runtime check.
+    """
+
     @property
     def attempts(self) -> int:
         """
@@ -761,7 +791,9 @@ class StepRun:
         :return: The action after the detection of each object the step expects in
             place, around where the plan was grounded with it, by a robot whose camera
             sees the table without turning to it, and the check that it still lies
-            there; the action alone when the step expects none.
+            there, within :attr:`regrounding_distance` or, under a lenient runtime
+            check, anywhere it may be found; the action alone when the step expects
+            none or acts without looking for its objects.
         """
         expected = [
             ExpectedPosition(
@@ -770,7 +802,7 @@ class StepRun:
             )
             for identifier, position in scheduled.expected_positions.items()
         ]
-        if not expected:
+        if not expected or scheduled.step.identifier in self.continued_unseen:
             return action
         detections = (
             [
@@ -787,10 +819,43 @@ class StepRun:
             nodes=[
                 *detections,
                 BodiesWhereExpected(
-                    expected=expected, tolerance=self.regrounding_distance
+                    expected=expected, tolerance=self.tolerance(scheduled)
                 ),
                 action,
             ]
+        )
+
+    def tolerance(self, scheduled: ScheduledStep) -> float:
+        """
+        :param scheduled: A step expecting objects in place.
+        :return: How far, in metres, its objects may lie from where the plan was
+            grounded with them before the step is grounded anew: the
+            :attr:`regrounding_distance`, or, under a lenient runtime check, as far as
+            the nearest side of the box the closest-searched object is looked for in.
+        """
+        if self.runtime_check is RuntimeCheck.STRICT:
+            return self.regrounding_distance
+        return min(
+            self.search_reach(self.bodies[identifier])
+            for identifier in scheduled.expected_positions
+        )
+
+    def search_reach(self, body: Body) -> float:
+        """
+        :param body: An object a step expects in place.
+        :return: How far, in metres, along each axis it is looked for from where the
+            plan was grounded with it: :attr:`search_distance` beyond its own bounding
+            box.
+        """
+        extent = body.collision.as_bounding_box_collection_in_frame(body).bounding_box()
+        return (
+            max(
+                extent.max_x - extent.min_x,
+                extent.max_y - extent.min_y,
+                extent.max_z - extent.min_z,
+            )
+            / 2
+            + self.search_distance
         )
 
     def grounded_region(
@@ -803,16 +868,7 @@ class StepRun:
         :return: The box around that position an object of its size is looked for in,
             :attr:`search_distance` beyond its own bounding box.
         """
-        extent = body.collision.as_bounding_box_collection_in_frame(body).bounding_box()
-        reach = (
-            max(
-                extent.max_x - extent.min_x,
-                extent.max_y - extent.min_y,
-                extent.max_z - extent.min_z,
-            )
-            / 2
-            + self.search_distance
-        )
+        reach = self.search_reach(body)
         x, y, z = position
         return VolumetricBoundingBox(
             min_x=x - reach,
@@ -927,9 +983,11 @@ class StepRun:
             failed = FailedAttempt.from_failure(
                 failure, attempt.plan.nodes[position - attempt.first]
             )
-            if self.was_found_elsewhere(
-                attempt.progress.steps[position - attempt.first], failed
-            ):
+            attempted = attempt.progress.steps[position - attempt.first]
+            if failed.unseen is not None and self.may_continue_unseen(attempted):
+                self.continue_unseen(position, failed.unseen)
+                failed = None
+            elif self.was_found_elsewhere(attempted, failed):
                 failed = self.reground_where_found(position, performance, extensions)
             if failed is not None:
                 self.retry(position, failed, performance, extensions)
@@ -967,7 +1025,9 @@ class StepRun:
         :param performance: How the plans are performed.
         :param extensions: Gives the executor extensions of each plan performed.
         :return: Why grounding the step anew failed, which fails its attempt, or None
-            when it is ready.
+            when it is ready, or, under a lenient runtime check, acts where the plan was
+            grounded with its objects because they were not seen on the table again or
+            the robot's perception did not answer.
         """
         scheduled = self.steps[position]
         identifier = scheduled.step.identifier
@@ -978,7 +1038,65 @@ class StepRun:
         )
         if failed is None:
             self.run_log.write(StepRegrounded(step=identifier, targets=objects))
+        elif failed.unseen is not None and self.runtime_check is RuntimeCheck.LENIENT:
+            self.continue_unseen(position, failed.unseen)
+            return None
         return failed
+
+    def may_continue_unseen(self, attempted: AttemptedStep) -> bool:
+        """
+        :param attempted: The step an attempt stopped at, its perception having given
+            nothing for its objects.
+        :return: Whether the step may act where the plan was grounded with its objects
+            instead: under a lenient runtime check, when it failed before it moved
+            anything.
+        """
+        return (
+            self.runtime_check is RuntimeCheck.LENIENT
+            and attempted.failed_before_moving()
+            and attempted.step not in self.continued_unseen
+        )
+
+    def continue_unseen(self, position: int, unseen: str) -> None:
+        """
+        Let a step act where the plan was grounded with the objects it expects in place,
+        without looking for them, putting them back there in the world the motions are
+        planned in, where a detection may have moved them, and say so in the run log.
+
+        :param position: The position of the step.
+        :param unseen: What the robot's perception gave nothing for.
+        """
+        scheduled = self.steps[position]
+        identifier = scheduled.step.identifier
+        for name, expected in scheduled.expected_positions.items():
+            self.put_back(self.bodies[name], expected)
+        self.continued_unseen.add(identifier)
+        self.run_log.write(
+            StepContinuedUnseen(
+                step=identifier,
+                targets=[self.target_of(name) for name in scheduled.expected_positions],
+                reason=unseen,
+            )
+        )
+
+    def put_back(self, body: Body, position: List[float]) -> None:
+        """
+        :param body: An object of the plan.
+        :param position: Where its origin goes, in the world's coordinates; it keeps
+            its orientation.
+        """
+        world = self.context.world
+        parent = body.parent_connection.parent
+        parent_P_object = world.transform(
+            Point3(*position, reference_frame=world.root), parent
+        )
+        body.parent_connection.origin = (
+            HomogeneousTransformationMatrix.from_point_rotation_matrix(
+                point=parent_P_object,
+                rotation_matrix=body.parent_connection.origin.rotation_matrix,
+                reference_frame=parent,
+            )
+        )
 
     def target_of(self, identifier: str) -> str:
         """
@@ -1113,10 +1231,16 @@ class StepRun:
             failure = self.perform_plan(detection, performance, extensions())
             if failure is not None:
                 lost = ", ".join(self.steps[position].expected_positions)
+                redetected = FailedAttempt.from_failure(failure, detection)
+                targets = ", ".join(
+                    self.target_of(name)
+                    for name in self.steps[position].expected_positions
+                )
                 return FailedAttempt(
                     reason=f"{lost} was not detected on the table again: "
-                    f"{FailedAttempt.from_failure(failure, detection).reason}",
+                    f"{redetected.reason}",
                     lost_track=True,
+                    unseen=redetected.unseen or f"{targets} was not seen",
                 )
         if alternative is Alternative.OTHER_ARM:
             steps[0] = self.other_arm_step(self.steps[position])

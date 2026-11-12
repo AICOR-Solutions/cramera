@@ -10,15 +10,19 @@ from __future__ import annotations
 import io
 import json
 import logging
+from contextlib import nullcontext
 from dataclasses import dataclass, field
+from importlib.util import find_spec
 
 import pytest
+from typing_extensions import Optional
 
 from coraplex.plans import executors
 from cramera_bridge.exceptions import StepAbandoned
-from cramera_bridge.execution import PhysicalExecution
+from cramera_bridge.execution import PhysicalExecution, PlanExecution
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
+from cramera_bridge.ros_node import SpinningNode
 from cramera_bridge.plans.run_log import (
     AttemptOutcome,
     LookAt,
@@ -27,6 +31,7 @@ from cramera_bridge.plans.run_log import (
     RunLogEntry,
     SafetyStopped,
     StepAttempt,
+    StepContinuedUnseen,
     StepRegrounded,
     StepScheduled,
     StepStarted,
@@ -54,9 +59,10 @@ from cramera_protocol.plan_builder import (
     RunMonitor,
     StepState,
 )
-from cramera_protocol.robot_profile import Zone
+from cramera_protocol.robot_profile import PerceptionSettings, RuntimeCheck, Zone
 from cramera_protocol.viewer import EnvironmentVariable
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
+from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
@@ -227,6 +233,22 @@ def test_a_step_grounded_again_says_in_one_line_where_its_object_was_found():
     )
     assert entry.event() == RunEvent(
         kind=RunEventKind.REGROUNDED, step="step_3", target="red_cube"
+    )
+
+
+def test_a_step_carrying_on_unseen_says_in_one_line_where_it_acts():
+    entry = StepContinuedUnseen(
+        step="step_3", targets=["red_cube"], reason="red_cube was not seen"
+    )
+    assert entry.line() == (
+        "step_3: red_cube was not seen; continuing at the position red_cube was "
+        "validated at"
+    )
+    assert entry.event() == RunEvent(
+        kind=RunEventKind.CONTINUED_UNSEEN,
+        step="step_3",
+        target="red_cube",
+        reason="red_cube was not seen",
     )
 
 
@@ -450,3 +472,270 @@ def test_the_run_events_follow_every_step_through_its_retries(disturbed_run):
         if event.step == "step_3" and event.state is StepState.DONE
     ]
     assert picked.arm in ("left", "right")
+
+
+# %% how strictly a run checks what it perceives before a step
+
+
+MOVED_WITHIN_REACH = (0.0, -0.04, 0.0)
+"""
+How far the red cube is pushed before the run: farther than the strict check allows,
+inside the box the pick looks for it in.
+"""
+
+MOVED_ELSEWHERE = (0.10, 0.0, 0.0)
+"""
+How far the red cube is pushed before the run: beyond the box the pick looks for it in,
+still on the table.
+"""
+
+TAKEN_AWAY = (FAR_AWAY[0] - 0.55, FAR_AWAY[1] - 0.10, FAR_AWAY[2] - 0.906)
+"""
+How far the red cube is taken before the run: onto the floor, out of sight.
+"""
+
+VALIDATED = (0.55, 0.10)
+"""
+Where the plan holds the red cube on the table, in the world's coordinates.
+"""
+
+
+@dataclass
+class PickRun:
+    """
+    How a run of the pick, its cube moved once the plan was grounded, ended.
+    """
+
+    entries: list[RunLogEntry]
+    """
+    The run log.
+    """
+
+    abandoned: Optional[StepAbandoned]
+    """
+    The step the run gave up, or None when every step succeeded.
+    """
+
+    picked_at: Optional[tuple[float, float]]
+    """
+    Where the cube lay on the table once the pick took hold of it, or None when it did
+    not.
+    """
+
+    def attempts_at(self, step: str) -> list[StepAttempt]:
+        """
+        :return: The attempts at a step, in order.
+        """
+        return [
+            entry
+            for entry in self.entries
+            if isinstance(entry, StepAttempt) and entry.step == step
+        ]
+
+
+@dataclass
+class MovedOnceGrounded:
+    """
+    Moves the red cube once the run grounded the plan and scheduled the pick, before
+    anything ran.
+    """
+
+    demo: PlannedTaskDemo
+    """
+    The running demo.
+    """
+
+    offset: tuple[float, float, float]
+    """
+    How far the cube is moved, in the world's coordinates.
+    """
+
+    def __call__(self, entry: RunLogEntry) -> None:
+        if isinstance(entry, StepScheduled) and entry.step == "step_2":
+            Disturbance.move(self.demo.bodies["red_cube"], self.offset)
+
+
+@dataclass
+class WhereTheCubeWasPicked:
+    """
+    Remembers where the red cube lay on the table once its pick succeeded.
+    """
+
+    demo: PlannedTaskDemo
+    """
+    The running demo.
+    """
+
+    position: Optional[tuple[float, float]] = None
+    """
+    Where the cube lay, or None before the pick succeeded.
+    """
+
+    def __call__(self, entry: RunLogEntry) -> None:
+        if not isinstance(entry, StepAttempt) or entry.step != "step_2":
+            return
+        if entry.outcome is not AttemptOutcome.SUCCEEDED:
+            return
+        position = self.demo.bodies["red_cube"].global_pose.position
+        self.position = (float(position.x), float(position.y))
+
+
+def run_pick(
+    tmp_path,
+    monkeypatch,
+    runtime_check: RuntimeCheck,
+    moved: Optional[tuple[float, float, float]] = None,
+    execution: Optional[PlanExecution] = None,
+    abandons: bool = False,
+) -> PickRun:
+    """
+    Run Tracy's pick of the red cube kinematically, its arm left to the run's grounding,
+    which records where the pick expects the cube, the cube moved once the run grounded
+    the plan.
+
+    :param abandons: Whether the run is expected to give up its pick.
+    """
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "data"))
+    document = json.loads(TRACY_PICK.read_text("utf-8"))
+    document["robots"][0]["steps"][1]["values"]["arm"] = "automatic"
+    plan = PlanDocument.from_json(document)
+    perception = PerceptionSettings(answer_timeout=0.5, runtime_check=runtime_check)
+    demo = PlannedTaskDemo.of_document(
+        DemoDocument(plan=plan, perception=perception), port=0
+    )
+    if execution is not None:
+        demo.execution = execution
+    if moved is not None:
+        demo.run_log.listeners.append(MovedOnceGrounded(demo, moved))
+    picked = WhereTheCubeWasPicked(demo)
+    demo.run_log.listeners.append(picked)
+    with pytest.raises(StepAbandoned) if abandons else nullcontext() as abandoned:
+        demo.run()
+    return PickRun(
+        entries=demo.run_log.entries,
+        abandoned=abandoned.value if abandons else None,
+        picked_at=picked.position,
+    )
+
+
+@pytest.fixture
+def tracy_installed() -> None:
+    if not Tracy.is_description_installed():
+        pytest.skip("iai_tracy_description is not installed")
+
+
+def test_strict_grounds_a_pick_anew_when_its_cube_lies_beyond_2_cm(
+    tmp_path, monkeypatch, tracy_installed
+):
+    run = run_pick(tmp_path, monkeypatch, RuntimeCheck.STRICT, MOVED_WITHIN_REACH)
+
+    assert StepRegrounded(step="step_2", targets=["red_cube"]) in run.entries
+
+
+def test_lenient_picks_a_cube_seen_near_where_it_was_validated_where_it_was_seen(
+    tmp_path, monkeypatch, tracy_installed
+):
+    run = run_pick(tmp_path, monkeypatch, RuntimeCheck.LENIENT, MOVED_WITHIN_REACH)
+
+    assert not any(isinstance(entry, StepRegrounded) for entry in run.entries)
+    [picked] = run.attempts_at("step_2")
+    assert picked.outcome is AttemptOutcome.SUCCEEDED
+    assert run.picked_at == pytest.approx(
+        (VALIDATED[0] + MOVED_WITHIN_REACH[0], VALIDATED[1] + MOVED_WITHIN_REACH[1]),
+        abs=0.01,
+    )
+
+
+@pytest.mark.parametrize("runtime_check", list(RuntimeCheck))
+def test_a_cube_seen_elsewhere_grounds_its_pick_anew_where_it_lies(
+    tmp_path, monkeypatch, tracy_installed, runtime_check
+):
+    run = run_pick(tmp_path, monkeypatch, runtime_check, MOVED_ELSEWHERE)
+
+    assert StepRegrounded(step="step_2", targets=["red_cube"]) in run.entries
+    assert run.picked_at == pytest.approx(
+        (VALIDATED[0] + MOVED_ELSEWHERE[0], VALIDATED[1] + MOVED_ELSEWHERE[1]),
+        abs=0.01,
+    )
+
+
+def test_strict_gives_up_a_pick_whose_cube_is_seen_nowhere(
+    tmp_path, monkeypatch, tracy_installed
+):
+    run = run_pick(
+        tmp_path, monkeypatch, RuntimeCheck.STRICT, TAKEN_AWAY, abandons=True
+    )
+
+    assert run.abandoned.step == "step_2"
+    assert not any(isinstance(entry, StepContinuedUnseen) for entry in run.entries)
+
+
+def test_lenient_picks_a_cube_seen_nowhere_where_it_was_validated(
+    tmp_path, monkeypatch, tracy_installed
+):
+    """
+    The world the collision avoidance plans in puts the cube back where the plan was
+    validated with it, where the pick then acts; in this test's shared world, that is
+    where the cube lies again.
+    """
+    run = run_pick(tmp_path, monkeypatch, RuntimeCheck.LENIENT, TAKEN_AWAY)
+
+    assert (
+        StepContinuedUnseen(
+            step="step_2", targets=["red_cube"], reason="red_cube was not seen"
+        )
+        in run.entries
+    )
+    [picked] = run.attempts_at("step_2")
+    assert (picked.number, picked.outcome) == (1, AttemptOutcome.SUCCEEDED)
+    assert run.picked_at == pytest.approx(VALIDATED, abs=0.01)
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_strict_gives_up_a_pick_whose_perception_does_not_answer(
+    tmp_path, monkeypatch, tracy_installed
+):
+    from ..dataset.real_robot import RoboKudoThatNeverAnswers
+    from .test_grounding import KinematicExecutionAskingRoboKudo
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        with RoboKudoThatNeverAnswers().serving(node):
+            run = run_pick(
+                tmp_path,
+                monkeypatch,
+                RuntimeCheck.STRICT,
+                execution=KinematicExecutionAskingRoboKudo(ros_node=node),
+                abandons=True,
+            )
+
+    assert run.abandoned.step == "step_2"
+    assert not any(isinstance(entry, StepContinuedUnseen) for entry in run.entries)
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_lenient_picks_where_validated_when_its_perception_does_not_answer(
+    tmp_path, monkeypatch, tracy_installed
+):
+    from ..dataset.real_robot import RoboKudoThatNeverAnswers
+    from .test_grounding import KinematicExecutionAskingRoboKudo
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        with RoboKudoThatNeverAnswers().serving(node):
+            run = run_pick(
+                tmp_path,
+                monkeypatch,
+                RuntimeCheck.LENIENT,
+                execution=KinematicExecutionAskingRoboKudo(ros_node=node),
+            )
+
+    [continued] = [
+        entry for entry in run.entries if isinstance(entry, StepContinuedUnseen)
+    ]
+    assert continued.step == "step_2"
+    assert continued.reason.startswith("RoboKudo did not answer within 0.5 s")
+    assert run.picked_at == pytest.approx(VALIDATED, abs=0.01)

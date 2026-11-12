@@ -291,6 +291,44 @@ class StepRegrounded(RunLogEntry):
 
 
 @dataclass(frozen=True)
+class StepContinuedUnseen(RunLogEntry):
+    """
+    Objects a step expects in place were not seen, or the robot's perception did not
+    answer, before the step moved anything, and the step acts where the plan was
+    grounded with them, as a lenient runtime check allows.
+    """
+
+    step: str
+    """
+    The identity of the step.
+    """
+
+    targets: List[str]
+    """
+    The identities of the objects, in the order the step names them.
+    """
+
+    reason: str
+    """
+    What was not seen or did not answer, as a person reads it.
+    """
+
+    def line(self) -> str:
+        return (
+            f"{self.step}: {self.reason}; continuing at the position "
+            f"{', '.join(self.targets)} was validated at"
+        )
+
+    def event(self) -> RunEvent:
+        return RunEvent(
+            kind=RunEventKind.CONTINUED_UNSEEN,
+            step=self.step,
+            target=", ".join(self.targets),
+            reason=self.reason,
+        )
+
+
+@dataclass(frozen=True)
 class SafetyWatched(RunLogEntry):
     """
     Every motion of the run is held to the robot profile's safety limits.

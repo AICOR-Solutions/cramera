@@ -276,6 +276,8 @@ export class RunProgress {
       this.log.push(`${this.#name(event)}: perceived ${target}${color ? ` (${color})` : ''}`);
     } else if (kind === RunEventKind.REGROUNDED) {
       this.log.push(`${this.#name(event)}: ${event[RunEventKey.TARGET]} found elsewhere on the table; the step was grounded again where it lies`);
+    } else if (kind === RunEventKind.CONTINUED_UNSEEN) {
+      this.log.push(`${this.#name(event)}: ${event[RunEventKey.REASON]}; continuing at the position ${event[RunEventKey.TARGET]} was validated at`);
     } else if (kind === RunEventKind.RECORD_SAVING) {
       this.log.push('Run over; the robot holds while the run\'s record is saved.');
     } else if (kind === RunEventKind.SAFETY_STOP) {

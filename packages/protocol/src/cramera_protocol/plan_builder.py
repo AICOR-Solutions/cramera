@@ -2983,6 +2983,14 @@ class RunEventKind(StrEnum):
     anything, and the step and the ones after it were grounded anew where it lies.
     """
 
+    CONTINUED_UNSEEN = "continuedUnseen"
+    """
+    An object a step expects in place was not seen, or the robot's perception did not
+    answer, before the step moved anything, and the step acts where the plan was
+    grounded with the object, as a lenient runtime check allows; :attr:`RunEvent.reason`
+    says what was not seen or did not answer.
+    """
+
     REFUSED = "refused"
     """
     The check of the real robot before the run found something missing, so the run

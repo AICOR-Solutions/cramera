@@ -59,6 +59,7 @@ from cramera_protocol.plan_builder import (
     PlannedRobot,
     PlanStep,
 )
+from cramera_protocol.robot_profile import RuntimeCheck
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -318,10 +319,20 @@ class PlannedTaskDemo(RobotTaskDemo):
         object first, whichever execution runs it, every detection wait for its answer
         as long as the robot profile's perception settings allow, and in holding every
         motion to the safety limits of the robot profile.
+
+        Under a lenient runtime check, a robot whose camera sees the table without
+        turning detects no object before the final approach of a grasp: each step
+        detected its objects with the same camera just before it moved, see
+        :meth:`StepRun.step_node`, and acts where they were found, or where the plan
+        was grounded with them when they were not.
         """
         performance = super().performance(context)
+        detects_before_grasp = (
+            self.document.perception.runtime_check is RuntimeCheck.STRICT
+            or context.robot.get_torso_if_specified() is not None
+        )
         performance.plan_transformations = [
-            DetectBeforeGrasp(),
+            *([DetectBeforeGrasp()] if detects_before_grasp else []),
             LimitHowLongDetectionsWait(
                 answer_timeout=timedelta(
                     seconds=self.document.perception.answer_timeout
@@ -386,6 +397,7 @@ class PlannedTaskDemo(RobotTaskDemo):
             regrounding_distance=self.regrounding_distance,
             steps=steps,
             safety=self.document.safety,
+            runtime_check=self.document.perception.runtime_check,
         )
         self.first_attempt = self.step_run.attempt_plan(0)
         if self.document.safety is not None:

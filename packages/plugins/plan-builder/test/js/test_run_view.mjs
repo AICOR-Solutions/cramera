@@ -118,6 +118,23 @@ test('a step grounded again where its cube was found elsewhere says so in one li
   ), progress.log);
 });
 
+test('a step acting on an object not seen says so in the log, where it acts', () => {
+  const events = [{
+    [RunEventKey.KIND]: RunEventKind.CONTINUED_UNSEEN,
+    [RunEventKey.STEP]: 'step_2',
+    [RunEventKey.TARGET]: 'red_cube',
+    [RunEventKey.REASON]: 'red_cube was not seen',
+  }];
+  const progress = RunProgress.of(
+    [{ [PlanStepKey.IDENTIFIER]: 'step_1' }, { [PlanStepKey.IDENTIFIER]: 'step_2' }],
+    (shown) => `label of ${shown[PlanStepKey.IDENTIFIER]}`,
+    { [RunStatusKey.EVENTS]: events },
+  );
+  assert.ok(progress.log.includes(
+    '2. label of step_2: red_cube was not seen; continuing at the position red_cube was validated at',
+  ), progress.log);
+});
+
 test('the step a person stopped reads as stopped, not running', () => {
   const step = (identifier, state) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: state, [RunEventKey.ATTEMPT]: 1, [RunEventKey.ATTEMPTS]: 3 });
   const events = [step('step_1', StepState.DONE), step('step_2', StepState.RUNNING)];
