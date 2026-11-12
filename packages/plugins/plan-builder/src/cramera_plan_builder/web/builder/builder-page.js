@@ -850,6 +850,8 @@ export class BuilderPage {
     state.setDeveloperMode(this.#environment.storage.getItem(DEVELOPER_MODE_KEY) === String(true));
     state.setMarkerSnap((pose) => this.freePlace().snapped(pose));
     this.state = state;
+    // the validation was of the plan shown before, which this one never had
+    this.#validation = null;
   }
 
   /**
@@ -1557,6 +1559,7 @@ export class BuilderPage {
    */
   #planLocked() {
     if (this.#performing() || this.#request?.kind === FlowRequest.START) return 'Wait until the run ends.';
+    if (this.#request !== null) return 'Wait until the current request is answered.';
     if (this.#savingPlan) return 'Wait until the plan is saved.';
     return null;
   }

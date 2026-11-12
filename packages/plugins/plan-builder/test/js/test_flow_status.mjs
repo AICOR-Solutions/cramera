@@ -57,6 +57,12 @@ test('a real run names the running step and reminds of the emergency stop; a sim
   assert.equal(simulated.text, 'Simulation (the real robot does not move): preparing the run…');
 });
 
+test('a real run whose steps are all done says it finishes, not that it prepares', () => {
+  const finishing = flowStatus(facts({ run: realRun(RunState.RUNNING, ['park', 'pick', 'place'].map((identifier) => step(identifier, StepState.DONE))), real: true }));
+  assert.equal(finishing.text, `Real robot: 3 of 3 steps done; finishing the run… ${EMERGENCY_STOP}`);
+  assert.equal(finishing.phase, 'run');
+});
+
 test('saving a run\'s record is progress, a live scene is shown once its world is up', () => {
   const saving = flowStatus(facts({ run: realRun(RunState.SAVING), real: true }));
   assert.deepEqual([saving.tone, saving.text, saving.phase], [Tone.PROGRESS, 'Run over, the robot holds. Saving the run\'s record…', 'saving']);

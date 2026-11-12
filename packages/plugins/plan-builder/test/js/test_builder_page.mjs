@@ -1982,6 +1982,25 @@ test('a plan cannot be changed, opened or saved while a run is in progress, and 
   assert.ok(planButtons(root).every((button) => !button.disabled));
 });
 
+test('a plan cannot be changed, opened or saved while a validation waits for its answer, and another plan never reads as changed since its validation', async () => {
+  const { root, api } = await withTemplate();
+  const answer = deferred();
+  const validate = api.validate.bind(api);
+  api.validate = (plan) => answer.promise.then(() => validate(plan));
+  validateButton(root).click();
+  await settled();
+  assert.ok(planButtons(root).every((button) => button.disabled && button.title === 'Wait until the current request is answered.'));
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.ok(planButtons(root).every((button) => !button.disabled));
+  const picker = byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  await settled();
+  assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
+});
+
 test('a plan cannot be changed, opened or saved again while it is saved', async () => {
   const { root, api } = await withTemplate();
   const answer = deferred();

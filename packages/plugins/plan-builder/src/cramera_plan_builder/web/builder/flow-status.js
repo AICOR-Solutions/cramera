@@ -140,6 +140,7 @@ function runningStatus(facts) {
   const current = facts.progress.underway();
   if (current?.state === StepState.RETRYING) return new FlowStatus(Tone.WARNING, `${prefix}: retrying ${current.name} (${done} of ${steps.length} steps done): ${current.reason}.${suffix}`, 'run');
   if (current) return new FlowStatus(Tone.PROGRESS, `${prefix}: running ${current.name} (${done} of ${steps.length} steps done).${suffix}`, 'run');
+  if (steps.length > 0 && done === steps.length) return new FlowStatus(Tone.PROGRESS, `${prefix}: ${done} of ${steps.length} steps done; finishing the run…${suffix}`, 'run');
   return new FlowStatus(Tone.PROGRESS, `${prefix}: preparing the run…${suffix}`, 'run');
 }
 
