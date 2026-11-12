@@ -64,7 +64,7 @@ import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
 import { PollInterval } from '../../../live/live-session.js';
-import { RunProgress, RunView } from './run-view.js';
+import { RunProgress, RunView, withoutStopTraceback } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
 import { FlowFacts, FlowRequest, Tone, flowStatus, runOutcome } from './flow-status.js';
 import { REASON_TEXTS, StepsView } from './steps-view.js';
@@ -1380,7 +1380,8 @@ export class BuilderPage {
     const active = ACTIVE_STATES.includes(state);
     const parts = this.#parts;
     parts.runState.dataset.state = state;
-    parts.log.textContent = this.#failureOutput ?? (this.#progressHidden ? '' : (this.#run[RunStatusKey.LOG] ?? ''));
+    const log = this.#run[RunStatusKey.LOG] ?? '';
+    parts.log.textContent = this.#failureOutput ?? (this.#progressHidden ? '' : state === RunState.STOPPED ? withoutStopTraceback(log) : log);
     parts.stop.disabled = !active || this.#stopping;
     parts.capture.disabled = !this.#world.published;
     const blocked = this.#blocked();

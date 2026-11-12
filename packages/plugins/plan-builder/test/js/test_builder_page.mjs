@@ -1996,3 +1996,46 @@ test('a page loaded again during a run names the steps of the run as the plan do
 
   assert.match(headline(root), new RegExp(`running 2\\. ${opened.page.state.stepLabel(pick)} `));
 });
+
+// %% the output of a stopped run
+
+test('the output of a run the person stopped ends in one plain line, not a traceback', async () => {
+  const { root, api, timer } = await pickAndPlace();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  byAction(root, PlanAction.STOP)[0].click();
+  await settled();
+  api.status = {
+    ...api.status,
+    [RunStatusKey.LOG]: [
+      '[run log] step_1: attempt 1/3 running',
+      'Traceback (most recent call last):',
+      '  File "/workspace/cramera/packages/bridge/src/cramera_bridge/plans/demo.py", line 406, in perform_plan',
+      '    self.step_run.perform(performance, extensions, self.first_attempt)',
+      '  File "/workspace/cramera/packages/bridge/src/cramera_bridge/execution.py", line 495, in terminate',
+      '    raise RealRunTerminated()',
+      'cramera_bridge.exceptions.RealRunTerminated: The run on the real robot was asked to end; the robot was halted.',
+      'arms halted: zero velocities commanded, every joint reports standing still',
+      '',
+    ].join('\n'),
+  };
+  await timer.tick();
+
+  assert.equal(runLog(root).textContent, [
+    '[run log] step_1: attempt 1/3 running',
+    'The run on the real robot was asked to end; the robot was halted.',
+    'arms halted: zero velocities commanded, every joint reports standing still',
+    '',
+  ].join('\n'));
+});
+
+test('the output of a run that failed keeps its traceback', async () => {
+  const { root, api, timer } = await pickAndPlace();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  const log = 'Traceback (most recent call last):\n  File "demo.py", line 1, in <module>\nValueError: no plan\n';
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FAILED, [RunStatusKey.LOG]: log };
+  await timer.tick();
+
+  assert.equal(runLog(root).textContent, log);
+});

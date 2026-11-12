@@ -295,6 +295,26 @@ export class RunProgress {
 }
 
 /**
+ * The line that starts a Python traceback.
+ */
+export const TRACEBACK_HEADER = 'Traceback (most recent call last):';
+
+/**
+ * @param {string} log The output of a run the person stopped.
+ * @returns {string} The output with its last traceback, which the stop raised to end the
+ *   run, cut to the message of its exception: one plain line instead of the frames.
+ */
+export function withoutStopTraceback(log) {
+  const lines = log.split('\n');
+  const header = lines.findLastIndex((line) => line.startsWith(TRACEBACK_HEADER));
+  const raised = lines.findIndex((line, index) => index > header && line !== '' && !line.startsWith(' '));
+  if (header < 0 || raised < 0) return log;
+  const separator = lines[raised].indexOf(': ');
+  const message = separator < 0 ? lines[raised] : lines[raised].slice(separator + 2);
+  return [...lines.slice(0, header), message, ...lines.slice(raised + 1)].join('\n');
+}
+
+/**
  * @param {string} name The step as a person reads it.
  * @param {Object} event The step's `RunEvent`.
  * @returns {string} The event as a line of the run log.
