@@ -26,6 +26,15 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Binder and Docker image with every demo.** `binder/Dockerfile` builds the viewer,
+  every plugin, CRAM's main and the ROS packages the robots and worlds come from onto
+  IntEL4CoRo's Jupyter ROS 2 image. Jupyter's server proxy serves the viewer at
+  `/cramera/` and opens it by default, with this repository's demo scenes, the
+  laboratory, `solutions-cramera-scenes` and the PR2 and GARMI runs live in the Runs
+  tab. https://binder.intel4coro.de/v2/gh/AICOR-Solutions/cramera/main?urlpath=cramera/%3Ffullscreen
+  opens it straight into the viewer.
+- **`?fullscreen` page parameter.** The page takes the whole screen, as F11 does, at
+  the first click or key press.
 - **Focusing the camera on a body.** Double-clicking a body in the 3D view selects it
   and glides the camera onto it: near enough to frame a small body, or onto the point
   hit for one too big to frame from where the camera stands, so a double click never
