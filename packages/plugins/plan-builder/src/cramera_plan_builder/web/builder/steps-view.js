@@ -116,6 +116,7 @@ const ViewClass = Object.freeze({
   MORE: 'more-options',
   PROBLEM: 'step-problem',
   VALIDATION: 'step-validation',
+  VALIDATION_DETAIL: 'step-validation-detail',
   DERIVED: 'derived',
   CHIPS: 'chips',
   CHIP: 'chip',
@@ -340,8 +341,12 @@ export class StepsView {
     if (validation) {
       card.dataset.validation = validation[StepValidationKey.VERDICT];
       const line = elements.create('p', ViewClass.VALIDATION, validationText(validation));
-      line.title = validation[StepValidationKey.DETAIL] ?? '';
+      const detail = validation[StepValidationKey.DETAIL] ?? '';
+      line.title = detail;
       card.append(line);
+      // What a failed step's validation found, and what it suggests, is what the person
+      // acts on: shown on the card, not only on hover.
+      if (detail && validation[StepValidationKey.VERDICT] === StepVerdict.FAILED) card.append(elements.create('p', ViewClass.VALIDATION_DETAIL, detail));
     }
     if (schema) card.append(...this.#form(step, schema));
     card.append(this.#chips(step, observations));

@@ -1283,6 +1283,21 @@ test('a pick out of reach fails its validation as unreachable and the robot run 
   assert.equal(robotRun(root).disabled, true);
 });
 
+test('a failed step shows what the validation found and suggests on its card, not only on hover', async () => {
+  const detail = 'No arm can pick red_cube at (0.55, 0.30): the right arm is 1.4 mm past its box.\nSuggestion: Choose another arm.';
+  const { root } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: [StepVerdict.VALID, StepVerdict.FAILED, StepVerdict.UNCHECKED][index],
+      ...(index === 1 ? { [StepValidationKey.REASON]: StepFailureReason.SAFETY_LIMIT, [StepValidationKey.DETAIL]: detail } : {}),
+    }));
+  });
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  const details = (card) => card.findAll((element) => element.className === 'step-validation-detail').map((element) => element.textContent);
+  assert.deepEqual(steps(root).map(details), [[], [detail], []]);
+});
+
 test('an assumed step and the arm chosen automatically are shown on their steps', async () => {
   const { root } = await pickAndPlace(({ api }) => {
     api.validationAnswer = (planned) => planned.map((step, index) => ({
