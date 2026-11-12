@@ -1,14 +1,17 @@
 """
 Running the performing robot's steps with a budget of retries.
 
-Each step first checks that the objects it expects in place still lie where the plan was
-grounded with them, and a step keeping an object in view runs beside a monitor of the
-robot's camera that gives the step up once the object leaves its field of view. A step
-that fails is attempted again from where the run stopped, the steps after it grounded
-anew: with the other arm first where a motion failed, after detecting its objects again
-where they were lost track of. Once a step used up its attempts the plan is aborted.
-Every step as it is scheduled and starts, every attempt, every change of what the camera
-keeps in view, every object a step perceived and a safety stop go to the run log.
+Each step first looks for the objects it expects in place where the plan was grounded
+with them, and checks that they still lie there, before its arm moves; a step keeping an
+object in view runs beside a monitor of the robot's camera that gives the step up once
+the object leaves its field of view. An object found elsewhere before the step moved
+anything is detected again on the table and the step and the ones after it are grounded
+anew where it lies, without counting an attempt. A step that fails is attempted again
+from where the run stopped, the steps after it grounded anew: with the other arm first
+where a motion failed, after detecting its objects again where they were lost track of.
+Once a step used up its attempts the plan is aborted. Every step as it is scheduled and
+starts, every attempt, every change of what the camera keeps in view, every object a
+step perceived or found elsewhere and a safety stop go to the run log.
 """
 
 from __future__ import annotations
@@ -43,6 +46,7 @@ from cramera_bridge.plans.run_log import (
     RunLog,
     SafetyStopped,
     StepAttempt,
+    StepRegrounded,
     StepScheduled,
     StepStarted,
     View,
@@ -68,8 +72,9 @@ from giskardpy.motion_statechart.monitors.cartesian_monitors import OutOfFieldOf
 from giskardpy.motion_statechart.monitors.safety_monitors import (
     CancelOnSafetyViolation,
 )
-from krrood_spatial_math.spatial_types import Point3
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Point3
 from semantic_digital_twin.world_description.color_names import ColorName
+from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
 from semantic_digital_twin.world_description.world_entity import Body
 
 # %% steps as they run
@@ -237,6 +242,12 @@ class AttemptedStep:
     Which attempt at the step the node is.
     """
 
+    action: Optional[StatechartNode] = None
+    """
+    The node of the step's action, after the checks of the objects it expects in place;
+    None when it is :attr:`node` itself.
+    """
+
     arm: Optional[str] = None
     """
     The arm the attempt uses, by the protocol's identifier; None when its grounding
@@ -249,6 +260,16 @@ class AttemptedStep:
     the one the step acts on, such as a pick's; written as perceived once the step
     succeeded after a perception below it did.
     """
+
+    def failed_before_moving(self) -> bool:
+        """
+        :return: Whether the step failed before its action started, in the checks of
+            the objects it expects in place, so nothing of the robot moved for it.
+        """
+        return (
+            self.action is not None
+            and self.action.life_cycle_state is LifeCycleValues.NOT_STARTED
+        )
 
     def has_perceived(self) -> bool:
         """
@@ -579,6 +600,18 @@ class StepRun:
     Which attempt each step is at, by the step's identity; the first when it is absent.
     """
 
+    search_distance: float = 0.05
+    """
+    How far, in metres, beyond its own bounding box an object a step expects in place is
+    looked for around where the plan was grounded with it, before the step moves.
+    """
+
+    regrounded: set[str] = field(default_factory=set)
+    """
+    The identities of the steps grounded anew because an object they expect in place was
+    found elsewhere before they moved, which happens once per step.
+    """
+
     @property
     def attempts(self) -> int:
         """
@@ -612,13 +645,15 @@ class StepRun:
         progress = AttemptProgress(run_log=self.run_log, attempts=self.attempts)
         nodes = []
         for scheduled in self.steps[first:]:
-            node = self.step_node(scheduled, progress)
+            action = self.action_node(scheduled, progress)
+            node = self.step_node(scheduled, action)
             identifier = scheduled.step.identifier
             progress.steps.append(
                 AttemptedStep(
                     node=node,
                     step=identifier,
                     number=self.attempt_numbers.get(identifier, 1),
+                    action=action,
                     arm=self.arm_of(scheduled),
                     detected=self.detected_by(scheduled),
                 )
@@ -628,14 +663,13 @@ class StepRun:
             first=first, plan=StepSequence(nodes=nodes), progress=progress
         )
 
-    def step_node(
+    def action_node(
         self, scheduled: ScheduledStep, progress: AttemptProgress
     ) -> StatechartNode:
         """
         :param scheduled: A step.
         :param progress: Learns of the step's look-at.
-        :return: The step's action, beside the monitor of its look-at, after the check
-            of the objects it expects in place.
+        :return: The step's action, beside the monitor of its look-at.
         """
         node = StepActions(
             self.context, self.bodies, self.actions, site=self.site
@@ -661,6 +695,19 @@ class StepRun:
                     camera=camera, target=self.bodies[target]
                 ),
             )
+        return node
+
+    def step_node(
+        self, scheduled: ScheduledStep, action: StatechartNode
+    ) -> StatechartNode:
+        """
+        :param scheduled: A step.
+        :param action: The node of its action, see :meth:`action_node`.
+        :return: The action after the detection of each object the step expects in
+            place, around where the plan was grounded with it, by a robot whose camera
+            sees the table without turning to it, and the check that it still lies
+            there; the action alone when the step expects none.
+        """
         expected = [
             ExpectedPosition(
                 body=self.bodies[identifier],
@@ -669,14 +716,76 @@ class StepRun:
             for identifier, position in scheduled.expected_positions.items()
         ]
         if not expected:
-            return node
+            return action
+        detections = (
+            [
+                self.detection(
+                    self.bodies[identifier],
+                    self.grounded_region(self.bodies[identifier], position),
+                )
+                for identifier, position in scheduled.expected_positions.items()
+            ]
+            if self.context.robot.get_torso_if_specified() is None
+            else []
+        )
         return StepSequence(
             nodes=[
+                *detections,
                 BodiesWhereExpected(
                     expected=expected, tolerance=self.regrounding_distance
                 ),
-                node,
+                action,
             ]
+        )
+
+    def grounded_region(
+        self, body: Body, position: List[float]
+    ) -> VolumetricBoundingBox:
+        """
+        :param body: An object a step expects in place.
+        :param position: Where the plan was grounded with it, in the world's
+            coordinates.
+        :return: The box around that position an object of its size is looked for in,
+            :attr:`search_distance` beyond its own bounding box.
+        """
+        extent = body.collision.as_bounding_box_collection_in_frame(body).bounding_box()
+        reach = (
+            max(
+                extent.max_x - extent.min_x,
+                extent.max_y - extent.min_y,
+                extent.max_z - extent.min_z,
+            )
+            / 2
+            + self.search_distance
+        )
+        x, y, z = position
+        return VolumetricBoundingBox(
+            min_x=x - reach,
+            min_y=y - reach,
+            min_z=z - reach,
+            max_x=x + reach,
+            max_y=y + reach,
+            max_z=z + reach,
+            origin=HomogeneousTransformationMatrix(
+                reference_frame=self.context.world.root
+            ),
+        )
+
+    @staticmethod
+    def detection(body: Body, region: VolumetricBoundingBox) -> DetectAction:
+        """
+        :param body: An object of the plan.
+        :param region: Where it is looked for.
+        :return: The detection of an object of its kind showing its color in the
+            region, which moves the body to where it is found.
+        """
+        colors = body.visual.color_names()
+        return DetectAction(
+            technique=DetectionTechnique.TYPES,
+            object_sem_annotation=type(PlannedGraspable.of(body)),
+            detection_box=region,
+            color=next(iter(colors)) if len(colors) == 1 else None,
+            accept_first_if_multiple=True,
         )
 
     # %% reporting
@@ -725,19 +834,14 @@ class StepRun:
             step=scheduled.resolved,
             site=self.site,
         ).object_identifier()
-        body = self.bodies.get(reference) or self.bodies.get(acted_on)
-        if body is None:
+        named = reference if reference in self.bodies else acted_on
+        if named not in self.bodies:
             return None
-        target = next(
-            (
-                identifier
-                for identifier, named in self.bodies.items()
-                if named is body
-                and DetectedObjectReference.from_value(identifier) is None
-            ),
-            body.name.name,
+        return DetectedObject(
+            step=scheduled.step.identifier,
+            target=self.target_of(named),
+            body=self.bodies[named],
         )
-        return DetectedObject(step=scheduled.step.identifier, target=target, body=body)
 
     # %% running
 
@@ -765,15 +869,77 @@ class StepRun:
             if failure is None:
                 return
             position = attempt.failed_position()
-            self.retry(
-                position,
-                FailedAttempt.from_failure(
-                    failure, attempt.plan.nodes[position - attempt.first]
-                ),
-                performance,
-                extensions,
+            failed = FailedAttempt.from_failure(
+                failure, attempt.plan.nodes[position - attempt.first]
             )
+            if self.was_found_elsewhere(
+                attempt.progress.steps[position - attempt.first], failed
+            ):
+                failed = self.reground_where_found(position, performance, extensions)
+            if failed is not None:
+                self.retry(position, failed, performance, extensions)
             attempt = self.attempt_plan(position)
+
+    def was_found_elsewhere(
+        self, attempted: AttemptedStep, failed: FailedAttempt
+    ) -> bool:
+        """
+        :param attempted: The step an attempt stopped at.
+        :param failed: Why the attempt failed.
+        :return: Whether an object the step expects in place was not where the plan was
+            grounded with it before the step moved anything, the first time for the
+            step; this is no failed attempt but the plan grounded on where the object
+            was believed to be.
+        """
+        return (
+            failed.lost_track
+            and attempted.failed_before_moving()
+            and attempted.step not in self.regrounded
+        )
+
+    def reground_where_found(
+        self,
+        position: int,
+        performance: PlanPerformance,
+        extensions: Callable[[], Sequence[ExecutorExtension]],
+    ) -> Optional[FailedAttempt]:
+        """
+        Detect the objects of a step that were found elsewhere again on the table and
+        ground the step and the ones after it anew where they lie, as a retry does,
+        without counting an attempt.
+
+        :param position: The position of the step.
+        :param performance: How the plans are performed.
+        :param extensions: Gives the executor extensions of each plan performed.
+        :return: Why grounding the step anew failed, which fails its attempt, or None
+            when it is ready.
+        """
+        scheduled = self.steps[position]
+        identifier = scheduled.step.identifier
+        self.regrounded.add(identifier)
+        objects = [self.target_of(name) for name in scheduled.expected_positions]
+        failed = self.prepare(
+            position, Alternative.REDETECTION, performance, extensions
+        )
+        if failed is None:
+            self.run_log.write(StepRegrounded(step=identifier, targets=objects))
+        return failed
+
+    def target_of(self, identifier: str) -> str:
+        """
+        :param identifier: The identity of one of the plan's objects, or a reference to
+            the object a detection step found.
+        :return: The identity of the plan's object it names.
+        """
+        body = self.bodies[identifier]
+        return next(
+            (
+                name
+                for name, named in self.bodies.items()
+                if named is body and DetectedObjectReference.from_value(name) is None
+            ),
+            body.name.name,
+        )
 
     def perform_plan(
         self,
@@ -944,17 +1110,9 @@ class StepRun:
             place, by its kind and the color it shows.
         """
         table = RegionBoxes(self.context.robot, site=self.site).box(DetectionRegion())
-        detections = []
-        for identifier in scheduled.expected_positions:
-            body = self.bodies[identifier]
-            colors = body.visual.color_names()
-            detections.append(
-                DetectAction(
-                    technique=DetectionTechnique.TYPES,
-                    object_sem_annotation=type(PlannedGraspable.of(body)),
-                    detection_box=table,
-                    color=next(iter(colors)) if len(colors) == 1 else None,
-                    accept_first_if_multiple=True,
-                )
-            )
-        return StepSequence(nodes=detections)
+        return StepSequence(
+            nodes=[
+                self.detection(self.bodies[identifier], table)
+                for identifier in scheduled.expected_positions
+            ]
+        )

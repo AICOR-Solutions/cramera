@@ -259,6 +259,38 @@ class ObjectPerceived(RunLogEntry):
 
 
 @dataclass(frozen=True)
+class StepRegrounded(RunLogEntry):
+    """
+    Objects a step expects in place were found elsewhere on the table before the step
+    moved anything, and the step and the ones after it were grounded anew where they
+    lie, without counting an attempt.
+    """
+
+    step: str
+    """
+    The identity of the step.
+    """
+
+    targets: List[str]
+    """
+    The identities of the objects, in the order the step names them.
+    """
+
+    def line(self) -> str:
+        return (
+            f"{self.step}: {', '.join(self.targets)} found elsewhere on the table; "
+            f"the step was grounded again where it lies"
+        )
+
+    def event(self) -> RunEvent:
+        return RunEvent(
+            kind=RunEventKind.REGROUNDED,
+            step=self.step,
+            target=", ".join(self.targets),
+        )
+
+
+@dataclass(frozen=True)
 class SafetyWatched(RunLogEntry):
     """
     Every motion of the run is held to the robot profile's safety limits.

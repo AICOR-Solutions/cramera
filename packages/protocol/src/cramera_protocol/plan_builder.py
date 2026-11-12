@@ -2971,6 +2971,12 @@ class RunEventKind(StrEnum):
     The run is over and its robot released; the run's record is being saved.
     """
 
+    REGROUNDED = "regrounded"
+    """
+    An object a step expects in place was found elsewhere before the step moved
+    anything, and the step and the ones after it were grounded anew where it lies.
+    """
+
 
 class RunMonitor(StrEnum):
     """

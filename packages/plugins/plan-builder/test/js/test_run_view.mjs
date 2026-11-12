@@ -2,7 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { MonitorObservation, PerceptionImageKey, PlanStepKey, RunStatusKey, StepState } from 'cramera-viewer/protocol.js';
+import {
+  MonitorObservation,
+  PerceptionImageKey,
+  PlanStepKey,
+  RunEventKey,
+  RunEventKind,
+  RunStatusKey,
+  StepState,
+} from 'cramera-viewer/protocol.js';
 import { Elements } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { RunProgress, RunView, RunViewClass } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
@@ -81,6 +89,32 @@ test('a safety stop fails its step, violates the safety monitor and is logged', 
   assert.equal(progress.safetyStop, 'Left arm workspace');
   assert.match(progress.summary(), /^Stopped by a safety limit in 2\. label of step_2: Left arm workspace\./);
   assert.equal(progress.log.at(-1), 'Safety stop in 2. label of step_2: Left arm workspace; the robot holds.');
+});
+
+test('a step grounded again where its cube was found elsewhere says so in one line, with no retry', () => {
+  const step = (state) => ({
+    [RunEventKey.KIND]: RunEventKind.STEP,
+    [RunEventKey.STEP]: 'step_3',
+    [RunEventKey.STATE]: state,
+    [RunEventKey.ATTEMPT]: 1,
+    [RunEventKey.ATTEMPTS]: 3,
+  });
+  const events = [
+    step(StepState.RUNNING),
+    { [RunEventKey.KIND]: RunEventKind.REGROUNDED, [RunEventKey.STEP]: 'step_3', [RunEventKey.TARGET]: 'red_cube' },
+    step(StepState.RUNNING),
+    step(StepState.DONE),
+  ];
+  const progress = RunProgress.of(
+    [{ [PlanStepKey.IDENTIFIER]: 'step_3' }],
+    (shown) => `label of ${shown[PlanStepKey.IDENTIFIER]}`,
+    { [RunStatusKey.EVENTS]: events },
+  );
+  assert.equal(progress.step('step_3').state, StepState.DONE);
+  assert.equal(progress.step('step_3').attempt, 1);
+  assert.ok(progress.log.includes(
+    '1. label of step_3: red_cube found elsewhere on the table; the step was grounded again where it lies',
+  ), progress.log);
 });
 
 test('every event is a line of the log', () => {

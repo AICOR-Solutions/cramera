@@ -25,6 +25,7 @@ from cramera_bridge.plans.run_log import (
     RunLogEntry,
     SafetyStopped,
     StepAttempt,
+    StepRegrounded,
     StepScheduled,
     StepStarted,
     View,
@@ -148,6 +149,17 @@ def test_a_perceived_object_and_a_safety_stop_are_events_of_their_own():
     assert perceived.line() == "step_2: perceived red_cube (red)"
     assert stopped.event() == RunEvent(
         kind=RunEventKind.SAFETY_STOP, step="step_3", constraint="Left arm workspace"
+    )
+
+
+def test_a_step_grounded_again_says_in_one_line_where_its_object_was_found():
+    entry = StepRegrounded(step="step_3", targets=["red_cube"])
+    assert entry.line() == (
+        "step_3: red_cube found elsewhere on the table; the step was grounded again "
+        "where it lies"
+    )
+    assert entry.event() == RunEvent(
+        kind=RunEventKind.REGROUNDED, step="step_3", target="red_cube"
     )
 
 
@@ -307,12 +319,13 @@ def test_a_step_keeping_its_cube_in_view_reports_it_in_view(disturbed_run):
     assert LookAt(step="step_3", target="detected:step_2", view=View.IN_VIEW) in looks
 
 
-def test_a_cube_nudged_once_detected_is_grounded_anew_and_picked_up(disturbed_run):
-    first, second = disturbed_run.attempts_at("step_3")
-    assert first.outcome is AttemptOutcome.RETRYING
-    assert first.next_attempt == Alternative.REDETECTION.value
-    assert second.number == 2
-    assert second.outcome is AttemptOutcome.SUCCEEDED
+def test_a_cube_nudged_once_detected_is_grounded_anew_and_picked_up_at_once(
+    disturbed_run,
+):
+    assert StepRegrounded(step="step_3", targets=["red_cube"]) in disturbed_run.entries
+    [picked] = disturbed_run.attempts_at("step_3")
+    assert picked.number == 1
+    assert picked.outcome is AttemptOutcome.SUCCEEDED
     [placed] = disturbed_run.attempts_at("step_4")
     assert placed.outcome is AttemptOutcome.SUCCEEDED
 
@@ -339,7 +352,7 @@ def test_the_run_events_follow_every_step_through_its_retries(disturbed_run):
         for step in ("step_2", "step_3", "step_5")
     }
     assert states["step_2"] == [StepState.PENDING, StepState.RUNNING, StepState.DONE]
-    assert StepState.RETRYING in states["step_3"]
+    assert StepState.RETRYING not in states["step_3"]
     assert states["step_3"][-1] is StepState.DONE
     assert states["step_5"].count(StepState.RETRYING) == 2
     assert states["step_5"][-1] is StepState.FAILED
