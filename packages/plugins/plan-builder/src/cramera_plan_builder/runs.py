@@ -68,6 +68,11 @@ confirm that the arms were commanded zero velocities and stand still; it was sta
 with the run, so it reached the controllers long before.
 """
 
+SUGGESTION_PREFIX = "Suggestion: "
+"""
+How CRAM's exceptions start the line of the suggestion that follows their error.
+"""
+
 LOG_ENCODING = "utf-8"
 """
 The encoding the demo's output is read in; undecodable bytes are replaced.
@@ -477,12 +482,27 @@ class DemoProcess:
             state=self.state(),
             mode=self.mode,
             return_code=self.process.poll(),
-            log=self.log.text(),
+            log=self.reported_log(),
             path=str(self.path),
             safety_stop=self.safety_stop(),
             events=self.log.events(),
             stop_after_motions=self.stop_after_motions,
         )
+
+    def reported_log(self) -> str:
+        """
+        :return: The demo's newest output; once it failed with an exception whose
+            suggestion stands on a line of its own, followed by a line of the error and
+            then the suggestion, the line the page reads as why the run failed.
+        """
+        text = self.log.text()
+        if self.process.poll() in (None, 0):
+            return text
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if len(lines) < 2 or not lines[-1].startswith(SUGGESTION_PREFIX):
+            return text
+        error = lines[-2].partition(": ")[2] or lines[-2]
+        return f"{text.rstrip()}\n{error} {lines[-1]}\n"
 
     def stop(self, timeout: float = STOP_TIMEOUT) -> None:
         """

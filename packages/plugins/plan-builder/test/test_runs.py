@@ -201,6 +201,25 @@ def test_a_failing_demo_shows_its_output(tmp_path, demo):
     assert ended.log.startswith("Traceback")
 
 
+def test_a_failed_demo_ends_its_log_with_its_error_before_the_suggestion(
+    tmp_path, demo
+):
+    """
+    The page reads the last line of a failed run's output as why it failed; an
+    exception's suggestion stands on a line of its own after the error.
+    """
+    runner = runner_of(tmp_path, "raising_demo.py")
+    runner.start(demo, RunMode.PERFORM)
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    runner.stop()
+
+    assert ended.state is RunState.FAILED
+    assert "RuntimeError: Nothing serves the query." in ended.log
+    assert ended.log.splitlines()[-1] == (
+        "Nothing serves the query. Suggestion: start it."
+    )
+
+
 def test_a_demo_ignoring_termination_is_killed(tmp_path, demo):
     runner = runner_of(tmp_path, "stubborn_demo.py", stop_timeout=STUBBORN_TIMEOUT)
     runner.start(demo, RunMode.STAGE)
