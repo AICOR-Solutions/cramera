@@ -19,7 +19,7 @@ from typing_extensions import Any, Dict, List, Optional, Self
 
 from cramera_protocol.bundle.index import SceneIndexEntry
 from cramera_protocol.document import JsonDocument, ValueLocation, document_field
-from cramera_protocol.geometry import Pose
+from cramera_protocol.geometry import Bounds, Pose, Vector3
 from cramera_protocol.live_messages import (
     ConstraintMonitorType,
     MonitorSpecification,
@@ -2990,6 +2990,13 @@ class RunEventKind(StrEnum):
     what is missing and what to do.
     """
 
+    PERCEPTION = "perception"
+    """
+    A perception query of a step was answered, or went unanswered;
+    :attr:`RunEvent.perception` says what was asked, what came back and which object
+    the step took.
+    """
+
 
 class RunMonitor(StrEnum):
     """
@@ -3093,6 +3100,250 @@ class RunEventKey(StrEnum):
     The broken safety limit.
     """
 
+    PERCEPTION = "perception"
+    """
+    What a perception query asked and what came back.
+    """
+
+
+# %% perception reports
+
+
+class ReportedObjectVerdict(StrEnum):
+    """
+    Whether a step took an object its perception reported, and why not.
+    """
+
+    ACCEPTED = "accepted"
+    """
+    The step took it, close enough to where the plan expects it.
+    """
+
+    TOO_FAR = "tooFar"
+    """
+    The step took it, but it lies farther from where the plan was validated than the
+    step allows, so the step stops before moving.
+    """
+
+    NOT_CHOSEN = "notChosen"
+    """
+    It would do, but the step took another object reported before it.
+    """
+
+    WRONG_COLOR = "wrongColor"
+    """
+    It shows none of the colors asked for.
+    """
+
+    WRONG_TYPE = "wrongType"
+    """
+    It is of another type than the one asked for.
+    """
+
+    OUTSIDE_BOX = "outsideBox"
+    """
+    It lies outside the box the step looked in.
+    """
+
+
+class ReportedObjectKey(StrEnum):
+    """
+    The keys of an object a perception query reported.
+    """
+
+    POSITION = "position"
+    """
+    Where it was seen.
+    """
+
+    SIZE = "size"
+    """
+    The extent of the box around it.
+    """
+
+    COLORS = "colors"
+    """
+    The colors it was seen in.
+    """
+
+    TYPE = "type"
+    """
+    The type it was reported as.
+    """
+
+    VERDICT = "verdict"
+    """
+    Whether the step took it, and why not.
+    """
+
+    DISTANCE = "distance"
+    """
+    How far it lies from where the plan was validated.
+    """
+
+
+@dataclass(kw_only=True)
+class ReportedObject(JsonDocument):
+    """
+    One object a perception query reported, and whether the step took it.
+    """
+
+    position: Vector3 = document_field(ReportedObjectKey.POSITION)
+    """
+    Where it was seen, in metres in the world's root.
+    """
+
+    size: Optional[Vector3] = document_field(ReportedObjectKey.SIZE, default=None)
+    """
+    The extent of the box around it in metres, None when none was measured.
+    """
+
+    colors: List[str] = document_field(ReportedObjectKey.COLORS, default_factory=list)
+    """
+    The colors it was seen in, most dominant first, as the perception names them.
+    """
+
+    type: str = document_field(ReportedObjectKey.TYPE, default="")
+    """
+    The type it was reported as, empty for an object the perception did not classify.
+    """
+
+    verdict: ReportedObjectVerdict = document_field(ReportedObjectKey.VERDICT)
+    """
+    Whether the step took it, and why not.
+    """
+
+    distance: Optional[float] = document_field(
+        ReportedObjectKey.DISTANCE, default=None
+    )
+    """
+    How far it lies from where the plan was validated, in metres; None for a query
+    without such a position.
+    """
+
+
+class PerceptionReportKey(StrEnum):
+    """
+    The keys of a perception report.
+    """
+
+    TARGET = "target"
+    """
+    The plan's object looked for.
+    """
+
+    TYPE = "type"
+    """
+    The type asked for.
+    """
+
+    COLOR = "color"
+    """
+    The color asked for.
+    """
+
+    BOX = "box"
+    """
+    The box looked in.
+    """
+
+    TABLE_WIDE = "tableWide"
+    """
+    Whether the box is the whole table.
+    """
+
+    GROUNDED = "grounded"
+    """
+    Where the plan was validated with the object.
+    """
+
+    TOLERANCE = "tolerance"
+    """
+    How far from there the object may lie.
+    """
+
+    ANSWERED = "answered"
+    """
+    Whether the perception answered.
+    """
+
+    OBJECTS = "objects"
+    """
+    The objects reported.
+    """
+
+    SUMMARY = "summary"
+    """
+    The report as a person reads it.
+    """
+
+
+@dataclass(kw_only=True)
+class PerceptionReport(JsonDocument):
+    """
+    One perception query of a step: what was asked, every object that came back, which
+    one the step took and why the others not, and the outcome in one sentence.
+    """
+
+    target: Optional[str] = document_field(PerceptionReportKey.TARGET, default=None)
+    """
+    The identity of the plan's object looked for, None when the query names none.
+    """
+
+    type: str = document_field(PerceptionReportKey.TYPE)
+    """
+    The type asked for.
+    """
+
+    color: Optional[str] = document_field(PerceptionReportKey.COLOR, default=None)
+    """
+    The color asked for, None for any.
+    """
+
+    box: Bounds = document_field(PerceptionReportKey.BOX)
+    """
+    The box looked in, in metres in the world's root.
+    """
+
+    table_wide: bool = document_field(PerceptionReportKey.TABLE_WIDE, default=False)
+    """
+    Whether the box is the whole table rather than one around where the plan was
+    validated.
+    """
+
+    grounded: Optional[Vector3] = document_field(
+        PerceptionReportKey.GROUNDED, default=None
+    )
+    """
+    Where the plan was validated with the object, None when the step expects it nowhere
+    in particular.
+    """
+
+    tolerance: Optional[float] = document_field(
+        PerceptionReportKey.TOLERANCE, default=None
+    )
+    """
+    How far, in metres, from :attr:`grounded` the object may lie for the step to go on.
+    """
+
+    answered: bool = document_field(PerceptionReportKey.ANSWERED, default=True)
+    """
+    Whether the perception answered; an unanswered query reports no objects.
+    """
+
+    objects: List[ReportedObject] = document_field(
+        PerceptionReportKey.OBJECTS, default_factory=list
+    )
+    """
+    Every object the perception reported, in the order it reported them.
+    """
+
+    summary: str = document_field(PerceptionReportKey.SUMMARY, default="")
+    """
+    The outcome as a person reads it, such as "red_cube was seen 19 cm from where the
+    plan was validated, outside the box looked in".
+    """
+
 
 @dataclass(kw_only=True)
 class RunEvent(JsonDocument):
@@ -3170,6 +3421,13 @@ class RunEvent(JsonDocument):
     constraint: Optional[str] = document_field(RunEventKey.CONSTRAINT, default=None)
     """
     For a safety stop: the broken safety limit and how it was broken.
+    """
+
+    perception: Optional[PerceptionReport] = document_field(
+        RunEventKey.PERCEPTION, default=None
+    )
+    """
+    For a perception event: what the query asked and what came back.
     """
 
     def to_output_line(self) -> str:

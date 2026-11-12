@@ -11,7 +11,7 @@ from cramera_protocol.exceptions import (
     InvalidDocumentValue,
     UnsupportedProtocolVersion,
 )
-from cramera_protocol.geometry import Pose
+from cramera_protocol.geometry import Bounds, Pose, Vector3
 from cramera_protocol.live_messages import (
     ConstraintMonitorType,
     MonitorParameterKey,
@@ -63,6 +63,10 @@ from cramera_protocol.plan_builder import (
     RunState,
     RunOutputMarker,
     MonitorObservation,
+    PerceptionReport,
+    PerceptionReportKey,
+    ReportedObject,
+    ReportedObjectVerdict,
     RunEvent,
     RunEventKey,
     RunEventKind,
@@ -493,6 +497,36 @@ def test_a_run_event_is_read_back_from_the_line_reporting_it():
     assert line.startswith(RunOutputMarker.RUN_EVENT)
     assert "\n" not in line
     assert RunEvent.from_output_line(line) == event
+
+
+def test_a_perception_event_is_read_back_with_every_object_reported():
+    event = RunEvent(
+        kind=RunEventKind.PERCEPTION,
+        step="step_2",
+        perception=PerceptionReport(
+            target="red_cube",
+            type="plannedgraspable",
+            color="red",
+            box=Bounds(Vector3(0.475, 0.025, 0.83), Vector3(0.625, 0.175, 0.98)),
+            grounded=Vector3(0.55, 0.1, 0.905),
+            tolerance=0.02,
+            objects=[
+                ReportedObject(
+                    position=Vector3(0.79, 0.145, 0.905),
+                    size=Vector3(0.066, 0.061, 0.022),
+                    colors=["red"],
+                    verdict=ReportedObjectVerdict.OUTSIDE_BOX,
+                    distance=0.19,
+                )
+            ],
+            summary="red_cube was seen 19 cm from where the plan was validated.",
+        ),
+    )
+
+    read = RunEvent.from_output_line(event.to_output_line())
+
+    assert read == event
+    assert PerceptionReportKey in BROWSER_ENUMERATIONS
 
 
 def test_a_line_reporting_no_event_reads_as_none():
