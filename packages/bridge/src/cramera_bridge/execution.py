@@ -398,9 +398,11 @@ class RealExecution(PlanExecution):
     The script Giskard is started with.
     """
 
-    world_fetch_timeout: float = 300.0
+    world_fetch_timeout: float = 60.0
     """
-    How long, in seconds, Giskard may take to serve its world once started.
+    How long, in seconds, Giskard may take to serve its world once started; it served
+    it within ten seconds in the rehearsals, and a request left unanswered is sent
+    again.
     """
 
     node_name: str = "cramera_real_robot"
