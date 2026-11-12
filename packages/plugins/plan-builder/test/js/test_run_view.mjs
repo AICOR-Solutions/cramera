@@ -8,11 +8,12 @@ import {
   PlanStepKey,
   RunEventKey,
   RunEventKind,
+  RunState,
   RunStatusKey,
   StepState,
 } from 'cramera-viewer/protocol.js';
 import { Elements } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { RunProgress, RunView, RunViewClass } from '../../src/cramera_plan_builder/web/builder/run-view.js';
+import { RunProgress, RunView, RunViewClass, STOPPED_STEP } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
@@ -115,6 +116,25 @@ test('a step grounded again where its cube was found elsewhere says so in one li
   assert.ok(progress.log.includes(
     '1. label of step_3: red_cube found elsewhere on the table; the step was grounded again where it lies',
   ), progress.log);
+});
+
+test('the step a person stopped reads as stopped, not running', () => {
+  const step = (identifier, state) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: state, [RunEventKey.ATTEMPT]: 1, [RunEventKey.ATTEMPTS]: 3 });
+  const events = [step('step_1', StepState.DONE), step('step_2', StepState.RUNNING)];
+  const steps = ['step_1', 'step_2', 'step_3'].map((identifier) => ({ [PlanStepKey.IDENTIFIER]: identifier }));
+  const label = (shown) => `label of ${shown[PlanStepKey.IDENTIFIER]}`;
+  for (const state of [RunState.STOPPED, RunState.HALT_UNCONFIRMED]) {
+    const progress = RunProgress.of(steps, label, { [RunStatusKey.STATE]: state, [RunStatusKey.EVENTS]: events });
+    assert.equal(progress.step('step_2').state, STOPPED_STEP);
+    assert.equal(progress.summary(), 'Stopped at 2. label of step_2. 1 of 3 steps done.');
+    const view = rendered(progress);
+    const stopped = byClass(view, RunViewClass.STEP)[1];
+    assert.equal(stopped.dataset.state, STOPPED_STEP);
+    assert.equal(byClass(stopped, RunViewClass.STATE)[0].textContent, 'stopped');
+  }
+  const running = RunProgress.of(steps, label, { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.EVENTS]: events });
+  assert.equal(running.step('step_2').state, StepState.RUNNING);
+  assert.equal(running.summary(), 'Running 2. label of step_2. 1 of 3 steps done.');
 });
 
 test('every event is a line of the log', () => {

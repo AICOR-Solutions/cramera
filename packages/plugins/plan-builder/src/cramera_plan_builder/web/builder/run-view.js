@@ -13,9 +13,21 @@ import {
   RunEventKey,
   RunEventKind,
   RunMonitor,
+  RunState,
   RunStatusKey,
   StepState,
 } from '../../../protocol.js';
+
+/**
+ * The state the page shows a step in that was running or retrying when a person stopped
+ * the run; the run reports no such state, its process ended.
+ */
+export const STOPPED_STEP = 'stopped';
+
+/**
+ * The run states of a run a person stopped.
+ */
+const STOPPED_RUNS = Object.freeze([RunState.STOPPED, RunState.HALT_UNCONFIRMED]);
 
 /**
  * How a person reads each step state.
@@ -26,6 +38,7 @@ export const STEP_STATE_TEXTS = Object.freeze({
   [StepState.RETRYING]: 'retrying',
   [StepState.DONE]: 'done',
   [StepState.FAILED]: 'failed',
+  [STOPPED_STEP]: 'stopped',
 });
 
 /**
@@ -137,8 +150,10 @@ export class RunProgress {
    * @param {Array<{identifier: string, label: string}>} steps The performing robot's
    *   steps, in order.
    * @param {Array<Object>} events The `RunEvent`s the run reported, in order.
+   * @param {boolean} stopped Whether a person stopped the run, so a step that was
+   *   running or retrying stopped with it.
    */
-  constructor(steps, events) {
+  constructor(steps, events, stopped = false) {
     steps.forEach((step, index) => this.#steps.set(step.identifier, new StepProgress(step.identifier, `${index + 1}. ${step.label}`)));
     /**
      * The objects steps perceived, in order.
@@ -161,6 +176,9 @@ export class RunProgress {
      */
     this.log = [];
     for (const event of events) this.#apply(event);
+    if (stopped) {
+      for (const step of this.#steps.values()) if ([StepState.RUNNING, StepState.RETRYING].includes(step.state)) step.state = STOPPED_STEP;
+    }
   }
 
   /**
@@ -173,6 +191,7 @@ export class RunProgress {
     return new RunProgress(
       steps.map((step) => ({ identifier: step[PlanStepKey.IDENTIFIER], label: label(step) })),
       run[RunStatusKey.EVENTS] ?? [],
+      STOPPED_RUNS.includes(run[RunStatusKey.STATE]),
     );
   }
 
@@ -198,7 +217,7 @@ export class RunProgress {
    */
   current() {
     const steps = this.steps();
-    return steps.find((step) => step.state === StepState.FAILED) ?? steps.find((step) => [StepState.RUNNING, StepState.RETRYING].includes(step.state)) ?? null;
+    return steps.find((step) => step.state === StepState.FAILED) ?? steps.find((step) => [StepState.RUNNING, StepState.RETRYING, STOPPED_STEP].includes(step.state)) ?? null;
   }
 
   /**
@@ -221,6 +240,7 @@ export class RunProgress {
     if (this.safetyStop !== null) return `Stopped by a safety limit in ${current?.name ?? 'the run'}: ${this.safetyStop}. ${count}.`;
     if (current?.state === StepState.FAILED) return `Aborted at ${current.name}: ${current.reason}. ${count}.`;
     if (current?.state === StepState.RETRYING) return `Retrying ${current.name}: ${current.reason}. ${count}.`;
+    if (current?.state === STOPPED_STEP) return `Stopped at ${current.name}. ${count}.`;
     if (current) return `Running ${current.name}. ${count}.`;
     return `${count}.`;
   }
