@@ -3169,18 +3169,13 @@ class SurfaceDepthKey(StrEnum):
     How far it lay inside it.
     """
 
-    MAXIMUM_RAISE = "maximumRaise"
-    """
-    How far it may be raised onto it.
-    """
-
 
 @dataclass(kw_only=True)
 class SurfaceDepth(JsonDocument):
     """
     How far a perception put the object looked for inside the supporting surface it
     stands on, such as a cube a few millimetres inside the table, which the object is
-    raised by to rest on the surface, unless it lay deeper than it may be raised.
+    raised by to rest on the surface.
     """
 
     surface: str = document_field(SurfaceDepthKey.SURFACE)
@@ -3192,19 +3187,6 @@ class SurfaceDepth(JsonDocument):
     """
     How far, in metres, the object's lowest point lay below the surface's top.
     """
-
-    maximum_raise: float = document_field(SurfaceDepthKey.MAXIMUM_RAISE)
-    """
-    How far, in metres, the object may be raised onto the surface; a detection putting
-    it deeper is refused.
-    """
-
-    @property
-    def is_raisable(self) -> bool:
-        """
-        Whether the object lay shallow enough inside the surface to be raised onto it.
-        """
-        return self.depth <= self.maximum_raise
 
 
 class ReportedObjectKey(StrEnum):

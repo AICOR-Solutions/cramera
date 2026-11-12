@@ -330,21 +330,14 @@ class PerceptionSearch:
         """
         :param taken: The object the step took.
         :return: How far it was reported inside the surface it stands on and that it
-            was raised onto it, or refused for lying deeper than it may be raised; empty
-            when it lay inside none.
+            was raised onto it; empty when it lay inside none.
         """
         inside = taken.inside_surface
         if inside is None:
             return ""
-        reported = (
-            f"{self.looked_for()} was reported "
-            f"{millimetres(inside.depth)} inside the {inside.surface}"
-        )
-        if inside.is_raisable:
-            return f"{reported} and was raised onto it."
         return (
-            f"{reported}, deeper than the {millimetres(inside.maximum_raise)} it may "
-            f"be raised onto it; the detection was refused."
+            f"{self.looked_for()} was reported {millimetres(inside.depth)} inside the "
+            f"{inside.surface} and was raised onto it."
         )
 
     def found(self, taken: ReportedObject) -> str:

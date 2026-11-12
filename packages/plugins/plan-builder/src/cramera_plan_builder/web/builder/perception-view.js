@@ -104,18 +104,13 @@ const TAKEN = new Set([ReportedObjectVerdict.ACCEPTED, ReportedObjectVerdict.TOO
 /**
  * @param {Object} seen A `ReportedObject`.
  * @returns {string} How far an object the step took was reported inside the surface it
- *   stands on and whether it was raised onto it or refused; empty for any other.
+ *   stands on, which it was raised onto; empty for any other.
  */
 export function insideSurfaceText(seen) {
   const inside = seen[ReportedObjectKey.INSIDE_SURFACE];
   if (!inside || !TAKEN.has(seen[ReportedObjectKey.VERDICT])) return '';
   const mm = (metres) => `${Math.max(1, Math.round(metres * 1000))} mm`;
-  const depth = inside[SurfaceDepthKey.DEPTH];
-  const limit = inside[SurfaceDepthKey.MAXIMUM_RAISE];
-  const reported = `reported ${mm(depth)} inside the ${inside[SurfaceDepthKey.SURFACE]}`;
-  return depth <= limit
-    ? `; ${reported} and raised onto it`
-    : `; ${reported}, deeper than the ${mm(limit)} it may be raised: refused`;
+  return `; reported ${mm(inside[SurfaceDepthKey.DEPTH])} inside the ${inside[SurfaceDepthKey.SURFACE]} and raised onto it`;
 }
 
 /**

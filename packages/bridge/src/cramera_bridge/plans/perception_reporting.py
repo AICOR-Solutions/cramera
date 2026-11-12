@@ -395,7 +395,6 @@ class PerceptionReporting(ExecutorExtension):
                 else SurfaceDepth(
                     surface=inside.surface.root.name.name,
                     depth=inside.depth,
-                    maximum_raise=inside.maximum_raise,
                 )
             ),
         )

@@ -118,15 +118,13 @@ test('no report makes no sentence', () => {
 });
 
 /**
- * The red cube taken where it was validated, reported `depth` metres inside the table,
- * which it may be raised onto 1 cm.
+ * The red cube taken where it was validated, reported `depth` metres inside the table.
  */
 const sunk = (depth, verdict = ReportedObjectVerdict.ACCEPTED) => ({
   ...seen([0.6, 0.105, 0.905 - depth], ['red'], verdict, 0.004),
   [ReportedObjectKey.INSIDE_SURFACE]: {
     [SurfaceDepthKey.SURFACE]: 'table',
     [SurfaceDepthKey.DEPTH]: depth,
-    [SurfaceDepthKey.MAXIMUM_RAISE]: 0.01,
   },
 });
 
@@ -134,8 +132,8 @@ test('a cube taken a few millimetres inside the table says it was raised onto it
   assert.match(objectText(sunk(0.004)), /: taken for the step; reported 4 mm inside the table and raised onto it$/);
 });
 
-test('a cube taken deeper inside the table than it may be raised says it was refused', () => {
-  assert.match(objectText(sunk(0.015)), /reported 15 mm inside the table, deeper than the 10 mm it may be raised: refused$/);
+test('a cube taken centimetres inside the table says it was raised onto it', () => {
+  assert.match(objectText(sunk(0.04)), /: taken for the step; reported 40 mm inside the table and raised onto it$/);
 });
 
 test('an object not taken says nothing of the table', () => {

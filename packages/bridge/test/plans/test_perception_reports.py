@@ -180,12 +180,12 @@ def test_an_object_of_another_type_is_not_taken():
 def cube_inside_the_table(depth: float) -> ReportedDesignator:
     """
     :return: The red cube where it was validated, reported `depth` metres inside the
-        table, which may be raised onto 1 cm.
+        table.
     """
     return ReportedDesignator(
         position=Vector3(0.61, 0.105, GROUNDED.z - depth),
         colors=["red"],
-        inside_surface=SurfaceDepth(surface="table", depth=depth, maximum_raise=0.01),
+        inside_surface=SurfaceDepth(surface="table", depth=depth),
     )
 
 
@@ -200,13 +200,12 @@ def test_a_cube_reported_a_few_millimetres_inside_the_table_says_it_was_raised()
     )
 
 
-def test_a_cube_reported_deeper_inside_the_table_than_it_may_be_raised_says_refused():
+def test_a_cube_reported_centimetres_inside_the_table_says_it_was_raised():
     report = around_the_grounded_spot().report(
-        PerceptionAnswer(objects=[cube_inside_the_table(0.015)])
+        PerceptionAnswer(objects=[cube_inside_the_table(0.04)])
     )
     assert report.summary.endswith(
-        "red_cube was reported 15 mm inside the table, deeper than the 10 mm it may "
-        "be raised onto it; the detection was refused."
+        "red_cube was reported 40 mm inside the table and was raised onto it."
     )
 
 
