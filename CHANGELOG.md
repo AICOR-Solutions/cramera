@@ -30,7 +30,7 @@ which this repository was mirrored until 22 Oct 2026.
   every plugin, CRAM's main and the ROS packages the robots and worlds come from onto
   IntEL4CoRo's Jupyter ROS 2 image. Jupyter's server proxy serves the viewer at
   `/cramera/` and opens it by default, with this repository's demo scenes, the
-  laboratory, `solutions-cramera-scenes` and the PR2 and GARMI runs live in the Runs
+  laboratory, `solutions-cramera-scenes` and GARMI's apartment run live in the Runs
   tab. https://binder.intel4coro.de/v2/gh/AICOR-Solutions/cramera/main?urlpath=cramera/%3Ffullscreen
   opens it straight into the viewer.
 - **`?fullscreen` page parameter.** The page takes the whole screen, as F11 does, at

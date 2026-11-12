@@ -1,24 +1,16 @@
 {
   "runs": [
     {
-      "identifier": "pr2_transfer_queries",
-      "label": "PR2 vessel transfer, query by query",
-      "command": ["/opt/cramera/venv/bin/python", "-m", "cramera_bridge.demos.query_stepping",
-                  "--bundle", "/opt/cramera/cramera/packages/plugins/laboratory/src/cramera_laboratory/resources/aicor_medical_lab", "--name", "{recording}"],
-      "scene": "aicor_medical_lab_pr2_query_stepper"
-    },
-    {
-      "identifier": "pr2_workflow",
-      "label": "PR2 laboratory workflow",
-      "command": ["/opt/cramera/venv/bin/python", "-m", "cramera_bridge.laboratory.command",
-                  "--bundle", "/opt/cramera/cramera/packages/plugins/laboratory/src/cramera_laboratory/resources/aicor_medical_lab", "--demo", "workflow", "--recording", "{recording}"],
-      "scene": "aicor_medical_lab_pr2_workflow"
-    },
-    {
       "identifier": "garmi_apartment",
       "label": "GARMI in the apartment",
-      "command": ["/opt/cramera/venv/bin/python", "-m", "cramera_bridge.demos.garmi_apartment",
-                  "--step-queries", "--name", "{recording}"],
+      "command": [
+        "/opt/cramera/venv/bin/python",
+        "-m",
+        "cramera_bridge.demos.garmi_apartment",
+        "--step-queries",
+        "--name",
+        "{recording}"
+      ],
       "scene": "garmi_pick_place"
     }
   ]

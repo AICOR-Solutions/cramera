@@ -23,8 +23,14 @@ What it shows:
   [`solutions-cramera-scenes`](https://github.com/AICOR-Solutions/solutions-cramera-scenes);
 - **Physical lab**, the medical laboratory page;
 - **Runs**: the robot runs of [`runs.json`](runs.json), started from the page,
-  followed live and replayed afterwards: the PR2's vessel transfer query by query,
-  the PR2's laboratory workflow and GARMI in the apartment.
+  followed live and replayed afterwards: GARMI carrying a bowl and a spoon in the
+  apartment, held at each of its queries until **Next**.
+
+The PR2's laboratory runs replay as recordings only: `cramera_bridge.laboratory` still
+imports `coraplex.datastructures.dataclasses`, which CRAM removed on 7 Oct 2026.
+
+CRAM is pinned by `CRAM_REF` in the `Dockerfile` to the newest commit cramera's robot
+demos run with; move it forward once `cramera-bridge` follows CRAM's main.
 
 ## Run it with Docker
 
@@ -43,7 +49,7 @@ machine only.
 
 | File | What it does |
 | --- | --- |
-| `Dockerfile` | The image; `CRAM_REF` and `SCENES_REF` choose other branches. |
+| `Dockerfile` | The image; `CRAM_REF` and `SCENES_REF` choose other commits or branches. |
 | `ros_overlay.tsv`, `build_ros_overlay.sh` | The ROS packages of the robots and worlds, at the commits the CRAMERA phone server runs them with. |
 | `start_viewer.sh` | Starts the viewer on the port the server proxy gives it. |
 | `jupyter_server_proxy.json` | Registers the viewer with the server proxy and makes it the default page. |
