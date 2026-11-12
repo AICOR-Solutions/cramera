@@ -39,6 +39,7 @@ from cramera_bridge.plans.run_log import (
 )
 from cramera_bridge.plans.safety import RobotSafety
 from cramera_bridge.plans.site import RobotSite
+from cramera_bridge.plans.perception_reporting import PerceptionReporting
 from cramera_bridge.plans.step_run import AttemptPlan, ScheduledStep, StepRun
 from cramera_bridge.plans.steps import StepArguments
 from cramera_bridge.plans.workspace import RobotAnnotations
@@ -401,15 +402,34 @@ class PlannedTaskDemo(RobotTaskDemo):
     ) -> None:
         """
         Differs from :meth:`RobotTaskDemo.perform_plan` in attempting a failed step
-        again, and in measuring where the steps as they were grounded last put their
-        objects.
+        again, in measuring where the steps as they were grounded last put their
+        objects, and in reporting what RoboKudo answered every detection.
 
         :raises StepAbandoned: When a step failed every attempt it had.
         :raises SafetyConstraintViolated: When a motion broke a safety limit, which ends
             the run without another attempt.
         """
-        self.step_run.perform(performance, extensions, self.first_attempt)
+        reporting = self.perception_reporting()
+
+        def reported_extensions() -> List[ExecutorExtension]:
+            return [*extensions(), *reporting]
+
+        self.step_run.perform(performance, reported_extensions, self.first_attempt)
         self.performed_steps = [scheduled.resolved for scheduled in self.step_run.steps]
+
+    def perception_reporting(self) -> List[PerceptionReporting]:
+        """
+        :return: The reporting of every detection's answer to the run log, where
+            RoboKudo answers the detections; none where the world model does.
+        """
+        answers = self.execution.perception_answers()
+        if answers is None:
+            return []
+        return [
+            PerceptionReporting(
+                answers=answers, step_run=self.step_run, run_log=self.run_log
+            )
+        ]
 
     def grounded_steps(self, context: TaskContext) -> List[ScheduledStep]:
         """

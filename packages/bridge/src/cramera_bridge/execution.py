@@ -52,6 +52,7 @@ from cramera_bridge.real_robot import (
     RunningGiskard,
     STOP_SIGNALS,
 )
+from cramera_bridge.plans.robokudo_answers import RoboKudoAnswers
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.robot_profile import ExecutorKind
 from cramph.context import StatechartContext
@@ -147,6 +148,13 @@ class PlanExecution(ABC):
         """
         :return: The world as the robot reports it while :meth:`attached`, which the
             task is performed in; None where the task builds its world itself.
+        """
+        return None
+
+    def perception_answers(self) -> Optional[RoboKudoAnswers]:
+        """
+        :return: RoboKudo's answers to the plans' detections while plans are performed,
+            where RoboKudo answers them; None where the world model does.
         """
         return None
 
@@ -339,6 +347,11 @@ class PerceivingPhysicalExecution(PhysicalExecution):
     The node the plans reach RoboKudo through while plans are performed, else None.
     """
 
+    answers: Optional[RoboKudoAnswers] = field(default=None, init=False)
+    """
+    RoboKudo's answers to the plans' detections while plans are performed, else None.
+    """
+
     @contextmanager
     def running(self, world: World) -> Iterator[None]:
         """
@@ -361,9 +374,15 @@ class PerceivingPhysicalExecution(PhysicalExecution):
             )
             service.start()
             perceiving.callback(service.stop)
+            self.answers = RoboKudoAnswers(node).start()
+            perceiving.callback(self.answers.stop)
+            perceiving.callback(setattr, self, "answers", None)
             self.ros_node = node
             perceiving.callback(setattr, self, "ros_node", None)
             yield
+
+    def perception_answers(self) -> Optional[RoboKudoAnswers]:
+        return self.answers
 
     def executor(
         self,
@@ -437,6 +456,11 @@ class RealExecution(PlanExecution):
     Holds the arms still between the plans while :meth:`attached`, else None.
     """
 
+    answers: Optional[RoboKudoAnswers] = field(default=None, init=False)
+    """
+    RoboKudo's answers to the plans' detections while :meth:`attached`, else None.
+    """
+
     terminated: bool = field(default=False, init=False)
     """
     Whether SIGTERM asked the run to end; no plan is performed any more once it did,
@@ -494,6 +518,8 @@ class RealExecution(PlanExecution):
                 node=node, timeout_seconds=self.world_fetch_timeout
             )
             attached.callback(WorldSynchronizer(_world=world, node=node).close)
+            self.answers = RoboKudoAnswers(node).start()
+            attached.callback(self.answers.stop)
             self.world = world
             self.ros_node = node
             self.standstill = standstill
@@ -530,15 +556,19 @@ class RealExecution(PlanExecution):
 
     def detach(self) -> None:
         """
-        Forget the world, the node and the standstill of the robot once it is no longer
-        reached.
+        Forget the world, the node, the standstill and RoboKudo's answers once the robot
+        is no longer reached.
         """
         self.world = None
         self.ros_node = None
         self.standstill = None
+        self.answers = None
 
     def reported_world(self) -> Optional[World]:
         return self.world
+
+    def perception_answers(self) -> Optional[RoboKudoAnswers]:
+        return self.answers
 
     def executor(
         self,
