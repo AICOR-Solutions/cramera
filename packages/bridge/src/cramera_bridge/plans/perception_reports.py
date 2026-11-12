@@ -356,9 +356,7 @@ class PerceptionSearch:
         )
         if taken is not None:
             return " ".join(
-                sentence
-                for sentence in (self.found(taken), self.raised(taken))
-                if sentence
+                part for part in (self.found(taken), self.raised(taken)) if part
             )
         outside = [
             seen
