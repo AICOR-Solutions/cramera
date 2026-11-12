@@ -155,3 +155,15 @@ def test_a_grasp_looks_around_the_cube_where_it_lay_before_the_pick(reports):
     low, high = grasp.box.minimum, grasp.box.maximum
     centre = ((low.x + high.x) / 2, (low.y + high.y) / 2, (low.z + high.z) / 2)
     assert centre == pytest.approx((0.55, 0.1, 0.906), abs=0.01)
+
+
+def test_an_object_reported_inside_the_table_says_how_far_the_cube_would_lie_inside(
+    reports,
+):
+    """
+    RoboKudo reported the grey table top with its centre at 0.9 m, which would put the
+    5 cm red cube 5 mm inside the table, whose top lies at 0.88 m.
+    """
+    [_, table_top, _] = reports[0].report.objects
+    assert table_top.inside_surface.surface == "table"
+    assert table_top.inside_surface.depth == pytest.approx(0.005, abs=1e-6)

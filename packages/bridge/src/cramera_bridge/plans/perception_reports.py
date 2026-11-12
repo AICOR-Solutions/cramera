@@ -21,11 +21,17 @@ from cramera_protocol.plan_builder import (
     PerceptionReport,
     ReportedObject,
     ReportedObjectVerdict,
+    SurfaceDepth,
 )
 
 CENTIMETRES = 100.0
 """
 Centimetres in a metre.
+"""
+
+MILLIMETRES = 1000.0
+"""
+Millimetres in a metre.
 """
 
 # %% answers
@@ -57,6 +63,13 @@ class ReportedDesignator:
     The type it was reported as, empty when the perception did not classify it.
     """
 
+    inside_surface: Optional[SurfaceDepth] = None
+    """
+    How far the plan's object looked for would lie inside the surface it stands on,
+    put where this object was seen; None when inside none, or when the query looks for
+    none of the plan's objects.
+    """
+
 
 @dataclass(frozen=True)
 class PerceptionAnswer:
@@ -82,6 +95,14 @@ def centimetres(metres: float) -> str:
     if value < 10 and round(value * 2) % 2 == 1:
         return f"{round(value * 2) / 2:g} cm"
     return f"{round(value)} cm"
+
+
+def millimetres(metres: float) -> str:
+    """
+    :param metres: A distance.
+    :return: It in whole millimetres, at least one, as a person reads it.
+    """
+    return f"{max(1, round(metres * MILLIMETRES))} mm"
 
 
 @dataclass(frozen=True)
@@ -173,6 +194,7 @@ class PerceptionSearch:
                     type=designator.type,
                     verdict=verdict,
                     distance=self.distance(designator.position),
+                    inside_surface=designator.inside_surface,
                 )
             )
         return judged
@@ -274,7 +296,11 @@ class PerceptionSearch:
             None,
         )
         if taken is not None:
-            return self.found(taken)
+            return " ".join(
+                sentence
+                for sentence in (self.found(taken), self.raised(taken))
+                if sentence
+            )
         outside = [
             seen
             for seen in objects
@@ -299,6 +325,27 @@ class PerceptionSearch:
         if self.table_wide:
             return f"A table-wide search found {nothing}{tail}."
         return f"{nothing.capitalize()} was found {self.where()}{tail}."
+
+    def raised(self, taken: ReportedObject) -> str:
+        """
+        :param taken: The object the step took.
+        :return: How far it was reported inside the surface it stands on and that it
+            was raised onto it, or refused for lying deeper than it may be raised; empty
+            when it lay inside none.
+        """
+        inside = taken.inside_surface
+        if inside is None:
+            return ""
+        reported = (
+            f"{self.looked_for()} was reported "
+            f"{millimetres(inside.depth)} inside the {inside.surface}"
+        )
+        if inside.is_raisable:
+            return f"{reported} and was raised onto it."
+        return (
+            f"{reported}, deeper than the {millimetres(inside.maximum_raise)} it may "
+            f"be raised onto it; the detection was refused."
+        )
 
     def found(self, taken: ReportedObject) -> str:
         """

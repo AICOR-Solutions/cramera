@@ -9,6 +9,7 @@ import {
   PerceptionReportKey,
   ReportedObjectKey,
   ReportedObjectVerdict,
+  SurfaceDepthKey,
 } from '../../../protocol.js';
 
 /**
@@ -96,8 +97,31 @@ export function askedText(report) {
 }
 
 /**
+ * The verdicts of an object the step took.
+ */
+const TAKEN = new Set([ReportedObjectVerdict.ACCEPTED, ReportedObjectVerdict.TOO_FAR]);
+
+/**
  * @param {Object} seen A `ReportedObject`.
- * @returns {string} It as a person reads it: colours, size, position and verdict.
+ * @returns {string} How far an object the step took was reported inside the surface it
+ *   stands on and whether it was raised onto it or refused; empty for any other.
+ */
+export function insideSurfaceText(seen) {
+  const inside = seen[ReportedObjectKey.INSIDE_SURFACE];
+  if (!inside || !TAKEN.has(seen[ReportedObjectKey.VERDICT])) return '';
+  const mm = (metres) => `${Math.max(1, Math.round(metres * 1000))} mm`;
+  const depth = inside[SurfaceDepthKey.DEPTH];
+  const limit = inside[SurfaceDepthKey.MAXIMUM_RAISE];
+  const reported = `reported ${mm(depth)} inside the ${inside[SurfaceDepthKey.SURFACE]}`;
+  return depth <= limit
+    ? `; ${reported} and raised onto it`
+    : `; ${reported}, deeper than the ${mm(limit)} it may be raised: refused`;
+}
+
+/**
+ * @param {Object} seen A `ReportedObject`.
+ * @returns {string} It as a person reads it: colours, size, position, verdict and how
+ *   far inside its surface it was reported.
  */
 export function objectText(seen) {
   const colors = (seen[ReportedObjectKey.COLORS] ?? []).join(' and ') || 'no colour';
@@ -106,7 +130,7 @@ export function objectText(seen) {
   const distance = seen[ReportedObjectKey.DISTANCE];
   const away = distance === null || distance === undefined ? '' : `, ${cm(distance)} cm from the validated spot`;
   const type = seen[ReportedObjectKey.TYPE] ? ` ${seen[ReportedObjectKey.TYPE]}` : '';
-  return `${colors}${type}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}`;
+  return `${colors}${type}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}`;
 }
 
 /**

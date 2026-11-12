@@ -3154,6 +3154,59 @@ class ReportedObjectVerdict(StrEnum):
     """
 
 
+class SurfaceDepthKey(StrEnum):
+    """
+    The keys of how far a reported object lay inside the surface it stands on.
+    """
+
+    SURFACE = "surface"
+    """
+    The surface it stands on.
+    """
+
+    DEPTH = "depth"
+    """
+    How far it lay inside it.
+    """
+
+    MAXIMUM_RAISE = "maximumRaise"
+    """
+    How far it may be raised onto it.
+    """
+
+
+@dataclass(kw_only=True)
+class SurfaceDepth(JsonDocument):
+    """
+    How far a perception put the object looked for inside the supporting surface it
+    stands on, such as a cube a few millimetres inside the table, which the object is
+    raised by to rest on the surface, unless it lay deeper than it may be raised.
+    """
+
+    surface: str = document_field(SurfaceDepthKey.SURFACE)
+    """
+    The name of the surface, such as the table.
+    """
+
+    depth: float = document_field(SurfaceDepthKey.DEPTH)
+    """
+    How far, in metres, the object's lowest point lay below the surface's top.
+    """
+
+    maximum_raise: float = document_field(SurfaceDepthKey.MAXIMUM_RAISE)
+    """
+    How far, in metres, the object may be raised onto the surface; a detection putting
+    it deeper is refused.
+    """
+
+    @property
+    def is_raisable(self) -> bool:
+        """
+        Whether the object lay shallow enough inside the surface to be raised onto it.
+        """
+        return self.depth <= self.maximum_raise
+
+
 class ReportedObjectKey(StrEnum):
     """
     The keys of an object a perception query reported.
@@ -3187,6 +3240,11 @@ class ReportedObjectKey(StrEnum):
     DISTANCE = "distance"
     """
     How far it lies from where the plan was validated.
+    """
+
+    INSIDE_SURFACE = "insideSurface"
+    """
+    How far it lay inside the surface it stands on.
     """
 
 
@@ -3227,6 +3285,15 @@ class ReportedObject(JsonDocument):
     """
     How far it lies from where the plan was validated, in metres; None for a query
     without such a position.
+    """
+
+    inside_surface: Optional[SurfaceDepth] = document_field(
+        ReportedObjectKey.INSIDE_SURFACE, default=None
+    )
+    """
+    How far it lay inside the surface it stands on, had it been the plan's object
+    looked for; None when it lay inside none, or the query looks for none of the plan's
+    objects.
     """
 
 

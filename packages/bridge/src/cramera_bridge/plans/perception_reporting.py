@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Dict, List, Optional
 
-from coraplex.perception import PerceptionTask
+from coraplex.perception import Detection, PerceptionTask
 from coraplex.plans.expected_positions import BodiesWhereExpected, ExpectedPosition
 from cramera_bridge.plans.perception_reports import (
     PerceptionAnswer,
@@ -29,14 +29,24 @@ from cramera_bridge.plans.run_log import RunLog, RunLogEntry
 from cramera_bridge.plans.step_run import AttemptProgress, StepRun
 from cramera_protocol.detection import DetectionRegion
 from cramera_protocol.geometry import Bounds, Vector3
-from cramera_protocol.plan_builder import PerceptionReport, RunEvent, RunEventKind
+from cramera_protocol.plan_builder import (
+    PerceptionReport,
+    RunEvent,
+    RunEventKind,
+    SurfaceDepth,
+)
 from cramph.data_types import LifeCycleValues
 from cramph.executor import Executor, ExecutorExtension
 from cramph.node import StatechartNode
-from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Point3
+from krrood_spatial_math.spatial_types import (
+    HomogeneousTransformationMatrix,
+    Point3,
+    Pose,
+)
 from robokudo_msgs.msg import ObjectDesignator
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
+from semantic_digital_twin.world_description.world_entity import Body
 
 ANSWER_WAIT_SECONDS = 2.0
 """
@@ -314,27 +324,35 @@ class PerceptionReporting(ExecutorExtension):
         :param answer: RoboKudo's answer to the detection's query, None when none was
             seen.
         :param task: The detection.
-        :return: Every object it reported, in the world's root.
+        :return: Every object it reported, in the world's root, each with how far it
+            lay inside the surface it stands on had it been the object looked for,
+            when the detection looks for one of the plan's objects.
         """
         if answer is None or answer.objects is None:
             return PerceptionAnswer(objects=None)
-        world = task.query.world
+        expected = self.expected(task, task.query.region)
         return PerceptionAnswer(
             objects=[
-                self.designator(reported, world)
+                self.designator(
+                    reported, task, None if expected is None else expected[1].body
+                )
                 for reported in answer.objects
                 if reported.pose
             ]
         )
 
     def designator(
-        self, reported: ObjectDesignator, world: World
+        self, reported: ObjectDesignator, task: PerceptionTask, body: Optional[Body]
     ) -> ReportedDesignator:
         """
         :param reported: An object RoboKudo reported.
-        :param world: The world of the run.
-        :return: It in the world's root.
+        :param task: The detection it answered.
+        :param body: The plan's object the detection looks for, None for none.
+        :return: It in the world's root, with how far the detection would put `body`
+            inside the surface it stands on where RoboKudo saw it, see
+            :meth:`~coraplex.perception.Detection.depth_inside_surface`.
         """
+        world = task.query.world
         pose = reported.pose[0]
         frame = (
             world.root
@@ -342,7 +360,27 @@ class PerceptionReporting(ExecutorExtension):
             else world.get_kinematic_structure_entity_by_name(pose.header.frame_id)
         )
         position = pose.pose.position
+        orientation = pose.pose.orientation
         extent = reported.shape_size[0].dimensions if reported.shape_size else None
+        inside = (
+            None
+            if body is None
+            else Detection(
+                semantic_annotation=task.query.semantic_annotation,
+                pose=Pose.from_xyz_quaternion(
+                    position.x,
+                    position.y,
+                    position.z,
+                    orientation.x,
+                    orientation.y,
+                    orientation.z,
+                    orientation.w,
+                    reference_frame=frame,
+                ),
+            ).depth_inside_surface(
+                body, world, task.query.trust_detected_orientation
+            )
+        )
         return ReportedDesignator(
             position=self.in_root(
                 Point3(position.x, position.y, position.z, reference_frame=frame),
@@ -351,4 +389,13 @@ class PerceptionReporting(ExecutorExtension):
             size=None if extent is None else Vector3(extent.x, extent.y, extent.z),
             colors=list(reported.color),
             type=reported.type,
+            inside_surface=(
+                None
+                if inside is None
+                else SurfaceDepth(
+                    surface=inside.surface.root.name.name,
+                    depth=inside.depth,
+                    maximum_raise=inside.maximum_raise,
+                )
+            ),
         )

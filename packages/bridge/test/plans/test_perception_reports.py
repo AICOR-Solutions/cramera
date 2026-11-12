@@ -13,7 +13,7 @@ from cramera_bridge.plans.perception_reports import (
     ReportedDesignator,
 )
 from cramera_protocol.geometry import Bounds, Vector3
-from cramera_protocol.plan_builder import ReportedObjectVerdict
+from cramera_protocol.plan_builder import ReportedObjectVerdict, SurfaceDepth
 
 GROUNDED = Vector3(0.6, 0.105, 0.905)
 """
@@ -172,3 +172,46 @@ def test_an_object_of_another_type_is_not_taken():
         "No red object was found within 7.5 cm of where the plan was validated; "
         "1 other object was reported."
     )
+
+
+# %% a cube reported inside the table
+
+
+def cube_inside_the_table(depth: float) -> ReportedDesignator:
+    """
+    :return: The red cube where it was validated, reported `depth` metres inside the
+        table, which may be raised onto 1 cm.
+    """
+    return ReportedDesignator(
+        position=Vector3(0.61, 0.105, GROUNDED.z - depth),
+        colors=["red"],
+        inside_surface=SurfaceDepth(surface="table", depth=depth, maximum_raise=0.01),
+    )
+
+
+def test_a_cube_reported_a_few_millimetres_inside_the_table_says_it_was_raised():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube_inside_the_table(0.004)])
+    )
+    (seen,) = report.objects
+    assert seen.inside_surface.depth == 0.004
+    assert report.summary.endswith(
+        "red_cube was reported 4 mm inside the table and was raised onto it."
+    )
+
+
+def test_a_cube_reported_deeper_inside_the_table_than_it_may_be_raised_says_refused():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube_inside_the_table(0.015)])
+    )
+    assert report.summary.endswith(
+        "red_cube was reported 15 mm inside the table, deeper than the 10 mm it may "
+        "be raised onto it; the detection was refused."
+    )
+
+
+def test_a_cube_resting_on_the_table_says_nothing_of_it():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube(0.61, 0.105, "red")])
+    )
+    assert "table" not in report.summary

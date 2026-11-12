@@ -10,9 +10,10 @@ import {
   RunEventKind,
   RunStatusKey,
   StepState,
+  SurfaceDepthKey,
 } from 'cramera-viewer/protocol.js';
 import { Elements } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { PerceptionViewClass, perceptionSentence } from '../../src/cramera_plan_builder/web/builder/perception-view.js';
+import { PerceptionViewClass, objectText, perceptionSentence } from '../../src/cramera_plan_builder/web/builder/perception-view.js';
 import { RunProgress, RunView, RunViewClass } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
@@ -114,4 +115,29 @@ test('the log says what each detection found', () => {
 
 test('no report makes no sentence', () => {
   assert.equal(perceptionSentence([]), null);
+});
+
+/**
+ * The red cube taken where it was validated, reported `depth` metres inside the table,
+ * which it may be raised onto 1 cm.
+ */
+const sunk = (depth, verdict = ReportedObjectVerdict.ACCEPTED) => ({
+  ...seen([0.6, 0.105, 0.905 - depth], ['red'], verdict, 0.004),
+  [ReportedObjectKey.INSIDE_SURFACE]: {
+    [SurfaceDepthKey.SURFACE]: 'table',
+    [SurfaceDepthKey.DEPTH]: depth,
+    [SurfaceDepthKey.MAXIMUM_RAISE]: 0.01,
+  },
+});
+
+test('a cube taken a few millimetres inside the table says it was raised onto it', () => {
+  assert.match(objectText(sunk(0.004)), /: taken for the step; reported 4 mm inside the table and raised onto it$/);
+});
+
+test('a cube taken deeper inside the table than it may be raised says it was refused', () => {
+  assert.match(objectText(sunk(0.015)), /reported 15 mm inside the table, deeper than the 10 mm it may be raised: refused$/);
+});
+
+test('an object not taken says nothing of the table', () => {
+  assert.doesNotMatch(objectText(sunk(0.004, ReportedObjectVerdict.WRONG_COLOR)), /inside the table/);
 });
