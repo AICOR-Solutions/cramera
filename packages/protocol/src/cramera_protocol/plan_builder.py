@@ -3235,6 +3235,24 @@ class SafetyStop(JsonDocument):
         return cls(constraint=reported[-1])
 
 
+class StopAfterMotions(StrEnum):
+    """
+    What a Stop that came once a run's motions were over did: it halted the arms and
+    left the run to save its record and end as it would have.
+    """
+
+    HALTED = "halted"
+    """
+    Every arm was commanded zero velocities and reported standing still.
+    """
+
+    HALT_UNCONFIRMED = "halt_unconfirmed"
+    """
+    The plan builder could not confirm in time that every arm was commanded zero
+    velocities and reported standing still; the robot may still move.
+    """
+
+
 class RunStatusKey(StrEnum):
     """
     The keys of the demo process's state.
@@ -3273,6 +3291,11 @@ class RunStatusKey(StrEnum):
     EVENTS = "events"
     """
     What happened while the demo ran.
+    """
+
+    STOP_AFTER_MOTIONS = "stopAfterMotions"
+    """
+    What a Stop that came once the run's motions were over did.
     """
 
 
@@ -3318,6 +3341,14 @@ class RunStatus(JsonDocument):
     events: List[RunEvent] = document_field(RunStatusKey.EVENTS, default_factory=list)
     """
     Every event the demo reported, in order; its lines are not part of :attr:`log`.
+    """
+
+    stop_after_motions: Optional[StopAfterMotions] = document_field(
+        RunStatusKey.STOP_AFTER_MOTIONS, default=None
+    )
+    """
+    What a Stop did that came once the run's motions were over, which leaves the run's
+    record saving and its state as it would have been; None when no such Stop came.
     """
 
 

@@ -31,6 +31,7 @@ from cramera_protocol.plan_builder import (
     RunState,
     RunStatus,
     SafetyStop,
+    StopAfterMotions,
     StepState,
 )
 from cramera_protocol.robot_profile import ExecutorKind
@@ -374,6 +375,7 @@ def saving(tmp_path, demo) -> DemoRunner:
     runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
     wait_for(runner, lambda status: status.state is not RunState.RUNNING)
     yield runner
+    runner.current.process.terminate()
     runner.stop()
 
 
@@ -433,8 +435,45 @@ def test_refusing_a_validation_refuses_it_while_the_record_is_saved(saving):
         saving.refuse_to_validate()
 
 
-def test_a_demo_saving_its_record_can_be_stopped(saving):
-    assert saving.stop().state is RunState.STOPPED
+def test_a_stop_while_the_record_is_saved_halts_the_arms_and_leaves_the_saving_alone(
+    saving, tmp_path
+):
+    stopped = saving.stop()
+
+    assert stopped.state is RunState.SAVING
+    assert stopped.stop_after_motions is StopAfterMotions.HALTED
+    assert (tmp_path / "halt").read_text() == "giskard ended"
+    assert ArmHaltLine.HALTED in stopped.log
+
+
+def test_a_stop_while_the_record_is_saved_whose_halt_nobody_confirmed_says_so(
+    tmp_path, demo
+):
+    runner = runner_of(
+        tmp_path,
+        "saving_demo.py",
+        arm_halt=arm_halt_stand_in(tmp_path, answer="silence"),
+    )
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    wait_for(runner, lambda status: status.state is RunState.SAVING)
+    stopped = runner.stop()
+    runner.current.process.terminate()
+    runner.stop()
+
+    assert stopped.stop_after_motions is StopAfterMotions.HALT_UNCONFIRMED
+
+
+def test_a_run_stopped_while_its_record_is_saved_still_finishes(tmp_path, demo):
+    runner = runner_of(tmp_path, "slowly_saved_demo.py")
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL)
+    wait_for(runner, lambda status: status.state is RunState.SAVING)
+    runner.stop()
+    ended = wait_for(runner, lambda status: status.return_code is not None)
+    runner.stop()
+
+    assert ended.state is RunState.FINISHED, ended.log
+    assert ended.stop_after_motions is StopAfterMotions.HALTED
+    assert "record saved" in ended.log
 
 
 def test_a_demo_that_saved_its_record_finished(tmp_path, demo):

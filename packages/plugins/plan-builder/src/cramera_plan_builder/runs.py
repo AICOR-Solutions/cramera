@@ -35,6 +35,7 @@ from cramera_protocol.plan_builder import (
     RunState,
     RunStatus,
     SafetyStop,
+    StopAfterMotions,
 )
 from cramera_protocol.robot_profile import ExecutorKind
 
@@ -352,6 +353,12 @@ class DemoProcess:
     Whether a person acknowledged the safety stop that cancelled the demo.
     """
 
+    stop_after_motions: Optional[StopAfterMotions] = None
+    """
+    What a Stop did that came while the demo saved its run's record, which it leaves
+    the demo to finish; None when no such Stop came.
+    """
+
     @classmethod
     def start(
         cls,
@@ -461,6 +468,7 @@ class DemoProcess:
             path=str(self.path),
             safety_stop=self.safety_stop(),
             events=self.log.events(),
+            stop_after_motions=self.stop_after_motions,
         )
 
     def stop(self, timeout: float = STOP_TIMEOUT) -> None:
@@ -475,8 +483,14 @@ class DemoProcess:
         so Giskard commands zero velocities, then killed), and the plan builder's own
         halt commands every arm zero velocities and waits for them to be acknowledged.
 
+        A demo whose run is over and which saves its run's record is left to save it
+        and end on its own (see :meth:`stop_after_motions_are_over`).
+
         :param timeout: How long the demo may take to end, in seconds.
         """
+        if self.process.poll() is None and self.saves_its_record():
+            self.stop_after_motions_are_over()
+            return
         if self.process.poll() is None:
             self.stopped = True
             started = time.monotonic()
@@ -498,6 +512,20 @@ class DemoProcess:
         self.process.wait()
         self.reader.join(timeout)
         self.process.stdin.close()
+
+    def stop_after_motions_are_over(self) -> None:
+        """
+        Halt the real robot's arms once more and confirm that they stand still, as a
+        stop does, but leave the demo, whose robot is released already, to save its
+        run's record; a demo on no real robot is left alone. Asked again, it answers
+        what the first halt confirmed.
+        """
+        if self.arm_halt is None or self.stop_after_motions is not None:
+            return
+        halted = self.arm_halt.halt(time.monotonic() + ARM_HALT_TIMEOUT)
+        self.stop_after_motions = (
+            StopAfterMotions.HALTED if halted else StopAfterMotions.HALT_UNCONFIRMED
+        )
 
     def started_sessions(self) -> set[int]:
         """
