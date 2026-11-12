@@ -1217,7 +1217,7 @@ export class BuilderPage {
     this.#run = run;
     if (this.#performing()) this.#progressHidden = false;
     if (before !== run[RunStatusKey.STATE]) this.#noteRunEnd();
-    const world = LIVE_STATES.includes(run[RunStatusKey.STATE]) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
+    const world = this.#publishes(run) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
     if (world.images.length > 0) this.#cameraImages = world.images;
     const changed = before !== run[RunStatusKey.STATE] || world.published !== this.#world.published || world.signature() !== this.#world.signature();
     this.#world = world;
@@ -1228,6 +1228,19 @@ export class BuilderPage {
       this.#showRun();
       this.#showScene();
     }
+  }
+
+  /**
+   * @param {Object} run A `RunStatus`.
+   * @returns {boolean} Whether the run's live world may be published, so its publisher
+   *   is asked for it: once it runs, and for a run on the real robot once it reported
+   *   its steps, which it does only after its publisher started. Asked earlier, the
+   *   publisher's closed port fails every poll for the half minute a real run prepares.
+   */
+  #publishes(run) {
+    if (!LIVE_STATES.includes(run[RunStatusKey.STATE])) return false;
+    const real = run[RunStatusKey.MODE] === RunMode.ROBOT && this.#robotExecutor() === ExecutorKind.REAL;
+    return !real || (run[RunStatusKey.EVENTS] ?? []).length > 0;
   }
 
   /**

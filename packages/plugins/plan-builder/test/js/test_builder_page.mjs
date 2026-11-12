@@ -2039,3 +2039,26 @@ test('the output of a run that failed keeps its traceback', async () => {
 
   assert.equal(runLog(root).textContent, log);
 });
+
+// %% the live publisher of a run
+
+test('a run on the real robot is asked for its live world only once it reported its steps, when its publisher is up', async () => {
+  const { root, api, live, timer, page } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  let asked = 0;
+  const info = live.info.bind(live);
+  live.info = () => { asked += 1; return info(); };
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: RunMode.ROBOT, [RunStatusKey.EVENTS]: [] };
+  await timer.tick();
+  await timer.tick();
+  const askedWhilePreparing = asked;
+  const [first] = page.state.steps();
+  api.status = { ...api.status, [RunStatusKey.EVENTS]: [{ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: first[PlanStepKey.IDENTIFIER], [RunEventKey.STATE]: StepState.PENDING }] };
+  await timer.tick();
+
+  assert.equal(askedWhilePreparing, 0);
+  assert.ok(asked > 0);
+});
