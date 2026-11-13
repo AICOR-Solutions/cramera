@@ -80,15 +80,40 @@ export const REASON_TEXTS = Object.freeze({
 
 /**
  * @param {Object} validation A `StepValidation`.
+ * @returns {Array<string>} The lines of what a failed step's validation found when its
+ *   reason names no kind of failure, the found reason first; none otherwise.
+ */
+function foundReason(validation) {
+  const generic = [undefined, StepFailureReason.UNSUCCESSFUL].includes(validation[StepValidationKey.REASON]);
+  const detail = validation[StepValidationKey.DETAIL] ?? '';
+  return validation[StepValidationKey.VERDICT] === StepVerdict.FAILED && generic && detail ? detail.split('\n') : [];
+}
+
+/**
+ * @param {Object} validation A `StepValidation`.
  * @returns {string} What the step's card says of how the step fared, with the arm it
- *   was given when the arm was chosen automatically.
+ *   was given when the arm was chosen automatically. A step that did not succeed leads
+ *   with the reason its validation found; the general words stand only without one.
  */
 export function validationText(validation) {
   const verdict = validation[StepValidationKey.VERDICT];
   const reason = validation[StepValidationKey.REASON];
-  const text = verdict === StepVerdict.FAILED ? `Fails: ${REASON_TEXTS[reason] ?? reason}.` : VERDICT_TEXTS[verdict];
+  const [found] = foundReason(validation);
+  const failure = found ? `Fails: ${found}` : `Fails: ${REASON_TEXTS[reason] ?? reason}.`;
+  const text = verdict === StepVerdict.FAILED ? failure : VERDICT_TEXTS[verdict];
   const arm = validation[StepValidationKey.ARM];
   return arm ? `${text} Arm: ${arm}, chosen automatically.` : text;
+}
+
+/**
+ * @param {Object} validation A `StepValidation`.
+ * @returns {string} What a failed step's card shows below its validation line: what the
+ *   validation found and suggests, without the reason the line already leads with.
+ */
+function validationDetail(validation) {
+  if (validation[StepValidationKey.VERDICT] !== StepVerdict.FAILED) return '';
+  const found = foundReason(validation);
+  return found.length > 0 ? found.slice(1).join('\n') : (validation[StepValidationKey.DETAIL] ?? '');
 }
 
 /**
@@ -341,12 +366,12 @@ export class StepsView {
     if (validation) {
       card.dataset.validation = validation[StepValidationKey.VERDICT];
       const line = elements.create('p', ViewClass.VALIDATION, validationText(validation));
-      const detail = validation[StepValidationKey.DETAIL] ?? '';
-      line.title = detail;
+      line.title = validation[StepValidationKey.DETAIL] ?? '';
       card.append(line);
       // What a failed step's validation found, and what it suggests, is what the person
       // acts on: shown on the card, not only on hover.
-      if (detail && validation[StepValidationKey.VERDICT] === StepVerdict.FAILED) card.append(elements.create('p', ViewClass.VALIDATION_DETAIL, detail));
+      const detail = validationDetail(validation);
+      if (detail) card.append(elements.create('p', ViewClass.VALIDATION_DETAIL, detail));
     }
     if (schema) card.append(...this.#form(step, schema));
     card.append(this.#chips(step, observations));

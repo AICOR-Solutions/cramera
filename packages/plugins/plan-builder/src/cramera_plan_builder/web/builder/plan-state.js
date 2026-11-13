@@ -554,9 +554,10 @@ export class PlanState {
   }
 
   /**
-   * Add a step to the edited robot with the values it can run with right away: the
-   * first object, the robot's first choice or the field's default, a target ahead of
-   * the robot or beside the object it puts down.
+   * Add a step to the edited robot with the values it can start from: the robot's first
+   * choice or the field's default, a target ahead of the robot. Its objects are left
+   * for the person to choose, so no step acts on an object nobody chose; a target
+   * beside the object it puts down follows once that object is chosen.
    * @param {string} action The class name of an action the robot can take.
    * @param {number=} index Where the step goes; at the end by default.
    * @returns {string} The step's identity.
@@ -572,12 +573,9 @@ export class PlanState {
     const step = { [PlanStepKey.IDENTIFIER]: identifier, [PlanStepKey.ACTION]: action, [PlanStepKey.VALUES]: {}, [PlanStepKey.CONSTRAINTS]: [] };
     const values = step[PlanStepKey.VALUES];
     for (const field of PlanState.fields(schema)) {
-      if (field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] === ActionFieldKind.BODY && this.objects().length > 0) values[field[ActionFieldKey.NAME]] = this.objects()[0][PlannedObjectKey.IDENTIFIER];
-    }
-    for (const field of PlanState.fields(schema)) {
       // a step looking for objects looks at the whole table unless told otherwise
       if (!field[ActionFieldKey.REQUIRED] && field[ActionFieldKey.KIND] !== ActionFieldKind.REGION) continue;
-      const value = this.#defaultValue(robot, schema, field, step);
+      const value = this.#defaultValue(robot, schema, field);
       if (value !== undefined) values[field[ActionFieldKey.NAME]] = value;
     }
     this.steps().splice(index, 0, step);
@@ -627,9 +625,15 @@ export class PlanState {
    * @param {*} value Its JSON value; null leaves the field to the action's default.
    */
   setValue(identifier, name, value) {
-    const values = this.step(identifier)[PlanStepKey.VALUES];
+    const step = this.step(identifier);
+    const values = step[PlanStepKey.VALUES];
     if (value === null) delete values[name];
     else values[name] = value;
+    if (value === null || this.stepObject(step) !== value) return;
+    // a put-down step without a target yet takes one beside the object just chosen
+    for (const field of PlanState.fields(this.schema(step[PlanStepKey.ACTION]))) {
+      if (field[ActionFieldKey.ACCEPTS_SURFACE] && field[ActionFieldKey.REQUIRED] && values[field[ActionFieldKey.NAME]] === undefined) values[field[ActionFieldKey.NAME]] = { [DestinationKey.PLACEMENT]: PlacementMode.POSE, [DestinationKey.POSE]: this.#besideObject(step) };
+    }
   }
 
   /**
@@ -905,14 +909,14 @@ export class PlanState {
    * @param {Object} robot The robot taking the step.
    * @param {Object} schema The step's action.
    * @param {Object} field A required field of it, or its region field.
-   * @param {Object} step The step being added, with its objects chosen.
-   * @returns {*} The field's starting value, or undefined to leave it for the person.
+   * @returns {*} The field's starting value, or undefined to leave it for the person: a
+   *   put-down target waits for the step's object.
    */
-  #defaultValue(robot, schema, field, step) {
+  #defaultValue(robot, schema, field) {
     const kind = field[ActionFieldKey.KIND];
     if (kind === ActionFieldKind.ENUM) return this.#defaultMember(robot, field);
     if (kind === ActionFieldKind.REGION) return { [DetectionRegionKey.KIND]: RegionKind.TABLE };
-    if (POSE_KINDS.includes(kind) && field[ActionFieldKey.ACCEPTS_SURFACE]) return { [DestinationKey.PLACEMENT]: PlacementMode.POSE, [DestinationKey.POSE]: this.#besideObject(step) };
+    if (POSE_KINDS.includes(kind) && field[ActionFieldKey.ACCEPTS_SURFACE]) return undefined;
     if (kind === ActionFieldKind.POSE) return this.#nextTarget(robot, schema, field);
     if (kind in PLAIN_TYPES && kind !== ActionFieldKind.ANNOTATION) return field[ActionFieldKey.DEFAULT] ?? undefined;
     return undefined;

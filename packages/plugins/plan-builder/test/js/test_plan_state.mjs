@@ -99,20 +99,55 @@ test('an enumeration offers the robot its own choices', () => {
 
 // %% steps
 
-test('a new step can run right away', () => {
+test('a new step can run right away once its object is chosen', () => {
   const state = PlanState.empty(catalog(), 'lab', 'pr2');
   const arms = model(state, 'pr2')[RobotModelKey.CHOICES].arms;
-  state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
+  const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const steps = ['park_arms', 'move_torso', 'pick_up', 'place', 'set_gripper'].map((action) => state.addStep(action));
+  for (const step of [steps[2], steps[3]]) state.setValue(step, 'object_designator', milk);
   const [park, torso, pick, place, gripper] = steps.map((identifier) => values(state, identifier));
   assert.equal(park.arm, arms[0]);
   assert.equal(torso.torso_state, model(state, 'pr2')[RobotModelKey.CHOICES].torso_state[0]);
-  assert.equal(pick.object_designator, state.objects()[0][PlannedObjectKey.IDENTIFIER]);
+  assert.equal(pick.object_designator, milk);
   assert.equal(pick.grasp_description, undefined);
   assert.equal(place.target_location[DestinationKey.PLACEMENT], PlacementMode.POSE);
   assert.ok(PlanPose.isPose(place.target_location[DestinationKey.POSE]));
   assert.deepEqual(Object.keys(gripper), ['gripper', 'motion']);
   for (const identifier of steps) assert.deepEqual(state.problems(state.step(identifier)), []);
+});
+
+test('a new step leaves its object for the person to choose, and needs it', () => {
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
+  const pick = state.addStep('pick_up');
+  const place = state.addStep('place');
+  assert.equal(values(state, pick).object_designator, undefined);
+  assert.equal(values(state, place).object_designator, undefined);
+  assert.match(state.problems(state.step(pick)).join(' '), /Needs a value for/);
+  assert.match(state.problems(state.step(place)).join(' '), /Needs a value for/);
+  assert.doesNotMatch(state.problems(state.step(place)).join(' '), /cannot be/);
+});
+
+test('choosing a put-down step\'s object puts its target beside the object', () => {
+  const state = PlanState.empty(catalog(), 'lab', 'pr2');
+  const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
+  const place = state.addStep('place');
+  state.setValue(place, 'object_designator', milk);
+  const target = values(state, place).target_location;
+  assert.equal(target[DestinationKey.PLACEMENT], PlacementMode.POSE);
+  assert.ok(PlanPose.isPose(target[DestinationKey.POSE]));
+  assert.deepEqual(state.problems(state.step(place)), []);
+  const chosen = PlanPose.of(1, 1, 1, 0);
+  state.setTarget(place, 'target_location', chosen);
+  state.setValue(place, 'object_designator', milk);
+  assert.deepEqual(values(state, place).target_location[DestinationKey.POSE], chosen);
+});
+
+test('a step of a skill leaves its object for the person to choose', () => {
+  const state = profiled();
+  state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
+  const step = state.step(state.addSkill('pick'));
+  assert.equal(step[PlanStepKey.VALUES].object_designator, undefined);
 });
 
 test('a pose target goes ahead of the robot, the next one beyond the last', () => {
@@ -158,8 +193,9 @@ test('a value is set and left to the default', () => {
 
 test('putting an object on a surface names a surface type, back at a pose a pose', () => {
   const state = PlanState.empty(catalog(), 'lab', 'pr2');
-  state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
+  const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const transport = state.addStep('transport');
+  state.setValue(transport, 'object_designator', milk);
   state.setPlacement(transport, 'target_location', PlacementMode.SURFACE);
   const destination = values(state, transport).target_location;
   assert.equal(destination[DestinationKey.SURFACE_TYPE], state.catalog[PlanBuilderCatalogKey.SURFACE_TYPES][0]);
@@ -173,6 +209,7 @@ test('a step names its pose targets, a put-down one with its object', () => {
   const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const look = state.step(state.addStep('look_at'));
   const place = state.addStep('place');
+  state.setValue(place, 'object_designator', milk);
   assert.deepEqual(state.targets(look).map((target) => [target.field, target.object]), [['target', undefined]]);
   assert.deepEqual(state.targets(state.step(place)).map((target) => [target.field, target.object]), [['target_location', milk]]);
   const pose = PlanPose.of(1, 1, 1, 0);
@@ -204,8 +241,9 @@ test('a step that no longer fits its action names each problem', () => {
 
 test('values of the wrong type are problems', () => {
   const state = PlanState.empty(catalog(), 'lab', 'pr2');
-  state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
+  const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const pick = state.addStep('pick_up');
+  state.setValue(pick, 'object_designator', milk);
   for (const [name, value] of [['object_designator', 'bowl'], ['tolerate_grasp_stall', 'yes'], ['grasp_description', 'top'], ['object_friction', 'much']]) {
     const original = values(state, pick)[name] ?? null;
     state.setValue(pick, name, value);
@@ -216,6 +254,7 @@ test('values of the wrong type are problems', () => {
   state.setValue(look, 'target', [1, 2]);
   assert.equal(state.problems(state.step(look)).length, 1);
   const transport = state.addStep('transport');
+  state.setValue(transport, 'object_designator', milk);
   state.setValue(transport, 'target_location', { [DestinationKey.PLACEMENT]: PlacementMode.SURFACE });
   assert.equal(state.problems(state.step(transport)).length, 1);
 });
@@ -302,6 +341,7 @@ test('removing an object moves its steps to the next object, or leaves them with
   const milk = state.addObject(objectModel(state, 1)[ObjectModelKey.IDENTIFIER]);
   const knife = state.addObject(objectModel(state, 0)[ObjectModelKey.IDENTIFIER]);
   const pick = state.addStep('pick_up');
+  state.setValue(pick, 'object_designator', milk);
   state.removeObject(milk);
   assert.equal(values(state, pick).object_designator, knife);
   assert.equal(state.stepObject(state.step(pick)), knife);

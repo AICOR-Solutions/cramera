@@ -130,6 +130,12 @@ const BROWSING_KEYS = Object.freeze(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'Arrow
 const CHOOSING_KEY = 'Enter';
 
 /**
+ * The keys the confirmation of a plan's replacement answers: Escape keeps editing, Tab
+ * moves between its buttons and stays among them.
+ */
+const ConfirmKey = Object.freeze({ KEEP: 'Escape', NEXT: 'Tab' });
+
+/**
  * What a select browsed by keyboard says of the choice it shows.
  */
 const BROWSING_HINT = 'Press Enter to take this choice.';
@@ -165,6 +171,12 @@ export const NAMED_MISSING_MESHES = 3;
  * from as it started, while the run goes on.
  */
 export const VALIDATED_FOR_THIS_RUN = 'Validated for this run; validate again before the next run on the robot.';
+
+/**
+ * What the page says once a run on the real robot ended with the plan unchanged: the
+ * run used its validation, so the next run needs a new one.
+ */
+export const VALIDATION_USED = 'The last run on the robot used this validation: validate again before the next run.';
 
 /**
  * What the page says once the plan builder no longer holds the validation the page
@@ -369,6 +381,13 @@ export class BuilderPage {
   #pendingReplace = null;
 
   /**
+   * What had the keyboard focus before the confirmation of a replacement took it, given
+   * back when the confirmation closes; null when nothing had it.
+   * @type {HTMLElement|null}
+   */
+  #focusBeforeConfirm = null;
+
+  /**
    * The page's parts.
    * @type {Object}
    */
@@ -449,6 +468,13 @@ export class BuilderPage {
    * @type {{plan: string, report: Object, sceneChanged: boolean}|null}
    */
   #validationTaken = null;
+
+  /**
+   * The plan, as JSON text, whose validation the last run on the real robot used up as
+   * it ended; null when no ended run used one.
+   * @type {string|null}
+   */
+  #validationUsedBy = null;
 
   /**
    * What each robot model reaches, by the model's name: its `RobotReach` once the plan
@@ -932,6 +958,7 @@ export class BuilderPage {
     this.state = state;
     this.#baseline = JSON.stringify(state.document);
     this.#pendingReplace = null;
+    this.#validationUsedBy = null;
     // the validation was of the plan shown before, which this one never had
     this.#validation = null;
   }
@@ -957,7 +984,30 @@ export class BuilderPage {
     }
     this.#parts.replaceText.textContent = `“${this.state.field(PlanKey.NAME)}” has unsaved changes, which ${replacement} replaces. Save it first, or replace it and lose them?`;
     this.#pendingReplace = replace;
+    this.#focusBeforeConfirm = this.#environment.document.activeElement ?? null;
     this.render();
+    // the keyboard answers the question first, with the choice that loses nothing
+    this.#parts.keepPlan.focus();
+  }
+
+  /**
+   * Answer a key pressed in the confirmation: Escape keeps editing, Tab past its last
+   * button comes back to its first and Shift+Tab the other way round.
+   * @param {KeyboardEvent} event The key pressed.
+   */
+  #confirmKey(event) {
+    const parts = this.#parts;
+    if (event.key === ConfirmKey.KEEP) {
+      event.preventDefault();
+      this.#settleReplace(false);
+      return;
+    }
+    if (event.key !== ConfirmKey.NEXT) return;
+    const [first, last] = [parts.keepPlan, parts.replacePlan];
+    const leaving = event.shiftKey ? event.target === first : event.target === last;
+    if (!leaving) return;
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
   }
 
   /**
@@ -966,9 +1016,12 @@ export class BuilderPage {
    */
   #settleReplace(confirmed) {
     const replace = this.#pendingReplace;
+    const focused = this.#focusBeforeConfirm;
     this.#pendingReplace = null;
+    this.#focusBeforeConfirm = null;
     if (confirmed && replace) replace();
     else this.render();
+    focused?.focus();
   }
 
   /**
@@ -1566,7 +1619,14 @@ export class BuilderPage {
       return null;
     });
     if (!scan) return;
-    this.edit(() => this.state.replaceObjects(scan[SceneScanKey.OBJECTS]));
+    // Where a scan finds the objects is the robot's view of the table, not the person's
+    // edit, and a new scan finds it again: a plan without unsaved changes keeps none. A
+    // plan with some keeps them, so no edit of the person's is ever replaced unasked.
+    const unchanged = !this.#unsaved();
+    this.edit(() => {
+      this.state.replaceObjects(scan[SceneScanKey.OBJECTS]);
+      if (unchanged) this.#baseline = JSON.stringify(this.state.document);
+    });
     this.#announce(Tone.SUCCESS, scanMessage(scan));
   }
 
@@ -1653,7 +1713,10 @@ export class BuilderPage {
   #noteRunEnd(previous) {
     if (this.#run[RunStatusKey.STATE] === RunState.REFUSED && this.#validation === null) this.#validation = this.#validationTaken;
     // a run saving its record still runs with the validation it took
-    if (!ACTIVE_STATES.includes(this.#run[RunStatusKey.STATE])) this.#validationTaken = null;
+    if (!ACTIVE_STATES.includes(this.#run[RunStatusKey.STATE])) {
+      if (this.#validationTaken !== null && this.#validation === null) this.#validationUsedBy = this.#validationTaken.plan;
+      this.#validationTaken = null;
+    }
     const real = this.#robotExecutor() === ExecutorKind.REAL;
     const outcome = cutOffOutcome(previous, this.#run, real) ?? runOutcome(this.#run, this.#progress(), real);
     if (outcome === null) return;
@@ -1774,6 +1837,7 @@ export class BuilderPage {
     if (this.#performing() && this.#validationTaken !== null) return VALIDATED_FOR_THIS_RUN;
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
     const override = this.#mayOverrideValidation() ? ' Developer mode lets it run on the robot anyway.' : '';
+    if (this.#validation === null && this.#validationUsedBy === JSON.stringify(this.state.document)) return `${VALIDATION_USED}${override}`;
     if (this.#validation === null) return `Not validated: validate before running on the robot.${override}`;
     return `${this.#validation.sceneChanged ? 'Scene' : 'Plan'} changed since its validation: validate again.${override}`;
   }
@@ -1855,6 +1919,7 @@ export class BuilderPage {
     parts.replaceConfirm.setAttribute('role', 'alert');
     parts.replaceConfirm.hidden = true;
     parts.replaceConfirm.append(parts.replaceText, parts.keepPlan, parts.replacePlan);
+    elements.listen(parts.replaceConfirm, DomEvent.KEY_DOWN, (event) => this.#confirmKey(event));
     bar.append(elements.create('strong', 'builder-title', 'Plan builder'), elements.label('name', parts.name), elements.label('task', parts.task), plansRow, parts.replaceConfirm);
 
     parts.robots = new RobotsView(document, this);

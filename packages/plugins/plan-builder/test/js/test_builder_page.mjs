@@ -57,7 +57,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -391,6 +391,20 @@ const parameter = (root, field) => byAction(root, PlanAction.STEP_PARAMETER).fin
 const steps = (root) => root.findAll((element) => element.dataset.step !== undefined);
 
 /**
+ * Choose the plan's first object in every step's object field still on "choose…", as
+ * the person does: a new step starts without one.
+ */
+const chooseFirstObject = (root, page) => {
+  const first = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  for (;;) {
+    const open = byAction(root, PlanAction.STEP_PARAMETER).find((element) => element.dataset.field === 'object_designator' && element.value === '');
+    if (!open) return;
+    open.value = first;
+    open.dispatch(DomEvent.CHANGE);
+  }
+};
+
+/**
  * Add a copy of the milk, the object the test's live world holds.
  * @param {Object} root The page's root.
  */
@@ -600,6 +614,7 @@ test('a dropped sentence is compiled for its step and attached', async () => {
   const { root, page, api } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
   block(root, 'pick_up').click();
+  chooseFirstObject(root, page);
   drop(steps(root)[0], DragText.of(DragKind.CONSTRAINT, RULES[0][ConstraintRuleKey.SENTENCE]));
   await settled();
   const [request] = api.compiled;
@@ -1387,6 +1402,24 @@ test('a failed step shows what the validation found and suggests on its card, no
   assert.deepEqual(steps(root).map(details), [[], [detail], []]);
 });
 
+test('a step that did not succeed leads with the reason the validation found, the general words only without one', async () => {
+  const reason = 'No arm holds the red cube when this step starts: put a Pick of the red cube before it.';
+  const { root } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: index === 2 ? StepVerdict.UNCHECKED : StepVerdict.FAILED,
+      [StepValidationKey.REASON]: StepFailureReason.UNSUCCESSFUL,
+      ...(index === 1 ? { [StepValidationKey.DETAIL]: `${reason}\nSuggestion: Move the Pick up.` } : {}),
+    }));
+  });
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  const details = (card) => card.findAll((element) => element.className === 'step-validation-detail').map((element) => element.textContent);
+  assert.equal(validation(root)[1], `Fails: ${reason}`);
+  assert.deepEqual(details(steps(root)[1]), ['Suggestion: Move the Pick up.']);
+  assert.equal(validation(root)[0], `Fails: ${REASON_TEXTS[StepFailureReason.UNSUCCESSFUL]}.`);
+});
+
 test('an assumed step and the arm chosen automatically are shown on their steps', async () => {
   const { root } = await pickAndPlace(({ api }) => {
     api.validationAnswer = (planned) => planned.map((step, index) => ({
@@ -1596,6 +1629,7 @@ async function tracyPlacing() {
   byAction(opened.root, PlanAction.ADD_OBJECT)[0].click();
   byAction(opened.root, PlanAction.ADD_OBJECT)[0].click();
   for (const action of ['pick_up', 'place']) block(opened.root, action).click();
+  chooseFirstObject(opened.root, opened.page);
   const place = opened.page.state.steps()[1];
   const choose = (mode) => {
     const select = parameter(opened.root, 'target_location');
@@ -1816,7 +1850,17 @@ test('a run of a validated plan on the real robot keeps saying the plan was vali
   assert.equal(validationLine(root), VALIDATED_FOR_THIS_RUN);
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
   await timer.tick();
-  assert.match(validationLine(root), /^Not validated/);
+  assert.equal(validationLine(root), VALIDATION_USED);
+});
+
+test('after a run on the real robot the page says the run used the validation, not that the plan was never validated', async () => {
+  const { root, api, timer } = await runningOnTracy();
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
+  await timer.tick();
+  assert.equal(validationLine(root), VALIDATION_USED);
+  assert.equal(robotRun(root).title, VALIDATION_USED);
+  block(root, 'park_arms').click();
+  assert.equal(validationLine(root), 'Not validated: validate before running on the robot.');
 });
 
 test('a finished run with a step that went ahead without the camera confirming its object is a notice naming the step', async () => {
@@ -2401,6 +2445,33 @@ test('a template, a new or a saved plan asks before it replaces a plan with unsa
   assert.equal(confirmation(root).hidden, true);
 });
 
+test('the confirmation takes the keyboard: Keep editing first, Tab stays inside, Escape keeps editing, focus returns', async () => {
+  const { root, page, document } = await withTemplate();
+  const picker = templatePicker(root);
+  const keep = byAction(root, PlanAction.KEEP_PLAN)[0];
+  const replace = byAction(root, PlanAction.REPLACE_PLAN)[0];
+  const watched = watchFocus([picker, keep, replace]);
+  document.activeElement = picker;
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.equal(confirmation(root).hidden, false);
+  assert.ok(watched.focused === keep);
+  const press = (key, target, shiftKey = false) => {
+    let prevented = false;
+    confirmation(root).dispatch(DomEvent.KEY_DOWN, { key, shiftKey, target, preventDefault: () => (prevented = true) });
+    return prevented;
+  };
+  assert.equal(press('Tab', keep), false);
+  assert.equal(press('Tab', replace), true);
+  assert.ok(watched.focused === keep);
+  assert.equal(press('Tab', keep, true), true);
+  assert.ok(watched.focused === replace);
+  press('Escape', replace);
+  assert.equal(confirmation(root).hidden, true);
+  assert.equal(page.state.steps().length, 3);
+  assert.ok(watched.focused === picker);
+});
+
 test('a plan saved as it stands, or never changed, is replaced without asking', async () => {
   const { root, page } = await withTemplate();
   byAction(root, PlanAction.SAVE)[0].click();
@@ -2412,6 +2483,45 @@ test('a plan saved as it stands, or never changed, is replaced without asking', 
   byAction(root, PlanAction.NEW)[0].click();
   assert.equal(confirmation(root).hidden, true);
   assert.equal(page.state.robots().length, 0);
+});
+
+test('the positions a scan writes are not unsaved changes of the person', async () => {
+  const { root, page, api } = await withTemplate();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  api.scanAnswer[SceneScanKey.OBJECTS] = SCANNED_CUBES;
+  byAction(root, PlanAction.SCAN_SCENE)[0].click();
+  await settled();
+  assert.deepEqual(page.state.objects(), SCANNED_CUBES);
+  const picker = templatePicker(root);
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.equal(confirmation(root).hidden, true);
+  assert.equal(page.state.field(PlanKey.NAME), 'Park both arms');
+});
+
+test('an edit before or after a scan is still an unsaved change', async () => {
+  const { root, page, api } = await withTemplate();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  api.scanAnswer[SceneScanKey.OBJECTS] = SCANNED_CUBES;
+  byAction(root, PlanAction.SCAN_SCENE)[0].click();
+  await settled();
+  block(root, 'park_arms').click();
+  byAction(root, PlanAction.NEW)[0].click();
+  assert.equal(confirmation(root).hidden, false);
+  byAction(root, PlanAction.KEEP_PLAN)[0].click();
+
+  const edited = await withTemplate();
+  byAction(edited.root, PlanAction.SAVE)[0].click();
+  await settled();
+  block(edited.root, 'park_arms').click();
+  edited.api.scanAnswer[SceneScanKey.OBJECTS] = SCANNED_CUBES;
+  byAction(edited.root, PlanAction.SCAN_SCENE)[0].click();
+  await settled();
+  byAction(edited.root, PlanAction.NEW)[0].click();
+  assert.equal(confirmation(edited.root).hidden, false);
+  assert.equal(edited.page.state.steps().length, 4);
 });
 
 test('a reload keeps whether the plan has unsaved changes', async () => {
