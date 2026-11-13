@@ -400,11 +400,7 @@ class PreparedProcess:
             os.killpg(self.process.pid, signal.SIGKILL)
         self.process.wait()
         self.reader.join(STOP_TIMEOUT)
-        # the pipe of a killed process, whose unread input may no longer be flushed
-        try:
-            self.process.stdin.close()
-        except BrokenPipeError:
-            pass
+        self.process.stdin.close()
 
 
 # %% one process
