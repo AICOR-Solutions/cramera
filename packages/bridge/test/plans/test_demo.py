@@ -35,6 +35,7 @@ from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.run_log import RunLog
 from cramera_bridge.plans.surfaces import SurfaceTargets
 from cramera_bridge.plans.world import PlannedGraspable
+from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_bridge.exceptions import AnnotationNotInWorld, SurfaceNotInWorld
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.files import BundleFile
@@ -364,3 +365,14 @@ def test_a_stopped_stage_restores_the_signal_handlers(demo):
     staged.stopped.set()
     staged.run()
     assert {number: signal.getsignal(number) for number in STOP_SIGNALS} == handlers
+
+
+# %% preparing a run ahead
+
+
+def test_preparing_a_run_ahead_indexes_the_workspace_classes_it_is_published_with():
+    WorkspaceClassIndex.installed.cache_clear()
+
+    PlanDemoCommand.prepare()
+
+    assert WorkspaceClassIndex.installed.cache_info().currsize == 1

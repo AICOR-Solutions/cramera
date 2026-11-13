@@ -286,7 +286,7 @@ class LiveVisualization:
             publisher = LivePublisher(
                 locations=self.locations,
                 class_index=(
-                    WorkspaceClassIndex.of_installed_packages()
+                    WorkspaceClassIndex.installed()
                     if self.class_index is None
                     else self.class_index
                 ),

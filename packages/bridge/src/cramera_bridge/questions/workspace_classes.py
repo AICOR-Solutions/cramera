@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+from functools import cache
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -277,6 +278,15 @@ class WorkspaceClassIndex:
                 list(specification.submodule_search_locations)[0]
             )
         return cls.of_package_directories(directories)
+
+    @classmethod
+    @cache
+    def installed(cls) -> WorkspaceClassIndex:
+        """
+        :return: The index of every installed package's classes, read once per process,
+            as the installed sources do not change while it runs.
+        """
+        return cls.of_installed_packages()
 
     def candidates(self, name: str) -> Tuple[ClassLocation, ...]:
         """

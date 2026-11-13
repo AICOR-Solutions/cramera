@@ -223,6 +223,13 @@ class PlanBuilderPlugin(ViewerPlugin):
         port = self.port()
         if profile.connection is RobotConnection.REAL:
             self.mirror.start()
+        runner = DemoRunner(
+            directory=demos,
+            port=port,
+            log_limit=self.limits.maximum_log_bytes,
+            template=self.template,
+            prepared_program=DemoRunner.prepared_program_command(demos.interpreter),
+        )
         return PlanBuilderRoutes(
             scenes=context.catalog,
             local_scenes=context.locations.local_scenes,
@@ -232,12 +239,7 @@ class PlanBuilderPlugin(ViewerPlugin):
             plans=PlanStore(storage.plans),
             compiler=ConstraintCompiler.of_file(camera_mount=profile.camera_mount()),
             demos=demos,
-            runner=DemoRunner(
-                directory=demos,
-                port=port,
-                log_limit=self.limits.maximum_log_bytes,
-                template=self.template,
-            ),
+            runner=runner,
             limits=self.limits,
             live_url=f"{LIVE_SCHEME}://{LIVE_HOST}:{port}",
             template=self.template,

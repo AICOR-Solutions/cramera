@@ -6,6 +6,7 @@ itself when the viewer goes away.
 
 from __future__ import annotations
 
+import logging
 import os
 import signal
 import subprocess
@@ -18,6 +19,7 @@ from typing_extensions import IO, List, Optional
 
 from cramera.process_sessions import ProcessSession
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
+from cramera_plan_builder.prepared_demo import DemoOrder, PreparedDemoOption
 from cramera_plan_builder.exceptions import (
     DemoNotStarted,
     PlanRunning,
@@ -38,6 +40,8 @@ from cramera_protocol.plan_builder import (
     StopAfterMotions,
 )
 from cramera_protocol.robot_profile import ExecutorKind
+
+logger = logging.getLogger(__name__)
 
 READ_SIZE = 4096
 """
@@ -66,6 +70,16 @@ ARM_HALT_TIMEOUT = 20.0
 How long, in seconds from the stop, the plan builder's halt of the arms may take to
 confirm that the arms were commanded zero velocities and stand still; it was started
 with the run, so it reached the controllers long before.
+"""
+
+PREPARED_DEMO_MODULE = "cramera_plan_builder.prepared_demo"
+"""
+The module of a demo's interpreter started ahead of its demo.
+"""
+
+DEMO_PREPARATION = "cramera_bridge.plans.command:PlanDemoCommand.prepare"
+"""
+What cramera-bridge does ahead of every demo, as a prepared interpreter is told it.
 """
 
 SUGGESTION_PREFIX = "Suggestion: "
@@ -300,6 +314,99 @@ class ArmHaltProcess:
         self.process.stdin.close()
 
 
+# %% the interpreter prepared ahead
+
+
+@dataclass
+class PreparedProcess:
+    """
+    A demo's interpreter started ahead of its demo, which prepares what every demo needs
+    and then waits for the demo it is handed (see
+    :mod:`cramera_plan_builder.prepared_demo`); its output is read from its start, so
+    what the preparation printed opens the demo's output.
+    """
+
+    process: subprocess.Popen
+    """
+    The interpreter's process, leader of its own process group.
+    """
+
+    log: OutputLog
+    """
+    The interpreter's newest output, which becomes its demo's.
+    """
+
+    reader: threading.Thread
+    """
+    The thread moving the output into :attr:`log`.
+    """
+
+    @classmethod
+    def start(
+        cls, command: List[str], directory: Path, log: OutputLog
+    ) -> Optional[PreparedProcess]:
+        """
+        :param command: The command running the prepared interpreter.
+        :param directory: Where it starts, created when missing.
+        :param log: Receives its output.
+        :return: The started interpreter; None when the operating system could not
+            start it, so the next demo starts an interpreter of its own.
+        """
+        directory.mkdir(parents=True, exist_ok=True)
+        # the boundary to the operating system, where a refused start leaves the next
+        # demo to start as it would without preparation
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=directory,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        except OSError as error:
+            logger.warning("No demo interpreter was prepared ahead: %s", error)
+            return None
+        reader = threading.Thread(
+            target=log.follow, args=(process.stdout,), daemon=True
+        )
+        reader.start()
+        return cls(process=process, log=log, reader=reader)
+
+    def hand_over(self, command: List[str]) -> bool:
+        """
+        :param command: The demo file and its arguments.
+        :return: Whether the interpreter took the demo; one that ended, before or while
+            it was handed the demo, did not, and was ended.
+        """
+        if self.process.poll() is not None:
+            self.end()
+            return False
+        # the pipe to a process that may end at any moment, where an ended one leaves
+        # the demo to start an interpreter of its own
+        try:
+            self.process.stdin.write(DemoOrder(command=command).to_line())
+            self.process.stdin.flush()
+        except BrokenPipeError:
+            self.end()
+            return False
+        return True
+
+    def end(self) -> None:
+        """
+        Kill the interpreter, which no demo was handed, and release its pipes.
+        """
+        if self.process.poll() is None:
+            os.killpg(self.process.pid, signal.SIGKILL)
+        self.process.wait()
+        self.reader.join(STOP_TIMEOUT)
+        # the pipe of a killed process, whose unread input may no longer be flushed
+        try:
+            self.process.stdin.close()
+        except BrokenPipeError:
+            pass
+
+
 # %% one process
 
 
@@ -372,6 +479,7 @@ class DemoProcess:
         mode: RunMode,
         log: OutputLog,
         arm_halt_command: Optional[List[str]] = None,
+        prepared: Optional[PreparedProcess] = None,
     ) -> DemoProcess:
         """
         :param command: The command running the demo.
@@ -380,9 +488,20 @@ class DemoProcess:
         :param log: Receives the demo's output.
         :param arm_halt_command: The command of the plan builder's own halt of the
             arms, for a demo performing its plan on the real robot; else None.
+        :param prepared: An interpreter prepared ahead, which runs the demo when it
+            takes it; the demo starts in an interpreter of its own otherwise.
         :return: The started demo.
         :raises DemoNotStarted: When the operating system cannot start the command.
         """
+        if prepared is not None and prepared.hand_over(command[1:]):
+            return cls(
+                path=path,
+                mode=mode,
+                process=prepared.process,
+                log=prepared.log,
+                reader=prepared.reader,
+                arm_halt=cls.started_arm_halt(arm_halt_command, prepared.log),
+            )
         # the boundary to the operating system, where a refused start becomes an answer
         try:
             process = subprocess.Popen(
@@ -405,12 +524,19 @@ class DemoProcess:
             process=process,
             log=log,
             reader=reader,
-            arm_halt=(
-                None
-                if arm_halt_command is None
-                else ArmHaltProcess.start(arm_halt_command, log)
-            ),
+            arm_halt=cls.started_arm_halt(arm_halt_command, log),
         )
+
+    @staticmethod
+    def started_arm_halt(
+        command: Optional[List[str]], log: OutputLog
+    ) -> Optional[ArmHaltProcess]:
+        """
+        :param command: The command of the plan builder's own halt of the arms, or None.
+        :param log: The demo's output, which the halt's output joins.
+        :return: The started halt, None without a command.
+        """
+        return None if command is None else ArmHaltProcess.start(command, log)
 
     def state(self) -> RunState:
         """
@@ -621,6 +747,18 @@ class DemoRunner:
     when None.
     """
 
+    prepared_program: Optional[List[str]] = None
+    """
+    The command of a demo's interpreter started ahead while no run goes on (see
+    :mod:`cramera_plan_builder.prepared_demo`); None starts each demo's interpreter
+    when the demo starts.
+    """
+
+    prepared: Optional[PreparedProcess] = field(default=None, init=False)
+    """
+    The interpreter prepared for the next demo, None while there is none.
+    """
+
     current: Optional[DemoProcess] = field(default=None, init=False)
     """
     The demo started last, running or ended.
@@ -653,6 +791,7 @@ class DemoRunner:
             self.release()
             saved = self.directory.write(self.template.render(demo))
             path = Path(saved.path)
+            prepared, self.prepared = self.prepared, None
             self.current = DemoProcess.start(
                 self.command(path, mode, executor),
                 path,
@@ -663,6 +802,7 @@ class DemoRunner:
                     if (executor or mode.default_executor) is ExecutorKind.REAL
                     else None
                 ),
+                prepared=prepared,
             )
             return self.current.status()
 
@@ -700,6 +840,21 @@ class DemoRunner:
             ARM_HALT_MODULE,
         ]
 
+    @staticmethod
+    def prepared_program_command(interpreter: str) -> List[str]:
+        """
+        :param interpreter: The Python interpreter the demos run with.
+        :return: The command of an interpreter prepared ahead with cramera-bridge's
+            preparation of every demo.
+        """
+        return [
+            interpreter,
+            "-m",
+            PREPARED_DEMO_MODULE,
+            PreparedDemoOption.PREPARE,
+            DEMO_PREPARATION,
+        ]
+
     def stop(self) -> RunStatus:
         """
         :return: The stopped demo's state, or the idle state when none was started.
@@ -708,14 +863,46 @@ class DemoRunner:
             if self.current is None:
                 return RunStatus()
             self.current.stop(self.stop_timeout)
+            self.prepare_next_demo()
             return self.current.status()
 
     def status(self) -> RunStatus:
         """
-        :return: The state of the demo started last, or the idle state.
+        :return: The state of the demo started last, or the idle state; an interpreter
+            is prepared for the next demo once no run goes on.
         """
         with self.lock:
+            self.prepare_next_demo()
             return RunStatus() if self.current is None else self.current.status()
+
+    def prepare_next_demo(self) -> None:
+        """
+        Start an interpreter for the next demo while none is prepared and no demo runs
+        but a staged scene, so its preparation takes nothing from a run; the caller
+        holds :attr:`lock`.
+        """
+        if self.prepared_program is None or self.prepared is not None:
+            return
+        if (
+            self.current is not None
+            and self.current.process.poll() is None
+            and self.current.mode is not RunMode.STAGE
+        ):
+            return
+        self.prepared = PreparedProcess.start(
+            self.prepared_program,
+            self.directory.directory,
+            OutputLog(self.log_limit),
+        )
+
+    def end_prepared(self) -> None:
+        """
+        End the interpreter prepared for the next demo, if any.
+        """
+        with self.lock:
+            prepared, self.prepared = self.prepared, None
+        if prepared is not None:
+            prepared.end()
 
     def acknowledge(self) -> RunStatus:
         """

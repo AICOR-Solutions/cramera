@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from sqlalchemy import Engine, MetaData
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, configure_mappers
 from typing_extensions import List
 
 from krrood.ormatic.data_access_objects.helper import to_dao
@@ -65,6 +65,17 @@ class NativePlans:
         :return: Whether CRAM's mapping of plans has been generated in this workspace.
         """
         return importlib.util.find_spec(GeneratedMapping.PLANS) is not None
+
+    @classmethod
+    def prepare(cls) -> None:
+        """
+        Import CRAM's mapping of plans and configure it, so storing a run's plans later
+        only writes them; without a generated mapping nothing is prepared.
+        """
+        if not cls.mapping_is_built():
+            return
+        importlib.import_module(GeneratedMapping.PLANS)
+        configure_mappers()
 
     @staticmethod
     def create_tables(engine: Engine, schemas: List[MetaData]) -> None:

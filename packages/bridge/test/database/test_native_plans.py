@@ -4,9 +4,12 @@ Storing the plans of a run with CRAM's database mapping.
 
 from __future__ import annotations
 
+import sys
+
+import pytest
 from sqlalchemy import Column, Integer, MetaData, Table, event, inspect
 
-from cramera_bridge.database.native_plans import NativePlans
+from cramera_bridge.database.native_plans import GeneratedMapping, NativePlans
 from krrood.ormatic.utils import create_engine
 
 
@@ -49,3 +52,16 @@ def test_tables_the_database_holds_already_are_kept(tmp_path):
     NativePlans.create_tables(engine, [schema_of("run"), schema_of("plan")])
 
     assert sorted(inspect(engine).get_table_names()) == ["plan", "run"]
+
+
+# %% preparing
+
+
+@pytest.mark.skipif(
+    not NativePlans.mapping_is_built(), reason="CRAM's mapping of plans is not built"
+)
+def test_preparing_imports_and_configures_the_mapping_of_plans():
+    NativePlans.prepare()
+
+    mapping = sys.modules[GeneratedMapping.PLANS]
+    assert all(mapper.configured for mapper in mapping.Base.registry.mappers)

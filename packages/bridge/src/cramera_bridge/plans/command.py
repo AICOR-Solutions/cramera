@@ -16,11 +16,15 @@ from dataclasses import dataclass, field
 
 from typing_extensions import Any, Optional, Sequence
 
+from cramera_bridge.database.native_plans import NativePlans
 from cramera_bridge.execution import PlanExecution
 from cramera_bridge.robot_task import TaskArgument, TaskCommand
 from cramera_bridge.visualization import LiveVisualization
+from cramera_bridge.plans.actions import ActionDiscovery
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.run_log import RunLogEntry, SafetyStopped
+from cramera_bridge.plans.workspace import RobotAnnotations
+from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera.lifeline import Lifeline
 from cramera_protocol.live import LIVE_PORT
 from cramera_protocol.live_messages import SavedScene
@@ -142,6 +146,19 @@ class PlanDemoCommand:
         return TaskCommand(demo).main(
             [*remaining, TaskArgument.PORT, str(options.port)]
         )
+
+    @staticmethod
+    def prepare() -> None:
+        """
+        Do ahead of a run what every run does the same way, before its plan is known:
+        import the workspace's robots and actions, index the workspace's classes the
+        run is published with, and import CRAM's mapping its plans are stored with.
+        Nothing of a plan, a scene, a world or the robot is read.
+        """
+        RobotAnnotations().annotations()
+        ActionDiscovery().discover()
+        WorkspaceClassIndex.installed()
+        NativePlans.prepare()
 
     @staticmethod
     def report_safety_stop(entry: RunLogEntry) -> None:

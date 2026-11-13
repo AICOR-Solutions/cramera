@@ -597,3 +597,84 @@ def test_an_unfinished_line_passes_unless_it_may_report_an_event():
     assert lines.split(b"[run ev") == b""
     assert lines.split(b"ent] garbled\n") == b"[run event] garbled\n"
     assert lines.events == []
+
+
+# %% the interpreter prepared ahead
+
+
+@pytest.fixture
+def prepared_runner(tmp_path) -> DemoRunner:
+    """
+    :return: A runner of the finishing stand-in whose demos run in an interpreter
+        prepared ahead; its demo and prepared interpreter are ended after the test.
+    """
+    runner = runner_of(
+        tmp_path,
+        "finishing_demo.py",
+        prepared_program=[sys.executable, "-m", "cramera_plan_builder.prepared_demo"],
+    )
+    yield runner
+    runner.stop()
+    runner.end_prepared()
+
+
+def test_an_idle_runner_prepares_an_interpreter_ahead(prepared_runner):
+    prepared_runner.status()
+
+    assert prepared_runner.prepared.process.poll() is None
+
+
+def test_a_demo_runs_in_the_interpreter_prepared_ahead(prepared_runner, demo):
+    prepared_runner.status()
+    prepared = prepared_runner.prepared.process
+
+    prepared_runner.start(demo, RunMode.PERFORM)
+    ended = wait_for(
+        prepared_runner, lambda status: status.state is not RunState.RUNNING
+    )
+
+    assert prepared_runner.current.process is prepared
+    assert ended.state is RunState.FINISHED and ended.return_code == 0
+    assert "performed" in ended.log
+
+
+def test_no_interpreter_is_prepared_while_a_run_goes_on(tmp_path, demo):
+    runner = runner_of(
+        tmp_path,
+        "running_demo.py",
+        prepared_program=[sys.executable, "-m", "cramera_plan_builder.prepared_demo"],
+    )
+    runner.start(demo, RunMode.PERFORM)
+
+    runner.status()
+
+    assert runner.prepared is None
+    runner.stop()
+    runner.end_prepared()
+
+
+def test_the_next_interpreter_is_prepared_once_the_run_ended(prepared_runner, demo):
+    prepared_runner.start(demo, RunMode.PERFORM)
+    wait_for(prepared_runner, lambda status: status.state is not RunState.RUNNING)
+
+    prepared_runner.status()
+
+    assert prepared_runner.prepared.process is not prepared_runner.current.process
+    assert prepared_runner.prepared.process.poll() is None
+
+
+def test_a_demo_starts_its_own_interpreter_once_the_prepared_one_ended(
+    prepared_runner, demo
+):
+    prepared_runner.status()
+    ended = prepared_runner.prepared.process
+    ended.kill()
+    ended.wait()
+
+    prepared_runner.start(demo, RunMode.PERFORM)
+    finished = wait_for(
+        prepared_runner, lambda status: status.state is not RunState.RUNNING
+    )
+
+    assert prepared_runner.current.process is not ended
+    assert finished.state is RunState.FINISHED
