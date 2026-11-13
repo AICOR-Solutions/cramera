@@ -427,6 +427,11 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **Scenes load completely behind a proxy.** The viewer's server let only 5
+  connections wait to be accepted, so behind Jupyter's server proxy on Binder, which
+  opens a connection for each of the hundreds of mesh files a page asks for at once,
+  dozens of meshes never arrived and the page reported them as files that could not
+  be loaded. It now queues as many as the system allows.
 - **The live view draws the ROS debug markers again.** The publisher read and served
   them, but no part of the v1 viewer asked for them. The page now reads the overlay
   whenever a state names a new version, through the viewer's relay, and draws every
