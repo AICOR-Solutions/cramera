@@ -63,9 +63,9 @@ test('a real run whose steps are all done says it finishes, not that it prepares
   assert.equal(finishing.phase, 'run');
 });
 
-test('saving a run\'s record is progress, a live scene is shown once its world is up', () => {
+test('a run saving its record says it finished, saving is progress, a live scene is shown once its world is up', () => {
   const saving = flowStatus(facts({ run: realRun(RunState.SAVING), real: true }));
-  assert.deepEqual([saving.tone, saving.text, saving.phase], [Tone.PROGRESS, 'Run over, the robot holds. Saving the run\'s record…', 'saving']);
+  assert.deepEqual([saving.tone, saving.text, saving.phase], [Tone.PROGRESS, 'The run on the real robot finished; the robot holds. Saving the run\'s record…', 'saving']);
   const stage = { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: RunMode.STAGE };
   assert.equal(flowStatus(facts({ run: stage })).text, 'Starting the live scene…');
   assert.equal(flowStatus(facts({ run: stage, live: true })).text, 'The live scene runs.');
@@ -117,8 +117,10 @@ test('a run that ended says how: a failure gives its reason, from the failed ste
   const simulated = { [RunStatusKey.STATE]: RunState.FINISHED, [RunStatusKey.MODE]: RunMode.PERFORM };
   assert.equal(runOutcome(simulated, progressOf(simulated), false).text, 'The simulated run finished.');
   assert.equal(runOutcome(realRun(RunState.STOPPED), progressOf(realRun(RunState.STOPPED)), true).tone, Tone.WARNING);
+  const saved = realRun(RunState.FINISHED, [{ kind: RunEventKind.RECORD_SAVING }]);
+  assert.deepEqual(runOutcome(saved, progressOf(saved), true), { tone: Tone.SUCCESS, text: 'The run on the real robot finished; its record is saved.' });
   const unsaved = realRun(RunState.SAVE_FAILED, [], { [RunStatusKey.LOG]: 'OSError: disk full' });
-  assert.deepEqual(runOutcome(unsaved, progressOf(unsaved), true), { tone: Tone.ERROR, text: 'Run over, the robot holds, but saving its record failed: OSError: disk full' });
+  assert.deepEqual(runOutcome(unsaved, progressOf(unsaved), true), { tone: Tone.ERROR, text: 'The run on the real robot finished, but saving its record failed: OSError: disk full' });
   const stopped = realRun(RunState.SAFETY_STOPPED, [], { [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false } });
   assert.deepEqual(runOutcome(stopped, progressOf(stopped), true), { tone: Tone.ERROR, text: 'A safety stop ended the run: left arm workspace.' });
   assert.equal(runOutcome(realRun(RunState.IDLE), progressOf(realRun(RunState.IDLE)), true), null);

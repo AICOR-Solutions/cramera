@@ -178,7 +178,7 @@ export function flowStatus(facts) {
     return new FlowStatus(Tone.WARNING, `The plan builder does not answer (${facts.unanswered}); retrying.${advice}${reminder}`);
   }
   if (state === RunState.RUNNING && !staged) return runningStatus(facts);
-  if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, 'Run over, the robot holds. Saving the run\'s record…', 'saving');
+  if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, `${runName(facts.run, facts.real)} finished; the robot holds. Saving the run's record…`, 'saving');
   if (state === RunState.RUNNING && !facts.live) return new FlowStatus(Tone.PROGRESS, 'Starting the live scene…', 'stage');
   if (facts.outcome) return new FlowStatus(facts.outcome.tone, facts.outcome.text);
   if (state === RunState.RUNNING) return new FlowStatus(Tone.IDLE, 'The live scene runs.');
@@ -213,8 +213,8 @@ export function runOutcome(run, progress, real) {
 function runEnd(run, progress, real) {
   const state = run[RunStatusKey.STATE];
   const mode = run[RunStatusKey.MODE];
-  const name = mode === RunMode.STAGE ? 'The live scene' : mode === RunMode.ROBOT && real ? 'The run on the real robot' : mode === RunMode.ROBOT ? 'The run' : 'The simulated run';
-  if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: `${name} finished.` };
+  const name = runName(run, real);
+  if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: savedRecord(run) ? `${name} finished; its record is saved.` : `${name} finished.` };
   if (state === RunState.STOPPED && mode === RunMode.ROBOT && real) return { tone: Tone.WARNING, text: `${name} was stopped: Giskard ended, both arms were commanded zero velocities and stand still.` };
   if (state === RunState.STOPPED) return { tone: Tone.WARNING, text: `${name} was stopped.` };
   if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the plan builder could not confirm that the arms stand still and Giskard ended; see Run output. Use the emergency stop now.` };
@@ -223,12 +223,33 @@ function runEnd(run, progress, real) {
     const refusal = (run[RunStatusKey.EVENTS] ?? []).find((event) => event[RunEventKey.KIND] === RunEventKind.REFUSED)?.[RunEventKey.REASON];
     return { tone: Tone.WARNING, text: `${refusal ?? 'The real robot is not ready; no motion was started. See Run output.'} The plan is still validated.` };
   }
-  if (state === RunState.SAVE_FAILED) return { tone: Tone.ERROR, text: `Run over, the robot holds, but saving its record failed: ${lastLine(run) || 'see Run output.'}` };
+  if (state === RunState.SAVE_FAILED) return { tone: Tone.ERROR, text: `${name} finished, but saving its record failed: ${lastLine(run) || 'see Run output.'}` };
   if (state !== RunState.FAILED) return null;
   const failed = progress.steps().find((step) => step.state === StepState.FAILED);
   if (failed) return { tone: Tone.ERROR, text: `${name} failed at ${failed.name}: ${failed.reason ?? 'see Run output'}.` };
   const line = lastLine(run);
   return { tone: Tone.ERROR, text: line ? `${name} failed: ${line}` : `${name} failed; see Run output.` };
+}
+
+/**
+ * @param {Object} run A `RunStatus`.
+ * @param {boolean} real Whether a run on the robot moves the real robot.
+ * @returns {string} What the status area calls the run, at the start of a sentence.
+ */
+function runName(run, real) {
+  const mode = run[RunStatusKey.MODE];
+  if (mode === RunMode.STAGE) return 'The live scene';
+  if (mode === RunMode.ROBOT) return real ? 'The run on the real robot' : 'The run';
+  return 'The simulated run';
+}
+
+/**
+ * @param {Object} run The `RunStatus` of a run that finished.
+ * @returns {boolean} Whether it saved its record once its motions were over, which it
+ *   reported, so its record is saved now.
+ */
+function savedRecord(run) {
+  return (run[RunStatusKey.EVENTS] ?? []).some((event) => event[RunEventKey.KIND] === RunEventKind.RECORD_SAVING);
 }
 
 /**
