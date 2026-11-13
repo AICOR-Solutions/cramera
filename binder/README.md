@@ -1,18 +1,20 @@
 # cramera on Binder and Docker
 
-This directory builds one image with the viewer, every plugin, CRAM's main and the ROS
-packages the robots and worlds come from, on IntEL4CoRo's Jupyter ROS 2 image. In the
-image, Jupyter's server proxy serves the viewer at `/cramera/`, and the server opens
-that page by default.
+This directory builds one image with the viewer, every plugin, CRAM at a pinned commit
+and the ROS packages the robots and worlds come from, on IntEL4CoRo's Jupyter ROS 2
+image. In the image, Jupyter's server proxy serves the viewer at `/cramera/`, and the
+server opens that page by default.
 
 ## Open it on Binder
 
 ```
-https://binder.intel4coro.de/v2/gh/AICOR-Solutions/cramera/main?urlpath=cramera/%3Ffullscreen
+https://binder.intel4coro.de/v2/gh/AICOR-Solutions/cramera/binder?urlpath=cramera/%3Ffullscreen
 ```
 
-The link builds this repository's `main` the first time it is opened after a new
-commit; this takes a while. Later launches start in about a minute. The page opens
+The link builds this repository's `binder` branch, not `main`, so commits to `main`
+leave the built image alone. Binder builds again only at the first launch after the
+`binder` branch moved; this takes a while. To update the image, merge `main` into
+`binder` and open the link once. Later launches start in about a minute. The page opens
 straight into the viewer. The first click or key press puts it on the full screen,
 as F11 does; Escape leaves the full screen. `urlpath=cramera/%3Fscene%3Dgarmi_pick_place%26fullscreen`
 opens one scene; `urlpath=lab` opens JupyterLab instead.
