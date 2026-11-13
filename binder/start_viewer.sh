@@ -16,4 +16,4 @@ exec /opt/cramera/venv/bin/cramera \
     --host 127.0.0.1 --port "$1" --no-browser --keep-running \
     --demo-scenes /opt/cramera/cramera/demo \
     --scenes /opt/cramera/cramera/packages/plugins/laboratory/src/cramera_laboratory/resources \
-    --public-origin "${CRAMERA_PUBLIC_ORIGIN:-https://binder.intel4coro.de}"
+    --public-origin "${CRAMERA_PUBLIC_ORIGIN:-https://jupyter.intel4coro.de}"

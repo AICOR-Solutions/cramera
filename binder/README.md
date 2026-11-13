@@ -44,8 +44,8 @@ docker run --rm -p 8888:8888 -e CRAMERA_PUBLIC_ORIGIN=http://localhost:8888 \
 
 and open http://localhost:8888/cramera/?fullscreen. Behind another address, set
 `CRAMERA_PUBLIC_ORIGIN` to the origin people open, such as `https://cramera.example.org`;
-without it the viewer accepts pages of `https://binder.intel4coro.de` and of this
-machine only.
+without it the viewer accepts pages of `https://jupyter.intel4coro.de`, where
+binder.intel4coro.de runs its servers, and of this machine only.
 
 ## Files
 
