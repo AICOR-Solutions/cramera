@@ -38,7 +38,7 @@
   border-left: 3px solid var(--accent);
   border-radius: var(--radius);
 }
-.question.hint { font-size: 14px; font-style: italic; color: var(--text-faint); }
+.question[hidden] { display: none; }
 .recorded-note { margin: 10px 0 0; padding: 8px 11px; font-size: 12px; line-height: 1.5; color: var(--warning); background: rgb(255 182 72 / 0.08); border: 1px solid rgb(255 182 72 / 0.35); border-radius: var(--radius); }
 .recorded-note[hidden] { display: none; }
 

@@ -18,11 +18,11 @@ import {
 import { AnswerView } from './answer-view.js';
 
 /**
- * What the panel says while nothing was asked yet.
+ * What the panel says when it cannot evaluate queries. Before anything is asked, only
+ * the question box's placeholder says what to do; the question and the answer stay
+ * empty.
  */
 export const Hint = Object.freeze({
-  QUESTION: 'The question you ask appears here in English — run a query, or pick one below.',
-  ANSWER: 'Choose a question, ask one, or write a query.',
   RECORDED: 'Recorded answers: this page cannot evaluate queries, so the ready-made questions show the answers recorded with cramera-record-answers. Run the viewer in a CRAM workspace to ask your own.',
   QUERY_DISABLED: 'Queries need the viewer running in a CRAM workspace; pick a recorded question below.',
 });
@@ -168,7 +168,7 @@ export class QuestionsPanel {
     body.append(this.#reading, this.#note, this.#presets, this.#answer.element);
     this.element.append(box, body);
     this.#showReading(null);
-    this.#answer.message(Hint.ANSWER);
+    this.#answer.clear();
   }
 
   /**
@@ -183,7 +183,7 @@ export class QuestionsPanel {
     this.#client = source.client;
     this.#bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, []);
     this.#showReading(null);
-    this.#answer.message(Hint.ANSWER);
+    this.#answer.clear();
     const readOnly = source.client.readOnly;
     this.#setReadOnly(readOnly);
     const catalog = source.catalog;
@@ -235,12 +235,12 @@ export class QuestionsPanel {
   }
 
   /**
-   * @param {Object|null} reading A query read back in English, or null for the hint.
+   * @param {Object|null} reading A query read back in English, or null for none.
    */
   #showReading(reading) {
     const text = reading?.[VerbalizationKey.TEXT];
-    this.#reading.textContent = text ?? Hint.QUESTION;
-    this.#reading.classList.toggle('hint', !text);
+    this.#reading.textContent = text ?? '';
+    this.#reading.hidden = !text;
   }
 
   /**

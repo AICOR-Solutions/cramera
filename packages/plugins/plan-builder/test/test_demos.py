@@ -59,6 +59,23 @@ def test_a_written_demo_is_found_where_its_command_runs_it(tmp_path, plan):
     assert shlex.split(saved.command) == ["python3", str(written.resolve())]
 
 
+def test_a_written_demo_is_run_through_the_command_prefix(tmp_path):
+    directory = DemoDirectory(
+        tmp_path,
+        interpreter="/opt/venv/bin/python",
+        command_prefix=("docker", "compose", "exec", "viewer"),
+    )
+    saved = directory.write(DemoSource(file_name="plan.py", source="x = 1\n"))
+    assert shlex.split(saved.command) == [
+        "docker",
+        "compose",
+        "exec",
+        "viewer",
+        "/opt/venv/bin/python",
+        saved.path,
+    ]
+
+
 def test_writing_a_demo_again_replaces_it(tmp_path):
     directory = DemoDirectory(tmp_path)
     directory.write(DemoSource(file_name="plan.py", source="old = 1\n"))

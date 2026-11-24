@@ -242,7 +242,25 @@ export class SiteHeader {
    * The identity of the page the header is on.
    * @type {string}
    */
+  #page;
+
+  /**
+   * The identity of the link marked as the current page.
+   * @type {string}
+   */
   #current;
+
+  /**
+   * The panel shown on this page, or null for none.
+   * @type {string|null}
+   */
+  #panel = null;
+
+  /**
+   * The links shown.
+   * @type {Array<PageLink>}
+   */
+  #links = [];
 
   /**
    * Shows a plugin's panel on this page instead of following its link, or null on a
@@ -281,6 +299,7 @@ export class SiteHeader {
     const document = root.ownerDocument;
     this.#root = root;
     this.#url = url;
+    this.#page = current;
     this.#current = current;
     this.#showPanel = showPanel;
     const brand = document.createElement('a');
@@ -315,6 +334,8 @@ export class SiteHeader {
   show(info) {
     const document = this.#root.ownerDocument;
     const links = pageLinksOf(info, this.#url);
+    this.#links = links;
+    if (this.#panel !== null) this.#current = this.#panelPage();
     this.#navigation.replaceChildren(
       ...links.map((link) => {
         const anchor = document.createElement('a');
@@ -334,6 +355,25 @@ export class SiteHeader {
     this.#version.textContent = versionOf(info);
     this.#logo.alt = info[ViewerInfoKey.LOGO_TEXT] ?? AICOR_LOGO_TEXT;
     return links;
+  }
+
+  /**
+   * Mark the link that shows a panel as the current page; a panel no link shows, such
+   * as the panel of a plugin whose link leads to a page of its own, leaves the page the
+   * header is on marked.
+   * @param {string|null} panel The identity of the panel shown, or null for none.
+   */
+  markPanel(panel) {
+    this.#panel = panel;
+    this.markCurrent(this.#panelPage());
+  }
+
+  /**
+   * @returns {string} The identity of the link that shows the shown panel, or of the
+   *   page the header is on when none does.
+   */
+  #panelPage() {
+    return this.#links.find((link) => link.panel !== null && link.panel === this.#panel)?.identity ?? this.#page;
   }
 
   /**

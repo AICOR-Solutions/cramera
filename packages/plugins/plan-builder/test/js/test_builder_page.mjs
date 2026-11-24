@@ -70,6 +70,7 @@ import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '..
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { READY, cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
+import { actionPalette } from '../../src/cramera_plan_builder/web/builder/step-card.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
@@ -471,6 +472,8 @@ test('clicking an action and dropping one add steps where they land', async () =
   assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['move_torso', 'park_arms']);
   assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, page.state.schema('move_torso')[ActionSchemaKey.LABEL]);
   assert.ok(Number(steps(root)[0].dataset.palette) < STEP_PALETTE_SIZE);
+  assert.equal(steps(root)[0].dataset.palette, String(actionPalette('move_torso')));
+  assert.equal(block(root, 'park_arms').dataset.palette, String(actionPalette('park_arms')));
 });
 
 test('an action dropped below the last step is added after it', async () => {
@@ -1239,13 +1242,26 @@ test('a saved plan keeps its identity and is offered to open', async () => {
 
 test('the generated demo is shown and written', async () => {
   const { root, page } = await openPage();
+  const output = root.findAll((element) => element.className === 'demo-source')[0];
+  assert.ok(!output.parentElement.open);
   byAction(root, PlanAction.SHOW_DEMO)[0].click();
   await settled();
-  const output = root.findAll((element) => element.className === 'demo-source')[0];
   assert.equal(output.hidden, false);
+  assert.equal(output.parentElement.open, true);
   assert.match(output.textContent, new RegExp(page.state.field(PlanKey.NAME)));
   byAction(root, PlanAction.WRITE_DEMO)[0].click();
   await settled();
+  assert.match(message(root), /python \/demos\//);
+});
+
+test('a written demo is shown in the generated demo at once', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.WRITE_DEMO)[0].click();
+  await settled();
+  const output = root.findAll((element) => element.className === 'demo-source')[0];
+  assert.equal(output.hidden, false);
+  assert.equal(output.parentElement.open, true);
+  assert.match(output.textContent, new RegExp(page.state.field(PlanKey.NAME)));
   assert.match(message(root), /python \/demos\//);
 });
 

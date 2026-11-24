@@ -438,7 +438,7 @@ export class Application {
     this.#querySlot = new QuerySlot(elements.querySlot, storage);
     new PaneSplit(elements.split, elements.divider, COLUMNS, storage);
     new PaneSplit(elements.column, elements.rowDivider, ROWS, storage);
-    this.#panels.onShow((panel) => this.#header.markCurrent(panel && !this.#panels.tabbed(panel) ? panel : SCENE_PAGE));
+    this.#panels.onShow((panel) => this.#header.markPanel(panel && !this.#panels.tabbed(panel) ? panel : null));
     elements.popOut.addEventListener('click', () => window.open(sceneAlone(this.#location.href).href, '_blank', 'popup'));
     this.#details = new DetailsPanel(elements.document);
     this.#sceneGraph = new SceneGraphPanel(elements.document, this.bus, (path) => ontologyAddress(api.url(ONTOLOGY_ROUTE), path));

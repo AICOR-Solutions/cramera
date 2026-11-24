@@ -98,7 +98,9 @@ cramera
   demo is refused with the step and field named.
 - **Demos** are generated from `templates/plan_demo.py` and written to
   `CRAMERA_DATA/plan-builder/demos`, or to the directory `CRAMERA_PLAN_BUILDER_OUTPUT`
-  names; never into a CRAM checkout. A demo carries its plan as JSON and runs it as
+  names; never into a CRAM checkout. The command a written demo is reported to run
+  with starts with the words `CRAMERA_PLAN_BUILDER_RUN_PREFIX` names, such as
+  `docker compose exec viewer` when the viewer runs in a container. A demo carries its plan as JSON and runs it as
   `cramera_bridge.plans`' `RobotTaskDemo`: `python <demo>.py` performs the selected
   robot's steps, each built generically from its action's class and values, and saves
   the recording into the local scenes directory. Every grasp first detects its object
