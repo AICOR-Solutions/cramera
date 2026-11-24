@@ -383,6 +383,27 @@ def test_a_written_demo_lies_in_the_output_directory(post, plan, output):
     assert saved.path in saved.command
 
 
+def test_a_written_demo_is_run_through_the_configured_prefix(
+    serve, output, workspace_loader, plan
+):
+    plugin = PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            PlanBuilderVariable.RUN_PREFIX: "docker compose --profile real exec viewer-real",
+        },
+        workspace=workspace_loader,
+    )
+    answer = send(
+        serve(plugin),
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMOS,
+        json.dumps(plan.to_json()).encode("utf-8"),
+    )
+    saved = SavedDemo.from_json(json.loads(answer.body))
+    assert saved.command.startswith("docker compose --profile real exec viewer-real ")
+    assert saved.command.endswith(saved.path)
+
+
 # %% runs
 
 

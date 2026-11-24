@@ -239,6 +239,13 @@ class PlanBuilderVariable(StrEnum):
     The port started demos publish their world on, the live publisher's port by default.
     """
 
+    RUN_PREFIX = "CRAMERA_PLAN_BUILDER_RUN_PREFIX"
+    """
+    The words, in shell syntax, put before the command a written demo is reported to run
+    with, so that it runs where the plan builder runs; e.g. the ``docker compose exec``
+    of its service when the plan builder runs in a container. Empty by default.
+    """
+
 
 # %% destinations
 

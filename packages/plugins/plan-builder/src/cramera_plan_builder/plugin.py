@@ -6,6 +6,7 @@ and run, and the routes and browser files it adds.
 from __future__ import annotations
 
 import os
+import shlex
 from dataclasses import dataclass, field
 from enum import StrEnum
 from importlib.metadata import version
@@ -219,7 +220,12 @@ class PlanBuilderPlugin(ViewerPlugin):
         """
         storage = PlanBuilderStorage.of(context.locations, self.environment)
         profile = ConfiguredProfile.of_environment(self.environment)
-        demos = DemoDirectory(storage.demos)
+        demos = DemoDirectory(
+            storage.demos,
+            command_prefix=tuple(
+                shlex.split(self.environment.get(PlanBuilderVariable.RUN_PREFIX, ""))
+            ),
+        )
         port = self.port()
         if profile.connection is RobotConnection.REAL:
             self.mirror.start()

@@ -15,6 +15,8 @@ from enum import StrEnum
 from pathlib import Path
 from string import Template
 
+from typing_extensions import Tuple
+
 from cramera_plan_builder.exceptions import UnsafeStoragePath
 from cramera_protocol.plan_builder import DemoDocument, DemoSource, SavedDemo
 
@@ -112,6 +114,13 @@ class DemoDirectory:
     The Python interpreter that runs a demo.
     """
 
+    command_prefix: Tuple[str, ...] = ()
+    """
+    The words put before the interpreter in the command a demo is reported to run with,
+    such as the ``docker compose exec`` that reaches the container the plan builder runs
+    in, whose paths the command names.
+    """
+
     def write(self, demo: DemoSource) -> SavedDemo:
         """
         Write a demo whole or not at all, replacing an earlier demo of its name.
@@ -138,5 +147,7 @@ class DemoDirectory:
         os.replace(temporary.name, target)
         return SavedDemo(
             path=str(target.resolve()),
-            command=shlex.join([self.interpreter, str(target.resolve())]),
+            command=shlex.join(
+                [*self.command_prefix, self.interpreter, str(target.resolve())]
+            ),
         )
