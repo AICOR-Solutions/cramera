@@ -92,3 +92,18 @@
 .answer .translation { display: grid; gap: 2px; margin: 4px 0; }
 .answer .translation-language { margin: 0; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
 .answer .translation pre { margin: 0; padding: 6px 8px; overflow-x: auto; font: 11px var(--mono); border-radius: var(--radius); background: var(--surface-sunken); }
+
+/* hints while a query is written */
+.query-field { position: relative; flex: 1; display: flex; }
+.query-field textarea { flex: 1; }
+.query-hints { position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin: 2px 0 0; padding: 4px 0; list-style: none; max-height: 320px; overflow-y: auto; background: var(--panel, #10161f); border: 1px solid var(--border, #2b3442); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.query-hints li { display: flex; gap: 10px; align-items: baseline; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+.query-hints li.chosen, .query-hints li:hover { background: rgba(45, 212, 191, 0.16); }
+.query-hints .hint-kind { flex: none; width: 38px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint, #8a94a6); }
+.query-hints .kind-variable { color: #f59e0b; }
+.query-hints .kind-factory { color: #a78bfa; }
+.query-hints .kind-class, .query-hints .kind-entity_type { color: #2dd4bf; }
+.query-hints .kind-field, .query-hints .kind-member { color: #60a5fa; }
+.query-hints .hint-name { color: var(--text, #e6edf3); }
+.query-hints .hint-detail { overflow: hidden; text-overflow: ellipsis; color: var(--text-faint, #8a94a6); font-size: 11px; }
+.query-moment { margin: 6px 0 0; font-size: 12px; color: #2dd4bf; }

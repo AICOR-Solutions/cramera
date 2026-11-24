@@ -16,6 +16,7 @@ import {
   ViewerEvent,
 } from '../../protocol.js';
 import { AnswerView } from './answer-view.js';
+import { QueryCompletion } from './query-completion.js';
 
 /**
  * What the panel says while nothing was asked yet.
@@ -26,6 +27,11 @@ export const Hint = Object.freeze({
   RECORDED: 'Recorded answers: this page cannot evaluate queries, so the ready-made questions show the answers recorded with cramera-record-answers. Run the viewer in a CRAM workspace to ask your own.',
   QUERY_DISABLED: 'Queries need the viewer running in a CRAM workspace; pick a recorded question below.',
 });
+
+/**
+ * The scope whose questions are asked of the world at the shown frame.
+ */
+export const PAUSED_WORLD_SCOPE = 'paused_world';
 
 /**
  * What the status in the card's head says.
@@ -112,6 +118,25 @@ export class QuestionsPanel {
   #answer;
 
   /**
+   * The hints shown while a query is written.
+   * @type {QueryCompletion}
+   */
+  #completion;
+
+  /**
+   * The frame of the recording the viewer shows, which questions about the paused
+   * world are asked at.
+   * @type {number}
+   */
+  #frame = 0;
+
+  /**
+   * Says which frame a question about the paused world is asked at.
+   * @type {HTMLElement}
+   */
+  #moment;
+
+  /**
    * @param {Document} document The page.
    * @param {import('../../core/event-bus.js').EventBus} bus The application's event bus.
    */
@@ -129,14 +154,18 @@ export class QuestionsPanel {
     const code = document.createElement('textarea');
     code.rows = 2;
     code.spellcheck = false;
-    code.placeholder = 'the(entity(robot))';
+    code.placeholder = 'an(Arm)  ·  hints while you type · Ctrl+Space lists names · Ctrl+Enter runs';
     code.setAttribute('aria-label', 'Query in the entity query language');
     const run = document.createElement('button');
     run.type = 'button';
     run.className = 'run';
     run.textContent = 'Run';
     run.addEventListener('click', () => this.run(code.value, this.#scope.value));
-    bar.append(code, run);
+    const field = document.createElement('div');
+    field.className = 'query-field';
+    this.#completion = new QueryCompletion(code, () => this.run(code.value, this.#scope.value));
+    field.append(code, this.#completion.element);
+    bar.append(field, run);
     this.#code = { input: code, button: run };
     const ask = document.createElement('form');
     ask.className = 'ask';
@@ -148,13 +177,20 @@ export class QuestionsPanel {
     askButton.textContent = 'Ask';
     this.#scope = document.createElement('select');
     this.#scope.setAttribute('aria-label', 'Query scope');
+    this.#scope.addEventListener('change', () => this.#useScope());
     ask.append(question, this.#scope, askButton);
     ask.addEventListener('submit', (event) => {
       event.preventDefault();
       this.ask(question.value);
     });
     this.#question = { input: question, button: askButton };
-    box.append(bar, ask);
+    this.#moment = document.createElement('p');
+    this.#moment.className = 'query-moment';
+    box.append(bar, this.#moment, ask);
+    bus.subscribe(ViewerEvent.FRAME_CHANGED, (frame) => {
+      this.#frame = frame;
+      this.#showMoment();
+    });
     const body = document.createElement('div');
     body.className = 'console-body';
     this.#reading = document.createElement('p');
@@ -196,6 +232,31 @@ export class QuestionsPanel {
     this.status.textContent = readOnly ? `recorded answers · ${source.recordedAt ?? ''}`.trim() : Status.LIVE;
     this.#showScopes(catalog[PresetCatalogKey.SCOPES] ?? []);
     this.#showPresets(catalog[PresetCatalogKey.PRESETS] ?? [], readOnly);
+    this.#useScope();
+  }
+
+  /**
+   * Offer the names of the chosen scope while a query is written.
+   */
+  #useScope() {
+    const client = this.#client;
+    const scene = this.#scene;
+    const scope = this.#scope.value;
+    const readOnly = !client || client.readOnly || !client.vocabulary;
+    this.#completion.useSource(readOnly ? null : {
+      vocabulary: () => client.vocabulary(scene, scope),
+      members: (name) => client.members(scene, scope, name),
+    });
+    this.#showMoment();
+  }
+
+  /**
+   * Say which frame a question about the paused world is asked at.
+   */
+  #showMoment() {
+    const paused = this.#scope.value === PAUSED_WORLD_SCOPE;
+    this.#moment.hidden = !paused;
+    this.#moment.textContent = `Asked of the world as it is at frame ${this.#frame} — pause anywhere and ask.`;
   }
 
   /**
@@ -228,7 +289,8 @@ export class QuestionsPanel {
     this.#scope.value = scope;
     this.#showReading(reading);
     this.#answer.message('Answering…');
-    const answer = await this.#client.query(this.#scene, code, scope).catch((error) => ({ [QueryAnswerKey.OK]: false, [QueryAnswerKey.ERROR]: error.message }));
+    const frame = scope === PAUSED_WORLD_SCOPE ? this.#frame : null;
+    const answer = await this.#client.query(this.#scene, code, scope, frame).catch((error) => ({ [QueryAnswerKey.OK]: false, [QueryAnswerKey.ERROR]: error.message }));
     this.#showReading(answer[QueryAnswerKey.VERBALIZATION] ?? reading);
     this.#answer.show(answer);
     this.#bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, answer[QueryAnswerKey.HIGHLIGHT] ?? []);
