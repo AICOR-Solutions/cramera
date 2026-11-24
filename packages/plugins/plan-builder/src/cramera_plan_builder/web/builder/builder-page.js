@@ -1591,12 +1591,19 @@ export class BuilderPage {
 
   /**
    * Apply a marker dragged in the 3D view to the plan, and to the live world for an
-   * object while it is published.
+   * object while it is published; a robot's marker goes back while a run goes, which
+   * says so.
    * @param {Selection} selection The marker.
    * @param {Array<number>} pose Its new pose.
    */
   #placed(selection, pose) {
     if (selection.kind === MarkerKind.ROBOT) {
+      const locked = this.lockedByRun();
+      if (locked !== null) {
+        this.report(locked);
+        this.render();
+        return;
+      }
       const height = PlanPose.position(this.state.robot(selection.identifier)[PlannedRobotKey.POSE])[PoseIndex.Z];
       this.edit(() => this.state.setRobotPose(selection.identifier, PlanPose.of(...PlanPose.position(pose).slice(0, 2), height, PlanPose.yaw(pose))));
       return;
@@ -1799,11 +1806,20 @@ export class BuilderPage {
   }
 
   /**
+   * @returns {string|null} Why the robots and the plan may not be changed while a run
+   *   starts or goes, or null when no run does.
+   */
+  lockedByRun() {
+    return this.#performing() || this.#request?.kind === FlowRequest.START ? 'Wait until the run ends.' : null;
+  }
+
+  /**
    * @returns {string|null} Why the plan may not be changed, opened or saved now, or null
    *   when it may.
    */
   #planLocked() {
-    if (this.#performing() || this.#request?.kind === FlowRequest.START) return 'Wait until the run ends.';
+    const run = this.lockedByRun();
+    if (run !== null) return run;
     if (this.#request !== null) return 'Wait until the current request is answered.';
     if (this.#savingPlan) return 'Wait until the plan is saved.';
     return null;
@@ -2051,7 +2067,7 @@ export class BuilderPage {
             parts.selection = selection;
             parts.objects.render(selection?.kind === MarkerKind.OBJECT ? selection.identifier : null);
             const robot = selection?.kind === MarkerKind.ROBOT ? selection.identifier : null;
-            if (robot && robot !== this.state.activeRobot()?.[PlannedRobotKey.IDENTIFIER]) this.edit(() => this.state.selectRobot(robot));
+            if (robot && robot !== this.state.activeRobot()?.[PlannedRobotKey.IDENTIFIER] && this.lockedByRun() === null) this.edit(() => this.state.selectRobot(robot));
           },
           (selection, pose) => this.#placed(selection, pose),
           (error) => this.report(error.message, Tone.ERROR),

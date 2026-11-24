@@ -231,11 +231,32 @@ function joined(folder, name) {
 // %% robots
 
 /**
+ * The tags of the elements a person changes the robots with.
+ */
+const CONTROL_TAGS = Object.freeze(['BUTTON', 'INPUT', 'SELECT']);
+
+/**
+ * @param {HTMLElement} element An element.
+ * @returns {Array<HTMLElement>} The buttons, inputs and selects inside it, in order.
+ */
+function controlsIn(element) {
+  return [...element.children].flatMap((child) => (CONTROL_TAGS.includes(child.tagName) ? [child] : controlsIn(child)));
+}
+
+/**
  * What the robots section says while the plan has no robot.
  */
 export const RobotsNote = Object.freeze({
   NONE_OFFERED: 'The CRAM workspace offers no robot here.',
   NONE_ADDED: 'No robot yet; add one to compose its plan.',
+});
+
+/**
+ * What the entry of the robot whose plan is edited says about it.
+ */
+export const RobotTag = Object.freeze({
+  EDITING: 'editing its plan',
+  RUNNING: 'running its plan',
 });
 
 export class RobotsView {
@@ -265,8 +286,9 @@ export class RobotsView {
 
   /**
    * @param {Document} document The page's document.
-   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)` and
-   *   `preferredModel()`, the robot model the person used last or null.
+   * @param {Object} editor The page: `state` (the `PlanState`), `edit(change)`,
+   *   `preferredModel()`, the robot model the person used last or null, and
+   *   `lockedByRun()`, why the robots may not be changed while a run goes or null.
    */
   constructor(document, editor) {
     this.#editor = editor;
@@ -275,7 +297,8 @@ export class RobotsView {
   }
 
   /**
-   * Show the robots, which one's plan is edited, and the edited robot's settings.
+   * Show the robots, which one's plan is edited or runs, and the edited robot's
+   * settings; while a run goes, none of them can be changed.
    */
   render() {
     const document = this.#shown.document;
@@ -318,6 +341,19 @@ export class RobotsView {
       remove,
     );
     this.element.replaceChildren(list, settings, adding);
+    this.#lock(this.#editor.lockedByRun());
+  }
+
+  /**
+   * Disable every control of the view while a run goes.
+   * @param {string|null} reason Why the robots may not be changed, or null when they may.
+   */
+  #lock(reason) {
+    if (reason === null) return;
+    for (const control of controlsIn(this.element)) {
+      control.disabled = true;
+      control.title = reason;
+    }
   }
 
   /**
@@ -359,7 +395,7 @@ export class RobotsView {
     head.append(elements.create('strong', '', robot[PlannedRobotKey.LABEL]), elements.create('span', 'badge', this.#editor.state.modelLabel(robot[PlannedRobotKey.MODEL])));
     const facts = `${steps} ${steps === 1 ? 'step' : 'steps'} · starts at ${RobotsView.metres(x)}, ${RobotsView.metres(y)} m`;
     button.append(head, elements.create('span', 'robot-facts', facts));
-    if (edited) button.append(elements.create('span', 'robot-editing', 'editing its plan'));
+    if (edited) button.append(elements.create('span', 'robot-editing', this.#editor.lockedByRun() === null ? RobotTag.EDITING : RobotTag.RUNNING));
     const item = elements.create('li');
     item.append(button);
     return item;

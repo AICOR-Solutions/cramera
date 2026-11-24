@@ -65,7 +65,7 @@ import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constr
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
+import { EMPTY_FOLDER, EnvironmentNote, RobotTag, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { READY, cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
@@ -1867,6 +1867,48 @@ test('a run on the real robot its check refused before anything moved keeps the 
   robotRun(root).click();
   await settled();
   assert.deepEqual(api.runs.map((run) => run.overrideValidation), [false, false]);
+});
+
+/**
+ * @param {Object} root The page's root.
+ * @returns {Array<Object>} Every control of the robots section that changes the robots.
+ */
+const robotControls = (root) => {
+  const [robots] = root.findAll((element) => element.className === 'robots');
+  return [PlanAction.ADD_ROBOT, PlanAction.REMOVE_ROBOT, PlanAction.SELECT_ROBOT, PlanAction.ROBOT_LABEL, PlanAction.ROBOT_MODEL, PlanAction.POSE].flatMap((action) => byAction(robots, action));
+};
+
+test('while a run goes the robot card says its plan runs and the robots cannot be changed', async () => {
+  const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  const tag = () => root.findAll((element) => element.className === 'robot-editing').map((element) => element.textContent);
+  assert.deepEqual(tag(), [RobotTag.EDITING]);
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  assert.deepEqual(tag(), [RobotTag.RUNNING]);
+  assert.ok(robotControls(root).length > 0);
+  assert.deepEqual(robotControls(root).filter((control) => !control.disabled).map((control) => control.dataset.action), []);
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED, [RunStatusKey.RETURN_CODE]: 0 };
+  await timer.tick();
+  assert.deepEqual(tag(), [RobotTag.EDITING]);
+  assert.deepEqual(robotControls(root).filter((control) => control.disabled).map((control) => control.dataset.action), []);
+});
+
+test('while a run goes a robot is neither chosen nor moved in the 3D view', async () => {
+  const { root, page, scene } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  const [first, second] = page.state.robots().map((robot) => robot[PlannedRobotKey.IDENTIFIER]);
+  robotEntries(root).find((entry) => entry.dataset.robot === first).click();
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  const before = JSON.stringify(page.state.document);
+  scene().listeners.onPick(new Selection(MarkerKind.ROBOT, second));
+  scene().listeners.onPlace(new Selection(MarkerKind.ROBOT, first), [2, 2, 0, 0, 0, 0, 1]);
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.IDENTIFIER], first);
+  assert.equal(JSON.stringify(page.state.document), before);
 });
 
 test('while the run\'s record is saved the page says so, offers only Stop and shows a failed save', async () => {
