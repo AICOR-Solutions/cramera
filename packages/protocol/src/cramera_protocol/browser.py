@@ -157,6 +157,7 @@ from cramera_protocol.offline import (
     StoryboardKey,
 )
 from cramera_protocol.detection import (
+    InlineImageKey,
     DetectedObjectText,
     DetectionGrounding,
     DetectionRegionKey,
@@ -764,6 +765,7 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     DetectionGrounding,
     ScanRequestKey,
     SceneScanKey,
+    InlineImageKey,
     StepVerdict,
     StepFailureReason,
     StepValidationKey,

@@ -8,11 +8,14 @@ from __future__ import annotations
 import pytest
 
 from cramera_protocol.browser import BROWSER_ENUMERATIONS
+from cramera_protocol.bundle.scene import PerceptionImageSource
 from cramera_protocol.detection import (
     DetectedObjectReference,
     DetectionGrounding,
     DetectionRegion,
     DetectionRegionKey,
+    InlineImage,
+    InlineImageKey,
     RegionKind,
     ScanRequest,
     SceneScan,
@@ -60,8 +63,20 @@ def test_a_scan_order_and_its_scan_survive_their_json():
         demo=DemoDocument(plan=PlanDocument(name="empty")), simulated_objects=[cube]
     )
     scan = SceneScan(objects=[cube], grounding=DetectionGrounding.ASSUMED)
+    seen = SceneScan(
+        objects=[cube],
+        grounding=DetectionGrounding.PERCEIVED,
+        images=[
+            InlineImage(
+                title="PointCloudClusterExtractor",
+                source=PerceptionImageSource.ROBOKUDO,
+                url="data:image/png;base64,iVBORw0KGgo=",
+            )
+        ],
+    )
     assert SceneScanOrder.from_json(order.to_json()) == order
     assert SceneScan.from_json(scan.to_json()) == scan
+    assert SceneScan.from_json(seen.to_json()) == seen
     assert (
         ScanRequest.from_json(
             ScanRequest(plan=PlanDocument(name="empty")).to_json()
@@ -71,7 +86,9 @@ def test_a_scan_order_and_its_scan_survive_their_json():
 
 
 def test_the_browser_reads_the_names_of_a_scan():
-    assert {RegionKind, DetectionGrounding, SceneScanKey} <= set(BROWSER_ENUMERATIONS)
+    assert {RegionKind, DetectionGrounding, SceneScanKey, InlineImageKey} <= set(
+        BROWSER_ENUMERATIONS
+    )
 
 
 def test_a_region_names_a_zone_or_lies_around_a_marker():

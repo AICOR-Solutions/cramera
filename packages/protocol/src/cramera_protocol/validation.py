@@ -14,6 +14,7 @@ from enum import StrEnum
 
 from typing_extensions import List, Optional
 
+from cramera_protocol.detection import InlineImage
 from cramera_protocol.document import JsonDocument, document_field
 from cramera_protocol.plan_builder import DemoDocument, PlanDocument, PlannedObject
 
@@ -120,6 +121,11 @@ class StepValidationKey(StrEnum):
     What failed it, in the planner's words.
     """
 
+    IMAGES = "images"
+    """
+    What a detection saw.
+    """
+
 
 @dataclass(kw_only=True)
 class StepValidation(JsonDocument):
@@ -153,6 +159,14 @@ class StepValidation(JsonDocument):
     detail: str = document_field(StepValidationKey.DETAIL, default="")
     """
     The planner's own account of the failure, for developers.
+    """
+
+    images: List[InlineImage] = document_field(
+        StepValidationKey.IMAGES, default_factory=list
+    )
+    """
+    The images of what a detection step saw, empty for any other step and where no
+    images were taken.
     """
 
 

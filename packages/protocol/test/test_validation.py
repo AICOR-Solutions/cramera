@@ -14,9 +14,12 @@ from cramera_protocol.plan_builder import (
     RunMode,
     RunRequest,
 )
+from cramera_protocol.bundle.scene import PerceptionImageSource
+from cramera_protocol.detection import InlineImage
 from cramera_protocol.validation import (
     StepFailureReason,
     StepValidation,
+    StepValidationKey,
     StepVerdict,
     ValidationOrder,
     ValidationReport,
@@ -35,6 +38,18 @@ def test_a_report_and_its_order_survive_their_json():
                 verdict=StepVerdict.FAILED,
                 reason=StepFailureReason.UNREACHABLE,
                 detail="stopped approaching its goal",
+            ),
+            StepValidation(
+                step="step_3",
+                verdict=StepVerdict.FAILED,
+                reason=StepFailureReason.NOT_PERCEIVED,
+                images=[
+                    InlineImage(
+                        title="PointCloudClusterExtractor",
+                        source=PerceptionImageSource.ROBOKUDO,
+                        url="data:image/png;base64,iVBORw0KGgo=",
+                    )
+                ],
             ),
         ],
         seconds=2.5,
@@ -88,4 +103,8 @@ def test_a_run_request_keeps_the_validation_unless_it_overrides_it():
 
 
 def test_the_browser_reads_the_names_of_a_validation():
-    assert {StepVerdict, StepFailureReason} <= set(BROWSER_ENUMERATIONS)
+    assert {
+        StepVerdict,
+        StepFailureReason,
+        StepValidationKey,
+    } <= set(BROWSER_ENUMERATIONS)

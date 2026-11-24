@@ -129,6 +129,54 @@ class DetectedObjectReference:
         return cls(step=value.removeprefix(DetectedObjectText.PREFIX))
 
 
+# %% images
+
+
+class InlineImageKey(StrEnum):
+    """
+    The keys of an :class:`InlineImage`.
+    """
+
+    TITLE = "title"
+    """
+    What the image shows.
+    """
+
+    SOURCE = "source"
+    """
+    Where the image comes from.
+    """
+
+    URL = "url"
+    """
+    The image itself.
+    """
+
+
+@dataclass(kw_only=True)
+class InlineImage(JsonDocument):
+    """
+    One image of what perception saw, carried whole inside the document that reports
+    it.
+    """
+
+    title: str = document_field(InlineImageKey.TITLE)
+    """
+    What the image shows, for people reading it, such as the RoboKudo annotator that
+    drew it.
+    """
+
+    source: str = document_field(InlineImageKey.SOURCE)
+    """
+    A :class:`~cramera_protocol.bundle.scene.PerceptionImageSource` value.
+    """
+
+    url: str = document_field(InlineImageKey.URL)
+    """
+    The PNG image as a ``data:`` URL.
+    """
+
+
 # %% scanning the scene
 
 
@@ -253,6 +301,11 @@ class SceneScanKey(StrEnum):
     How many objects were found that no object model matches.
     """
 
+    IMAGES = "images"
+    """
+    What perception saw.
+    """
+
 
 @dataclass(kw_only=True)
 class SceneScan(JsonDocument):
@@ -274,4 +327,12 @@ class SceneScan(JsonDocument):
     unrecognized: int = document_field(SceneScanKey.UNRECOGNIZED, default=0)
     """
     How many objects were found that no object model matches, which were left out.
+    """
+
+    images: List[InlineImage] = document_field(
+        SceneScanKey.IMAGES, default_factory=list
+    )
+    """
+    The images of what the robot's perception saw, empty where the objects were assumed
+    from the twin or no images were taken.
     """
