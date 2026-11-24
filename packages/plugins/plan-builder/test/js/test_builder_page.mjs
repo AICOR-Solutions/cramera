@@ -60,7 +60,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1007,6 +1007,13 @@ test('a robot whose root is its pelvis keeps its height when it is dragged or ed
   x.value = '3';
   x.dispatch(DomEvent.CHANGE);
   assert.deepEqual(PlanPose.position(page.state.robot(robot)[PlannedRobotKey.POSE]), [3, 2, 0.7923]);
+});
+
+test('every tool button of the 3D view says what it does as its tooltip', async () => {
+  const { root } = await openPage();
+  const tools = root.findAll((element) => element.className === 'button-row tool-actions')[0].children;
+  assert.deepEqual(tools.map((button) => button.dataset.action), Object.keys(TOOL_TITLES));
+  assert.deepEqual(tools.map((button) => button.title), Object.values(TOOL_TITLES));
 });
 
 test('a picked object is marked in the list and the turn mode reaches the view', async () => {

@@ -204,6 +204,18 @@ export const LENIENT_CHECK = Object.freeze({
 });
 
 /**
+ * What each button of the 3D view's tools does, shown as its tooltip, by its
+ * `PlanAction` value.
+ */
+export const TOOL_TITLES = Object.freeze({
+  [PlanAction.CAPTURE]: 'Write where the live scene\'s robots and objects stand into the plan.',
+  [PlanAction.TURN]: 'While on, the handle of the robot, object or target picked in the 3D view turns it around the vertical axis instead of moving it; click again to move.',
+  [PlanAction.FRAME]: 'Point the 3D view at the plan\'s robots, objects and targets.',
+  [PlanAction.SHOW_DEMO]: 'Show the Python script generated from the plan below the 3D view.',
+  [PlanAction.WRITE_DEMO]: 'Write the script generated from the plan into the demos folder and say how to run it.',
+});
+
+/**
  * @param {string} label The loaded environment's name for people.
  * @param {Array<string>} missing The mesh references that resolved to no file.
  * @returns {string} What the page says about the loaded environment.
@@ -2006,6 +2018,7 @@ export class BuilderPage {
       elements.button('Show demo', PlanAction.SHOW_DEMO, () => this.#showDemo()),
       elements.button('Write demo', PlanAction.WRITE_DEMO, () => this.#writeDemo()),
     );
+    for (const button of toolRow.children) button.title = TOOL_TITLES[button.dataset.action];
     const runRow = elements.create('div', 'run-row');
     runRow.append(flowRow, simulatedRow, toolRow);
     parts.runState = elements.create('span', 'run-state');
