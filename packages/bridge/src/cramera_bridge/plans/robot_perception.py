@@ -21,6 +21,7 @@ from cramera_bridge.execution import (
     PERCEPTION_ENGINE_VARIABLE,
     PhysicalExecution,
 )
+from cramera_bridge.live.ros_perception_images import RoboKudoImageListener
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.plan_builder import DemoDocument, PlannedObject
@@ -54,6 +55,31 @@ class RobotPerception:
     """
     The module of RoboKudo's analysis engines a simulated scene is perceived with.
     """
+
+    image_width: int = 640
+    """
+    The widest, in pixels, an image of what the robot's perception saw is kept, so a
+    document carrying several images stays small enough to send.
+    """
+
+    image_arrival_timeout: float = 6.0
+    """
+    How long, in seconds, the images RoboKudo publishes once it answered a query are
+    waited for; its cluster and color images arrive about 3 s after the answer.
+    """
+
+    @contextmanager
+    def watching(self) -> Iterator[RoboKudoImageListener]:
+        """
+        Keep the images RoboKudo publishes of what it saw while the block runs.
+        """
+        listener = RoboKudoImageListener(
+            largest_width=self.image_width,
+            arrival_timeout=self.image_arrival_timeout,
+        ).start()
+        with ExitStack() as watching:
+            watching.callback(listener.stop)
+            yield listener
 
     @contextmanager
     def perceiving(self) -> Iterator[PerceptionInterface]:

@@ -1,14 +1,14 @@
 """
 Stand-ins for the drivers of the real Tracy: its grippers' parallel gripper command
-servers and its arms' joint state publishers, and for a RoboKudo that never answers
-and one that tells no colors.
+servers and its arms' joint state publishers, and for a RoboKudo that never answers,
+one that tells no colors and one that sees nothing but publishes what it drew.
 """
 
 from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
-from threading import Event
+from threading import Event, Timer
 
 from control_msgs.action import ParallelGripperCommand
 from geometry_msgs.msg import PoseStamped
@@ -16,7 +16,7 @@ from rclpy.action import ActionServer
 from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.node import Node
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import Image, JointState
 from typing_extensions import Iterator
 
 from coraplex.perception import ROBOKUDO_QUERY_ACTION_NAME
@@ -220,3 +220,57 @@ class RoboKudoTellingNoColors:
             serving.callback(server.destroy)
             yield
 
+
+@dataclass
+class RoboKudoSeeingNothing:
+    """
+    Answers every query on RoboKudo's query action with no object, publishing what its
+    cluster extractor drew as RoboKudo's visualizer does.
+    """
+
+    drawn: Image
+    """
+    The image published with every answer.
+    """
+
+    topic: str = "/TracyCubesPipeline/PointCloudClusterExtractor/output_image"
+    """
+    The topic the image is published on, named as RoboKudo's visualizer names it.
+    """
+
+    drawing_time: float = 0.2
+    """
+    How long, in seconds, after an answer the image is published, as RoboKudo's
+    visualizer publishes on the tick after the one that answered.
+    """
+
+    @contextmanager
+    def serving(self, node: Node) -> Iterator[None]:
+        """
+        Serve the query action from `node` while the block runs, publishing the image
+        on :attr:`topic` :attr:`drawing_time` after every answer.
+
+        :param node: A node spun by a multi-threaded executor.
+        """
+        publisher = node.create_publisher(Image, self.topic, 1)
+        drawings: list[Timer] = []
+
+        def execute(goal_handle: ServerGoalHandle) -> Query.Result:
+            drawing = Timer(self.drawing_time, publisher.publish, [self.drawn])
+            drawings.append(drawing)
+            drawing.start()
+            goal_handle.succeed()
+            return Query.Result()
+
+        server = ActionServer(
+            node,
+            Query,
+            ROBOKUDO_QUERY_ACTION_NAME,
+            execute_callback=execute,
+            callback_group=ReentrantCallbackGroup(),
+        )
+        with ExitStack() as serving:
+            serving.callback(server.destroy)
+            serving.callback(node.destroy_publisher, publisher)
+            serving.callback(lambda: [drawing.cancel() for drawing in drawings])
+            yield

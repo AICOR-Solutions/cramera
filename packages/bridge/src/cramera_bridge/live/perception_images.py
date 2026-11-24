@@ -5,6 +5,7 @@ model, and the images a RoboKudo pipeline published while it answered the step.
 
 from __future__ import annotations
 
+import base64
 import struct
 import zlib
 from abc import ABC, abstractmethod
@@ -15,6 +16,7 @@ import numpy as np
 from typing_extensions import Dict, List, Optional, Sequence, Set, Tuple
 
 from cramera_protocol.bundle.scene import PerceptionImage, PerceptionImageSource
+from cramera_protocol.detection import InlineImage
 from semantic_digital_twin.datastructures.camera_resolution import CameraResolution
 from semantic_digital_twin.exceptions import MissingDefaultCameraError
 from semantic_digital_twin.robots.robot_parts import AbstractRobot, Camera
@@ -30,6 +32,16 @@ The directory of a bundle that holds the images of its perception steps.
 PNG_SUFFIX = ".png"
 """
 The suffix of an image's file.
+"""
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+"""
+The bytes every PNG file begins with.
+"""
+
+PNG_DATA_URL_PREFIX = "data:image/png;base64,"
+"""
+How a ``data:`` URL holding a PNG file begins, the file following in base64.
 """
 
 CAMERA_RESOLUTION = CameraResolution(width=320, height=240)
@@ -120,6 +132,17 @@ class SeenImage:
     The image as a PNG file.
     """
 
+    def to_inline_image(self) -> InlineImage:
+        """
+        :return: The image as the protocol carries it inside a document, its PNG file
+            as a ``data:`` URL.
+        """
+        return InlineImage(
+            title=self.title,
+            source=self.source,
+            url=PNG_DATA_URL_PREFIX + base64.b64encode(self.png).decode("ascii"),
+        )
+
 
 @dataclass(frozen=True)
 class TakenImage:
@@ -180,7 +203,7 @@ class PngImage:
         header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
         return b"".join(
             [
-                b"\x89PNG\r\n\x1a\n",
+                PNG_SIGNATURE,
                 PngImage.chunk(b"IHDR", header),
                 PngImage.chunk(b"IDAT", zlib.compress(rows)),
                 PngImage.chunk(b"IEND", b""),

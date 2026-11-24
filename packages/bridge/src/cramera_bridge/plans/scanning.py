@@ -82,25 +82,35 @@ class SceneScanner:
 
     def scan(self) -> SceneScan:
         """
-        :return: The plan's objects after the scan; a simulated robot rests with its
-            arms parked, as a simulated run starts.
+        :return: The plan's objects after the scan, with the images of what the robot's
+            perception saw; a simulated robot rests with its arms parked, as a
+            simulated run starts.
         :raises PerceptionEngineNotNamed: When a simulated scene is perceived and no
             analysis engine is named.
         """
-        believed = PlannedTaskDemo.of_document(self.order.demo, port=0)
-        world = believed.build_world()
-        if self.order.simulated_objects is not None:
-            PhysicalExecution().prepare(world)
-        context = believed.build_context(world)
-        query = PerceptionQuery(
-            OBJECT_TYPE_ANNOTATIONS[ObjectType.OBJECT],
-            RegionBoxes(context.robot, site=believed.site).box(self.order.region),
-            context.robot,
-            world,
-        )
-        with self.perception.perceiving() as live:
-            grounded = ValidationPerception(live).look_for(query)
-        bodies = DetectedScene(grounded.detections, query.region).apply_to(world)
+        # listening from the start, so it knows RoboKudo's image topics by the query
+        with self.perception.watching() as camera:
+            believed = PlannedTaskDemo.of_document(self.order.demo, port=0)
+            world = believed.build_world()
+            if self.order.simulated_objects is not None:
+                PhysicalExecution().prepare(world)
+            context = believed.build_context(world)
+            query = PerceptionQuery(
+                OBJECT_TYPE_ANNOTATIONS[ObjectType.OBJECT],
+                RegionBoxes(context.robot, site=believed.site).box(self.order.region),
+                context.robot,
+                world,
+            )
+            camera.observe_started()
+            with self.perception.perceiving() as live:
+                grounded = ValidationPerception(live).look_for(query)
+            grounding = DetectionGrounding(grounded.grounding.value)
+            bodies = DetectedScene(grounded.detections, query.region).apply_to(world)
+            images = (
+                camera.images(world, context.robot, bodies)
+                if grounding is DetectionGrounding.PERCEIVED
+                else []
+            )
         known = set(believed.bodies.values())
         models = [
             None if body in known else self.matching_model(detection)
@@ -108,12 +118,13 @@ class SceneScanner:
         ]
         return SceneScan(
             objects=self.plan_objects(world, believed.bodies, models, bodies),
-            grounding=DetectionGrounding(grounded.grounding.value),
+            grounding=grounding,
             unrecognized=sum(
                 1
                 for model, body in zip(models, bodies)
                 if body not in known and model is None
             ),
+            images=[image.to_inline_image() for image in images],
         )
 
     def plan_objects(

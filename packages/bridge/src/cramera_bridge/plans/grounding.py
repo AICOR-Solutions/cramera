@@ -17,6 +17,7 @@ from uuid import UUID
 import numpy as np
 from typing_extensions import Any, Dict, List, Optional
 
+from coraplex.datastructures.enums import DetectionGrounding
 from coraplex.perception import PerceptionInterface
 from coraplex.querying.predicates import GripperHolds
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
@@ -34,6 +35,7 @@ from cramera_bridge.exceptions import (
     PlacementNotFound,
 )
 from cramera_bridge.geometry import NumericPose
+from cramera_bridge.live.perception_images import PerceptionCamera, SeenImage
 from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
@@ -96,6 +98,12 @@ class GroundedStep:
     identity, in the world's coordinates.
     """
 
+    images: List[SeenImage] = field(default_factory=list)
+    """
+    The images of what a detection step saw when it was grounded; empty for any other
+    step and where no camera took any.
+    """
+
     @property
     def succeeded(self) -> bool:
         """
@@ -133,13 +141,20 @@ class GroundedStep:
             return StepValidation(
                 step=self.step.identifier, verdict=StepVerdict.UNCHECKED
             )
+        images = [image.to_inline_image() for image in self.images]
         if self.check.verdict is ValidationVerdict.ASSUMED:
             return StepValidation(
-                step=self.step.identifier, verdict=StepVerdict.ASSUMED, arm=arm
+                step=self.step.identifier,
+                verdict=StepVerdict.ASSUMED,
+                arm=arm,
+                images=images,
             )
         if self.check.verdict is ValidationVerdict.VALID:
             return StepValidation(
-                step=self.step.identifier, verdict=StepVerdict.VALID, arm=arm
+                step=self.step.identifier,
+                verdict=StepVerdict.VALID,
+                arm=arm,
+                images=images,
             )
         failure = (self.check.candidate_failures or [self.check.failure])[0]
         return StepValidation(
@@ -147,6 +162,7 @@ class GroundedStep:
             verdict=StepVerdict.FAILED,
             reason=self.translate_cause(self.check.cause),
             detail=str(failure),
+            images=images,
         )
 
     @staticmethod
@@ -304,6 +320,12 @@ class PlanGrounding:
     """
     The safety limits of the robot profile, whose workspace boxes every motion is held
     inside, a margin inside their edges; None holds the motions to none.
+    """
+
+    camera: Optional[PerceptionCamera] = None
+    """
+    Takes the images of what each detection step saw while it was grounded; None takes
+    none.
     """
 
     validation: PlanValidation = field(init=False)
@@ -694,9 +716,19 @@ class PlanGrounding:
         query = DetectedObjects(
             self.copied_context, self.copied_bodies, self.actions, site=self.site
         ).query(step)
+        if self.camera is not None:
+            self.camera.observe_started()
         check = self.validation.check_detection(query)
         if check.found:
             self.copied_bodies[DetectedObjectReference(step.identifier).text] = (
                 check.found[0]
             )
-        return GroundedStep(step=step, check=check)
+        images = (
+            self.camera.images(
+                self.copied_context.world, self.copied_context.robot, check.found
+            )
+            if self.camera is not None
+            and check.grounding is DetectionGrounding.PERCEIVED
+            else []
+        )
+        return GroundedStep(step=step, check=check, images=images)

@@ -6,6 +6,7 @@ each color seen, where it was seen.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -21,15 +22,23 @@ import pytest
 from coraplex.exceptions import PerceptionSourceDidNotAnswer
 from coraplex.perception import Detection, PerceptionQuery
 from cramera_bridge.execution import PERCEPTION_ENGINE_VARIABLE
+from cramera_bridge.live.perception_images import (
+    PNG_DATA_URL_PREFIX,
+    PNG_SIGNATURE,
+    PerceptionCamera,
+)
+from cramera_bridge.live.ros_perception_images import image_title
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE, ObjectLibrary
 from cramera_bridge.plans.scanning import SceneScanner
 from cramera_bridge.plans.world import PlannedGraspable
 from cramera_bridge.ros_node import SpinningNode
+from cramera_protocol.bundle.scene import PerceptionImageSource
 from cramera_protocol.detection import DetectionGrounding, SceneScan, SceneScanOrder
 from cramera_protocol.plan_builder import DemoDocument, PlanDocument, PlannedObject
 from cramera_protocol.robot_profile import PerceptionSettings
 from krrood_spatial_math.spatial_types import Pose
 from rclpy.executors import MultiThreadedExecutor
+from sensor_msgs.msg import Image
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.world_description.color_names import ColorName
 from semantic_digital_twin.world_description.geometry import Scale
@@ -104,6 +113,19 @@ class ReportedColors:
     @contextmanager
     def perceiving(self):
         yield self
+
+    @contextmanager
+    def watching(self):
+        yield NothingDrawn()
+
+
+class NothingDrawn(PerceptionCamera):
+    """
+    A perception that draws no images of what it saw.
+    """
+
+    def images(self, world, robot, perceived) -> list:
+        return []
 
 
 def scanned(order: SceneScanOrder, colors: tuple[ColorName, ...]) -> SceneScan:
@@ -262,3 +284,33 @@ def test_a_scan_robokudo_does_not_answer_fails_after_the_profiles_answer_timeout
                 SceneScanner(order).scan()
 
     assert raised.value.answer_timeout == timedelta(seconds=perception.answer_timeout)
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_a_scan_shows_what_robokudo_drew_of_the_scene(monkeypatch, cubes):
+    """
+    What the pipeline drew of the scene shows which objects it found, and why the cubes
+    it did not find stayed where they were.
+    """
+    from ..dataset.real_robot import RoboKudoSeeingNothing
+
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    order = SceneScanOrder(demo=DemoDocument(plan=cubes))
+    seeing_nothing = RoboKudoSeeingNothing(
+        drawn=Image(height=1, width=1, encoding="bgr8", step=3, data=bytes([0, 0, 255]))
+    )
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        with seeing_nothing.serving(node):
+            scan = SceneScanner(order).scan()
+
+    assert scan.grounding is DetectionGrounding.PERCEIVED
+    [image] = scan.images
+    assert (image.title, image.source) == (
+        image_title(seeing_nothing.topic),
+        PerceptionImageSource.ROBOKUDO,
+    )
+    png = base64.b64decode(image.url.removeprefix(PNG_DATA_URL_PREFIX))
+    assert png.startswith(PNG_SIGNATURE)

@@ -17,9 +17,10 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 
-from typing_extensions import Any, Iterator, List
+from typing_extensions import Any, Iterator, List, Optional
 
 from coraplex.perception import PerceptionInterface, WorldPerception
+from cramera_bridge.live.perception_images import PerceptionCamera
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.order_command import OrderCommand
@@ -49,18 +50,20 @@ class PlanValidator:
             :meth:`build_world` stands the robot.
         """
         demo = PlannedTaskDemo.of_document(self.order.demo, port=0)
-        world = self.build_world(demo)
-        context = demo.build_context(world)
         steps = demo.steps()
-        with self.perception(demo, steps) as live:
-            grounded = PlanGrounding(
-                context=context,
-                bodies=dict(demo.bodies),
-                actions=demo.discovered_actions,
-                perception=live,
-                site=demo.site,
-                safety=demo.document.safety,
-            ).ground(steps)
+        # listening from the start, so it knows RoboKudo's image topics by the first query
+        with self.camera(demo, steps) as camera:
+            world = self.build_world(demo)
+            with self.perception(demo, steps) as live:
+                grounded = PlanGrounding(
+                    context=demo.build_context(world),
+                    bodies=dict(demo.bodies),
+                    actions=demo.discovered_actions,
+                    perception=live,
+                    site=demo.site,
+                    safety=demo.document.safety,
+                    camera=camera,
+                ).ground(steps)
         return ValidationReport(steps=[step.to_step_validation() for step in grounded])
 
     def build_world(self, demo: PlannedTaskDemo) -> World:
@@ -86,16 +89,48 @@ class PlanValidator:
         :param demo: The plan's demo.
         :param steps: The performing robot's steps.
         """
-        if not any(
-            demo.discovered_actions.named(step.action).looks_for_objects()
-            for step in steps
-        ):
+        if not self.looks_for_objects(demo, steps):
             yield WorldPerception()
             return
-        with RobotPerception(
-            demo=self.order.demo, simulated_objects=self.order.simulated_objects
-        ).perceiving() as live:
+        with self.robot_perception().perceiving() as live:
             yield live
+
+    @contextmanager
+    def camera(
+        self, demo: PlannedTaskDemo, steps: List[PlanStep]
+    ) -> Iterator[Optional[PerceptionCamera]]:
+        """
+        Keep the images RoboKudo publishes of what it saw while the block runs, if a step
+        looks for objects, so each detection's report shows them.
+
+        :param demo: The plan's demo.
+        :param steps: The performing robot's steps.
+        """
+        if not self.looks_for_objects(demo, steps):
+            yield None
+            return
+        with self.robot_perception().watching() as listener:
+            yield listener
+
+    def robot_perception(self) -> RobotPerception:
+        """
+        :return: The perception of the order's robot, or of its simulated scene.
+        """
+        return RobotPerception(
+            demo=self.order.demo, simulated_objects=self.order.simulated_objects
+        )
+
+    @staticmethod
+    def looks_for_objects(demo: PlannedTaskDemo, steps: List[PlanStep]) -> bool:
+        """
+        :param demo: The plan's demo.
+        :param steps: The performing robot's steps.
+        :return: Whether a step looks for objects.
+        """
+        return any(
+            demo.discovered_actions.named(step.action).looks_for_objects()
+            for step in steps
+        )
 
 
 # %% command

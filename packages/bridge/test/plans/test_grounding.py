@@ -7,6 +7,7 @@ runs with the arm its grounding chose.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -36,6 +37,8 @@ from cramera_bridge.execution import (
     StartingPosture,
 )
 from cramera_bridge.geometry import NumericPose
+from cramera_bridge.live.perception_images import PNG_DATA_URL_PREFIX, PNG_SIGNATURE
+from cramera_bridge.live.ros_perception_images import image_title
 from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import PlanGrounding
@@ -45,6 +48,7 @@ from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.validating import PlanValidator
 from cramera_bridge.plans.world import PlannedGraspableFromAbove
 from cramera_bridge.ros_node import SpinningNode
+from cramera_protocol.bundle.scene import PerceptionImageSource
 from cramera_protocol.detection import DetectionRegion, RegionKind
 from cramera_protocol.geometry import Pose
 from cramera_protocol.plan_builder import (
@@ -70,6 +74,7 @@ from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from rclpy.node import Node
+from sensor_msgs.msg import Image
 from typing_extensions import Sequence
 from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
@@ -798,6 +803,43 @@ def test_a_validation_robokudo_does_not_answer_fails_after_the_answer_timeout(
                 PlanValidator(order).validate()
 
     assert raised.value.answer_timeout == timedelta(seconds=perception.answer_timeout)
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
+def test_a_validation_shows_what_robokudo_drew_for_a_detection_that_saw_nothing(
+    monkeypatch,
+):
+    """
+    What the pipeline drew of the scene shows why nothing matching was seen.
+    """
+    from ..dataset.real_robot import RoboKudoSeeingNothing
+
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
+    [detect, *_] = cubes.robots[0].steps
+    order = ValidationOrder(demo=DemoDocument(plan=cubes))
+    seeing_nothing = RoboKudoSeeingNothing(
+        drawn=Image(height=1, width=1, encoding="bgr8", step=3, data=bytes([0, 0, 255]))
+    )
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        with seeing_nothing.serving(node):
+            report = PlanValidator(order).validate()
+
+    [detection, *_] = report.steps
+    assert (detection.step, detection.reason) == (
+        detect.identifier,
+        StepFailureReason.NOT_PERCEIVED,
+    )
+    [image] = detection.images
+    assert (image.title, image.source) == (
+        image_title(seeing_nothing.topic),
+        PerceptionImageSource.ROBOKUDO,
+    )
+    png = base64.b64decode(image.url.removeprefix(PNG_DATA_URL_PREFIX))
+    assert png.startswith(PNG_SIGNATURE)
 
 
 @dataclass
