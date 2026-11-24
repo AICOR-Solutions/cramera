@@ -3563,7 +3563,8 @@ class RunEvent(JsonDocument):
 
     constraint: Optional[str] = document_field(RunEventKey.CONSTRAINT, default=None)
     """
-    For a safety stop: the broken safety limit and how it was broken.
+    For a safety stop: the broken safety limit and how it was broken; for the safety
+    monitor: the limits it watches, comma-separated, as a person reads them.
     """
 
     perception: Optional[PerceptionReport] = document_field(

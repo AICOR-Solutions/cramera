@@ -333,14 +333,21 @@ class SafetyWatched(RunLogEntry):
     Every motion of the run is held to the robot profile's safety limits.
     """
 
+    limits: List[str]
+    """
+    The names of the limits watched, as a person reads them, such as "Left arm
+    workspace" or "left tool velocity (0.5 m/s)".
+    """
+
     def line(self) -> str:
-        return "safety: limits watched ✓"
+        return f"safety: limits watched ✓ ({', '.join(self.limits)})"
 
     def event(self) -> RunEvent:
         return RunEvent(
             kind=RunEventKind.MONITOR,
             monitor=RunMonitor.SAFETY,
             observation=MonitorObservation.HOLDS,
+            constraint=", ".join(self.limits),
         )
 
 

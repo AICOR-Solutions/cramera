@@ -244,6 +244,16 @@ test('monitor badges show the look-at of a step and the safety monitor of the ru
   assert.equal(safety.dataset.observation, MonitorObservation.VIOLATED);
 });
 
+test('the safety badge and the log name the limits the safety monitor watches', () => {
+  const limits = 'Left arm workspace, left tool velocity (0.5 m/s)';
+  const events = [{ [RunEventKey.KIND]: RunEventKind.MONITOR, [RunEventKey.MONITOR]: RunMonitor.SAFETY, [RunEventKey.OBSERVATION]: MonitorObservation.HOLDS, [RunEventKey.CONSTRAINT]: limits }];
+  const progress = RunProgress.of([], (step) => step[PlanStepKey.IDENTIFIER], { [RunStatusKey.EVENTS]: events });
+  const expected = `${MONITOR_TEXTS[RunMonitor.SAFETY][MonitorObservation.HOLDS]}: ${limits}`;
+  const [safety] = byClass(byClass(rendered(progress), RunViewClass.BADGES)[0], RunViewClass.BADGE);
+  assert.equal(safety.textContent, expected);
+  assert.deepEqual(progress.log, [expected]);
+});
+
 test('the perceived cubes show their colors and the log every event', () => {
   const progress = progressOf('sort');
   const view = rendered(progress);

@@ -235,6 +235,11 @@ export class RunProgress {
      */
     this.safety = null;
     /**
+     * The limits the safety monitor watches, comma-separated, or null when it names none.
+     * @type {string|null}
+     */
+    this.safetyLimits = null;
+    /**
      * The broken safety limit, or null.
      * @type {string|null}
      */
@@ -410,6 +415,15 @@ export class RunProgress {
   }
 
   /**
+   * @returns {string} What the safety monitor observes, with the limits it watches while
+   *   they hold.
+   */
+  safetyText() {
+    const text = monitorText(RunMonitor.SAFETY, this.safety);
+    return this.safety === MonitorObservation.HOLDS && this.safetyLimits ? `${text}: ${this.safetyLimits}` : text;
+  }
+
+  /**
    * @param {Object} event A monitor's `RunEvent`.
    */
   #applyMonitor(event) {
@@ -417,7 +431,8 @@ export class RunProgress {
     const observation = event[RunEventKey.OBSERVATION];
     if (monitor === RunMonitor.SAFETY) {
       this.safety = observation;
-      this.log.push(monitorText(monitor, observation));
+      this.safetyLimits = event[RunEventKey.CONSTRAINT] ?? null;
+      this.log.push(this.safetyText());
       return;
     }
     const target = event[RunEventKey.TARGET] ?? null;
@@ -544,7 +559,7 @@ export class RunView {
     const elements = this.#elements;
     const parts = this.#parts;
     parts.summary.textContent = progress.summary();
-    parts.badges.replaceChildren(...(progress.safety === null ? [] : [this.#badge(monitorText(RunMonitor.SAFETY, progress.safety), progress.safety)]));
+    parts.badges.replaceChildren(...(progress.safety === null ? [] : [this.#badge(progress.safetyText(), progress.safety)]));
     parts.steps.replaceChildren(...progress.steps().map((step) => this.#step(step, progress.started())));
     parts.perceived.replaceChildren(
       ...(progress.perceived.length === 0

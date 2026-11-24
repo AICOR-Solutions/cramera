@@ -24,6 +24,7 @@ from cramera_bridge.plans.run_log import (
     AttemptOutcome,
     RunLog,
     SafetyStopped,
+    SafetyWatched,
     StepAttempt,
 )
 from cramera_protocol.geometry import AxisAlignedBox
@@ -159,6 +160,7 @@ def test_the_run_events_tell_which_step_the_safety_stop_ended(stopped_run):
         if event.kind is RunEventKind.STEP and event.step == "step_2"
     ]
     assert watched.observation is MonitorObservation.HOLDS
+    assert LOW_WORKSPACE.label in watched.constraint.split(", ")
     assert pick == [StepState.PENDING, StepState.RUNNING, StepState.FAILED]
     assert stop == RunEvent(
         kind=RunEventKind.SAFETY_STOP,
@@ -223,6 +225,18 @@ def test_a_demos_safety_stop_is_reported_as_the_line_the_plan_builder_reads(caps
     assert SafetyStop.from_output(capsys.readouterr().out) == SafetyStop(
         constraint=stopped
     )
+
+
+def test_the_safety_monitor_names_the_limits_it_watches():
+    limits = ["Left arm workspace", "left tool velocity (0.5 m/s)"]
+    watched = SafetyWatched(limits=limits)
+    assert watched.event() == RunEvent(
+        kind=RunEventKind.MONITOR,
+        monitor=RunMonitor.SAFETY,
+        observation=MonitorObservation.HOLDS,
+        constraint=", ".join(limits),
+    )
+    assert watched.line() == f"safety: limits watched ✓ ({', '.join(limits)})"
 
 
 # %% velocity limits

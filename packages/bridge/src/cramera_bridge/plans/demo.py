@@ -342,12 +342,19 @@ class PlannedTaskDemo(RobotTaskDemo):
         ]
         if self.document.safety is None:
             return performance
-        performance.safety = RobotSafety(
+        performance.safety = self.robot_safety().envelope(context)
+        return performance
+
+    def robot_safety(self) -> RobotSafety:
+        """
+        :return: The document's safety limits held to the performing robot where the
+            plan stands it, at the real robot's tool speed when the run moves it.
+        """
+        return RobotSafety(
             limits=self.document.safety,
             site=self.site,
             on_the_real_robot=self.execution.reported_world() is not None,
-        ).envelope(context)
-        return performance
+        )
 
     def build_context(self, world: World) -> TaskContext:
         """
@@ -402,7 +409,14 @@ class PlannedTaskDemo(RobotTaskDemo):
         )
         self.first_attempt = self.step_run.attempt_plan(0)
         if self.document.safety is not None:
-            self.run_log.write(SafetyWatched())
+            envelope = self.robot_safety().envelope(context)
+            self.run_log.write(
+                SafetyWatched(
+                    limits=[
+                        constraint.constraint for constraint in envelope.constraints
+                    ]
+                )
+            )
         self.step_run.announce()
         return self.first_attempt.plan
 
