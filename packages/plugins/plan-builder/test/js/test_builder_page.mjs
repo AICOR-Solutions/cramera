@@ -1176,13 +1176,26 @@ test('a saved plan keeps its identity and is offered to open', async () => {
 
 test('the generated demo is shown and written', async () => {
   const { root, page } = await openPage();
+  const output = root.findAll((element) => element.className === 'demo-source')[0];
+  assert.ok(!output.parentElement.open);
   byAction(root, PlanAction.SHOW_DEMO)[0].click();
   await settled();
-  const output = root.findAll((element) => element.className === 'demo-source')[0];
   assert.equal(output.hidden, false);
+  assert.equal(output.parentElement.open, true);
   assert.match(output.textContent, new RegExp(page.state.field(PlanKey.NAME)));
   byAction(root, PlanAction.WRITE_DEMO)[0].click();
   await settled();
+  assert.match(message(root), /python \/demos\//);
+});
+
+test('a written demo is shown in the generated demo at once', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.WRITE_DEMO)[0].click();
+  await settled();
+  const output = root.findAll((element) => element.className === 'demo-source')[0];
+  assert.equal(output.hidden, false);
+  assert.equal(output.parentElement.open, true);
+  assert.match(output.textContent, new RegExp(page.state.field(PlanKey.NAME)));
   assert.match(message(root), /python \/demos\//);
 });
 

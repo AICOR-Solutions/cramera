@@ -1180,21 +1180,32 @@ export class BuilderPage {
    * @returns {Promise<void>} Settles once it is shown or refused.
    */
   async #showDemo() {
+    const demo = await this.#generateDemo();
+    if (demo) this.report(`Generated ${demo[DemoSourceKey.FILE_NAME]}.`);
+  }
+
+  /**
+   * Generate the demo from the plan and open it in the generated demo's section.
+   * @returns {Promise<?Object>} The generated demo, or null once it was refused.
+   */
+  async #generateDemo() {
     const demo = await this.#environment.api.demo(this.state.document).catch((error) => {
       this.report(error.message, Tone.ERROR);
       return null;
     });
-    if (!demo) return;
+    if (!demo) return null;
     this.#parts.output.textContent = demo[DemoSourceKey.SOURCE];
     this.#parts.output.hidden = false;
-    this.report(`Generated ${demo[DemoSourceKey.FILE_NAME]}.`);
+    this.#parts.output.parentElement.open = true;
+    return demo;
   }
 
   /**
-   * Write the demo into the output directory.
+   * Write the demo into the output directory and show what was written.
    * @returns {Promise<void>} Settles once it is written or refused.
    */
   async #writeDemo() {
+    if (!(await this.#generateDemo())) return;
     const saved = await this.#environment.api.writeDemo(this.state.document).catch((error) => {
       this.report(error.message, Tone.ERROR);
       return null;
