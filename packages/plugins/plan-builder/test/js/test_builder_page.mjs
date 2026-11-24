@@ -60,10 +60,10 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
+import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotTag, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
@@ -1848,6 +1848,43 @@ test('a poll that changes the run log writes the new log', async () => {
   api.status = { ...api.status, [RunStatusKey.LOG]: 'building the world\nmoving' };
   await timer.tick();
   assert.equal(log.textContent, 'building the world\nmoving');
+});
+
+// %% what the 3D view shows
+
+test('the 3D view is labelled with what it shows', () => {
+  assert.deepEqual(viewMode({ published: false, mode: null, real: false, mirroring: false }), { mode: ViewMode.PLAN, text: 'Plan (not running)' });
+  assert.deepEqual(viewMode({ published: false, mode: null, real: true, mirroring: true }), { mode: ViewMode.PLAN, text: 'Plan (not running); the robot stands as the real robot does' });
+  assert.deepEqual(viewMode({ published: true, mode: RunMode.STAGE, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live scene)' });
+  assert.deepEqual(viewMode({ published: true, mode: RunMode.SIMULATE, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
+  assert.deepEqual(viewMode({ published: true, mode: RunMode.ROBOT, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
+  assert.deepEqual(viewMode({ published: true, mode: RunMode.ROBOT, real: true, mirroring: true }), { mode: ViewMode.REAL, text: 'Real robot (live)' });
+  assert.deepEqual(viewMode({ published: true, mode: RunMode.SIMULATE, real: true, mirroring: true }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
+});
+
+const viewLabel = (root) => root.findAll((element) => element.className === 'scene-mode')[0];
+const legend = (root) => root.findAll((element) => element.className === 'scene-legend')[0];
+
+test('the 3D view says it shows the plan until a run publishes its world, then that it is simulated', async () => {
+  const { root, timer } = await openPage();
+  assert.equal(viewLabel(root).textContent, 'Plan (not running)');
+  assert.equal(viewLabel(root).dataset.mode, ViewMode.PLAN);
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  await timer.tick();
+  assert.equal(viewLabel(root).textContent, 'Simulation (live)');
+  assert.equal(viewLabel(root).dataset.mode, ViewMode.SIMULATION);
+});
+
+test('the 3D view has a folded legend naming every kind of marker it draws', async () => {
+  const { root } = await openPage();
+  const shown = legend(root);
+  assert.equal(shown.tagName, 'DETAILS');
+  assert.equal(shown.open ?? false, false);
+  const entries = shown.findAll((element) => element.tagName === 'LI');
+  assert.equal(entries.length, LEGEND.length);
+  assert.deepEqual(entries.map((entry) => entry.innerText), LEGEND.map((entry) => entry.label));
+  for (const label of ['Robot', 'Object', 'Target pose', 'reaches', 'cannot reach', 'Zone']) assert.ok(LEGEND.some((entry) => entry.label.includes(label)), label);
 });
 
 test('a staged live scene keeps the editable steps', async () => {

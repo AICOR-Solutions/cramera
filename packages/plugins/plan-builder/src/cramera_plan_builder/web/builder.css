@@ -49,6 +49,32 @@ body.builder-page { display: flex; flex-direction: column; height: 100vh; overfl
 .builder-stage canvas { display: block; width: 100%; height: 100%; }
 .builder-stage > .empty { padding: 24px; color: var(--text-muted); }
 
+/* What the 3D view shows, top left, and its folded legend, top right; the compass keeps the bottom left. */
+.scene-mode, .scene-legend {
+  position: absolute;
+  top: 8px;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.scene-mode { left: 8px; padding: 3px 8px; font-weight: 600; max-width: calc(50% - 16px); }
+.scene-mode[data-mode="simulation"] { color: var(--accent); }
+.scene-mode[data-mode="real"] { color: var(--danger); border-color: var(--danger); }
+.scene-legend { right: 8px; max-width: min(320px, calc(100% - 16px)); max-height: calc(100% - 16px); overflow: auto; }
+.scene-legend summary { cursor: pointer; padding: 3px 8px; }
+.scene-legend ul { list-style: none; margin: 0; padding: 0 8px 6px; display: grid; gap: 3px; }
+.scene-legend li { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { flex: none; width: 12px; height: 12px; box-sizing: border-box; }
+.legend-swatch[data-shape="disc"], .legend-swatch[data-shape="dot"] { border-radius: 50%; background: currentColor; }
+.legend-swatch[data-shape="dot"] { width: 8px; height: 8px; margin: 2px; outline: 1px solid var(--border); }
+.legend-swatch[data-shape="ring"] { border-radius: 50%; border: 3px solid currentColor; }
+.legend-swatch[data-shape="solid"] { background: currentColor; outline: 1px solid var(--border); }
+.legend-swatch[data-shape="ghost"] { background: currentColor; opacity: 0.45; }
+.legend-swatch[data-shape="area"] { background: color-mix(in srgb, currentColor 25%, transparent); border: 1px solid currentColor; }
+.legend-swatch[data-shape="edge"] { border: 2px solid currentColor; }
+
 /* %% controls */
 
 input, select, textarea {

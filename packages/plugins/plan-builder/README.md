@@ -88,7 +88,12 @@ cramera
 - **The 3D view.** Pressing on a robot, object or target and dragging moves it over
   the horizontal plane through it, picked before or not; a click picks it and puts
   the handles on it, which move it (an object also in height) or turn it ("Turn"). Pressing beside
-  every marker turns the camera.
+  every marker turns the camera. A label in its top left corner says what it shows:
+  "Plan (not running)" (adding that the robot stands as the real robot does while
+  the plan builder mirrors its posture), "Simulation (live)", "Simulation (live
+  scene)" for a staged scene, or "Real robot (live)" during a run on the real robot.
+  A folded legend in its top right corner names each kind of mark in its colour
+  (`LEGEND` in `plan-scene.js`).
 - **Composing.** An action clicked in the palette is added as the last step; one
   dropped on a step is inserted before it, one dropped on the place below the last
   step is added after it.

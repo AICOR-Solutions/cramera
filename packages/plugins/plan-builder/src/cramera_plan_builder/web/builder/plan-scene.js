@@ -102,6 +102,48 @@ const MarkerColor = Object.freeze({
 });
 
 /**
+ * How a legend entry's swatch is drawn.
+ */
+export const LegendShape = Object.freeze({
+  DISC: 'disc',
+  RING: 'ring',
+  SOLID: 'solid',
+  GHOST: 'ghost',
+  AREA: 'area',
+  EDGE: 'edge',
+  DOT: 'dot',
+});
+
+/**
+ * @param {number} color A marker colour.
+ * @returns {string} The colour as CSS writes it.
+ */
+const cssColor = (color) => `#${color.toString(16).padStart(6, '0')}`;
+
+/**
+ * What each kind of mark the view draws means, in the colours it draws them in, for
+ * the legend beside the view: the plan's marks first, then those of a perception report
+ * while a run is shown.
+ */
+export const LEGEND = Object.freeze(
+  [
+    { color: MarkerColor.EDITED_ROBOT, shape: LegendShape.DISC, label: 'Robot whose plan is edited (teal name tag)' },
+    { color: MarkerColor.ROBOT, shape: LegendShape.DISC, label: 'Robot of the plan; greyed while its joint states do not arrive' },
+    { color: MarkerColor.OBJECT, shape: LegendShape.SOLID, label: 'Object, in its model\'s or its given colour' },
+    { color: MarkerColor.TARGET, shape: LegendShape.RING, label: 'Target pose of a step; the arrow is its heading' },
+    { color: MarkerColor.PUT_DOWN, shape: LegendShape.GHOST, label: 'Where a step puts an object down (see-through)' },
+    { color: MarkerColor.REACHABLE, shape: LegendShape.RING, label: 'Free-place marker an arm reaches (may still fail validation)' },
+    { color: MarkerColor.UNREACHABLE, shape: LegendShape.RING, label: 'Free-place marker the arms cannot reach' },
+    { color: MarkerColor.ZONE, shape: LegendShape.AREA, label: 'Zone of the robot profile on the table' },
+    { color: MarkerColor.SEARCH_BOX, shape: LegendShape.EDGE, label: 'Run: box a detection looked in' },
+    { color: MarkerColor.GROUNDED, shape: LegendShape.DOT, label: 'Run: where the step expected the object' },
+    { color: MarkerColor.TAKEN, shape: LegendShape.EDGE, label: 'Run: perceived object the step took' },
+    { color: MarkerColor.TOO_FAR, shape: LegendShape.EDGE, label: 'Run: perceived object too far from where expected' },
+    { color: MarkerColor.LEFT, shape: LegendShape.EDGE, label: 'Run: other perceived object' },
+  ].map((entry) => Object.freeze({ ...entry, color: cssColor(entry.color) })),
+);
+
+/**
  * The radius, in metres, of the mark where the plan was validated with an object.
  */
 const GROUNDED_RADIUS = 0.012;

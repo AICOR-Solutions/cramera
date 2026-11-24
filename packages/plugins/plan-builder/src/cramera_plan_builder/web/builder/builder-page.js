@@ -62,7 +62,7 @@ import { DomEvent, Elements, PlanAction, showText } from './elements.js';
 import { FreePlace } from './free-place.js';
 import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
-import { MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode } from './plan-scene.js';
+import { LEGEND, MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode } from './plan-scene.js';
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, RobotsView } from './robots-view.js';
@@ -295,6 +295,28 @@ export function scanMessage(scan) {
 export function failureMessage(request, error) {
   const message = error instanceof RequestRefused ? error.message : `${request} got no answer from the plan builder (${error.message}); check that it still runs, then try again.`;
   return message.length <= FAILURE_LENGTH_LIMIT ? message : `${message.slice(0, FAILURE_LENGTH_LIMIT - 1)}…`;
+}
+
+/**
+ * What the 3D view shows, kept in its label's `data-mode`.
+ */
+export const ViewMode = Object.freeze({ PLAN: 'plan', SIMULATION: 'simulation', REAL: 'real' });
+
+/**
+ * @param {{published: boolean, mode: string|null, real: boolean, mirroring: boolean}} facts
+ *   Whether a run publishes its world, the `RunMode` of the run, whether the robot run
+ *   mode moves the real robot, and whether the robot stands in the posture the real
+ *   robot's drivers report.
+ * @returns {{mode: string, text: string}} What the 3D view shows, as a `ViewMode` and
+ *   as its label says.
+ */
+export function viewMode(facts) {
+  if (!facts.published) {
+    const text = facts.mirroring ? 'Plan (not running); the robot stands as the real robot does' : 'Plan (not running)';
+    return { mode: ViewMode.PLAN, text };
+  }
+  if (facts.mode === RunMode.ROBOT && facts.real) return { mode: ViewMode.REAL, text: 'Real robot (live)' };
+  return { mode: ViewMode.SIMULATION, text: facts.mode === RunMode.STAGE ? 'Simulation (live scene)' : 'Simulation (live)' };
 }
 
 // %% environment
@@ -1927,6 +1949,30 @@ export class BuilderPage {
     this.#parts.posture.hidden = stale.size === 0;
     showText(this.#parts.posture, stale.size === 0 ? '' : `${this.#postureStale} — the picture may not match the robot.`);
     this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors(), stale }, this.#overlay());
+    const shown = viewMode({ published: this.#world.published, mode: this.#run[RunStatusKey.MODE] ?? null, real: this.#robotExecutor() === ExecutorKind.REAL, mirroring: this.#mirroring });
+    showText(this.#parts.viewMode, shown.text);
+    this.#parts.viewMode.dataset.mode = shown.mode;
+  }
+
+  /**
+   * @returns {HTMLElement} The folded legend of the 3D view: what each kind of mark
+   *   means, in its colour.
+   */
+  #legend() {
+    const elements = this.#elements;
+    const list = elements.create('ul');
+    for (const entry of LEGEND) {
+      const swatch = elements.create('span', 'legend-swatch');
+      swatch.dataset.shape = entry.shape;
+      swatch.style.color = entry.color;
+      swatch.setAttribute('aria-hidden', 'true');
+      const item = elements.create('li');
+      item.append(swatch, entry.label);
+      list.append(item);
+    }
+    const legend = elements.create('details', 'scene-legend');
+    legend.append(elements.create('summary', '', 'Legend'), list);
+    return legend;
   }
 
   /**
@@ -2109,6 +2155,8 @@ export class BuilderPage {
     skip.className = 'skip-link';
     this.#root.replaceChildren(skip, bar, main);
     if (this.#environment.createScene) {
+      parts.viewMode = elements.create('span', 'scene-mode');
+      stage.append(parts.viewMode, this.#legend());
       this.#scene = this.#environment.createScene(
         stage,
         new PlanSceneListeners(
