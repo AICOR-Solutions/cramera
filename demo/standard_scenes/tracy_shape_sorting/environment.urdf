@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="environment">
+  <link name="world_root" />
+  <link name="tracy/map" />
+  <joint name="world_root_to_tracy/map" type="fixed">
+    <parent link="world_root" />
+    <child link="tracy/map" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="seen/board">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/47531_xqn6t5rr/47531_xqn6t5rr.obj" scale="1.0 1.0 1.0" />
+      </geometry>
+      <material name="">
+        <color rgba="0.62 0.45 0.3 1.0" />
+      </material>
+    </visual>
+  </link>
+  <joint name="seen/map_T_board" type="fixed">
+    <parent link="tracy/map" />
+    <child link="seen/board" />
+    <origin xyz="0.794321 0.137905 0.92" rpy="0.0 0.0 -0.133261" />
+  </joint>
+</robot>
