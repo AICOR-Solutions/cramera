@@ -60,7 +60,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_RUN_ROW, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1313,6 +1313,14 @@ test('a profile running the robot run mode on the real robot marks it and offers
   assert.match(headline(root), /^Real robot: preparing the run…/);
   assert.match(headline(root), /emergency stop/);
   assert.equal(robotRun(root).disabled, true);
+});
+
+test('the run on the real robot stands in a row of its own, apart from validation and the simulated runs', async () => {
+  const { root } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL, [RunMode.SIMULATE]: ExecutorKind.SIMULATED }));
+  const row = robotRun(root).parentElement;
+  assert.equal(row.className, ROBOT_RUN_ROW);
+  assert.deepEqual(row.children.filter((child) => child.tagName === 'BUTTON'), [robotRun(root)]);
+  for (const action of [PlanAction.VALIDATE, PlanAction.SCAN_SCENE, PlanAction.SIMULATE, PlanAction.PERFORM, PlanAction.STAGE]) assert.notEqual(byAction(root, action)[0].parentElement, row);
 });
 
 const validationState = (root) => root.findAll((element) => element.className === 'validation-state')[0].textContent;

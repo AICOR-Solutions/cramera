@@ -168,6 +168,17 @@ export const FAILURE_LENGTH_LIMIT = 400;
 export const NAMED_MISSING_MESHES = 3;
 
 /**
+ * The classes of the row holding the run on the robot alone, apart from the validation
+ * and the simulated runs.
+ */
+export const ROBOT_RUN_ROW = 'button-row robot-actions';
+
+/**
+ * What stands before the run on the real robot in its row.
+ */
+const REAL_MOTION = 'Moves the real robot:';
+
+/**
  * What the page says of the validation of a plan a run on the real robot took it away
  * from as it started, while the run goes on.
  */
@@ -2006,12 +2017,12 @@ export class BuilderPage {
       this.#scene?.setMode(turning ? TransformMode.TURN : TransformMode.MOVE);
     });
     turn.setAttribute('aria-pressed', 'false');
-    // the flow in its order first, then the simulated runs, then the tools
+    // the flow in its order first, then the simulated runs, the tools, and apart from them all the run on the robot
     const flowRow = elements.create('div', 'button-row flow-actions');
     const runtimeCheck = elements.create('span', 'runtime-check', LENIENT_CHECK.LABEL);
     runtimeCheck.title = LENIENT_CHECK.TITLE;
     runtimeCheck.hidden = this.state.catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.PERCEPTION]?.[PerceptionSettingsKey.RUNTIME_CHECK] !== RuntimeCheck.LENIENT;
-    flowRow.append(parts.scan, parts.validate, parts.robot, parts.stop, runtimeCheck);
+    flowRow.append(parts.scan, parts.validate, parts.stop, runtimeCheck);
     const simulatedRow = elements.create('div', 'button-row');
     simulatedRow.append(parts.stage, parts.perform, parts.simulate);
     const toolRow = elements.create('div', 'button-row tool-actions');
@@ -2022,8 +2033,12 @@ export class BuilderPage {
       elements.button('Show demo', PlanAction.SHOW_DEMO, () => this.#showDemo()),
       elements.button('Write demo', PlanAction.WRITE_DEMO, () => this.#writeDemo()),
     );
+    const robotRow = elements.create('div', ROBOT_RUN_ROW);
+    robotRow.hidden = parts.robot.hidden;
+    if (onRealRobot) robotRow.append(elements.create('span', 'robot-actions-label', REAL_MOTION));
+    robotRow.append(parts.robot);
     const runRow = elements.create('div', 'run-row');
-    runRow.append(flowRow, simulatedRow, toolRow);
+    runRow.append(flowRow, simulatedRow, toolRow, robotRow);
     parts.runState = elements.create('span', 'run-state');
     parts.elapsed = elements.create('span', 'flow-elapsed');
     parts.flow = elements.create('div', 'flow-status');
