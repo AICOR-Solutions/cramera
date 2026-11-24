@@ -19,6 +19,14 @@ export const EMPTY_FLOOR = Object.freeze({ value: '', label: 'Empty floor' });
 export const URDF_PLACEHOLDER = '/path/to/world.urdf';
 
 /**
+ * What the buttons loading a URDF as the environment do, shown as their tooltips.
+ */
+export const UrdfButtonTitle = Object.freeze({
+  LOAD: 'Load the URDF or xacro file whose path is typed in the field.',
+  BROWSE: 'Pick a URDF or xacro file of this machine; it loads as soon as it is picked.',
+});
+
+/**
  * Keeps a path's leading slash in front when the picker cuts it on the left.
  */
 const LEFT_TO_RIGHT_MARK = '\u200e';
@@ -118,9 +126,11 @@ export class EnvironmentView {
       const path = this.path.value.trim();
       if (path) this.#editor.loadEnvironment(path);
     });
+    load.title = UrdfButtonTitle.LOAD;
     const browse = elements.button('Browse…', PlanAction.BROWSE_URDF, () => this.browse(null));
+    browse.title = UrdfButtonTitle.BROWSE;
     const row = elements.create('div', 'urdf-row');
-    row.append(this.path, browse, load);
+    row.append(this.path, load, browse);
     this.#folder = new Elements(document);
     this.picker = elements.create('div', 'urdf-picker');
     this.picker.hidden = true;

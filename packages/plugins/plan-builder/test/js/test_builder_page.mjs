@@ -65,7 +65,7 @@ import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constr
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
+import { EMPTY_FOLDER, EnvironmentNote, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
@@ -778,6 +778,14 @@ test('the picker browses folders and a picked URDF becomes the environment', asy
   assert.equal(byAction(root, PlanAction.URDF_PATH)[0].value, '/home/vee/worlds/kitchen.urdf');
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'kitchen');
   assert.equal(picker(root).hidden, true);
+});
+
+test('Load stands beside the path it loads and Browse says a picked URDF loads at once', async () => {
+  const { root } = await openPage();
+  const row = root.findAll((element) => element.className === 'urdf-row')[0];
+  assert.deepEqual(row.children.map((element) => element.dataset.action), [PlanAction.URDF_PATH, PlanAction.LOAD_URDF, PlanAction.BROWSE_URDF]);
+  assert.equal(byAction(root, PlanAction.LOAD_URDF)[0].title, UrdfButtonTitle.LOAD);
+  assert.equal(byAction(root, PlanAction.BROWSE_URDF)[0].title, UrdfButtonTitle.BROWSE);
 });
 
 test('the picker opens on the folder it showed last, goes up and closes', async () => {
