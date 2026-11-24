@@ -91,7 +91,7 @@ def test_a_red_cube_seen_19_cm_away_lies_outside_the_box_looked_in():
     assert round(seen.distance, 2) == 0.19
     assert report.summary == (
         "The red cube was seen 19 cm from where the plan was validated, outside the "
-        "15 cm box looked in."
+        "search within 7.5 cm of where the plan was validated."
     )
 
 
@@ -128,8 +128,8 @@ def test_a_cube_inside_the_box_but_beyond_the_tolerance_stops_the_step():
     (seen,) = report.objects
     assert seen.verdict is ReportedObjectVerdict.TOO_FAR
     assert report.summary == (
-        "The red cube was seen 4 cm from where the plan was validated; the step allows "
-        "2 cm."
+        "The red cube was seen 4 cm from where the plan was validated; the step goes on "
+        "only within 2 cm of where the plan was validated."
     )
 
 

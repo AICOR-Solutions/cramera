@@ -317,8 +317,15 @@ class PerceptionSearch:
             return "on the table"
         if self.grounded is None:
             return "in the box looked in"
-        reach = (self.box.maximum.x - self.box.minimum.x) / 2
-        return f"within {centimetres(reach)} of {self.spot()}"
+        return self.within((self.box.maximum.x - self.box.minimum.x) / 2)
+
+    def within(self, distance: float) -> str:
+        """
+        :param distance: How far, in metres, from where the step expects the object.
+        :return: The distance around there as a person reads it, such as "within 2 cm
+            of where the plan was validated".
+        """
+        return f"within {centimetres(distance)} of {self.spot()}"
 
     def spot(self) -> str:
         """
@@ -373,11 +380,10 @@ class PerceptionSearch:
         ]
         if outside and self.grounded is not None:
             nearest = min(outside, key=lambda seen: seen.distance)
-            width = self.box.maximum.x - self.box.minimum.x
             return sentence(
                 f"{self.looked_for()} was seen "
-                f"{self.away(nearest.position, nearest.distance)}, outside the "
-                f"{centimetres(width)} box looked in."
+                f"{self.away(nearest.position, nearest.distance)}, outside the search "
+                f"{self.where()}."
             )
         nothing = f"no {self.color} object" if self.color else "no object"
         others = len(objects)
@@ -417,7 +423,7 @@ class PerceptionSearch:
         away = self.away(taken.position, taken.distance)
         if taken.verdict is ReportedObjectVerdict.TOO_FAR:
             return sentence(
-                f"{self.looked_for()} was seen {away}; the step allows "
-                f"{centimetres(self.tolerance)}."
+                f"{self.looked_for()} was seen {away}; the step goes on only "
+                f"{self.within(self.tolerance)}."
             )
         return sentence(f"{self.looked_for()} was found {away}.")

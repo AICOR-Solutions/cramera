@@ -44,7 +44,7 @@ const grounded = {
     seen([0.79, 0.145, 0.905], ['red'], ReportedObjectVerdict.OUTSIDE_BOX, 0.194),
     seen([0.82, 0.3, 0.9], ['grey'], ReportedObjectVerdict.WRONG_COLOR, 0.28),
   ],
-  [PerceptionReportKey.SUMMARY]: 'red_cube was seen 19 cm from where the plan was validated, outside the 15 cm box looked in.',
+  [PerceptionReportKey.SUMMARY]: 'red_cube was seen 19 cm from where the plan was validated, outside the search within 7.5 cm of where the plan was validated.',
 };
 
 const tableWide = {
@@ -87,7 +87,7 @@ test('a step whose detections failed says why in one sentence beside it', () => 
   const failed = byClass(view, RunViewClass.STEP)[1];
   assert.equal(
     byClass(failed, PerceptionViewClass.SENTENCE)[0].textContent,
-    'Perception: red_cube was seen 19 cm from where the plan was validated, outside the 15 cm box looked in; then a table-wide search found no red object (3 times).',
+    'Perception: red_cube was seen 19 cm from where the plan was validated, outside the search within 7.5 cm of where the plan was validated; then a table-wide search found no red object (3 times).',
   );
 });
 
@@ -95,7 +95,7 @@ test('every report shows what was asked and every object with why it was not tak
   const view = rendered(failedRun());
   const reports = byClass(view, PerceptionViewClass.REPORT);
   assert.equal(reports.length, 4);
-  assert.equal(byClass(reports[0], PerceptionViewClass.ASKED)[0].textContent, 'Looked for the red cube in the 15 × 15 cm box around (0.60, 0.10, 0.91) m, where the plan was validated; the step allows 2 cm.');
+  assert.equal(byClass(reports[0], PerceptionViewClass.ASKED)[0].textContent, 'Looked for the red cube within 7.5 cm of (0.60, 0.10, 0.91) m, where the plan was validated; the step goes on only within 2 cm of that spot.');
   const objects = byClass(reports[0], PerceptionViewClass.OBJECT);
   assert.deepEqual(objects.map((item) => item.dataset.verdict), [ReportedObjectVerdict.OUTSIDE_BOX, ReportedObjectVerdict.WRONG_COLOR]);
   assert.match(objects[0].innerText, /red, 6\.6 × 6\.1 × 2\.2 cm, at \(0\.79, 0\.14, 0\.91\) m, 19\.4 cm from where the plan was validated: outside the box looked in/);
@@ -154,16 +154,21 @@ const plannedAgain = {
   [PerceptionReportKey.OBJECTS]: [seen([0.79, 0.145, 0.905], ['red'], ReportedObjectVerdict.ACCEPTED, 0.0)],
 };
 
+test('a box looked in that reaches unequally far along x and y says how far along each', () => {
+  const wide = { ...grounded, [PerceptionReportKey.BOX]: [[0.525, 0.005, 0.83], [0.675, 0.205, 0.98]] };
+  assert.match(askedText(wide), /^Looked for the red cube within 7\.5 cm along x and 10 cm along y of \(0\.60, 0\.10, 0\.91\) m, /);
+});
+
 test('what was asked names the object as the person knows it, never the type checked', () => {
   const asked = askedText(plannedAgain);
-  assert.match(asked, /^Looked for the red cube in /);
+  assert.match(asked, /^Looked for the red cube within /);
   assert.doesNotMatch(asked, /planned/i);
 });
 
 test('a step planned again says it looked around where the object was last seen', () => {
   assert.equal(
     askedText(plannedAgain),
-    'Looked for the red cube in the 15 × 15 cm box around (0.79, 0.14, 0.91) m, where it was last seen (19.4 cm from where the plan was validated); the step allows 2 cm.',
+    'Looked for the red cube within 7.5 cm of (0.79, 0.14, 0.91) m, where it was last seen (19.4 cm from where the plan was validated); the step goes on only within 2 cm of that spot.',
   );
 });
 

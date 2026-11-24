@@ -3483,7 +3483,8 @@ class PerceptionReport(JsonDocument):
     summary: str = document_field(PerceptionReportKey.SUMMARY, default="")
     """
     The outcome as a person reads it, such as "The red cube was seen 19 cm from where
-    the plan was validated, outside the 15 cm box looked in."
+    the plan was validated, outside the search within 7.5 cm of where the plan was
+    validated."
     """
 
 

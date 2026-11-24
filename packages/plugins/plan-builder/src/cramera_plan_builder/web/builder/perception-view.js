@@ -111,18 +111,22 @@ export function perceptionSentence(reports) {
 
 /**
  * @param {Object} report A `PerceptionReport`.
- * @returns {string} What it asked, as a person reads it.
+ * @returns {string} What it asked, as a person reads it: around where the step expected
+ *   the object, how far it looked and how far the step lets the object lie, both
+ *   measured from there.
  */
 export function askedText(report) {
   const box = report[PerceptionReportKey.BOX];
   const size = box ? `${cm(box[1][0] - box[0][0])} × ${cm(box[1][1] - box[0][1])} cm` : '';
+  const [reachX, reachY] = box ? [cm((box[1][0] - box[0][0]) / 2), cm((box[1][1] - box[0][1]) / 2)] : ['', ''];
+  const reach = reachX === reachY ? `${reachX} cm` : `${reachX} cm along x and ${reachY} cm along y`;
   const grounded = report[PerceptionReportKey.GROUNDED];
   const validated = report[PerceptionReportKey.VALIDATED];
   const moved = grounded && validated ? ` (${cm(Math.hypot(grounded[0] - validated[0], grounded[1] - validated[1]))} cm from ${VALIDATED_SPOT})` : '';
   const where = report[PerceptionReportKey.TABLE_WIDE]
     ? 'on the whole table'
     : grounded
-      ? `in the ${size} box around ${at(grounded)}, ${spotText(report)}${moved}; the step allows ${cm(report[PerceptionReportKey.TOLERANCE] ?? 0)} cm`
+      ? `within ${reach} of ${at(grounded)}, ${spotText(report)}${moved}; the step goes on only within ${cm(report[PerceptionReportKey.TOLERANCE] ?? 0)} cm of that spot`
       : `in the ${size} box from ${at(box[0])} to ${at(box[1])}`;
   return `Looked for ${lookedForText(report)} ${where}.`;
 }
