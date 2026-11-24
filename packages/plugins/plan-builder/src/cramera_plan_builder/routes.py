@@ -6,6 +6,7 @@ demos, validation, the demo process and the object and robot models' files.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -55,7 +56,11 @@ from cramera_protocol.plan_builder import (
     EnvironmentAnnotationsParameter,
 )
 from cramera_protocol.reach import ReachRequest, ReachRequestKey
-from cramera_protocol.robot_profile import ExecutorKind, PerceptionSettings
+from cramera_protocol.robot_profile import (
+    ExecutorKind,
+    PerceptionSettings,
+    RobotProfileVariable,
+)
 from cramera_protocol.validation import (
     StepFailureReason,
     StepValidation,
@@ -63,6 +68,8 @@ from cramera_protocol.validation import (
     ValidationReport,
     ValidationRequest,
 )
+
+logger = logging.getLogger(__name__)
 
 # %% request bodies
 
@@ -279,6 +286,7 @@ class PlanBuilderRoutes:
             missing=workspace.missing(),
             profile=self.profile.profile,
             templates=self.profile.templates,
+            unvalidated_real_runs=self.profile.unvalidated_real_runs,
         )
 
     def answer_catalog(self, request: Request) -> Response:
@@ -477,24 +485,42 @@ class PlanBuilderRoutes:
         :return: The state of the started demo.
         :raises PlanNotValidated: When the mode needs a validated plan, the plan is not
             the one whose validation passed last and the request does not override it.
-            No request overrides the gate of a run on the real robot. A run on the
-            real robot moves it, so the next run needs a new validation, unless the
-            robot's check refused the run before anything moved.
+            No request overrides the gate of a run on the real robot, unless the
+            deployment allows unvalidated real runs. A run on the real robot moves it,
+            so the next run needs a new validation, unless the robot's check refused
+            the run before anything moved.
         """
         run = RunRequest.from_json(self.body(request))
         demo = self.runnable(run.plan)
-        real = self.profile.moves_real_robot(run.mode)
-        if (
-            run.mode.needs_validation
-            and not self.gate.admits(demo.plan)
-            and not (run.override_validation and not real)
-        ):
-            raise PlanNotValidated(run.mode.value, real=real)
+        if run.mode.needs_validation and not self.gate.admits(demo.plan):
+            self.override_gate(run)
         executor = self.profile.executor_for(run.mode)
         status = self.runner.start(demo, run.mode, executor)
         if executor is ExecutorKind.REAL:
             self.gate.close(kept_if=self.runner.current.refused_before_motion)
         return Response.of_json(self.with_validation_held(status))
+
+    def override_gate(self, run: RunRequest) -> None:
+        """
+        Let a run of a plan without a passed validation start, where the request asks
+        for it and the run's executor allows it.
+
+        :param run: The run of a mode needing a passed validation.
+        :raises PlanNotValidated: When the request does not override the gate, or the
+            run is on the real robot and the deployment does not allow unvalidated real
+            runs.
+        """
+        real = self.profile.moves_real_robot(run.mode)
+        if not run.override_validation:
+            raise PlanNotValidated(run.mode.value, real=real)
+        if not real:
+            return
+        if not self.profile.unvalidated_real_runs:
+            raise PlanNotValidated(run.mode.value, real=real)
+        logger.warning(
+            "A plan runs on the real robot without a passed validation (%s=1).",
+            RobotProfileVariable.UNVALIDATED_REAL_RUNS.value,
+        )
 
     def answer_run_status(self, request: Request) -> Response:
         """

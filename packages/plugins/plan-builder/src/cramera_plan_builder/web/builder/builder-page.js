@@ -1252,10 +1252,11 @@ export class BuilderPage {
 
   /**
    * @returns {boolean} Whether a run on the robot may start without a passed validation:
-   *   in developer mode, and never on the real robot.
+   *   in developer mode, and on the real robot only where the deployment allows it.
    */
   #mayOverrideValidation() {
-    return this.state.developerMode() && this.#robotExecutor() !== ExecutorKind.REAL;
+    if (!this.state.developerMode()) return false;
+    return this.#robotExecutor() !== ExecutorKind.REAL || this.state.catalog[PlanBuilderCatalogKey.UNVALIDATED_REAL_RUNS] === true;
   }
 
   // %% validation
@@ -1836,7 +1837,8 @@ export class BuilderPage {
     // a run on the real robot takes the validation away as it starts, for the next run
     if (this.#performing() && this.#validationTaken !== null) return VALIDATED_FOR_THIS_RUN;
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
-    const override = this.#mayOverrideValidation() ? ' Developer mode lets it run on the robot anyway.' : '';
+    const real = this.#robotExecutor() === ExecutorKind.REAL;
+    const override = !this.#mayOverrideValidation() ? '' : real ? ' Developer mode lets it run on the real robot anyway, unchecked.' : ' Developer mode lets it run on the robot anyway.';
     if (this.#validation === null && this.#validationUsedBy === JSON.stringify(this.state.document)) return `${VALIDATION_USED}${override}`;
     if (this.#validation === null) return `Not validated: validate before running on the robot.${override}`;
     return `${this.#validation.sceneChanged ? 'Scene' : 'Plan'} changed since its validation: validate again.${override}`;

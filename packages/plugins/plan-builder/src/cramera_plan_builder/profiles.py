@@ -59,6 +59,11 @@ class ConfiguredProfile:
     Whether the deployment is attached to the real robot.
     """
 
+    unvalidated_real_runs: bool = False
+    """
+    Whether developer mode may run a plan on the real robot without a passed validation.
+    """
+
     unprofiled_label: str = "This deployment"
     """
     How a deployment without a profile is named where it offers no run.
@@ -75,7 +80,14 @@ class ConfiguredProfile:
         connection = RobotConnection(
             environment.get(RobotProfileVariable.CONNECTION, RobotConnection.SIMULATED)
         )
-        return cls.of_file(Path(path).expanduser(), connection) if path else cls()
+        configured = cls.of_file(Path(path).expanduser(), connection) if path else cls()
+        return replace(
+            configured,
+            unvalidated_real_runs=environment.get(
+                RobotProfileVariable.UNVALIDATED_REAL_RUNS
+            )
+            == "1",
+        )
 
     @classmethod
     def of_file(

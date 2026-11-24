@@ -599,18 +599,23 @@ def validating_plugin(
     workspace_loader,
     profile_file,
     connection: RobotConnection = RobotConnection.SIMULATED,
+    unvalidated_real_runs: bool = False,
 ) -> PlanBuilderPlugin:
     """
     :return: A plan builder of the profile whose validator is the stand-in that fails
         the step a plan's task names as unreachable, attached to the robot as
-        `connection` says.
+        `connection` says, letting developer mode run unvalidated plans on the real
+        robot if `unvalidated_real_runs`.
     """
+    environment = {
+        PlanBuilderVariable.OUTPUT: str(output),
+        RobotProfileVariable.PROFILE: str(profile_file),
+        RobotProfileVariable.CONNECTION: connection,
+    }
+    if unvalidated_real_runs:
+        environment[RobotProfileVariable.UNVALIDATED_REAL_RUNS] = "1"
     return PlanBuilderPlugin(
-        environment={
-            PlanBuilderVariable.OUTPUT: str(output),
-            RobotProfileVariable.PROFILE: str(profile_file),
-            RobotProfileVariable.CONNECTION: connection,
-        },
+        environment=environment,
         workspace=workspace_loader,
         template=DemoTemplate(DATASET / "templates" / "waiting_demo.py"),
         validations=PlanValidations(
@@ -957,7 +962,7 @@ def test_a_run_on_the_real_robot_answers_that_it_took_the_validation(
     assert RunStatus.from_json(json.loads(started.body)).validation_held is False
 
 
-def test_no_request_overrides_the_gate_of_a_run_on_the_real_robot(
+def test_no_request_overrides_the_gate_of_a_run_on_the_real_robot_by_default(
     attached_to_the_real_robot, plan
 ):
     assert (
@@ -982,6 +987,62 @@ def test_a_run_on_the_real_robot_is_refused_in_plain_words_until_validated(
         "A run on the real robot needs the plan to pass its validation first: "
         "press Validate, then run it."
     )
+
+
+@pytest.fixture
+def allowing_unvalidated_real_runs(serve, output, workspace_loader, tmp_path):
+    """
+    :return: Answers requests to a plan builder attached to the real robot whose
+        deployment lets developer mode run unvalidated plans on it.
+    """
+    return serve(
+        validating_plugin(
+            output,
+            workspace_loader,
+            real_robot_profile(tmp_path),
+            RobotConnection.REAL,
+            unvalidated_real_runs=True,
+        )
+    )
+
+
+def test_a_deployment_allowing_it_lets_developer_mode_run_unvalidated_on_the_real_robot(
+    allowing_unvalidated_real_runs, plan
+):
+    assert (
+        run_on_the_robot(allowing_unvalidated_real_runs, plan, override=True)
+        == HTTPStatus.OK
+    )
+
+
+def test_a_deployment_allowing_unvalidated_real_runs_still_refuses_an_unasked_one(
+    allowing_unvalidated_real_runs, plan
+):
+    assert (
+        run_on_the_robot(allowing_unvalidated_real_runs, plan)
+        == PlanNotValidated(RunMode.ROBOT).status()
+    )
+
+
+@pytest.mark.parametrize("allowed", [False, True])
+def test_the_catalog_says_whether_unvalidated_real_runs_are_allowed(
+    serve, output, workspace_loader, tmp_path, allowed
+):
+    answer = serve(
+        validating_plugin(
+            output,
+            workspace_loader,
+            real_robot_profile(tmp_path),
+            RobotConnection.REAL,
+            unvalidated_real_runs=allowed,
+        )
+    )
+
+    catalog = PlanBuilderCatalog.from_json(
+        json.loads(send(answer, HttpMethod.GET, PlanBuilderRoute.CATALOG).body)
+    )
+
+    assert catalog.unvalidated_real_runs is allowed
 
 
 def test_a_real_run_after_the_real_run_of_its_validation_cannot_be_forced(

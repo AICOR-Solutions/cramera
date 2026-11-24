@@ -2469,6 +2469,11 @@ class PlanBuilderCatalogKey(StrEnum):
     The plans the robot profile offers to start from.
     """
 
+    UNVALIDATED_REAL_RUNS = "unvalidatedRealRuns"
+    """
+    Whether developer mode may run a plan on the real robot without a passed validation.
+    """
+
 
 @dataclass(kw_only=True)
 class PlanBuilderCatalog(JsonDocument):
@@ -2574,6 +2579,14 @@ class PlanBuilderCatalog(JsonDocument):
     )
     """
     The plans the robot profile offers to start from, in the profile's order.
+    """
+
+    unvalidated_real_runs: bool = document_field(
+        PlanBuilderCatalogKey.UNVALIDATED_REAL_RUNS, default=False
+    )
+    """
+    Whether the deployment lets developer mode run a plan on the real robot without a
+    passed validation (:attr:`RobotProfileVariable.UNVALIDATED_REAL_RUNS`).
     """
 
 
