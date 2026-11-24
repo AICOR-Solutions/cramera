@@ -215,6 +215,27 @@ export const LENIENT_CHECK = Object.freeze({
 });
 
 /**
+ * What the task field says: it describes the plan for people, and nothing reads it to
+ * decide what the robot does.
+ */
+export const TASK_HINT = Object.freeze({
+  PLACEHOLDER: 'A note for people, e.g. stack the cubes',
+  TITLE: 'Describes the plan for the people who read it. The robot does not act on this text; only the steps decide what it does.',
+});
+
+/**
+ * What each button of the 3D view's tools does, shown as its tooltip, by its
+ * `PlanAction` value.
+ */
+export const TOOL_TITLES = Object.freeze({
+  [PlanAction.CAPTURE]: 'Write where the live scene\'s robots and objects stand into the plan.',
+  [PlanAction.TURN]: 'While on, the handle of the robot, object or target picked in the 3D view turns it around the vertical axis instead of moving it; click again to move.',
+  [PlanAction.FRAME]: 'Point the 3D view at the plan\'s robots, objects and targets.',
+  [PlanAction.SHOW_DEMO]: 'Show the Python script generated from the plan below the 3D view.',
+  [PlanAction.WRITE_DEMO]: 'Write the script generated from the plan into the demos folder and say how to run it.',
+});
+
+/**
  * @param {string} label The loaded environment's name for people.
  * @param {Array<string>} missing The mesh references that resolved to no file.
  * @returns {string} What the page says about the loaded environment.
@@ -1919,7 +1940,8 @@ export class BuilderPage {
     const document = this.#environment.document;
     parts.name = elements.input('text', PlanAction.NAME, () => this.edit(() => this.state.setField(PlanKey.NAME, parts.name.value.trim())));
     parts.task = elements.input('text', PlanAction.TASK, () => this.edit(() => this.state.setField(PlanKey.TASK, parts.task.value.trim())));
-    parts.task.placeholder = 'What the plan does';
+    parts.task.placeholder = TASK_HINT.PLACEHOLDER;
+    parts.task.title = TASK_HINT.TITLE;
     parts.environment = new EnvironmentView(document, this);
     parts.saved = this.#choice(PlanAction.OPEN, this.#planChoices(), OPEN_PROMPT.value, (value) => {
       const label = this.#planChoices().find((choice) => choice.value === value)?.label ?? value;
@@ -2033,6 +2055,7 @@ export class BuilderPage {
       elements.button('Show demo', PlanAction.SHOW_DEMO, () => this.#showDemo()),
       elements.button('Write demo', PlanAction.WRITE_DEMO, () => this.#writeDemo()),
     );
+    for (const button of toolRow.children) button.title = TOOL_TITLES[button.dataset.action];
     const robotRow = elements.create('div', ROBOT_RUN_ROW);
     robotRow.hidden = parts.robot.hidden;
     if (onRealRobot) robotRow.append(elements.create('span', 'robot-actions-label', REAL_MOTION));

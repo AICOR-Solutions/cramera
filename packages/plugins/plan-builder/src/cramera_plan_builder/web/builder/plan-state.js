@@ -343,7 +343,7 @@ export class PlanState {
    *   its action's identifier.
    */
   stepLabel(step) {
-    const skill = step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
+    const skill = this.stepSkill(step);
     if (skill) return skill[SkillKey.LABEL];
     return this.schema(step[PlanStepKey.ACTION])?.[ActionSchemaKey.LABEL] ?? step[PlanStepKey.ACTION];
   }
@@ -355,10 +355,26 @@ export class PlanState {
    *   names while the palette offers skills, else every field.
    */
   shownFields(step, schema) {
-    const skill = step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
-    const names = this.curated() ? skill?.[SkillKey.FIELDS] : null;
+    const names = this.curatedSkill(step)?.[SkillKey.FIELDS];
     const fields = PlanState.fields(schema);
     return names ? fields.filter((field) => names.includes(field[ActionFieldKey.NAME])) : fields;
+  }
+
+  /**
+   * @param {Object} step A step of a robot.
+   * @returns {Object|null} The profile's skill the step was added as, or null.
+   */
+  stepSkill(step) {
+    return step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
+  }
+
+  /**
+   * @param {Object} step A step of a robot.
+   * @returns {Object|null} The step's skill while the palette offers skills, which then
+   *   decides what the step's card shows; null otherwise.
+   */
+  curatedSkill(step) {
+    return this.curated() ? this.stepSkill(step) : null;
   }
 
   /**
@@ -855,14 +871,14 @@ export class PlanState {
    * @param {string} identifier A step of the edited robot.
    * @returns {Array<{value: string, label: string}>} What the step's object fields can
    *   name: the plan's objects, then the object each earlier step of the robot that
-   *   looks for objects finds.
+   *   looks for objects finds, named by that step's number and name as its card shows.
    */
   objectChoices(identifier) {
     const choices = this.objects().map((item) => ({ value: item[PlannedObjectKey.IDENTIFIER], label: item[PlannedObjectKey.IDENTIFIER] }));
-    for (const step of this.steps()) {
+    for (const [index, step] of this.steps().entries()) {
       if (step[PlanStepKey.IDENTIFIER] === identifier) break;
       if (!this.looksForObjects(step)) continue;
-      choices.push({ value: `${DetectedObjectText.PREFIX}${step[PlanStepKey.IDENTIFIER]}`, label: `found by ${this.stepLabel(step)} (${step[PlanStepKey.IDENTIFIER]})` });
+      choices.push({ value: `${DetectedObjectText.PREFIX}${step[PlanStepKey.IDENTIFIER]}`, label: `found by ${index + 1}. ${this.stepLabel(step)}` });
     }
     return choices;
   }

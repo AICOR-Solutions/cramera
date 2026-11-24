@@ -22,7 +22,8 @@ cramera
   CRAM workspace the catalog names the missing modules and offers environments only.
 - **A URDF as the environment.** The Environment section's **Browse…** opens a picker
   of the viewer's machine's folders and their URDF and xacro files, reopening on the
-  folder it showed last; its path field takes such a file's path too, such as
+  folder it showed last, and loads a file as soon as it is picked; the path field with
+  its **Load** button takes such a file's path too, such as
   `coraplex/resources/worlds/apartment.urdf`. `cramera-bridge` copies it with every mesh
   it names (`package://` references resolved) into a new bundle of the local scenes
   (`CRAMERA_DATA/scenes`), which the builder then offers and chooses. Meshes it cannot
@@ -75,6 +76,18 @@ cramera
   named in the catalog with its error. Required fields come first in a step's form, the
   others fold under "More options". A robot is offered an action when every required
   enumeration has a member it allows.
+- **Skills.** A robot profile with `skills` makes the palette offer those instead of
+  the native actions, until "developer mode" is on. A step of a skill shows only the
+  fields the skill names, all of them unfolded, and says under its name what the skill
+  does, as the skill's documentation puts it (Park arms moves both arms, Pick picks with
+  the arm that reaches); developer mode shows the action's every field again.
+- **Poses** of robots, objects, targets and markers are edited in the world frame,
+  whose origin is the environment's: x, y and z in metres, and the heading as
+  "rotation (°)" around the vertical axis, 0° facing along the world's x axis. Each
+  input says so as its tooltip.
+- **Composing.** An action clicked in the palette is added as the last step; one
+  dropped on a step is inserted before it, one dropped on the place below the last
+  step is added after it.
 - **Plans** are saved under `CRAMERA_DATA/plan-builder/plans`. A step names its action
   by class name and gives its fields' values by field name (format 1.1). A plan saved
   with the step kinds of format 1.0 loads as the actions they stood for: `park_arms` as
@@ -147,7 +160,7 @@ cramera
   same way before it starts and puts each object down at the pose found; the run
   measures where it ended (`placedPosition.<step>`). The 3D view shows the zones on the
   table. A marker slides over the surface below it (x, y and yaw only; the table's top,
-  else the floor), stays in sync with its x, y and yaw fields, and turns green or red
+  else the floor), stays in sync with its x, y and rotation fields, and turns green or red
   while dragged by a quick check against what the robot reaches: the `reach` route
   answers, once per robot model, a sphere around each arm's shoulder that its tool
   stays within (`cramera_bridge.plans.reaching`). Red is out of reach for certain;

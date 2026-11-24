@@ -5,7 +5,7 @@
  */
 
 import { IndexEntryKey, PlanBuilderCatalogKey, PlanKey, PlannedRobotKey, RobotModelKey, UrdfFolderKey } from '../../../protocol.js';
-import { Elements, PlanAction } from './elements.js';
+import { Elements, PlanAction, PoseAxis } from './elements.js';
 import { PlanPose } from './poses.js';
 
 /**
@@ -17,6 +17,14 @@ export const EMPTY_FLOOR = Object.freeze({ value: '', label: 'Empty floor' });
  * The hint in the path field of a URDF to load as an environment.
  */
 export const URDF_PLACEHOLDER = '/path/to/world.urdf';
+
+/**
+ * What the buttons loading a URDF as the environment do, shown as their tooltips.
+ */
+export const UrdfButtonTitle = Object.freeze({
+  LOAD: 'Load the URDF or xacro file whose path is typed in the field.',
+  BROWSE: 'Pick a URDF or xacro file of this machine; it loads as soon as it is picked.',
+});
 
 /**
  * Keeps a path's leading slash in front when the picker cuts it on the left.
@@ -118,9 +126,11 @@ export class EnvironmentView {
       const path = this.path.value.trim();
       if (path) this.#editor.loadEnvironment(path);
     });
+    load.title = UrdfButtonTitle.LOAD;
     const browse = elements.button('Browse…', PlanAction.BROWSE_URDF, () => this.browse(null));
+    browse.title = UrdfButtonTitle.BROWSE;
     const row = elements.create('div', 'urdf-row');
-    row.append(this.path, browse, load);
+    row.append(this.path, load, browse);
     this.#folder = new Elements(document);
     this.picker = elements.create('div', 'urdf-picker');
     this.picker.hidden = true;
@@ -327,9 +337,9 @@ export class RobotsView {
     const place = (position, yaw) => this.#editor.edit(() => state.setRobotPose(identifier, PlanPose.of(...position, yaw)));
     const row = elements.create('div', 'pose-row');
     row.append(
-      elements.number('x', x, PlanAction.POSE, (value) => place([value, y, z], PlanPose.yaw(pose))),
-      elements.number('y', y, PlanAction.POSE, (value) => place([x, value, z], PlanPose.yaw(pose))),
-      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, z], PlanPose.radians(value))),
+      elements.number(PoseAxis.X, x, PlanAction.POSE, (value) => place([value, y, z], PlanPose.yaw(pose))),
+      elements.number(PoseAxis.Y, y, PlanAction.POSE, (value) => place([x, value, z], PlanPose.yaw(pose))),
+      elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, z], PlanPose.radians(value))),
     );
     const remove = elements.button(`Remove ${robot[PlannedRobotKey.LABEL]}`, PlanAction.REMOVE_ROBOT, () => this.#editor.edit(() => state.removeRobot(identifier)));
     const settings = elements.create('div', 'robot-settings');

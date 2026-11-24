@@ -24,7 +24,7 @@ import {
   StepVerdict,
   ZoneKey,
 } from '../../../protocol.js';
-import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
+import { DomEvent, DragKind, DragText, Elements, PlanAction, POSITION_AXES, PoseAxis } from './elements.js';
 import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
 import { seenImageFigures } from './seen-images.js';
@@ -129,6 +129,11 @@ const DEFAULT_CHOICE = '';
 export const noAnnotation = (annotation) => `Neither the environment nor the live world shows an entity with a ${annotation} annotation; type its name.`;
 
 /**
+ * What the place below the last step says, where a dropped action is added last.
+ */
+export const END_DROP_HINT = 'Drop an action here to add it as the last step.';
+
+/**
  * The classes the view's elements carry.
  */
 const ViewClass = Object.freeze({
@@ -140,6 +145,7 @@ const ViewClass = Object.freeze({
   LIST: 'steps',
   PARAMETERS: 'step-parameters',
   MORE: 'more-options',
+  SKILL_NOTE: 'step-skill-note',
   PROBLEM: 'step-problem',
   VALIDATION: 'step-validation',
   VALIDATION_DETAIL: 'step-validation-detail',
@@ -148,6 +154,7 @@ const ViewClass = Object.freeze({
   CHIPS: 'chips',
   CHIP: 'chip',
   DROP: 'drop-hint',
+  END_DROP: 'drop-hint end-drop',
   DRAG_OVER: 'drag-over',
   EMPTY: 'empty',
 });
@@ -216,7 +223,8 @@ export class StepsView {
   }
 
   /**
-   * Show the edited robot's palette and steps.
+   * Show the edited robot's palette and steps, and below the last step a place to drop
+   * an action that comes last.
    * @param {Array<string|null>} statuses The live status of each step, by position.
    * @param {Array<Map<string, string|null>>} observations What each step's constraints
    *   observe in the live plan, by their text, by position.
@@ -233,7 +241,9 @@ export class StepsView {
       this.list.replaceChildren(this.#shown.create('li', ViewClass.DROP, 'Drag actions here, or click them, to build the plan.'));
       return;
     }
-    this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map(), validations.get(step[PlanStepKey.IDENTIFIER]) ?? null)));
+    const end = this.#shown.create('li', ViewClass.END_DROP, END_DROP_HINT);
+    this.#shown.dropTarget(end, ViewClass.DRAG_OVER, (text) => this.#dropped(text, steps.length));
+    this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map(), validations.get(step[PlanStepKey.IDENTIFIER]) ?? null)), end);
   }
 
   // %% palette
@@ -370,6 +380,8 @@ export class StepsView {
       elements.button('×', PlanAction.REMOVE_STEP, () => this.#edit(() => this.#editor.state.removeStep(identifier))),
     );
     view.head.append(controls);
+    const documentation = this.#editor.state.curatedSkill(step)?.[SkillKey.DOCUMENTATION];
+    if (documentation) card.append(elements.create('p', ViewClass.SKILL_NOTE, documentation));
     for (const problem of this.#editor.state.problems(step)) card.append(elements.create('p', ViewClass.PROBLEM, problem));
     if (validation) {
       card.dataset.validation = validation[StepValidationKey.VERDICT];
@@ -403,14 +415,16 @@ export class StepsView {
    * @param {Object} step A step of the edited robot.
    * @param {Object} schema Its action.
    * @returns {Array<HTMLElement>} The controls of the required fields, and the optional
-   *   ones folded under "More options".
+   *   ones folded under "More options"; a skill naming its fields shows them all
+   *   unfolded while skills are offered.
    */
   #form(step, schema) {
     const elements = this.#shown;
     const required = elements.create('div', ViewClass.PARAMETERS);
     const optional = elements.create('div', ViewClass.PARAMETERS);
+    const named = Boolean(this.#editor.state.curatedSkill(step)?.[SkillKey.FIELDS]);
     for (const field of this.#editor.state.shownFields(step, schema)) {
-      const box = field[ActionFieldKey.REQUIRED] ? required : optional;
+      const box = field[ActionFieldKey.REQUIRED] || named ? required : optional;
       box.append(...this.#control(step, field));
     }
     if (optional.children.length === 0) return [required];
@@ -551,14 +565,14 @@ export class StepsView {
     const position = PlanPose.position(target);
     const row = elements.create('div', 'pose-row');
     row.dataset.marker = 'true';
-    const coordinates = ['x', 'y'].map((axis, index) =>
+    const coordinates = [PoseAxis.X, PoseAxis.Y].map((axis, index) =>
       elements.number(axis, position[index], PlanAction.POSE, (value) => {
         const moved = [...position];
         moved[index] = value;
         onChange(PlanPose.moved(target, moved));
       }),
     );
-    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
+    const heading = elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
     row.append(...coordinates, heading);
     return row;
   }
@@ -719,14 +733,14 @@ export class StepsView {
     const target = pose ?? PlanPose.of(0, 0, 0, 0);
     const position = PlanPose.position(target);
     const row = elements.create('div', 'pose-row');
-    const coordinates = ['x', 'y', 'z'].map((axis, index) =>
+    const coordinates = POSITION_AXES.map((axis, index) =>
       elements.number(axis, position[index], PlanAction.POSE, (value) => {
         const moved = [...position];
         moved[index] = value;
         onChange(PlanPose.moved(target, moved));
       }),
     );
-    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
+    const heading = elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
     row.append(...coordinates, heading);
     return row;
   }

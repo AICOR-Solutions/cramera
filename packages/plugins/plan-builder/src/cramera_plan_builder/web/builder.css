@@ -163,6 +163,9 @@ details.unavailable ul { list-style: none; margin: 6px 0 0; padding: 0; display:
   border-radius: var(--radius);
 }
 
+.drop-hint.end-drop { padding: 10px 12px; font-size: 12px; }
+.drop-hint.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+
 .step-controls { margin-left: auto; display: flex; gap: 4px; }
 .step-controls button { padding: 0 7px; min-width: 26px; }
 .step-parameters select, .step-parameters input[type="text"] { font-size: 12px; }

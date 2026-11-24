@@ -60,13 +60,13 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, ROBOT_RUN_ROW, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
-import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
+import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { EMPTY_FOLDER, EnvironmentNote, RobotTag, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
-import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { EMPTY_FOLDER, EnvironmentNote, RobotTag, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
+import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { READY, cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
@@ -473,6 +473,17 @@ test('clicking an action and dropping one add steps where they land', async () =
   assert.ok(Number(steps(root)[0].dataset.palette) < STEP_PALETTE_SIZE);
 });
 
+test('an action dropped below the last step is added after it', async () => {
+  const { root, page } = await openPage();
+  block(root, 'park_arms').click();
+  block(root, 'move_torso').click();
+  const list = root.findAll((element) => element.className === 'steps')[0];
+  const end = list.children.at(-1);
+  assert.equal(end.textContent, END_DROP_HINT);
+  drop(end, DragText.of(DragKind.STEP, 'navigate'));
+  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['park_arms', 'move_torso', 'navigate']);
+});
+
 test('the palette groups the actions and names why others are not available', async () => {
   const { root, page } = await openPage('', ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'tracy'));
   const groups = root.findAll((element) => element.className === 'palette-group').map((element) => element.dataset.group);
@@ -664,6 +675,28 @@ test('robots are added, edited and removed', async () => {
   assert.equal(page.state.robots().length, 1);
 });
 
+test('pose inputs are labelled with their unit and explain the world frame and the rotation', async () => {
+  const { root } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'navigate').click();
+  const labels = root.findAll((element) => element.className === 'number');
+  const shown = (row) => row.findAll((element) => element.className === 'number').map((label) => [label.children[0].textContent, label.title]);
+  const rows = root.findAll((element) => element.className === 'pose-row');
+  const expected = (...axes) => axes.map((axis) => [axis.label, axis.title]);
+  const robotRow = root.findAll((element) => element.className === 'robot-settings')[0].findAll((element) => element.className === 'pose-row')[0];
+  assert.deepEqual(shown(robotRow), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.YAW));
+  for (const row of rows.filter((candidate) => candidate !== robotRow)) assert.deepEqual(shown(row), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.Z, PoseAxis.YAW));
+  assert.equal(labels.length, 3 + 4 + 4);
+  for (const axis of Object.values(PoseAxis)) assert.match(axis.title, axis === PoseAxis.YAW ? /around the vertical axis/ : /world frame/);
+});
+
+test('the task field says it is a note for people that the robot does not act on', async () => {
+  const { root } = await openPage();
+  const task = byAction(root, PlanAction.TASK)[0];
+  assert.equal(task.placeholder, TASK_HINT.PLACEHOLDER);
+  assert.equal(task.title, TASK_HINT.TITLE);
+});
+
 test('the name is edited in the bar and the environment in its section', async () => {
   const { root, page, scene } = await openPage();
   const name = byAction(root, PlanAction.NAME)[0];
@@ -745,6 +778,14 @@ test('the picker browses folders and a picked URDF becomes the environment', asy
   assert.equal(byAction(root, PlanAction.URDF_PATH)[0].value, '/home/vee/worlds/kitchen.urdf');
   assert.equal(page.state.field(PlanKey.ENVIRONMENT), 'kitchen');
   assert.equal(picker(root).hidden, true);
+});
+
+test('Load stands beside the path it loads and Browse says a picked URDF loads at once', async () => {
+  const { root } = await openPage();
+  const row = root.findAll((element) => element.className === 'urdf-row')[0];
+  assert.deepEqual(row.children.map((element) => element.dataset.action), [PlanAction.URDF_PATH, PlanAction.LOAD_URDF, PlanAction.BROWSE_URDF]);
+  assert.equal(byAction(root, PlanAction.LOAD_URDF)[0].title, UrdfButtonTitle.LOAD);
+  assert.equal(byAction(root, PlanAction.BROWSE_URDF)[0].title, UrdfButtonTitle.BROWSE);
 });
 
 test('the picker opens on the folder it showed last, goes up and closes', async () => {
@@ -912,6 +953,21 @@ test('a later step names the object a detect step finds', async () => {
   assert.deepEqual(page.state.problems(page.state.step(pick[PlanStepKey.IDENTIFIER])), []);
 });
 
+test('a later step names what a detect step finds by the number and name its card shows', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'detect').click();
+  block(root, 'pick_up').click();
+  // moved behind a step added later, the detect step's identity no longer matches its number
+  block(root, 'park_arms').click();
+  const detect = page.state.steps()[0];
+  page.edit(() => page.state.moveStep(page.state.steps()[2][PlanStepKey.IDENTIFIER], -2));
+  const card = steps(root).find((element) => element.dataset.step === detect[PlanStepKey.IDENTIFIER]);
+  const text = (className) => card.findAll((element) => element.className === className)[0].textContent;
+  const found = parameter(root, 'object_designator').children.find((option) => option.value === `${DetectedObjectText.PREFIX}${detect[PlanStepKey.IDENTIFIER]}`);
+  assert.equal(found.textContent, `found by ${text('step-number')}. ${text('step-name')}`);
+});
+
 test('a step before the detect step cannot name what it finds', async () => {
   const { root, page } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
@@ -977,6 +1033,13 @@ test('a robot whose root is its pelvis keeps its height when it is dragged or ed
   x.value = '3';
   x.dispatch(DomEvent.CHANGE);
   assert.deepEqual(PlanPose.position(page.state.robot(robot)[PlannedRobotKey.POSE]), [3, 2, 0.7923]);
+});
+
+test('every tool button of the 3D view says what it does as its tooltip', async () => {
+  const { root } = await openPage();
+  const tools = root.findAll((element) => element.className === 'button-row tool-actions')[0].children;
+  assert.deepEqual(tools.map((button) => button.dataset.action), Object.keys(TOOL_TITLES));
+  assert.deepEqual(tools.map((button) => button.title), Object.values(TOOL_TITLES));
 });
 
 test('a picked object is marked in the list and the turn mode reaches the view', async () => {
@@ -1245,6 +1308,47 @@ test('with a profile of skills the palette offers skills until developer mode is
   assert.equal(byAction(root, PlanAction.ADD_SKILL).length, 0);
   assert.equal(byAction(root, PlanAction.ADD_STEP).length, page.state.offeredActions(page.state.activeRobot()).length);
   assert.equal(storage.getItem(DEVELOPER_MODE_KEY), 'true');
+});
+
+/**
+ * A profile whose skills name the fields a person edits, as the Tracy profile does.
+ */
+const CURATED_PROFILE = {
+  ...SKILLED_PROFILE,
+  [RobotProfileKey.SKILLS]: [
+    { ...SKILLED_PROFILE[RobotProfileKey.SKILLS][0], [SkillKey.DOCUMENTATION]: 'Moves both arms into their parking pose.' },
+    { [SkillKey.IDENTIFIER]: 'detect', [SkillKey.LABEL]: 'Detect', [SkillKey.ACTION]: 'detect', [SkillKey.FIELDS]: ['region', 'object_sem_annotation', 'color'], [SkillKey.DOCUMENTATION]: 'Looks for an object of a kind and color.' },
+  ],
+};
+const skillBlock = (root, identifier) => byAction(root, PlanAction.ADD_SKILL).find((element) => element.dataset.skill === identifier);
+const skillNotes = (root) => root.findAll((element) => element.className === 'step-skill-note').map((element) => element.textContent);
+const setDeveloperMode = (root, enabled) => {
+  const developer = byAction(root, PlanAction.DEVELOPER_MODE)[0];
+  developer.checked = enabled;
+  developer.dispatch(DomEvent.CHANGE);
+};
+
+test('a step of a skill shows the fields its skill names directly, in developer mode its optional ones fold', async () => {
+  const { root } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = CURATED_PROFILE;
+  }, { robot: false });
+  skillBlock(root, 'detect').click();
+  const folds = () => root.findAll((element) => element.className === 'more-options');
+  assert.equal(folds().length, 0);
+  assert.deepEqual(['region', 'object_sem_annotation', 'color'].map((field) => parameter(root, field) !== undefined), [true, true, true]);
+  setDeveloperMode(root, true);
+  assert.equal(folds().length, 1);
+});
+
+test('a step of a skill says what the skill does, as the profile documents it, while skills are offered', async () => {
+  const { root } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = CURATED_PROFILE;
+  }, { robot: false });
+  skillBlock(root, 'park').click();
+  skillBlock(root, 'detect').click();
+  assert.deepEqual(skillNotes(root), CURATED_PROFILE[RobotProfileKey.SKILLS].map((skill) => skill[SkillKey.DOCUMENTATION]));
+  setDeveloperMode(root, true);
+  assert.deepEqual(skillNotes(root), []);
 });
 
 test('a template of the profile starts a new plan as its copy', async () => {

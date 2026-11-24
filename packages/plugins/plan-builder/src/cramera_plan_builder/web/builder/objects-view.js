@@ -4,7 +4,7 @@
  */
 
 import { ObjectModelKey, PlanBuilderCatalogKey, PlannedObjectKey } from '../../../protocol.js';
-import { Elements, PlanAction } from './elements.js';
+import { Elements, PlanAction, POSITION_AXES, PoseAxis } from './elements.js';
 import { PlanPose } from './poses.js';
 
 // %% view
@@ -90,14 +90,14 @@ export class ObjectsView {
     );
     const row = elements.create('div', 'pose-row');
     row.append(
-      ...['x', 'y', 'z'].map((axis, index) =>
+      ...POSITION_AXES.map((axis, index) =>
         elements.number(axis, position[index], PlanAction.POSE, (value) => {
           const moved = [...position];
           moved[index] = value;
           this.#editor.placeObject(identifier, PlanPose.moved(pose, moved));
         }),
       ),
-      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => this.#editor.placeObject(identifier, PlanPose.turned(pose, PlanPose.radians(value)))),
+      elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => this.#editor.placeObject(identifier, PlanPose.turned(pose, PlanPose.radians(value)))),
     );
     entry.append(head, row);
     return entry;
