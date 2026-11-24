@@ -56,6 +56,7 @@ import {
 } from '../../../protocol.js';
 import { PageStatus } from '../../../core/page-status.js';
 import { RequestRefused } from './builder-api.js';
+import { seenImageFigures } from './seen-images.js';
 import { ConstraintSentences, ConstraintsView } from './constraints-view.js';
 import { DomEvent, Elements, PlanAction } from './elements.js';
 import { FreePlace } from './free-place.js';
@@ -1628,7 +1629,20 @@ export class BuilderPage {
       this.state.replaceObjects(scan[SceneScanKey.OBJECTS]);
       if (unchanged) this.#baseline = JSON.stringify(this.state.document);
     });
+    this.#showScanImages(scan[SceneScanKey.IMAGES] ?? []);
     this.#announce(Tone.SUCCESS, scanMessage(scan));
+  }
+
+  /**
+   * Show what perception saw in the latest scan, opened, or hide it when it saw nothing
+   * worth showing.
+   * @param {Array<Object>} images The scan's `InlineImage`s.
+   */
+  #showScanImages(images) {
+    const parts = this.#parts;
+    parts.scanFigures.replaceChildren(...seenImageFigures(this.#elements, images));
+    parts.scanImages.hidden = images.length === 0;
+    parts.scanImages.open = images.length > 0;
   }
 
   /**
@@ -2025,7 +2039,11 @@ export class BuilderPage {
     controls.append(parts.safety, parts.flow, runRow, lines, statusLine);
     const output = elements.create('div', 'builder-output');
     parts.logDetails = this.#details('Run output', parts.log);
-    output.append(parts.logDetails, this.#details('Generated demo', parts.output));
+    parts.scanFigures = elements.create('div');
+    parts.scanImages = this.#details('What the scan saw', parts.scanFigures);
+    parts.scanImages.className = 'scan-images';
+    parts.scanImages.hidden = true;
+    output.append(parts.logDetails, parts.scanImages, this.#details('Generated demo', parts.output));
     const view = elements.create('section', 'builder-view');
     view.append(controls, stage, output);
     const main = elements.create('div', 'builder-main');

@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 
 import {
   ActionCatalogKey,
+  PerceptionImageSource,
+  InlineImageKey,
   ActionSchemaKey,
   DetectedObjectText,
   DetectionGrounding,
@@ -57,6 +59,7 @@ import {
 import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
+import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
 import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
@@ -836,6 +839,26 @@ const SCANNED_CUBES = [
   { [PlannedObjectKey.IDENTIFIER]: 'blue_cube', [PlannedObjectKey.MODEL]: 'aicor/objects/cubes/blue_cube/model.urdf', [PlannedObjectKey.POSE]: [0.55, 0.3, 0.909, 0, 0, 0, 1] },
 ];
 
+/**
+ * An image RoboKudo drew of what it saw, as a report carries it.
+ */
+const drawn = { [InlineImageKey.TITLE]: 'PointCloudClusterExtractor', [InlineImageKey.SOURCE]: PerceptionImageSource.ROBOKUDO, [InlineImageKey.URL]: 'data:image/png;base64,iVBORw0KGgo=' };
+
+/**
+ * @param {Object} element An element holding seen images.
+ * @returns {Array<Array<string>>} The source, the description and the caption of each.
+ */
+const shownImages = (element) => element.findAll((child) => child.tagName === 'FIGURE').map((figure) => {
+  const [image] = figure.findAll((child) => child.tagName === 'IMG');
+  const [caption] = figure.findAll((child) => child.tagName === 'FIGCAPTION');
+  return [image.src, image.alt, caption.textContent];
+});
+
+/**
+ * What a figure of {@link drawn} shows.
+ */
+const DRAWN_SHOWN = [drawn[InlineImageKey.URL], drawn[InlineImageKey.TITLE], `${drawn[InlineImageKey.TITLE]} (${IMAGE_SOURCES[PerceptionImageSource.ROBOKUDO]})`];
+
 test('scanning the scene fills the objects with what the robot finds', async () => {
   const { root, page, api } = await openPage();
   api.scanAnswer[SceneScanKey.OBJECTS] = SCANNED_CUBES;
@@ -845,6 +868,22 @@ test('scanning the scene fills the objects with what the robot finds', async () 
   assert.deepEqual(page.state.objects(), SCANNED_CUBES);
   assert.equal(headline(root), scanMessage(api.scanAnswer));
   assert.equal(flow(root).dataset.tone, 'success');
+});
+
+test('a scan shows what perception saw, opened, and the next scan without images hides it', async () => {
+  const { root, api } = await openPage();
+  api.scanAnswer[SceneScanKey.IMAGES] = [drawn];
+  byAction(root, PlanAction.SCAN_SCENE)[0].click();
+  await settled();
+  const [seen] = root.findAll((element) => element.className === 'scan-images');
+  assert.equal(seen.hidden, false);
+  assert.equal(seen.open, true);
+  assert.deepEqual(shownImages(seen), [DRAWN_SHOWN]);
+  api.scanAnswer[SceneScanKey.IMAGES] = [];
+  byAction(root, PlanAction.SCAN_SCENE)[0].click();
+  await settled();
+  assert.equal(seen.hidden, true);
+  assert.deepEqual(shownImages(seen), []);
 });
 
 test('a scan assumed from the twin says it is checked again when the plan runs', () => {
@@ -1447,6 +1486,24 @@ test('an assumed step and the arm chosen automatically are shown on their steps'
   assert.match(validation(root)[1], /Arm: right, chosen automatically/);
   assert.equal(robotRun(root).disabled, false);
   assert.match(headline(root), /1 step assumed from the twin/);
+});
+
+test('a step that was not perceived shows what perception saw under its validation, opened', async () => {
+  const { root } = await pickAndPlace(({ api }) => {
+    api.validationAnswer = (planned) => planned.map((step, index) => ({
+      [StepValidationKey.STEP]: step[PlanStepKey.IDENTIFIER],
+      [StepValidationKey.VERDICT]: index === 0 ? StepVerdict.FAILED : StepVerdict.UNCHECKED,
+      ...(index === 0 ? { [StepValidationKey.REASON]: StepFailureReason.NOT_PERCEIVED, [StepValidationKey.IMAGES]: [drawn] } : {}),
+    }));
+  });
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  const [seen, ...others] = steps(root).map((card) => card.findAll((element) => element.className === 'step-images'));
+  assert.deepEqual(others, [[], []]);
+  const [shown] = seen;
+  assert.equal(shown.tagName, 'DETAILS');
+  assert.equal(shown.open, true);
+  assert.deepEqual(shownImages(shown), [DRAWN_SHOWN]);
 });
 
 test('an edit of the plan or its scene invalidates the validation', async () => {
