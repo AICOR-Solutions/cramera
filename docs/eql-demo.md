@@ -76,10 +76,28 @@ Try these, in **Paused World**:
 
 ```python
 an(Arm)                                                     # both arms light up
-an(EndEffector)                                             # both grippers
+an(EndEffector)(fingers=none_is(TracyRightGripperLeftFinger))   # the left gripper only
+an(Arm)(end_effector=an(EndEffector)(fingers=a(TracyRightGripperLeftFinger)))
 a(Tracy)(left_arm=an(Arm)(end_effector=a(TracyLeftGripper)))
-an(Arm | EndEffector)
-an(EndEffector)(fingers=none_is(TracyRightGripperLeftFinger))
+a(ShapeSortingPiece)                                        # the four pieces
+```
+
+The run itself is in the same scope: its steps, its plan and its actions, which piece a
+gripper holds and from when to when, and what of it is under way at the shown frame.
+
+| Variable | What it ranges over |
+| --- | --- |
+| `piece` | the four pieces, as `ShapeSortingPiece` |
+| `holding` | every holding of a piece by a gripper, as `Holding(gripper, piece, step, grasped_at_frame, released_at_frame)` |
+| `step`, `plan_node`, `action` | the run's steps, the executed plan's nodes and its actions |
+| `held_piece`, `holding_now`, `step_now` | the same, under way at the shown frame |
+
+```python
+a(Holding)(gripper=a(TracyLeftGripper)).from_(domain=holding_now)   # held now? lights gripper and piece
+an(entity(held_piece))
+an(entity(step_now))
+an(RecordedPlanNode)(kind=PlanNodeKind.ACTION, target="cylinder 1")
+an(RecordedPlanNode)(label="PickUpAction")
 ```
 
 ### Pause and ask: the world changes over the run
@@ -92,11 +110,11 @@ piece = a(Body).from_(domain=scene_object)
 piece.where(piece.global_pose.z > 0.92)
 ```
 
-| Frame | Answer |
-| --- | --- |
-| 0 | nothing: every piece lies on the table |
-| 400 | `cylinder 1`, lifted by the left gripper |
-| 648 | `cylinder 1`, put down on the board |
+| Frame | `piece.global_pose.z > 0.92` | `held_piece` | `step_now` |
+| --- | --- | --- | --- |
+| 100 | nothing: every piece lies on the table | nothing | `run` |
+| 400 | `cylinder 1` | `cylinder 1`, in the left gripper | `move_cylinder 1` |
+| 600 | `cylinder 1`, put down on the board | nothing | `move_cylinder 1` |
 
 In **Current State Queries**:
 
@@ -119,8 +137,10 @@ It saves a screenshot of every step and a `.webm` video of the whole walk to
 
 ## What is known not to work yet
 
-- A pattern on a list field whose element type is a type variable, such as
-  `an(EndEffector)(fingers=a(Finger))`, finds nothing.
+- The pieces are `ShapeSortingPiece` only. The cylinder, cube and prism classes arrive
+  when the Montessori shape vocabulary (#488) lands.
+- The recording does not say when each plan node ran, so `step_now` comes from the
+  run's segments, not from the plan's actions.
 - `an(Arm | EndEffector)` repeats some of its answers.
 - Reading an attribute of a `the(...)` query, as in `the(...).global_pose`, answers the
   expression instead of its value. Select the attribute inside the query instead.
