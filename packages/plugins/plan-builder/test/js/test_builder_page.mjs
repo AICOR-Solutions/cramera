@@ -1277,6 +1277,47 @@ test('with a profile of skills the palette offers skills until developer mode is
   assert.equal(storage.getItem(DEVELOPER_MODE_KEY), 'true');
 });
 
+/**
+ * A profile whose skills name the fields a person edits, as the Tracy profile does.
+ */
+const CURATED_PROFILE = {
+  ...SKILLED_PROFILE,
+  [RobotProfileKey.SKILLS]: [
+    { ...SKILLED_PROFILE[RobotProfileKey.SKILLS][0], [SkillKey.DOCUMENTATION]: 'Moves both arms into their parking pose.' },
+    { [SkillKey.IDENTIFIER]: 'detect', [SkillKey.LABEL]: 'Detect', [SkillKey.ACTION]: 'detect', [SkillKey.FIELDS]: ['region', 'object_sem_annotation', 'color'], [SkillKey.DOCUMENTATION]: 'Looks for an object of a kind and color.' },
+  ],
+};
+const skillBlock = (root, identifier) => byAction(root, PlanAction.ADD_SKILL).find((element) => element.dataset.skill === identifier);
+const skillNotes = (root) => root.findAll((element) => element.className === 'step-skill-note').map((element) => element.textContent);
+const setDeveloperMode = (root, enabled) => {
+  const developer = byAction(root, PlanAction.DEVELOPER_MODE)[0];
+  developer.checked = enabled;
+  developer.dispatch(DomEvent.CHANGE);
+};
+
+test('a step of a skill shows the fields its skill names directly, in developer mode its optional ones fold', async () => {
+  const { root } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = CURATED_PROFILE;
+  }, { robot: false });
+  skillBlock(root, 'detect').click();
+  const folds = () => root.findAll((element) => element.className === 'more-options');
+  assert.equal(folds().length, 0);
+  assert.deepEqual(['region', 'object_sem_annotation', 'color'].map((field) => parameter(root, field) !== undefined), [true, true, true]);
+  setDeveloperMode(root, true);
+  assert.equal(folds().length, 1);
+});
+
+test('a step of a skill says what the skill does, as the profile documents it, while skills are offered', async () => {
+  const { root } = await openPage('', ({ api }) => {
+    api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = CURATED_PROFILE;
+  }, { robot: false });
+  skillBlock(root, 'park').click();
+  skillBlock(root, 'detect').click();
+  assert.deepEqual(skillNotes(root), CURATED_PROFILE[RobotProfileKey.SKILLS].map((skill) => skill[SkillKey.DOCUMENTATION]));
+  setDeveloperMode(root, true);
+  assert.deepEqual(skillNotes(root), []);
+});
+
 test('a template of the profile starts a new plan as its copy', async () => {
   const template = { [PlanKey.NAME]: 'Park both arms', [PlanKey.ROBOTS]: [] };
   const { root, page } = await openPage('', ({ api }) => {

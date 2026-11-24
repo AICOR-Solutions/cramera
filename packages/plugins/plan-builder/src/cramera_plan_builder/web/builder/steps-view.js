@@ -140,6 +140,7 @@ const ViewClass = Object.freeze({
   LIST: 'steps',
   PARAMETERS: 'step-parameters',
   MORE: 'more-options',
+  SKILL_NOTE: 'step-skill-note',
   PROBLEM: 'step-problem',
   VALIDATION: 'step-validation',
   VALIDATION_DETAIL: 'step-validation-detail',
@@ -370,6 +371,8 @@ export class StepsView {
       elements.button('×', PlanAction.REMOVE_STEP, () => this.#edit(() => this.#editor.state.removeStep(identifier))),
     );
     view.head.append(controls);
+    const documentation = this.#editor.state.curatedSkill(step)?.[SkillKey.DOCUMENTATION];
+    if (documentation) card.append(elements.create('p', ViewClass.SKILL_NOTE, documentation));
     for (const problem of this.#editor.state.problems(step)) card.append(elements.create('p', ViewClass.PROBLEM, problem));
     if (validation) {
       card.dataset.validation = validation[StepValidationKey.VERDICT];
@@ -403,14 +406,16 @@ export class StepsView {
    * @param {Object} step A step of the edited robot.
    * @param {Object} schema Its action.
    * @returns {Array<HTMLElement>} The controls of the required fields, and the optional
-   *   ones folded under "More options".
+   *   ones folded under "More options"; a skill naming its fields shows them all
+   *   unfolded while skills are offered.
    */
   #form(step, schema) {
     const elements = this.#shown;
     const required = elements.create('div', ViewClass.PARAMETERS);
     const optional = elements.create('div', ViewClass.PARAMETERS);
+    const named = Boolean(this.#editor.state.curatedSkill(step)?.[SkillKey.FIELDS]);
     for (const field of this.#editor.state.shownFields(step, schema)) {
-      const box = field[ActionFieldKey.REQUIRED] ? required : optional;
+      const box = field[ActionFieldKey.REQUIRED] || named ? required : optional;
       box.append(...this.#control(step, field));
     }
     if (optional.children.length === 0) return [required];

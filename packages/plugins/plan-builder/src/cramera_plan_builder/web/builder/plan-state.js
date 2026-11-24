@@ -343,7 +343,7 @@ export class PlanState {
    *   its action's identifier.
    */
   stepLabel(step) {
-    const skill = step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
+    const skill = this.stepSkill(step);
     if (skill) return skill[SkillKey.LABEL];
     return this.schema(step[PlanStepKey.ACTION])?.[ActionSchemaKey.LABEL] ?? step[PlanStepKey.ACTION];
   }
@@ -355,10 +355,26 @@ export class PlanState {
    *   names while the palette offers skills, else every field.
    */
   shownFields(step, schema) {
-    const skill = step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
-    const names = this.curated() ? skill?.[SkillKey.FIELDS] : null;
+    const names = this.curatedSkill(step)?.[SkillKey.FIELDS];
     const fields = PlanState.fields(schema);
     return names ? fields.filter((field) => names.includes(field[ActionFieldKey.NAME])) : fields;
+  }
+
+  /**
+   * @param {Object} step A step of a robot.
+   * @returns {Object|null} The profile's skill the step was added as, or null.
+   */
+  stepSkill(step) {
+    return step[PlanStepKey.SKILL] ? this.skill(step[PlanStepKey.SKILL]) : null;
+  }
+
+  /**
+   * @param {Object} step A step of a robot.
+   * @returns {Object|null} The step's skill while the palette offers skills, which then
+   *   decides what the step's card shows; null otherwise.
+   */
+  curatedSkill(step) {
+    return this.curated() ? this.stepSkill(step) : null;
   }
 
   /**

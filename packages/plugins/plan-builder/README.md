@@ -75,6 +75,11 @@ cramera
   named in the catalog with its error. Required fields come first in a step's form, the
   others fold under "More options". A robot is offered an action when every required
   enumeration has a member it allows.
+- **Skills.** A robot profile with `skills` makes the palette offer those instead of
+  the native actions, until "developer mode" is on. A step of a skill shows only the
+  fields the skill names, all of them unfolded, and says under its name what the skill
+  does, as the skill's documentation puts it (Park arms moves both arms, Pick picks with
+  the arm that reaches); developer mode shows the action's every field again.
 - **Poses** of robots, objects, targets and markers are edited in the world frame,
   whose origin is the environment's: x, y and z in metres, and the heading as
   "rotation (°)" around the vertical axis, 0° facing along the world's x axis. Each
