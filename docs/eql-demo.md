@@ -8,6 +8,19 @@ through asking it questions in the entity query language's match syntax:
   frame,
 - each answer lit up in the 3D view.
 
+## One command
+
+Once the stack is installed (steps 1 and 2), this starts everything:
+
+```bash
+~/Projects/cramera/scripts/eql_demo.sh
+```
+
+It starts the viewer and builds Tracy's paused world in the background, so the first
+question answers at once. Then it opens the browser on the Tracy episode. Choose
+**Paused World** in the drop-down next to **Ask** and write queries. Ctrl+C in the
+terminal stops the viewer.
+
 ## 1. Check out the two branches
 
 The viewer comes from this repository. The query language comes from the CRAM
