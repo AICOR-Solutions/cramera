@@ -5,6 +5,7 @@
 import { ViewerApi } from '../core/viewer-api.js';
 import { BuildKey, IndexEntryKey, IndexKey, PageReportKey, PluginKey, ViewerInfoKey } from '../protocol.js';
 import { SCENE_PARAMETER } from '../core/scene-address.js';
+import { recordedText } from '../panels/scene-choice.js';
 
 /**
  * The report the build wrote next to its screenshot.
@@ -101,7 +102,8 @@ export class StatusPage {
       link.href = `./?${SCENE_PARAMETER}=${encodeURIComponent(entry[IndexEntryKey.NAME])}`;
       link.textContent = entry[IndexEntryKey.NAME];
       const labels = this.#document.createElement('span');
-      labels.textContent = ` ${[entry[IndexEntryKey.ROBOT], entry[IndexEntryKey.ENVIRONMENT], entry[IndexEntryKey.TASK]].filter(Boolean).join(' · ')}`;
+      const recorded = recordedText(entry[IndexEntryKey.RECORDED_AT]);
+      labels.textContent = ` ${[entry[IndexEntryKey.ROBOT], entry[IndexEntryKey.ENVIRONMENT], entry[IndexEntryKey.TASK], recorded && `recorded ${recorded}`].filter(Boolean).join(' · ')}`;
       item.append(link, labels);
       return item;
     });

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { SceneChoice, WITHOUT_ENVIRONMENT, WITHOUT_ROBOT } from '../../src/cramera/web/panels/scene-choice.js';
+import { SceneChoice, WITHOUT_ENVIRONMENT, WITHOUT_ROBOT, recordedText } from '../../src/cramera/web/panels/scene-choice.js';
 import { IndexEntryKey, IndexKey } from '../../src/cramera/web/protocol.js';
 
 /**
@@ -81,4 +81,28 @@ test('an index without a default starts with its first bundle, an empty one with
   const empty = new SceneChoice({});
   assert.equal(empty.scene, null);
   assert.deepEqual(empty.robots(), []);
+});
+
+// %% recording times
+
+/**
+ * 14:03 on 20 November 2026 and 09:05 the next day, in the test's time zone.
+ */
+const RECORDED = new Date(2026, 10, 20, 14, 3).toISOString();
+const LATER = new Date(2026, 10, 21, 9, 5).toISOString();
+
+test('a recording time reads as a local date and minute, and none as nothing', () => {
+  assert.equal(recordedText(RECORDED), '2026-11-20 14:03');
+  assert.equal(recordedText(undefined), '');
+  assert.equal(recordedText('not a time'), '');
+});
+
+test('a task recorded at a known time is offered with its date and time, so repeated recordings differ', () => {
+  const stamped = (name, robot, recordedAt) => ({ ...entry(name, robot, 'kitchen', 'pick'), [IndexEntryKey.RECORDED_AT]: recordedAt });
+  const choice = new SceneChoice({ [IndexKey.SCENES]: [stamped('first', 'pr2', RECORDED), stamped('second', 'pr2', LATER), stamped('tiago', 'tiago', LATER), entry('old', 'pr2', 'kitchen', 'pour')] });
+  assert.deepEqual(choice.tasks(), ['pick (2026-11-20 14:03)', 'pick (2026-11-21 09:05)', 'pour']);
+  choice.chooseTask('pick (2026-11-20 14:03)');
+  assert.equal(choice.scene, 'first');
+  choice.chooseRobot('tiago');
+  assert.equal(choice.scene, 'tiago');
 });

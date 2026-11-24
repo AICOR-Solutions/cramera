@@ -517,6 +517,7 @@ class RobotTaskDemo(ABC):
                 or ("" if scene.robot is None else scene.robot.name),
                 environment=scene.environment_name,
                 task=scene.task,
+                recorded_at=scene.recorded_at,
             )
         )
         return SavedScene(scene=name)

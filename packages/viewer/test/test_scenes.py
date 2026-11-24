@@ -4,6 +4,7 @@ Scene directories and the catalog that merges them.
 
 from __future__ import annotations
 
+import json
 import shutil
 
 import pytest
@@ -13,6 +14,7 @@ from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
 from cramera_protocol.bundle.files import BundleFile, ScenesDirectoryFile
 from cramera_protocol.bundle.index import ReservedSceneName
+from cramera_protocol.bundle.scene import SceneKey
 from cramera_protocol.viewer import EnvironmentVariable
 
 
@@ -35,6 +37,20 @@ def test_a_derived_entry_prefers_the_labels_a_person_gave(scenes):
         "Warehouse Hall",
         "transport",
     )
+
+
+def test_a_derived_entry_says_when_its_bundle_was_recorded(scenes, tmp_path):
+    shared = tmp_path / "stamped_scenes"
+    shutil.copytree(scenes / "shared_scenes", shared)
+    scene_file = shared / "warehouse" / BundleFile.SCENE
+    scene = json.loads(scene_file.read_text(encoding="utf-8"))
+    scene[SceneKey.RECORDED_AT] = "2026-11-20T14:03:00Z"
+    scene_file.write_text(json.dumps(scene), encoding="utf-8")
+
+    index = SceneDirectory(shared, SceneSource.SHARED).index()
+
+    assert index.entry("warehouse").recorded_at == "2026-11-20T14:03:00Z"
+    assert index.entry("cell").recorded_at is None
 
 
 def test_a_derived_entry_names_the_environment_after_its_models(scenes):

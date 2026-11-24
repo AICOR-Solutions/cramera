@@ -7,6 +7,7 @@ from __future__ import annotations
 import pytest
 
 from cramera_protocol.bundle.index import (
+    IndexEntryKey,
     IndexKey,
     InvalidSceneName,
     ReservedSceneName,
@@ -91,6 +92,20 @@ def test_an_index_finds_its_entries():
     index = SceneIndex(scenes=[SceneIndexEntry(name="cell", robot="arm")])
     assert index.entry("cell").robot == "arm"
     assert index.entry("missing") is None
+
+
+def test_an_index_entry_keeps_when_its_bundle_was_recorded():
+    entry = SceneIndexEntry(name="cell", recorded_at="2026-11-20T14:03:00Z")
+
+    assert entry.to_json()[IndexEntryKey.RECORDED_AT] == "2026-11-20T14:03:00Z"
+    assert SceneIndexEntry.from_json(entry.to_json()) == entry
+
+
+def test_an_index_entry_written_before_recording_times_reads_without_one():
+    entry = SceneIndexEntry.from_json({IndexEntryKey.NAME: "cell"})
+
+    assert entry.recorded_at is None
+    assert IndexEntryKey.RECORDED_AT not in entry.to_json()
 
 
 @pytest.mark.parametrize("name", ["pr2_kitchen", "A-1", "x" * 64])

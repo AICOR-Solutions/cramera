@@ -7,6 +7,7 @@ from __future__ import annotations
 import importlib
 import sqlite3
 from contextlib import closing
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import select
@@ -216,6 +217,26 @@ def test_a_saved_recording_is_trimmed_and_indexed(publisher, kitchen, locations)
     assert [entry.name for entry in index.scenes] == [saved.scene]
     assert publisher.recording_status().state is RecordingState.IDLE
     assert not (locations.local_scenes / ReservedSceneName.RECORDING).exists()
+
+
+def test_a_saved_recording_says_when_it_was_recorded_in_its_scene_and_index(
+    publisher, kitchen, locations
+):
+    carry_milk(kitchen, publisher)
+    publisher.finish_recording()
+    before = datetime.now(timezone.utc).replace(microsecond=0)
+
+    saved = publisher.save_recording(RecordingSaveRequest(name="carry", task="carry"))
+
+    bundle = locations.local_scenes / saved.scene
+    scene = DocumentFile(bundle / BundleFile.SCENE).read(SceneDescription)
+    index = DocumentFile(locations.local_scenes / ScenesDirectoryFile.INDEX).read(
+        SceneIndex
+    )
+    recorded = datetime.fromisoformat(scene.recorded_at)
+    assert scene.recorded_at.endswith("Z")
+    assert before <= recorded <= datetime.now(timezone.utc)
+    assert index.entry(saved.scene).recorded_at == scene.recorded_at
 
 
 def test_a_save_to_the_shared_directory(publisher, kitchen, locations):

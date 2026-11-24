@@ -1626,6 +1626,11 @@ class SceneKey(StrEnum):
     The environment's display name.
     """
 
+    RECORDED_AT = "recordedAt"
+    """
+    When the bundle's run was saved.
+    """
+
     CAMERA = "camera"
     """
     The initial view.
@@ -1791,6 +1796,12 @@ class SceneDescription(JsonDocument):
     )
     """
     The environment's display name; bundles of the same environment share it.
+    """
+
+    recorded_at: Optional[str] = document_field(SceneKey.RECORDED_AT, default=None)
+    """
+    When the bundle's latest run was saved, as an ISO 8601 date and time in UTC; None
+    for a bundle saved before recording times were kept, or not recorded from a run.
     """
 
     camera: Optional[Camera] = document_field(SceneKey.CAMERA, default=None)

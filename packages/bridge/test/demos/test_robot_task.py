@@ -332,6 +332,22 @@ def test_a_saved_run_is_published_whole(saved_run, tmp_path):
     )
 
 
+def test_a_published_run_keeps_when_it_was_recorded_in_the_shared_index(
+    saved_run, tmp_path
+):
+    demo, saved = saved_run
+    shared = tmp_path / "shared"
+
+    demo.publish(shared)
+
+    scene = DocumentFile(shared / saved.scene / BundleFile.SCENE).read(
+        SceneDescription
+    )
+    index = DocumentFile(shared / ScenesDirectoryFile.INDEX).read(SceneIndex)
+    assert scene.recorded_at is not None
+    assert index.entry(saved.scene).recorded_at == scene.recorded_at
+
+
 def test_publishing_twice_replaces_the_shared_copy(saved_run, tmp_path):
     demo, saved = saved_run
     shared = tmp_path / "shared"

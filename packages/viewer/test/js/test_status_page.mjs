@@ -42,6 +42,17 @@ test('the status page names the build, links its commit and lists the scenes', a
   assert.match(document.getElementById('shot-caption').textContent, /headless chrome\. The page reported: Showing pr2/);
 });
 
+test('the scene list says when each scene was recorded, where it is known', async () => {
+  const document = statusDocument();
+  const recorded = new Date(2026, 10, 20, 14, 3).toISOString();
+  const index = { [IndexKey.SCENES]: [{ ...INDEX[IndexKey.SCENES][0], [IndexEntryKey.RECORDED_AT]: recorded }, { [IndexEntryKey.NAME]: 'old', [IndexEntryKey.TASK]: 'pick' }] };
+  const api = { info: async () => INFO, scenes: async () => index };
+  await new StatusPage(document, api).show(async () => null);
+  const [stamped, old] = document.getElementById('scene-list').children.map((item) => item.innerText);
+  assert.equal(stamped, 'pr2 warehouse PR2 · transport · recorded 2026-11-20 14:03');
+  assert.equal(old, 'old pick');
+});
+
 test('without a build stamp or a screenshot the page says so', async () => {
   const document = statusDocument();
   const api = { info: async () => ({ [ViewerInfoKey.VERSION]: '1.0.0' }), scenes: async () => ({}) };

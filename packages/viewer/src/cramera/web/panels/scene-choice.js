@@ -129,11 +129,14 @@ export class SceneChoice {
    * @param {Object} fallback The labels to match when no entry matches `wanted`.
    */
   #choose(wanted, fallback) {
-    this.#chosen = this.#matching(wanted)[0] ?? this.#matching(fallback)[0] ?? this.#chosen;
+    // a task recorded at another time with the other robot or environment is the same task
+    const sameTask = { ...wanted, task: undefined, plainTask: this.#chosen ? plainTaskOf(this.#chosen) : undefined };
+    this.#chosen = this.#matching(wanted)[0] ?? this.#matching(sameTask)[0] ?? this.#matching(fallback)[0] ?? this.#chosen;
   }
 
   /**
-   * @param {{robot?: string, environment?: string, task?: string}} labels The labels to match.
+   * @param {{robot?: string, environment?: string, task?: string, plainTask?: string}} labels
+   *   The labels to match; `plainTask` matches the task without its recording time.
    * @returns {Array<Object>} The entries with all given labels.
    */
   #matching(labels) {
@@ -141,7 +144,8 @@ export class SceneChoice {
       (entry) =>
         (labels.robot === undefined || robotOf(entry) === labels.robot) &&
         (labels.environment === undefined || environmentOf(entry) === labels.environment) &&
-        (labels.task === undefined || taskOf(entry) === labels.task),
+        (labels.task === undefined || taskOf(entry) === labels.task) &&
+        (labels.plainTask === undefined || plainTaskOf(entry) === labels.plainTask),
     );
   }
 
@@ -174,8 +178,32 @@ function environmentOf(entry) {
 
 /**
  * @param {Object} entry An index entry.
- * @returns {string} Its task label, the bundle name when it names no task.
+ * @returns {string} Its task, the bundle name when it names no task.
+ */
+function plainTaskOf(entry) {
+  return entry[IndexEntryKey.TASK] || entry[IndexEntryKey.NAME];
+}
+
+/**
+ * @param {Object} entry An index entry.
+ * @returns {string} Its task label: its task, followed by when it was recorded where the
+ *   index says so, which tells repeated recordings of one task apart.
  */
 function taskOf(entry) {
-  return entry[IndexEntryKey.TASK] || entry[IndexEntryKey.NAME];
+  const recorded = recordedText(entry[IndexEntryKey.RECORDED_AT]);
+  return recorded ? `${plainTaskOf(entry)} (${recorded})` : plainTaskOf(entry);
+}
+
+/**
+ * @param {string|undefined} recordedAt When a bundle was recorded, as ISO 8601 text, if
+ *   known.
+ * @returns {string} The date and minute in the browser's time zone, `2026-11-20 14:03`,
+ *   or '' when unknown or unreadable.
+ */
+export function recordedText(recordedAt) {
+  if (!recordedAt) return '';
+  const time = new Date(recordedAt);
+  if (Number.isNaN(time.getTime())) return '';
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${time.getFullYear()}-${pad(time.getMonth() + 1)}-${pad(time.getDate())} ${pad(time.getHours())}:${pad(time.getMinutes())}`;
 }

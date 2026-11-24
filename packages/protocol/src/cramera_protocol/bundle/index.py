@@ -112,6 +112,11 @@ class IndexEntryKey(StrEnum):
     The revision of the recording.
     """
 
+    RECORDED_AT = "recordedAt"
+    """
+    When the bundle's run was saved.
+    """
+
 
 @dataclass(kw_only=True)
 class SceneIndexEntry(JsonDocument):
@@ -142,6 +147,12 @@ class SceneIndexEntry(JsonDocument):
     version: Optional[str] = document_field(IndexEntryKey.VERSION, default=None)
     """
     The revision of the recording, when one task was recorded several times.
+    """
+
+    recorded_at: Optional[str] = document_field(IndexEntryKey.RECORDED_AT, default=None)
+    """
+    When the bundle's latest run was saved, as an ISO 8601 date and time in UTC; None
+    for a bundle saved before recording times were kept, or not recorded from a run.
     """
 
 

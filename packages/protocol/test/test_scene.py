@@ -70,6 +70,17 @@ def test_an_early_recording_reads_its_legacy_frame_rate(read_json):
     assert [model.robot for model in scene.models] == [True, False]
 
 
+def test_a_recording_saved_before_recording_times_reads_without_one(read_json):
+    data = read_json("recorded_cell/scene.json")
+    scene = SceneDescription.from_json(data)
+
+    assert scene.recorded_at is None
+    stamped = SceneDescription.from_json(
+        {**data, SceneKey.RECORDED_AT: "2026-11-20T14:03:00Z"}
+    )
+    assert stamped.recorded_at == "2026-11-20T14:03:00Z"
+
+
 def test_a_robot_recording_carries_parts_objects_steps_and_plans(read_json):
     data = read_json("recorded_warehouse_scene.json")
     scene = SceneDescription.from_json(data)

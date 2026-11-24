@@ -135,14 +135,15 @@ class RecordingStorage:
         bundle = BundleDirectory(target_directory / name)
         staging = bundle.staging()
         shutil.copytree(self.bundle, staging, dirs_exist_ok=True)
-        scene = SavedBundle(staging, frame_range).rewrite(name, request)
+        saved_at = datetime.now(timezone.utc).replace(microsecond=0)
+        scene = SavedBundle(staging, frame_range).rewrite(name, request, saved_at)
         earlier_runs = PlanDatabase(bundle.path)
         database = (
             earlier_runs.copy_into(staging)
             if earlier_runs.path.exists()
             else PlanDatabase(staging)
         )
-        run = database.add_run(datetime.now(timezone.utc))
+        run = database.add_run(saved_at)
         bundle.publish(staging)
         SceneIndexFile(
             target_directory,
@@ -158,6 +159,7 @@ class RecordingStorage:
                 or ("" if scene.robot is None else scene.robot.name),
                 environment=scene.environment_name,
                 task=scene.task,
+                recorded_at=scene.recorded_at,
             )
         )
         self.discard()
@@ -180,13 +182,16 @@ class SavedBundle:
     The frames kept.
     """
 
-    def rewrite(self, name: str, request: RecordingSaveRequest) -> SceneDescription:
+    def rewrite(
+        self, name: str, request: RecordingSaveRequest, saved_at: datetime
+    ) -> SceneDescription:
         """
         Trim the copy's trajectory, statecharts, segments, plan steps and detected
-        events to the kept frames, and name it.
+        events to the kept frames, name it and say when it was saved.
 
         :param name: The saved name.
         :param request: The save request with the labels a person gave.
+        :param saved_at: When its run is saved, in UTC.
         :return: The rewritten scene description.
         """
         kept = slice(self.frame_range.first, self.frame_range.last + 1)
@@ -224,6 +229,7 @@ class SavedBundle:
             robot_name=self.label(request.robot, scene.robot_name),
             environment_name=self.label(request.environment, scene.environment_name),
             task=self.label(request.task, scene.task),
+            recorded_at=saved_at.isoformat().replace("+00:00", "Z"),
             world_bound=None,
             bundle_signature=None,
         )

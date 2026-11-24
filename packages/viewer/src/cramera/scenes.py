@@ -231,6 +231,7 @@ class BundleEntryReader:
             robot=robot,
             environment=environment,
             task=description.task,
+            recorded_at=description.recorded_at,
         )
 
 
