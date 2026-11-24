@@ -60,7 +60,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -132,6 +132,11 @@ class FakeApi {
     this.validated.push(plan);
     const robot = plan[PlanKey.ROBOTS].find((candidate) => candidate[PlannedRobotKey.IDENTIFIER] === plan[PlanKey.SELECTED_ROBOT]) ?? plan[PlanKey.ROBOTS][0];
     return { [ValidationReportKey.STEPS]: this.validationAnswer(robot[PlannedRobotKey.STEPS]), [ValidationReportKey.SECONDS]: 2.5 };
+  }
+
+  async cancelValidation() {
+    this.cancelled = (this.cancelled ?? 0) + 1;
+    return { cancelled: true };
   }
 
   async reach(model) {
@@ -2096,6 +2101,58 @@ test('a validation that has not answered yet cannot be started twice, nor a scan
   await settled();
   assert.equal(validateButton(root).disabled, false);
   assert.equal(scanButton(root).disabled, false);
+  assert.equal(robotRun(root).disabled, false);
+});
+
+/**
+ * Make the fake plan builder's validations wait until they are cancelled, then refuse
+ * as the plan builder does.
+ * @param {FakeApi} api The fake plan builder.
+ */
+function validationsWaitingForCancel(api) {
+  const cancelled = deferred();
+  const cancel = api.cancelValidation.bind(api);
+  api.cancelValidation = async () => {
+    const answer = await cancel();
+    cancelled.reject(new RequestRefused(409, 'The validation was cancelled before it ended; nothing was validated.'));
+    return answer;
+  };
+  api.validate = (plan) => {
+    api.validated.push(plan);
+    return cancelled.promise;
+  };
+}
+
+test('a plan changed while it is validated cancels the validation at once and says so', async () => {
+  const { root, page, api } = await pickAndPlace();
+  validationsWaitingForCancel(api);
+  validateButton(root).click();
+  await settled();
+  const object = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  page.placeObject(object, PlanPose.of(3, 3, 0, 0));
+  assert.equal(headline(root), 'Cancelling the validation: the plan changed…');
+  page.placeObject(object, PlanPose.of(2, 2, 0, 0));
+  await settled();
+  await settled();
+  assert.equal(api.cancelled, 1);
+  assert.equal(headline(root), VALIDATION_CANCELLED);
+  assert.equal(flow(root).dataset.tone, 'warning');
+  assert.equal(validateButton(root).disabled, false);
+  assert.equal(robotRun(root).disabled, true);
+});
+
+test('a render that leaves the plan as it is validated does not cancel the validation', async () => {
+  const { root, page, api } = await pickAndPlace();
+  const answer = deferred();
+  const validate = api.validate.bind(api);
+  api.validate = (plan) => answer.promise.then(() => validate(plan));
+  validateButton(root).click();
+  await settled();
+  page.render();
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.equal(api.cancelled, undefined);
   assert.equal(robotRun(root).disabled, false);
 });
 

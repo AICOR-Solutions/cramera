@@ -244,6 +244,30 @@ class ValidationRequest(JsonDocument):
     """
 
 
+class ValidationCancellationKey(StrEnum):
+    """
+    The keys of the answer to cancelling the validations running now.
+    """
+
+    CANCELLED = "cancelled"
+    """
+    Whether a validation ran and was cancelled.
+    """
+
+
+@dataclass(kw_only=True)
+class ValidationCancellation(JsonDocument):
+    """
+    What cancelling the validations running now ended; the plan builder records no
+    report of a cancelled validation.
+    """
+
+    cancelled: bool = document_field(ValidationCancellationKey.CANCELLED)
+    """
+    Whether a validation ran and was cancelled.
+    """
+
+
 class ValidationOrderKey(StrEnum):
     """
     The keys of what the bridge validates.

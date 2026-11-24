@@ -777,6 +777,24 @@ class BridgeProcessFailed(PlanBuilderError):
         return self.output
 
 
+@dataclass
+class OrderCancelled(PlanBuilderError):
+    """
+    A request whose bridge process was ended before it answered, as it was cancelled.
+    """
+
+    module: str
+    """
+    The command module whose process was ended.
+    """
+
+    def status(self) -> HTTPStatus:
+        return HTTPStatus.CONFLICT
+
+    def message(self) -> str:
+        return f"The request to {self.module} was cancelled before it was answered."
+
+
 # %% scans
 
 
@@ -801,6 +819,17 @@ class ValidationFailed(BridgeProcessFailed):
 
     def message(self) -> str:
         return f"The plan could not be validated: {self.reason}"
+
+
+@dataclass
+class ValidationCancelled(OrderCancelled):
+    """
+    A validation of a plan whose process was ended before it reported, as it was
+    cancelled.
+    """
+
+    def message(self) -> str:
+        return "The validation was cancelled before it ended; nothing was validated."
 
 
 @dataclass

@@ -14,7 +14,11 @@ from dataclasses import dataclass, field, replace
 from typing_extensions import Callable, Optional
 
 from cramera_plan_builder.bridge_processes import BridgeModule, BridgeProcess
-from cramera_plan_builder.exceptions import PlanBuilderError, ValidationFailed
+from cramera_plan_builder.exceptions import (
+    PlanBuilderError,
+    ValidationCancelled,
+    ValidationFailed,
+)
 from cramera_protocol.plan_builder import PlanDocument
 from cramera_protocol.validation import ValidationOrder, ValidationReport
 
@@ -34,6 +38,9 @@ class PlanValidations(BridgeProcess):
     def describe_failure(self, reason: str, output: str) -> PlanBuilderError:
         return ValidationFailed(reason, output)
 
+    def describe_cancellation(self) -> PlanBuilderError:
+        return ValidationCancelled(self.module)
+
     def validate(self, order: ValidationOrder) -> ValidationReport:
         """
         :param order: The checked plan and the scene the robot's camera sees.
@@ -41,6 +48,7 @@ class PlanValidations(BridgeProcess):
             validation took, its process's start included.
         :raises CramUnavailable: Without the CRAM workspace.
         :raises ValidationFailed: When the validator ends without a report.
+        :raises ValidationCancelled: When the validation is cancelled before it ends.
         """
         started = time.monotonic()
         report = ValidationReport.from_json(self.answer(order))

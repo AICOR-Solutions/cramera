@@ -4,6 +4,7 @@ The plan builder's routes as the viewer serves them.
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import time
 from dataclasses import dataclass, field, replace
@@ -82,6 +83,7 @@ from cramera_protocol.reach import ReachRequest, RobotReach
 from cramera_protocol.validation import (
     StepFailureReason,
     StepVerdict,
+    ValidationCancellation,
     ValidationReport,
     ValidationRequest,
 )
@@ -734,6 +736,52 @@ def test_a_failed_validation_closes_the_gate(validating, plan):
         run_on_the_robot(validating, failing)
         == PlanNotValidated(RunMode.ROBOT).status()
     )
+
+
+def test_a_validation_cancelled_as_the_plan_changed_answers_so_and_admits_nothing(
+    serve, output, workspace_loader, plan
+):
+    hanging = PlanValidations(
+        interpreter=str(DATASET / "hanging_interpreter.py"),
+        modules=CramModules(
+            finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
+        ),
+    )
+    answer = serve(
+        PlanBuilderPlugin(
+            environment={
+                PlanBuilderVariable.OUTPUT: str(output),
+                RobotProfileVariable.PROFILE: str(DATASET / "profile" / "tracy.json"),
+            },
+            workspace=workspace_loader,
+            validations=hanging,
+        )
+    )
+    validating = concurrent.futures.ThreadPoolExecutor(max_workers=1).submit(
+        send,
+        answer,
+        HttpMethod.POST,
+        PlanBuilderRoute.VALIDATE,
+        json.dumps(ValidationRequest(plan=plan).to_json()).encode(),
+    )
+    deadline = time.monotonic() + 10.0
+    while not hanging.answering.processes and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+    cancellation = send(answer, HttpMethod.POST, PlanBuilderRoute.VALIDATE_CANCEL)
+    validation = validating.result(timeout=10.0)
+
+    assert ValidationCancellation.from_json(json.loads(cancellation.body)).cancelled
+    assert validation.status == HTTPStatus.CONFLICT
+    assert "cancelled" in json.loads(validation.body)[ErrorKey.ERROR]
+    assert run_on_the_robot(answer, plan) == PlanNotValidated(RunMode.ROBOT).status()
+
+
+def test_cancelling_while_nothing_is_validated_cancels_nothing(validating):
+    cancellation = send(validating, HttpMethod.POST, PlanBuilderRoute.VALIDATE_CANCEL)
+
+    assert cancellation.status == HTTPStatus.OK
+    assert not ValidationCancellation.from_json(json.loads(cancellation.body)).cancelled
 
 
 def run_status(answer) -> RunStatus:

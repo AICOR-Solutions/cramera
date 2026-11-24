@@ -65,6 +65,7 @@ from cramera_protocol.validation import (
     StepFailureReason,
     StepValidation,
     StepVerdict,
+    ValidationCancellation,
     ValidationReport,
     ValidationRequest,
 )
@@ -252,6 +253,11 @@ class PlanBuilderRoutes:
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.SCAN, self.answer_scan),
             PluginRoute(
                 HttpMethod.POST, PlanBuilderRoute.VALIDATE, self.answer_validate
+            ),
+            PluginRoute(
+                HttpMethod.POST,
+                PlanBuilderRoute.VALIDATE_CANCEL,
+                self.answer_cancel_validation,
             ),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.REACH, self.answer_reach),
             PluginPrefixRoute(
@@ -587,6 +593,8 @@ class PlanBuilderRoutes:
         :raises RunRecordSaving: While the demo started last saves its run's record.
         :raises PlanRunning: While a demo performs a plan, or when one started while
             the plan was validated; the gate stays as it was.
+        :raises ValidationCancelled: When the validation was cancelled before it ended;
+            the gate stays as it was.
         """
         before = self.runner.refuse_to_validate()
         demo = self.runnable(ValidationRequest.from_json(self.body(request)).plan)
@@ -596,6 +604,18 @@ class PlanBuilderRoutes:
         self.runner.refuse_validated(before)
         self.gate.record(demo.plan, report)
         return Response.of_json(report)
+
+    def answer_cancel_validation(self, request: Request) -> Response:
+        """
+        End the validations running now, as the plan they validate changed; each answers
+        that it was cancelled and records nothing, so the gate stays as it was.
+
+        :param request: A request to cancel the validations running now.
+        :return: The :class:`ValidationCancellation`.
+        """
+        return Response.of_json(
+            ValidationCancellation(cancelled=self.validations.cancel())
+        )
 
     def report_unoffered_skills(self, plan: PlanDocument) -> Optional[ValidationReport]:
         """

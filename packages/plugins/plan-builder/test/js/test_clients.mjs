@@ -74,6 +74,14 @@ test('a validation names the plan and a robot run may override it', async () => 
   assert.deepEqual(started.body, { [RunRequestKey.PLAN]: { name: 'x' }, [RunRequestKey.MODE]: RunMode.ROBOT, [RunRequestKey.OVERRIDE_VALIDATION]: true });
 });
 
+test('cancelling the validation posts to its own route', async () => {
+  const fake = new FakeFetch({ [route(PlanBuilderRoute.VALIDATE_CANCEL)]: { cancelled: true } });
+  const api = new PlanBuilderApi(fake.fetch, VIEWER);
+  await api.cancelValidation();
+  const [cancelled] = fake.requests;
+  assert.equal(cancelled.url, route(PlanBuilderRoute.VALIDATE_CANCEL));
+});
+
 test('every route is asked at its own address', async () => {
   const urls = [PlanBuilderRoute.CATALOG, PlanBuilderRoute.PLANS, `${PlanBuilderRoute.PLAN}p1`, PlanBuilderRoute.CONSTRAINT, PlanBuilderRoute.DEMO, PlanBuilderRoute.DEMOS].map(route);
   const fake = new FakeFetch(Object.fromEntries(urls.map((url) => [url, {}])));

@@ -191,6 +191,11 @@ export const VALIDATED_FOR_THIS_RUN = 'Validated for this run; validate again be
 export const VALIDATION_USED = 'The last run on the robot used this validation: validate again before the next run.';
 
 /**
+ * What the page says once it cancelled a validation as the plan changed while it ran.
+ */
+export const VALIDATION_CANCELLED = 'Validation cancelled: the plan changed. Validate it again once it is ready.';
+
+/**
  * What the page says once the plan builder no longer holds the validation the page
  * shows, which it keeps in memory only: after a restart, or once another plan was
  * validated since.
@@ -524,6 +529,13 @@ export class BuilderPage {
   #validation = null;
 
   /**
+   * The validation waiting for its answer: the plan sent, as JSON text, and whether it
+   * was cancelled as the plan changed since; null while none waits.
+   * @type {{plan: string, cancelled: boolean}|null}
+   */
+  #validating = null;
+
+  /**
    * The validation a run on the real robot took away as it started, which it gives
    * back when its check refused it before anything moved; null otherwise.
    * @type {{plan: string, report: Object, sceneChanged: boolean}|null}
@@ -728,6 +740,7 @@ export class BuilderPage {
    * Show the plan in every part.
    */
   render() {
+    this.#cancelOutdatedValidation();
     const state = this.state;
     const parts = this.#parts;
     parts.name.value = state.field(PlanKey.NAME);
@@ -1363,13 +1376,33 @@ export class BuilderPage {
   async validate() {
     if (this.busy()) return;
     const plan = structuredClone(this.state.document);
-    const report = await this.#waitFor(() => this.#environment.api.validate(plan), new FlowRequest(FlowRequest.VALIDATE)).catch((error) => {
-      this.#announceFailure('The validation', error);
+    const validating = { plan: JSON.stringify(plan), cancelled: false };
+    this.#validating = validating;
+    const send = () => this.#environment.api.validate(plan).finally(() => {
+      this.#validating = null;
+    });
+    const report = await this.#waitFor(send, new FlowRequest(FlowRequest.VALIDATE)).catch((error) => {
+      if (validating.cancelled) this.#announce(Tone.WARNING, VALIDATION_CANCELLED);
+      else this.#announceFailure('The validation', error);
       return null;
     });
     if (!report) return;
-    this.#validation = { plan: JSON.stringify(plan), report, sceneChanged: false };
-    this.#announce(this.#validationPassed() ? Tone.SUCCESS : Tone.ERROR, validationMessage(report, this.state.steps(), (step) => this.state.stepLabel(step)), true);
+    this.#validation = { plan: validating.plan, report, sceneChanged: false };
+    if (validating.cancelled) this.#announce(Tone.WARNING, VALIDATION_CANCELLED);
+    else this.#announce(this.#validationPassed() ? Tone.SUCCESS : Tone.ERROR, validationMessage(report, this.state.steps(), (step) => this.state.stepLabel(step)), true);
+  }
+
+  /**
+   * Cancel the validation waiting for its answer once the plan differs from the one it
+   * validates, so a new one may start as soon as it ended; a plan builder that cannot
+   * cancel it is reported, and the validation's report then counts for its plan only.
+   */
+  #cancelOutdatedValidation() {
+    const validating = this.#validating;
+    if (validating === null || validating.cancelled || validating.plan === JSON.stringify(this.state.document)) return;
+    validating.cancelled = true;
+    if (this.#request !== null) this.#request.cancelled = true;
+    this.#environment.api.cancelValidation().catch((error) => this.report(`The validation could not be cancelled: ${error.message}`, Tone.ERROR));
   }
 
   /**

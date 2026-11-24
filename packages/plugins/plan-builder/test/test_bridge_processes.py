@@ -6,7 +6,9 @@ time, or ends without an answer, fails its order and serves no other.
 
 from __future__ import annotations
 
+import concurrent.futures
 import re
+import time
 from dataclasses import dataclass
 from enum import StrEnum
 from importlib.machinery import ModuleSpec
@@ -19,7 +21,11 @@ from cramera_plan_builder.bridge_processes import (
     BridgeProcess,
     ProcessOutput,
 )
-from cramera_plan_builder.exceptions import PlanBuilderError, ScanFailed
+from cramera_plan_builder.exceptions import (
+    OrderCancelled,
+    PlanBuilderError,
+    ScanFailed,
+)
 from cramera_plan_builder.workspace import CramModules
 from cramera_protocol.document import JsonDocument, document_field
 
@@ -190,6 +196,59 @@ def test_a_failed_process_is_reported_by_its_final_error_apart_from_its_output()
     assert "a warning before the failure" in failure.value.output
     assert "Traceback (most recent call last):" in failure.value.output
     assert failure.value.diagnostic_output() == failure.value.output
+
+
+# %% cancelling
+
+
+def answer_in_background(
+    process: OrderedProcess, behaviour: Behaviour
+) -> concurrent.futures.Future:
+    """
+    :return: The answer of the process to an order of the behaviour, asked in a thread
+        of its own; returned once the order's process answers it.
+    """
+    asked = concurrent.futures.ThreadPoolExecutor(max_workers=1).submit(
+        answer, process, behaviour
+    )
+    deadline = time.monotonic() + 10.0
+    while not process.answering.processes and time.monotonic() < deadline:
+        time.sleep(0.01)
+    return asked
+
+
+def test_cancelling_kills_the_process_answering_and_fails_its_order_as_cancelled():
+    process = ordered_process()
+    ended = answer_in_background(process, Behaviour.HANG)
+    [answering] = process.answering.processes
+    cancelled_process = answering.process.process
+
+    cancelled = process.cancel()
+
+    assert cancelled
+    assert isinstance(ended.exception(timeout=10.0), OrderCancelled)
+    assert cancelled_process.returncode is not None
+    assert not process.answering.processes
+
+
+def test_an_order_after_a_cancelled_one_is_answered_by_another_process():
+    process = ordered_process()
+    ended = answer_in_background(process, Behaviour.HANG)
+    [answering] = process.answering.processes
+    cancelled_pid = answering.process.process.pid
+    process.cancel()
+    ended.exception(timeout=10.0)
+
+    after = answer(process)
+
+    assert after["pid"] != cancelled_pid
+
+
+def test_cancelling_while_no_order_is_answered_cancels_nothing():
+    process = ordered_process()
+
+    assert not process.cancel()
+    assert answer(process)["pid"] > 0
 
 
 # %% the reason of a failure

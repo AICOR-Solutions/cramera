@@ -242,6 +242,14 @@ export class PlanBuilderApi {
   }
 
   /**
+   * End the validation running now, which then answers that it was cancelled.
+   * @returns {Promise<Object>} The `ValidationCancellation`: whether one ran.
+   */
+  cancelValidation() {
+    return this.#client.post(this.url(PlanBuilderRoute.VALIDATE_CANCEL), {});
+  }
+
+  /**
    * @param {string} model A robot model's name.
    * @returns {Promise<Object>} The `RobotReach`: what each arm of the model reaches and
    *   the table it works at.

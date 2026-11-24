@@ -38,6 +38,9 @@ test('each request waiting for its answer is progress, with what it does', () =>
   const scanning = flowStatus(facts({ request: new FlowRequest(FlowRequest.SCAN) }));
   assert.deepEqual([scanning.tone, scanning.text, scanning.phase], [Tone.PROGRESS, 'Scanning the scene…', FlowRequest.SCAN]);
   assert.equal(flowStatus(facts({ request: new FlowRequest(FlowRequest.VALIDATE) })).text, 'Validating the plan (nothing moves)…');
+  const cancelling = new FlowRequest(FlowRequest.VALIDATE);
+  cancelling.cancelled = true;
+  assert.equal(flowStatus(facts({ request: cancelling })).text, 'Cancelling the validation: the plan changed…');
   assert.equal(flowStatus(facts({ request: new FlowRequest(FlowRequest.START, RunMode.ROBOT), real: true })).text, 'Starting the run on the real robot…');
   assert.equal(flowStatus(facts({ request: new FlowRequest(FlowRequest.START, RunMode.SIMULATE) })).text, 'Starting the run…');
   assert.equal(flowStatus(facts({ stopping: true })).text, 'Stopping the run…');

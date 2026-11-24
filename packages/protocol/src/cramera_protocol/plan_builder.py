@@ -166,6 +166,12 @@ class PlanBuilderRoute(StrEnum):
     posted validation request answers with the validation's report.
     """
 
+    VALIDATE_CANCEL = "validate/cancel"
+    """
+    Ends the validations running now, each of which then answers that it was
+    cancelled; a post answers with the validation cancellation.
+    """
+
     REACH = "reach"
     """
     What a robot model reaches and the table it works at; a posted reach request answers

@@ -21,6 +21,7 @@ from cramera_protocol.validation import (
     StepValidation,
     StepValidationKey,
     StepVerdict,
+    ValidationCancellation,
     ValidationOrder,
     ValidationReport,
     ValidationRequest,
@@ -59,6 +60,12 @@ def test_a_report_and_its_order_survive_their_json():
     assert ValidationReport.from_json(report.to_json()) == report
     assert ValidationOrder.from_json(order.to_json()) == order
     assert ValidationRequest.from_json(request.to_json()) == request
+
+
+def test_a_validation_cancellation_survives_a_round_trip():
+    cancellation = ValidationCancellation(cancelled=True)
+
+    assert ValidationCancellation.from_json(cancellation.to_json()) == cancellation
 
 
 @pytest.mark.parametrize(

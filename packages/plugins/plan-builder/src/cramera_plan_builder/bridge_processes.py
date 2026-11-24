@@ -21,7 +21,11 @@ from pathlib import Path
 
 from typing_extensions import Any, Callable, List
 
-from cramera_plan_builder.exceptions import CramUnavailable, PlanBuilderError
+from cramera_plan_builder.exceptions import (
+    CramUnavailable,
+    OrderCancelled,
+    PlanBuilderError,
+)
 from cramera_plan_builder.workspace import CramModules
 from cramera_protocol.document import JsonDocument
 
@@ -273,6 +277,71 @@ class NextProcess:
                 self.waiting = StartedProcess.start(command)
 
 
+@dataclass
+class AnsweringProcess:
+    """
+    A bridge process handed its order, and whether the order was cancelled.
+    """
+
+    process: StartedProcess
+    """
+    The process answering the order.
+    """
+
+    cancelled: threading.Event = field(default_factory=threading.Event)
+    """
+    Set once the order is cancelled, before its process is killed.
+    """
+
+
+@dataclass
+class AnsweringProcesses:
+    """
+    The processes answering their orders right now, which a cancellation ends.
+    """
+
+    processes: List[AnsweringProcess] = field(default_factory=list)
+    """
+    The answering processes, in the order they were handed their orders.
+    """
+
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    """
+    Guards :attr:`processes`.
+    """
+
+    def add(self, process: StartedProcess) -> AnsweringProcess:
+        """
+        :param process: A process about to be handed its order.
+        :return: It, as answering.
+        """
+        answering = AnsweringProcess(process=process)
+        with self.lock:
+            self.processes.append(answering)
+        return answering
+
+    def remove(self, answering: AnsweringProcess) -> None:
+        """
+        :param answering: A process that ended.
+        """
+        with self.lock:
+            self.processes.remove(answering)
+
+    def cancel(self) -> bool:
+        """
+        Mark every answering order cancelled and kill its process, as the timeout of an
+        order does; the order's own thread then removes the process and starts the next.
+
+        :return: Whether any order was answered and is cancelled now.
+        """
+        with self.lock:
+            answering = list(self.processes)
+        for each in answering:
+            each.cancelled.set()
+            each.process.process.kill()
+        return bool(answering)
+
+
 # %% process
 
 
@@ -312,6 +381,13 @@ class BridgeProcess(ABC):
     The process started for the next order once an order is answered.
     """
 
+    answering: AnsweringProcesses = field(
+        default_factory=AnsweringProcesses, compare=False
+    )
+    """
+    The processes answering their orders right now.
+    """
+
     @property
     @abstractmethod
     def module(self) -> BridgeModule:
@@ -327,6 +403,21 @@ class BridgeProcess(ABC):
         :return: The error the failed process is reported as.
         """
 
+    def describe_cancellation(self) -> PlanBuilderError:
+        """
+        :return: The error a cancelled order is reported as.
+        """
+        return OrderCancelled(self.module)
+
+    def cancel(self) -> bool:
+        """
+        End the processes answering their orders now; each such order fails as
+        :meth:`describe_cancellation` says.
+
+        :return: Whether any order was answered and is cancelled now.
+        """
+        return self.answering.cancel()
+
     def answer(self, order: JsonDocument) -> Any:
         """
         Hands the order to the process waiting for it, or to a new one, and starts the
@@ -336,13 +427,15 @@ class BridgeProcess(ABC):
         :return: The JSON of the module's answer.
         :raises CramUnavailable: Without the CRAM workspace.
         :raises PlanBuilderError: As :meth:`describe_failure` says, when the process ends
-            without an answer or gives none within :attr:`timeout`, when it is killed.
+            without an answer or gives none within :attr:`timeout`, when it is killed;
+            as :meth:`describe_cancellation` says, when the order was cancelled.
         """
         missing = self.modules.missing()
         if missing:
             raise CramUnavailable(missing)
         started = time.monotonic()
         process = self.next_process.take(self.command)
+        answering = self.answering.add(process)
         timed_out = threading.Event()
         deadline = threading.Timer(
             self.timeout, lambda: (timed_out.set(), process.process.kill())
@@ -351,12 +444,15 @@ class BridgeProcess(ABC):
         process.hand_over(order)
         process.process.wait()
         deadline.cancel()
+        self.answering.remove(answering)
         output = process.output(self.output_limit)
         answer_file = process.file(ProcessFile.ANSWER)
         answered = process.process.returncode == 0 and answer_file.is_file()
         answer = answer_file.read_text(encoding="utf-8") if answered else None
         process.end()
         self.next_process.prepare(self.command)
+        if answering.cancelled.is_set():
+            raise self.describe_cancellation()
         final_error = ProcessOutput(output).final_error(self.reason_length_limit)
         if timed_out.is_set():
             raise self.describe_failure(

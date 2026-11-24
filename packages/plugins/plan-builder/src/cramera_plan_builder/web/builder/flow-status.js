@@ -54,6 +54,12 @@ export class FlowRequest {
     this.kind = kind;
     /** @type {string|null} */
     this.mode = mode;
+    /**
+     * Whether a validation was cancelled, as the plan changed, and its answer is
+     * awaited.
+     * @type {boolean}
+     */
+    this.cancelled = false;
   }
 }
 
@@ -157,6 +163,7 @@ function runningStatus(facts) {
  */
 function requestText(request, real) {
   if (request.kind === FlowRequest.SCAN) return 'Scanning the scene…';
+  if (request.kind === FlowRequest.VALIDATE && request.cancelled) return 'Cancelling the validation: the plan changed…';
   if (request.kind === FlowRequest.VALIDATE) return 'Validating the plan (nothing moves)…';
   if (request.mode === RunMode.STAGE) return 'Starting the live scene…';
   return request.mode === RunMode.ROBOT && real ? 'Starting the run on the real robot…' : 'Starting the run…';
