@@ -60,7 +60,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -677,6 +677,13 @@ test('pose inputs are labelled with their unit and explain the world frame and t
   for (const row of rows.filter((candidate) => candidate !== robotRow)) assert.deepEqual(shown(row), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.Z, PoseAxis.YAW));
   assert.equal(labels.length, 3 + 4 + 4);
   for (const axis of Object.values(PoseAxis)) assert.match(axis.title, axis === PoseAxis.YAW ? /around the vertical axis/ : /world frame/);
+});
+
+test('the task field says it is a note for people that the robot does not act on', async () => {
+  const { root } = await openPage();
+  const task = byAction(root, PlanAction.TASK)[0];
+  assert.equal(task.placeholder, TASK_HINT.PLACEHOLDER);
+  assert.equal(task.title, TASK_HINT.TITLE);
 });
 
 test('the name is edited in the bar and the environment in its section', async () => {

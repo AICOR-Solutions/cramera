@@ -204,6 +204,15 @@ export const LENIENT_CHECK = Object.freeze({
 });
 
 /**
+ * What the task field says: it describes the plan for people, and nothing reads it to
+ * decide what the robot does.
+ */
+export const TASK_HINT = Object.freeze({
+  PLACEHOLDER: 'A note for people, e.g. stack the cubes',
+  TITLE: 'Describes the plan for the people who read it. The robot does not act on this text; only the steps decide what it does.',
+});
+
+/**
  * What each button of the 3D view's tools does, shown as its tooltip, by its
  * `PlanAction` value.
  */
@@ -1904,7 +1913,8 @@ export class BuilderPage {
     const document = this.#environment.document;
     parts.name = elements.input('text', PlanAction.NAME, () => this.edit(() => this.state.setField(PlanKey.NAME, parts.name.value.trim())));
     parts.task = elements.input('text', PlanAction.TASK, () => this.edit(() => this.state.setField(PlanKey.TASK, parts.task.value.trim())));
-    parts.task.placeholder = 'What the plan does';
+    parts.task.placeholder = TASK_HINT.PLACEHOLDER;
+    parts.task.title = TASK_HINT.TITLE;
     parts.environment = new EnvironmentView(document, this);
     parts.saved = this.#choice(PlanAction.OPEN, this.#planChoices(), OPEN_PROMPT.value, (value) => {
       const label = this.#planChoices().find((choice) => choice.value === value)?.label ?? value;
