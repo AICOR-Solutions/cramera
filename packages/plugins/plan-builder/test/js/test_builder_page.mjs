@@ -60,7 +60,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, EXECUTOR_TITLES, FAILURE_LENGTH_LIMIT, RUN_LABELS, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -1753,8 +1753,26 @@ test('developer mode runs on the robot without a passed validation', async () =>
 test('the physics run is an optional dry-run, not gated by the validation', async () => {
   const { root } = await pickAndPlace();
   const dryRun = byAction(root, PlanAction.SIMULATE)[0];
-  assert.equal(dryRun.textContent, 'Dry-run in physics');
+  assert.equal(dryRun.textContent, RUN_LABELS[RunMode.SIMULATE]);
   assert.equal(dryRun.disabled, false);
+});
+
+test('each simulated run button says whether it simulates physics and that the real robot does not move', async () => {
+  const { root } = await pickAndPlace();
+  const perform = byAction(root, PlanAction.PERFORM)[0];
+  const simulate = byAction(root, PlanAction.SIMULATE)[0];
+  assert.deepEqual([perform.textContent, simulate.textContent], ['Simulate (no physics)', 'Simulate with physics']);
+  assert.equal(perform.title, EXECUTOR_TITLES[ExecutorKind.KINEMATIC]);
+  assert.equal(simulate.title, EXECUTOR_TITLES[ExecutorKind.PHYSICS]);
+  for (const kind of [ExecutorKind.KINEMATIC, ExecutorKind.PHYSICS, ExecutorKind.PERCEIVED_PHYSICS]) assert.match(EXECUTOR_TITLES[kind], /The real robot does not move\./);
+  assert.match(EXECUTOR_TITLES[ExecutorKind.KINEMATIC], /without physics/);
+  assert.match(EXECUTOR_TITLES[ExecutorKind.PHYSICS], /with physics/);
+});
+
+test('a simulated run button follows the executor the robot profile names for its run', async () => {
+  const { root } = await pickAndPlace(profileRunning({ [RunMode.SIMULATE]: ExecutorKind.PERCEIVED_PHYSICS, [RunMode.ROBOT]: ExecutorKind.REAL }));
+  assert.equal(byAction(root, PlanAction.SIMULATE)[0].title, EXECUTOR_TITLES[ExecutorKind.PERCEIVED_PHYSICS]);
+  assert.match(EXECUTOR_TITLES[ExecutorKind.PERCEIVED_PHYSICS], /camera/);
 });
 
 // %% safety stops
@@ -2603,7 +2621,7 @@ test('the status area starts ready, marks Validate as the next step and says why
   assert.equal(flow(root).dataset.tone, 'idle');
   assert.equal(validateButton(root).classList.contains('primary'), true);
   assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
-  assert.equal(byAction(root, PlanAction.SIMULATE)[0].title, 'Simulated: the real robot does not move.');
+  assert.equal(byAction(root, PlanAction.SIMULATE)[0].title, EXECUTOR_TITLES[ExecutorKind.PHYSICS]);
   validateButton(root).click();
   await settled();
   assert.equal(validateButton(root).classList.contains('primary'), false);

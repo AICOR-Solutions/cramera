@@ -220,6 +220,39 @@ export const LENIENT_CHECK = Object.freeze({
 });
 
 /**
+ * The labels of the buttons starting a simulated run, by their `RunMode` value: what
+ * each runs, in the person's words.
+ */
+export const RUN_LABELS = Object.freeze({
+  [RunMode.STAGE]: 'Start live scene',
+  [RunMode.PERFORM]: 'Simulate (no physics)',
+  [RunMode.SIMULATE]: 'Simulate with physics',
+});
+
+/**
+ * How each run mode executes the plan unless the robot profile names another executor,
+ * as the plan builder's `DEFAULT_EXECUTORS` say.
+ */
+const DEFAULT_EXECUTORS = Object.freeze({ [RunMode.PERFORM]: ExecutorKind.KINEMATIC, [RunMode.SIMULATE]: ExecutorKind.PHYSICS });
+
+/**
+ * What a run button says when pointed at, by the `ExecutorKind` its run executes with:
+ * what runs, and whether the robot moves.
+ */
+export const EXECUTOR_TITLES = Object.freeze({
+  [ExecutorKind.KINEMATIC]: 'Runs the plan in simulation without physics: the simulated robot follows the planned motions and held objects move with the gripper, so it shows what the plan does, not whether a grasp holds. The real robot does not move.',
+  [ExecutorKind.PHYSICS]: 'Runs the plan in simulation with physics (MuJoCo): objects are held by friction alone and can slip or fall, as on the real robot. The real robot does not move.',
+  [ExecutorKind.PERCEIVED_PHYSICS]: 'Runs the plan in simulation with physics (MuJoCo), and the simulated camera looks for the plan\'s objects as the real robot\'s perception does. The real robot does not move.',
+  [ExecutorKind.REAL]: 'Moves the real robot; keep the emergency stop at hand.',
+});
+
+/**
+ * What the button starting the live scene says when pointed at, while the scene is
+ * simulated.
+ */
+export const STAGE_TITLE = 'Shows the plan\'s world in a live simulation, where objects can be placed and their poses captured; no plan runs. The real robot does not move.';
+
+/**
  * What the task field says: it describes the plan for people, and nothing reads it to
  * decide what the robot does.
  */
@@ -2120,16 +2153,18 @@ export class BuilderPage {
     const planColumn = elements.create('section', 'builder-plan');
     planColumn.append(planHead, parts.steps.list, parts.runView.element);
 
-    parts.stage = elements.button('Start live scene', PlanAction.STAGE, () => this.#start(RunMode.STAGE));
-    parts.perform = elements.button('Run plan', PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
-    parts.simulate = elements.button('Dry-run in physics', PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
+    parts.stage = elements.button(RUN_LABELS[RunMode.STAGE], PlanAction.STAGE, () => this.#start(RunMode.STAGE));
+    parts.perform = elements.button(RUN_LABELS[RunMode.PERFORM], PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
+    parts.simulate = elements.button(RUN_LABELS[RunMode.SIMULATE], PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
     parts.validate = elements.button('Validate', PlanAction.VALIDATE, () => this.validate());
     parts.validate.dataset.hint = 'Tries every step in a copy of the twin; nothing moves.';
     parts.scan = elements.button('Scan scene', PlanAction.SCAN_SCENE, () => this.scanScene());
     parts.scan.dataset.hint = 'Fills the plan\'s objects with what the robot sees on its table.';
     const executors = this.state.catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.EXECUTORS] ?? {};
-    for (const [mode, button] of [[RunMode.STAGE, parts.stage], [RunMode.PERFORM, parts.perform], [RunMode.SIMULATE, parts.simulate]]) {
-      if (executors[mode] !== ExecutorKind.REAL) button.dataset.hint = 'Simulated: the real robot does not move.';
+    if (executors[RunMode.STAGE] !== ExecutorKind.REAL) parts.stage.dataset.hint = STAGE_TITLE;
+    for (const [mode, button] of [[RunMode.PERFORM, parts.perform], [RunMode.SIMULATE, parts.simulate]]) {
+      const hint = EXECUTOR_TITLES[executors[mode] ?? DEFAULT_EXECUTORS[mode]];
+      if (hint) button.dataset.hint = hint;
     }
     const robotExecutor = this.#robotExecutor();
     const onRealRobot = robotExecutor === ExecutorKind.REAL;
