@@ -65,7 +65,7 @@ import { ObjectsView } from './objects-view.js';
 import { LEGEND, MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode } from './plan-scene.js';
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
-import { EnvironmentView, RobotsView } from './robots-view.js';
+import { EnvironmentView, REAL_ROBOT_POSE, RobotsView } from './robots-view.js';
 import { PollInterval } from '../../../live/live-session.js';
 import { RunProgress, RunView, withoutStopTraceback } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
@@ -804,6 +804,17 @@ export class BuilderPage {
     });
     if (folder) storage.setItem(URDF_FOLDER_KEY, folder[UrdfFolderKey.PATH]);
     return folder;
+  }
+
+  /**
+   * @param {Object} robot A robot of the plan.
+   * @returns {boolean} Whether it is the real robot the builder is attached to: one of
+   *   the robot profile's model while the profile's robot run mode moves the real
+   *   robot, which a deployment attached to it alone offers.
+   */
+  realRobot(robot) {
+    const profile = this.state.catalog[PlanBuilderCatalogKey.PROFILE];
+    return this.#robotExecutor() === ExecutorKind.REAL && robot[PlannedRobotKey.MODEL] === profile?.[RobotProfileKey.ROBOT];
   }
 
   /**
@@ -1663,7 +1674,7 @@ export class BuilderPage {
    */
   #placed(selection, pose) {
     if (selection.kind === MarkerKind.ROBOT) {
-      const locked = this.lockedByRun();
+      const locked = this.realRobot(this.state.robot(selection.identifier)) ? REAL_ROBOT_POSE.NOTE : this.lockedByRun();
       if (locked !== null) {
         this.report(locked);
         this.render();

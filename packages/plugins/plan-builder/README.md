@@ -130,7 +130,10 @@ cramera
   and "Run on robot" on the real robot; a robot profile's `executors` say which
   executor each run mode uses and which modes the robot offers at all (by default
   `perform` is kinematic and `simulate` physics; `robot` has no executor unless the
-  profile names one).
+  profile names one). While the profile's `robot` mode runs on the real robot, a
+  robot of the profile's model is the real robot: the page offers neither removing it
+  nor a start pose for it, and its marker does not move, since it starts where it
+  stands.
   The builder starts one demo at a time as a child process of the viewer, in
   its own process group, keeps the newest 64 KiB of its output, and stops it with its
   group. The demo ends by itself when the viewer goes away, since it watches the pipe

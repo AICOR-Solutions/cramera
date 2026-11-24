@@ -65,7 +65,7 @@ import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constr
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
-import { EMPTY_FOLDER, EnvironmentNote, RobotTag, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
+import { EMPTY_FOLDER, EnvironmentNote, REAL_ROBOT_POSE, RobotTag, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { READY, cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
@@ -1441,6 +1441,48 @@ test('the run on the real robot stands in a row of its own, apart from validatio
   assert.equal(row.className, ROBOT_RUN_ROW);
   assert.deepEqual(row.children.filter((child) => child.tagName === 'BUTTON'), [robotRun(root)]);
   for (const action of [PlanAction.VALIDATE, PlanAction.SCAN_SCENE, PlanAction.SIMULATE, PlanAction.PERFORM, PlanAction.STAGE]) assert.notEqual(byAction(root, action)[0].parentElement, row);
+});
+
+// %% the real robot
+
+const realRobotPage = () => openPage('', profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }), { robot: false });
+
+test('attached to the real robot, its robot cannot be removed and stands where the real robot is', async () => {
+  const { root, page } = await realRobotPage();
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
+  assert.equal(byAction(root, PlanAction.REMOVE_ROBOT).length, 0);
+  assert.equal(byAction(root, PlanAction.POSE).length, 0);
+  const notes = root.findAll((element) => element.className === 'muted real-robot-pose').map((element) => element.textContent);
+  assert.deepEqual(notes, [REAL_ROBOT_POSE.NOTE]);
+  const facts = root.findAll((element) => element.className === 'robot-facts')[0].textContent;
+  assert.match(facts, new RegExp(REAL_ROBOT_POSE.FACT));
+  assert.doesNotMatch(facts, /starts at/);
+});
+
+test('attached to the real robot, dragging its robot in the 3D view leaves it where it stands', async () => {
+  const { page, scene, root } = await realRobotPage();
+  const robot = page.state.activeRobot();
+  const before = robot[PlannedRobotKey.POSE];
+  scene().listeners.onPlace(new Selection(MarkerKind.ROBOT, robot[PlannedRobotKey.IDENTIFIER]), PlanPose.of(1, 1, 0, 0));
+  assert.deepEqual(page.state.activeRobot()[PlannedRobotKey.POSE], before);
+  assert.equal(message(root), REAL_ROBOT_POSE.NOTE);
+});
+
+test('attached to the real robot, a robot of another model is still a simulated one', async () => {
+  const { root, page } = await realRobotPage();
+  const model = byAction(root, PlanAction.ROBOT_MODEL).at(-1);
+  model.value = 'stretch';
+  model.dispatch(DomEvent.CHANGE);
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'stretch');
+  assert.equal(byAction(root, PlanAction.REMOVE_ROBOT).length, 1);
+  assert.equal(byAction(root, PlanAction.POSE).length, 3);
+});
+
+test('in simulation the robot can be removed and its start pose edited', async () => {
+  const { root } = await openPage('', profileRunning({ [RunMode.SIMULATE]: ExecutorKind.PHYSICS }), { robot: false });
+  assert.equal(byAction(root, PlanAction.REMOVE_ROBOT).length, 1);
+  assert.equal(byAction(root, PlanAction.POSE).length, 3);
 });
 
 const validationState = (root) => root.findAll((element) => element.className === 'validation-state')[0].textContent;
