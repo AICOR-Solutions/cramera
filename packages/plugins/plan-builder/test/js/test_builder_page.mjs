@@ -66,7 +66,7 @@ import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } f
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
-import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
@@ -471,6 +471,17 @@ test('clicking an action and dropping one add steps where they land', async () =
   assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['move_torso', 'park_arms']);
   assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, page.state.schema('move_torso')[ActionSchemaKey.LABEL]);
   assert.ok(Number(steps(root)[0].dataset.palette) < STEP_PALETTE_SIZE);
+});
+
+test('an action dropped below the last step is added after it', async () => {
+  const { root, page } = await openPage();
+  block(root, 'park_arms').click();
+  block(root, 'move_torso').click();
+  const list = root.findAll((element) => element.className === 'steps')[0];
+  const end = list.children.at(-1);
+  assert.equal(end.textContent, END_DROP_HINT);
+  drop(end, DragText.of(DragKind.STEP, 'navigate'));
+  assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['park_arms', 'move_torso', 'navigate']);
 });
 
 test('the palette groups the actions and names why others are not available', async () => {

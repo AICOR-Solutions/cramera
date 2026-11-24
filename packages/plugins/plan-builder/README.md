@@ -84,6 +84,9 @@ cramera
   whose origin is the environment's: x, y and z in metres, and the heading as
   "rotation (°)" around the vertical axis, 0° facing along the world's x axis. Each
   input says so as its tooltip.
+- **Composing.** An action clicked in the palette is added as the last step; one
+  dropped on a step is inserted before it, one dropped on the place below the last
+  step is added after it.
 - **Plans** are saved under `CRAMERA_DATA/plan-builder/plans`. A step names its action
   by class name and gives its fields' values by field name (format 1.1). A plan saved
   with the step kinds of format 1.0 loads as the actions they stood for: `park_arms` as

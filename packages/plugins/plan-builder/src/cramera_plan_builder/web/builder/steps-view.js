@@ -129,6 +129,11 @@ const DEFAULT_CHOICE = '';
 export const noAnnotation = (annotation) => `Neither the environment nor the live world shows an entity with a ${annotation} annotation; type its name.`;
 
 /**
+ * What the place below the last step says, where a dropped action is added last.
+ */
+export const END_DROP_HINT = 'Drop an action here to add it as the last step.';
+
+/**
  * The classes the view's elements carry.
  */
 const ViewClass = Object.freeze({
@@ -149,6 +154,7 @@ const ViewClass = Object.freeze({
   CHIPS: 'chips',
   CHIP: 'chip',
   DROP: 'drop-hint',
+  END_DROP: 'drop-hint end-drop',
   DRAG_OVER: 'drag-over',
   EMPTY: 'empty',
 });
@@ -217,7 +223,8 @@ export class StepsView {
   }
 
   /**
-   * Show the edited robot's palette and steps.
+   * Show the edited robot's palette and steps, and below the last step a place to drop
+   * an action that comes last.
    * @param {Array<string|null>} statuses The live status of each step, by position.
    * @param {Array<Map<string, string|null>>} observations What each step's constraints
    *   observe in the live plan, by their text, by position.
@@ -234,7 +241,9 @@ export class StepsView {
       this.list.replaceChildren(this.#shown.create('li', ViewClass.DROP, 'Drag actions here, or click them, to build the plan.'));
       return;
     }
-    this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map(), validations.get(step[PlanStepKey.IDENTIFIER]) ?? null)));
+    const end = this.#shown.create('li', ViewClass.END_DROP, END_DROP_HINT);
+    this.#shown.dropTarget(end, ViewClass.DRAG_OVER, (text) => this.#dropped(text, steps.length));
+    this.list.replaceChildren(...steps.map((step, index) => this.#card(step, index, statuses[index] ?? null, observations[index] ?? new Map(), validations.get(step[PlanStepKey.IDENTIFIER]) ?? null)), end);
   }
 
   // %% palette
