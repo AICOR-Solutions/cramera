@@ -54,6 +54,14 @@ TAKEN_VERDICTS = (ReportedObjectVerdict.ACCEPTED, ReportedObjectVerdict.TOO_FAR)
 The verdicts of the object a step took.
 """
 
+WRONG_KIND_VERDICTS = (
+    ReportedObjectVerdict.WRONG_COLOR,
+    ReportedObjectVerdict.WRONG_TYPE,
+)
+"""
+The verdicts of an object of another kind than the one looked for.
+"""
+
 # %% answers
 
 
@@ -115,6 +123,15 @@ def centimetres(metres: float) -> str:
     if value < 10 and round(value * 2) % 2 == 1:
         return f"{round(value * 2) / 2:g} cm"
     return f"{round(value)} cm"
+
+
+def extent(size: Vector3) -> str:
+    """
+    :param size: The extent of a box.
+    :return: It in centimetres to a tenth, as a person reads it: "6.1 × 5.6 × 1.7 cm".
+    """
+    sides = (size.x, size.y, size.z)
+    return f"{' × '.join(f'{round(side * CENTIMETRES, 1):g}' for side in sides)} cm"
 
 
 def sentence(text: str) -> str:
@@ -197,6 +214,19 @@ class PerceptionSearch:
     Why the step looked, None when it is not known.
     """
 
+    expected_size: Optional[Vector3] = None
+    """
+    The extent of the box around the plan's object looked for, None when the query
+    looks for none of the plan's objects.
+    """
+
+    size_tolerance: float = 0.3
+    """
+    By how much, as a share of the object's own extent, an extent measured may differ
+    before the size counts as clearly different; the extents are compared from smallest
+    to largest, as the object may lie turned.
+    """
+
     def report(self, answer: PerceptionAnswer) -> PerceptionReport:
         """
         :param answer: What the perception answered.
@@ -218,6 +248,7 @@ class PerceptionSearch:
             summary=self.summary(answer.objects is not None, objects),
             purpose=self.purpose,
             warnings=self.warnings(objects),
+            expected_size=self.expected_size,
         )
 
     def judged(self, designators: List[ReportedDesignator]) -> List[ReportedObject]:
@@ -247,6 +278,10 @@ class PerceptionSearch:
                     verdict=verdict,
                     distance=self.distance(designator.position),
                     inside_surface=designator.inside_surface,
+                    size_differs=(
+                        verdict not in WRONG_KIND_VERDICTS
+                        and self.size_differs(designator.size)
+                    ),
                 )
             )
         return judged
@@ -269,6 +304,24 @@ class PerceptionSearch:
         if not self.contains(designator.position):
             return ReportedObjectVerdict.OUTSIDE_BOX
         return None
+
+    def size_differs(self, size: Optional[Vector3]) -> bool:
+        """
+        :param size: The extent of the box around an object reported, None when none
+            was measured.
+        :return: Whether it differs clearly from the plan's object's, see
+            :attr:`size_tolerance`; False when either is unknown.
+        """
+        if size is None or self.expected_size is None:
+            return False
+        measured = sorted((size.x, size.y, size.z))
+        expected = sorted(
+            (self.expected_size.x, self.expected_size.y, self.expected_size.z)
+        )
+        return any(
+            abs(mine - theirs) > self.size_tolerance * theirs
+            for mine, theirs in zip(measured, expected)
+        )
 
     def contains(self, position: Vector3) -> bool:
         """
@@ -459,7 +512,7 @@ class PerceptionSearch:
         ]
         if taken is None:
             return [self.not_used(outside)] if outside else []
-        warnings = []
+        warnings = [self.mismeasured(taken)] if taken.size_differs else []
         if taken.verdict is ReportedObjectVerdict.TOO_FAR:
             warnings.append(
                 sentence(
@@ -500,6 +553,18 @@ class PerceptionSearch:
         return sentence(
             f"{seen} was not used: the step acts only on {self.looked_for()} found "
             f"inside the box it looked in."
+        )
+
+    def mismeasured(self, taken: ReportedObject) -> str:
+        """
+        :param taken: The object the step took, measured clearly unlike the plan's
+            object.
+        :return: That its size hints at a perception error.
+        """
+        return sentence(
+            f"{self.looked_for()} used measured {extent(taken.size)}, clearly unlike "
+            f"its {extent(self.expected_size)}: the object recognition likely "
+            f"measured it wrongly."
         )
 
     @staticmethod

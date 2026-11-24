@@ -152,11 +152,24 @@ export function insideSurfaceText(seen) {
 
 /**
  * @param {Object} seen A `ReportedObject`.
+ * @param {Object} report The `PerceptionReport` it came back in.
+ * @returns {string} That it was measured clearly unlike the object looked for, which
+ *   hints at a perception error; empty for any other.
+ */
+export function sizeText(seen, report) {
+  const expected = report[PerceptionReportKey.EXPECTED_SIZE];
+  if (!seen[ReportedObjectKey.SIZE_DIFFERS] || !expected) return '';
+  return `; measured clearly unlike the ${expected.map(cm).join(' × ')} cm of ${lookedForText(report)}, likely a perception error`;
+}
+
+/**
+ * @param {Object} seen A `ReportedObject`.
  * @param {Object} report The `PerceptionReport` it came back in, which says where its
  *   distance is measured from.
  * @returns {string} It as a person reads it: colours, size, position, distance, verdict
- *   and how far inside its surface it was reported; the type the perception reported is
- *   left out, a class name no person reads.
+ *   how far inside its surface it was reported and whether its size hints at a
+ *   perception error; the type the perception reported is left out, a class name no
+ *   person reads.
  */
 export function objectText(seen, report = {}) {
   const colors = (seen[ReportedObjectKey.COLORS] ?? []).join(' and ') || 'no colour';
@@ -164,7 +177,7 @@ export function objectText(seen, report = {}) {
   const extent = size ? `${size.map(cm).join(' × ')} cm` : 'size unknown';
   const distance = seen[ReportedObjectKey.DISTANCE];
   const away = distance === null || distance === undefined ? '' : `, ${cm(distance)} cm from ${spotText(report)}`;
-  return `${colors}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}`;
+  return `${colors}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}${sizeText(seen, report)}`;
 }
 
 /**
@@ -227,6 +240,7 @@ export class PerceptionReportsView {
         for (const seen of objects) {
           const item = elements.create('li', PerceptionViewClass.OBJECT);
           item.dataset.verdict = seen[ReportedObjectKey.VERDICT];
+          item.dataset.sizeDiffers = String(seen[ReportedObjectKey.SIZE_DIFFERS] === true);
           const swatch = elements.create('span', PerceptionViewClass.SWATCH);
           swatch.style.background = (seen[ReportedObjectKey.COLORS] ?? [])[0] ?? 'transparent';
           item.append(swatch, elements.create('span', '', objectText(seen, report)));

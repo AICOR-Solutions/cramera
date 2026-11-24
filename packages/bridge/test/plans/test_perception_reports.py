@@ -394,3 +394,70 @@ def test_the_cube_used_where_it_was_validated_warns_of_nothing():
         PerceptionAnswer(objects=[cube(0.61, 0.105, "red"), *TABLE_TOP])
     )
     assert report.warnings == []
+
+
+# %% the size measured against the object's
+
+
+CUBE_SIZE = Vector3(0.05, 0.05, 0.05)
+"""
+The size of the plan's 5 cm cubes.
+"""
+
+
+def sized_cube(x: float, y: float, size: Vector3) -> ReportedDesignator:
+    """
+    :return: A red cube RoboKudo reported with the size it measured.
+    """
+    return ReportedDesignator(position=Vector3(x, y, 0.905), size=size, colors=["red"])
+
+
+def test_a_cube_measured_far_flatter_than_it_is_warns_of_a_perception_error():
+    search = replace(around_the_grounded_spot(), expected_size=CUBE_SIZE)
+    report = search.report(
+        PerceptionAnswer(
+            objects=[sized_cube(0.61, 0.105, Vector3(0.061, 0.056, 0.017))]
+        )
+    )
+    assert report.expected_size == CUBE_SIZE
+    assert report.objects[0].size_differs is True
+    assert report.warnings == [
+        "The red cube used measured 6.1 × 5.6 × 1.7 cm, clearly unlike its 5 × 5 × "
+        "5 cm: the object recognition likely measured it wrongly."
+    ]
+    assert report.objects[0].verdict is ReportedObjectVerdict.ACCEPTED
+
+
+def test_a_cube_measured_close_to_its_size_warns_of_nothing():
+    search = replace(around_the_grounded_spot(), expected_size=CUBE_SIZE)
+    report = search.report(
+        PerceptionAnswer(
+            objects=[sized_cube(0.61, 0.105, Vector3(0.055, 0.052, 0.046))]
+        )
+    )
+    assert report.objects[0].size_differs is False
+    assert report.warnings == []
+
+
+def test_a_cube_measured_turned_a_quarter_keeps_its_size():
+    search = replace(around_the_grounded_spot(), expected_size=Vector3(0.1, 0.05, 0.05))
+    report = search.report(
+        PerceptionAnswer(objects=[sized_cube(0.61, 0.105, Vector3(0.05, 0.1, 0.05))])
+    )
+    assert report.objects[0].size_differs is False
+
+
+def test_an_object_of_another_color_is_not_measured_against_the_cube():
+    search = replace(around_the_grounded_spot(), expected_size=CUBE_SIZE)
+    report = search.report(PerceptionAnswer(objects=TABLE_TOP))
+    assert [seen.size_differs for seen in report.objects] == [False, False]
+
+
+def test_a_cube_seen_outside_the_box_is_measured_against_the_cube_too():
+    search = replace(around_the_grounded_spot(), expected_size=CUBE_SIZE)
+    report = search.report(
+        PerceptionAnswer(
+            objects=[sized_cube(0.79, 0.145, Vector3(0.061, 0.056, 0.017))]
+        )
+    )
+    assert report.objects[0].size_differs is True

@@ -3330,6 +3330,11 @@ class ReportedObjectKey(StrEnum):
     How far it lay inside the surface it stands on.
     """
 
+    SIZE_DIFFERS = "sizeDiffers"
+    """
+    Whether its size differs clearly from the object's looked for.
+    """
+
 
 @dataclass(kw_only=True)
 class ReportedObject(JsonDocument):
@@ -3376,6 +3381,13 @@ class ReportedObject(JsonDocument):
     How far it lay inside the surface it stands on, had it been the plan's object
     looked for; None when it lay inside none, or the query looks for none of the plan's
     objects.
+    """
+
+    size_differs: bool = document_field(ReportedObjectKey.SIZE_DIFFERS, default=False)
+    """
+    Whether the size measured differs clearly from the size of the plan's object looked
+    for, which hints at a perception error; False for an object of another kind, one
+    without a measured size, or when the query looks for none of the plan's objects.
     """
 
 
@@ -3453,6 +3465,11 @@ class PerceptionReportKey(StrEnum):
     WARNINGS = "warnings"
     """
     What a person should know of the report.
+    """
+
+    EXPECTED_SIZE = "expectedSize"
+    """
+    The size of the plan's object looked for.
     """
 
 
@@ -3551,7 +3568,16 @@ class PerceptionReport(JsonDocument):
     )
     """
     What a person should know of the report, each as a sentence: an object of the kind
-    looked for that the step did not use, or one it ignored.
+    looked for that the step did not use, one it ignored, or the one it used measured
+    clearly unlike the plan's object.
+    """
+
+    expected_size: Optional[Vector3] = document_field(
+        PerceptionReportKey.EXPECTED_SIZE, default=None
+    )
+    """
+    The extent of the box around the plan's object looked for, in metres; None when the
+    query looks for none of the plan's objects.
     """
 
 

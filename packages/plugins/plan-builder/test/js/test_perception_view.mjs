@@ -235,3 +235,36 @@ test('the log warns of a detection not used', () => {
 test('an object of the kind looked for outside the box says it was ignored', () => {
   assert.match(objectText(notUsed[PerceptionReportKey.OBJECTS][0], notUsed), /: outside the box looked in, ignored$/);
 });
+
+/**
+ * The red cube used where it was validated, measured 6.1 × 5.6 × 1.7 cm on the real
+ * table, though it is a 5 cm cube.
+ */
+const flattened = {
+  ...grounded,
+  [PerceptionReportKey.LOOKED_FOR]: 'the red cube',
+  [PerceptionReportKey.EXPECTED_SIZE]: [0.05, 0.05, 0.05],
+  [PerceptionReportKey.OBJECTS]: [{
+    ...seen([0.6, 0.105, 0.905], ['red'], ReportedObjectVerdict.ACCEPTED, 0.0),
+    [ReportedObjectKey.SIZE]: [0.061, 0.056, 0.017],
+    [ReportedObjectKey.SIZE_DIFFERS]: true,
+  }],
+};
+
+test('an object measured clearly unlike the object looked for says so', () => {
+  assert.match(objectText(flattened[PerceptionReportKey.OBJECTS][0], flattened), /: used for the step; measured clearly unlike the 5 × 5 × 5 cm of the red cube, likely a perception error$/);
+});
+
+test('an object measured clearly unlike the object looked for is marked', () => {
+  const [report] = byClass(rendered(RunProgress.of(
+    [{ [PlanStepKey.IDENTIFIER]: 'step_2' }],
+    (step) => step[PlanStepKey.IDENTIFIER],
+    { [RunStatusKey.EVENTS]: [perception(flattened)] },
+  )), PerceptionViewClass.REPORT);
+  assert.equal(byClass(report, PerceptionViewClass.OBJECT)[0].dataset.sizeDiffers, 'true');
+});
+
+test('an object measured like the object looked for says nothing of its size', () => {
+  const [cube] = plannedAgain[PerceptionReportKey.OBJECTS];
+  assert.doesNotMatch(objectText(cube, plannedAgain), /measured/);
+});

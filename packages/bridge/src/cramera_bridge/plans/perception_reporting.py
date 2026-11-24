@@ -28,7 +28,7 @@ from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.robokudo_answers import QueryAnswer, RoboKudoAnswers
 from cramera_bridge.plans.run_log import RunLog, RunLogEntry
 from cramera_bridge.plans.step_run import AttemptProgress, StepRun
-from cramera_protocol.detection import DetectionRegion
+from cramera_protocol.detection import DetectedObjectReference, DetectionRegion
 from cramera_protocol.geometry import Bounds, Vector3
 from cramera_protocol.plan_builder import (
     DetectionPurpose,
@@ -275,12 +275,13 @@ class PerceptionReporting(ExecutorExtension):
         :param task: A detection that ran.
         :param step: The identity of the step it belongs to, None when none is known.
         :param purpose: Why the step looked.
-        :return: What it asked: the plan's object it looks for, where the step expects
-            the object, when the step checks that the object lies there, with how far
-            from there it may lie, and where the plan was validated with it when the
-            step expects it elsewhere since.
+        :return: What it asked: the plan's object it looks for with its size, where the
+            step expects the object, when the step checks that the object lies there,
+            with how far from there it may lie, and where the plan was validated with it
+            when the step expects it elsewhere since.
         """
         query = task.query
+        body = self.body_looked_for(task, step, purpose)
         box = self.boxes.get(task) or self.bounds(query.region, query.world)
         expected = self.expected(task, query.region)
         grounded = (
@@ -291,8 +292,9 @@ class PerceptionReporting(ExecutorExtension):
         return PerceptionSearch(
             type=query.semantic_annotation.__name__.lower(),
             box=box,
-            target=self.target_of(self.body_looked_for(task)),
+            target=self.target_of(body),
             purpose=purpose,
+            expected_size=None if body is None else self.size_of(body),
             color=None if query.color is None else query.color.value,
             table_wide=self.is_table(box, query.world),
             grounded=grounded,
@@ -354,18 +356,39 @@ class PerceptionReporting(ExecutorExtension):
                     return sibling, expected
         return None
 
-    def body_looked_for(self, task: PerceptionTask) -> Optional[Body]:
+    def body_looked_for(
+        self, task: PerceptionTask, step: Optional[str], purpose: DetectionPurpose
+    ) -> Optional[Body]:
         """
         :param task: A detection.
+        :param step: The identity of the step it belongs to, None when none is known.
+        :param purpose: Why the step looked.
         :return: The plan's object it looks for: the one a check after it expects
-            inside its box, or the one the reach it looks before grasps; None for
-            neither.
+            inside its box, the one the reach it looks before grasps, or the one a
+            detection step finds for later steps; None for none of them.
         """
         expected = self.expected(task, task.query.region)
         if expected is not None:
             return expected[1].body
         reach = self.reach_of(task)
-        return None if reach is None else reach.grasp.graspable.root
+        if reach is not None:
+            return reach.grasp.graspable.root
+        if purpose is DetectionPurpose.STEP and step is not None:
+            return self.step_run.bodies.get(DetectedObjectReference(step).text)
+        return None
+
+    @staticmethod
+    def size_of(body: Body) -> Vector3:
+        """
+        :param body: One of the plan's objects.
+        :return: The extent of the box around its collision shapes, in its own frame.
+        """
+        box = body.collision.as_bounding_box_collection_in_frame(body).bounding_box()
+        return Vector3(
+            float(box.max_x - box.min_x),
+            float(box.max_y - box.min_y),
+            float(box.max_z - box.min_z),
+        )
 
     def target_of(self, body: Optional[Body]) -> Optional[str]:
         """

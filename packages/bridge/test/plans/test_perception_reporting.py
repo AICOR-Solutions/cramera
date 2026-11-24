@@ -325,6 +325,19 @@ def test_the_run_log_line_warns_that_the_cube_seen_24_cm_away_was_not_used(repor
     )
 
 
+def test_each_report_knows_the_size_of_the_cube_looked_for(two_picks_reports):
+    assert [
+        (entry.report.expected_size.x, entry.report.expected_size.z)
+        for entry in two_picks_reports
+    ] == [pytest.approx((0.05, 0.05), abs=1e-3)] * 4
+
+
+def test_a_detect_steps_detection_knows_the_cube_it_finds(detect_and_pick_reports):
+    detection = detect_and_pick_reports[0].report
+    assert detection.target == "red_cube"
+    assert detection.expected_size.y == pytest.approx(0.05, abs=1e-3)
+
+
 def test_the_report_names_the_object_as_the_person_knows_it(reports):
     report = reports[0].report
     assert report.looked_for == "the red cube"
