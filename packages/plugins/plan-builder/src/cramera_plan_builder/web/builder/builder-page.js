@@ -191,6 +191,13 @@ export const VALIDATED_FOR_THIS_RUN = 'Validated for this run; validate again be
 export const VALIDATION_USED = 'The last run on the robot used this validation: validate again before the next run.';
 
 /**
+ * What the page says once a run left the plan's objects elsewhere than they started,
+ * which the plan then takes: the live world does not tell which object a gripper
+ * holds, so one still held keeps the pose it has in the gripper.
+ */
+export const OBJECTS_KEPT = 'The objects stay where the run left them; an object a robot still holds stays where its gripper has it.';
+
+/**
  * What the page says once it cancelled a validation as the plan changed while it ran.
  */
 export const VALIDATION_CANCELLED = 'Validation cancelled: the plan changed. Validate it again once it is ready.';
@@ -662,12 +669,20 @@ export class BuilderPage {
   #progressHidden = false;
 
   /**
-   * The plan the run started last ran, as JSON text, or null when the page did not
-   * start it, as after a reload; once the run ended, its progress counts only while
-   * the plan stays as it ran.
+   * The plan the run started last ran, as JSON text, with its objects where the run
+   * left them once it ended, or null when the page did not start it, as after a
+   * reload; once the run ended, its progress counts only while the plan stays so.
    * @type {string|null}
    */
   #runPlan = null;
+
+  /**
+   * The poses the live world of the run of the plan last showed its objects at, by
+   * identity, which the plan takes once the run ended; null while no run of the plan
+   * published its world, as for a staged scene, which runs no plan.
+   * @type {Map<string, Array<number>>|null}
+   */
+  #runObjects = null;
 
   /**
    * The validation, scan or run start waiting for its answer, or null.
@@ -1364,6 +1379,7 @@ export class BuilderPage {
     this.#runShown = mode !== RunMode.STAGE;
     this.#progressHidden = false;
     this.#runPlan = JSON.stringify(this.state.document);
+    this.#runObjects = null;
     this.#cameraImages = [];
     this.#world = PageWorld.empty();
     this.#attached.clear();
@@ -1520,6 +1536,7 @@ export class BuilderPage {
     if (status) {
       this.#run = status;
       this.#world = PageWorld.empty();
+      this.#keepRunObjects();
       this.#outcome = runOutcome(status, this.#progress(), this.#robotExecutor() === ExecutorKind.REAL) ?? { tone: Tone.WARNING, text: 'The run was stopped.' };
     }
     this.render();
@@ -1634,6 +1651,7 @@ export class BuilderPage {
     this.#run = run;
     if (this.#performing()) this.#progressHidden = false;
     if (before !== run[RunStatusKey.STATE]) this.#noteRunEnd(previous);
+    if (!LIVE_STATES.includes(run[RunStatusKey.STATE])) this.#keepRunObjects();
     // a validation answered while the status was asked for is newer than the status
     if (answered && this.#validation === validation && run[RunStatusKey.VALIDATION_HELD] === false) this.#dropLostValidation();
     const world = this.#publishes(run) ? await this.#readWorld().catch(() => PageWorld.empty()) : PageWorld.empty();
@@ -1641,12 +1659,46 @@ export class BuilderPage {
     const changed = before !== run[RunStatusKey.STATE] || world.published !== this.#world.published || world.signature() !== this.#world.signature();
     this.#world = world;
     this.#polled = false;
+    this.#noteRunObjects();
     this.#noteSceneChange();
     if (changed) this.render();
     else {
       this.#showRun();
       this.#showScene();
     }
+  }
+
+  /**
+   * Note the object poses a published live world of a run of the plan shows as the
+   * last ones the run left its objects at.
+   */
+  #noteRunObjects() {
+    if (this.#world.published && this.#run[RunStatusKey.MODE] !== RunMode.STAGE) this.#runObjects = this.#world.objects;
+  }
+
+  /**
+   * Once a run of the plan ended, put the plan's objects where its live world last
+   * showed them and say so; an object it showed no pose of keeps its pose. This is a
+   * change of the plan like any other, unsaved and no longer validated, but the run
+   * still counts against it and its validation stays used by the run.
+   */
+  #keepRunObjects() {
+    const left = this.#runObjects;
+    this.#runObjects = null;
+    if (left === null) return;
+    const ran = JSON.stringify(this.state.document);
+    for (const object of this.state.objects()) {
+      const identifier = object[PlannedObjectKey.IDENTIFIER];
+      const pose = left.get(identifier)?.map(PlanPose.rounded);
+      if (pose !== undefined && JSON.stringify(pose) !== JSON.stringify(object[PlannedObjectKey.POSE])) this.state.setObjectPose(identifier, pose);
+    }
+    const kept = JSON.stringify(this.state.document);
+    if (kept === ran) return;
+    // the poses are what the run did, not an edit of the person after it
+    if (this.#runPlan === ran) this.#runPlan = kept;
+    if (this.#validationUsedBy === ran) this.#validationUsedBy = kept;
+    this.report(OBJECTS_KEPT);
+    this.render();
   }
 
   /**
@@ -1701,6 +1753,7 @@ export class BuilderPage {
     this.#followed = false;
     if (!answer || !this.#world.published || !this.state) return;
     this.#world.move(...answer, this.#robotIdentities());
+    this.#noteRunObjects();
     this.#noteSceneChange();
     this.#showScene();
   }

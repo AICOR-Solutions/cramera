@@ -142,6 +142,17 @@ cramera
   group. The demo ends by itself when the viewer goes away, since it watches the pipe
   the viewer holds open. Demos publish on the live publisher's port, or on
   `CRAMERA_PLAN_BUILDER_PORT`.
+  While a run goes, the 3D view shows its live world. Once a run of the plan ends,
+  however it ends (finished, failed, stopped, safety-stopped, in simulation or on the
+  real robot), the plan's objects take the poses its live world last showed them at,
+  so the scene keeps the objects where the run left them, and the status says so. An
+  object the live world showed no pose of keeps its pose. The live world does not say
+  which object a gripper holds, so an object still held at the end keeps the pose it
+  had in the gripper; the status reminds of that. The kept poses are a change of the
+  plan like an edit: the plan has unsaved changes and is no longer validated for a run
+  on the robot, while the run view still counts the run against it. A staged live
+  scene runs no plan and leaves the plan's objects alone ("Capture live poses" takes
+  its poses), and a replay in the viewer never changes the plan.
 - **Validation.** "Validate" posts the plan to the `validate` route, which runs
   `cramera_bridge.plans.validating` as a child process: every step of the selected
   robot is tried one after another in a copy of the twin, kinematically, so nothing

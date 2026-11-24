@@ -60,7 +60,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, EXECUTOR_TITLES, FAILURE_LENGTH_LIMIT, RUN_LABELS, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, EXECUTOR_TITLES, FAILURE_LENGTH_LIMIT, OBJECTS_KEPT, RUN_LABELS, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
@@ -3061,6 +3061,186 @@ test('an edit after a finished run leaves the run view and does not count the ru
   assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, true);
   assert.equal(root.findAll((element) => element.tagName === 'H2' && /^Plan of /.test(element.textContent)).length, 1);
   assert.doesNotMatch(root.innerText, /of 4 steps done/);
+});
+
+// %% objects after a run
+
+/**
+ * Open a page whose plan holds the milk of the test's live world and parks the arms,
+ * start it in a run mode and let the live world publish once.
+ * @param {string} action The `PlanAction` that starts the run.
+ * @param {function(Object): (void|Promise<void>)} prepare Prepares the opened page
+ *   before the run.
+ */
+async function runningWithMilk(action = PlanAction.PERFORM, prepare = () => {}) {
+  const opened = await openPage();
+  addMilk(opened.root);
+  block(opened.root, 'park_arms').click();
+  await prepare(opened);
+  byAction(opened.root, action)[0].click();
+  await settled();
+  await opened.timer.tick();
+  return opened;
+}
+
+/**
+ * Move the milk of the live world to a pose and let the page follow it.
+ * @param {Object} opened The opened page.
+ * @param {Array<number>} pose Where the milk is now.
+ */
+async function moveLiveMilk(opened, pose) {
+  const moved = structuredClone(opened.live.world);
+  moved.captured.objects['key-milk'] = pose;
+  opened.live.world = moved;
+  await opened.timer.tickEvery(PollInterval.STATE);
+}
+
+/**
+ * End the page's run in a state.
+ * @param {Object} opened The opened page.
+ * @param {string} state The `RunState` it ends in.
+ */
+async function endRun(opened, state) {
+  opened.api.status = { ...opened.api.status, [RunStatusKey.STATE]: state };
+  await opened.timer.tick();
+}
+
+const STACKED = [1.5, 0.25, 1.1, 0, 0, 0, 1];
+const milkPose = (page) => page.state.objects()[0][PlannedObjectKey.POSE];
+
+test('after a run the plan\'s objects stay where the run left them, as an unsaved change', async () => {
+  const opened = await runningWithMilk();
+  const { root, page, api, window, scene } = opened;
+  const started = structuredClone(milkPose(page));
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  await settled();
+  await moveLiveMilk(opened, STACKED);
+  await endRun(opened, RunState.FINISHED);
+  assert.deepEqual(milkPose(page), STACKED);
+  assert.deepEqual(scene().shown.document[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], STACKED);
+  assert.equal(message(root), OBJECTS_KEPT);
+  assert.equal(leavingAsks(window), true);
+  assert.deepEqual(api.runs[0].plan[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], started);
+});
+
+test('the objects stay where the run left them though its world closed before the run ended', async () => {
+  const opened = await runningWithMilk(PlanAction.SIMULATE);
+  await moveLiveMilk(opened, STACKED);
+  const closed = structuredClone(opened.live.world);
+  closed.info = { ...closed.info, running: false };
+  opened.live.world = closed;
+  await opened.timer.tick();
+  await endRun(opened, RunState.FAILED);
+  assert.deepEqual(milkPose(opened.page), STACKED);
+});
+
+test('a stopped run keeps the objects and says an object still held stays in its gripper', async () => {
+  const opened = await runningWithMilk();
+  const started = structuredClone(milkPose(opened.page));
+  await moveLiveMilk(opened, STACKED);
+  byAction(opened.root, PlanAction.STOP)[0].click();
+  await settled();
+  assert.deepEqual(milkPose(opened.page), STACKED);
+  assert.deepEqual(opened.api.runs[0].plan[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], started);
+  assert.match(message(opened.root), /still holds stays where its gripper has it/);
+});
+
+test('the objects stay where the run left them while its record is saved', async () => {
+  const opened = await runningWithMilk();
+  await moveLiveMilk(opened, STACKED);
+  await endRun(opened, RunState.SAVING);
+  assert.deepEqual(opened.scene().shown.document[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], STACKED);
+  await endRun(opened, RunState.FINISHED);
+  assert.deepEqual(milkPose(opened.page), STACKED);
+});
+
+test('a safety stop keeps the objects where the run left them', async () => {
+  const opened = await runningWithMilk(PlanAction.SIMULATE);
+  await moveLiveMilk(opened, STACKED);
+  opened.api.status = { ...opened.api.status, [RunStatusKey.STATE]: RunState.SAFETY_STOPPED, [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'Left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false } };
+  await opened.timer.tick();
+  assert.deepEqual(milkPose(opened.page), STACKED);
+});
+
+test('an object the live world shows no pose of keeps its pose in the plan', async () => {
+  const opened = await runningWithMilk(PlanAction.PERFORM, ({ root }) => byAction(root, PlanAction.ADD_OBJECT)[0].click());
+  const other = structuredClone(opened.page.state.objects()[1]);
+  await moveLiveMilk(opened, STACKED);
+  await endRun(opened, RunState.FINISHED);
+  assert.deepEqual(milkPose(opened.page), STACKED);
+  assert.deepEqual(opened.page.state.objects()[1], other);
+});
+
+test('a run that leaves the objects where they were changes nothing', async () => {
+  const opened = await runningWithMilk();
+  const { root, page, window } = opened;
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  await settled();
+  await moveLiveMilk(opened, structuredClone(milkPose(page)));
+  page.report('');
+  await endRun(opened, RunState.FINISHED);
+  assert.equal(leavingAsks(window), false);
+  assert.equal(message(root), '');
+});
+
+test('a staged live scene that ends leaves the plan\'s objects alone', async () => {
+  const opened = await runningWithMilk(PlanAction.STAGE);
+  const started = structuredClone(milkPose(opened.page));
+  await moveLiveMilk(opened, STACKED);
+  byAction(opened.root, PlanAction.STOP)[0].click();
+  await settled();
+  assert.deepEqual(milkPose(opened.page), started);
+});
+
+test('objects a run moved invalidate the validation, so the robot run waits for a new one', async () => {
+  const opened = await runningWithMilk(PlanAction.SIMULATE, async ({ root, page, live }) => {
+    const standing = structuredClone(live.world);
+    standing.captured.objects['key-milk'] = structuredClone(page.state.objects()[0][PlannedObjectKey.POSE]);
+    live.world = standing;
+    validateButton(root).click();
+    await settled();
+  });
+  const planned = milkPose(opened.page);
+  // nearer than the scene tolerance, so only the kept pose invalidates the validation
+  await moveLiveMilk(opened, [planned[0] + SCENE_TOLERANCE / 2, ...planned.slice(1)]);
+  await endRun(opened, RunState.FINISHED);
+  assert.equal(robotRun(opened.root).disabled, true);
+  assert.equal(validationLine(opened.root), 'Plan changed since its validation: validate again.');
+});
+
+test('after a run on the real robot that moved the objects the page still says the run used the validation', async () => {
+  const opened = await openPage('', profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  const { root, page, api, timer } = opened;
+  addMilk(root);
+  block(root, 'park_arms').click();
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  const [step] = page.state.steps();
+  api.status = { ...api.status, [RunStatusKey.EVENTS]: [{ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: step[PlanStepKey.IDENTIFIER], [RunEventKey.STATE]: StepState.DONE }] };
+  await timer.tick();
+  await moveLiveMilk(opened, STACKED);
+  await endRun(opened, RunState.FINISHED);
+  assert.deepEqual(milkPose(page), STACKED);
+  assert.equal(validationLine(root), VALIDATION_USED);
+  assert.equal(robotRun(root).disabled, true);
+});
+
+test('the run view stays after the run kept its objects, counting the run against the plan', async () => {
+  const opened = await runningWithMilk(PlanAction.SIMULATE);
+  const steps = opened.api.runs[0].plan[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS];
+  opened.api.status = {
+    ...opened.api.status,
+    [RunStatusKey.EVENTS]: steps.map((step) => ({ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: step[PlanStepKey.IDENTIFIER], [RunEventKey.STATE]: StepState.DONE })),
+  };
+  await moveLiveMilk(opened, STACKED);
+  await endRun(opened, RunState.FINISHED);
+  assert.deepEqual(milkPose(opened.page), STACKED);
+  assert.equal(runView(opened.root).hidden, false);
+  assert.match(opened.root.innerText, /1 of 1 steps? done/);
 });
 
 // %% a failed validation in the status area
