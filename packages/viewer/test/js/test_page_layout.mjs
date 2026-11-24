@@ -101,6 +101,22 @@ test('a plugin panel shown on the scene page is marked as the current page', () 
   assert.equal(root.children[1].children[1].getAttribute('aria-current'), 'false');
 });
 
+test('a panel no link shows, such as a plugin page\'s panel, keeps the scene page current', () => {
+  const document = new FakeDocument();
+  const root = document.createElement('header');
+  const header = new SiteHeader(root, url, new ThemeSetting(document.documentElement, null), SCENE_PAGE, () => {});
+  header.markPanel('plan-builder');
+  header.show(INFO);
+  const current = () => root.children[1].children.filter((anchor) => anchor.getAttribute('aria-current') === 'page').map((anchor) => anchor.dataset.page);
+  assert.deepEqual(current(), [SCENE_PAGE]);
+  header.markPanel('models');
+  assert.deepEqual(current(), ['models']);
+  header.markPanel('plan-builder');
+  assert.deepEqual(current(), [SCENE_PAGE]);
+  header.markPanel(null);
+  assert.deepEqual(current(), [SCENE_PAGE]);
+});
+
 test('on a plugin page the header follows the panel links instead', () => {
   const document = new FakeDocument();
   const root = document.createElement('header');
