@@ -3226,6 +3226,35 @@ class ReportedObjectVerdict(StrEnum):
     """
 
 
+class DetectionPurpose(StrEnum):
+    """
+    Why a step's perception looked for an object.
+    """
+
+    STEP = "step"
+    """
+    The step is a detection, finding the object for later steps.
+    """
+
+    IN_PLACE_CHECK = "inPlaceCheck"
+    """
+    Before the step moved, it checked that the object still lies where the plan
+    expects it.
+    """
+
+    BEFORE_GRASP = "beforeGrasp"
+    """
+    The step looked at the object again just before grasping it, to grasp it where it
+    lies now.
+    """
+
+    TABLE_SEARCH = "tableSearch"
+    """
+    The object was not where the step expected it, and the step searched the table
+    for it again.
+    """
+
+
 class SurfaceDepthKey(StrEnum):
     """
     The keys of how far a reported object lay inside the surface it stands on.
@@ -3416,6 +3445,11 @@ class PerceptionReportKey(StrEnum):
     The report as a person reads it.
     """
 
+    PURPOSE = "purpose"
+    """
+    Why the step looked.
+    """
+
 
 @dataclass(kw_only=True)
 class PerceptionReport(JsonDocument):
@@ -3498,6 +3532,13 @@ class PerceptionReport(JsonDocument):
     The outcome as a person reads it, such as "The red cube was seen 19 cm from where
     the plan was validated, outside the search within 7.5 cm of where the plan was
     validated."
+    """
+
+    purpose: Optional[DetectionPurpose] = document_field(
+        PerceptionReportKey.PURPOSE, default=None
+    )
+    """
+    Why the step looked, None for a report recorded before reports said so.
     """
 
 

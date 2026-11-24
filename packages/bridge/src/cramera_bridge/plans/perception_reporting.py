@@ -18,6 +18,7 @@ from typing_extensions import Dict, List, Optional
 
 from coraplex.perception import Detection, PerceptionTask
 from coraplex.plans.expected_positions import BodiesWhereExpected, ExpectedPosition
+from coraplex.robot_plans.actions.core.pick_up import ReachAction
 from cramera_bridge.plans.perception_reports import (
     PerceptionAnswer,
     PerceptionSearch,
@@ -30,6 +31,7 @@ from cramera_bridge.plans.step_run import AttemptProgress, StepRun
 from cramera_protocol.detection import DetectionRegion
 from cramera_protocol.geometry import Bounds, Vector3
 from cramera_protocol.plan_builder import (
+    DetectionPurpose,
     PerceptionReport,
     RunEvent,
     RunEventKind,
@@ -181,10 +183,10 @@ class PerceptionReporting(ExecutorExtension):
             answer = answers[place] if place < len(answers) else None
             step = self.step_of(task, progress)
             self.last_step = step
+            search = self.search(task, step, self.purpose(task, progress))
             self.run_log.write(
                 PerceptionReported(
-                    report=self.search(task, step).report(self.answer(answer, task)),
-                    step=step,
+                    report=search.report(self.answer(answer, task)), step=step
                 )
             )
 
@@ -221,6 +223,34 @@ class PerceptionReporting(ExecutorExtension):
                     return attempted.step
         return self.last_step
 
+    def purpose(
+        self, task: PerceptionTask, progress: Optional[AttemptProgress]
+    ) -> DetectionPurpose:
+        """
+        :param task: A detection that ran.
+        :param progress: The progress of the attempt whose plan ran, None for another
+            plan.
+        :return: Why its step looked: a detection outside an attempt's plan searched
+            the table again for an object not where expected.
+        """
+        if progress is None:
+            return DetectionPurpose.TABLE_SEARCH
+        if self.reach_of(task) is not None:
+            return DetectionPurpose.BEFORE_GRASP
+        if self.expected(task, task.query.region) is not None:
+            return DetectionPurpose.IN_PLACE_CHECK
+        return DetectionPurpose.STEP
+
+    def reach_of(self, task: PerceptionTask) -> Optional[ReachAction]:
+        """
+        :param task: A detection.
+        :return: The reach whose grasp it looks before, None when it looks before none.
+        """
+        return next(
+            (node for node in self.ancestors(task) if isinstance(node, ReachAction)),
+            None,
+        )
+
     @staticmethod
     def ancestors(node: StatechartNode) -> List[StatechartNode]:
         """
@@ -234,13 +264,17 @@ class PerceptionReporting(ExecutorExtension):
 
     # %% what was asked
 
-    def search(self, task: PerceptionTask, step: Optional[str]) -> PerceptionSearch:
+    def search(
+        self, task: PerceptionTask, step: Optional[str], purpose: DetectionPurpose
+    ) -> PerceptionSearch:
         """
         :param task: A detection that ran.
         :param step: The identity of the step it belongs to, None when none is known.
-        :return: What it asked: where the step expects the object, when the step checks
-            that the object lies there, with how far from there it may lie, and where
-            the plan was validated with it when the step expects it elsewhere since.
+        :param purpose: Why the step looked.
+        :return: What it asked: the plan's object it looks for, where the step expects
+            the object, when the step checks that the object lies there, with how far
+            from there it may lie, and where the plan was validated with it when the
+            step expects it elsewhere since.
         """
         query = task.query
         box = self.boxes.get(task) or self.bounds(query.region, query.world)
@@ -253,9 +287,8 @@ class PerceptionReporting(ExecutorExtension):
         return PerceptionSearch(
             type=query.semantic_annotation.__name__.lower(),
             box=box,
-            target=(
-                None if expected is None else self.target_of(expected[1], query.world)
-            ),
+            target=self.target_of(self.body_looked_for(task)),
+            purpose=purpose,
             color=None if query.color is None else query.color.value,
             table_wide=self.is_table(box, query.world),
             grounded=grounded,
@@ -317,17 +350,29 @@ class PerceptionReporting(ExecutorExtension):
                     return sibling, expected
         return None
 
-    def target_of(self, expected: ExpectedPosition, world: World) -> Optional[str]:
+    def body_looked_for(self, task: PerceptionTask) -> Optional[Body]:
         """
-        :param expected: Where the plan expects one of its objects.
-        :param world: The world of the run.
-        :return: The identity of the plan's object.
+        :param task: A detection.
+        :return: The plan's object it looks for: the one a check after it expects
+            inside its box, or the one the reach it looks before grasps; None for
+            neither.
+        """
+        expected = self.expected(task, task.query.region)
+        if expected is not None:
+            return expected[1].body
+        reach = self.reach_of(task)
+        return None if reach is None else reach.grasp.graspable.root
+
+    def target_of(self, body: Optional[Body]) -> Optional[str]:
+        """
+        :param body: A body of the run's world, None for none.
+        :return: The identity of the plan's object it is, None when it is none.
         """
         name = next(
             (
                 identifier
-                for identifier, body in self.step_run.bodies.items()
-                if body is expected.body
+                for identifier, named in self.step_run.bodies.items()
+                if named is body
             ),
             None,
         )

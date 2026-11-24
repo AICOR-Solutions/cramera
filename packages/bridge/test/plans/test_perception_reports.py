@@ -7,13 +7,19 @@ time and three table-wide searches then found nothing.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from cramera_bridge.plans.perception_reports import (
     PerceptionAnswer,
     PerceptionSearch,
     ReportedDesignator,
 )
 from cramera_protocol.geometry import Bounds, Vector3
-from cramera_protocol.plan_builder import ReportedObjectVerdict, SurfaceDepth
+from cramera_protocol.plan_builder import (
+    DetectionPurpose,
+    ReportedObjectVerdict,
+    SurfaceDepth,
+)
 
 GROUNDED = Vector3(0.6, 0.105, 0.905)
 """
@@ -294,3 +300,48 @@ def test_nothing_found_where_the_cube_was_last_seen_says_so():
     assert report.summary == (
         "No red object was found within 7.5 cm of where it was last seen."
     )
+
+
+# %% why the step looked
+
+
+def test_a_look_before_grasping_says_so_before_what_it_found():
+    search = PerceptionSearch(
+        target="red_cube",
+        type="plannedgraspable",
+        box=Bounds(Vector3(0.5, 0.0, 0.85), Vector3(0.7, 0.2, 1.0)),
+        purpose=DetectionPurpose.BEFORE_GRASP,
+    )
+    report = search.report(PerceptionAnswer(objects=[cube(0.6, 0.1, "red")]))
+    assert report.purpose is DetectionPurpose.BEFORE_GRASP
+    assert report.summary == (
+        "Looked again just before grasping: the red cube was found in the box looked "
+        "in."
+    )
+
+
+def test_a_check_before_the_step_moves_says_so_before_what_it_found():
+    report = replace(
+        around_the_grounded_spot(), purpose=DetectionPurpose.IN_PLACE_CHECK
+    ).report(PerceptionAnswer(objects=[cube(0.61, 0.105, "red")]))
+    assert report.summary == (
+        "Checked before the step moved that the object still lies where the plan "
+        "expects it: the red cube was found 1 cm from where the plan was validated."
+    )
+
+
+def test_the_search_after_losing_the_object_says_so_before_what_it_found():
+    report = replace(table_wide(), purpose=DetectionPurpose.TABLE_SEARCH).report(
+        PerceptionAnswer(objects=[])
+    )
+    assert report.summary == (
+        "Searched the table again, the object not being where the plan expected it: "
+        "a table-wide search found no red object."
+    )
+
+
+def test_a_detect_steps_own_detection_says_only_what_it_found():
+    report = replace(table_wide(), purpose=DetectionPurpose.STEP).report(
+        PerceptionAnswer(objects=[cube(0.6, 0.1, "red")])
+    )
+    assert report.summary == "A table-wide search found the red cube."

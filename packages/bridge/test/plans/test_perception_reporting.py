@@ -26,6 +26,7 @@ from cramera_bridge.plans.perception_reporting import PerceptionReported
 from cramera_bridge.plans.robokudo_answers import QueryAnswer
 from cramera_protocol.plan_builder import (
     DemoDocument,
+    DetectionPurpose,
     PlanDocument,
     ReportedObjectVerdict,
     RunEventKind,
@@ -42,6 +43,11 @@ A red, a yellow and a blue cube, each named by its color.
 TRACY_PICK = DATASET / "plans" / "tracy_pick.json"
 """
 Tracy parks its arms, then picks up the red cube, at x 0.55, y 0.1.
+"""
+
+TRACY_DETECT_AND_PICK = DATASET / "plans" / "tracy_cubes.json"
+"""
+Tracy detects a red block on the whole table, then picks up what it found.
 """
 
 TRACY_TWO_PICKS = DATASET / "plans" / "tracy_two_picks.json"
@@ -178,6 +184,27 @@ def two_picks_reports(tmp_path_factory) -> List[PerceptionReported]:
     ]
 
 
+@pytest.fixture(scope="module")
+def detect_and_pick_reports(tmp_path_factory) -> List[PerceptionReported]:
+    """
+    :return: What the run of the detection and the pick of what it found reported of
+        its detections.
+    """
+    if not Tracy.is_description_installed():
+        pytest.skip("iai_tracy_description is not installed")
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+        patch.setenv(EnvironmentVariable.DATA, str(tmp_path_factory.mktemp("data")))
+        document = json.loads(TRACY_DETECT_AND_PICK.read_text("utf-8"))
+        plan = PlanDocument.from_json(document)
+        demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+        demo.execution = AnsweredKinematicExecution(answers=AnswersInTurn(demo))
+        demo.run()
+    return [
+        entry for entry in demo.run_log.entries if isinstance(entry, PerceptionReported)
+    ]
+
+
 @dataclass
 class MovedCubeDemo(PlannedTaskDemo):
     """
@@ -225,7 +252,10 @@ def test_the_check_of_the_picked_cube_reports_it_24_cm_away(reports):
         ReportedObjectVerdict.WRONG_COLOR,
         ReportedObjectVerdict.WRONG_COLOR,
     ]
-    assert report.summary.startswith("The red cube was seen 24 cm from where the plan")
+    assert report.summary.startswith(
+        "Checked before the step moved that the object still lies where the plan "
+        "expects it: the red cube was seen 24 cm from where the plan"
+    )
 
 
 def test_the_detections_of_a_plan_are_reported_in_the_order_they_ran(
@@ -251,6 +281,42 @@ def test_every_detection_is_reported_with_the_answer_to_its_own_query(
     ] == [[ReportedObjectVerdict.ACCEPTED]] * 4
 
 
+def test_each_report_says_why_its_step_looked(two_picks_reports):
+    assert [entry.report.purpose for entry in two_picks_reports] == [
+        DetectionPurpose.IN_PLACE_CHECK,
+        DetectionPurpose.BEFORE_GRASP,
+    ] * 2
+
+
+def test_the_look_before_grasping_names_the_cube_the_step_grasps(two_picks_reports):
+    assert [entry.report.target for entry in two_picks_reports] == [
+        "red_cube",
+        "red_cube",
+        "yellow_cube",
+        "yellow_cube",
+    ]
+
+
+def test_a_pick_of_what_a_detect_step_found_looks_again_only_before_grasping(
+    detect_and_pick_reports,
+):
+    assert [
+        (entry.step, entry.report.purpose) for entry in detect_and_pick_reports
+    ] == [
+        ("step_1", DetectionPurpose.STEP),
+        ("step_2", DetectionPurpose.BEFORE_GRASP),
+    ]
+
+
+def test_the_search_after_the_cube_was_not_where_expected_says_so(moved_reports):
+    searches = [
+        entry.report
+        for entry in moved_reports
+        if entry.report.purpose is DetectionPurpose.TABLE_SEARCH
+    ]
+    assert [report.table_wide for report in searches] == [True]
+
+
 def test_the_report_names_the_object_as_the_person_knows_it(reports):
     report = reports[0].report
     assert report.looked_for == "the red cube"
@@ -273,8 +339,9 @@ def test_a_step_planned_again_measures_from_where_the_cube_was_last_seen(
     assert (again.validated.x, again.validated.y) == pytest.approx((0.55, 0.1))
     assert (again.grounded.x, again.grounded.y) == pytest.approx((0.79, 0.145))
     assert again.summary == (
-        "The red cube was found 0 cm from where it was last seen, 24 cm from where "
-        "the plan was validated."
+        "Checked before the step moved that the object still lies where the plan "
+        "expects it: the red cube was found 0 cm from where it was last seen, 24 cm "
+        "from where the plan was validated."
     )
 
 

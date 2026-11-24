@@ -22,6 +22,7 @@ from typing_extensions import List, Optional
 
 from cramera_protocol.geometry import Bounds, Vector3
 from cramera_protocol.plan_builder import (
+    DetectionPurpose,
     PerceptionReport,
     ReportedObject,
     ReportedObjectVerdict,
@@ -186,6 +187,11 @@ class PerceptionSearch:
     How far, in metres, from :attr:`grounded` the object may lie for the step to go on.
     """
 
+    purpose: Optional[DetectionPurpose] = None
+    """
+    Why the step looked, None when it is not known.
+    """
+
     def report(self, answer: PerceptionAnswer) -> PerceptionReport:
         """
         :param answer: What the perception answered.
@@ -205,6 +211,7 @@ class PerceptionSearch:
             answered=answer.objects is not None,
             objects=objects,
             summary=self.summary(answer.objects is not None, objects),
+            purpose=self.purpose,
         )
 
     def judged(self, designators: List[ReportedDesignator]) -> List[ReportedObject]:
@@ -350,6 +357,38 @@ class PerceptionSearch:
         return f"{away}, {centimetres(from_validated)} from {VALIDATED_SPOT}"
 
     def summary(self, answered: bool, objects: List[ReportedObject]) -> str:
+        """
+        :param answered: Whether the perception answered.
+        :param objects: The objects reported, judged.
+        :return: Why the step looked, when it did not look for a detection step, and
+            the outcome in one sentence.
+        """
+        outcome = self.outcome(answered, objects)
+        lead = self.lead()
+        if lead is None:
+            return outcome
+        return f"{lead}: {outcome[:1].lower()}{outcome[1:]}"
+
+    def lead(self) -> Optional[str]:
+        """
+        :return: Why the step looked, as a person reads it before the outcome; None for
+            a detection step's own detection or when it is not known.
+        """
+        if self.purpose is DetectionPurpose.IN_PLACE_CHECK:
+            return (
+                "Checked before the step moved that the object still lies where the "
+                "plan expects it"
+            )
+        if self.purpose is DetectionPurpose.BEFORE_GRASP:
+            return "Looked again just before grasping"
+        if self.purpose is DetectionPurpose.TABLE_SEARCH:
+            return (
+                "Searched the table again, the object not being where the plan "
+                "expected it"
+            )
+        return None
+
+    def outcome(self, answered: bool, objects: List[ReportedObject]) -> str:
         """
         :param answered: Whether the perception answered.
         :param objects: The objects reported, judged.
