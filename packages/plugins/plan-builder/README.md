@@ -85,6 +85,10 @@ cramera
   whose origin is the environment's: x, y and z in metres, and the heading as
   "rotation (°)" around the vertical axis, 0° facing along the world's x axis. Each
   input says so as its tooltip.
+- **The 3D view.** Pressing on a robot, object or target and dragging moves it over
+  the horizontal plane through it, picked before or not; a click picks it and puts
+  the handles on it, which move it (an object also in height) or turn it ("Turn"). Pressing beside
+  every marker turns the camera.
 - **Composing.** An action clicked in the palette is added as the last step; one
   dropped on a step is inserted before it, one dropped on the place below the last
   step is added after it.

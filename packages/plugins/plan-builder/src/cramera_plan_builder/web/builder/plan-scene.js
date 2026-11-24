@@ -1,7 +1,8 @@
 /**
  * The builder's 3D view: the environment bundle as the viewer shows it, and over it the
  * plan's robots as their models, at rest or in the posture a live world reports, objects and the edited robot's targets as
- * markers that are picked by a click and moved or turned with handles, the robot
+ * markers that are picked and dragged by pressing on them, or moved and turned with the
+ * handles of the picked one, the robot
  * profile's zones on the table, and a map of the world's axes.
  *
  * A free-place marker slides over the surface below it and turns about the vertical
@@ -154,6 +155,8 @@ const ViewEvent = Object.freeze({
   OBJECT_CHANGED: 'objectChange',
   POINTER_DOWN: 'pointerdown',
   POINTER_UP: 'pointerup',
+  POINTER_MOVE: 'pointermove',
+  POINTER_CANCEL: 'pointercancel',
   CAMERA_MOVE_STARTED: 'start',
 });
 
@@ -161,6 +164,84 @@ const ViewEvent = Object.freeze({
  * The key a marker's selection is kept under in its object's user data.
  */
 const SELECTION_DATA = 'planSelection';
+
+/**
+ * What a press of the primary button in the view grabs.
+ */
+export const PressTarget = Object.freeze({ HANDLE: 'handle', MARKER: 'marker', CAMERA: 'camera' });
+
+/**
+ * @param {boolean} onHandle Whether the press hit a handle of the picked marker.
+ * @param {Selection|null} marker The marker under the pointer, or null.
+ * @returns {string} The `PressTarget` the press grabs: a handle first, else the marker
+ *   under the pointer, picked or not, else the camera.
+ */
+export function pressTarget(onHandle, marker) {
+  if (onHandle) return PressTarget.HANDLE;
+  return marker === null ? PressTarget.CAMERA : PressTarget.MARKER;
+}
+
+/**
+ * A marker pressed and dragged over the horizontal plane through it: it keeps the spot
+ * where it was gripped under the pointer, and moves only once the pointer left the
+ * distance of a click, so a press without a drag only picks it.
+ */
+export class MarkerDrag {
+  /**
+   * The dragged marker.
+   * @type {Selection}
+   */
+  selection;
+
+  /**
+   * From the gripped spot to the marker's position, in metres.
+   * @type {Array<number>}
+   */
+  #offset;
+
+  /**
+   * Where the pointer was pressed, in pixels.
+   * @type {{x: number, y: number}}
+   */
+  #press;
+
+  /**
+   * Whether the marker moved.
+   * @type {boolean}
+   */
+  #moved = false;
+
+  /**
+   * @param {Selection} selection The pressed marker.
+   * @param {Array<number>} position Its horizontal position, `[x, y]`.
+   * @param {Array<number>} grip Where the press hit the plane through it, `[x, y]`.
+   * @param {{x: number, y: number}} press Where the pointer was pressed, in pixels.
+   */
+  constructor(selection, position, grip, press) {
+    this.selection = selection;
+    this.#offset = [position[0] - grip[0], position[1] - grip[1]];
+    this.#press = press;
+  }
+
+  /**
+   * @param {Array<number>} point Where the pointer meets the plane now, `[x, y]`.
+   * @param {{x: number, y: number}} pointer Where the pointer is, in pixels.
+   * @returns {Array<number>|null} The marker's horizontal position, or null while the
+   *   pointer has not left the distance of a click yet.
+   */
+  follow(point, pointer) {
+    this.#moved ||= Math.hypot(pointer.x - this.#press.x, pointer.y - this.#press.y) > CLICK_DISTANCE;
+    if (!this.#moved) return null;
+    return [point[0] + this.#offset[0], point[1] + this.#offset[1]];
+  }
+
+  /**
+   * @returns {boolean} Whether the marker moved.
+   */
+  get moved() {
+    return this.#moved;
+  }
+}
 
 // %% selection
 
@@ -492,6 +573,13 @@ export class PlanScene {
   #press = null;
 
   /**
+   * The marker pressed and dragged right now, with the height of the plane it moves
+   * in, or null.
+   * @type {{drag: MarkerDrag, height: number}|null}
+   */
+  #drag = null;
+
+  /**
    * The canvas listeners, to remove them again.
    * @type {Array<[string, function(Event): void]>}
    */
@@ -530,10 +618,11 @@ export class PlanScene {
     this.#handles.addEventListener(ViewEvent.CHANGED, () => this.#view.requestRender());
     this.#handles.addEventListener(ViewEvent.OBJECT_CHANGED, () => this.#moved());
     this.#view.scene.add(this.#handles.getHelper());
-    this.#listenOnCanvas(ViewEvent.POINTER_DOWN, (event) => {
-      this.#press = { x: event.clientX, y: event.clientY, onHandle: this.#handles.axis !== null };
-    });
-    this.#listenOnCanvas(ViewEvent.POINTER_UP, (event) => this.#pick(event));
+    // the handles listened first, so they tell whether this press grabbed one of them
+    this.#listenOnCanvas(ViewEvent.POINTER_DOWN, (event) => this.#pressed(event));
+    this.#listenOnCanvas(ViewEvent.POINTER_MOVE, (event) => this.#dragTo(event));
+    this.#listenOnCanvas(ViewEvent.POINTER_UP, (event) => (this.#drag ? this.#endDrag() : this.#pick(event)));
+    this.#listenOnCanvas(ViewEvent.POINTER_CANCEL, () => this.#drag && this.#endDrag());
     this.#view.start(() => false);
   }
 
@@ -622,7 +711,7 @@ export class PlanScene {
         this.#markers.add(marker);
       }
       const marker = this.#byKey.get(key);
-      if (!(this.#handles.dragging && this.#handles.object === marker)) {
+      if (!this.#isDragged(marker)) {
         this.#pose(marker, entry.pose);
         if (entry.slides) PlanScene.#tint(marker, overlay.reachable.get(key) ?? null);
       }
@@ -1057,7 +1146,103 @@ export class PlanScene {
   }
 
   /**
-   * Select the marker a click hits, or nothing for a click beside every marker.
+   * @param {THREE.Object3D} marker A marker.
+   * @returns {boolean} Whether it is being dragged, by its handles or pressed directly.
+   */
+  #isDragged(marker) {
+    return (this.#handles.dragging || this.#drag !== null) && this.#handles.object === marker;
+  }
+
+  /**
+   * Note a press; one on a marker, picked or not, picks it and starts dragging it, and
+   * the camera stays still meanwhile.
+   * @param {PointerEvent} event The pointer's press.
+   */
+  #pressed(event) {
+    const onHandle = this.#handles.axis !== null;
+    this.#press = { x: event.clientX, y: event.clientY, onHandle };
+    if (event.button !== PRIMARY_BUTTON) return;
+    const selection = onHandle ? null : this.#markerAt(event);
+    if (pressTarget(onHandle, selection) !== PressTarget.MARKER) return;
+    if (!selection.equals(this.#selection)) {
+      this.select(selection);
+      this.#listeners.onPick(selection);
+    }
+    // picking it may have shown the plan again, with a new marker for it
+    const marker = this.#byKey.get(selection.key);
+    if (!marker) return;
+    const height = marker.position.z;
+    const grip = this.#planePoint(event, height);
+    if (!grip) return;
+    this.#drag = { drag: new MarkerDrag(selection, [marker.position.x, marker.position.y], grip, { x: event.clientX, y: event.clientY }), height };
+    this.#view.controls.enabled = false;
+  }
+
+  /**
+   * Move the pressed marker with the pointer, resting a free-place marker where the page
+   * says.
+   * @param {PointerEvent} event The pointer's move.
+   */
+  #dragTo(event) {
+    if (!this.#drag) return;
+    const point = this.#planePoint(event, this.#drag.height);
+    const position = point && this.#drag.drag.follow(point, { x: event.clientX, y: event.clientY });
+    const marker = this.#byKey.get(this.#drag.drag.selection.key);
+    if (!position || !marker) return;
+    marker.position.x = position[0];
+    marker.position.y = position[1];
+    this.#moved();
+    this.#view.requestRender();
+  }
+
+  /**
+   * End dragging the pressed marker, reporting its new pose once it moved.
+   */
+  #endDrag() {
+    const { drag } = this.#drag;
+    this.#drag = null;
+    this.#press = null;
+    this.#view.controls.enabled = true;
+    if (drag.moved) this.#placed();
+  }
+
+  /**
+   * @param {PointerEvent} event A pointer event over the canvas.
+   * @returns {THREE.Raycaster} The ray from the camera through the pointer.
+   */
+  #ray(event) {
+    const canvas = this.#view.renderer.domElement.getBoundingClientRect();
+    const pointer = new THREE.Vector2(((event.clientX - canvas.left) / canvas.width) * 2 - 1, 1 - ((event.clientY - canvas.top) / canvas.height) * 2);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(pointer, this.#view.camera);
+    return ray;
+  }
+
+  /**
+   * @param {PointerEvent} event A pointer event over the canvas.
+   * @returns {Selection|null} The marker under the pointer, or null.
+   */
+  #markerAt(event) {
+    const hit = this.#ray(event).intersectObjects([...this.#byKey.values()], true)[0];
+    let current = hit?.object ?? null;
+    while (current && current.userData[SELECTION_DATA] === undefined) current = current.parent;
+    return current ? current.userData[SELECTION_DATA] : null;
+  }
+
+  /**
+   * @param {PointerEvent} event A pointer event over the canvas.
+   * @param {number} height The height of a horizontal plane, in metres.
+   * @returns {Array<number>|null} Where the pointer meets the plane, `[x, y]`, or null
+   *   when it looks past it.
+   */
+  #planePoint(event, height) {
+    const point = this.#ray(event).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -height), new THREE.Vector3());
+    return point ? [point.x, point.y] : null;
+  }
+
+  /**
+   * Select nothing for a click beside every marker; a press on a marker picked it
+   * already.
    * @param {PointerEvent} event The pointer's release.
    */
   #pick(event) {
@@ -1065,14 +1250,7 @@ export class PlanScene {
     this.#press = null;
     if (!press || press.onHandle || event.button !== PRIMARY_BUTTON) return;
     if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) return;
-    const canvas = this.#view.renderer.domElement.getBoundingClientRect();
-    const pointer = new THREE.Vector2(((event.clientX - canvas.left) / canvas.width) * 2 - 1, 1 - ((event.clientY - canvas.top) / canvas.height) * 2);
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(pointer, this.#view.camera);
-    const hit = ray.intersectObjects([...this.#byKey.values()], true)[0];
-    let current = hit?.object ?? null;
-    while (current && current.userData[SELECTION_DATA] === undefined) current = current.parent;
-    const selection = current ? current.userData[SELECTION_DATA] : null;
+    const selection = this.#markerAt(event);
     this.select(selection);
     this.#listeners.onPick(selection);
   }
