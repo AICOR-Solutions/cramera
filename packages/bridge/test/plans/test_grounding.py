@@ -832,6 +832,35 @@ class KinematicExecutionAskingRoboKudo(KinematicExecution):
 @pytest.mark.skipif(
     find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
 )
+def test_a_run_whose_detection_cannot_tell_the_cubes_apart_gives_up_the_step(
+    tmp_path, monkeypatch
+):
+    """
+    An object reported in no color, on a table of three cubes, is none of them in
+    particular; that is an attempt that did not work, not a run that crashed.
+    """
+    from ..dataset.real_robot import RoboKudoTellingNoColors
+
+    monkeypatch.setenv(EnvironmentVariable.DATA, str(tmp_path / "data"))
+    monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+    cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
+    [detect, *_] = cubes.robots[0].steps
+    [red_cube, *_] = cubes.objects
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=cubes), port=0)
+
+    with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
+        demo.execution = KinematicExecutionAskingRoboKudo(ros_node=node)
+        seen_at = (red_cube.pose.x, red_cube.pose.y, red_cube.pose.z)
+        with RoboKudoTellingNoColors(seen_at).serving(node):
+            with pytest.raises(StepAbandoned) as abandoned:
+                demo.run()
+
+    assert abandoned.value.step == detect.identifier
+
+
+@pytest.mark.skipif(
+    find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
+)
 def test_a_run_robokudo_does_not_answer_fails_its_detection_without_another_attempt(
     tmp_path, monkeypatch
 ):

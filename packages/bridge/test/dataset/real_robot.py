@@ -1,6 +1,7 @@
 """
 Stand-ins for the drivers of the real Tracy: its grippers' parallel gripper command
-servers and its arms' joint state publishers, and for a RoboKudo that never answers.
+servers and its arms' joint state publishers, and for a RoboKudo that never answers
+and one that tells no colors.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from dataclasses import dataclass, field
 from threading import Event
 
 from control_msgs.action import ParallelGripperCommand
+from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -19,6 +21,7 @@ from typing_extensions import Iterator
 
 from coraplex.perception import ROBOKUDO_QUERY_ACTION_NAME
 from robokudo_msgs.action import Query
+from robokudo_msgs.msg import ObjectDesignator
 from semantic_digital_twin.robots.tracy import TracyParallelGripperCommandTopic
 
 # %% grippers
@@ -168,3 +171,52 @@ class RoboKudoThatNeverAnswers:
             serving.callback(server.destroy)
             serving.callback(self.released.set)
             yield
+
+
+@dataclass
+class RoboKudoTellingNoColors:
+    """
+    Answers every query on RoboKudo's query action with one object at a fixed place, in
+    no color, as a pipeline does that localizes without telling colors.
+    """
+
+    position: tuple[float, float, float]
+    """
+    Where the object is reported, in the world's coordinates.
+    """
+
+    frame: str = "map"
+    """
+    The frame the position is reported in, the world's root as published on tf.
+    """
+
+    def execute(self, goal_handle: ServerGoalHandle) -> Query.Result:
+        """
+        :param goal_handle: A query that arrived.
+        :return: The object, the query succeeded.
+        """
+        pose = PoseStamped()
+        pose.header.frame_id = self.frame
+        pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = self.position
+        pose.pose.orientation.w = 1.0
+        goal_handle.succeed()
+        return Query.Result(res=[ObjectDesignator(pose=[pose])])
+
+    @contextmanager
+    def serving(self, node: Node) -> Iterator[None]:
+        """
+        Serve the query action from `node` while the block runs.
+
+        :param node: A node spun by a multi-threaded executor.
+        """
+        server = ActionServer(
+            node,
+            Query,
+            ROBOKUDO_QUERY_ACTION_NAME,
+            execute_callback=self.execute,
+            callback_group=ReentrantCallbackGroup(),
+        )
+        with ExitStack() as serving:
+            serving.callback(server.destroy)
+            yield
+
