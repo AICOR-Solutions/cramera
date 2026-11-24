@@ -15,6 +15,8 @@ from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.graph.views import GraphViews
 from cramera_bridge.questions.recorded.bundle import BundleReader, RecordedBundle
 from cramera_bridge.questions.recorded.knowledge_base import RecordedKnowledge
+from cramera_bridge.questions.live import WorldVariable
+from cramera_bridge.questions.recorded.paused_world import PausedWorldDesks
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.questions import (
     GraphView,
@@ -25,6 +27,7 @@ from cramera_protocol.questions import (
     QueryScope,
     QuestionMatch,
     QuestionRequest,
+    ScopeDescription,
     Vocabulary,
 )
 
@@ -113,6 +116,11 @@ class RecordedSceneQuestions:
     The questions of each scene.
     """
 
+    paused_worlds: PausedWorldDesks
+    """
+    The desks answering questions about a scene rebuilt as a world at a frame.
+    """
+
     graph_views: GraphViews = field(default_factory=GraphViews)
     """
     Builds the graph views.
@@ -130,14 +138,42 @@ class RecordedSceneQuestions:
         """
         if class_index is None:
             class_index = WorkspaceClassIndex.of_installed_packages()
-        return cls(SceneQuestionCache(catalog, class_index))
+        return cls(
+            SceneQuestionCache(catalog, class_index),
+            PausedWorldDesks(catalog, class_index),
+        )
 
     def preset_catalog(self, scene: str) -> PresetCatalog:
         """
         :param scene: A bundle name.
         :return: The scene's ready-made questions.
         """
-        return self.cache.of_scene(scene).desk.preset_catalog()
+        catalog = self.cache.of_scene(scene).desk.preset_catalog()
+        if self.paused_worlds.offers(scene):
+            self.paused_worlds.warm_up(scene)
+            catalog.scopes.append(self.paused_world_scope())
+        return catalog
+
+    @staticmethod
+    def paused_world_scope() -> ScopeDescription:
+        """
+        :return: The paused world as a body of knowledge.
+        """
+        return ScopeDescription(
+            name=QueryScope.PAUSED_WORLD,
+            label="Paused World (any CRAM class, at the shown frame)",
+            variables=[variable.value for variable in WorldVariable],
+        )
+
+    def desk_of(self, scene: str, scope: QueryScope):
+        """
+        :param scene: A bundle name.
+        :param scope: A body of knowledge.
+        :return: The desk answering questions of that body of knowledge.
+        """
+        if scope is QueryScope.PAUSED_WORLD:
+            return self.paused_worlds.of_scene(scene).desk
+        return self.cache.of_scene(scene).desk
 
     def vocabulary(self, scene: str, scope: QueryScope) -> Vocabulary:
         """
@@ -145,7 +181,7 @@ class RecordedSceneQuestions:
         :param scope: A body of knowledge.
         :return: The names a query of it may use.
         """
-        return self.cache.of_scene(scene).desk.vocabulary(scope)
+        return self.desk_of(scene, scope).vocabulary(scope)
 
     def members(self, scene: str, scope: QueryScope, name: str) -> Members:
         """
@@ -154,7 +190,7 @@ class RecordedSceneQuestions:
         :param name: A type's name or a variable's.
         :return: The members that may follow the name's dot.
         """
-        return self.cache.of_scene(scene).desk.members(scope, name)
+        return self.desk_of(scene, scope).members(scope, name)
 
     def graph_view(self, scene: str, view: str) -> GraphView:
         """
@@ -170,6 +206,8 @@ class RecordedSceneQuestions:
         :param request: A query.
         :return: Its answer.
         """
+        if request.scope is QueryScope.PAUSED_WORLD:
+            return self.paused_worlds.of_scene(scene).answer_query(request)
         return self.cache.of_scene(scene).desk.answer_query(request)
 
     def answer_question(self, scene: str, request: QuestionRequest) -> QuestionMatch:

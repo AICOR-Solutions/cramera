@@ -63,15 +63,25 @@ class SceneEnvironment(ABC):
         :return: The URDF's links and joints in a world of their own, a mesh named by a
             relative path found beside the URDF, wherever the process runs.
         """
-        resolver = CompositePathResolver(
+        return URDFParser.from_file(
+            str(description),
+            prefix=prefix,
+            path_resolver=SceneEnvironment.path_resolver_of(description.parent),
+        ).create_world()
+
+    @staticmethod
+    def path_resolver_of(directory: Path) -> CompositePathResolver:
+        """
+        :param directory: The directory a description lies in.
+        :return: Resolves a mesh named by a path relative to the directory, or by a ROS
+            package.
+        """
+        return CompositePathResolver(
             [
-                FileUriResolver(base_directory=str(description.parent)),
+                FileUriResolver(base_directory=str(directory)),
                 PackageUriResolver(),
             ]
         )
-        return URDFParser.from_file(
-            str(description), prefix=prefix, path_resolver=resolver
-        ).create_world()
 
     @staticmethod
     def merge_model(
