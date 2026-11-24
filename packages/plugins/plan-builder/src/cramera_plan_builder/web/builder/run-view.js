@@ -91,6 +91,8 @@ export const RunViewClass = Object.freeze({
   NAME: 'step-name',
   STATE: 'run-step-state',
   ARM: 'run-step-arm',
+  PARAMETERS: 'run-step-parameters',
+  PARAMETER: 'run-step-parameter',
   ATTEMPT: 'run-step-attempt',
   REASON: 'run-step-reason',
   UNSEEN: 'run-step-unseen',
@@ -112,12 +114,16 @@ export class StepProgress {
   /**
    * @param {string} identifier The step's identity.
    * @param {string} name The step as a person reads it: its number and label.
+   * @param {Array<{field: string, label: string, text: string}>} parameters What the
+   *   step is set to do, as the step cards name it, in order.
    */
-  constructor(identifier, name) {
+  constructor(identifier, name, parameters = []) {
     /** @type {string} */
     this.identifier = identifier;
     /** @type {string} */
     this.name = name;
+    /** @type {Array<{field: string, label: string, text: string}>} */
+    this.parameters = parameters;
     /** @type {string} A `StepState` value. */
     this.state = StepState.PENDING;
     /** @type {number|null} */
@@ -208,8 +214,9 @@ export class RunProgress {
   #going;
 
   /**
-   * @param {Array<{identifier: string, label: string}>} steps The performing robot's
-   *   steps, in order.
+   * @param {Array<{identifier: string, label: string, parameters: Array<Object>}>} steps
+   *   The performing robot's steps, in order, with their parameters as
+   *   :class:`StepProgress` takes them.
    * @param {Array<Object>} events The `RunEvent`s the run reported, in order.
    * @param {boolean} stopped Whether a person stopped the run, so a step that was
    *   running or retrying stopped with it.
@@ -217,7 +224,7 @@ export class RunProgress {
    */
   constructor(steps, events, stopped = false, going = false) {
     this.#going = going;
-    steps.forEach((step, index) => this.#steps.set(step.identifier, new StepProgress(step.identifier, `${index + 1}. ${step.label}`)));
+    steps.forEach((step, index) => this.#steps.set(step.identifier, new StepProgress(step.identifier, `${index + 1}. ${step.label}`, step.parameters ?? [])));
     /**
      * The objects steps perceived, each once, in the order they were first perceived,
      * with the step that perceived it last and the color it showed then; the run log
@@ -260,11 +267,13 @@ export class RunProgress {
    * @param {Array<Object>} steps The performing robot's plan steps.
    * @param {function(Object): string} label Names a step for people.
    * @param {Object} run The `RunStatus` of the demo started last.
+   * @param {function(Object): Array<{field: string, label: string, text: string}>} parameters
+   *   What a step is set to do, as the step cards name it.
    * @returns {RunProgress} The run's progress.
    */
-  static of(steps, label, run) {
+  static of(steps, label, run, parameters = () => []) {
     return new RunProgress(
-      steps.map((step) => ({ identifier: step[PlanStepKey.IDENTIFIER], label: label(step) })),
+      steps.map((step) => ({ identifier: step[PlanStepKey.IDENTIFIER], label: label(step), parameters: parameters(step) })),
       run[RunStatusKey.EVENTS] ?? [],
       STOPPED_RUNS.includes(run[RunStatusKey.STATE]),
       run[RunStatusKey.STATE] === RunState.RUNNING,
@@ -591,8 +600,8 @@ export class RunView {
   /**
    * @param {StepProgress} step A step of the run.
    * @param {boolean} started Whether the run reported any of its steps.
-   * @returns {HTMLElement} Its line: name, state, attempt, arm, monitor badges and why
-   *   its latest attempt failed.
+   * @returns {HTMLElement} Its line: name, state, attempt, arm, monitor badges, its
+   *   parameters, read-only, and why its latest attempt failed.
    */
   #step(step, started) {
     const elements = this.#elements;
@@ -606,6 +615,7 @@ export class RunView {
     if (step.attempt !== null && (step.attempt > 1 || step.state !== StepState.DONE)) item.append(elements.create('span', RunViewClass.ATTEMPT, `attempt ${step.attempt}/${step.attempts}`));
     if (step.arm) item.append(elements.create('span', RunViewClass.ARM, `${step.arm} arm`));
     for (const shown of step.monitors.values()) item.append(this.#badge(monitorText(shown.monitor, shown.observation), shown.observation));
+    if (step.parameters.length > 0) item.append(this.#parameters(step.parameters));
     if (step.reason && step.state !== StepState.DONE) {
       const next = step.nextAttempt && step.state === StepState.RETRYING ? ` Next attempt ${step.nextAttempt}.` : '';
       item.append(elements.create('p', RunViewClass.REASON, `${step.reason}${next}`));
@@ -619,6 +629,24 @@ export class RunView {
     const perceived = step.state === StepState.DONE ? null : perceptionSentence(step.perceptions);
     if (perceived) item.append(elements.create('p', PerceptionViewClass.SENTENCE, `Perception: ${perceived}`));
     return item;
+  }
+
+  /**
+   * @param {Array<{field: string, label: string, text: string}>} parameters A step's
+   *   parameters.
+   * @returns {HTMLElement} One read-only line naming each, `label: value`, separated by
+   *   dots.
+   */
+  #parameters(parameters) {
+    const elements = this.#elements;
+    const line = elements.create('p', RunViewClass.PARAMETERS);
+    parameters.forEach((parameter, index) => {
+      if (index > 0) line.append(elements.create('span', '', ' · '));
+      const shown = elements.create('span', RunViewClass.PARAMETER, `${parameter.label}: ${parameter.text}`);
+      shown.dataset.field = parameter.field;
+      line.append(shown);
+    });
+    return line;
   }
 
   /**

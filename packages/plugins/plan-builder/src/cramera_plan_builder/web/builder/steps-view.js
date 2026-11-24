@@ -120,6 +120,100 @@ function validationDetail(validation) {
 /**
  * The choice of an optional field that leaves the action's default.
  */
+/**
+ * What the run view says of a required parameter that holds no value.
+ */
+export const NOT_SET = 'not set';
+
+/**
+ * @param {Array<number>} pose A pose.
+ * @param {boolean} flat Whether its height follows the surface below it, as a marker's.
+ * @returns {string} Its position and heading as the step card's controls show them.
+ */
+function poseText(pose, flat = false) {
+  const position = PlanPose.position(pose).map((value) => PlanPose.rounded(value));
+  const axes = flat ? ['x', 'y'] : ['x', 'y', 'z'];
+  const coordinates = axes.map((axis, index) => `${axis} ${position[index]}`).join(', ');
+  return `${coordinates} m, heading ${PlanPose.degrees(PlanPose.yaw(pose))}°`;
+}
+
+/**
+ * @param {PlanState} state The plan.
+ * @param {string|undefined} zone A zone's identifier.
+ * @returns {string} The zone's label, else its identifier.
+ */
+function zoneText(state, zone) {
+  return state.zones().find((entry) => entry[ZoneKey.IDENTIFIER] === zone)?.[ZoneKey.LABEL] ?? zone ?? NOT_SET;
+}
+
+/**
+ * @param {Array<{value: string, label: string}>} choices The choices of a picker.
+ * @param {string} value A chosen value.
+ * @returns {string} The label the picker shows the value with.
+ */
+function choiceText(choices, value) {
+  return choices.find((choice) => choice.value === value)?.label ?? value;
+}
+
+/**
+ * @param {PlanState} state The plan.
+ * @param {Object} step A step of the plan.
+ * @param {Object} field One of its fields.
+ * @param {*} value The field's value, not undefined.
+ * @returns {string} The value as the step card names it.
+ */
+function valueText(state, step, field, value) {
+  const identifier = step[PlanStepKey.IDENTIFIER];
+  const kind = field[ActionFieldKey.KIND];
+  if (kind === ActionFieldKind.BODY) return choiceText(state.objectChoices(identifier), value);
+  if (kind === ActionFieldKind.BOOLEAN) return value ? 'yes' : 'no';
+  if (kind === ActionFieldKind.REGION) {
+    const region = value[DetectionRegionKey.KIND] ?? RegionKind.TABLE;
+    if (region === RegionKind.ZONE) return `zone ${zoneText(state, value[DetectionRegionKey.ZONE])}`;
+    if (region === RegionKind.MARKER && value[DetectionRegionKey.POSE]) return `around a marker at ${poseText(value[DetectionRegionKey.POSE], true)}`;
+    return REGION_LABELS[region] ?? region;
+  }
+  const accepts = kind === ActionFieldKind.POSE_OR_SURFACE || (kind === ActionFieldKind.POSE && field[ActionFieldKey.ACCEPTS_SURFACE]);
+  if (accepts && !Array.isArray(value)) {
+    const placement = value[DestinationKey.PLACEMENT] ?? PlacementMode.POSE;
+    const pose = value[DestinationKey.POSE];
+    if (placement === PlacementMode.POSE) return pose ? `at ${poseText(pose)}` : NOT_SET;
+    if (placement === PlacementMode.MARKER) return pose ? `at a marker at ${poseText(pose, true)}` : NOT_SET;
+    if (placement === PlacementMode.ZONE) return `in zone ${zoneText(state, value[DestinationKey.ZONE])}`;
+    if (placement === PlacementMode.ON_TOP_OF) return `on top of ${choiceText(state.supportChoices(identifier), value[DestinationKey.OBJECT] ?? NOT_SET)}`;
+    return `on ${value[DestinationKey.SURFACE_NAME] ?? `any ${value[DestinationKey.SURFACE_TYPE] ?? 'surface'}`}`;
+  }
+  if (kind === ActionFieldKind.POSE) return PlanPose.isPose(value) ? poseText(value) : NOT_SET;
+  return String(value);
+}
+
+/**
+ * What a step is set to do, as its card names it, for the run view: the fields the card
+ * shows (only a skill's own fields while the palette offers skills), each required one
+ * and each optional one holding a value; a grasp, derived when the step runs, is left
+ * out.
+ * @param {PlanState} state The plan.
+ * @param {Object} step A step of the plan.
+ * @returns {Array<{field: string, label: string, text: string}>} The parameters, in the
+ *   card's order.
+ */
+export function stepParameters(state, step) {
+  const schema = state.schema(step[PlanStepKey.ACTION]);
+  if (!schema) return [];
+  const named = Boolean(state.curatedSkill(step)?.[SkillKey.FIELDS]);
+  const parameters = [];
+  for (const field of state.shownFields(step, schema)) {
+    if (field[ActionFieldKey.KIND] === ActionFieldKind.GRASP) continue;
+    const value = step[PlanStepKey.VALUES][field[ActionFieldKey.NAME]];
+    const fallback = field[ActionFieldKey.DEFAULT];
+    const set = value !== undefined && value !== null;
+    if (!set && !field[ActionFieldKey.REQUIRED] && !named) continue;
+    const unset = fallback === undefined || fallback === null ? NOT_SET : `default (${fallback})`;
+    parameters.push({ field: field[ActionFieldKey.NAME], label: field[ActionFieldKey.LABEL], text: set ? valueText(state, step, field, value) : unset });
+  }
+  return parameters;
+}
+
 const DEFAULT_CHOICE = '';
 
 /**

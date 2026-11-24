@@ -66,7 +66,7 @@ import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } f
 import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, REAL_ROBOT_POSE, RobotTag, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
-import { END_DROP_HINT, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
+import { END_DROP_HINT, NOT_SET, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation, stepParameters } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { READY, cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
@@ -1934,6 +1934,37 @@ test('the 3D view has a folded legend naming every kind of marker it draws', asy
   assert.equal(entries.length, LEGEND.length);
   assert.deepEqual(entries.map((entry) => entry.innerText), LEGEND.map((entry) => entry.label));
   for (const label of ['Robot', 'Object', 'Target pose', 'reaches', 'cannot reach', 'Zone']) assert.ok(LEGEND.some((entry) => entry.label.includes(label)), label);
+});
+
+test('the run view shows each step\'s parameters as the step cards name them', async () => {
+  const { root, page } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
+  const object = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  const pick = page.state.steps()[1][PlanStepKey.IDENTIFIER];
+  page.edit(() => page.state.setValue(pick, 'object_designator', object));
+  validateButton(root).click();
+  await settled();
+  robotRun(root).click();
+  await settled();
+  const shown = runView(root).findAll((element) => element.className === 'run-step-parameters');
+  assert.equal(shown.length, 3);
+  const [park, picking] = shown.map((element) => element.innerText);
+  assert.match(park, /^arm: /);
+  assert.ok(picking.startsWith(`object designator: ${object} · arm: `), picking);
+});
+
+test('a step\'s parameters name its destination as its card does and leave out unset options and the grasp', async () => {
+  const { page } = await pickAndPlace();
+  const object = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  const place = page.state.steps()[2][PlanStepKey.IDENTIFIER];
+  page.state.setValue(place, 'object_designator', object);
+  page.state.setValue(place, 'target_location', { [DestinationKey.PLACEMENT]: PlacementMode.POSE, [DestinationKey.POSE]: PlanPose.of(0.5, -0.25, 0.8, Math.PI / 2) });
+  page.state.setValue(place, 'arm', null);
+  const shown = stepParameters(page.state, page.state.step(place));
+  assert.deepEqual(shown.map((parameter) => [parameter.field, parameter.text]), [
+    ['object_designator', object],
+    ['target_location', 'at x 0.5, y -0.25, z 0.8 m, heading 90°'],
+    ['arm', NOT_SET],
+  ]);
 });
 
 test('a staged live scene keeps the editable steps', async () => {

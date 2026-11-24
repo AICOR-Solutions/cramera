@@ -233,6 +233,18 @@ test('the step list shows each step with its state, arm and attempt', () => {
   assert.match(byClass(failed, RunViewClass.REASON)[0].textContent, /was not detected on the table again/);
 });
 
+test('each step shows its parameters read-only, so the person knows what it is about to do', () => {
+  const steps = [{ [PlanStepKey.IDENTIFIER]: 'step_1' }, { [PlanStepKey.IDENTIFIER]: 'step_2' }];
+  const parameters = (step) => (step[PlanStepKey.IDENTIFIER] === 'step_1' ? [{ field: 'object_designator', label: 'object', text: 'milk 1' }, { field: 'arm', label: 'arm', text: 'left' }] : []);
+  const progress = RunProgress.of(steps, (step) => step[PlanStepKey.IDENTIFIER], { [RunStatusKey.EVENTS]: [] }, parameters);
+  const [first, second] = byClass(rendered(progress), RunViewClass.STEP);
+  const [shown] = byClass(first, RunViewClass.PARAMETERS);
+  assert.equal(shown.innerText, 'object: milk 1 · arm: left');
+  assert.deepEqual(byClass(shown, RunViewClass.PARAMETER).map((parameter) => parameter.dataset.field), ['object_designator', 'arm']);
+  assert.equal(shown.findAll((element) => ['INPUT', 'SELECT', 'BUTTON'].includes(element.tagName)).length, 0);
+  assert.deepEqual(byClass(second, RunViewClass.PARAMETERS), []);
+});
+
 test('monitor badges show the look-at of a step and the safety monitor of the run', () => {
   const retried = rendered(progressOf('retry'));
   const [lookAt] = byClass(retried, RunViewClass.BADGE);

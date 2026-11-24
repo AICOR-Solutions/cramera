@@ -70,7 +70,7 @@ import { PollInterval } from '../../../live/live-session.js';
 import { RunProgress, RunView, withoutStopTraceback } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
 import { FlowFacts, FlowRequest, READY, Tone, cutOffOutcome, flowStatus, runOutcome } from './flow-status.js';
-import { REASON_TEXTS, StepsView } from './steps-view.js';
+import { REASON_TEXTS, StepsView, stepParameters } from './steps-view.js';
 
 /**
  * How often a started demo and its live world are asked for their state, in
@@ -1831,7 +1831,7 @@ export class BuilderPage {
    */
   #progress() {
     const run = this.#runCounted() ? this.#run : { ...this.#run, [RunStatusKey.EVENTS]: [] };
-    return RunProgress.of(this.state.steps(), (step) => this.state.stepLabel(step), run);
+    return RunProgress.of(this.state.steps(), (step) => this.state.stepLabel(step), run, (step) => stepParameters(this.state, step));
   }
 
   /**
