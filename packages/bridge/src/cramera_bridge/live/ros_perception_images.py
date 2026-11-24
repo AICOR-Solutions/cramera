@@ -10,11 +10,13 @@ owns.
 
 from __future__ import annotations
 
+import math
 import threading
 import time
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 
+import numpy as np
 import rclpy
 from rclpy.context import Context
 from rclpy.executors import SingleThreadedExecutor
@@ -70,6 +72,11 @@ JOIN_TIMEOUT_SECONDS = 2.0
 How long stopping waits for the spin thread.
 """
 
+ARRIVAL_POLL_SECONDS = 0.05
+"""
+How often waiting for the images of a step looks whether they arrived.
+"""
+
 
 def image_title(topic: str) -> str:
     """
@@ -89,6 +96,18 @@ class RoboKudoImageListener(PerceptionCamera):
     clock: Callable[[], float] = time.monotonic
     """
     The monotonic clock arrivals are timed with.
+    """
+
+    largest_width: Optional[int] = None
+    """
+    The widest, in pixels, an image is kept; a wider one is shrunk by a whole factor to
+    fit. None keeps every image as it arrived.
+    """
+
+    arrival_timeout: float = 0.0
+    """
+    How long, in seconds, the images of a step are waited for until every image topic
+    delivered one since the step started.
     """
 
     context: Context = field(default_factory=Context, init=False)
@@ -211,12 +230,22 @@ class RoboKudoImageListener(PerceptionCamera):
         return deliver
 
     def observe_started(self) -> None:
+        """
+        Differs from :meth:`PerceptionCamera.observe_started` in also subscribing to the
+        image topics a pipeline started since the listener last looked for them.
+        """
+        self.discover()
         with self.lock:
             self.step_started = self.clock()
 
     def images(
         self, world: World, robot: AbstractRobot, perceived: Sequence[Body]
     ) -> List[SeenImage]:
+        """
+        Differs from :meth:`PerceptionCamera.images` in leaving out the blank images a
+        visualizer publishes for an annotator that drew nothing.
+        """
+        self.wait_for_arrivals()
         with self.lock:
             arrived = [
                 (topic, image)
@@ -226,15 +255,48 @@ class RoboKudoImageListener(PerceptionCamera):
         seen = []
         for topic, image in arrived:
             pixels = image.rgb()
-            if pixels is not None:
-                seen.append(
-                    SeenImage(
-                        image_title(topic),
-                        PerceptionImageSource.ROBOKUDO,
-                        PngImage.of_rgb(pixels),
-                    )
+            if pixels is None or not pixels.any():
+                continue
+            seen.append(
+                SeenImage(
+                    image_title(topic),
+                    PerceptionImageSource.ROBOKUDO,
+                    PngImage.of_rgb(self.fitted(pixels)),
                 )
+            )
         return seen
+
+    def wait_for_arrivals(self) -> None:
+        """
+        Wait, up to :attr:`arrival_timeout`, until every image topic delivered an image
+        since the step started.
+        """
+        deadline = time.monotonic() + self.arrival_timeout
+        waiting = threading.Event()
+        while time.monotonic() < deadline and not self.every_topic_delivered():
+            waiting.wait(ARRIVAL_POLL_SECONDS)
+
+    def every_topic_delivered(self) -> bool:
+        """
+        :return: Whether every image topic delivered an image since the step started.
+        """
+        with self.lock:
+            return all(
+                topic in self.newest and self.newest[topic][0] >= self.step_started
+                for topic in self.subscriptions
+            )
+
+    def fitted(self, pixels: np.ndarray) -> np.ndarray:
+        """
+        :param pixels: An image, as height × width × 3 values.
+        :return: The image, every n-th row and column of it kept where it is wider than
+            :attr:`largest_width`.
+        """
+        width = pixels.shape[1]
+        if self.largest_width is None or width <= self.largest_width:
+            return pixels
+        factor = math.ceil(width / self.largest_width)
+        return pixels[::factor, ::factor]
 
     def stop(self) -> None:
         """
