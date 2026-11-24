@@ -11,14 +11,29 @@ import importlib
 import re
 import threading
 from dataclasses import dataclass, field, replace
+from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, Dict, List, Optional
+from typing_extensions import Any, Callable, Dict, List, Optional
 
 from cramera.scenes import SceneCatalog
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.highlights import HighlightKeys
+from cramera_bridge.questions.knowledge import QueryDomain
+from cramera_bridge.questions.recorded.entities import (
+    RecordedPlanNode,
+    RecordedStep,
+)
+from cramera_bridge.questions.recorded.knowledge_base import RecordedKnowledge
+from cramera_bridge.questions.recorded.paused_episode import (
+    Holding,
+    HoldingsUnderWay,
+    PausedEpisode,
+    PieceAnnotations,
+    PiecesHeld,
+    StepsUnderWay,
+)
 from cramera_bridge.questions.live import (
     SpatialValueFormat,
     WorldKnowledge,
@@ -26,11 +41,15 @@ from cramera_bridge.questions.live import (
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_bridge.scenes.bundle_world import BundleEnvironment, PoseText
 from cramera_bridge.scenes.environment import SceneEnvironment
-from cramera_protocol.bundle.scene import ModelDescription
+from cramera_protocol.bundle.scene import ModelDescription, PlanNodeKind
 from cramera_protocol.bundle.trajectory import Trajectory
 from cramera_protocol.questions import QueryAnswer, QueryRequest, QueryScope
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.adapters.urdf import URDFParser
-from semantic_digital_twin.robots.robot_parts import AbstractRobot
+from semantic_digital_twin.robots.robot_parts import AbstractRobot, EndEffector
+from semantic_digital_twin.semantic_annotations.semantic_annotations import (
+    ShapeSortingPiece,
+)
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (
@@ -53,6 +72,52 @@ NAME_SEPARATOR = "/"
 """
 What separates a robot's prefix from the names of its links in a bundle's URDF.
 """
+
+
+class EpisodeVariable(StrEnum):
+    """
+    The ready-made variables of the run on the paused world's timeline.
+    """
+
+    PIECE = "piece"
+    """
+    Every piece of the shape-sorting toy.
+    """
+
+    HOLDING = "holding"
+    """
+    Every holding of a piece by a gripper.
+    """
+
+    STEP = "step"
+    """
+    Every step of the run.
+    """
+
+    PLAN_NODE = "plan_node"
+    """
+    Every node of the executed plan.
+    """
+
+    ACTION = "action"
+    """
+    Every action of the executed plan.
+    """
+
+    STEP_NOW = "step_now"
+    """
+    The steps under way at the shown frame.
+    """
+
+    HOLDING_NOW = "holding_now"
+    """
+    The holdings under way at the shown frame.
+    """
+
+    HELD_PIECE = "held_piece"
+    """
+    The pieces held at the shown frame.
+    """
 
 
 # %% robot
@@ -134,15 +199,26 @@ class PausedWorld:
     The frame the world shows, or None before it was moved to one.
     """
 
+    episode: Optional[PausedEpisode] = None
+    """
+    The run's pieces, holdings, steps and plan, or None before they were read.
+    """
+
     @classmethod
     def of_scene(
-        cls, catalog: SceneCatalog, name: str, robot_type: type[AbstractRobot]
+        cls,
+        catalog: SceneCatalog,
+        name: str,
+        robot_type: type[AbstractRobot],
+        recorded: RecordedKnowledge,
     ) -> PausedWorld:
         """
         :param catalog: The scenes the viewer shows.
         :param name: A bundle of the catalog.
         :param robot_type: The class of the bundle's robot.
-        :return: The bundle's world with its robot.
+        :param recorded: The recorded steps and plan of the bundle's run.
+        :return: The bundle's world with its robot, its free objects as pieces of the
+            shape-sorting toy, and the run on the same timeline.
         """
         environment = BundleEnvironment.of_scene(catalog, name)
         scene = environment.contents.scene
@@ -152,18 +228,19 @@ class PausedWorld:
             model=robot_model,
             prefix=scene.robot.prefix,
         )
+        trajectory = (
+            DocumentFile(environment.directory / scene.trajectory).read(Trajectory)
+            if scene.trajectory is not None
+            else None
+        )
         world = environment.create_world(
             [
                 RobotSpecification(
                     semantic_annotation_type=robot_type,
                     description_parser=description.parser(),
+                    localization_pose=cls.recorded_base_pose(trajectory),
                 )
             ]
-        )
-        trajectory = (
-            DocumentFile(environment.directory / scene.trajectory).read(Trajectory)
-            if scene.trajectory is not None
-            else None
         )
         objects = {
             description.key: body
@@ -172,7 +249,32 @@ class PausedWorld:
             if body.name.name == description.key
         }
         cls.forget_other_worlds(world)
-        return cls(world=world, trajectory=trajectory, objects=objects)
+        paused = cls(world=world, trajectory=trajectory, objects=objects)
+        pieces = PieceAnnotations(world, scene).annotate(objects)
+        paused.episode = PausedEpisode.of_run(
+            recorded,
+            pieces,
+            world.get_semantic_annotations_by_type(EndEffector),
+            paused.show,
+        )
+        paused.show(0)
+        return paused
+
+    @staticmethod
+    def recorded_base_pose(
+        trajectory: Optional[Trajectory],
+    ) -> Optional[HomogeneousTransformationMatrix]:
+        """
+        :param trajectory: The recording, or None.
+        :return: Where the recording places the robot's base at its first frame, or
+            None to place it at the world's origin.
+        """
+        if trajectory is None or not trajectory.base:
+            return None
+        pose = trajectory.base[0]
+        return HomogeneousTransformationMatrix.from_xyz_quaternion(
+            pose.x, pose.y, pose.z, pose.qx, pose.qy, pose.qz, pose.qw
+        )
 
     @staticmethod
     def forget_other_worlds(world: World) -> None:
@@ -227,6 +329,12 @@ class PausedWorld:
                     )
         self.frame = frame
 
+    def shown_frame(self) -> int:
+        """
+        :return: The frame the world shows.
+        """
+        return self.frame or 0
+
     def free_objects(self) -> List[Body]:
         """
         :return: The free objects.
@@ -247,6 +355,10 @@ class PausedWorldHighlightKeys(HighlightKeys):
     def keys_of(self, value: Any) -> List[str]:
         if isinstance(value, Body):
             return [str(value.name)]
+        if isinstance(value, Holding):
+            return self.keys_of(value.gripper) + self.keys_of(value.piece)
+        if isinstance(value, RecordedStep) and value.picks is not None:
+            return [value.picks.key]
         if isinstance(value, SemanticAnnotation):
             return [key for body in self.own_bodies(value) for key in self.keys_of(body)]
         return []
@@ -305,17 +417,60 @@ class PausedWorldDesk:
     """
 
     def __post_init__(self) -> None:
-        knowledge = WorldKnowledge(self.paused.world, self.paused.free_objects)
+        world_knowledge = WorldKnowledge(
+            self.paused.world, self.paused.free_objects
+        ).knowledge()
         self.desk = QuestionDesk(
             title=PAUSED_WORLD_TITLE,
             knowledge=[
-                replace(knowledge.knowledge(), scope=QueryScope.PAUSED_WORLD)
+                replace(
+                    world_knowledge,
+                    scope=QueryScope.PAUSED_WORLD,
+                    domains=world_knowledge.domains + self.episode_domains(),
+                    extra_names={
+                        **world_knowledge.extra_names,
+                        Holding.__name__: Holding,
+                        RecordedStep.__name__: RecordedStep,
+                        RecordedPlanNode.__name__: RecordedPlanNode,
+                        PlanNodeKind.__name__: PlanNodeKind,
+                    },
+                )
             ],
             presets=[],
             highlight_keys=PausedWorldHighlightKeys(),
             class_index=self.class_index,
             value_formats=[SpatialValueFormat()],
         )
+
+    def episode_domains(self) -> List[QueryDomain]:
+        """
+        :return: The run's pieces, holdings, steps, plan and actions, and those under
+            way at the shown frame.
+        """
+        episode = self.paused.episode
+        frame = self.paused.shown_frame
+        return [
+            QueryDomain(
+                EpisodeVariable.PIECE,
+                ShapeSortingPiece,
+                list(episode.pieces.values()),
+            ),
+            QueryDomain(EpisodeVariable.HOLDING, Holding, episode.holdings),
+            QueryDomain(EpisodeVariable.STEP, RecordedStep, episode.recorded.steps),
+            QueryDomain(
+                EpisodeVariable.PLAN_NODE, RecordedPlanNode, episode.recorded.plan_nodes
+            ),
+            QueryDomain(EpisodeVariable.ACTION, RecordedPlanNode, episode.actions()),
+            QueryDomain(
+                EpisodeVariable.STEP_NOW, RecordedStep, StepsUnderWay(episode, frame)
+            ),
+            QueryDomain(
+                EpisodeVariable.HOLDING_NOW, Holding, HoldingsUnderWay(episode, frame)
+            ),
+            QueryDomain(
+                EpisodeVariable.HELD_PIECE, ShapeSortingPiece, PiecesHeld(episode, frame)
+            ),
+        ]
 
     def answer_query(self, request: QueryRequest) -> QueryAnswer:
         """
@@ -385,6 +540,12 @@ class PausedWorldDesks:
     The workspace classes a query may name.
     """
 
+    recorded_of: Callable[[str], RecordedKnowledge]
+    """
+    Answers the recorded steps and plan of a scene, shared with the recorded scene's
+    own questions so each step is one entity.
+    """
+
     built: Dict[str, PausedWorldDesk] = field(default_factory=dict)
     """
     The desk of each scene built so far.
@@ -428,7 +589,10 @@ class PausedWorldDesks:
             desk = self.built.get(scene)
             if desk is None:
                 paused = PausedWorld.of_scene(
-                    self.catalog, scene, self.robot_class_of(scene)
+                    self.catalog,
+                    scene,
+                    self.robot_class_of(scene),
+                    self.recorded_of(scene),
                 )
                 desk = PausedWorldDesk(paused=paused, class_index=self.class_index)
                 self.built[scene] = desk
