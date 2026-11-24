@@ -317,6 +317,14 @@ def test_the_search_after_the_cube_was_not_where_expected_says_so(moved_reports)
     assert [report.table_wide for report in searches] == [True]
 
 
+def test_the_run_log_line_warns_that_the_cube_seen_24_cm_away_was_not_used(reports):
+    first = reports[0]
+    assert first.line().endswith(f" Warning: {first.report.warnings[0]}")
+    assert first.report.warnings[0].startswith(
+        "The red cube seen 24 cm from where the plan was validated was not used"
+    )
+
+
 def test_the_report_names_the_object_as_the_person_knows_it(reports):
     report = reports[0].report
     assert report.looked_for == "the red cube"

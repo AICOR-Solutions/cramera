@@ -345,3 +345,52 @@ def test_a_detect_steps_own_detection_says_only_what_it_found():
         PerceptionAnswer(objects=[cube(0.6, 0.1, "red")])
     )
     assert report.summary == "A table-wide search found the red cube."
+
+
+# %% warnings
+
+
+def test_a_cube_seen_outside_the_box_warns_that_it_was_not_used():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube(0.79, 0.145, "red"), *TABLE_TOP])
+    )
+    assert report.warnings == [
+        "The red cube seen 19 cm from where the plan was validated was not used: the "
+        "step acts only on the red cube found inside the box it looked in."
+    ]
+
+
+def test_a_cube_beyond_the_tolerance_warns_that_the_step_did_not_go_on():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube(0.64, 0.105, "red")])
+    )
+    assert report.warnings == [
+        "The red cube was not acted on: it lies 4 cm from where the plan was "
+        "validated, farther than the 2 cm the step allows."
+    ]
+
+
+def test_a_second_cube_that_would_do_warns_that_it_was_ignored():
+    report = table_wide().report(
+        PerceptionAnswer(objects=[cube(0.79, 0.145, "red"), cube(0.6, 0.1, "red")])
+    )
+    assert report.warnings == [
+        "1 more object matching the search was ignored; the step used the first one "
+        "reported."
+    ]
+
+
+def test_a_cube_outside_the_box_beside_the_one_used_warns_that_it_was_ignored():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube(0.61, 0.105, "red"), cube(0.79, 0.145, "red")])
+    )
+    assert report.warnings == [
+        "1 more object matching the search, outside the box looked in, was ignored."
+    ]
+
+
+def test_the_cube_used_where_it_was_validated_warns_of_nothing():
+    report = around_the_grounded_spot().report(
+        PerceptionAnswer(objects=[cube(0.61, 0.105, "red"), *TABLE_TOP])
+    )
+    assert report.warnings == []

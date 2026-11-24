@@ -3450,6 +3450,11 @@ class PerceptionReportKey(StrEnum):
     Why the step looked.
     """
 
+    WARNINGS = "warnings"
+    """
+    What a person should know of the report.
+    """
+
 
 @dataclass(kw_only=True)
 class PerceptionReport(JsonDocument):
@@ -3539,6 +3544,14 @@ class PerceptionReport(JsonDocument):
     )
     """
     Why the step looked, None for a report recorded before reports said so.
+    """
+
+    warnings: List[str] = document_field(
+        PerceptionReportKey.WARNINGS, default_factory=list
+    )
+    """
+    What a person should know of the report, each as a sentence: an object of the kind
+    looked for that the step did not use, or one it ignored.
     """
 
 

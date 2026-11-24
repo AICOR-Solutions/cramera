@@ -9,7 +9,6 @@
 import {
   MonitorObservation,
   PerceptionImageKey,
-  PerceptionReportKey,
   PlanStepKey,
   RunEventKey,
   RunEventKind,
@@ -19,7 +18,7 @@ import {
   StepState,
 } from '../../../protocol.js';
 import { showChildren, showText } from './elements.js';
-import { PerceptionReportsView, PerceptionViewClass, perceptionSentence } from './perception-view.js';
+import { PerceptionReportsView, PerceptionViewClass, perceptionSentence, reportLine } from './perception-view.js';
 
 /**
  * The state the page shows a step in that was running or retrying when a person stopped
@@ -400,7 +399,7 @@ export class RunProgress {
     step?.perceptions.push(report);
     const name = step?.name ?? 'Run';
     this.perceptions.push({ name, report });
-    this.log.push(`${name}: ${report[PerceptionReportKey.SUMMARY]}`);
+    this.log.push(`${name}: ${reportLine(report)}`);
   }
 
   /**

@@ -129,11 +129,11 @@ const sunk = (depth, verdict = ReportedObjectVerdict.ACCEPTED) => ({
 });
 
 test('a cube taken a few millimetres inside the table says it was raised onto it', () => {
-  assert.match(objectText(sunk(0.004)), /: taken for the step; reported 4 mm inside the table and raised onto it$/);
+  assert.match(objectText(sunk(0.004)), /: used for the step; reported 4 mm inside the table and raised onto it$/);
 });
 
 test('a cube taken centimetres inside the table says it was raised onto it', () => {
-  assert.match(objectText(sunk(0.04)), /: taken for the step; reported 40 mm inside the table and raised onto it$/);
+  assert.match(objectText(sunk(0.04)), /: used for the step; reported 40 mm inside the table and raised onto it$/);
 });
 
 test('an object not taken says nothing of the table', () => {
@@ -174,7 +174,7 @@ test('a step planned again says it looked around where the object was last seen'
 
 test('an object seen by a step planned again is measured from where it was last seen', () => {
   const [cube] = plannedAgain[PerceptionReportKey.OBJECTS];
-  assert.match(objectText(cube, plannedAgain), /, 0 cm from where it was last seen: taken for the step$/);
+  assert.match(objectText(cube, plannedAgain), /, 0 cm from where it was last seen: used for the step$/);
 });
 
 test('an object of another kind says so without its type name', () => {
@@ -182,4 +182,56 @@ test('an object of another kind says so without its type name', () => {
   const text = objectText(bowl, grounded);
   assert.doesNotMatch(text, /planned/i);
   assert.match(text, /: not the kind of object looked for$/);
+});
+
+/**
+ * The pick of the red cube on a real table: its check saw the cube 34 cm away, outside
+ * the box looked in, a table-wide search found it, and the check of the step planned
+ * again there used it.
+ */
+const NOT_USED = 'The red cube seen 34 cm from where the plan was validated was not used: the step acts only on the red cube found inside the box it looked in.';
+
+const notUsed = {
+  ...grounded,
+  [PerceptionReportKey.OBJECTS]: [seen([0.94, 0.105, 0.905], ['red'], ReportedObjectVerdict.OUTSIDE_BOX, 0.34)],
+  [PerceptionReportKey.SUMMARY]: 'Checked before the step moved that the object still lies where the plan expects it: the red cube was seen 34 cm from where the plan was validated, outside the search within 7.5 cm of where the plan was validated.',
+  [PerceptionReportKey.WARNINGS]: [NOT_USED],
+};
+
+const foundAgain = {
+  ...plannedAgain,
+  [PerceptionReportKey.SUMMARY]: 'Checked before the step moved that the object still lies where the plan expects it: the red cube was found 0 cm from where it was last seen, 34 cm from where the plan was validated.',
+  [PerceptionReportKey.WARNINGS]: [],
+};
+
+const regroundedRun = () => RunProgress.of(
+  [{ [PlanStepKey.IDENTIFIER]: 'step_1' }, { [PlanStepKey.IDENTIFIER]: 'step_2' }],
+  (step) => `label of ${step[PlanStepKey.IDENTIFIER]}`,
+  { [RunStatusKey.EVENTS]: [perception(notUsed), perception(foundAgain)] },
+);
+
+test('a report with a detection not used is marked as a warning and says why', () => {
+  const [first, second] = byClass(rendered(regroundedRun()), PerceptionViewClass.REPORT);
+  assert.equal(first.dataset.warning, 'true');
+  assert.equal(second.dataset.warning, 'false');
+  assert.deepEqual(byClass(first, PerceptionViewClass.WARNING).map((element) => element.textContent), [NOT_USED]);
+});
+
+test('a report whose detection was not used says which later detection of its step was', () => {
+  const [first, second] = byClass(rendered(regroundedRun()), PerceptionViewClass.REPORT);
+  assert.equal(byClass(first, PerceptionViewClass.INSTEAD)[0].textContent, `Instead, a later detection of this step was used: ${foundAgain[PerceptionReportKey.SUMMARY]}`);
+  assert.equal(byClass(second, PerceptionViewClass.INSTEAD).length, 0);
+});
+
+test('the report whose detection was used is marked as used', () => {
+  const [first, second] = byClass(rendered(regroundedRun()), PerceptionViewClass.REPORT);
+  assert.deepEqual([first.dataset.used, second.dataset.used], ['false', 'true']);
+});
+
+test('the log warns of a detection not used', () => {
+  assert.ok(regroundedRun().log.includes(`2. label of step_2: ${notUsed[PerceptionReportKey.SUMMARY]} Warning: ${NOT_USED}`));
+});
+
+test('an object of the kind looked for outside the box says it was ignored', () => {
+  assert.match(objectText(notUsed[PerceptionReportKey.OBJECTS][0], notUsed), /: outside the box looked in, ignored$/);
 });

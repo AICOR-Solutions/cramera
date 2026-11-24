@@ -1,8 +1,8 @@
 /**
  * What perception reported for each detection of a run, as a person reads it: what was
  * asked, every object that came back with its colors, size and position, which one the
- * step took and why not the others, an empty answer as such, and one sentence per step
- * telling why its detections failed.
+ * step used and why not the others, its warnings with the later detection used instead,
+ * an empty answer as such, and one sentence per step telling why its detections failed.
  */
 
 import {
@@ -16,12 +16,12 @@ import {
  * How a person reads each verdict on a reported object.
  */
 export const VERDICT_TEXTS = Object.freeze({
-  [ReportedObjectVerdict.ACCEPTED]: 'taken for the step',
+  [ReportedObjectVerdict.ACCEPTED]: 'used for the step',
   [ReportedObjectVerdict.TOO_FAR]: 'taken, but too far away for the step to go on',
-  [ReportedObjectVerdict.NOT_CHOSEN]: 'would also do, another was taken first',
+  [ReportedObjectVerdict.NOT_CHOSEN]: 'would also do, ignored: another was used first',
   [ReportedObjectVerdict.WRONG_COLOR]: 'wrong colour',
   [ReportedObjectVerdict.WRONG_TYPE]: 'not the kind of object looked for',
-  [ReportedObjectVerdict.OUTSIDE_BOX]: 'outside the box looked in',
+  [ReportedObjectVerdict.OUTSIDE_BOX]: 'outside the box looked in, ignored',
 });
 
 /**
@@ -35,6 +35,8 @@ export const PerceptionViewClass = Object.freeze({
   OBJECT: 'perception-object',
   SWATCH: 'color-swatch',
   EMPTY: 'perception-empty',
+  WARNING: 'perception-warning',
+  INSTEAD: 'perception-instead',
   SENTENCE: 'run-step-perception',
 });
 
@@ -166,6 +168,18 @@ export function objectText(seen, report = {}) {
 }
 
 /**
+ * @param {Object} report A `PerceptionReport`.
+ * @returns {boolean} Whether the step used an object it reported.
+ */
+export const isUsed = (report) => (report[PerceptionReportKey.OBJECTS] ?? []).some((seen) => seen[ReportedObjectKey.VERDICT] === ReportedObjectVerdict.ACCEPTED);
+
+/**
+ * @param {Object} report A `PerceptionReport`.
+ * @returns {string} The report as one log line: its summary and its warnings.
+ */
+export const reportLine = (report) => [report[PerceptionReportKey.SUMMARY], ...(report[PerceptionReportKey.WARNINGS] ?? []).map((warning) => `Warning: ${warning}`)].join(' ');
+
+/**
  * Shows the perception reports of a run.
  */
 export class PerceptionReportsView {
@@ -195,8 +209,14 @@ export class PerceptionReportsView {
       const block = elements.create('details', PerceptionViewClass.REPORT);
       block.open = index === reports.length - 1;
       block.dataset.answered = String(report[PerceptionReportKey.ANSWERED] !== false);
+      const warnings = report[PerceptionReportKey.WARNINGS] ?? [];
+      block.dataset.warning = String(warnings.length > 0);
+      block.dataset.used = String(isUsed(report));
       const summary = elements.create('summary', '', `${name}: ${report[PerceptionReportKey.SUMMARY]}`);
-      block.append(summary, elements.create('p', PerceptionViewClass.ASKED, askedText(report)));
+      block.append(summary, ...warnings.map((warning) => elements.create('p', PerceptionViewClass.WARNING, warning)));
+      const instead = warnings.length > 0 && !isUsed(report) ? reports.slice(index + 1).find((later) => later.name === name && isUsed(later.report)) : null;
+      if (instead) block.append(elements.create('p', PerceptionViewClass.INSTEAD, `Instead, a later detection of this step was used: ${instead.report[PerceptionReportKey.SUMMARY]}`));
+      block.append(elements.create('p', PerceptionViewClass.ASKED, askedText(report)));
       const objects = report[PerceptionReportKey.OBJECTS] ?? [];
       if (report[PerceptionReportKey.ANSWERED] === false) {
         block.append(elements.create('p', PerceptionViewClass.EMPTY, 'No answer came back.'));

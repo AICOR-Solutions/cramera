@@ -89,7 +89,11 @@ class PerceptionReported(RunLogEntry):
         reported = len(self.report.objects)
         objects = f" ({reported} object{'s' if reported != 1 else ''} reported)"
         prefix = "" if self.step is None else f"{self.step}: "
-        return f"{prefix}{self.report.summary}{objects if self.report.answered else ''}"
+        warnings = "".join(f" Warning: {warning}" for warning in self.report.warnings)
+        return (
+            f"{prefix}{self.report.summary}"
+            f"{objects if self.report.answered else ''}{warnings}"
+        )
 
     def event(self) -> RunEvent:
         return RunEvent(

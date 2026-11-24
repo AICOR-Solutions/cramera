@@ -49,6 +49,11 @@ LAST_SEEN_SPOT = "where it was last seen"
 Where a step planned again expects its objects, as a person reads it.
 """
 
+TAKEN_VERDICTS = (ReportedObjectVerdict.ACCEPTED, ReportedObjectVerdict.TOO_FAR)
+"""
+The verdicts of the object a step took.
+"""
+
 # %% answers
 
 
@@ -212,6 +217,7 @@ class PerceptionSearch:
             objects=objects,
             summary=self.summary(answer.objects is not None, objects),
             purpose=self.purpose,
+            warnings=self.warnings(objects),
         )
 
     def judged(self, designators: List[ReportedDesignator]) -> List[ReportedObject]:
@@ -399,15 +405,7 @@ class PerceptionSearch:
                 f"The object recognition (RoboKudo) did not answer the search for "
                 f"{self.looked_for()}."
             )
-        taken = next(
-            (
-                seen
-                for seen in objects
-                if seen.verdict
-                in (ReportedObjectVerdict.ACCEPTED, ReportedObjectVerdict.TOO_FAR)
-            ),
-            None,
-        )
+        taken = self.taken(objects)
         if taken is not None:
             return " ".join(
                 part for part in (self.found(taken), self.raised(taken)) if part
@@ -435,6 +433,91 @@ class PerceptionSearch:
         if self.table_wide:
             return f"A table-wide search found {nothing}{tail}."
         return f"{nothing.capitalize()} was found {self.where()}{tail}."
+
+    @staticmethod
+    def taken(objects: List[ReportedObject]) -> Optional[ReportedObject]:
+        """
+        :param objects: The objects reported, judged.
+        :return: The one the step took, None when it took none.
+        """
+        return next((seen for seen in objects if seen.verdict in TAKEN_VERDICTS), None)
+
+    # %% the warnings
+
+    def warnings(self, objects: List[ReportedObject]) -> List[str]:
+        """
+        :param objects: The objects reported, judged.
+        :return: What a person should know of the objects of the kind looked for: the
+            one taken but not acted on, the nearest outside the box when none was
+            taken, and those ignored beside the one taken.
+        """
+        taken = self.taken(objects)
+        outside = [
+            seen
+            for seen in objects
+            if seen.verdict is ReportedObjectVerdict.OUTSIDE_BOX
+        ]
+        if taken is None:
+            return [self.not_used(outside)] if outside else []
+        warnings = []
+        if taken.verdict is ReportedObjectVerdict.TOO_FAR:
+            warnings.append(
+                sentence(
+                    f"{self.looked_for()} was not acted on: it lies "
+                    f"{centimetres(taken.distance)} from {self.spot()}, farther than "
+                    f"the {centimetres(self.tolerance)} the step allows."
+                )
+            )
+        not_chosen = sum(
+            1 for seen in objects if seen.verdict is ReportedObjectVerdict.NOT_CHOSEN
+        )
+        if not_chosen:
+            warnings.append(
+                f"{self.more_matching(not_chosen)} {self.was(not_chosen)} ignored; "
+                f"the step used the first one reported."
+            )
+        if outside:
+            warnings.append(
+                f"{self.more_matching(len(outside))}, outside the box looked in, "
+                f"{self.was(len(outside))} ignored."
+            )
+        return warnings
+
+    def not_used(self, outside: List[ReportedObject]) -> str:
+        """
+        :param outside: The objects of the kind looked for reported outside the box
+            looked in, at least one.
+        :return: That the nearest of them was not used, and why.
+        """
+        if self.grounded is None:
+            seen = f"{self.looked_for()} seen outside the box looked in"
+        else:
+            nearest = min(outside, key=lambda seen: seen.distance)
+            seen = (
+                f"{self.looked_for()} seen {centimetres(nearest.distance)} from "
+                f"{self.spot()}"
+            )
+        return sentence(
+            f"{seen} was not used: the step acts only on {self.looked_for()} found "
+            f"inside the box it looked in."
+        )
+
+    @staticmethod
+    def more_matching(count: int) -> str:
+        """
+        :param count: How many objects matching the search were left.
+        :return: Them counted, as a person reads it, such as "2 more objects matching
+            the search".
+        """
+        return f"{count} more object{'s' if count > 1 else ''} matching the search"
+
+    @staticmethod
+    def was(count: int) -> str:
+        """
+        :param count: How many things a sentence tells of.
+        :return: The past of "to be" agreeing with them.
+        """
+        return "were" if count > 1 else "was"
 
     def raised(self, taken: ReportedObject) -> str:
         """
