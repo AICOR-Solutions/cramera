@@ -97,6 +97,7 @@ export const DomEvent = Object.freeze({
   DRAG_LEAVE: 'dragleave',
   DROP: 'drop',
   TOGGLE: 'toggle',
+  BEFORE_UNLOAD: 'beforeunload',
 });
 
 /**

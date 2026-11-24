@@ -30,6 +30,7 @@ const environment = new BuilderEnvironment({
   storage: window.localStorage,
   query: new URLSearchParams(window.location.search),
   createScene: PlanScene.isAvailable(document) ? (container, listeners) => new PlanScene(container, viewerApi, (model) => api.objectUrl(model), (model) => api.robotUrl(model), listeners) : null,
+  window,
   timer: { repeat: (callback, interval) => window.setInterval(callback, interval), cancel: (handle) => window.clearInterval(handle) },
 });
 const root = document.getElementById(ROOT_IDENTIFIER);

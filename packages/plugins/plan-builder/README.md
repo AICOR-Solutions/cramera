@@ -97,6 +97,9 @@ cramera
 - **Composing.** An action clicked in the palette is added as the last step; one
   dropped on a step is inserted before it, one dropped on the place below the last
   step is added after it.
+- **Unsaved changes.** While the plan changed since it was last saved, opened or
+  started, "New", opening a saved plan and starting from a template ask before they
+  replace it, and the browser asks before the page is closed or left.
 - **Plans** are saved under `CRAMERA_DATA/plan-builder/plans`. A step names its action
   by class name and gives its fields' values by field name (format 1.1). A plan saved
   with the step kinds of format 1.0 loads as the actions they stood for: `park_arms` as

@@ -368,8 +368,10 @@ async function openPage(query = '', prepare = () => {}, { robot = true } = {}) {
   prepare({ api, storage });
   let scene = null;
   const clock = { now: 0 };
+  const window = new FakeDocument();
   const environment = new BuilderEnvironment({
     document,
+    window,
     api,
     live: () => live,
     storage,
@@ -384,7 +386,7 @@ async function openPage(query = '', prepare = () => {}, { robot = true } = {}) {
   await page.start();
   await settled();
   if (robot) byAction(root, PlanAction.ADD_ROBOT)[0]?.click();
-  return { document, api, live, timer, storage, root, page, clock, scene: () => scene };
+  return { document, api, live, timer, storage, root, page, clock, window, scene: () => scene };
 }
 
 const message = (root) => root.findAll((element) => element.className === 'message')[0].textContent;
@@ -2626,6 +2628,33 @@ test('a plan cannot be changed, opened or saved while a validation waits for its
   byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await settled();
   assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
+});
+
+/**
+ * @param {Object} window The page's fake window.
+ * @returns {boolean} Whether leaving the page now asks the person first.
+ */
+const leavingAsks = (window) => {
+  let asked = false;
+  window.dispatch(DomEvent.BEFORE_UNLOAD, { preventDefault: () => (asked = true) });
+  return asked;
+};
+
+test('leaving the page asks first while the plan has unsaved changes', async () => {
+  const { root, window } = await openPage('', () => {}, { robot: false });
+  assert.equal(leavingAsks(window), false);
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  assert.equal(leavingAsks(window), true);
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  await settled();
+  assert.equal(leavingAsks(window), false);
+});
+
+test('a disposed page no longer asks before it is left', async () => {
+  const { page, window } = await openPage();
+  page.dispose();
+  assert.equal(window.listenerCount(DomEvent.BEFORE_UNLOAD), 0);
 });
 
 test('a plan cannot be changed, opened or saved again while it is saved', async () => {

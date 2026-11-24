@@ -331,7 +331,8 @@ export class BuilderEnvironment {
    *   (the page's `URLSearchParams`), `createScene` (builds a `PlanScene` in a container
    *   with listeners, or null without WebGL), `timer` (`repeat(callback, interval)`
    *   answering a handle, `cancel(handle)`) and, optionally, `clock` (answers the time in
-   *   milliseconds; `Date.now` by default).
+   *   milliseconds; `Date.now` by default) and `window` (the page's window, which asks
+   *   before the page is left with unsaved changes; null by default).
    */
   constructor(parts) {
     /**
@@ -374,6 +375,11 @@ export class BuilderEnvironment {
      * @type {function(): number}
      */
     this.clock = parts.clock ?? (() => Date.now());
+    /**
+     * The page's window, or null.
+     * @type {EventTarget|null}
+     */
+    this.window = parts.window ?? null;
   }
 }
 
@@ -713,6 +719,7 @@ export class BuilderPage {
     this.render();
     const missing = catalog[PlanBuilderCatalogKey.MISSING];
     this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : READY);
+    if (this.#environment.window) this.#elements.listen(this.#environment.window, DomEvent.BEFORE_UNLOAD, (event) => this.#beforeLeaving(event));
     this.#polling = this.#environment.timer.repeat(() => this.#poll(), POLL_INTERVAL);
     this.#following = this.#environment.timer.repeat(() => this.#follow(), PollInterval.STATE);
   }
@@ -1035,6 +1042,17 @@ export class BuilderPage {
    */
   #unsaved() {
     return this.#baseline !== JSON.stringify(this.state.document);
+  }
+
+  /**
+   * Have the browser ask before the page is left while the plan has unsaved changes.
+   * @param {BeforeUnloadEvent} event The page about to be left.
+   */
+  #beforeLeaving(event) {
+    if (!this.#unsaved()) return;
+    event.preventDefault();
+    // older browsers ask only for a return value
+    event.returnValue = '';
   }
 
   /**
