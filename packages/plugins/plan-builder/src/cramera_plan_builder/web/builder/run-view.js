@@ -44,6 +44,25 @@ export const STEP_STATE_TEXTS = Object.freeze({
 });
 
 /**
+ * How a person reads the state of a step before the run reported any of its steps.
+ */
+export const NOT_STARTED = 'not started';
+
+/**
+ * What the run view's summary says before the run reported any of its steps.
+ */
+export const NotStartedSummary = Object.freeze({
+  /**
+   * The run was started and is prepared.
+   */
+  PREPARING: 'Not started yet: the run is being prepared.',
+  /**
+   * No run goes.
+   */
+  WAITING: 'Not started: press Run to start.',
+});
+
+/**
  * How a person reads what each monitor observes.
  */
 export const MONITOR_TEXTS = Object.freeze({
@@ -182,13 +201,21 @@ export class RunProgress {
   #stepReported = false;
 
   /**
+   * Whether the run goes, so before it reports a step it is being prepared.
+   * @type {boolean}
+   */
+  #going;
+
+  /**
    * @param {Array<{identifier: string, label: string}>} steps The performing robot's
    *   steps, in order.
    * @param {Array<Object>} events The `RunEvent`s the run reported, in order.
    * @param {boolean} stopped Whether a person stopped the run, so a step that was
    *   running or retrying stopped with it.
+   * @param {boolean} going Whether the run goes.
    */
-  constructor(steps, events, stopped = false) {
+  constructor(steps, events, stopped = false, going = false) {
+    this.#going = going;
     steps.forEach((step, index) => this.#steps.set(step.identifier, new StepProgress(step.identifier, `${index + 1}. ${step.label}`)));
     /**
      * The objects steps perceived, each once, in the order they were first perceived,
@@ -234,7 +261,15 @@ export class RunProgress {
       steps.map((step) => ({ identifier: step[PlanStepKey.IDENTIFIER], label: label(step) })),
       run[RunStatusKey.EVENTS] ?? [],
       STOPPED_RUNS.includes(run[RunStatusKey.STATE]),
+      run[RunStatusKey.STATE] === RunState.RUNNING,
     );
+  }
+
+  /**
+   * @returns {boolean} Whether the run reported any of its steps.
+   */
+  started() {
+    return this.#stepReported;
   }
 
   /**
@@ -301,6 +336,7 @@ export class RunProgress {
     if (current?.state === StepState.RETRYING) return `Retrying ${current.name}: ${current.reason}. ${count}.`;
     if (current?.state === STOPPED_STEP) return `Stopped at ${current.name}. ${count}.`;
     if (current) return `Running ${current.name}. ${count}.`;
+    if (!this.#stepReported) return this.#going ? NotStartedSummary.PREPARING : NotStartedSummary.WAITING;
     return `${count}.`;
   }
 
@@ -509,7 +545,7 @@ export class RunView {
     const parts = this.#parts;
     parts.summary.textContent = progress.summary();
     parts.badges.replaceChildren(...(progress.safety === null ? [] : [this.#badge(monitorText(RunMonitor.SAFETY, progress.safety), progress.safety)]));
-    parts.steps.replaceChildren(...progress.steps().map((step) => this.#step(step)));
+    parts.steps.replaceChildren(...progress.steps().map((step) => this.#step(step, progress.started())));
     parts.perceived.replaceChildren(
       ...(progress.perceived.length === 0
         ? [elements.create('p', RunViewClass.EMPTY, 'Nothing perceived yet.')]
@@ -537,15 +573,17 @@ export class RunView {
 
   /**
    * @param {StepProgress} step A step of the run.
+   * @param {boolean} started Whether the run reported any of its steps.
    * @returns {HTMLElement} Its line: name, state, attempt, arm, monitor badges and why
    *   its latest attempt failed.
    */
-  #step(step) {
+  #step(step, started) {
     const elements = this.#elements;
     const item = elements.create('li', RunViewClass.STEP);
     item.dataset.step = step.identifier;
     item.dataset.state = step.state;
-    const state = elements.create('span', RunViewClass.STATE, STEP_STATE_TEXTS[step.state] ?? step.state);
+    const stateText = started ? (STEP_STATE_TEXTS[step.state] ?? step.state) : NOT_STARTED;
+    const state = elements.create('span', RunViewClass.STATE, stateText);
     state.dataset.state = step.state;
     item.append(elements.create('span', RunViewClass.NAME, step.name), state);
     if (step.attempt !== null && (step.attempt > 1 || step.state !== StepState.DONE)) item.append(elements.create('span', RunViewClass.ATTEMPT, `attempt ${step.attempt}/${step.attempts}`));

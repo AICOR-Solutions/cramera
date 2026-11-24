@@ -14,7 +14,7 @@ import {
   StepState,
 } from 'cramera-viewer/protocol.js';
 import { Elements } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { MONITOR_TEXTS, RunProgress, RunView, RunViewClass, STOPPED_STEP, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
+import { MONITOR_TEXTS, NOT_STARTED, NotStartedSummary, RunProgress, RunView, RunViewClass, STEP_STATE_TEXTS, STOPPED_STEP, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
 /**
@@ -186,6 +186,25 @@ test('the step a person stopped reads as stopped, not running', () => {
   const running = RunProgress.of(steps, label, { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.EVENTS]: events });
   assert.equal(running.step('step_2').state, StepState.RUNNING);
   assert.equal(running.summary(), 'Running 2. label of step_2. 1 of 3 steps done.');
+});
+
+test('a run that reported no step yet says it has not started, not that its steps are pending', () => {
+  const steps = [{ [PlanStepKey.IDENTIFIER]: 'step_1' }];
+  const label = (step) => `label of ${step[PlanStepKey.IDENTIFIER]}`;
+  const preparing = RunProgress.of(steps, label, { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.EVENTS]: [] });
+  const waiting = RunProgress.of(steps, label, { [RunStatusKey.STATE]: RunState.IDLE, [RunStatusKey.EVENTS]: [] });
+  assert.equal(preparing.summary(), NotStartedSummary.PREPARING);
+  assert.equal(waiting.summary(), NotStartedSummary.WAITING);
+  const [state] = byClass(rendered(preparing), RunViewClass.STATE);
+  assert.equal(state.textContent, NOT_STARTED);
+});
+
+test('a run that reported its steps counts them as pending', () => {
+  const steps = [{ [PlanStepKey.IDENTIFIER]: 'step_1' }, { [PlanStepKey.IDENTIFIER]: 'step_2' }];
+  const events = [{ [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: 'step_1', [RunEventKey.STATE]: StepState.DONE }];
+  const progress = RunProgress.of(steps, (step) => step[PlanStepKey.IDENTIFIER], { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.EVENTS]: events });
+  assert.equal(progress.summary(), '1 of 2 steps done.');
+  assert.equal(byClass(rendered(progress), RunViewClass.STATE).at(-1).textContent, STEP_STATE_TEXTS[StepState.PENDING]);
 });
 
 test('every event is a line of the log', () => {
