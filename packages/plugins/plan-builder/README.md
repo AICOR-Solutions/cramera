@@ -75,6 +75,10 @@ cramera
   named in the catalog with its error. Required fields come first in a step's form, the
   others fold under "More options". A robot is offered an action when every required
   enumeration has a member it allows.
+- **Poses** of robots, objects, targets and markers are edited in the world frame,
+  whose origin is the environment's: x, y and z in metres, and the heading as
+  "rotation (°)" around the vertical axis, 0° facing along the world's x axis. Each
+  input says so as its tooltip.
 - **Plans** are saved under `CRAMERA_DATA/plan-builder/plans`. A step names its action
   by class name and gives its fields' values by field name (format 1.1). A plan saved
   with the step kinds of format 1.0 loads as the actions they stood for: `park_arms` as
@@ -147,7 +151,7 @@ cramera
   same way before it starts and puts each object down at the pose found; the run
   measures where it ended (`placedPosition.<step>`). The 3D view shows the zones on the
   table. A marker slides over the surface below it (x, y and yaw only; the table's top,
-  else the floor), stays in sync with its x, y and yaw fields, and turns green or red
+  else the floor), stays in sync with its x, y and rotation fields, and turns green or red
   while dragged by a quick check against what the robot reaches: the `reach` route
   answers, once per robot model, a sphere around each arm's shoulder that its tool
   stays within (`cramera_bridge.plans.reaching`). Red is out of reach for certain;

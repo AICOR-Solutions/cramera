@@ -62,7 +62,7 @@ import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
 import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, FAILURE_LENGTH_LIMIT, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, SCENE_TOLERANCE, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_LOST, VALIDATION_USED, failureMessage, loadedMessage, scanMessage } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
-import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction } from '../../src/cramera_plan_builder/web/builder/elements.js';
+import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
 import { MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
@@ -662,6 +662,21 @@ test('robots are added, edited and removed', async () => {
   assert.equal(PlanPose.position(page.state.activeRobot()[PlannedRobotKey.POSE])[0], 2.5);
   byAction(root, PlanAction.REMOVE_ROBOT)[0].click();
   assert.equal(page.state.robots().length, 1);
+});
+
+test('pose inputs are labelled with their unit and explain the world frame and the rotation', async () => {
+  const { root } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'navigate').click();
+  const labels = root.findAll((element) => element.className === 'number');
+  const shown = (row) => row.findAll((element) => element.className === 'number').map((label) => [label.children[0].textContent, label.title]);
+  const rows = root.findAll((element) => element.className === 'pose-row');
+  const expected = (...axes) => axes.map((axis) => [axis.label, axis.title]);
+  const robotRow = root.findAll((element) => element.className === 'robot-settings')[0].findAll((element) => element.className === 'pose-row')[0];
+  assert.deepEqual(shown(robotRow), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.YAW));
+  for (const row of rows.filter((candidate) => candidate !== robotRow)) assert.deepEqual(shown(row), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.Z, PoseAxis.YAW));
+  assert.equal(labels.length, 3 + 4 + 4);
+  for (const axis of Object.values(PoseAxis)) assert.match(axis.title, axis === PoseAxis.YAW ? /around the vertical axis/ : /world frame/);
 });
 
 test('the name is edited in the bar and the environment in its section', async () => {

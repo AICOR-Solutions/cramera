@@ -67,6 +67,23 @@ export const PlanAction = Object.freeze({
 });
 
 /**
+ * The parts of a pose a person edits in number inputs: the input's `data-field`, its
+ * label with the unit, and what it means as tooltip. Poses are given in the world
+ * frame, whose origin is the environment's.
+ */
+export const PoseAxis = Object.freeze({
+  X: Object.freeze({ field: 'x', label: 'x (m)', title: 'Position along the world frame\'s x axis, in metres from the environment\'s origin.' }),
+  Y: Object.freeze({ field: 'y', label: 'y (m)', title: 'Position along the world frame\'s y axis, in metres from the environment\'s origin.' }),
+  Z: Object.freeze({ field: 'z', label: 'z (m)', title: 'Height along the world frame\'s z axis, which points up, in metres from the environment\'s origin.' }),
+  YAW: Object.freeze({ field: 'yaw°', label: 'rotation (°)', title: 'Rotation around the vertical axis, in degrees: 0° faces along the world frame\'s x axis, 90° along its y axis.' }),
+});
+
+/**
+ * The position axes of a pose, in the order of its coordinates.
+ */
+export const POSITION_AXES = Object.freeze([PoseAxis.X, PoseAxis.Y, PoseAxis.Z]);
+
+/**
  * The DOM events the builder listens to.
  */
 export const DomEvent = Object.freeze({
@@ -235,21 +252,25 @@ export class Elements {
   }
 
   /**
-   * @param {string} text The input's label.
+   * @param {{field: string, label: string, title: string}} axis The `PoseAxis` the
+   *   input edits.
    * @param {number} value The number shown.
    * @param {string} action Its `PlanAction` value.
    * @param {function(number): void} onChange Called with a finite committed number.
-   * @returns {HTMLLabelElement} The labelled number input.
+   * @returns {HTMLLabelElement} The number input, labelled with the axis and its unit,
+   *   what the axis means as tooltip.
    */
-  number(text, value, action, onChange) {
+  number(axis, value, action, onChange) {
     const input = this.input('number', action, () => {
       const number = Number(input.value);
       if (input.value !== '' && Number.isFinite(number)) onChange(number);
     });
     input.value = String(value);
     input.step = 'any';
-    input.dataset.field = text;
-    return this.label(text, input, 'number');
+    input.dataset.field = axis.field;
+    const label = this.label(axis.label, input, 'number');
+    label.title = axis.title;
+    return label;
   }
 
   /**

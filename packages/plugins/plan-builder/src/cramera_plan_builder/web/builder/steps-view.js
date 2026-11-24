@@ -24,7 +24,7 @@ import {
   StepVerdict,
   ZoneKey,
 } from '../../../protocol.js';
-import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.js';
+import { DomEvent, DragKind, DragText, Elements, PlanAction, POSITION_AXES, PoseAxis } from './elements.js';
 import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
 import { seenImageFigures } from './seen-images.js';
@@ -551,14 +551,14 @@ export class StepsView {
     const position = PlanPose.position(target);
     const row = elements.create('div', 'pose-row');
     row.dataset.marker = 'true';
-    const coordinates = ['x', 'y'].map((axis, index) =>
+    const coordinates = [PoseAxis.X, PoseAxis.Y].map((axis, index) =>
       elements.number(axis, position[index], PlanAction.POSE, (value) => {
         const moved = [...position];
         moved[index] = value;
         onChange(PlanPose.moved(target, moved));
       }),
     );
-    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
+    const heading = elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
     row.append(...coordinates, heading);
     return row;
   }
@@ -719,14 +719,14 @@ export class StepsView {
     const target = pose ?? PlanPose.of(0, 0, 0, 0);
     const position = PlanPose.position(target);
     const row = elements.create('div', 'pose-row');
-    const coordinates = ['x', 'y', 'z'].map((axis, index) =>
+    const coordinates = POSITION_AXES.map((axis, index) =>
       elements.number(axis, position[index], PlanAction.POSE, (value) => {
         const moved = [...position];
         moved[index] = value;
         onChange(PlanPose.moved(target, moved));
       }),
     );
-    const heading = elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
+    const heading = elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(target)), PlanAction.POSE, (value) => onChange(PlanPose.turned(target, PlanPose.radians(value))));
     row.append(...coordinates, heading);
     return row;
   }

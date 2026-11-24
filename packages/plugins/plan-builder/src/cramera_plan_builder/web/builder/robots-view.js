@@ -5,7 +5,7 @@
  */
 
 import { IndexEntryKey, PlanBuilderCatalogKey, PlanKey, PlannedRobotKey, RobotModelKey, UrdfFolderKey } from '../../../protocol.js';
-import { Elements, PlanAction } from './elements.js';
+import { Elements, PlanAction, PoseAxis } from './elements.js';
 import { PlanPose } from './poses.js';
 
 /**
@@ -304,9 +304,9 @@ export class RobotsView {
     const place = (position, yaw) => this.#editor.edit(() => state.setRobotPose(identifier, PlanPose.of(...position, yaw)));
     const row = elements.create('div', 'pose-row');
     row.append(
-      elements.number('x', x, PlanAction.POSE, (value) => place([value, y, z], PlanPose.yaw(pose))),
-      elements.number('y', y, PlanAction.POSE, (value) => place([x, value, z], PlanPose.yaw(pose))),
-      elements.number('yaw°', PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, z], PlanPose.radians(value))),
+      elements.number(PoseAxis.X, x, PlanAction.POSE, (value) => place([value, y, z], PlanPose.yaw(pose))),
+      elements.number(PoseAxis.Y, y, PlanAction.POSE, (value) => place([x, value, z], PlanPose.yaw(pose))),
+      elements.number(PoseAxis.YAW, PlanPose.degrees(PlanPose.yaw(pose)), PlanAction.POSE, (value) => place([x, y, z], PlanPose.radians(value))),
     );
     const remove = elements.button(`Remove ${robot[PlannedRobotKey.LABEL]}`, PlanAction.REMOVE_ROBOT, () => this.#editor.edit(() => state.removeRobot(identifier)));
     const settings = elements.create('div', 'robot-settings');
