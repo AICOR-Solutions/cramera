@@ -74,7 +74,42 @@ NAME_FIELD = "name"
 The field that titles an entity row instead of being one of its columns.
 """
 
+COLLECTION_ITEM_LIMIT = 12
+"""
+The most elements of a collection an answer cell lists.
+"""
+
+REPRESENTATION_LIMIT = 160
+"""
+The most characters of a value's representation an answer cell shows.
+"""
+
 # %% rows
+
+
+@dataclass(frozen=True)
+class SafeRepresentation:
+    """
+    A value's representation for an answer cell: shortened, and the value's type when
+    the value cannot represent itself, as an object detached from its world cannot.
+    """
+
+    value: Any
+    """
+    The value.
+    """
+
+    def text(self) -> str:
+        """
+        :return: The representation, at most :data:`REPRESENTATION_LIMIT` characters.
+        """
+        try:
+            text = repr(self.value)
+        except Exception:  # a value's own __repr__ may raise anything
+            return f"<{type(self.value).__name__}>"
+        if len(text) <= REPRESENTATION_LIMIT:
+            return text
+        return text[: REPRESENTATION_LIMIT - 1] + "…"
 
 
 @dataclass
@@ -231,7 +266,8 @@ class AnswerRenderer:
         """
         self.highlight.extend(self.highlight_keys.keys_of(item))
         values: Dict[str, Any] = {
-            AnswerColumn.ENTITY.value: self.title_of(item) or repr(item),
+            AnswerColumn.ENTITY.value: self.title_of(item)
+            or SafeRepresentation(item).text(),
             AnswerColumn.TYPE.value: type(item).__name__,
         }
         instance_values = vars(item)
@@ -259,6 +295,9 @@ class AnswerRenderer:
         """
         if isinstance(value, NamedEntity) or isinstance(value, self.entity_types):
             return str(value.name)
+        name = getattr(value, NAME_FIELD, None)
+        if self.is_entity(value) and name is not None:
+            return str(getattr(name, NAME_FIELD, name))
         return None
 
     def text_of(self, value: Any) -> Any:
@@ -282,8 +321,12 @@ class AnswerRenderer:
             return value
         if self.is_entity(value):
             self.highlight.extend(self.highlight_keys.keys_of(value))
-            return self.title_of(value) or repr(value)
-        return repr(value)
+            return self.title_of(value) or SafeRepresentation(value).text()
+        if self.is_collection(value) and not isinstance(value, Mapping):
+            items = list(value)
+            if all(self.is_entity(item) for item in items):
+                return [self.text_of(item) for item in items[:COLLECTION_ITEM_LIMIT]]
+        return SafeRepresentation(value).text()
 
 
 # %% runner
