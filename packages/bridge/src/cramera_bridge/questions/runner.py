@@ -264,7 +264,9 @@ class AnswerRenderer:
         :param item: A dataclass instance.
         :return: Its row: its title, its type and its public fields.
         """
-        self.highlight.extend(self.highlight_keys.keys_of(item))
+        own_keys = self.highlight_keys.keys_of(item)
+        highlighted_before = len(self.highlight)
+        self.highlight.extend(own_keys)
         values: Dict[str, Any] = {
             AnswerColumn.ENTITY.value: self.title_of(item)
             or SafeRepresentation(item).text(),
@@ -285,6 +287,10 @@ class AnswerRenderer:
             if replay is None and isinstance(value, datetime):
                 replay = self.timeline.window_around(value)
             values[entity_field.name] = self.text_of(value)
+        if own_keys:
+            # An entity with its own place in the scene lights up itself alone, not
+            # what its fields name, such as the body an arm is mounted on.
+            del self.highlight[highlighted_before + len(own_keys) :]
         return AnswerRow(values, replay)
 
     def title_of(self, value: Any) -> Optional[str]:
