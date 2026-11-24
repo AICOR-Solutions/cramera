@@ -53,6 +53,13 @@ export class AnswerView {
   }
 
   /**
+   * Show no answer.
+   */
+  clear() {
+    this.element.replaceChildren();
+  }
+
+  /**
    * @param {Object} answer A query answer.
    */
   show(answer) {

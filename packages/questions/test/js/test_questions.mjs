@@ -174,9 +174,14 @@ test('a scene offers its ready-made questions, and one runs, reads back, highlig
   assert.deepEqual(playback, [true]);
 });
 
-test('before anything is asked the panel shows its hints', () => {
+test('before anything is asked only the question box says what to do', () => {
   const panel = new QuestionsPanel(new FakeDocument(), new EventBus());
-  assert.match(panel.element.innerText, new RegExp(Hint.QUESTION));
+  const [reading] = panel.element.findAll((element) => element.className === 'question');
+  assert.equal(reading.hidden, true);
+  const [answer] = panel.element.findAll((element) => element.className === 'answer');
+  assert.deepEqual(answer.children, []);
+  const [question] = panel.element.findAll((element) => element.type === 'search');
+  assert.match(question.placeholder, /Ask in plain English/);
   assert.equal(panel.status.textContent, Status.LOADING);
 });
 
