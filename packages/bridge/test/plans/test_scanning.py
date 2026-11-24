@@ -38,7 +38,6 @@ from cramera_protocol.plan_builder import DemoDocument, PlanDocument, PlannedObj
 from cramera_protocol.robot_profile import PerceptionSettings
 from krrood_spatial_math.spatial_types import Pose
 from rclpy.executors import MultiThreadedExecutor
-from sensor_msgs.msg import Image
 from semantic_digital_twin.robots.tracy import Tracy
 from semantic_digital_twin.world_description.color_names import ColorName
 from semantic_digital_twin.world_description.geometry import Scale
@@ -291,16 +290,13 @@ def test_a_scan_robokudo_does_not_answer_fails_after_the_profiles_answer_timeout
 )
 def test_a_scan_shows_what_robokudo_drew_of_the_scene(monkeypatch, cubes):
     """
-    What the pipeline drew of the scene shows which objects it found, and why the cubes
-    it did not find stayed where they were.
+    What the pipeline drew shows which objects it found.
     """
     from ..dataset.real_robot import RoboKudoSeeingNothing
 
     monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
     order = SceneScanOrder(demo=DemoDocument(plan=cubes))
-    seeing_nothing = RoboKudoSeeingNothing(
-        drawn=Image(height=1, width=1, encoding="bgr8", step=3, data=bytes([0, 0, 255]))
-    )
+    seeing_nothing = RoboKudoSeeingNothing()
 
     with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
         with seeing_nothing.serving(node):

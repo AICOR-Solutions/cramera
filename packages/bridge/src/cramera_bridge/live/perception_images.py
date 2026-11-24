@@ -41,7 +41,7 @@ The bytes every PNG file begins with.
 
 PNG_DATA_URL_PREFIX = "data:image/png;base64,"
 """
-How a ``data:`` URL holding a PNG file begins, the file following in base64.
+How a ``data:`` URL of a base64 PNG file begins.
 """
 
 CAMERA_RESOLUTION = CameraResolution(width=320, height=240)
@@ -134,8 +134,7 @@ class SeenImage:
 
     def to_inline_image(self) -> InlineImage:
         """
-        :return: The image as the protocol carries it inside a document, its PNG file
-            as a ``data:`` URL.
+        :return: The image as the protocol carries it, as a ``data:`` URL.
         """
         return InlineImage(
             title=self.title,

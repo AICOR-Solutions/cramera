@@ -604,8 +604,7 @@ def validating_plugin(
     """
     :return: A plan builder of the profile whose validator is the stand-in that fails
         the step a plan's task names as unreachable, attached to the robot as
-        `connection` says, letting developer mode run unvalidated plans on the real
-        robot if `unvalidated_real_runs`.
+        `connection` says.
     """
     environment = {
         PlanBuilderVariable.OUTPUT: str(output),
@@ -989,13 +988,14 @@ def test_a_run_on_the_real_robot_is_refused_in_plain_words_until_validated(
     )
 
 
-@pytest.fixture
-def allowing_unvalidated_real_runs(serve, output, workspace_loader, tmp_path):
-    """
-    :return: Answers requests to a plan builder attached to the real robot whose
-        deployment lets developer mode run unvalidated plans on it.
-    """
-    return serve(
+@pytest.mark.parametrize(
+    "override, status",
+    [(True, HTTPStatus.OK), (False, PlanNotValidated(RunMode.ROBOT).status())],
+)
+def test_a_deployment_allowing_unvalidated_real_runs_runs_only_those_asked_for(
+    serve, output, workspace_loader, tmp_path, plan, override, status
+):
+    answer = serve(
         validating_plugin(
             output,
             workspace_loader,
@@ -1005,23 +1005,7 @@ def allowing_unvalidated_real_runs(serve, output, workspace_loader, tmp_path):
         )
     )
 
-
-def test_a_deployment_allowing_it_lets_developer_mode_run_unvalidated_on_the_real_robot(
-    allowing_unvalidated_real_runs, plan
-):
-    assert (
-        run_on_the_robot(allowing_unvalidated_real_runs, plan, override=True)
-        == HTTPStatus.OK
-    )
-
-
-def test_a_deployment_allowing_unvalidated_real_runs_still_refuses_an_unasked_one(
-    allowing_unvalidated_real_runs, plan
-):
-    assert (
-        run_on_the_robot(allowing_unvalidated_real_runs, plan)
-        == PlanNotValidated(RunMode.ROBOT).status()
-    )
+    assert run_on_the_robot(answer, plan, override=override) == status
 
 
 @pytest.mark.parametrize("allowed", [False, True])

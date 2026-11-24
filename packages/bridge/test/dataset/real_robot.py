@@ -1,7 +1,6 @@
 """
 Stand-ins for the drivers of the real Tracy: its grippers' parallel gripper command
-servers and its arms' joint state publishers, and for a RoboKudo that never answers,
-one that tells no colors and one that sees nothing but publishes what it drew.
+servers and its arms' joint state publishers, and for RoboKudos answering in odd ways.
 """
 
 from __future__ import annotations
@@ -176,23 +175,21 @@ class RoboKudoThatNeverAnswers:
 @dataclass
 class RoboKudoTellingNoColors:
     """
-    Answers every query on RoboKudo's query action with one object at a fixed place, in
-    no color, as a pipeline does that localizes without telling colors.
+    Answers every query with one object at a fixed place, in no color.
     """
 
     position: tuple[float, float, float]
     """
-    Where the object is reported, in the world's coordinates.
+    Where the object is reported, in :attr:`frame`.
     """
 
     frame: str = "map"
     """
-    The frame the position is reported in, the world's root as published on tf.
+    The frame of :attr:`position`, the world's root on tf.
     """
 
     def execute(self, goal_handle: ServerGoalHandle) -> Query.Result:
         """
-        :param goal_handle: A query that arrived.
         :return: The object, the query succeeded.
         """
         pose = PoseStamped()
@@ -224,33 +221,33 @@ class RoboKudoTellingNoColors:
 @dataclass
 class RoboKudoSeeingNothing:
     """
-    Answers every query on RoboKudo's query action with no object, publishing what its
-    cluster extractor drew as RoboKudo's visualizer does.
+    Answers every query with no object, publishing what its cluster extractor drew a
+    moment later, as RoboKudo's visualizer does.
     """
 
-    drawn: Image
+    drawn: Image = field(
+        default_factory=lambda: Image(
+            height=1, width=1, encoding="bgr8", step=3, data=bytes([0, 0, 255])
+        )
+    )
     """
-    The image published with every answer.
+    The image published :attr:`drawing_time` seconds after every answer.
     """
 
     topic: str = "/TracyCubesPipeline/PointCloudClusterExtractor/output_image"
     """
-    The topic the image is published on, named as RoboKudo's visualizer names it.
+    The topic of :attr:`drawn`, named as RoboKudo's visualizer names it.
     """
 
     drawing_time: float = 0.2
     """
-    How long, in seconds, after an answer the image is published, as RoboKudo's
-    visualizer publishes on the tick after the one that answered.
+    Seconds after an answer :attr:`drawn` is published, a visualizer tick later.
     """
 
     @contextmanager
     def serving(self, node: Node) -> Iterator[None]:
         """
-        Serve the query action from `node` while the block runs, publishing the image
-        on :attr:`topic` :attr:`drawing_time` after every answer.
-
-        :param node: A node spun by a multi-threaded executor.
+        Serve the query action from `node` while the block runs.
         """
         publisher = node.create_publisher(Image, self.topic, 1)
         drawings: list[Timer] = []

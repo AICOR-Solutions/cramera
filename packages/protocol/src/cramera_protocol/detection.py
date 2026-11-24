@@ -156,14 +156,12 @@ class InlineImageKey(StrEnum):
 @dataclass(kw_only=True)
 class InlineImage(JsonDocument):
     """
-    One image of what perception saw, carried whole inside the document that reports
-    it.
+    An image of what perception saw, carried inside the document reporting it.
     """
 
     title: str = document_field(InlineImageKey.TITLE)
     """
-    What the image shows, for people reading it, such as the RoboKudo annotator that
-    drew it.
+    What the image shows, such as the RoboKudo annotator that drew it.
     """
 
     source: str = document_field(InlineImageKey.SOURCE)
@@ -333,6 +331,5 @@ class SceneScan(JsonDocument):
         SceneScanKey.IMAGES, default_factory=list
     )
     """
-    The images of what the robot's perception saw, empty where the objects were assumed
-    from the twin or no images were taken.
+    What the robot's perception saw; empty where the objects were assumed.
     """

@@ -61,7 +61,7 @@ class ConfiguredProfile:
 
     unvalidated_real_runs: bool = False
     """
-    Whether developer mode may run a plan on the real robot without a passed validation.
+    Whether developer mode may run unvalidated plans on the real robot.
     """
 
     unprofiled_label: str = "This deployment"
@@ -81,13 +81,8 @@ class ConfiguredProfile:
             environment.get(RobotProfileVariable.CONNECTION, RobotConnection.SIMULATED)
         )
         configured = cls.of_file(Path(path).expanduser(), connection) if path else cls()
-        return replace(
-            configured,
-            unvalidated_real_runs=environment.get(
-                RobotProfileVariable.UNVALIDATED_REAL_RUNS
-            )
-            == "1",
-        )
+        unvalidated = environment.get(RobotProfileVariable.UNVALIDATED_REAL_RUNS) == "1"
+        return replace(configured, unvalidated_real_runs=unvalidated)
 
     @classmethod
     def of_file(

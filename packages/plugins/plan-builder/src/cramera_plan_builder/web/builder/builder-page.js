@@ -1256,8 +1256,7 @@ export class BuilderPage {
    *   in developer mode, and on the real robot only where the deployment allows it.
    */
   #mayOverrideValidation() {
-    if (!this.state.developerMode()) return false;
-    return this.#robotExecutor() !== ExecutorKind.REAL || this.state.catalog[PlanBuilderCatalogKey.UNVALIDATED_REAL_RUNS] === true;
+    return this.state.developerMode() && (this.#robotExecutor() !== ExecutorKind.REAL || this.state.catalog[PlanBuilderCatalogKey.UNVALIDATED_REAL_RUNS] === true);
   }
 
   // %% validation
@@ -1629,20 +1628,12 @@ export class BuilderPage {
       this.state.replaceObjects(scan[SceneScanKey.OBJECTS]);
       if (unchanged) this.#baseline = JSON.stringify(this.state.document);
     });
-    this.#showScanImages(scan[SceneScanKey.IMAGES] ?? []);
+    // what perception saw, opened; hidden after a scan that drew nothing
+    const images = scan[SceneScanKey.IMAGES] ?? [];
+    this.#parts.scanFigures.replaceChildren(...seenImageFigures(this.#elements, images));
+    this.#parts.scanImages.hidden = images.length === 0;
+    this.#parts.scanImages.open = images.length > 0;
     this.#announce(Tone.SUCCESS, scanMessage(scan));
-  }
-
-  /**
-   * Show what perception saw in the latest scan, opened, or hide it when it saw nothing
-   * worth showing.
-   * @param {Array<Object>} images The scan's `InlineImage`s.
-   */
-  #showScanImages(images) {
-    const parts = this.#parts;
-    parts.scanFigures.replaceChildren(...seenImageFigures(this.#elements, images));
-    parts.scanImages.hidden = images.length === 0;
-    parts.scanImages.open = images.length > 0;
   }
 
   /**
@@ -1851,8 +1842,8 @@ export class BuilderPage {
     // a run on the real robot takes the validation away as it starts, for the next run
     if (this.#performing() && this.#validationTaken !== null) return VALIDATED_FOR_THIS_RUN;
     if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
-    const real = this.#robotExecutor() === ExecutorKind.REAL;
-    const override = !this.#mayOverrideValidation() ? '' : real ? ' Developer mode lets it run on the real robot anyway, unchecked.' : ' Developer mode lets it run on the robot anyway.';
+    const where = this.#robotExecutor() === ExecutorKind.REAL ? 'real robot anyway, unchecked' : 'robot anyway';
+    const override = this.#mayOverrideValidation() ? ` Developer mode lets it run on the ${where}.` : '';
     if (this.#validation === null && this.#validationUsedBy === JSON.stringify(this.state.document)) return `${VALIDATION_USED}${override}`;
     if (this.#validation === null) return `Not validated: validate before running on the robot.${override}`;
     return `${this.#validation.sceneChanged ? 'Scene' : 'Plan'} changed since its validation: validate again.${override}`;

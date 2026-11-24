@@ -485,42 +485,29 @@ class PlanBuilderRoutes:
         :return: The state of the started demo.
         :raises PlanNotValidated: When the mode needs a validated plan, the plan is not
             the one whose validation passed last and the request does not override it.
-            No request overrides the gate of a run on the real robot, unless the
-            deployment allows unvalidated real runs. A run on the real robot moves it,
-            so the next run needs a new validation, unless the robot's check refused
-            the run before anything moved.
+            A run on the real robot is only overridden where the deployment allows
+            unvalidated real runs. A run on the real robot moves it, so the next run
+            needs a new validation, unless the robot's check refused the run before
+            anything moved.
         """
         run = RunRequest.from_json(self.body(request))
         demo = self.runnable(run.plan)
         if run.mode.needs_validation and not self.gate.admits(demo.plan):
-            self.override_gate(run)
+            real = self.profile.moves_real_robot(run.mode)
+            if not run.override_validation or (
+                real and not self.profile.unvalidated_real_runs
+            ):
+                raise PlanNotValidated(run.mode.value, real=real)
+            if real:
+                logger.warning(
+                    "A plan runs on the real robot without a passed validation (%s=1).",
+                    RobotProfileVariable.UNVALIDATED_REAL_RUNS.value,
+                )
         executor = self.profile.executor_for(run.mode)
         status = self.runner.start(demo, run.mode, executor)
         if executor is ExecutorKind.REAL:
             self.gate.close(kept_if=self.runner.current.refused_before_motion)
         return Response.of_json(self.with_validation_held(status))
-
-    def override_gate(self, run: RunRequest) -> None:
-        """
-        Let a run of a plan without a passed validation start, where the request asks
-        for it and the run's executor allows it.
-
-        :param run: The run of a mode needing a passed validation.
-        :raises PlanNotValidated: When the request does not override the gate, or the
-            run is on the real robot and the deployment does not allow unvalidated real
-            runs.
-        """
-        real = self.profile.moves_real_robot(run.mode)
-        if not run.override_validation:
-            raise PlanNotValidated(run.mode.value, real=real)
-        if not real:
-            return
-        if not self.profile.unvalidated_real_runs:
-            raise PlanNotValidated(run.mode.value, real=real)
-        logger.warning(
-            "A plan runs on the real robot without a passed validation (%s=1).",
-            RobotProfileVariable.UNVALIDATED_REAL_RUNS.value,
-        )
 
     def answer_run_status(self, request: Request) -> Response:
         """

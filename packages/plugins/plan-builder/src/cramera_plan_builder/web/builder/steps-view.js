@@ -194,8 +194,7 @@ export class StepsView {
   #unfolded = new Set();
 
   /**
-   * The failed validations whose images were shown, opened, once already, so a person
-   * who folds them keeps them folded.
+   * The failed validations whose images were already opened once.
    * @type {WeakSet<Object>}
    */
   #shownFailures = new WeakSet();
@@ -381,7 +380,18 @@ export class StepsView {
       // acts on: shown on the card, not only on hover.
       const detail = validationDetail(validation);
       if (detail) card.append(elements.create('p', ViewClass.VALIDATION_DETAIL, detail));
-      if (validation[StepValidationKey.IMAGES]?.length) card.append(this.#seenImages(identifier, validation));
+      const images = validation[StepValidationKey.IMAGES] ?? [];
+      if (images.length) {
+        // a failed validation opens its images once; a person who folds them keeps them folded
+        const key = `${identifier}:images`;
+        if (validation[StepValidationKey.VERDICT] === StepVerdict.FAILED && !this.#shownFailures.has(validation)) {
+          this.#shownFailures.add(validation);
+          this.#unfolded.add(key);
+        }
+        const folded = this.#foldable(ViewClass.IMAGES, key);
+        folded.append(elements.create('summary', '', `What perception saw (${images.length})`), ...seenImageFigures(elements, images));
+        card.append(folded);
+      }
     }
     if (schema) card.append(...this.#form(step, schema));
     card.append(this.#chips(step, observations));
@@ -407,24 +417,6 @@ export class StepsView {
     const more = this.#foldable(ViewClass.MORE, step[PlanStepKey.IDENTIFIER]);
     more.append(elements.create('summary', '', 'More options'), optional);
     return [required, more];
-  }
-
-  /**
-   * @param {string} identifier A step's identity.
-   * @param {Object} validation Its `StepValidation`, holding the images of what it saw.
-   * @returns {HTMLDetailsElement} The images folded under the step's validation, opened
-   *   the first time a failed validation shows them.
-   */
-  #seenImages(identifier, validation) {
-    const key = `${identifier}:images`;
-    if (validation[StepValidationKey.VERDICT] === StepVerdict.FAILED && !this.#shownFailures.has(validation)) {
-      this.#shownFailures.add(validation);
-      this.#unfolded.add(key);
-    }
-    const folded = this.#foldable(ViewClass.IMAGES, key);
-    const images = validation[StepValidationKey.IMAGES];
-    folded.append(this.#shown.create('summary', '', `What perception saw (${images.length})`), ...seenImageFigures(this.#shown, images));
-    return folded;
   }
 
   /**

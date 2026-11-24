@@ -16,7 +16,6 @@ import time
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 
-import numpy as np
 import rclpy
 from rclpy.context import Context
 from rclpy.executors import SingleThreadedExecutor
@@ -74,7 +73,7 @@ How long stopping waits for the spin thread.
 
 ARRIVAL_POLL_SECONDS = 0.05
 """
-How often waiting for the images of a step looks whether they arrived.
+How often waiting for a step's images looks whether they arrived.
 """
 
 
@@ -100,14 +99,12 @@ class RoboKudoImageListener(PerceptionCamera):
 
     largest_width: Optional[int] = None
     """
-    The widest, in pixels, an image is kept; a wider one is shrunk by a whole factor to
-    fit. None keeps every image as it arrived.
+    The widest an image is kept, in pixels, shrunk by a whole factor; None keeps all.
     """
 
     arrival_timeout: float = 0.0
     """
-    How long, in seconds, the images of a step are waited for until every image topic
-    delivered one since the step started.
+    How long, in seconds, :meth:`images` waits for every topic to deliver.
     """
 
     context: Context = field(default_factory=Context, init=False)
@@ -231,8 +228,7 @@ class RoboKudoImageListener(PerceptionCamera):
 
     def observe_started(self) -> None:
         """
-        Differs from :meth:`PerceptionCamera.observe_started` in also subscribing to the
-        image topics a pipeline started since the listener last looked for them.
+        Unlike :meth:`PerceptionCamera.observe_started`, also subscribes to new topics.
         """
         self.discover()
         with self.lock:
@@ -242,10 +238,19 @@ class RoboKudoImageListener(PerceptionCamera):
         self, world: World, robot: AbstractRobot, perceived: Sequence[Body]
     ) -> List[SeenImage]:
         """
-        Differs from :meth:`PerceptionCamera.images` in leaving out the blank images a
-        visualizer publishes for an annotator that drew nothing.
+        Unlike :meth:`PerceptionCamera.images`, waits up to :attr:`arrival_timeout` for
+        every topic, leaves out blank images and shrinks to :attr:`largest_width`.
         """
-        self.wait_for_arrivals()
+        deadline = time.monotonic() + self.arrival_timeout
+        waiting = threading.Event()
+        while time.monotonic() < deadline:
+            with self.lock:
+                if all(
+                    topic in self.newest and self.newest[topic][0] >= self.step_started
+                    for topic in self.subscriptions
+                ):
+                    break
+            waiting.wait(ARRIVAL_POLL_SECONDS)
         with self.lock:
             arrived = [
                 (topic, image)
@@ -257,46 +262,19 @@ class RoboKudoImageListener(PerceptionCamera):
             pixels = image.rgb()
             if pixels is None or not pixels.any():
                 continue
+            factor = (
+                1
+                if self.largest_width is None
+                else math.ceil(pixels.shape[1] / self.largest_width)
+            )
             seen.append(
                 SeenImage(
                     image_title(topic),
                     PerceptionImageSource.ROBOKUDO,
-                    PngImage.of_rgb(self.fitted(pixels)),
+                    PngImage.of_rgb(pixels[::factor, ::factor]),
                 )
             )
         return seen
-
-    def wait_for_arrivals(self) -> None:
-        """
-        Wait, up to :attr:`arrival_timeout`, until every image topic delivered an image
-        since the step started.
-        """
-        deadline = time.monotonic() + self.arrival_timeout
-        waiting = threading.Event()
-        while time.monotonic() < deadline and not self.every_topic_delivered():
-            waiting.wait(ARRIVAL_POLL_SECONDS)
-
-    def every_topic_delivered(self) -> bool:
-        """
-        :return: Whether every image topic delivered an image since the step started.
-        """
-        with self.lock:
-            return all(
-                topic in self.newest and self.newest[topic][0] >= self.step_started
-                for topic in self.subscriptions
-            )
-
-    def fitted(self, pixels: np.ndarray) -> np.ndarray:
-        """
-        :param pixels: An image, as height × width × 3 values.
-        :return: The image, every n-th row and column of it kept where it is wider than
-            :attr:`largest_width`.
-        """
-        width = pixels.shape[1]
-        if self.largest_width is None or width <= self.largest_width:
-            return pixels
-        factor = math.ceil(width / self.largest_width)
-        return pixels[::factor, ::factor]
 
     def stop(self) -> None:
         """

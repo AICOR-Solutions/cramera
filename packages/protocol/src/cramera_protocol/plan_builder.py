@@ -2585,8 +2585,7 @@ class PlanBuilderCatalog(JsonDocument):
         PlanBuilderCatalogKey.UNVALIDATED_REAL_RUNS, default=False
     )
     """
-    Whether the deployment lets developer mode run a plan on the real robot without a
-    passed validation (:attr:`RobotProfileVariable.UNVALIDATED_REAL_RUNS`).
+    Whether developer mode may run unvalidated plans on the real robot.
     """
 
 
@@ -3321,9 +3320,7 @@ class ReportedObject(JsonDocument):
     Whether the step took it, and why not.
     """
 
-    distance: Optional[float] = document_field(
-        ReportedObjectKey.DISTANCE, default=None
-    )
+    distance: Optional[float] = document_field(ReportedObjectKey.DISTANCE, default=None)
     """
     How far it lies, horizontally, from where the step expected the object, see
     :attr:`PerceptionReport.grounded`, in metres; None for a query without such a

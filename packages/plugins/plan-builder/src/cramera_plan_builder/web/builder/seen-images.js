@@ -1,25 +1,18 @@
 /**
- * The images of what the robot's perception saw, as a validation and a scan of the scene
- * carry them: each shown whole, captioned with what drew it and where it comes from.
+ * The images of what the robot's perception saw, as a validation and a scan carry them.
  */
 
 import { InlineImageKey } from '../../../protocol.js';
 import { IMAGE_SOURCES } from '../../../panels/perception-panel.js';
 
 /**
- * The class of each image's figure.
- */
-export const SEEN_IMAGE_CLASS = 'seen-image';
-
-/**
  * @param {Object} elements Creates the page's elements.
  * @param {Array<Object>} images `InlineImage`s.
- * @returns {Array<HTMLElement>} A figure for each image, captioned with the title and
- *   the source of the image.
+ * @returns {Array<HTMLElement>} A figure for each image, captioned with its title and source.
  */
 export function seenImageFigures(elements, images) {
   return images.map((seen) => {
-    const figure = elements.create('figure', SEEN_IMAGE_CLASS);
+    const figure = elements.create('figure', 'seen-image');
     const image = elements.create('img');
     image.src = seen[InlineImageKey.URL];
     image.alt = seen[InlineImageKey.TITLE];

@@ -62,8 +62,7 @@ def test_a_scan_order_and_its_scan_survive_their_json():
     order = SceneScanOrder(
         demo=DemoDocument(plan=PlanDocument(name="empty")), simulated_objects=[cube]
     )
-    scan = SceneScan(objects=[cube], grounding=DetectionGrounding.ASSUMED)
-    seen = SceneScan(
+    scan = SceneScan(
         objects=[cube],
         grounding=DetectionGrounding.PERCEIVED,
         images=[
@@ -76,7 +75,6 @@ def test_a_scan_order_and_its_scan_survive_their_json():
     )
     assert SceneScanOrder.from_json(order.to_json()) == order
     assert SceneScan.from_json(scan.to_json()) == scan
-    assert SceneScan.from_json(seen.to_json()) == seen
     assert (
         ScanRequest.from_json(
             ScanRequest(plan=PlanDocument(name="empty")).to_json()

@@ -89,8 +89,7 @@ def test_an_image_is_titled_by_its_annotator_else_its_pipeline():
 
 def test_a_step_subscribes_to_the_image_topics_there_are_when_it_starts():
     """
-    A pipeline that started publishing a moment before a step is listened to during the
-    step, not only once the listener next looks for topics.
+    A pipeline started just before a step is listened to during it.
     """
     listener = RoboKudoImageListener().start()
     sender_context = Context()
@@ -116,7 +115,7 @@ def test_a_step_subscribes_to_the_image_topics_there_are_when_it_starts():
 @dataclass
 class PublishingPipeline:
     """
-    Publishes images on :data:`TOPIC` as a RoboKudo visualizer does, to a listener.
+    Publishes images on :data:`TOPIC` to a listener, as a RoboKudo visualizer does.
     """
 
     listener: RoboKudoImageListener
@@ -131,10 +130,7 @@ class PublishingPipeline:
 
     def images_once_delivered(self, image: Image) -> List[SeenImage]:
         """
-        Publish an image until the listener holds one that arrived since a step started.
-
-        :param image: The image.
-        :return: The step's images once one arrived, empty when none did in time.
+        :return: A new step's images once `image` arrived, empty when it did not in time.
         """
         self.listener.observe_started()
         deadline = time.monotonic() + DELIVERY_TIMEOUT_SECONDS
@@ -154,8 +150,7 @@ class PublishingPipeline:
 @contextmanager
 def publishing_to(listener: RoboKudoImageListener) -> Iterator[PublishingPipeline]:
     """
-    :param listener: A listener, started while the block runs.
-    :return: A pipeline publishing to it.
+    :return: A pipeline publishing to `listener`, started while the block runs.
     """
     listener.start()
     sender_context = Context()
@@ -165,26 +160,6 @@ def publishing_to(listener: RoboKudoImageListener) -> Iterator[PublishingPipelin
     listener.stop()
     node.destroy_node()
     sender_context.try_shutdown()
-
-
-def red_image(width: int, height: int) -> Image:
-    """
-    :return: A red image of the size, encoded blue first.
-    """
-    return Image(
-        height=height,
-        width=width,
-        encoding="bgr8",
-        step=3 * width,
-        data=bytes([0, 0, 255] * width * height),
-    )
-
-
-def png_size(png: bytes) -> tuple[int, int]:
-    """
-    :return: The width and height a PNG file's header gives.
-    """
-    return struct.unpack(">II", png[16:24])
 
 
 def test_a_blank_image_a_visualizer_publishes_for_an_annotator_drawing_nothing_is_left_out():
@@ -197,20 +172,23 @@ def test_a_blank_image_a_visualizer_publishes_for_an_annotator_drawing_nothing_i
 
 
 def test_an_image_wider_than_the_listener_keeps_is_shrunk_to_fit():
+    red = Image(
+        height=2, width=4, encoding="bgr8", step=12, data=bytes([0, 0, 255] * 8)
+    )
     with publishing_to(RoboKudoImageListener(largest_width=2)) as pipeline:
-        (image,) = pipeline.images_once_delivered(red_image(width=4, height=2))
+        (image,) = pipeline.images_once_delivered(red)
 
-    assert png_size(image.png) == (2, 1)
+    # a PNG file's header gives its width and height
+    assert struct.unpack(">II", image.png[16:24]) == (2, 1)
 
 
 def test_the_images_of_a_step_wait_for_one_still_on_its_way():
     """
-    A pipeline publishes what it drew just after it answered, so the images of a step
-    asked for once it was answered are waited for, up to the listener's timeout.
+    A visualizer publishes just after the answer, so a step's images wait for it.
     """
     listener = RoboKudoImageListener(arrival_timeout=DELIVERY_TIMEOUT_SECONDS)
     with publishing_to(listener) as pipeline:
-        pipeline.images_once_delivered(red_image(width=1, height=1))
+        pipeline.images_once_delivered(red_pixel())
         listener.observe_started()
         late = threading.Timer(0.5, pipeline.publisher.publish, [red_pixel()])
         late.start()

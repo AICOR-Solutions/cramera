@@ -165,8 +165,7 @@ class StepValidation(JsonDocument):
         StepValidationKey.IMAGES, default_factory=list
     )
     """
-    The images of what a detection step saw, empty for any other step and where no
-    images were taken.
+    What a detection step saw; empty for any other step.
     """
 
 

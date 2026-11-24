@@ -74,7 +74,6 @@ from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from rclpy.node import Node
-from sensor_msgs.msg import Image
 from typing_extensions import Sequence
 from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
@@ -812,7 +811,7 @@ def test_a_validation_shows_what_robokudo_drew_for_a_detection_that_saw_nothing(
     monkeypatch,
 ):
     """
-    What the pipeline drew of the scene shows why nothing matching was seen.
+    What the pipeline drew shows why nothing matching was seen.
     """
     from ..dataset.real_robot import RoboKudoSeeingNothing
 
@@ -820,9 +819,7 @@ def test_a_validation_shows_what_robokudo_drew_for_a_detection_that_saw_nothing(
     cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
     [detect, *_] = cubes.robots[0].steps
     order = ValidationOrder(demo=DemoDocument(plan=cubes))
-    seeing_nothing = RoboKudoSeeingNothing(
-        drawn=Image(height=1, width=1, encoding="bgr8", step=3, data=bytes([0, 0, 255]))
-    )
+    seeing_nothing = RoboKudoSeeingNothing()
 
     with SpinningNode("robokudo_stand_in", MultiThreadedExecutor).running() as node:
         with seeing_nothing.serving(node):
@@ -878,8 +875,8 @@ def test_a_run_whose_detection_cannot_tell_the_cubes_apart_gives_up_the_step(
     tmp_path, monkeypatch
 ):
     """
-    An object reported in no color, on a table of three cubes, is none of them in
-    particular; that is an attempt that did not work, not a run that crashed.
+    An object in no color is none of three cubes in particular: the step fails, the run
+    does not crash.
     """
     from ..dataset.real_robot import RoboKudoTellingNoColors
 

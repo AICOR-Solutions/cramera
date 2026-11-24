@@ -100,8 +100,7 @@ class GroundedStep:
 
     images: List[SeenImage] = field(default_factory=list)
     """
-    The images of what a detection step saw when it was grounded; empty for any other
-    step and where no camera took any.
+    What a detection step saw when it was grounded.
     """
 
     @property
@@ -324,8 +323,7 @@ class PlanGrounding:
 
     camera: Optional[PerceptionCamera] = None
     """
-    Takes the images of what each detection step saw while it was grounded; None takes
-    none.
+    Takes the images of what each detection step saw; None takes none.
     """
 
     validation: PlanValidation = field(init=False)

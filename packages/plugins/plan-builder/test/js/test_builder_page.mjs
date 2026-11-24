@@ -845,8 +845,7 @@ const SCANNED_CUBES = [
 const drawn = { [InlineImageKey.TITLE]: 'PointCloudClusterExtractor', [InlineImageKey.SOURCE]: PerceptionImageSource.ROBOKUDO, [InlineImageKey.URL]: 'data:image/png;base64,iVBORw0KGgo=' };
 
 /**
- * @param {Object} element An element holding seen images.
- * @returns {Array<Array<string>>} The source, the description and the caption of each.
+ * @returns {Array<Array<string>>} The src, alt and caption of each image under `element`.
  */
 const shownImages = (element) => element.findAll((child) => child.tagName === 'FIGURE').map((figure) => {
   const [image] = figure.findAll((child) => child.tagName === 'IMG');

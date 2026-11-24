@@ -14,19 +14,17 @@ each validation has a process of its own.
 from __future__ import annotations
 
 import sys
-from contextlib import contextmanager
+from contextlib import nullcontext
 from dataclasses import dataclass
 
-from typing_extensions import Any, Iterator, List, Optional
+from typing_extensions import Any
 
-from coraplex.perception import PerceptionInterface, WorldPerception
-from cramera_bridge.live.perception_images import PerceptionCamera
+from coraplex.perception import WorldPerception
 from cramera_bridge.plans.demo import PlannedTaskDemo
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.order_command import OrderCommand
 from cramera_bridge.plans.robot_perception import RobotPerception
 from cramera_bridge.real_robot import ReportedPosture
-from cramera_protocol.plan_builder import PlanStep
 from cramera_protocol.validation import ValidationOrder, ValidationReport
 from semantic_digital_twin.world import World
 
@@ -47,14 +45,24 @@ class PlanValidator:
     def validate(self) -> ValidationReport:
         """
         :return: How each step of the performing robot fared, starting where
-            :meth:`build_world` stands the robot.
+            :meth:`build_world` stands the robot. A plan that looks for no objects is
+            given the twin, which it never asks, and no camera.
         """
         demo = PlannedTaskDemo.of_document(self.order.demo, port=0)
         steps = demo.steps()
+        robot = RobotPerception(
+            demo=self.order.demo, simulated_objects=self.order.simulated_objects
+        )
+        looks = any(
+            demo.discovered_actions.named(step.action).looks_for_objects()
+            for step in steps
+        )
         # listening from the start, so it knows RoboKudo's image topics by the first query
-        with self.camera(demo, steps) as camera:
+        with robot.watching() if looks else nullcontext() as camera:
             world = self.build_world(demo)
-            with self.perception(demo, steps) as live:
+            with (
+                robot.perceiving() if looks else nullcontext(WorldPerception())
+            ) as live:
                 grounded = PlanGrounding(
                     context=demo.build_context(world),
                     bodies=dict(demo.bodies),
@@ -77,60 +85,6 @@ class PlanValidator:
         if self.order.reads_robot_posture:
             ReportedPosture().apply(world)
         return world
-
-    @contextmanager
-    def perception(
-        self, demo: PlannedTaskDemo, steps: List[PlanStep]
-    ) -> Iterator[PerceptionInterface]:
-        """
-        Reach the robot's perception while the block runs, if a step looks for objects;
-        a plan that looks for none is given the twin, which it never asks.
-
-        :param demo: The plan's demo.
-        :param steps: The performing robot's steps.
-        """
-        if not self.looks_for_objects(demo, steps):
-            yield WorldPerception()
-            return
-        with self.robot_perception().perceiving() as live:
-            yield live
-
-    @contextmanager
-    def camera(
-        self, demo: PlannedTaskDemo, steps: List[PlanStep]
-    ) -> Iterator[Optional[PerceptionCamera]]:
-        """
-        Keep the images RoboKudo publishes of what it saw while the block runs, if a step
-        looks for objects, so each detection's report shows them.
-
-        :param demo: The plan's demo.
-        :param steps: The performing robot's steps.
-        """
-        if not self.looks_for_objects(demo, steps):
-            yield None
-            return
-        with self.robot_perception().watching() as listener:
-            yield listener
-
-    def robot_perception(self) -> RobotPerception:
-        """
-        :return: The perception of the order's robot, or of its simulated scene.
-        """
-        return RobotPerception(
-            demo=self.order.demo, simulated_objects=self.order.simulated_objects
-        )
-
-    @staticmethod
-    def looks_for_objects(demo: PlannedTaskDemo, steps: List[PlanStep]) -> bool:
-        """
-        :param demo: The plan's demo.
-        :param steps: The performing robot's steps.
-        :return: Whether a step looks for objects.
-        """
-        return any(
-            demo.discovered_actions.named(step.action).looks_for_objects()
-            for step in steps
-        )
 
 
 # %% command

@@ -44,10 +44,8 @@ class RobotProfileVariable(StrEnum):
 
     UNVALIDATED_REAL_RUNS = "CRAMERA_UNVALIDATED_REAL_RUNS"
     """
-    Set to ``1``, developer mode may run a plan on the real robot without a passed
-    validation, as it may on any other executor. Dangerous: the workspace boxes,
-    velocity limits and collision avoidance still hold, nothing else checks the plan.
-    Unset, no request overrides the validation gate of a real run.
+    Set to ``1``, developer mode may run unvalidated plans on the real robot. Dangerous:
+    only workspace boxes, velocity limits and collision avoidance still hold.
     """
 
 

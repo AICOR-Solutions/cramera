@@ -82,9 +82,8 @@ class SceneScanner:
 
     def scan(self) -> SceneScan:
         """
-        :return: The plan's objects after the scan, with the images of what the robot's
-            perception saw; a simulated robot rests with its arms parked, as a
-            simulated run starts.
+        :return: The plan's objects after the scan, and what perception saw; a simulated
+            robot rests with its arms parked, as a simulated run starts.
         :raises PerceptionEngineNotNamed: When a simulated scene is perceived and no
             analysis engine is named.
         """
