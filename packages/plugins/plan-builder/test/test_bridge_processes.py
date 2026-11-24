@@ -14,6 +14,8 @@ from enum import StrEnum
 from importlib.machinery import ModuleSpec
 from pathlib import Path
 
+from typing_extensions import Optional
+
 import pytest
 
 from cramera_plan_builder.bridge_processes import (
@@ -91,16 +93,32 @@ class OrderedProcess(BridgeProcess):
         return ScanFailed(reason, output)
 
 
+@dataclass(frozen=True)
+class ExpectingProcess(OrderedProcess):
+    """
+    Differs from :class:`OrderedProcess` in telling the process of the next order to
+    expect the order answered last.
+    """
+
+    def expected_order(self, answered: JsonDocument) -> Optional[JsonDocument]:
+        return answered
+
+
+def installed() -> CramModules:
+    """
+    :return: Modules of which every one is installed.
+    """
+    return CramModules(
+        finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
+    )
+
+
 def ordered_process(timeout: float = 30.0) -> OrderedProcess:
     """
     :return: A bridge process of the stand-in interpreter whose modules are installed.
     """
     return OrderedProcess(
-        interpreter=str(INTERPRETER),
-        timeout=timeout,
-        modules=CramModules(
-            finder=lambda name: ModuleSpec(name, loader=None, origin=f"{name}.py")
-        ),
+        interpreter=str(INTERPRETER), timeout=timeout, modules=installed()
     )
 
 
@@ -145,6 +163,59 @@ def test_the_process_of_the_next_order_is_started_before_the_order():
     second = answer(process)
 
     assert second["pid"] == waiting.pid
+
+
+# %% expecting the next order
+
+
+def test_the_process_of_the_next_order_is_told_the_order_expected():
+    process = ExpectingProcess(interpreter=str(INTERPRETER), modules=installed())
+    answer(process)
+
+    second = answer(process)
+
+    assert second["expected"] == Behaviour.ANSWER
+
+
+def test_a_process_is_told_no_order_where_none_is_expected():
+    process = ordered_process()
+    answer(process)
+
+    second = answer(process)
+
+    assert second["expected"] is None
+
+
+def test_a_process_prepared_before_the_first_order_answers_it():
+    process = ordered_process()
+    process.prepare(BehaviourOrder(behaviour=Behaviour.ANSWER))
+    waiting = process.next_process.waiting.process
+
+    first = answer(process)
+
+    assert first["pid"] == waiting.pid
+    assert first["expected"] == Behaviour.ANSWER
+
+
+def test_preparing_without_the_cram_workspace_starts_no_process():
+    process = OrderedProcess(
+        interpreter=str(INTERPRETER), modules=CramModules(finder=lambda name: None)
+    )
+
+    process.prepare()
+
+    assert process.next_process.waiting is None
+
+
+def test_closing_ends_the_process_waiting_for_its_order():
+    process = ordered_process()
+    process.prepare()
+    waiting = process.next_process.waiting.process
+
+    process.close()
+
+    assert waiting.poll() is not None
+    assert process.next_process.waiting is None
 
 
 # %% failing

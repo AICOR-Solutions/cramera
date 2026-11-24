@@ -5,11 +5,13 @@ with the plan whose validation passed last.
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from importlib.machinery import ModuleSpec
 
 import pytest
 
+from cramera_plan_builder.bridge_processes import ProcessFile
 from cramera_plan_builder.exceptions import ValidationFailed
 from cramera_plan_builder.validations import PlanValidations, ValidationGate
 from cramera_plan_builder.workspace import CramModules
@@ -63,6 +65,17 @@ def test_a_validator_ending_without_a_report_fails_the_validation(plan):
 
     with pytest.raises(ValidationFailed):
         validations.validate(ValidationOrder(demo=DemoDocument(plan=plan)))
+
+
+def test_the_next_validator_expects_the_order_validated_last(plan):
+    validations = PlanValidations(interpreter=str(INTERPRETER), modules=installed())
+    order = ValidationOrder(demo=DemoDocument(plan=plan))
+
+    validations.validate(order)
+
+    expected = validations.next_process.waiting.file(ProcessFile.EXPECTED)
+    assert ValidationOrder.from_json(json.loads(expected.read_text("utf-8"))) == order
+    validations.close()
 
 
 # %% gate

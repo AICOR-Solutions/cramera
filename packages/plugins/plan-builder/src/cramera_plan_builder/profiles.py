@@ -134,6 +134,23 @@ class ConfiguredProfile:
             reads_robot_posture=self.connection is RobotConnection.REAL,
         )
 
+    def expected_validation_order(self) -> Optional[ValidationOrder]:
+        """
+        :return: The validation of the profile's first template, which a validator
+            started ahead may expect first; None without a template.
+        """
+        if not self.templates:
+            return None
+        profile = self.profile
+        return self.validation_order(
+            DemoDocument(
+                plan=self.templates[0].plan,
+                zones=list(profile.zones),
+                safety=profile.safety,
+                perception=profile.perception,
+            )
+        )
+
     def camera_mount(self) -> Optional[CameraMount]:
         """
         :return: How the profile's robot has its camera mounted; None without a

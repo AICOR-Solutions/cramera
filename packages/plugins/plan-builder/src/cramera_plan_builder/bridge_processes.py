@@ -2,7 +2,8 @@
 Asking cramera-bridge in a child process of its own: a command module of the bridge is
 handed an order document in a file and writes its answer document into another, so the
 plan builder never imports CRAM and every request starts from a fresh world. The process
-of the next order is started ahead, so its imports are done when the order comes.
+of the next order is started ahead, so its imports are done when the order comes, and is
+told the order it may expect, so it can prepare for it meanwhile.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from typing_extensions import Any, Callable, List
+from typing_extensions import Any, Callable, List, Optional
 
 from cramera_plan_builder.exceptions import (
     CramUnavailable,
@@ -52,6 +53,11 @@ class ProcessFile(StrEnum):
     OUTPUT = "output.txt"
     """
     What it prints.
+    """
+
+    EXPECTED = "expected.json"
+    """
+    The order it may expect, which it prepares for while it waits.
     """
 
 
@@ -156,6 +162,13 @@ class ProcessOutput:
 # %% started processes
 
 
+ProcessCommand = Callable[[Path, Path, Optional[Path]], List[str]]
+"""
+Gives the command line running a module on an order file, an answer file and the file of
+the order expected, None when none is.
+"""
+
+
 @dataclass
 class StartedProcess:
     """
@@ -174,17 +187,28 @@ class StartedProcess:
     """
 
     @classmethod
-    def start(cls, command: Callable[[Path, Path], List[str]]) -> StartedProcess:
+    def start(
+        cls,
+        command: ProcessCommand,
+        expected: Optional[JsonDocument] = None,
+    ) -> StartedProcess:
         """
-        :param command: The command line running the module on an order file and an
-            answer file.
+        :param command: The command line running the module on an order file, an
+            answer file and the file of the order expected.
+        :param expected: The order the process may expect, None when none is.
         :return: The process, started on the files of a new directory.
         """
         directory = tempfile.TemporaryDirectory()
         root = Path(directory.name)
+        expected_file = None
+        if expected is not None:
+            expected_file = root / ProcessFile.EXPECTED
+            expected_file.write_text(json.dumps(expected.to_json()), encoding="utf-8")
         with open(root / ProcessFile.OUTPUT, "wb") as output:
             process = subprocess.Popen(
-                command(root / ProcessFile.ORDER, root / ProcessFile.ANSWER),
+                command(
+                    root / ProcessFile.ORDER, root / ProcessFile.ANSWER, expected_file
+                ),
                 stdin=subprocess.PIPE,
                 stdout=output,
                 stderr=subprocess.STDOUT,
@@ -250,7 +274,7 @@ class NextProcess:
     Hands each waiting process to one order only.
     """
 
-    def take(self, command: Callable[[Path, Path], List[str]]) -> StartedProcess:
+    def take(self, command: ProcessCommand) -> StartedProcess:
         """
         :param command: The command line running the module, see
             :meth:`StartedProcess.start`.
@@ -265,16 +289,28 @@ class NextProcess:
             taken.end()
         return StartedProcess.start(command)
 
-    def prepare(self, command: Callable[[Path, Path], List[str]]) -> None:
+    def prepare(
+        self, command: ProcessCommand, expected: Optional[JsonDocument] = None
+    ) -> None:
         """
         Start a process waiting for the next order, unless one waits already.
 
         :param command: The command line running the module, see
             :meth:`StartedProcess.start`.
+        :param expected: The order the process may expect, None when none is.
         """
         with self.lock:
             if self.waiting is None:
-                self.waiting = StartedProcess.start(command)
+                self.waiting = StartedProcess.start(command, expected)
+
+    def end(self) -> None:
+        """
+        End the process waiting for the next order, if one waits.
+        """
+        with self.lock:
+            ended, self.waiting = self.waiting, None
+        if ended is not None:
+            ended.end()
 
 
 @dataclass
@@ -418,6 +454,29 @@ class BridgeProcess(ABC):
         """
         return self.answering.cancel()
 
+    def expected_order(self, answered: JsonDocument) -> Optional[JsonDocument]:
+        """
+        :param answered: The order answered last.
+        :return: The order the process of the next order may expect, None for none.
+        """
+        return None
+
+    def prepare(self, expected: Optional[JsonDocument] = None) -> None:
+        """
+        Start the process of the first order ahead, so its imports are done when the
+        order comes; nothing without the CRAM workspace.
+
+        :param expected: The order the process may expect, None when none is.
+        """
+        if not self.modules.missing():
+            self.next_process.prepare(self.command, expected)
+
+    def close(self) -> None:
+        """
+        End the process waiting for the next order.
+        """
+        self.next_process.end()
+
     def answer(self, order: JsonDocument) -> Any:
         """
         Hands the order to the process waiting for it, or to a new one, and starts the
@@ -450,7 +509,7 @@ class BridgeProcess(ABC):
         answered = process.process.returncode == 0 and answer_file.is_file()
         answer = answer_file.read_text(encoding="utf-8") if answered else None
         process.end()
-        self.next_process.prepare(self.command)
+        self.next_process.prepare(self.command, self.expected_order(order))
         if answering.cancelled.is_set():
             raise self.describe_cancellation()
         final_error = ProcessOutput(output).final_error(self.reason_length_limit)
@@ -464,10 +523,13 @@ class BridgeProcess(ABC):
         logger.info("%s answered in %.1f s", self.module, time.monotonic() - started)
         return json.loads(answer)
 
-    def command(self, order_file: Path, answer_file: Path) -> List[str]:
+    def command(
+        self, order_file: Path, answer_file: Path, expected_file: Optional[Path] = None
+    ) -> List[str]:
         """
         :param order_file: The file holding the order.
         :param answer_file: The file the answer is written to.
+        :param expected_file: The file holding the order expected, None when none is.
         :return: The command running the module.
         """
         return [
@@ -476,4 +538,5 @@ class BridgeProcess(ABC):
             self.module,
             str(order_file),
             str(answer_file),
+            *([] if expected_file is None else [str(expected_file)]),
         ]

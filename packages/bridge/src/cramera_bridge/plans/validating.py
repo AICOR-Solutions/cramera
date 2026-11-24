@@ -5,25 +5,28 @@ how each fared. A detection perceives where the robot's camera sees its region n
 through the robot's perception or that of its simulated scene, else it is assumed from
 the twin. For the real robot, the twin's robot stands as the real one reports.
 
-Run as ``python -m cramera_bridge.plans.validating <order.json> <report.json>``, it reads
-a :class:`~cramera_protocol.validation.ValidationOrder` and writes the
-:class:`~cramera_protocol.validation.ValidationReport` once its standard input closes, so
-each validation has a process of its own.
+Run as ``python -m cramera_bridge.plans.validating <order.json> <report.json>
+[<expected order.json>]``, it reads a :class:`~cramera_protocol.validation.ValidationOrder`
+and writes the :class:`~cramera_protocol.validation.ValidationReport` once its standard
+input closes, so each validation has a process of its own. While it waits, it imports the
+robot models and builds the robots' world of the order it is told to expect, which the
+order copies when its robots are the same.
 """
 
 from __future__ import annotations
 
 import sys
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from typing_extensions import Any
+from typing_extensions import Any, Optional
 
 from coraplex.perception import WorldPerception
-from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.demo import PlannedTaskDemo, SceneWorlds
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.order_command import OrderCommand
 from cramera_bridge.plans.robot_perception import RobotPerception
+from cramera_bridge.plans.workspace import RobotAnnotations
 from cramera_bridge.real_robot import ReportedPosture
 from cramera_protocol.validation import ValidationOrder, ValidationReport
 from semantic_digital_twin.world import World
@@ -42,16 +45,40 @@ class PlanValidator:
     The plan, its environment and the scene the robot's camera sees.
     """
 
+    scene_worlds: Optional[SceneWorlds] = None
+    """
+    The robots' worlds built before, which the twin and the world of a simulated scene
+    copy, so a validation builds its robots once; None builds the robots for each.
+    """
+
+    def demo(self) -> PlannedTaskDemo:
+        """
+        :return: The plan's demo, building its robots' world through
+            :attr:`scene_worlds`.
+        """
+        return PlannedTaskDemo.of_document(
+            self.order.demo, port=0, scene_worlds=self.scene_worlds
+        )
+
+    def prepare(self) -> None:
+        """
+        Build the robots' world of the order into :attr:`scene_worlds`, so a validation
+        of the same robots copies it.
+        """
+        self.demo().build_robots_world()
+
     def validate(self) -> ValidationReport:
         """
         :return: How each step of the performing robot fared, starting where
             :meth:`build_world` stands the robot. A plan that looks for no objects is
             given the twin, which it never asks, and no camera.
         """
-        demo = PlannedTaskDemo.of_document(self.order.demo, port=0)
+        demo = self.demo()
         steps = demo.steps()
         robot = RobotPerception(
-            demo=self.order.demo, simulated_objects=self.order.simulated_objects
+            demo=self.order.demo,
+            simulated_objects=self.order.simulated_objects,
+            scene_worlds=self.scene_worlds,
         )
         looks = any(
             demo.discovered_actions.named(step.action).looks_for_objects()
@@ -96,8 +123,25 @@ class ValidateCommand(OrderCommand):
     Validates the plan an order file names and writes the report into a file.
     """
 
+    scene_worlds: SceneWorlds = field(default_factory=SceneWorlds)
+    """
+    The robots' worlds built while the process waits for its order.
+    """
+
+    def prepare(self, expected: Optional[Any]) -> None:
+        """
+        Import every robot model, and build the robots' world of the expected order.
+        """
+        RobotAnnotations().annotations()
+        if expected is not None:
+            PlanValidator(
+                ValidationOrder.from_json(expected), scene_worlds=self.scene_worlds
+            ).prepare()
+
     def answer(self, order: Any) -> ValidationReport:
-        return PlanValidator(ValidationOrder.from_json(order)).validate()
+        return PlanValidator(
+            ValidationOrder.from_json(order), scene_worlds=self.scene_worlds
+        ).validate()
 
 
 if __name__ == "__main__":

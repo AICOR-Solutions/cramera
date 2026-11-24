@@ -23,6 +23,7 @@ from cramera.http.server import RequestAnswerer
 from cramera.locations import DataLocations
 from cramera.plugins import PluginContext
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
+from cramera_plan_builder.bridge_processes import ProcessFile
 from cramera_plan_builder.constraints import ConstraintCompiler
 from cramera_plan_builder.demos import DEMO_SUFFIX, DemoTemplate
 from cramera_plan_builder.exceptions import (
@@ -84,6 +85,7 @@ from cramera_protocol.validation import (
     StepFailureReason,
     StepVerdict,
     ValidationCancellation,
+    ValidationOrder,
     ValidationReport,
     ValidationRequest,
 )
@@ -685,6 +687,43 @@ def validating(serve, output, workspace_loader):
     return serve(
         validating_plugin(output, workspace_loader, DATASET / "profile" / "tracy.json")
     )
+
+
+def test_a_plan_builder_with_a_profile_prepares_a_validator_for_its_first_template(
+    serve, output, workspace_loader
+):
+    profile_file = DATASET / "profile" / "tracy.json"
+    plugin = validating_plugin(output, workspace_loader, profile_file)
+
+    serve(plugin)
+
+    [template] = ConfiguredProfile.of_file(profile_file).templates
+    expected = plugin.validations.next_process.waiting.file(ProcessFile.EXPECTED)
+    order = ValidationOrder.from_json(json.loads(expected.read_text("utf-8")))
+    assert order.demo.plan == template.plan
+
+
+def test_a_plan_builder_without_a_profile_prepares_no_validator(serve, plugin):
+    serve(plugin)
+
+    assert plugin.validations.next_process.waiting is None
+
+
+def test_closing_the_plan_builder_ends_the_validator_it_prepared(
+    output, workspace_loader, scenes, locations
+):
+    plugin = validating_plugin(
+        output, workspace_loader, DATASET / "profile" / "tracy.json"
+    )
+    application = ViewerApplication(
+        catalog=scenes, locations=locations, plugins=[plugin]
+    )
+    application.router()
+    waiting = plugin.validations.next_process.waiting.process
+
+    application.close()
+
+    assert waiting.wait(timeout=10) is not None
 
 
 def test_a_validation_answers_the_validators_report(validating, plan):

@@ -6,8 +6,10 @@ its grounding chose, and the placements measured afterwards.
 
 from __future__ import annotations
 
+import json
 import math
-from dataclasses import dataclass, field
+from copy import deepcopy
+from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from functools import cached_property
 from pathlib import Path
@@ -169,6 +171,37 @@ class PlannedRobots:
         )
 
 
+# %% worlds built once
+
+
+@dataclass
+class SceneWorlds:
+    """
+    The worlds of the plans' robots, each built once in a process and handed out as a
+    deep copy, as a validation copies its twin; the world built is never handed out
+    itself, so every copy starts as it was built.
+    """
+
+    built: Dict[str, World] = field(default_factory=dict)
+    """
+    The world built of each robot scene, by the scene's key, see
+    :meth:`PlannedTaskDemo.scene_key`.
+    """
+
+    def world(self, key: Optional[str], build: Callable[[], World]) -> World:
+        """
+        :param key: The key of the robot scene, None for a scene not to be kept.
+        :param build: Builds the world of the scene.
+        :return: A copy of the world built of the scene, which is built first unless it
+            was before; a new world for a scene without a key.
+        """
+        if key is None:
+            return build()
+        if key not in self.built:
+            self.built[key] = build()
+        return deepcopy(self.built[key])
+
+
 # %% demo
 
 
@@ -238,6 +271,12 @@ class PlannedTaskDemo(RobotTaskDemo):
     The plan of the first attempt at every step, once the plan was built.
     """
 
+    scene_worlds: Optional[SceneWorlds] = field(default=None, kw_only=True)
+    """
+    The robots' worlds built before, which :meth:`build_world` copies instead of
+    building the robots anew; None builds them for every world.
+    """
+
     @cached_property
     def discovered_actions(self) -> DiscoveredActions:
         """
@@ -246,10 +285,17 @@ class PlannedTaskDemo(RobotTaskDemo):
         return self.discovery.discover()
 
     @classmethod
-    def of_document(cls, document: DemoDocument, port: int) -> PlannedTaskDemo:
+    def of_document(
+        cls,
+        document: DemoDocument,
+        port: int,
+        scene_worlds: Optional[SceneWorlds] = None,
+    ) -> PlannedTaskDemo:
         """
         :param document: A plan the plan builder checked, and its environment.
         :param port: The port the run is published on.
+        :param scene_worlds: The robots' worlds built before, see
+            :attr:`scene_worlds`.
         :return: The demo; a plan in an environment bundle is recorded as
             ``<bundle>_<robot model>_<plan name>``, otherwise under the plan's name, each
             space of the name as ``_``.
@@ -265,6 +311,7 @@ class PlannedTaskDemo(RobotTaskDemo):
             port=port,
             document=document,
             robot_scene=scene,
+            scene_worlds=scene_worlds,
         )
         if document.environment_directory is None:
             return cls(environment=EmptyFloor(), name=plan.file_name(), **fields)
@@ -307,12 +354,42 @@ class PlannedTaskDemo(RobotTaskDemo):
         """
         world = self.execution.reported_world()
         if world is None:
-            world = self.robot_scene.build_world(self.environment)
+            world = self.build_robots_world()
             StartingPosture().apply(world)
         else:
             self.robot_scene.selected_placement().name_reported_robot(world)
         self.bodies = PlannedObjects(self.plan.objects).spawn(world)
         return world
+
+    def build_robots_world(self) -> World:
+        """
+        :return: A new world holding the environment and every robot at its start pose
+            and posture: a copy of the one :attr:`scene_worlds` built of the same robots
+            in the same environment, if it has them.
+        """
+        if self.scene_worlds is None:
+            return self.robot_scene.build_world(self.environment)
+        return self.scene_worlds.world(
+            self.scene_key(), lambda: self.robot_scene.build_world(self.environment)
+        )
+
+    def scene_key(self) -> Optional[str]:
+        """
+        :return: What the robots' world is built from: every robot of the plan, its
+            steps left out, and the robot performing; None for a plan in an environment
+            bundle, whose files may change between two plans.
+        """
+        if self.document.environment_directory is not None:
+            return None
+        return json.dumps(
+            {
+                "robots": [
+                    replace(robot, steps=[]).to_json() for robot in self.plan.robots
+                ],
+                "performing": self.robot_scene.selected_namespace,
+            },
+            sort_keys=True,
+        )
 
     def performance(self, context: TaskContext) -> PlanPerformance:
         """

@@ -22,7 +22,7 @@ from cramera_bridge.execution import (
     PhysicalExecution,
 )
 from cramera_bridge.live.ros_perception_images import RoboKudoImageListener
-from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.demo import PlannedTaskDemo, SceneWorlds
 from cramera_bridge.ros_node import SpinningNode
 from cramera_protocol.plan_builder import DemoDocument, PlannedObject
 from robokudo.defs import PACKAGE_NAME
@@ -47,6 +47,12 @@ class RobotPerception:
     """
     The objects standing in a simulated scene that the robot's camera is rendered from,
     or None to ask the robot's own perception.
+    """
+
+    scene_worlds: Optional[SceneWorlds] = None
+    """
+    The robots' worlds built before, which the world of a simulated scene copies; None
+    builds it anew.
     """
 
     analysis_engine: str = field(
@@ -119,6 +125,7 @@ class RobotPerception:
                 plan=replace(self.demo.plan, objects=self.simulated_objects),
             ),
             port=0,
+            scene_worlds=self.scene_worlds,
         )
         world = scene.build_world()
         PhysicalExecution().prepare(world)

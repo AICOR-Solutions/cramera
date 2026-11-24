@@ -40,7 +40,7 @@ from cramera_bridge.geometry import NumericPose
 from cramera_bridge.live.perception_images import PNG_DATA_URL_PREFIX, PNG_SIGNATURE
 from cramera_bridge.live.ros_perception_images import image_title
 from cramera_bridge.plans.arms import Arms, RobotArms
-from cramera_bridge.plans.demo import PlannedTaskDemo
+from cramera_bridge.plans.demo import PlannedTaskDemo, SceneWorlds
 from cramera_bridge.plans.grounding import PlanGrounding
 from cramera_bridge.plans.objects import LIBRARY_VARIABLE
 from cramera_bridge.plans.safety import WORKSPACE_MARGIN
@@ -74,9 +74,10 @@ from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from rclpy.node import Node
-from typing_extensions import Sequence
+from typing_extensions import List, Optional, Sequence
 from rclpy.executors import MultiThreadedExecutor
 from semantic_digital_twin.robots.tracy import Tracy
+from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
 
 from ..dataset.bundles import DATASET
@@ -584,12 +585,23 @@ class ValidatorProcess:
         """
         return self.directory / "report.json"
 
-    def start(self, stdin: int) -> None:
+    @property
+    def expected_file(self) -> Path:
+        """
+        :return: The file of the order the validator is told to expect.
+        """
+        return self.directory / "expected.json"
+
+    def start(self, stdin: int, expected: Optional[PlanDocument] = None) -> None:
         """
         Start the validator, which reads its order once its input closes.
 
         :param stdin: The validator's input, a pipe to close once the order is written.
+        :param expected: The plan of the order it is told to expect, None for none.
         """
+        if expected is not None:
+            order = ValidationOrder(demo=DemoDocument(plan=expected))
+            self.expected_file.write_text(json.dumps(order.to_json()), "utf-8")
         self.process = subprocess.Popen(
             [
                 sys.executable,
@@ -597,6 +609,7 @@ class ValidatorProcess:
                 "cramera_bridge.plans.validating",
                 str(self.order_file),
                 str(self.report_file),
+                *([] if expected is None else [str(self.expected_file)]),
             ],
             stdin=stdin,
             stdout=subprocess.DEVNULL,
@@ -649,6 +662,143 @@ def test_a_validator_started_before_its_order_reports_as_one_started_with_it(
         *reports_started_with_order,
         reports_started_with_order[0],
     ]
+
+
+def test_a_validator_told_to_expect_an_order_reports_as_one_told_nothing(
+    tmp_path, pick_and_place
+):
+    failing = with_red_cube_at(pick_and_place, *OUT_OF_REACH)
+    [robot] = pick_and_place.robots
+    elsewhere = replace(
+        pick_and_place, robots=[replace(robot, pose=Pose(0.1, 0, 0, 0, 0, 0, 1))]
+    )
+    plans = [failing, pick_and_place, elsewhere]
+    expecting = [ValidatorProcess(tmp_path / f"expecting_{n}") for n in range(3)]
+    told_nothing = [ValidatorProcess(tmp_path / f"nothing_{n}") for n in range(3)]
+    for validator in expecting:
+        validator.directory.mkdir()
+        validator.start(subprocess.PIPE, expected=pick_and_place)
+    for validator, plan in zip(told_nothing, plans):
+        validator.write_order(plan)
+        validator.start(subprocess.DEVNULL)
+
+    for validator, plan in zip(expecting, plans):
+        validator.write_order(plan)
+        validator.process.stdin.close()
+
+    reports = [validator.report() for validator in expecting]
+    assert [report.passed for report in reports] == [False, True, True]
+    assert reports == [validator.report() for validator in told_nothing]
+
+
+# %% validating on the robots' world built before
+
+
+def test_the_world_of_a_scene_is_built_once_and_handed_out_as_copies():
+    worlds = SceneWorlds()
+    built: List[World] = []
+
+    def build() -> World:
+        built.append(World())
+        return built[-1]
+
+    first, second = [worlds.world("tracy", build) for _ in range(2)]
+
+    [world] = built
+    assert first is not world and second is not world
+    assert first is not second
+
+
+def test_a_scene_without_a_key_is_built_for_every_world():
+    worlds = SceneWorlds()
+    built: List[World] = []
+
+    def build() -> World:
+        built.append(World())
+        return built[-1]
+
+    handed_out = [worlds.world(None, build) for _ in range(2)]
+
+    assert handed_out == built
+
+    assert worlds.built == {}
+
+
+def scene_key(plan: PlanDocument) -> Optional[str]:
+    """
+    :return: The key the plan's robots' world is kept under.
+    """
+    return PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0).scene_key()
+
+
+def test_plans_differing_in_steps_and_objects_share_their_robots_world(
+    pick_and_place,
+):
+    [robot] = pick_and_place.robots
+    without_steps = replace(pick_and_place, robots=[replace(robot, steps=[])])
+    moved_cube = with_red_cube_at(pick_and_place, *OUT_OF_REACH)
+
+    assert scene_key(without_steps) == scene_key(pick_and_place)
+    assert scene_key(moved_cube) == scene_key(pick_and_place)
+
+
+def test_a_robot_standing_or_posed_otherwise_has_a_world_of_its_own(pick_and_place):
+    [robot] = pick_and_place.robots
+    elsewhere = replace(
+        pick_and_place, robots=[replace(robot, pose=Pose(0.1, 0, 0, 0, 0, 0, 1))]
+    )
+    joint = f"{robot.identifier}/left_shoulder_pan_joint"
+    posed = replace(
+        pick_and_place, robots=[replace(robot, joint_positions={joint: 0.3})]
+    )
+
+    keys = {scene_key(plan) for plan in [pick_and_place, elsewhere, posed]}
+
+    assert len(keys) == 3
+
+
+def test_a_plan_in_an_environment_bundle_builds_its_robots_anew(pick_and_place):
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=pick_and_place), port=0)
+    in_bundle = replace(demo.document, environment_directory="/bundles/kitchen")
+
+    assert replace(demo, document=in_bundle).scene_key() is None
+
+
+@pytest.mark.parametrize(
+    "variant",
+    ["passes", "out_of_reach", "edge_of_workspace", "no_arm_for_the_zone"],
+)
+def test_a_validation_on_the_robots_world_built_before_reports_as_one_building_it(
+    pick_and_place, variant
+):
+    plans = {
+        "passes": pick_and_place,
+        "out_of_reach": with_red_cube_at(pick_and_place, *OUT_OF_REACH),
+        "edge_of_workspace": placing_at(
+            with_pick_arm(
+                with_cube_at(pick_and_place, "red_cube", *SCANNED_RED_CUBE),
+                Arms.RIGHT,
+            ),
+            Destination(
+                placement=PlacementMode.POSE, pose=Pose(0.7, 0.295, 0.906, 0, 0, 0, 1)
+            ),
+        ),
+        "no_arm_for_the_zone": placing_at(
+            with_cube_at(pick_and_place, "red_cube", *RIGHT_ARM_WORKSPACE_ONLY),
+            Destination(placement=PlacementMode.ZONE, zone=LEFT_TRAY.identifier),
+        ),
+    }
+    worlds = SceneWorlds()
+    expected = DemoDocument(plan=pick_and_place, zones=[LEFT_TRAY], safety=TRACY_SAFETY)
+    PlanValidator(ValidationOrder(demo=expected), scene_worlds=worlds).prepare()
+    [prepared] = worlds.built.values()
+    order = ValidationOrder(demo=replace(expected, plan=plans[variant]))
+
+    report = PlanValidator(order, scene_worlds=worlds).validate()
+
+    assert [id(world) for world in worlds.built.values()] == [id(prepared)]
+    assert report == PlanValidator(order).validate()
+    assert report.passed is (variant == "passes")
 
 
 # %% running with the arm chosen
@@ -748,7 +898,14 @@ def test_a_detection_assumed_from_the_twin_is_checked_again_when_the_plan_runs(
 @pytest.mark.skipif(
     find_spec("robokudo_msgs") is None, reason="RoboKudo's messages are not installed"
 )
-def test_a_detection_the_simulated_camera_sees_is_valid_and_its_pick_holds(tmp_path):
+@pytest.mark.parametrize("expects_its_order", [False, True])
+def test_a_detection_the_simulated_camera_sees_is_valid_and_its_pick_holds(
+    tmp_path, expects_its_order
+):
+    """
+    Told to expect its order, the validator builds Tracy's world before the order
+    comes; the twin and the simulated camera's world are copies of it.
+    """
     cubes = PlanDocument.from_json(json.loads(TRACY_CUBES.read_text("utf-8")))
     order_file = tmp_path / "order.json"
     report_file = tmp_path / "report.json"
@@ -764,6 +921,7 @@ def test_a_detection_the_simulated_camera_sees_is_valid_and_its_pick_holds(tmp_p
             "cramera_bridge.plans.validating",
             str(order_file),
             str(report_file),
+            *([str(order_file)] if expects_its_order else []),
         ],
         env={
             **os.environ,

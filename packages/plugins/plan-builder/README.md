@@ -169,7 +169,13 @@ cramera
 - **Validation.** "Validate" posts the plan to the `validate` route, which runs
   `cramera_bridge.plans.validating` as a child process: every step of the selected
   robot is tried one after another in a copy of the twin, kinematically, so nothing
-  moves (coraplex's `PlanValidation`). Each step's card shows whether it is valid,
+  moves (coraplex's `PlanValidation`). The process of the next validation is started
+  ahead, at the plan builder's start with a robot profile and after each validation:
+  it imports CRAM and the robot models and builds the robots' world of the order it is
+  told to expect (the profile's first template, then the plan validated last). A
+  validation whose robots stand and are posed the same, outside an environment bundle,
+  starts from a deep copy of that world, as the simulated camera's world does; any
+  other builds its own. Each step's card shows whether it is valid,
   assumed (a detection the camera does not see now, answered from the twin), failed
   with its reason (unreachable, collision, not perceived, ambiguous, a skill the
   profile does not offer) or unchecked after a failure. A step whose arm is

@@ -55,6 +55,20 @@ def test_the_templates_are_read_relative_to_the_profile_file(configured):
     assert template.plan.robots[0].steps[0].skill == "park"
 
 
+def test_the_validation_expected_first_is_of_the_first_template(configured):
+    [template] = configured.templates
+
+    expected = configured.expected_validation_order()
+
+    assert expected.demo.plan == template.plan
+    assert expected.demo.safety == configured.profile.safety
+    assert expected.simulated_objects == configured.simulated_objects
+
+
+def test_without_a_template_no_validation_is_expected():
+    assert ConfiguredProfile().expected_validation_order() is None
+
+
 def test_the_environment_names_the_profile_file(profile_file, configured):
     named = ConfiguredProfile.of_environment(
         {RobotProfileVariable.PROFILE: str(profile_file)}

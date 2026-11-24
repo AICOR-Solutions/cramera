@@ -259,15 +259,20 @@ class PlanBuilderPlugin(ViewerPlugin):
     def start(self) -> None:
         """
         Read the CRAM workspace in the background, so the first catalog request does not
-        wait for CRAM's import.
+        wait for CRAM's import; with a robot profile, start the validator of the first
+        validation ahead, expecting the profile's first template.
         """
         self.workspace.preload()
+        profile = ConfiguredProfile.of_environment(self.environment)
+        if profile.profile is not None:
+            self.validations.prepare(profile.expected_validation_order())
 
     def close(self) -> None:
         """
-        End the posture mirror.
+        End the posture mirror and the validator started ahead.
         """
         self.mirror.close()
+        self.validations.close()
 
     def web_directory(self) -> Optional[Path]:
         return WEB_DIRECTORY

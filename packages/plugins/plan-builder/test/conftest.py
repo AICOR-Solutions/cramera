@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 
 import pytest
-from typing_extensions import Any, Callable
+from typing_extensions import Any, Callable, Iterator, List
 
 from cramera.application import ViewerApplication
 from cramera.http.messages import Header, HttpMethod, Request, Response
@@ -125,18 +125,26 @@ def plugin(output, workspace_loader) -> PlanBuilderPlugin:
 
 
 @pytest.fixture
-def serve(scenes, locations) -> Callable[[PlanBuilderPlugin], RequestAnswerer]:
+def serve(
+    scenes, locations
+) -> Iterator[Callable[[PlanBuilderPlugin], RequestAnswerer]]:
     """
-    :return: Builds the viewer's request answerer with a plan builder plugged in.
+    :return: Builds the viewer's request answerer with a plan builder plugged in; each
+        viewer is closed after the test, which ends the processes its plan builder
+        started ahead.
     """
+    applications: List[ViewerApplication] = []
 
     def build(plugin: PlanBuilderPlugin) -> RequestAnswerer:
         application = ViewerApplication(
             catalog=scenes, locations=locations, plugins=[plugin]
         )
+        applications.append(application)
         return RequestAnswerer(router=application.router(), policy=OriginPolicy())
 
-    return build
+    yield build
+    for application in applications:
+        application.close()
 
 
 @pytest.fixture

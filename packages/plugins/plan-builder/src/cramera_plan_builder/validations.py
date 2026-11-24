@@ -1,7 +1,8 @@
 """
 Validating a plan before it runs on the robot: each validation runs cramera-bridge's
-validator as a child process of its own, and the plan builder remembers the plan whose
-validation passed last, which alone may then run on the robot.
+validator as a child process of its own, which expects the order validated last and
+builds its robots meanwhile, and the plan builder remembers the plan whose validation
+passed last, which alone may then run on the robot.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from cramera_plan_builder.exceptions import (
     ValidationCancelled,
     ValidationFailed,
 )
+from cramera_protocol.document import JsonDocument
 from cramera_protocol.plan_builder import PlanDocument
 from cramera_protocol.validation import ValidationOrder, ValidationReport
 
@@ -40,6 +42,13 @@ class PlanValidations(BridgeProcess):
 
     def describe_cancellation(self) -> PlanBuilderError:
         return ValidationCancelled(self.module)
+
+    def expected_order(self, answered: JsonDocument) -> Optional[JsonDocument]:
+        """
+        :return: The order validated last: a plan is validated again after each edit,
+            mostly with the same robots.
+        """
+        return answered
 
     def validate(self, order: ValidationOrder) -> ValidationReport:
         """
