@@ -44,6 +44,12 @@ TRACY_PICK = DATASET / "plans" / "tracy_pick.json"
 Tracy parks its arms, then picks up the red cube, at x 0.55, y 0.1.
 """
 
+TRACY_TWO_PICKS = DATASET / "plans" / "tracy_two_picks.json"
+"""
+Tracy picks up the red cube, at x 0.55, y 0.1, places it, then picks up the yellow cube,
+at x 0.55, y 0.2.
+"""
+
 
 @dataclass
 class TableAnswers:
@@ -95,6 +101,28 @@ class TableAnswers:
 
 
 @dataclass
+class AnswersInTurn(TableAnswers):
+    """
+    Answers each query of a plan with the cube it looks for where the plan holds it,
+    in the order the queries are asked: the red cube twice, for the check before its pick
+    and the look before its grasp, then the yellow cube twice.
+    """
+
+    def since(self, start: float, count: int, timeout: float) -> List[QueryAnswer]:
+        self.asked.append(count)
+        cubes = [
+            self.designator(0.55, 0.1, 0.906, (0.05, 0.05, 0.05), ["red"]),
+            self.designator(0.55, 0.1, 0.906, (0.05, 0.05, 0.05), ["red"]),
+            self.designator(0.55, 0.2, 0.906, (0.05, 0.05, 0.05), ["yellow"]),
+            self.designator(0.55, 0.2, 0.906, (0.05, 0.05, 0.05), ["yellow"]),
+        ]
+        return [
+            QueryAnswer(accepted=start + turn, ended=True, objects=[cube])
+            for turn, cube in enumerate(cubes[:count])
+        ]
+
+
+@dataclass
 class AnsweredKinematicExecution(KinematicExecution):
     """
     Moves kinematically, with RoboKudo's answers of the real table.
@@ -124,6 +152,26 @@ def reports(tmp_path_factory) -> List[PerceptionReported]:
         plan = PlanDocument.from_json(document)
         demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
         demo.execution = AnsweredKinematicExecution(answers=TableAnswers(demo))
+        demo.run()
+    return [
+        entry for entry in demo.run_log.entries if isinstance(entry, PerceptionReported)
+    ]
+
+
+@pytest.fixture(scope="module")
+def two_picks_reports(tmp_path_factory) -> List[PerceptionReported]:
+    """
+    :return: What the run of the two picks reported of its detections, each query
+        answered with the cube it looks for.
+    """
+    if not Tracy.is_description_installed():
+        pytest.skip("iai_tracy_description is not installed")
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
+        patch.setenv(EnvironmentVariable.DATA, str(tmp_path_factory.mktemp("data")))
+        plan = PlanDocument.from_json(json.loads(TRACY_TWO_PICKS.read_text("utf-8")))
+        demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+        demo.execution = AnsweredKinematicExecution(answers=AnswersInTurn(demo))
         demo.run()
     return [
         entry for entry in demo.run_log.entries if isinstance(entry, PerceptionReported)
@@ -178,6 +226,29 @@ def test_the_check_of_the_picked_cube_reports_it_24_cm_away(reports):
         ReportedObjectVerdict.WRONG_COLOR,
     ]
     assert report.summary.startswith("The red cube was seen 24 cm from where the plan")
+
+
+def test_the_detections_of_a_plan_are_reported_in_the_order_they_ran(
+    two_picks_reports,
+):
+    """
+    The look before a grasp joins the plan after the checks before the steps, yet runs
+    right after its step's check, and RoboKudo answers the queries in the order asked.
+    """
+    assert [entry.step for entry in two_picks_reports] == [
+        "step_2",
+        "step_2",
+        "step_4",
+        "step_4",
+    ]
+
+
+def test_every_detection_is_reported_with_the_answer_to_its_own_query(
+    two_picks_reports,
+):
+    assert [
+        [seen.verdict for seen in entry.report.objects] for entry in two_picks_reports
+    ] == [[ReportedObjectVerdict.ACCEPTED]] * 4
 
 
 def test_the_report_names_the_object_as_the_person_knows_it(reports):

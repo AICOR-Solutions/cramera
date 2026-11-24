@@ -5,8 +5,8 @@ the detection asked, every object RoboKudo reported for it and which one the ste
 RoboKudo's answers are read from its query action (see
 :mod:`~cramera_bridge.plans.robokudo_answers`), since on the real robot the detections
 ask from inside Giskard's process. A plan's detections run one after another and each
-asks one query, so the n-th detection that ran in a plan asked the n-th query RoboKudo
-accepted while the plan ran.
+asks one query, so the n-th detection that started in a plan asked the n-th query
+RoboKudo accepted while the plan ran.
 """
 
 from __future__ import annotations
@@ -165,12 +165,7 @@ class PerceptionReporting(ExecutorExtension):
         """
         Write a report for every detection the plan ran.
         """
-        tasks = [
-            node
-            for node in executor.statechart.nodes
-            if isinstance(node, PerceptionTask)
-            and node.life_cycle_state is not LifeCycleValues.NOT_STARTED
-        ]
+        tasks = self.detections_in_order_run(executor)
         if not tasks:
             return
         answers = self.answers.since(self.started, len(tasks), ANSWER_WAIT_SECONDS)
@@ -192,6 +187,23 @@ class PerceptionReporting(ExecutorExtension):
                     step=step,
                 )
             )
+
+    @staticmethod
+    def detections_in_order_run(executor: Executor) -> List[PerceptionTask]:
+        """
+        :param executor: The executor of a plan that ran.
+        :return: The plan's detections that ran, in the order they started, which is
+            the order RoboKudo accepted their queries in.
+        """
+        history = executor.statechart.state_history
+        started = [
+            (ticks.start_tick, place, node)
+            for place, node in enumerate(executor.statechart.nodes)
+            if isinstance(node, PerceptionTask)
+            and node.life_cycle_state is not LifeCycleValues.NOT_STARTED
+            and (ticks := history.get_current_run_ticks_of_node(node)) is not None
+        ]
+        return [node for _, _, node in sorted(started, key=lambda run: run[:2])]
 
     def step_of(
         self, task: PerceptionTask, progress: Optional[AttemptProgress]
