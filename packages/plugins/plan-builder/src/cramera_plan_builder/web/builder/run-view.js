@@ -18,6 +18,7 @@ import {
   RunStatusKey,
   StepState,
 } from '../../../protocol.js';
+import { showChildren, showText } from './elements.js';
 import { PerceptionReportsView, PerceptionViewClass, perceptionSentence } from './perception-view.js';
 
 /**
@@ -558,11 +559,12 @@ export class RunView {
   render(progress, images = []) {
     const elements = this.#elements;
     const parts = this.#parts;
-    parts.summary.textContent = progress.summary();
-    parts.badges.replaceChildren(...(progress.safety === null ? [] : [this.#badge(progress.safetyText(), progress.safety)]));
-    parts.steps.replaceChildren(...progress.steps().map((step) => this.#step(step, progress.started())));
-    parts.perceived.replaceChildren(
-      ...(progress.perceived.length === 0
+    showText(parts.summary, progress.summary());
+    showChildren(parts.badges, progress.safety === null ? [] : [this.#badge(progress.safetyText(), progress.safety)]);
+    showChildren(parts.steps, progress.steps().map((step) => this.#step(step, progress.started())));
+    showChildren(
+      parts.perceived,
+      progress.perceived.length === 0
         ? [elements.create('p', RunViewClass.EMPTY, 'Nothing perceived yet.')]
         : progress.perceived.map((seen) => {
             const chip = elements.create('span', RunViewClass.OBJECT);
@@ -571,11 +573,11 @@ export class RunView {
             chip.dataset.color = seen.color ?? '';
             chip.append(swatch, elements.create('span', '', `${objectNames(seen.target)}${seen.color ? ` (${seen.color})` : ''}`));
             return chip;
-          })),
+          }),
     );
-    parts.perception.replaceChildren(...this.#reports.render(progress.perceptions));
-    parts.camera.replaceChildren(...this.#camera(images));
-    parts.log.replaceChildren(...progress.log.map((line) => elements.create('li', '', line)));
+    showChildren(parts.perception, this.#reports.render(progress.perceptions));
+    showChildren(parts.camera, this.#camera(images));
+    showChildren(parts.log, progress.log.map((line) => elements.create('li', '', line)));
   }
 
   /**

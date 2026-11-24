@@ -109,6 +109,18 @@ export class FakeElement {
   }
 
   /**
+   * @param {FakeElement} other Another element.
+   * @returns {boolean} Whether both have the same tag, classes, text, data and other
+   *   attributes, style, image source and equal children, as the DOM's `isEqualNode`.
+   */
+  isEqualNode(other) {
+    if (!other || other.tagName !== this.tagName) return false;
+    const own = (element) => JSON.stringify([element.className ?? '', element.textContent, element.dataset, [...element.attributes], element.style, element.src ?? null, element.alt ?? null, element.open ?? null, element.hidden]);
+    if (own(this) !== own(other) || this.children.length !== other.children.length) return false;
+    return this.children.every((child, index) => child.isEqualNode(other.children[index]));
+  }
+
+  /**
    * @returns {string} The text of the element and its descendants.
    */
   get innerText() {

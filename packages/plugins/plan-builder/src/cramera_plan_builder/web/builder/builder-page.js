@@ -58,7 +58,7 @@ import { PageStatus } from '../../../core/page-status.js';
 import { RequestRefused } from './builder-api.js';
 import { seenImageFigures } from './seen-images.js';
 import { ConstraintSentences, ConstraintsView } from './constraints-view.js';
-import { DomEvent, Elements, PlanAction } from './elements.js';
+import { DomEvent, Elements, PlanAction, showText } from './elements.js';
 import { FreePlace } from './free-place.js';
 import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
@@ -1455,7 +1455,7 @@ export class BuilderPage {
     parts.safety.dataset.state = state;
     if (state === SafetyBannerState.HIDDEN) return;
     const revalidate = this.#revalidate();
-    parts.safetyMessage.textContent = `${this.#safetyBanner.message(this.#run)}${revalidate ? '. Validate the plan again before restarting it on the robot.' : ''}`;
+    showText(parts.safetyMessage, `${this.#safetyBanner.message(this.#run)}${revalidate ? '. Validate the plan again before restarting it on the robot.' : ''}`);
     parts.restartPlan.disabled = revalidate || this.busy();
     parts.acknowledgeStop.hidden = state !== SafetyBannerState.VIOLATED;
     parts.restartPlan.hidden = state !== SafetyBannerState.ACKNOWLEDGED;
@@ -1715,7 +1715,7 @@ export class BuilderPage {
     const parts = this.#parts;
     parts.runState.dataset.state = state;
     const log = this.#run[RunStatusKey.LOG] ?? '';
-    parts.log.textContent = this.#failureOutput ?? (this.#progressHidden ? '' : state === RunState.STOPPED ? withoutStopTraceback(log) : log);
+    showText(parts.log, this.#failureOutput ?? (this.#progressHidden ? '' : state === RunState.STOPPED ? withoutStopTraceback(log) : log));
     parts.stop.disabled = !active || this.#stopping;
     parts.capture.disabled = !this.#world.published;
     const blocked = this.#blocked();
@@ -1724,7 +1724,7 @@ export class BuilderPage {
     parts.robot.disabled = blocked !== null || !(passed || this.#mayOverrideValidation());
     this.#showSafetyStop();
     this.#showRunView();
-    parts.validationState.textContent = this.#validationState(passed);
+    showText(parts.validationState, this.#validationState(passed));
     parts.validationState.dataset.passed = String(passed);
     this.#showFlowStatus();
     this.#showButtons(blocked, passed, active);
@@ -1816,8 +1816,8 @@ export class BuilderPage {
     parts.flow.dataset.tone = status.tone;
     parts.flow.dataset.busy = String(status.phase !== null);
     parts.flow.setAttribute('aria-live', status.tone === Tone.ERROR ? 'assertive' : 'polite');
-    parts.runState.textContent = status.text;
-    parts.elapsed.textContent = status.phase === null ? '' : `${Math.floor((now - this.#phase.since) / 1000)} s`;
+    showText(parts.runState, status.text);
+    showText(parts.elapsed, status.phase === null ? '' : `${Math.floor((now - this.#phase.since) / 1000)} s`);
   }
 
   /**
@@ -1885,9 +1885,9 @@ export class BuilderPage {
     const robot = this.state.activeRobot();
     parts.steps.list.hidden = this.#runShown;
     parts.runView.element.hidden = !this.#runShown;
-    parts.runToggle.textContent = this.#runShown ? 'Edit plan' : 'Show run';
+    showText(parts.runToggle, this.#runShown ? 'Edit plan' : 'Show run');
     parts.runToggle.hidden = !this.#runShown && (!this.#runCounted() || (this.#run[RunStatusKey.EVENTS] ?? []).length === 0);
-    parts.planTitle.textContent = `${this.#runShown ? 'Run' : 'Plan'} of ${robot?.[PlannedRobotKey.LABEL] ?? 'no robot'}`;
+    showText(parts.planTitle, `${this.#runShown ? 'Run' : 'Plan'} of ${robot?.[PlannedRobotKey.LABEL] ?? 'no robot'}`);
     if (!this.#runShown) return;
     parts.runView.render(this.#progress(), this.#cameraImages);
   }
@@ -1925,7 +1925,7 @@ export class BuilderPage {
     if (!this.#world.published && edited !== undefined && Object.keys(this.#mirrored).length > 0) postures.set(edited, this.#mirrored);
     const stale = !this.#world.published && this.#postureStale !== null ? new Set([edited]) : new Set();
     this.#parts.posture.hidden = stale.size === 0;
-    this.#parts.posture.textContent = stale.size === 0 ? '' : `${this.#postureStale} — the picture may not match the robot.`;
+    showText(this.#parts.posture, stale.size === 0 ? '' : `${this.#postureStale} — the picture may not match the robot.`);
     this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors(), stale }, this.#overlay());
   }
 

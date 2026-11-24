@@ -1796,6 +1796,60 @@ test('a performing run shows the run view in place of the steps until the person
   assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, false);
 });
 
+/**
+ * Count every write of an element's text from now on.
+ * @param {Array<Object>} elements Fake elements.
+ * @returns {Array<Object>} The elements whose text was written since, filled as it is.
+ */
+function textWrites(elements) {
+  const written = [];
+  for (const element of elements) {
+    let text = element.textContent;
+    Object.defineProperty(element, 'textContent', {
+      get: () => text,
+      set: (value) => {
+        written.push(element);
+        text = value;
+      },
+    });
+  }
+  return written;
+}
+
+test('polls that change nothing leave the shown text and elements alone, so a selection in them stays', async () => {
+  const { root, api, timer } = await safetyStopped();
+  const [step] = api.runs[0].plan[PlanKey.ROBOTS][0][PlannedRobotKey.STEPS];
+  const identifier = step[PlanStepKey.IDENTIFIER];
+  api.status = {
+    ...api.status,
+    [RunStatusKey.LOG]: 'building the world\nstep 1 failed',
+    [RunStatusKey.EVENTS]: [
+      { [RunEventKey.KIND]: RunEventKind.STEP, [RunEventKey.STEP]: identifier, [RunEventKey.STATE]: StepState.FAILED, [RunEventKey.ATTEMPT]: 1, [RunEventKey.ATTEMPTS]: 3, [RunEventKey.REASON]: 'Left arm workspace' },
+      { [RunEventKey.KIND]: RunEventKind.SAFETY_STOP, [RunEventKey.STEP]: identifier, [RunEventKey.CONSTRAINT]: 'Left arm workspace' },
+    ],
+  };
+  await timer.tick();
+  assert.equal(runView(root).hidden, false);
+  const shown = root.findAll(() => true);
+  const written = textWrites(shown);
+  await timer.tick();
+  await timer.tick();
+  assert.deepEqual(written.map((element) => element.className || element.tagName), []);
+  const after = root.findAll(() => true);
+  assert.equal(after.length, shown.length);
+  assert.ok(after.every((element, index) => element === shown[index]));
+});
+
+test('a poll that changes the run log writes the new log', async () => {
+  const { root, api, timer } = await openPage();
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  const log = root.findAll((element) => element.className === 'run-log')[0];
+  api.status = { ...api.status, [RunStatusKey.LOG]: 'building the world\nmoving' };
+  await timer.tick();
+  assert.equal(log.textContent, 'building the world\nmoving');
+});
+
 test('a staged live scene keeps the editable steps', async () => {
   const { root } = await openPage();
   byAction(root, PlanAction.STAGE)[0].click();

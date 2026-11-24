@@ -114,6 +114,31 @@ export const DRAG_MEDIA_TYPE = 'text/plain';
  */
 const DRAG_SEPARATOR = ':';
 
+// %% steady text
+
+/**
+ * Show a text in an element, writing it only when it changed: writing a text replaces
+ * the element's text node, which drops a selection the person made in it, and the page
+ * shows its state again at every poll.
+ * @param {HTMLElement} element The element.
+ * @param {string} text The text it shows.
+ */
+export function showText(element, text) {
+  if (element.textContent !== text) element.textContent = text;
+}
+
+/**
+ * Show children in an element, replacing its children only when the new ones differ
+ * from them, so the text in them stays selectable across the polls that show it again.
+ * @param {HTMLElement} parent The element.
+ * @param {Array<HTMLElement>} children The children it shows.
+ */
+export function showChildren(parent, children) {
+  const current = [...(parent.childNodes ?? parent.children)];
+  if (current.length === children.length && children.every((child, index) => child.isEqualNode(current[index]))) return;
+  parent.replaceChildren(...children);
+}
+
 // %% drags
 
 export class DragText {
