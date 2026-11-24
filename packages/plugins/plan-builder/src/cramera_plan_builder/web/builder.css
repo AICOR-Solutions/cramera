@@ -330,7 +330,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .run-view h3 { margin: 6px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
 .run-summary { margin: 0; font-weight: 600; }
 .run-badges, .run-perceived { display: flex; flex-wrap: wrap; gap: 6px; }
-.monitor-badge { font: 11px var(--mono); border-radius: 999px; padding: 1px 7px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.monitor-badge { font: 11px var(--mono); border-radius: 8px; padding: 1px 7px; background: var(--accent-soft); color: var(--accent); white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
 .monitor-badge[data-observation="violated"] { background: var(--surface); color: var(--danger); border: 1px solid var(--danger); }
 .run-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .run-step { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 4px; background: var(--surface-raised); }
