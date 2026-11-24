@@ -855,14 +855,14 @@ export class PlanState {
    * @param {string} identifier A step of the edited robot.
    * @returns {Array<{value: string, label: string}>} What the step's object fields can
    *   name: the plan's objects, then the object each earlier step of the robot that
-   *   looks for objects finds.
+   *   looks for objects finds, named by that step's number and name as its card shows.
    */
   objectChoices(identifier) {
     const choices = this.objects().map((item) => ({ value: item[PlannedObjectKey.IDENTIFIER], label: item[PlannedObjectKey.IDENTIFIER] }));
-    for (const step of this.steps()) {
+    for (const [index, step] of this.steps().entries()) {
       if (step[PlanStepKey.IDENTIFIER] === identifier) break;
       if (!this.looksForObjects(step)) continue;
-      choices.push({ value: `${DetectedObjectText.PREFIX}${step[PlanStepKey.IDENTIFIER]}`, label: `found by ${this.stepLabel(step)} (${step[PlanStepKey.IDENTIFIER]})` });
+      choices.push({ value: `${DetectedObjectText.PREFIX}${step[PlanStepKey.IDENTIFIER]}`, label: `found by ${index + 1}. ${this.stepLabel(step)}` });
     }
     return choices;
   }

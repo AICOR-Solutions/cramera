@@ -912,6 +912,21 @@ test('a later step names the object a detect step finds', async () => {
   assert.deepEqual(page.state.problems(page.state.step(pick[PlanStepKey.IDENTIFIER])), []);
 });
 
+test('a later step names what a detect step finds by the number and name its card shows', async () => {
+  const { root, page } = await openPage();
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'detect').click();
+  block(root, 'pick_up').click();
+  // moved behind a step added later, the detect step's identity no longer matches its number
+  block(root, 'park_arms').click();
+  const detect = page.state.steps()[0];
+  page.edit(() => page.state.moveStep(page.state.steps()[2][PlanStepKey.IDENTIFIER], -2));
+  const card = steps(root).find((element) => element.dataset.step === detect[PlanStepKey.IDENTIFIER]);
+  const text = (className) => card.findAll((element) => element.className === className)[0].textContent;
+  const found = parameter(root, 'object_designator').children.find((option) => option.value === `${DetectedObjectText.PREFIX}${detect[PlanStepKey.IDENTIFIER]}`);
+  assert.equal(found.textContent, `found by ${text('step-number')}. ${text('step-name')}`);
+});
+
 test('a step before the detect step cannot name what it finds', async () => {
   const { root, page } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
