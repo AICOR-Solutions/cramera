@@ -16,7 +16,10 @@ from cramera_bridge.questions.graph.views import GraphViews
 from cramera_bridge.questions.recorded.bundle import BundleReader, RecordedBundle
 from cramera_bridge.questions.recorded.knowledge_base import RecordedKnowledge
 from cramera_bridge.questions.live import WorldVariable
-from cramera_bridge.questions.recorded.paused_world import PausedWorldDesks
+from cramera_bridge.questions.recorded.paused_world import (
+    EpisodeVariable,
+    PausedWorldDesks,
+)
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.questions import (
     GraphView,
@@ -138,9 +141,14 @@ class RecordedSceneQuestions:
         """
         if class_index is None:
             class_index = WorkspaceClassIndex.of_installed_packages()
+        cache = SceneQuestionCache(catalog, class_index)
         return cls(
-            SceneQuestionCache(catalog, class_index),
-            PausedWorldDesks(catalog, class_index),
+            cache,
+            PausedWorldDesks(
+                catalog,
+                class_index,
+                lambda scene: cache.of_scene(scene).knowledge,
+            ),
         )
 
     def preset_catalog(self, scene: str) -> PresetCatalog:
@@ -162,7 +170,8 @@ class RecordedSceneQuestions:
         return ScopeDescription(
             name=QueryScope.PAUSED_WORLD,
             label="Paused World (any CRAM class, at the shown frame)",
-            variables=[variable.value for variable in WorldVariable],
+            variables=[variable.value for variable in WorldVariable]
+            + [variable.value for variable in EpisodeVariable],
         )
 
     def desk_of(self, scene: str, scope: QueryScope):
