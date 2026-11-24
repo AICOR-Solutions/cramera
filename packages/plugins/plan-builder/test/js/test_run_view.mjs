@@ -90,7 +90,7 @@ test('a safety stop fails its step, violates the safety monitor and is logged', 
   assert.equal(progress.safety, MonitorObservation.VIOLATED);
   assert.equal(progress.safetyStop, 'Left arm workspace');
   assert.match(progress.summary(), /^Stopped by a safety limit in 2\. label of step_2: Left arm workspace\./);
-  assert.equal(progress.log.at(-1), 'Safety stop in 2. label of step_2: Left arm workspace; the robot holds.');
+  assert.equal(progress.log.at(-1), 'Safety stop in 2. label of step_2: Left arm workspace; the robot stopped and stands still.');
 });
 
 test('a step grounded again where its cube was found elsewhere says so in one line, with no retry', () => {

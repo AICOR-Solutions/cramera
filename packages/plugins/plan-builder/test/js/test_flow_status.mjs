@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PlanStepKey, RunEventKind, RunMode, RunState, RunStatusKey, SafetyStopKey, StepState } from 'cramera-viewer/protocol.js';
-import { EMERGENCY_STOP, FlowFacts, FlowRequest, Tone, UNANSWERED_ADVICE_AFTER, cutOffOutcome, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
+import { EMERGENCY_STOP, FlowFacts, FlowRequest, READY, Tone, UNANSWERED_ADVICE_AFTER, cutOffOutcome, flowStatus, runOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RunProgress, unseenSentence } from '../../src/cramera_plan_builder/web/builder/run-view.js';
 import { SafetyBannerState } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 
@@ -27,7 +27,8 @@ const step = (identifier, state, extra = {}) => ({ kind: 'step', step: identifie
 const realRun = (state, events = [], extra = {}) => ({ [RunStatusKey.STATE]: state, [RunStatusKey.MODE]: RunMode.ROBOT, [RunStatusKey.EVENTS]: events, ...extra });
 
 test('an idle page is ready, or says why it cannot run', () => {
-  assert.deepEqual([flowStatus(facts()).tone, flowStatus(facts()).text, flowStatus(facts()).phase], [Tone.IDLE, 'Ready.', null]);
+  assert.equal(READY, 'Ready to validate the plan.');
+  assert.deepEqual([flowStatus(facts()).tone, flowStatus(facts()).text, flowStatus(facts()).phase], [Tone.IDLE, READY, null]);
   const missing = flowStatus(facts({ missing: ['coraplex'] }));
   assert.equal(missing.tone, Tone.WARNING);
   assert.match(missing.text, /not importable here \(missing coraplex\)/);
@@ -65,7 +66,7 @@ test('a real run whose steps are all done says it finishes, not that it prepares
 
 test('a run saving its record says it finished, saving is progress, a live scene is shown once its world is up', () => {
   const saving = flowStatus(facts({ run: realRun(RunState.SAVING), real: true }));
-  assert.deepEqual([saving.tone, saving.text, saving.phase], [Tone.PROGRESS, 'The run on the real robot finished; the robot holds. Saving the run\'s record…', 'saving']);
+  assert.deepEqual([saving.tone, saving.text, saving.phase], [Tone.PROGRESS, 'The run on the real robot finished; the robot stands still while the run\'s record is saved…', 'saving']);
   const stage = { [RunStatusKey.STATE]: RunState.RUNNING, [RunStatusKey.MODE]: RunMode.STAGE };
   assert.equal(flowStatus(facts({ run: stage })).text, 'Starting the live scene…');
   assert.equal(flowStatus(facts({ run: stage, live: true })).text, 'The live scene runs.');
@@ -85,7 +86,7 @@ test('the outcome of the latest step stands until something runs, an error inclu
 test('a safety stop comes before everything else, then its acknowledgement says what is next', () => {
   const violated = flowStatus(facts({ safety: SafetyBannerState.VIOLATED, stopping: true }));
   assert.equal(violated.tone, Tone.ERROR);
-  assert.equal(violated.text, 'Safety stop: the robot holds. Acknowledge it in the red banner to go on.');
+  assert.equal(violated.text, 'Safety stop: the robot stopped and stands still. Acknowledge it in the red banner to go on.');
   const acknowledged = flowStatus(facts({ safety: SafetyBannerState.ACKNOWLEDGED, revalidate: true }));
   assert.equal(acknowledged.tone, Tone.WARNING);
   assert.equal(acknowledged.text, 'Safety stop acknowledged: validate the plan again, then restart or abort it.');

@@ -68,7 +68,7 @@ import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, RobotsNote } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
-import { cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
+import { READY, cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
@@ -1878,8 +1878,8 @@ test('while the run\'s record is saved the page says so, offers only Stop and sh
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.SAVING };
   await timer.tick();
   const runState = root.findAll((element) => element.className === 'run-state')[0];
-  assert.match(runState.textContent, /saving the run's record/i);
-  assert.match(runState.textContent, /robot holds/);
+  assert.match(runState.textContent, /the run's record is saved/i);
+  assert.match(runState.textContent, /robot stands still/);
   assert.deepEqual(runButtons(root).map((button) => button.disabled), [true, true, true, true, true]);
   assert.equal(scanButton(root).disabled, true);
   assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
@@ -2206,7 +2206,7 @@ test('an error stays in the status area while later routine notes go to the mess
 
 test('the status area starts ready, marks Validate as the next step and says why the robot run waits', async () => {
   const { root } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
-  assert.equal(headline(root), 'Ready.');
+  assert.equal(headline(root), READY);
   assert.equal(flow(root).dataset.tone, 'idle');
   assert.equal(validateButton(root).classList.contains('primary'), true);
   assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
@@ -2229,7 +2229,7 @@ test('a safety stop fills the status area until acknowledged, then says what com
     [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'Left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false },
   };
   await timer.tick();
-  assert.match(headline(root), /^Safety stop: the robot holds/);
+  assert.match(headline(root), /^Safety stop: the robot stopped and stands still/);
   assert.equal(flow(root).dataset.tone, 'error');
   assert.equal(robotRun(root).title, 'Acknowledge the safety stop first.');
   byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
@@ -2355,7 +2355,7 @@ test('a plan from a template, a new or an opened plan shows no progress of the r
   picker.dispatch(DomEvent.CHANGE);
   byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await timer.tick();
-  assert.equal(headline(root), 'Ready.');
+  assert.equal(headline(root), READY);
   assert.equal(runView(root).hidden, true);
   assert.equal(byAction(root, PlanAction.TOGGLE_RUN)[0].hidden, true);
   assert.equal(runLog(root).textContent, '');

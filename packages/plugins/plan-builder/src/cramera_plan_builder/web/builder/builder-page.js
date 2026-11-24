@@ -69,7 +69,7 @@ import { EnvironmentView, RobotsView } from './robots-view.js';
 import { PollInterval } from '../../../live/live-session.js';
 import { RunProgress, RunView, withoutStopTraceback } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
-import { FlowFacts, FlowRequest, Tone, cutOffOutcome, flowStatus, runOutcome } from './flow-status.js';
+import { FlowFacts, FlowRequest, READY, Tone, cutOffOutcome, flowStatus, runOutcome } from './flow-status.js';
 import { REASON_TEXTS, StepsView } from './steps-view.js';
 
 /**
@@ -658,7 +658,7 @@ export class BuilderPage {
     else if (draft !== null) this.#restore(JSON.parse(draft));
     this.render();
     const missing = catalog[PlanBuilderCatalogKey.MISSING];
-    this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : 'Ready.');
+    this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : READY);
     this.#polling = this.#environment.timer.repeat(() => this.#poll(), POLL_INTERVAL);
     this.#following = this.#environment.timer.repeat(() => this.#follow(), PollInterval.STATE);
   }

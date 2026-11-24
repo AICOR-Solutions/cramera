@@ -28,6 +28,11 @@ export const Tone = Object.freeze({
 export const EMERGENCY_STOP = 'Keep a hand on the emergency stop.';
 
 /**
+ * What an idle page says: the next step of the flow.
+ */
+export const READY = 'Ready to validate the plan.';
+
+/**
  * What the status of a simulated run starts with, by its run mode.
  */
 const SIMULATED = 'Simulation (the real robot does not move)';
@@ -162,7 +167,7 @@ function requestText(request, real) {
  * @returns {FlowStatus} Where the flow stands.
  */
 export function flowStatus(facts) {
-  if (facts.safety === SafetyBannerState.VIOLATED) return new FlowStatus(Tone.ERROR, 'Safety stop: the robot holds. Acknowledge it in the red banner to go on.');
+  if (facts.safety === SafetyBannerState.VIOLATED) return new FlowStatus(Tone.ERROR, 'Safety stop: the robot stopped and stands still. Acknowledge it in the red banner to go on.');
   if (facts.safety === SafetyBannerState.ACKNOWLEDGED && facts.request === null) {
     return new FlowStatus(Tone.WARNING, facts.revalidate ? 'Safety stop acknowledged: validate the plan again, then restart or abort it.' : 'Safety stop acknowledged: restart the plan or abort it.');
   }
@@ -178,12 +183,12 @@ export function flowStatus(facts) {
     return new FlowStatus(Tone.WARNING, `The plan builder does not answer (${facts.unanswered}); retrying.${advice}${reminder}`);
   }
   if (state === RunState.RUNNING && !staged) return runningStatus(facts);
-  if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, `${runName(facts.run, facts.real)} finished; the robot holds. Saving the run's record…`, 'saving');
+  if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, `${runName(facts.run, facts.real)} finished; the robot stands still while the run's record is saved…`, 'saving');
   if (state === RunState.RUNNING && !facts.live) return new FlowStatus(Tone.PROGRESS, 'Starting the live scene…', 'stage');
   if (facts.outcome) return new FlowStatus(facts.outcome.tone, facts.outcome.text);
   if (state === RunState.RUNNING) return new FlowStatus(Tone.IDLE, 'The live scene runs.');
   if (facts.missing.length > 0) return new FlowStatus(Tone.WARNING, `The CRAM workspace is not importable here (missing ${facts.missing.join(', ')}); plans can be composed and saved, not run.`);
-  return new FlowStatus(Tone.IDLE, 'Ready.');
+  return new FlowStatus(Tone.IDLE, READY);
 }
 
 /**

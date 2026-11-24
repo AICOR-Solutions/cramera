@@ -332,11 +332,11 @@ export class RunProgress {
       // where the step was grounded with them: where the plan was validated, or where they were found once the step was grounded again
       this.log.push(`${this.#name(event)}: ${event[RunEventKey.REASON]}; continuing where the plan expected ${names}`);
     } else if (kind === RunEventKind.RECORD_SAVING) {
-      this.log.push('Run over; the robot holds while the run\'s record is saved.');
+      this.log.push('Run over; the robot stands still while the run\'s record is saved.');
     } else if (kind === RunEventKind.SAFETY_STOP) {
       this.safety = MonitorObservation.VIOLATED;
       this.safetyStop = event[RunEventKey.CONSTRAINT];
-      this.log.push(`Safety stop${event[RunEventKey.STEP] ? ` in ${this.#name(event)}` : ''}: ${this.safetyStop}; the robot holds.`);
+      this.log.push(`Safety stop${event[RunEventKey.STEP] ? ` in ${this.#name(event)}` : ''}: ${this.safetyStop}; the robot stopped and stands still.`);
     }
   }
 
