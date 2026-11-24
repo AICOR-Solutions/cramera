@@ -78,9 +78,10 @@ class QuestionsDependency(StrEnum):
     The top-level modules answering questions needs.
     """
 
-    KRROOD = "krrood"
+    KRROOD = "krrood.entity_query_language"
     """
-    Evaluates the entity query language.
+    Evaluates the entity query language; krrood itself is a namespace package without
+    code of its own, so its query language module is what is looked for.
     """
 
     CRAMERA_BRIDGE = "cramera_bridge"
@@ -124,7 +125,10 @@ class QueryLanguageInstallation:
         :param dependency: A top-level module.
         :return: Whether a module with code of its own is found under that name.
         """
-        specification = self.finder(dependency.value)
+        try:
+            specification = self.finder(dependency.value)
+        except ModuleNotFoundError:
+            return False
         return specification is not None and specification.origin is not None
 
 
