@@ -28,7 +28,7 @@ import { DomEvent, DragKind, DragText, Elements, PlanAction } from './elements.j
 import { PlanState } from './plan-state.js';
 import { PlanPose } from './poses.js';
 import { seenImageFigures } from './seen-images.js';
-import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
+import { STEP_PALETTE_SIZE, StepCard, actionPalette } from './step-card.js';
 
 export { STEP_PALETTE_SIZE };
 
@@ -292,7 +292,7 @@ export class StepsView {
     const block = this.#shown.button(schema[ActionSchemaKey.LABEL], PlanAction.ADD_STEP, () => this.#add(name, this.#editor.state.steps().length));
     block.className = ViewClass.BLOCK;
     block.dataset.name = name;
-    block.dataset.palette = String(this.#paletteIndex(name));
+    block.dataset.palette = String(actionPalette(name));
     block.title = schema[ActionSchemaKey.DOCUMENTATION] || name;
     this.#shown.draggable(block, DragText.of(DragKind.STEP, name));
     return block;
@@ -308,7 +308,7 @@ export class StepsView {
     const block = this.#shown.button(skill[SkillKey.LABEL], PlanAction.ADD_SKILL, () => this.#addSkill(identifier, this.#editor.state.steps().length));
     block.className = ViewClass.BLOCK;
     block.dataset.skill = identifier;
-    block.dataset.palette = String(this.#paletteIndex(action));
+    block.dataset.palette = String(actionPalette(action));
     block.title = skill[SkillKey.DOCUMENTATION] || skill[SkillKey.LABEL];
     this.#shown.draggable(block, DragText.of(DragKind.SKILL, identifier));
     return block;
@@ -334,15 +334,6 @@ export class StepsView {
     return details;
   }
 
-  /**
-   * @param {string} name An action's class name.
-   * @returns {number} The colour of its steps: its position in the catalog, wrapped.
-   */
-  #paletteIndex(name) {
-    const index = this.#editor.state.actions().findIndex((schema) => schema[ActionSchemaKey.NAME] === name);
-    return Math.max(index, 0) % STEP_PALETTE_SIZE;
-  }
-
   // %% steps
 
   /**
@@ -359,7 +350,7 @@ export class StepsView {
     const identifier = step[PlanStepKey.IDENTIFIER];
     const action = step[PlanStepKey.ACTION];
     const schema = this.#editor.state.schema(action);
-    const view = new StepCard(elements, index + 1, this.#editor.state.stepLabel(step), schema?.[ActionSchemaKey.DOCUMENTATION] || action, this.#paletteIndex(action));
+    const view = new StepCard(elements, index + 1, this.#editor.state.stepLabel(step), schema?.[ActionSchemaKey.DOCUMENTATION] || action, actionPalette(action));
     const card = view.card;
     card.dataset.step = identifier;
     if (status) view.showStatus(status);

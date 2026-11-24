@@ -71,10 +71,26 @@ export class RecordedStep {
   }
 
   /**
+   * @param {string} className An action's class name.
+   * @returns {string} The words of the name without the `Action` suffix in lower case,
+   *   joined by underscores, as the builder's catalog identifies actions.
+   */
+  static identifier(className) {
+    return RecordedStep.words(className).toLowerCase().replaceAll(' ', '_');
+  }
+
+  /**
    * @returns {string} The class name of the step's action.
    */
   get action() {
     return this.node[PlanNodeKey.LABEL];
+  }
+
+  /**
+   * @returns {string} The step's action as the builder's catalog identifies it.
+   */
+  get identifier() {
+    return RecordedStep.identifier(this.action);
   }
 
   /**

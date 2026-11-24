@@ -7,7 +7,7 @@
 import { PlanConstraintKey, PlanNodeKey } from '../../../protocol.js';
 import { DomEvent, Elements } from './elements.js';
 import { RecordedPlans, StepPhase } from './recorded-plan.js';
-import { STEP_PALETTE_SIZE, StepCard } from './step-card.js';
+import { StepCard, actionPalette } from './step-card.js';
 
 /**
  * The classes the view's elements carry.
@@ -96,12 +96,11 @@ export class RecordedPlanView {
     const elements = this.#shown;
     const parts = [elements.create('h3', '', 'Recorded plan')];
     if (!this.#plans.hasFrames()) parts.push(elements.create('p', ViewClass.EMPTY, 'This recording does not say when each step ran, so the steps do not follow the playhead.'));
-    const palette = new Map();
     const several = this.#plans.plans.length > 1;
     for (const plan of this.#plans.plans) {
       if (several || plan.robot !== null) parts.push(elements.create('h4', ViewClass.TITLE, plan.title()));
       const list = elements.create('ol', ViewClass.LIST);
-      list.append(...plan.steps.map((step) => this.#card(step, palette)));
+      list.append(...plan.steps.map((step) => this.#card(step)));
       parts.push(list);
     }
     this.element.replaceChildren(...parts);
@@ -131,14 +130,11 @@ export class RecordedPlanView {
 
   /**
    * @param {import('./recorded-plan.js').RecordedStep} step A recorded step.
-   * @param {Map<string, number>} palette The colour of every action shown so far; an
-   *   action takes the colour of its first appearance.
-   * @returns {HTMLElement} The step's card.
+   * @returns {HTMLElement} The step's card, on the colour of its action.
    */
-  #card(step, palette) {
+  #card(step) {
     const elements = this.#shown;
-    if (!palette.has(step.action)) palette.set(step.action, palette.size % STEP_PALETTE_SIZE);
-    const view = new StepCard(elements, step.number, step.label, step.action, palette.get(step.action));
+    const view = new StepCard(elements, step.number, step.label, step.action, actionPalette(step.identifier));
     view.card.dataset.node = step.node[PlanNodeKey.IDENTIFIER];
     view.showStatus(step.status);
     const parameters = step.parameters();

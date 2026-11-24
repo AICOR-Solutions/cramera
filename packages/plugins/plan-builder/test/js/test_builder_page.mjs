@@ -70,6 +70,7 @@ import { REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation } from '../../src/cramera
 import { SafetyStopBanner } from '../../src/cramera_plan_builder/web/builder/safety-stop.js';
 import { cutOffOutcome } from '../../src/cramera_plan_builder/web/builder/flow-status.js';
 import { RequestRefused } from '../../src/cramera_plan_builder/web/builder/builder-api.js';
+import { actionPalette } from '../../src/cramera_plan_builder/web/builder/step-card.js';
 import { PANEL_TITLE, register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument, FakeStorage } from 'cramera-testing/fake-document.mjs';
 
@@ -471,6 +472,8 @@ test('clicking an action and dropping one add steps where they land', async () =
   assert.deepEqual(page.state.steps().map((step) => step[PlanStepKey.ACTION]), ['move_torso', 'park_arms']);
   assert.equal(steps(root)[0].findAll((element) => element.className === 'step-name')[0].textContent, page.state.schema('move_torso')[ActionSchemaKey.LABEL]);
   assert.ok(Number(steps(root)[0].dataset.palette) < STEP_PALETTE_SIZE);
+  assert.equal(steps(root)[0].dataset.palette, String(actionPalette('move_torso')));
+  assert.equal(block(root, 'park_arms').dataset.palette, String(actionPalette('park_arms')));
 });
 
 test('the palette groups the actions and names why others are not available', async () => {

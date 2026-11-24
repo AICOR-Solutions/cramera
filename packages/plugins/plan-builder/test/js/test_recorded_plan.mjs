@@ -7,6 +7,7 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PanelHost, SidePanel } from 'cramera-viewer/panels/panel-host.js';
 import { RecordedPlans, RecordedStep, StepPhase } from '../../src/cramera_plan_builder/web/builder/recorded-plan.js';
 import { RecordedPlanView } from '../../src/cramera_plan_builder/web/builder/recorded-plan-view.js';
+import { STEP_PALETTE_SIZE, actionPalette } from '../../src/cramera_plan_builder/web/builder/step-card.js';
 import { register } from '../../src/cramera_plan_builder/web/index.js';
 import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 
@@ -130,6 +131,33 @@ test('the view shows one list of step cards per plan', () => {
   const name = cardOf(view.element, PICK_UP).findAll((element) => element.className === 'step-name')[0];
   assert.equal(name.textContent, RecordedStep.words(PICK_UP[PlanNodeKey.LABEL]));
   assert.match(cardOf(view.element, PICK_UP).innerText, new RegExp(PICK_UP[PlanNodeKey.TARGET]));
+});
+
+test('a step\'s action is named as the builder\'s catalog names it', () => {
+  assert.equal(RecordedStep.identifier('ParkArmsAction'), 'park_arms');
+  assert.equal(RecordedStep.identifier('RailPickUpAction'), 'rail_pick_up');
+  assert.equal(RecordedStep.identifier('MoveTCPAction'), 'move_tcp');
+  assert.equal(new RecordedStep(NAVIGATE, 2).identifier, 'navigate');
+});
+
+test('the common actions have colours of their own, every other one a colour from its name', () => {
+  const common = ['park_arms', 'navigate', 'pick_up', 'place', 'move_torso', 'transport', 'look_at', 'detect'];
+  assert.equal(new Set(common.map(actionPalette)).size, common.length);
+  for (const action of [...common, 'rail_pick_up', 'wiping', '']) {
+    const palette = actionPalette(action);
+    assert.ok(Number.isInteger(palette) && palette >= 0 && palette < STEP_PALETTE_SIZE);
+    assert.equal(actionPalette(action), palette);
+  }
+});
+
+test('a card takes the colour of its action, as the builder colours it', () => {
+  const view = new RecordedPlanView(new FakeDocument(), () => {});
+  view.show(ROOTS);
+  for (const node of TIAGO_STEPS) {
+    const action = RecordedStep.identifier(node[PlanNodeKey.LABEL]);
+    assert.equal(cardOf(view.element, node).dataset.palette, String(actionPalette(action)));
+  }
+  assert.equal(cardOf(view.element, PARK).dataset.palette, String(actionPalette('park_arms')));
 });
 
 test('a card shows every recorded parameter and each constraint with its monitor and observation', () => {
