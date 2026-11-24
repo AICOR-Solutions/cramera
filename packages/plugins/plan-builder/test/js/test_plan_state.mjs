@@ -46,6 +46,18 @@ test('a new plan starts without a robot', () => {
   assert.equal(state.document[PlanKey.SELECTED_ROBOT], undefined);
 });
 
+test('a restored document replaces the plan, its edited robot included, and keeps the palette\'s mode', () => {
+  const state = PlanState.empty(catalog(), 'lab', 'tracy');
+  const before = state.document;
+  state.setDeveloperMode(true);
+  state.addRobot('pr2');
+  state.selectRobot(`${IdentityPrefix.ROBOT}2`);
+  state.restore(before);
+  assert.deepEqual(state.document, before);
+  assert.equal(state.activeRobot()[PlannedRobotKey.IDENTIFIER], `${IdentityPrefix.ROBOT}1`);
+  assert.equal(state.developerMode(), true);
+});
+
 test('a new plan asked for a model starts with one robot of it, by its saved name too', () => {
   const state = PlanState.empty(catalog(), null, 'PR2');
   assert.equal(state.activeRobot()[PlannedRobotKey.MODEL], 'pr2');

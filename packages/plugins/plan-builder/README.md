@@ -100,6 +100,19 @@ cramera
 - **Unsaved changes.** While the plan changed since it was last saved, opened or
   started, "New", opening a saved plan and starting from a template ask before they
   replace it, and the browser asks before the page is closed or left.
+- **Undo and Redo.** "Undo" and "Redo" beside "Save", or Ctrl+Z and Ctrl+Shift+Z or
+  Ctrl+Y (Cmd on macOS), take back a change of the plan and make it again; in a text
+  field the keys undo the typing, as the browser does. Every change of the plan
+  counts: steps, their fields, robots, objects, the environment, the name and task,
+  a marker dragged in the 3D view (one drag is one change), a scan, captured live
+  poses, and the objects a run left where it ended (one change). Each button's tooltip
+  names the change it would take back or make again. The history keeps the latest
+  `HISTORY_LIMIT` (100) changes of the plan shown (`web/builder/plan-history.js`): it
+  starts empty for a new plan, a template or an opened plan, and Undo and Redo are
+  disabled while a run starts or goes. An undone change is a change like any edit: it
+  counts as unsaved against the saved plan, and the plan counts as validated only
+  while it is the plan the latest validation validated; an older validation is never
+  brought back.
 - **Plans** are saved under `CRAMERA_DATA/plan-builder/plans`. A step names its action
   by class name and gives its fields' values by field name (format 1.1). A plan saved
   with the step kinds of format 1.0 loads as the actions they stood for: `park_arms` as

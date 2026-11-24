@@ -11,6 +11,8 @@ export const PlanAction = Object.freeze({
   NEW: 'new',
   OPEN: 'open',
   SAVE: 'save',
+  UNDO: 'undo',
+  REDO: 'redo',
   SHOW_DEMO: 'show-demo',
   WRITE_DEMO: 'write-demo',
   STAGE: 'stage',

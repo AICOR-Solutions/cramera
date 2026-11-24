@@ -3297,3 +3297,178 @@ test('the page starts with a skip link to the flow buttons, landing on Stop whil
   skip.click();
   assert.ok(watched.focused === flowButtons[3]);
 });
+
+// %% undo and redo
+
+const undoButton = (root) => byAction(root, PlanAction.UNDO)[0];
+const redoButton = (root) => byAction(root, PlanAction.REDO)[0];
+const stepActions = (page) => page.state.activeRobot()[PlannedRobotKey.STEPS].map((planned) => planned[PlanStepKey.ACTION]);
+
+/**
+ * Press a key on the page's window.
+ * @param {Object} window The page's window.
+ * @param {Object} keys The key and its modifiers, as a `KeyboardEvent` has them.
+ * @param {Object} target What has the keyboard focus.
+ * @returns {boolean} Whether the page kept the browser from acting on the key.
+ */
+const press = (window, keys, target = {}) => {
+  let prevented = false;
+  window.dispatch(DomEvent.KEY_DOWN, { target, ...keys, preventDefault: () => (prevented = true) });
+  return prevented;
+};
+
+test('Undo and Redo stand beside Save, take back a change and name it', async () => {
+  const { root, page } = await openPage();
+  assert.equal(undoButton(root).parentElement, byAction(root, PlanAction.SAVE)[0].parentElement);
+  assert.match(undoButton(root).title, /^Undo: Add robot \S+/);
+  assert.equal(redoButton(root).disabled, true);
+  assert.equal(redoButton(root).title, 'Nothing to redo.');
+  block(root, 'park_arms').click();
+  assert.match(undoButton(root).title, /^Undo: Add step .*park/i);
+  undoButton(root).click();
+  assert.deepEqual(stepActions(page), []);
+  assert.match(message(root), /^Undone: Add step/);
+  assert.equal(redoButton(root).disabled, false);
+  assert.match(redoButton(root).title, /^Redo: Add step .* \(Ctrl\+Shift\+Z\)$/);
+  redoButton(root).click();
+  assert.equal(stepActions(page).length, 1);
+  assert.equal(redoButton(root).disabled, true);
+});
+
+test('every kind of edit is undone one at a time', async () => {
+  const { root, page } = await openPage();
+  const name = byAction(root, PlanAction.NAME)[0];
+  name.value = 'tower';
+  name.dispatch(DomEvent.CHANGE);
+  byAction(root, PlanAction.ADD_OBJECT)[0].click();
+  block(root, 'park_arms').click();
+  block(root, 'pick_up').click();
+  byAction(root, PlanAction.MOVE_STEP_UP)[1].click();
+  const object = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  byAction(root, PlanAction.REMOVE_OBJECT)[0].click();
+  const shown = [];
+  while (!undoButton(root).disabled) {
+    shown.push(undoButton(root).title.replace(/^Undo: | \(Ctrl\+Z\)$/g, ''));
+    undoButton(root).click();
+  }
+  assert.deepEqual(shown.map((label) => label.split(' ')[0]), ['Remove', 'Move', 'Add', 'Add', 'Add', 'Rename', 'Add']);
+  assert.equal(shown[0], `Remove ${object}`);
+  assert.deepEqual(page.state.robots(), []);
+  assert.equal(page.state.field(PlanKey.NAME), 'new_plan');
+});
+
+test('the keyboard undoes and redoes, except in a text field, which keeps its own undo', async () => {
+  const { root, page, window } = await openPage();
+  block(root, 'park_arms').click();
+  assert.equal(press(window, { key: 'z', ctrlKey: true }, byAction(root, PlanAction.NAME)[0]), false);
+  assert.equal(stepActions(page).length, 1);
+  assert.equal(press(window, { key: 'z', ctrlKey: true }), true);
+  assert.deepEqual(stepActions(page), []);
+  assert.equal(press(window, { key: 'Z', ctrlKey: true, shiftKey: true }), true);
+  assert.equal(stepActions(page).length, 1);
+  press(window, { key: 'z', metaKey: true });
+  assert.deepEqual(stepActions(page), []);
+  press(window, { key: 'y', ctrlKey: true });
+  assert.equal(stepActions(page).length, 1);
+});
+
+test('a marker dragged in the 3D view is undone in one step, in the live world too', async () => {
+  const { root, page, live, timer, scene } = await openPage();
+  addMilk(root);
+  byAction(root, PlanAction.STAGE)[0].click();
+  await settled();
+  await timer.tick();
+  const milk = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
+  const started = structuredClone(page.state.object(milk)[PlannedObjectKey.POSE]);
+  scene().listeners.onMove(new Selection(MarkerKind.OBJECT, milk), PlanPose.of(1.5, 1, 0.9, 0));
+  scene().listeners.onPlace(new Selection(MarkerKind.OBJECT, milk), PlanPose.of(2, 1, 0.9, 0));
+  await settled();
+  assert.equal(undoButton(root).title, `Undo: Move ${milk} (Ctrl+Z)`);
+  undoButton(root).click();
+  await settled();
+  assert.deepEqual(page.state.object(milk)[PlannedObjectKey.POSE], started);
+  assert.deepEqual(live.moves.at(-1), { key: 'key-milk', pose: started, final: true });
+  assert.match(undoButton(root).title, /^Undo: Add /);
+});
+
+test('the objects a run left where it ended are taken back in one undo', async () => {
+  const opened = await runningWithMilk();
+  const { root, page } = opened;
+  const started = structuredClone(milkPose(page));
+  await moveLiveMilk(opened, STACKED);
+  await endRun(opened, RunState.FINISHED);
+  assert.equal(undoButton(root).disabled, false);
+  assert.equal(undoButton(root).title, 'Undo: Keep the objects where the run left them (Ctrl+Z)');
+  undoButton(root).click();
+  assert.deepEqual(milkPose(page), started);
+  redoButton(root).click();
+  assert.deepEqual(milkPose(page), STACKED);
+});
+
+test('undo and redo are refused while a run starts or goes', async () => {
+  const { root, page, api, window, timer } = await pickAndPlace();
+  const answer = deferred();
+  const run = api.run.bind(api);
+  api.run = (...asked) => answer.promise.then(() => run(...asked));
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  assert.equal(undoButton(root).disabled, true);
+  assert.equal(undoButton(root).title, 'Wait until the run ends.');
+  answer.resolve();
+  await settled();
+  await settled();
+  assert.equal(undoButton(root).disabled, true);
+  press(window, { key: 'z', ctrlKey: true });
+  page.undo();
+  assert.equal(stepActions(page).length, 3);
+  api.status = { ...api.status, [RunStatusKey.STATE]: RunState.FINISHED };
+  await timer.tick();
+  assert.equal(undoButton(root).disabled, false);
+});
+
+test('an undo is an edit: it counts as unsaved and needs a new validation, never an older one', async () => {
+  const { root, page, window } = await pickAndPlace();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  await settled();
+  block(root, 'park_arms').click();
+  undoButton(root).click();
+  assert.equal(leavingAsks(window), false);
+  undoButton(root).click();
+  assert.equal(leavingAsks(window), true);
+  redoButton(root).click();
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  assert.equal(robotRun(root).disabled, false);
+  block(root, 'park_arms').click();
+  byAction(root, PlanAction.VALIDATE)[0].click();
+  await settled();
+  assert.equal(robotRun(root).disabled, false);
+  undoButton(root).click();
+  assert.equal(robotRun(root).disabled, true);
+  assert.match(validationState(root), /changed since its validation/);
+  assert.equal(stepActions(page).length, 3);
+});
+
+test('a new plan, a template or an opened plan starts with an empty history', async () => {
+  const { root, page } = await withTemplate();
+  byAction(root, PlanAction.SAVE)[0].click();
+  await settled();
+  await settled();
+  const picker = byAction(root, PlanAction.NEW_FROM_TEMPLATE)[0];
+  picker.value = 'park';
+  picker.dispatch(DomEvent.CHANGE);
+  assert.deepEqual([undoButton(root).disabled, redoButton(root).disabled], [true, true]);
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  undoButton(root).click();
+  assert.equal(redoButton(root).disabled, false);
+  byAction(root, PlanAction.NEW)[0].click();
+  assert.deepEqual([undoButton(root).disabled, redoButton(root).disabled], [true, true]);
+  byAction(root, PlanAction.ADD_ROBOT)[0].click();
+  const open = byAction(root, PlanAction.OPEN)[0];
+  open.value = 'plan-1';
+  open.dispatch(DomEvent.CHANGE);
+  byAction(root, PlanAction.REPLACE_PLAN)[0].click();
+  await settled();
+  assert.equal(page.state.objects().length, 1);
+  assert.deepEqual([undoButton(root).disabled, redoButton(root).disabled], [true, true]);
+});

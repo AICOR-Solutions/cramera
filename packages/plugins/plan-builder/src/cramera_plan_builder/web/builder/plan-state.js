@@ -129,6 +129,15 @@ export class PlanState {
    */
   constructor(catalog, plan) {
     this.#catalog = catalog;
+    this.restore(plan);
+  }
+
+  /**
+   * Take a plan document in place of the plan, keeping the catalog and the palette's
+   * mode, as Undo and Redo do.
+   * @param {Object} plan A plan document.
+   */
+  restore(plan) {
     this.#plan = structuredClone(plan);
     this.#plan[PlanKey.ROBOTS] ??= [];
     this.#plan[PlanKey.OBJECTS] ??= [];

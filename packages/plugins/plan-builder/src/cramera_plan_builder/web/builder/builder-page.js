@@ -63,6 +63,7 @@ import { FreePlace } from './free-place.js';
 import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
 import { LEGEND, MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode } from './plan-scene.js';
+import { HistoryShortcut, HistoryTravel, PlanHistory, describeChange, editsText, historyShortcut } from './plan-history.js';
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
 import { EnvironmentView, REAL_ROBOT_POSE, RobotsView } from './robots-view.js';
@@ -196,6 +197,16 @@ export const VALIDATION_USED = 'The last run on the robot used this validation: 
  * holds, so one still held keeps the pose it has in the gripper.
  */
 export const OBJECTS_KEPT = 'The objects stay where the run left them; an object a robot still holds stays where its gripper has it.';
+
+/**
+ * What Undo and Redo name the changes the page makes itself rather than an edit of the
+ * person's, which they cannot tell from the change alone.
+ */
+export const PageChange = Object.freeze({
+  KEEP_OBJECTS: 'Keep the objects where the run left them',
+  CAPTURE: 'Capture the live poses',
+  SCAN: 'Fill the objects from the scan',
+});
 
 /**
  * What the page says once it cancelled a validation as the plan changed while it ran.
@@ -485,6 +496,12 @@ export class BuilderPage {
    * @type {function(): void|null}
    */
   #pendingReplace = null;
+
+  /**
+   * The plan's changes Undo and Redo travel, cleared for another plan.
+   * @type {PlanHistory}
+   */
+  #history = new PlanHistory();
 
   /**
    * What had the keyboard focus before the confirmation of a replacement took it, given
@@ -779,7 +796,10 @@ export class BuilderPage {
     this.render();
     const missing = catalog[PlanBuilderCatalogKey.MISSING];
     this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : READY);
-    if (this.#environment.window) this.#elements.listen(this.#environment.window, DomEvent.BEFORE_UNLOAD, (event) => this.#beforeLeaving(event));
+    if (this.#environment.window) {
+      this.#elements.listen(this.#environment.window, DomEvent.BEFORE_UNLOAD, (event) => this.#beforeLeaving(event));
+      this.#elements.listen(this.#environment.window, DomEvent.KEY_DOWN, (event) => this.#historyKey(event));
+    }
     this.#polling = this.#environment.timer.repeat(() => this.#poll(), POLL_INTERVAL);
     this.#following = this.#environment.timer.repeat(() => this.#follow(), PollInterval.STATE);
   }
@@ -811,10 +831,13 @@ export class BuilderPage {
   // %% editing
 
   /**
-   * Apply a change of the plan and show it; a change the plan refuses is reported.
+   * Apply a change of the plan and show it; a change the plan refuses is reported. A
+   * change of the plan is noted for Undo.
    * @param {function(): *} change The change.
+   * @param {string|null} label What Undo names the change, or null to name it by what
+   *   changed in the plan.
    */
-  edit(change) {
+  edit(change, label = null) {
     const before = JSON.stringify(this.state.document);
     // the boundary where an edit the plan refuses becomes a message for the person
     try {
@@ -823,9 +846,106 @@ export class BuilderPage {
       if (!(error instanceof PlanRefused)) throw error;
       this.report(error.message, Tone.ERROR);
     }
-    // a changed plan is edited, no longer the one the run ended with
-    if (!this.#performing() && JSON.stringify(this.state.document) !== before) this.#runShown = false;
+    if (JSON.stringify(this.state.document) !== before) {
+      this.#remember(before, label);
+      // a changed plan is edited, no longer the one the run ended with
+      if (!this.#performing()) this.#runShown = false;
+    }
     this.render();
+  }
+
+  /**
+   * Note a change of the plan for Undo.
+   * @param {string} before The plan before the change, as JSON text.
+   * @param {string|null} label What Undo names the change, or null to name it by what
+   *   changed in the plan.
+   */
+  #remember(before, label) {
+    this.#history.record(before, label ?? describeChange(JSON.parse(before), this.state.document, (step) => this.state.stepLabel(step)));
+  }
+
+  /**
+   * Take back the latest change of the plan, unless a run locks the plan.
+   */
+  undo() {
+    this.#travel(HistoryTravel.UNDO);
+  }
+
+  /**
+   * Make the change taken back last again, unless a run locks the plan.
+   */
+  redo() {
+    this.#travel(HistoryTravel.REDO);
+  }
+
+  /**
+   * Show the plan on the other side of a change in the history. This changes the plan
+   * like any edit: it counts as unsaved and as validated only while it is the plan the
+   * latest validation validated, and objects moved back move in a published live world.
+   * @param {string} travel A `HistoryTravel` value.
+   */
+  #travel(travel) {
+    if (this.#historyLocked() !== null) return;
+    const label = travel === HistoryTravel.UNDO ? this.#history.undoLabel() : this.#history.redoLabel();
+    const current = JSON.stringify(this.state.document);
+    const plan = travel === HistoryTravel.UNDO ? this.#history.undo(current) : this.#history.redo(current);
+    if (plan === null) return;
+    const before = this.state.document;
+    this.state.restore(JSON.parse(plan));
+    this.#moveLiveObjects(before);
+    if (!this.#performing()) this.#runShown = false;
+    this.report(`${travel === HistoryTravel.UNDO ? 'Undone' : 'Redone'}: ${label}.`);
+    this.render();
+  }
+
+  /**
+   * Move the objects the plan moved since it was as given in the live world, while it is
+   * published, as a dragged object moves there.
+   * @param {Object} before The plan document before.
+   */
+  #moveLiveObjects(before) {
+    const poses = new Map(before[PlanKey.OBJECTS].map((object) => [object[PlannedObjectKey.IDENTIFIER], JSON.stringify(object[PlannedObjectKey.POSE])]));
+    for (const object of this.state.objects()) {
+      const identifier = object[PlannedObjectKey.IDENTIFIER];
+      const key = this.#world.keys.get(identifier);
+      if (!key || poses.get(identifier) === JSON.stringify(object[PlannedObjectKey.POSE])) continue;
+      this.#live.move(key, object[PlannedObjectKey.POSE], true).catch((error) => this.report(error.message, Tone.ERROR));
+    }
+  }
+
+  /**
+   * @returns {string|null} Why Undo and Redo may not change the plan now, or null when
+   *   they may: not while a run starts or goes, nor while the plan is saved.
+   */
+  #historyLocked() {
+    return this.lockedByRun() ?? (this.#savingPlan ? 'Wait until the plan is saved.' : null);
+  }
+
+  /**
+   * Undo or redo on Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y (Cmd on macOS), except in a text
+   * field, where the browser undoes the typing.
+   * @param {KeyboardEvent} event The key pressed.
+   */
+  #historyKey(event) {
+    const travel = historyShortcut(event);
+    if (travel === null || editsText(event.target)) return;
+    event.preventDefault();
+    this.#travel(travel);
+  }
+
+  /**
+   * Show whether Undo and Redo may be pressed, naming what they would change.
+   */
+  #showHistory() {
+    const locked = this.#historyLocked();
+    const buttons = [
+      [this.#parts.undo, 'Undo', this.#history.undoLabel(), HistoryShortcut.UNDO],
+      [this.#parts.redo, 'Redo', this.#history.redoLabel(), HistoryShortcut.REDO],
+    ];
+    for (const [button, verb, label, shortcut] of buttons) {
+      button.disabled = locked !== null || label === null;
+      button.title = locked ?? (label === null ? `Nothing to ${verb.toLowerCase()}.` : `${verb}: ${label} (${shortcut})`);
+    }
   }
 
   /**
@@ -1092,6 +1212,7 @@ export class BuilderPage {
     this.state = state;
     this.#baseline = JSON.stringify(state.document);
     this.#pendingReplace = null;
+    this.#history.clear();
     this.#validationUsedBy = null;
     // the validation was of the plan shown before, which this one never had
     this.#validation = null;
@@ -1611,7 +1732,7 @@ export class BuilderPage {
         this.state.setRobotPosture(identifier, robot[RobotInstanceKey.JOINT_POSITIONS] ?? {});
       }
       this.report('Captured the live poses into the plan.');
-    });
+    }, PageChange.CAPTURE);
   }
 
   // %% live world
@@ -1694,6 +1815,7 @@ export class BuilderPage {
     }
     const kept = JSON.stringify(this.state.document);
     if (kept === ran) return;
+    this.#remember(ran, PageChange.KEEP_OBJECTS);
     // the poses are what the run did, not an edit of the person after it
     if (this.#runPlan === ran) this.#runPlan = kept;
     if (this.#validationUsedBy === ran) this.#validationUsedBy = kept;
@@ -1847,7 +1969,7 @@ export class BuilderPage {
     this.edit(() => {
       this.state.replaceObjects(scan[SceneScanKey.OBJECTS]);
       if (unchanged) this.#baseline = JSON.stringify(this.state.document);
-    });
+    }, PageChange.SCAN);
     // what perception saw, opened; hidden after a scan that drew nothing
     const images = scan[SceneScanKey.IMAGES] ?? [];
     this.#parts.scanFigures.replaceChildren(...seenImageFigures(this.#elements, images));
@@ -2016,6 +2138,7 @@ export class BuilderPage {
       control.title = locked ?? '';
     }
     parts.stop.title = parts.stop.disabled ? (this.#stopping ? 'Stopping the run…' : 'No run to stop.') : 'Stop the run; the robot halts.';
+    this.#showHistory();
   }
 
   /**
@@ -2159,7 +2282,9 @@ export class BuilderPage {
     const plansRow = elements.create('div', 'button-row');
     parts.newPlan = elements.button('New', PlanAction.NEW, () => this.#replacePlan('a new plan', () => this.#newPlan()));
     parts.save = elements.button('Save', PlanAction.SAVE, () => this.#save());
-    plansRow.append(parts.newPlan, parts.saved, parts.save);
+    parts.undo = elements.button('Undo', PlanAction.UNDO, () => this.undo());
+    parts.redo = elements.button('Redo', PlanAction.REDO, () => this.redo());
+    plansRow.append(parts.newPlan, parts.saved, parts.save, parts.undo, parts.redo);
     if ((this.state.catalog[PlanBuilderCatalogKey.TEMPLATES] ?? []).length > 0) {
       parts.templates = this.#choice(PlanAction.NEW_FROM_TEMPLATE, this.#templateChoices(), TEMPLATE_PROMPT.value, (value) => {
         const label = this.#templateChoices().find((choice) => choice.value === value)?.label ?? value;
