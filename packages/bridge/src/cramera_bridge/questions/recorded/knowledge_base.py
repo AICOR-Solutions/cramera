@@ -469,6 +469,22 @@ class RecordedKnowledge:
         robot_questions = RobotQuestions(len(self.robots())).presets()
         return (robot_questions if self.robot else []) + self.event_questions().listed()
 
+    def part_links(self) -> Dict[str, List[str]]:
+        """
+        :return: The viewer keys of the links of the robot and of each of its parts,
+            without the robot's base body, which every part's chain starts from.
+        """
+        robot = self.bundle.scene.robot
+        if robot is None:
+            return {}
+        prefix = f"{robot.prefix}/" if robot.prefix else ""
+        parts = {
+            part: [f"{prefix}{link}" for link in links if link != robot.base_body]
+            for part, links in robot.parts.items()
+        }
+        parts[robot.name] = [link for links in parts.values() for link in links]
+        return parts
+
     def desk(self, class_index: WorkspaceClassIndex) -> QuestionDesk:
         """
         :param class_index: The workspace classes a query may name.
@@ -483,6 +499,7 @@ class RecordedKnowledge:
             highlight_keys=EntityNameKeys(
                 keys_by_name={entity.name: entity.key for entity in self.objects},
                 known_keys=frozenset(entity.key for entity in self.objects),
+                links_by_name=self.part_links(),
             ),
             class_index=class_index,
             timeline=FrameTimeline.of_trajectory(self.bundle.trajectory),

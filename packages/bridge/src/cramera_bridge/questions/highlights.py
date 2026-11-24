@@ -47,7 +47,14 @@ class EntityNameKeys(HighlightKeys):
     Every key the viewer shows, so a text answer naming one lights it up.
     """
 
+    links_by_name: Dict[str, List[str]] = field(default_factory=dict)
+    """
+    The viewer keys of the links of each named part of a robot, such as an arm.
+    """
+
     def keys_of(self, value: Any) -> List[str]:
+        if isinstance(value, NamedEntity) and value.name in self.links_by_name:
+            return list(self.links_by_name[value.name])
         if isinstance(value, NamedEntity):
             return [self.keys_by_name.get(value.name, value.name)]
         if isinstance(value, str) and value in self.keys_by_name:
