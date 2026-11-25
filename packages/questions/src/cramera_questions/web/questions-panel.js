@@ -251,12 +251,14 @@ export class QuestionsPanel {
   }
 
   /**
-   * Say which frame a question about the paused world is asked at.
+   * Say which frame a question is asked at: the paused world stands as it is at it, and
+   * the recording's own objects are where they are at it.
    */
   #showMoment() {
     const paused = this.#scope.value === PAUSED_WORLD_SCOPE;
-    this.#moment.hidden = !paused;
-    this.#moment.textContent = `Asked of the world as it is at frame ${this.#frame} — pause anywhere and ask.`;
+    this.#moment.textContent = paused
+      ? `Asked of the world as it is at frame ${this.#frame} — pause anywhere and ask.`
+      : `Objects' positions are read at frame ${this.#frame}; their spawn_position is where they started.`;
   }
 
   /**
@@ -286,10 +288,13 @@ export class QuestionsPanel {
   async run(code, scope, reading = null) {
     if (!this.#scene || !code.trim()) return;
     this.#code.input.value = code;
-    this.#scope.value = scope;
+    if (this.#scope.value !== scope) {
+      this.#scope.value = scope;
+      this.#useScope();
+    }
     this.#showReading(reading);
     this.#answer.message('Answering…');
-    const frame = scope === PAUSED_WORLD_SCOPE ? this.#frame : null;
+    const frame = this.#frame;
     const answer = await this.#client.query(this.#scene, code, scope, frame).catch((error) => ({ [QueryAnswerKey.OK]: false, [QueryAnswerKey.ERROR]: error.message }));
     this.#showReading(answer[QueryAnswerKey.VERBALIZATION] ?? reading);
     this.#answer.show(answer);

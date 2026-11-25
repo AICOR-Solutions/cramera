@@ -58,6 +58,20 @@ class SceneQuestions:
     The desk answering questions about the scene.
     """
 
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    """
+    Keeps one question at a time moving the scene's objects to its frame.
+    """
+
+    def answer_query(self, request: QueryRequest) -> QueryAnswer:
+        """
+        :param request: A query and the frame it is asked at.
+        :return: Its answer, with the free objects where they are at that frame.
+        """
+        with self.lock:
+            self.knowledge.show(request.frame)
+            return self.desk.answer_query(request)
+
 
 @dataclass
 class SceneQuestionCache:
@@ -217,7 +231,7 @@ class RecordedSceneQuestions:
         """
         if request.scope is QueryScope.PAUSED_WORLD:
             return self.paused_worlds.of_scene(scene).answer_query(request)
-        return self.cache.of_scene(scene).desk.answer_query(request)
+        return self.cache.of_scene(scene).answer_query(request)
 
     def answer_question(self, scene: str, request: QuestionRequest) -> QuestionMatch:
         """

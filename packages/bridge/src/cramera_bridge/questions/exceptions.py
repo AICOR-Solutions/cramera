@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from http import HTTPStatus
 
-from typing_extensions import List
+from typing_extensions import List, Optional
 
 from cramera.exceptions import ViewerError
 
@@ -118,3 +118,33 @@ class DuplicateGraphNode(QuestionError):
 
     def message(self) -> str:
         return f"The graph already holds a node {self.identifier!r}."
+
+
+@dataclass
+class DomainNeverHoldsClass(QuestionError):
+    """
+    A query asking for a class among a domain whose type it never is, which answers
+    nothing however the world stands.
+    """
+
+    asked: str
+    """
+    The class the query asks for.
+    """
+
+    held: str
+    """
+    The type the domain holds.
+    """
+
+    hint: Optional[str] = None
+    """
+    Where the class can be asked instead, or None when the scope names nowhere.
+    """
+
+    def message(self) -> str:
+        message = (
+            f"A {self.asked} is never a {self.held}, and the domain it is asked "
+            f"among holds only objects of type {self.held}, so the query cannot answer."
+        )
+        return message if self.hint is None else f"{message} {self.hint}"

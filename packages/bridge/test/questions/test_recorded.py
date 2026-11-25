@@ -11,6 +11,7 @@ import pytest
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.scene import PartRole, PartSide, SceneDescription
 from cramera_protocol.bundle.trajectory import TrajectoryKey
+from cramera_protocol.geometry import Pose
 from cramera_protocol.questions import QueryRequest, QueryScope, ReplayWindow
 from cramera_bridge.questions.presets import (
     DetectedEventQuestion,
@@ -18,12 +19,15 @@ from cramera_bridge.questions.presets import (
     RobotQuestion,
 )
 from cramera_bridge.questions.recorded.bundle import BundleReader, RecordedBundle
+from cramera_bridge.questions.exceptions import DomainNeverHoldsClass
 from cramera_bridge.questions.recorded.knowledge_base import (
+    PAUSED_WORLD_HINT,
     PLAN_NODE_PREFIX,
     LegacyRobotPart,
     RecordedKnowledge,
 )
 from cramera_bridge.questions.recorded.urdf import UrdfJointType
+from cramera_bridge.questions.scenes import SceneQuestions
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from .dataset.files import SceneName
 
@@ -110,7 +114,78 @@ def test_objects_keep_their_keys_and_spawn_positions(annotated, scenes):
         data["key"],
         data["height"],
     )
-    assert milk.position.x == round(data["spawn"][0], 3)
+    assert milk.spawn_position.x == round(data["spawn"][0], 3)
+    assert milk.position == milk.spawn_position
+
+
+def raise_milk_at_frame(knowledge: RecordedKnowledge, frame: int) -> None:
+    """
+    Record the first object lifted to 1.2 m from a frame on.
+
+    :param knowledge: The knowledge of a recording with at least one object.
+    :param frame: The frame the object is lifted at.
+    """
+    milk = knowledge.objects[0]
+    trajectory = knowledge.bundle.trajectory
+    trajectory.objects = [
+        (
+            {milk.key: Pose(x=1.0, y=2.0, z=1.2, qx=0, qy=0, qz=0, qw=1)}
+            if index >= frame
+            else {}
+        )
+        for index in range(len(trajectory.frames))
+    ]
+
+
+def test_an_object_is_where_the_recording_has_it_at_the_shown_frame(annotated):
+    raise_milk_at_frame(annotated, 5)
+    milk = annotated.objects[0]
+    annotated.show(2)
+    assert milk.position == milk.spawn_position
+    annotated.show(7)
+    assert milk.position.z == 1.2
+    annotated.show(None)
+    assert milk.position == milk.spawn_position
+
+
+def test_a_moved_object_stays_the_same_entity(annotated):
+    raise_milk_at_frame(annotated, 0)
+    milk = annotated.objects[0]
+    before = hash(milk)
+    annotated.show(3)
+    assert hash(milk) == before
+    assert annotated.steps[1].picks == milk
+
+
+def test_the_current_state_is_asked_at_the_request_s_frame(annotated, catalog):
+    raise_milk_at_frame(annotated, 5)
+    scene = SceneQuestions(
+        stamp=0, knowledge=annotated, desk=annotated.desk(WorkspaceClassIndex())
+    )
+    code = (
+        f"o = a(RecordedObject).from_(domain={QueryVariable.OBJECT})\n"
+        "o.where(o.position.z > 1.1)"
+    )
+    early = scene.answer_query(QueryRequest(code=code, frame=2))
+    late = scene.answer_query(QueryRequest(code=code, frame=8))
+    assert (early.count, late.count) == (0, 1)
+
+
+def test_a_class_the_recorded_objects_never_are_is_refused_with_where_to_ask_it(
+    annotated,
+):
+    desk = annotated.desk(WorkspaceClassIndex())
+    answer = desk.answer_query(
+        QueryRequest(
+            code=(
+                f"o = a(RecordedStep).from_(domain={QueryVariable.OBJECT})\n"
+                "o.where(o.index > 0)"
+            )
+        )
+    )
+    assert not answer.ok
+    assert DomainNeverHoldsClass.__name__ in answer.error
+    assert PAUSED_WORLD_HINT in answer.error
 
 
 def test_steps_name_their_arm_and_object(annotated):

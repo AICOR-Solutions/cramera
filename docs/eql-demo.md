@@ -64,7 +64,7 @@ what the query ranges over:
 
 | Scope | What it asks |
 | --- | --- |
-| Current State Queries | The recording's own summary: its robot, arms, grippers, objects, steps, joints and plan nodes. |
+| Current State Queries | The recording's own summary: its robot, arms, grippers, objects, steps, joints and plan nodes. An object's `position` is where it is at the shown frame, and its `spawn_position` is where it started. |
 | Paused World (any CRAM class, at the shown frame) | The scene rebuilt as a CRAM world, with Tracy's joints and the free objects where they are at the frame the timeline shows. Every class of the semantic digital twin can be named. |
 
 Hints appear as you type. Arrow keys choose a hint, and **Tab** or **Enter** takes it.
@@ -116,12 +116,19 @@ piece.where(piece.global_pose.z > 0.92)
 | 400 | `cylinder 1` | `cylinder 1`, in the left gripper | `move_cylinder 1` |
 | 600 | `cylinder 1`, put down on the board | nothing | `move_cylinder 1` |
 
-In **Current State Queries**:
+In **Current State Queries** the objects are the recording's own `RecordedObject`s, not
+CRAM bodies, so the same question is asked of their `position`:
 
 ```python
 an(entity(arm))                                             # the recorded arms, lit up
 a(RecordedObject)(height_metres=0.03)
+lifted = a(RecordedObject).from_(domain=scene_object)
+lifted.where(lifted.position.z > 0.92)                      # cylinder 1 from frame 268 on
 ```
+
+A query naming a class its domain never holds, such as `a(Body).from_(domain=scene_object)`
+here, does not answer an empty list. It answers an error that names both types and says to
+choose **Paused World**.
 
 ## 5. Replay the walkthrough automatically
 
