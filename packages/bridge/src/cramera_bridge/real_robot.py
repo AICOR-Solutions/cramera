@@ -544,16 +544,23 @@ class PreflightCheck:
         """
         :return: What is missing, as a person reads it.
         """
-        if self.kind is RequirementKind.ARM_WATCHDOG:
-            return f"the arm watchdog is not running (no heartbeat on {self.name})"
         if self.kind is not RequirementKind.NO_OTHER_GISKARD:
-            return f"{self.kind}: {self.name}"
+            return {
+                RequirementKind.GISKARD_SCRIPT: f"Giskard script {self.name} is not "
+                "installed",
+                RequirementKind.ROBOT_DESCRIPTION: f"no robot description on {self.name}",
+                RequirementKind.JOINT_STATES: f"no joint states on {self.name}",
+                RequirementKind.GRIPPER_ACTION_SERVER: f"no gripper action server "
+                f"{self.name}",
+                RequirementKind.CAMERA_TOPIC: f"no camera images on {self.name}",
+                RequirementKind.ARM_WATCHDOG: f"the arm watchdog is not running (no "
+                f"heartbeat on {self.name})",
+            }[self.kind]
         processes = "; ".join(giskard.to_text() for giskard in self.other_giskards)
         return (
             f"another Giskard is still running ({processes})"
             if processes
-            else f"another Giskard is still running, serving {self.name} from a "
-            "process this platform does not see"
+            else f"another Giskard is still running, serving {self.name}"
         )
 
 
@@ -606,14 +613,11 @@ class PreflightReport:
         remedies = []
         if RequirementKind.ARM_WATCHDOG in kinds:
             remedies.append(
-                "Run ./aicor start in the platform's folder to start it again"
+                "Restart the arm watchdog with ./aicor start in the platform folder"
             )
         if kinds - {RequirementKind.ARM_WATCHDOG}:
-            remedies.append("Start what is missing (docs/real-tracy.md)")
-        return (
-            f"{self.verdict()} No motion was started. {'; '.join(remedies)}, "
-            "then run the plan again."
-        )
+            remedies.append("Start what is missing (see docs/real-tracy.md)")
+        return f"{self.verdict()} Nothing moved. {'. '.join(remedies)}."
 
 
 @dataclass(frozen=True)

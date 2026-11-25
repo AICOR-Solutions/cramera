@@ -95,18 +95,31 @@ test('every report shows what was asked and every object with why it was not tak
   const view = rendered(failedRun());
   const reports = byClass(view, PerceptionViewClass.REPORT);
   assert.equal(reports.length, 4);
-  assert.equal(byClass(reports[0], PerceptionViewClass.ASKED)[0].textContent, 'Looked for the red cube within 7.5 cm of (0.60, 0.10, 0.91) m, where the plan was validated; the step goes on only within 2 cm of that spot.');
+  assert.equal(byClass(reports[0], PerceptionViewClass.ASKED)[0].textContent, 'Searched within 7.5 cm of (0.60, 0.10, 0.91) m (planned), 2 cm allowed.');
   const objects = byClass(reports[0], PerceptionViewClass.OBJECT);
   assert.deepEqual(objects.map((item) => item.dataset.verdict), [ReportedObjectVerdict.OUTSIDE_BOX, ReportedObjectVerdict.WRONG_COLOR]);
-  assert.match(objects[0].innerText, /red, 6\.6 × 6\.1 × 2\.2 cm, at \(0\.79, 0\.14, 0\.91\) m, 19\.4 cm from where the plan was validated: outside the box looked in/);
+  assert.match(objects[0].innerText, /red, 6\.6 × 6\.1 × 2\.2 cm, \(0\.79, 0\.14, 0\.91\) m, 19\.4 cm off: outside the search/);
 });
 
 test('an empty answer is shown as empty, with the query', () => {
   const view = rendered(failedRun());
   const last = byClass(view, PerceptionViewClass.REPORT).at(-1);
   assert.equal(last.open, true);
-  assert.match(byClass(last, PerceptionViewClass.ASKED)[0].textContent, /on the whole table/);
-  assert.match(byClass(last, PerceptionViewClass.EMPTY)[0].textContent, /The answer was empty/);
+  assert.match(byClass(last, PerceptionViewClass.ASKED)[0].textContent, /whole table/);
+  assert.match(byClass(last, PerceptionViewClass.EMPTY)[0].textContent, /Nothing reported/);
+});
+
+test('a report the person opened or closed stays so when the run view renders again', () => {
+  const view = new RunView(new Elements(new FakeDocument()));
+  view.render(failedRun());
+  const reports = () => byClass(view.element, PerceptionViewClass.REPORT);
+  for (const report of [reports()[0], reports().at(-1)]) {
+    const summary = report.findAll((element) => element.tagName?.toLowerCase() === 'summary')[0];
+    summary.click();
+    report.open = !report.open;
+  }
+  view.render(failedRun());
+  assert.deepEqual(reports().map((report) => report.open), [true, false, false, false]);
 });
 
 test('the log says what each detection found', () => {
@@ -129,11 +142,11 @@ const sunk = (depth, verdict = ReportedObjectVerdict.ACCEPTED) => ({
 });
 
 test('a cube taken a few millimetres inside the table says it was raised onto it', () => {
-  assert.match(objectText(sunk(0.004)), /: used for the step; reported 4 mm inside the table and raised onto it$/);
+  assert.match(objectText(sunk(0.004)), /: used; 4 mm inside the table, raised$/);
 });
 
 test('a cube taken centimetres inside the table says it was raised onto it', () => {
-  assert.match(objectText(sunk(0.04)), /: used for the step; reported 40 mm inside the table and raised onto it$/);
+  assert.match(objectText(sunk(0.04)), /: used; 40 mm inside the table, raised$/);
 });
 
 test('an object not taken says nothing of the table', () => {
@@ -156,32 +169,32 @@ const plannedAgain = {
 
 test('a box looked in that reaches unequally far along x and y says how far along each', () => {
   const wide = { ...grounded, [PerceptionReportKey.BOX]: [[0.525, 0.005, 0.83], [0.675, 0.205, 0.98]] };
-  assert.match(askedText(wide), /^Looked for the red cube within 7\.5 cm along x and 10 cm along y of \(0\.60, 0\.10, 0\.91\) m, /);
+  assert.match(askedText(wide), /^Searched within 7\.5 × 10 cm of \(0\.60, 0\.10, 0\.91\) m /);
 });
 
-test('what was asked names the object as the person knows it, never the type checked', () => {
+test('what was asked never names the type checked', () => {
   const asked = askedText(plannedAgain);
-  assert.match(asked, /^Looked for the red cube within /);
-  assert.doesNotMatch(asked, /planned/i);
+  assert.match(asked, /^Searched within /);
+  assert.doesNotMatch(asked, /graspable/i);
 });
 
 test('a step planned again says it looked around where the object was last seen', () => {
   assert.equal(
     askedText(plannedAgain),
-    'Looked for the red cube within 7.5 cm of (0.79, 0.14, 0.91) m, where it was last seen (19.4 cm from where the plan was validated); the step goes on only within 2 cm of that spot.',
+    'Searched within 7.5 cm of (0.79, 0.14, 0.91) m (last seen), 2 cm allowed.',
   );
 });
 
 test('an object seen by a step planned again is measured from where it was last seen', () => {
   const [cube] = plannedAgain[PerceptionReportKey.OBJECTS];
-  assert.match(objectText(cube, plannedAgain), /, 0 cm from where it was last seen: used for the step$/);
+  assert.match(objectText(cube, plannedAgain), /, 0 cm from last seen: used$/);
 });
 
 test('an object of another kind says so without its type name', () => {
   const bowl = { ...seen([0.6, 0.1, 0.905], ['red'], ReportedObjectVerdict.WRONG_TYPE, 0.005), [ReportedObjectKey.TYPE]: 'PlannedGraspableFromAbove' };
   const text = objectText(bowl, grounded);
   assert.doesNotMatch(text, /planned/i);
-  assert.match(text, /: not the kind of object looked for$/);
+  assert.match(text, /: wrong type$/);
 });
 
 /**
@@ -219,7 +232,7 @@ test('a report with a detection not used is marked as a warning and says why', (
 
 test('a report whose detection was not used says which later detection of its step was', () => {
   const [first, second] = byClass(rendered(regroundedRun()), PerceptionViewClass.REPORT);
-  assert.equal(byClass(first, PerceptionViewClass.INSTEAD)[0].textContent, `Instead, a later detection of this step was used: ${foundAgain[PerceptionReportKey.SUMMARY]}`);
+  assert.equal(byClass(first, PerceptionViewClass.INSTEAD)[0].textContent, `Used instead: ${foundAgain[PerceptionReportKey.SUMMARY]}`);
   assert.equal(byClass(second, PerceptionViewClass.INSTEAD).length, 0);
 });
 
@@ -233,7 +246,7 @@ test('the log warns of a detection not used', () => {
 });
 
 test('an object of the kind looked for outside the box says it was ignored', () => {
-  assert.match(objectText(notUsed[PerceptionReportKey.OBJECTS][0], notUsed), /: outside the box looked in, ignored$/);
+  assert.match(objectText(notUsed[PerceptionReportKey.OBJECTS][0], notUsed), /: outside the search$/);
 });
 
 /**
@@ -252,7 +265,7 @@ const flattened = {
 };
 
 test('an object measured clearly unlike the object looked for says so', () => {
-  assert.match(objectText(flattened[PerceptionReportKey.OBJECTS][0], flattened), /: used for the step; measured clearly unlike the 5 × 5 × 5 cm of the red cube, likely a perception error$/);
+  assert.match(objectText(flattened[PerceptionReportKey.OBJECTS][0], flattened), /: used; size off \(expected 5 × 5 × 5 cm\)$/);
 });
 
 test('an object measured clearly unlike the object looked for is marked', () => {

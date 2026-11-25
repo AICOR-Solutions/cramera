@@ -201,7 +201,7 @@ def test_a_failing_demo_shows_its_output(tmp_path, demo):
     assert ended.log.startswith("Traceback")
 
 
-def test_a_failed_demo_ends_its_log_with_its_error_before_the_suggestion(
+def test_a_failed_demo_ends_its_log_with_its_error(
     tmp_path, demo
 ):
     """
@@ -215,9 +215,7 @@ def test_a_failed_demo_ends_its_log_with_its_error_before_the_suggestion(
 
     assert ended.state is RunState.FAILED
     assert "RuntimeError: Nothing serves the query." in ended.log
-    assert ended.log.splitlines()[-1] == (
-        "Nothing serves the query. Suggestion: start it."
-    )
+    assert ended.log.splitlines()[-1] == "Nothing serves the query."
 
 
 def test_a_demo_ignoring_termination_is_killed(tmp_path, demo):

@@ -41,7 +41,7 @@ export const EMPTY_FOLDER = 'No folders or URDF files here.';
  */
 export const EnvironmentNote = Object.freeze({
   EMPTY_FLOOR: 'The robots start on an empty floor.',
-  NONE_OFFERED: 'No environment yet: make one in the Scene Builder or load a URDF below. Until then the robots start on an empty floor.',
+  NONE_OFFERED: 'No environment yet: make one in the Scene Builder or load a URDF below.',
   /**
    * @param {string} label The environment's name for people.
    * @returns {string} What the section says about a chosen environment.
@@ -270,13 +270,9 @@ export const RobotTag = Object.freeze({
 });
 
 /**
- * What the view says of the real robot's pose, which the plan does not set: in place of
- * its start pose in its settings, and in its entry.
+ * What the real robot's entry says of its pose, which the plan does not set.
  */
-export const REAL_ROBOT_POSE = Object.freeze({
-  NOTE: 'This is the real robot: it starts where it stands, not at a pose of the plan, so it is not placed or removed here.',
-  FACT: 'stands where the real robot is',
-});
+export const REAL_ROBOT_POSE = 'stands where the real robot is';
 
 export class RobotsView {
   /**
@@ -355,8 +351,7 @@ export class RobotsView {
     const settings = elements.create('div', 'robot-settings');
     settings.append(elements.create('h3', '', `Settings of ${robot[PlannedRobotKey.LABEL]}`), elements.label('name', label), elements.label('model', model));
     // the real robot stands where it is: neither its pose nor its presence is the plan's to change
-    if (this.#editor.realRobot(robot)) settings.append(elements.create('p', 'muted real-robot-pose', REAL_ROBOT_POSE.NOTE));
-    else settings.append(elements.label('starts at', row), elements.button(`Remove ${robot[PlannedRobotKey.LABEL]}`, PlanAction.REMOVE_ROBOT, () => this.#editor.edit(() => state.removeRobot(identifier))));
+    if (!this.#editor.realRobot(robot)) settings.append(elements.label('starts at', row), elements.button(`Remove ${robot[PlannedRobotKey.LABEL]}`, PlanAction.REMOVE_ROBOT, () => this.#editor.edit(() => state.removeRobot(identifier))));
     this.element.replaceChildren(list, settings, adding);
     this.#lock(this.#editor.lockedByRun());
   }
@@ -410,7 +405,7 @@ export class RobotsView {
     const steps = robot[PlannedRobotKey.STEPS].length;
     const head = elements.create('span', 'robot-head');
     head.append(elements.create('strong', '', robot[PlannedRobotKey.LABEL]), elements.create('span', 'badge', this.#editor.state.modelLabel(robot[PlannedRobotKey.MODEL])));
-    const where = this.#editor.realRobot(robot) ? REAL_ROBOT_POSE.FACT : `starts at ${RobotsView.metres(x)}, ${RobotsView.metres(y)} m`;
+    const where = this.#editor.realRobot(robot) ? REAL_ROBOT_POSE : `starts at ${RobotsView.metres(x)}, ${RobotsView.metres(y)} m`;
     const facts = `${steps} ${steps === 1 ? 'step' : 'steps'} · ${where}`;
     button.append(head, elements.create('span', 'robot-facts', facts));
     if (edited) button.append(elements.create('span', 'robot-editing', this.#editor.lockedByRun() === null ? RobotTag.EDITING : RobotTag.RUNNING));

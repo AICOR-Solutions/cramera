@@ -90,7 +90,7 @@ test('a safety stop fails its step, violates the safety monitor and is logged', 
   assert.equal(progress.safety, MonitorObservation.VIOLATED);
   assert.equal(progress.safetyStop, 'Left arm workspace');
   assert.match(progress.summary(), /^Stopped by a safety limit in 2\. label of step_2: Left arm workspace\./);
-  assert.equal(progress.log.at(-1), 'Safety stop in 2. label of step_2: Left arm workspace; the robot stopped and stands still.');
+  assert.equal(progress.log.at(-1), 'Safety stop in 2. label of step_2: Left arm workspace; the robot stands still.');
 });
 
 test('a step grounded again where its cube was found elsewhere says so in one line, with no retry', () => {
@@ -115,7 +115,7 @@ test('a step grounded again where its cube was found elsewhere says so in one li
   assert.equal(progress.step('step_3').state, StepState.DONE);
   assert.equal(progress.step('step_3').attempt, 1);
   assert.ok(progress.log.includes(
-    '1. label of step_3: red cube found elsewhere on the table; the step was grounded again where it lies',
+    '1. label of step_3: red cube found elsewhere; replanned there',
   ), progress.log);
 });
 
@@ -149,11 +149,11 @@ test('a finished run whose step went ahead without the camera confirming its obj
     { [RunStatusKey.EVENTS]: events },
   );
   assert.deepEqual(progress.unseenSteps().map((shown) => shown.identifier), ['step_2']);
-  assert.equal(progress.summary(), '2 of 2 steps done. 1 step went ahead without the camera confirming its object: 2. Pick red cube (red cube).');
+  assert.equal(progress.summary(), '2 of 2 steps done. Not confirmed by the camera: 2. Pick red cube (red cube).');
   const view = rendered(progress);
   const [, pick] = byClass(view, RunViewClass.STEP);
   assert.equal(pick.dataset.unseen, 'true');
-  assert.deepEqual(byClass(pick, RunViewClass.UNSEEN).map((element) => element.textContent), ['Went ahead without the camera confirming red cube: it acted where the plan expected it.']);
+  assert.deepEqual(byClass(pick, RunViewClass.UNSEEN).map((element) => element.textContent), ['Not confirmed by the camera: red cube; used where the plan expected.']);
   const [park] = byClass(view, RunViewClass.STEP);
   assert.equal(park.dataset.unseen, undefined);
 });
@@ -165,7 +165,7 @@ test('several steps that went ahead unseen are counted and named', () => {
     (shown) => `Pick ${shown[PlanStepKey.IDENTIFIER]}`,
     { [RunStatusKey.EVENTS]: [unseen('a', 'red_cube'), unseen('a', 'red_cube'), unseen('c', 'blue_cube')] },
   );
-  assert.equal(unseenSentence(progress.unseenSteps()), '2 steps went ahead without the camera confirming their objects: 1. Pick a (red cube), 3. Pick c (blue cube).');
+  assert.equal(unseenSentence(progress.unseenSteps()), 'Not confirmed by the camera: 1. Pick a (red cube), 3. Pick c (blue cube).');
   assert.equal(unseenSentence([]), '');
 });
 
@@ -311,7 +311,7 @@ test('the run log and the perceived objects name each object as the step cards d
   ]);
   const view = rendered(progress);
   assert.deepEqual(byClass(view, RunViewClass.OBJECT).map((chip) => chip.innerText), ['red cube (red)']);
-  assert.deepEqual(byClass(view, RunViewClass.UNSEEN).map((element) => element.textContent), ['Went ahead without the camera confirming red cube, blue cube: it acted where the plan expected them.']);
+  assert.deepEqual(byClass(view, RunViewClass.UNSEEN).map((element) => element.textContent), ['Not confirmed by the camera: red cube, blue cube; used where the plan expected.']);
 });
 
 test('the camera panel shows the latest perception images or says none was taken', () => {

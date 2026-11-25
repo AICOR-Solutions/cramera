@@ -95,25 +95,20 @@ def test_a_red_cube_seen_19_cm_away_lies_outside_the_box_looked_in():
     (seen,) = report.objects
     assert seen.verdict is ReportedObjectVerdict.OUTSIDE_BOX
     assert round(seen.distance, 2) == 0.19
-    assert report.summary == (
-        "The red cube was seen 19 cm from where the plan was validated, outside the "
-        "search within 7.5 cm of where the plan was validated."
-    )
+    assert report.summary == "Red cube 19 cm off, outside the 7.5 cm search."
 
 
 def test_an_empty_answer_says_what_was_looked_for_and_where():
     report = table_wide().report(PerceptionAnswer(objects=[]))
     assert report.objects == []
     assert report.answered is True
-    assert report.summary == "A table-wide search found no red object."
+    assert report.summary == "No red object found on the table."
 
 
 def test_an_unanswered_query_reports_no_objects():
     report = table_wide().report(PerceptionAnswer(objects=None))
     assert report.answered is False
-    assert report.summary == (
-        "The object recognition (RoboKudo) did not answer the search for the red cube."
-    )
+    assert report.summary == "RoboKudo did not answer the search for red cube."
 
 
 def test_the_cube_where_it_was_validated_is_taken():
@@ -122,9 +117,7 @@ def test_the_cube_where_it_was_validated_is_taken():
     )
     (seen,) = report.objects
     assert seen.verdict is ReportedObjectVerdict.ACCEPTED
-    assert report.summary == (
-        "The red cube was found 1 cm from where the plan was validated."
-    )
+    assert report.summary == "Red cube 1 cm off."
 
 
 def test_a_cube_inside_the_box_but_beyond_the_tolerance_stops_the_step():
@@ -133,10 +126,7 @@ def test_a_cube_inside_the_box_but_beyond_the_tolerance_stops_the_step():
     )
     (seen,) = report.objects
     assert seen.verdict is ReportedObjectVerdict.TOO_FAR
-    assert report.summary == (
-        "The red cube was seen 4 cm from where the plan was validated; the step goes on "
-        "only within 2 cm of where the plan was validated."
-    )
+    assert report.summary == "Red cube 4 cm off, more than the 2 cm allowed."
 
 
 def test_the_table_top_and_the_other_cubes_are_reported_in_their_colors():
@@ -166,7 +156,7 @@ def test_a_second_cube_that_would_do_is_not_chosen():
         ReportedObjectVerdict.ACCEPTED,
         ReportedObjectVerdict.NOT_CHOSEN,
     ]
-    assert report.summary == "A table-wide search found the red cube."
+    assert report.summary == "Found red cube."
 
 
 def test_an_object_of_another_type_is_not_taken():
@@ -176,10 +166,7 @@ def test_an_object_of_another_type_is_not_taken():
     report = around_the_grounded_spot().report(PerceptionAnswer(objects=[other]))
     (seen,) = report.objects
     assert seen.verdict is ReportedObjectVerdict.WRONG_TYPE
-    assert report.summary == (
-        "No red object was found within 7.5 cm of where the plan was validated; "
-        "1 other object was reported."
-    )
+    assert report.summary == "No red object found within 7.5 cm (1 other)."
 
 
 # %% a cube reported inside the table
@@ -203,18 +190,14 @@ def test_a_cube_reported_a_few_millimetres_inside_the_table_says_it_was_raised()
     )
     (seen,) = report.objects
     assert seen.inside_surface.depth == 0.004
-    assert report.summary.endswith(
-        "The red cube was reported 4 mm inside the table and was raised onto it."
-    )
+    assert report.summary.endswith("4 mm inside the table, raised onto it.")
 
 
 def test_a_cube_reported_centimetres_inside_the_table_says_it_was_raised():
     report = around_the_grounded_spot().report(
         PerceptionAnswer(objects=[cube_inside_the_table(0.04)])
     )
-    assert report.summary.endswith(
-        "The red cube was reported 40 mm inside the table and was raised onto it."
-    )
+    assert report.summary.endswith("40 mm inside the table, raised onto it.")
 
 
 def test_a_cube_resting_on_the_table_says_nothing_of_it():
@@ -256,7 +239,7 @@ def test_an_object_no_plan_names_is_named_by_its_color_at_the_start_of_a_sentenc
     )
     report = search.report(PerceptionAnswer(objects=[cube(0.6, 0.1, "red")]))
     assert report.looked_for == "a red object"
-    assert report.summary == "A red object was found in the box looked in."
+    assert report.summary == "Found a red object."
 
 
 LAST_SEEN = Vector3(0.79, 0.145, 0.905)
@@ -289,17 +272,12 @@ def test_a_step_planned_again_says_it_measures_from_where_the_cube_was_last_seen
         PerceptionAnswer(objects=[cube(0.79, 0.145, "red")])
     )
     assert report.validated == GROUNDED
-    assert report.summary == (
-        "The red cube was found 0 cm from where it was last seen, 19 cm from where "
-        "the plan was validated."
-    )
+    assert report.summary == "Red cube 0 cm from last seen, 19 cm from the plan."
 
 
 def test_nothing_found_where_the_cube_was_last_seen_says_so():
     report = where_it_was_last_seen().report(PerceptionAnswer(objects=[]))
-    assert report.summary == (
-        "No red object was found within 7.5 cm of where it was last seen."
-    )
+    assert report.summary == "No red object found within 7.5 cm."
 
 
 # %% why the step looked
@@ -314,37 +292,28 @@ def test_a_look_before_grasping_says_so_before_what_it_found():
     )
     report = search.report(PerceptionAnswer(objects=[cube(0.6, 0.1, "red")]))
     assert report.purpose is DetectionPurpose.BEFORE_GRASP
-    assert report.summary == (
-        "Looked again just before grasping: the red cube was found in the box looked "
-        "in."
-    )
+    assert report.summary == "Pre-grasp check: found red cube."
 
 
 def test_a_check_before_the_step_moves_says_so_before_what_it_found():
     report = replace(
         around_the_grounded_spot(), purpose=DetectionPurpose.IN_PLACE_CHECK
     ).report(PerceptionAnswer(objects=[cube(0.61, 0.105, "red")]))
-    assert report.summary == (
-        "Checked before the step moved that the object still lies where the plan "
-        "expects it: the red cube was found 1 cm from where the plan was validated."
-    )
+    assert report.summary == "In-place check: red cube 1 cm off."
 
 
 def test_the_search_after_losing_the_object_says_so_before_what_it_found():
     report = replace(table_wide(), purpose=DetectionPurpose.TABLE_SEARCH).report(
         PerceptionAnswer(objects=[])
     )
-    assert report.summary == (
-        "Searched the table again, the object not being where the plan expected it: "
-        "a table-wide search found no red object."
-    )
+    assert report.summary == "Table search: no red object found on the table."
 
 
 def test_a_detect_steps_own_detection_says_only_what_it_found():
     report = replace(table_wide(), purpose=DetectionPurpose.STEP).report(
         PerceptionAnswer(objects=[cube(0.6, 0.1, "red")])
     )
-    assert report.summary == "A table-wide search found the red cube."
+    assert report.summary == "Found red cube."
 
 
 # %% warnings
@@ -354,10 +323,7 @@ def test_a_cube_seen_outside_the_box_warns_that_it_was_not_used():
     report = around_the_grounded_spot().report(
         PerceptionAnswer(objects=[cube(0.79, 0.145, "red"), *TABLE_TOP])
     )
-    assert report.warnings == [
-        "The red cube seen 19 cm from where the plan was validated was not used: the "
-        "step acts only on the red cube found inside the box it looked in."
-    ]
+    assert report.warnings == ["Red cube seen 19 cm off, outside the search, not used."]
 
 
 def test_a_cube_beyond_the_tolerance_warns_that_the_step_did_not_go_on():
@@ -365,8 +331,7 @@ def test_a_cube_beyond_the_tolerance_warns_that_the_step_did_not_go_on():
         PerceptionAnswer(objects=[cube(0.64, 0.105, "red")])
     )
     assert report.warnings == [
-        "The red cube was not acted on: it lies 4 cm from where the plan was "
-        "validated, farther than the 2 cm the step allows."
+        "Red cube not acted on: 4 cm off, more than the 2 cm allowed."
     ]
 
 
@@ -374,19 +339,14 @@ def test_a_second_cube_that_would_do_warns_that_it_was_ignored():
     report = table_wide().report(
         PerceptionAnswer(objects=[cube(0.79, 0.145, "red"), cube(0.6, 0.1, "red")])
     )
-    assert report.warnings == [
-        "1 more object matching the search was ignored; the step used the first one "
-        "reported."
-    ]
+    assert report.warnings == ["1 more match ignored (first used)."]
 
 
 def test_a_cube_outside_the_box_beside_the_one_used_warns_that_it_was_ignored():
     report = around_the_grounded_spot().report(
         PerceptionAnswer(objects=[cube(0.61, 0.105, "red"), cube(0.79, 0.145, "red")])
     )
-    assert report.warnings == [
-        "1 more object matching the search, outside the box looked in, was ignored."
-    ]
+    assert report.warnings == ["1 more match outside the search ignored."]
 
 
 def test_the_cube_used_where_it_was_validated_warns_of_nothing():
@@ -422,8 +382,7 @@ def test_a_cube_measured_far_flatter_than_it_is_warns_of_a_perception_error():
     assert report.expected_size == CUBE_SIZE
     assert report.objects[0].size_differs is True
     assert report.warnings == [
-        "The red cube used measured 6.1 × 5.6 × 1.7 cm, clearly unlike its 5 × 5 × "
-        "5 cm: the object recognition likely measured it wrongly."
+        "Red cube measured 6.1 × 5.6 × 1.7 cm, expected 5 × 5 × 5 cm: likely a perception error."
     ]
     assert report.objects[0].verdict is ReportedObjectVerdict.ACCEPTED
 

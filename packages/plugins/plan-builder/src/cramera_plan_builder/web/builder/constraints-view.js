@@ -217,7 +217,7 @@ export class ConstraintsView {
       );
       table.append(row);
     }
-    details.append(table, elements.create('p', 'muted', 'A length in the sentence, such as 10 cm, sets the limit. The object is the one the sentence names, else the one its step acts on. Monitors are observed by the live publisher while the plan runs.'));
+    details.append(table, elements.create('p', 'muted', 'A length such as 10 cm sets the limit; without a named object, the step\'s object is meant.'));
     return details;
   }
 

@@ -3551,9 +3551,8 @@ class PerceptionReport(JsonDocument):
 
     summary: str = document_field(PerceptionReportKey.SUMMARY, default="")
     """
-    The outcome as a person reads it, such as "The red cube was seen 19 cm from where
-    the plan was validated, outside the search within 7.5 cm of where the plan was
-    validated."
+    The outcome as a person reads it, such as "In-place check: red cube 19 cm off,
+    outside the 7.5 cm search."
     """
 
     purpose: Optional[DetectionPurpose] = document_field(

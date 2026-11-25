@@ -32,6 +32,12 @@ from cramera_protocol.document import JsonDocument
 
 logger = logging.getLogger(__name__)
 
+SUGGESTION_PREFIX = "Suggestion: "
+"""
+How CRAM's exceptions start the line of the suggestion that follows their error.
+"""
+
+
 # %% files
 
 
@@ -140,8 +146,9 @@ class ProcessOutput:
     def exception_message(lines: List[str]) -> str:
         """
         :param lines: The printed lines that hold text.
-        :return: The message of the exception after the last traceback, on one line,
-            or an empty text when no traceback ends in an exception.
+        :return: The message of the exception after the last traceback, on one line
+            and without CRAM's suggestion, or an empty text when no traceback ends in
+            an exception.
         """
         if TracebackHeader.MOST_RECENT_CALL_LAST not in lines:
             return ""
@@ -156,7 +163,9 @@ class ProcessOutput:
         if first is None:
             return ""
         kind, _, message = after[first].partition(": ")
-        return " ".join(line.strip() for line in [message or kind, *after[first + 1 :]])
+        lines = [message or kind, *after[first + 1 :]]
+        lines = [line for line in lines if not line.startswith(SUGGESTION_PREFIX)]
+        return " ".join(line.strip() for line in lines)
 
 
 # %% started processes

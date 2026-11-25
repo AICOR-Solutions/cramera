@@ -5,6 +5,7 @@
  * an empty answer as such, and one sentence per step telling why its detections failed.
  */
 
+import { DomEvent } from './elements.js';
 import {
   PerceptionReportKey,
   ReportedObjectKey,
@@ -16,12 +17,12 @@ import {
  * How a person reads each verdict on a reported object.
  */
 export const VERDICT_TEXTS = Object.freeze({
-  [ReportedObjectVerdict.ACCEPTED]: 'used for the step',
-  [ReportedObjectVerdict.TOO_FAR]: 'taken, but too far away for the step to go on',
-  [ReportedObjectVerdict.NOT_CHOSEN]: 'would also do, ignored: another was used first',
+  [ReportedObjectVerdict.ACCEPTED]: 'used',
+  [ReportedObjectVerdict.TOO_FAR]: 'too far off',
+  [ReportedObjectVerdict.NOT_CHOSEN]: 'ignored, another used',
   [ReportedObjectVerdict.WRONG_COLOR]: 'wrong colour',
-  [ReportedObjectVerdict.WRONG_TYPE]: 'not the kind of object looked for',
-  [ReportedObjectVerdict.OUTSIDE_BOX]: 'outside the box looked in, ignored',
+  [ReportedObjectVerdict.WRONG_TYPE]: 'wrong type',
+  [ReportedObjectVerdict.OUTSIDE_BOX]: 'outside the search',
 });
 
 /**
@@ -55,12 +56,12 @@ export const at = (position) => `(${position.map((value) => value.toFixed(2)).jo
 /**
  * Where a step expects its objects until it is planned again.
  */
-const VALIDATED_SPOT = 'where the plan was validated';
+const VALIDATED_SPOT = 'planned';
 
 /**
  * Where a step planned again expects its objects.
  */
-const LAST_SEEN_SPOT = 'where it was last seen';
+const LAST_SEEN_SPOT = 'last seen';
 
 /**
  * @param {Object} report A `PerceptionReport`.
@@ -69,20 +70,6 @@ const LAST_SEEN_SPOT = 'where it was last seen';
  *   object was last seen.
  */
 export const spotText = (report) => (report[PerceptionReportKey.VALIDATED] ? LAST_SEEN_SPOT : VALIDATED_SPOT);
-
-/**
- * @param {Object} report A `PerceptionReport`.
- * @returns {string} The object looked for as a person names it, such as "the red cube";
- *   a report recorded before it said so names it from the plan's object or its colour.
- */
-export function lookedForText(report) {
-  const named = report[PerceptionReportKey.LOOKED_FOR];
-  if (named) return named;
-  const target = report[PerceptionReportKey.TARGET];
-  const color = report[PerceptionReportKey.COLOR];
-  if (target) return `the ${target.replaceAll('_', ' ')}`;
-  return color ? `a ${color} object` : 'an object';
-}
 
 /**
  * @param {string} summary A report's summary.
@@ -119,18 +106,14 @@ export function perceptionSentence(reports) {
  */
 export function askedText(report) {
   const box = report[PerceptionReportKey.BOX];
-  const size = box ? `${cm(box[1][0] - box[0][0])} × ${cm(box[1][1] - box[0][1])} cm` : '';
   const [reachX, reachY] = box ? [cm((box[1][0] - box[0][0]) / 2), cm((box[1][1] - box[0][1]) / 2)] : ['', ''];
-  const reach = reachX === reachY ? `${reachX} cm` : `${reachX} cm along x and ${reachY} cm along y`;
+  const reach = reachX === reachY ? `${reachX} cm` : `${reachX} × ${reachY} cm`;
   const grounded = report[PerceptionReportKey.GROUNDED];
-  const validated = report[PerceptionReportKey.VALIDATED];
-  const moved = grounded && validated ? ` (${cm(Math.hypot(grounded[0] - validated[0], grounded[1] - validated[1]))} cm from ${VALIDATED_SPOT})` : '';
-  const where = report[PerceptionReportKey.TABLE_WIDE]
-    ? 'on the whole table'
-    : grounded
-      ? `within ${reach} of ${at(grounded)}, ${spotText(report)}${moved}; the step goes on only within ${cm(report[PerceptionReportKey.TOLERANCE] ?? 0)} cm of that spot`
-      : `in the ${size} box from ${at(box[0])} to ${at(box[1])}`;
-  return `Looked for ${lookedForText(report)} ${where}.`;
+  const tolerance = cm(report[PerceptionReportKey.TOLERANCE] ?? 0);
+  const allowed = tolerance === reach.replace(' cm', '') ? '' : `, ${tolerance} cm allowed`;
+  if (report[PerceptionReportKey.TABLE_WIDE]) return 'Searched the whole table.';
+  if (grounded) return `Searched within ${reach} of ${at(grounded)} (${spotText(report)})${allowed}.`;
+  return `Searched ${at(box[0])} to ${at(box[1])}.`;
 }
 
 /**
@@ -147,7 +130,7 @@ export function insideSurfaceText(seen) {
   const inside = seen[ReportedObjectKey.INSIDE_SURFACE];
   if (!inside || !TAKEN.has(seen[ReportedObjectKey.VERDICT])) return '';
   const mm = (metres) => `${Math.max(1, Math.round(metres * 1000))} mm`;
-  return `; reported ${mm(inside[SurfaceDepthKey.DEPTH])} inside the ${inside[SurfaceDepthKey.SURFACE].replaceAll('_', ' ')} and raised onto it`;
+  return `; ${mm(inside[SurfaceDepthKey.DEPTH])} inside the ${inside[SurfaceDepthKey.SURFACE].replaceAll('_', ' ')}, raised`;
 }
 
 /**
@@ -159,7 +142,7 @@ export function insideSurfaceText(seen) {
 export function sizeText(seen, report) {
   const expected = report[PerceptionReportKey.EXPECTED_SIZE];
   if (!seen[ReportedObjectKey.SIZE_DIFFERS] || !expected) return '';
-  return `; measured clearly unlike the ${expected.map(cm).join(' × ')} cm of ${lookedForText(report)}, likely a perception error`;
+  return `; size off (expected ${expected.map(cm).join(' × ')} cm)`;
 }
 
 /**
@@ -176,8 +159,9 @@ export function objectText(seen, report = {}) {
   const size = seen[ReportedObjectKey.SIZE];
   const extent = size ? `${size.map(cm).join(' × ')} cm` : 'size unknown';
   const distance = seen[ReportedObjectKey.DISTANCE];
-  const away = distance === null || distance === undefined ? '' : `, ${cm(distance)} cm from ${spotText(report)}`;
-  return `${colors}, ${extent}, at ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}${sizeText(seen, report)}`;
+  const off = report[PerceptionReportKey.VALIDATED] ? ` from ${LAST_SEEN_SPOT}` : ' off';
+  const away = distance === null || distance === undefined ? '' : `, ${cm(distance)} cm${off}`;
+  return `${colors}, ${extent}, ${at(seen[ReportedObjectKey.POSITION])}${away}: ${VERDICT_TEXTS[seen[ReportedObjectKey.VERDICT]] ?? seen[ReportedObjectKey.VERDICT]}${insideSurfaceText(seen)}${sizeText(seen, report)}`;
 }
 
 /**
@@ -203,6 +187,13 @@ export class PerceptionReportsView {
   #elements;
 
   /**
+   * Whether the person opened or closed each report, by its position and step, kept
+   * across renders; a report not toggled shows its default.
+   * @type {Map<string, boolean>}
+   */
+  #opened = new Map();
+
+  /**
    * @param {import('./elements.js').Elements} elements Builds the view's elements.
    */
   constructor(elements) {
@@ -212,29 +203,33 @@ export class PerceptionReportsView {
   /**
    * @param {Array<{name: string, report: Object}>} reports Every report of the run with
    *   the name of its step, in order.
-   * @returns {Array<HTMLElement>} One block per report, the latest open, or a note that
-   *   none came yet.
+   * @returns {Array<HTMLElement>} One block per report, open as the person left it,
+   *   else the latest open, or a note that none came yet.
    */
   render(reports) {
     const elements = this.#elements;
+    if (reports.length === 0) this.#opened.clear();
     if (reports.length === 0) return [elements.create('p', 'empty', 'No perception reported yet.')];
     return reports.map(({ name, report }, index) => {
       const block = elements.create('details', PerceptionViewClass.REPORT);
-      block.open = index === reports.length - 1;
+      const key = `${index}:${name}`;
+      block.open = this.#opened.get(key) ?? index === reports.length - 1;
       block.dataset.answered = String(report[PerceptionReportKey.ANSWERED] !== false);
       const warnings = report[PerceptionReportKey.WARNINGS] ?? [];
       block.dataset.warning = String(warnings.length > 0);
       block.dataset.used = String(isUsed(report));
       const summary = elements.create('summary', '', `${name}: ${report[PerceptionReportKey.SUMMARY]}`);
+      // a click on the summary toggles the block after this listener ran
+      elements.listen(summary, DomEvent.CLICK, () => this.#opened.set(key, !block.open));
       block.append(summary, ...warnings.map((warning) => elements.create('p', PerceptionViewClass.WARNING, warning)));
       const instead = warnings.length > 0 && !isUsed(report) ? reports.slice(index + 1).find((later) => later.name === name && isUsed(later.report)) : null;
-      if (instead) block.append(elements.create('p', PerceptionViewClass.INSTEAD, `Instead, a later detection of this step was used: ${instead.report[PerceptionReportKey.SUMMARY]}`));
+      if (instead) block.append(elements.create('p', PerceptionViewClass.INSTEAD, `Used instead: ${instead.report[PerceptionReportKey.SUMMARY]}`));
       block.append(elements.create('p', PerceptionViewClass.ASKED, askedText(report)));
       const objects = report[PerceptionReportKey.OBJECTS] ?? [];
       if (report[PerceptionReportKey.ANSWERED] === false) {
         block.append(elements.create('p', PerceptionViewClass.EMPTY, 'No answer came back.'));
       } else if (objects.length === 0) {
-        block.append(elements.create('p', PerceptionViewClass.EMPTY, 'The answer was empty: nothing was reported.'));
+        block.append(elements.create('p', PerceptionViewClass.EMPTY, 'Nothing reported.'));
       } else {
         const list = elements.create('ul', PerceptionViewClass.OBJECTS);
         for (const seen of objects) {

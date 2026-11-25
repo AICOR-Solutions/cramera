@@ -11,6 +11,7 @@ first, so it runs with the arms its validation chose.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from coraplex.perception import PerceptionInterface
 from coraplex.querying.predicates import GripperHolds
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
+from coraplex.plans.failures import MotionMadeNoProgress, MotionWouldBreakSafetyLimit
 from coraplex.plans.validation import (
     FailureCause,
     PlanValidation,
@@ -41,7 +43,8 @@ from cramera_bridge.performing import TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
 from cramera_bridge.plans.arms import Arms, RobotArms
 from cramera_bridge.plans.detected_objects import DetectedObjects
-from cramera_bridge.plans.safety import RobotSafety
+from cramera_bridge.plans.perception_reports import object_name
+from cramera_bridge.plans.safety import WORKSPACE_MARGIN, RobotSafety
 from cramera_bridge.plans.site import RobotSite
 from cramera_bridge.plans.steps import StepActions, StepArguments
 from cramera_protocol.detection import DetectedObjectReference
@@ -52,12 +55,51 @@ from cramera_protocol.validation import (
     StepValidation,
     StepVerdict,
 )
+from giskardpy.motion_statechart.exceptions import (
+    NoProgressError,
+    SafetyConstraintViolated,
+)
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from semantic_digital_twin.robots.robot_parts import Arm
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
 # %% one step
+
+
+STALLED = "stalled before reaching its goal"
+"""
+What a person reads for a motion that stopped approaching its goal.
+"""
+
+BOUND_PASSED = re.compile(
+    r"(?P<distance>[\d.]+) mm past the box's (?P<side>lower|upper) (?P<axis>[xyz]) bound"
+)
+"""
+How Giskard's workspace monitor says how far a tool left its box, see
+:meth:`~giskardpy.motion_statechart.monitors.safety_monitors.SafetyEnvelope.describe_violation`.
+"""
+
+
+def failure_text(failure: Exception, full: bool = False) -> str:
+    """
+    :param failure: Why a step failed.
+    :param full: Whether it stands on its own, as on a step's card: CRAM's suggestion
+        is kept on its own line and a broken safety constraint is named.
+    :return: Its error as a person reads it; a stalled motion or a tool past its
+        workspace box is said shortly, without CRAM's suggestion.
+    """
+    if isinstance(failure, (MotionMadeNoProgress, NoProgressError)):
+        return STALLED
+    if isinstance(failure, MotionWouldBreakSafetyLimit):
+        failure = failure.violation
+    if isinstance(failure, SafetyConstraintViolated):
+        past = BOUND_PASSED.search(failure.violation)
+        if past is None:
+            return f"breaks {failure.constraint}"
+        passed = f"{past['distance']} mm past its {past['side']} {past['axis']} bound"
+        return f"{failure.constraint.split(',')[0]}: {passed}" if full else passed
+    return str(failure) if full else str(failure).partition("\nSuggestion: ")[0]
 
 
 @dataclass(frozen=True)
@@ -129,7 +171,7 @@ class GroundedStep:
         """
         if self.check is None or self.check.failure is None:
             return ""
-        return str((self.check.candidate_failures or [self.check.failure])[0])
+        return failure_text((self.check.candidate_failures or [self.check.failure])[0])
 
     def to_step_validation(self) -> StepValidation:
         """
@@ -160,7 +202,7 @@ class GroundedStep:
             step=self.step.identifier,
             verdict=StepVerdict.FAILED,
             reason=self.translate_cause(self.check.cause),
-            detail=str(failure),
+            detail=failure_text(failure, full=True),
             images=images,
         )
 
@@ -562,10 +604,13 @@ class PlanGrounding:
         opening, *later = carried
         arguments = self.arguments(opening)
         open_field = arguments.find_open_arm_field()
-        identifier = arguments.object_identifier()
-        position = NumericPose.of_entity(
-            self.copied_context.world, arguments.acted_on()
-        ).position
+        body = arguments.acted_on()
+        name = object_name(str(body.name.name))
+        reference = DetectedObjectReference.from_value(
+            arguments.object_identifier() or ""
+        )
+        if reference is not None:
+            name = f"{name} (detected in {reference.step.replace('_', ' ')})"
         robot_arms = RobotArms(self.copied_context.robot)
         attempts: List[List[GroundedStep]] = []
         for arm in self.arms_to_try(opening):
@@ -606,8 +651,13 @@ class PlanGrounding:
                     *[GroundedStep(step=step) for step in carried[len(attempt) :]],
                 ]
         failures = [
-            f"the {ENUM_NAMES.member_identifier(Arms, attempt[0].arm)} arm fails "
-            f"{attempt[-1].step.identifier}: {attempt[-1].failure_text()}"
+            f"{ENUM_NAMES.member_identifier(Arms, attempt[0].arm)} arm"
+            + (
+                ""
+                if attempt[-1].step is opening
+                else f" at {attempt[-1].step.identifier.replace('_', ' ')}"
+            )
+            + f": {attempt[-1].failure_text()}"
             for attempt in attempts
         ]
         return [
@@ -616,17 +666,96 @@ class PlanGrounding:
                 check=EveryArmFailed(
                     verdict=ValidationVerdict.FAILED,
                     failure=NoArmCarriesObject(
-                        object_identifier=identifier,
-                        x=float(position[0]),
-                        y=float(position[1]),
+                        object_name=name,
                         destination=self.destination_text(carried[-1]),
                         failures=failures,
+                        cause=self.workspace_cause(body, carried[-1]),
                     ),
                     first_cause=attempts[0][-1].check.cause,
                 ),
             ),
             *[GroundedStep(step=step) for step in later],
         ]
+
+    def workspace_cause(self, body: Body, step: PlanStep) -> Optional[str]:
+        """
+        :param body: The carried object in the copy, where it lies before it is taken.
+        :param step: The step putting it down.
+        :return: That the object lies only in the workspaces of arms none of which
+            reaches where it is put down, such as "it lies at y = -0.41 m, only in
+            the right arm's workspace, and left_tray only in the left arm's"; None
+            when the workspaces do not tell why every arm failed.
+        """
+        destination = self.destination_point(step)
+        if self.safety is None or destination is None:
+            return None
+        plan_T_world = np.linalg.inv(
+            RobotSafety(limits=self.safety, site=self.site).world_T_plan()
+        )
+        picked = (
+            plan_T_world
+            @ [
+                *NumericPose.of_entity(self.copied_context.world, body).position[:3],
+                1.0,
+            ]
+        )[:2]
+        put = (plan_T_world @ [*destination, 1.0])[:2]
+
+        def arms_reaching(point: np.ndarray) -> List[str]:
+            return [
+                workspace.arm
+                for workspace in self.safety.workspaces
+                if workspace.box.min_x + WORKSPACE_MARGIN
+                <= point[0]
+                <= workspace.box.max_x - WORKSPACE_MARGIN
+                and workspace.box.min_y + WORKSPACE_MARGIN
+                <= point[1]
+                <= workspace.box.max_y - WORKSPACE_MARGIN
+            ]
+
+        at_pick, at_put = arms_reaching(picked), arms_reaching(put)
+        if not at_pick or not at_put or set(at_pick) & set(at_put):
+            return None
+        where = self.destination_text(step).split(" ", 1)[-1]
+        return (
+            f"it lies at y = {picked[1]:.2f} m, only in the {' and '.join(at_pick)} "
+            f"arm's workspace, and {where} only in the {' and '.join(at_put)} arm's"
+        )
+
+    def destination_point(self, step: PlanStep) -> Optional[List[float]]:
+        """
+        :param step: A step of the performing robot.
+        :return: Where in the world it puts its object down, at a zone's middle; None
+            when it puts none down or the place is only found when grounded.
+        """
+        for offered in self.actions.named(step.action).schema.fields:
+            if not offered.accepts_surface or offered.name not in step.values:
+                continue
+            destination = Destination.from_json(step.values[offered.name])
+            if destination.placement is PlacementMode.ZONE:
+                area = self.site.zone(destination.zone).area
+                plan_point = [
+                    (area.min_x + area.max_x) / 2,
+                    (area.min_y + area.max_y) / 2,
+                    0.0,
+                    1.0,
+                ]
+                world_T_plan = RobotSafety(
+                    limits=self.safety, site=self.site
+                ).world_T_plan()
+                return list((world_T_plan @ plan_point)[:3])
+            if destination.placement is PlacementMode.ON_TOP_OF:
+                support = self.copied_bodies.get(destination.object)
+                if support is None:
+                    return None
+                return list(
+                    NumericPose.of_entity(self.copied_context.world, support).position[
+                        :3
+                    ]
+                )
+            if destination.pose is not None:
+                return [destination.pose.x, destination.pose.y, destination.pose.z]
+        return None
 
     def destination_text(self, step: PlanStep) -> str:
         """

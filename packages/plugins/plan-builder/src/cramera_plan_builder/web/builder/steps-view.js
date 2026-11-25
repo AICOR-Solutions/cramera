@@ -62,21 +62,21 @@ const REGION_LABELS = Object.freeze({
  */
 export const VERDICT_TEXTS = Object.freeze({
   [StepVerdict.VALID]: 'Valid.',
-  [StepVerdict.ASSUMED]: 'Assumed from the twin, since the camera does not see it now; perceived again when the plan runs.',
-  [StepVerdict.UNCHECKED]: 'Not checked, since an earlier step fails.',
+  [StepVerdict.ASSUMED]: 'Not seen by the camera now; checked in the run.',
+  [StepVerdict.UNCHECKED]: 'Not checked: an earlier step fails.',
 });
 
 /**
  * Why a step failed its validation, as people read it, by the reason.
  */
 export const REASON_TEXTS = Object.freeze({
-  [StepFailureReason.UNREACHABLE]: 'unreachable: the robot cannot reach where the step asks',
-  [StepFailureReason.COLLISION]: 'collision: the motion would collide',
-  [StepFailureReason.NOT_PERCEIVED]: 'not perceived: nothing matching was seen in the region',
-  [StepFailureReason.AMBIGUOUS]: 'ambiguous: several objects match and nothing tells them apart',
-  [StepFailureReason.SAFETY_LIMIT]: 'outside the workspace: an arm stands outside, or would leave, the box the safety monitor holds it to; the step says which arm and what to do',
+  [StepFailureReason.UNREACHABLE]: 'out of reach',
+  [StepFailureReason.COLLISION]: 'would collide',
+  [StepFailureReason.NOT_PERCEIVED]: 'nothing matching was seen',
+  [StepFailureReason.AMBIGUOUS]: 'several objects match',
+  [StepFailureReason.SAFETY_LIMIT]: 'outside the arm\'s workspace',
   [StepFailureReason.SKILL_NOT_OFFERED]: 'the robot does not offer this skill',
-  [StepFailureReason.UNSUCCESSFUL]: 'the step did not succeed',
+  [StepFailureReason.UNSUCCESSFUL]: 'it did not succeed',
 });
 
 /**
@@ -239,7 +239,6 @@ const ViewClass = Object.freeze({
   LIST: 'steps',
   PARAMETERS: 'step-parameters',
   MORE: 'more-options',
-  SKILL_NOTE: 'step-skill-note',
   PROBLEM: 'step-problem',
   VALIDATION: 'step-validation',
   VALIDATION_DETAIL: 'step-validation-detail',
@@ -454,7 +453,9 @@ export class StepsView {
     const identifier = step[PlanStepKey.IDENTIFIER];
     const action = step[PlanStepKey.ACTION];
     const schema = this.#editor.state.schema(action);
-    const view = new StepCard(elements, index + 1, this.#editor.state.stepLabel(step), schema?.[ActionSchemaKey.DOCUMENTATION] || action, actionPalette(action));
+    // one description per action, the palette's: a skill's own, else its action's
+    const description = this.#editor.state.curatedSkill(step)?.[SkillKey.DOCUMENTATION] || schema?.[ActionSchemaKey.DOCUMENTATION] || action;
+    const view = new StepCard(elements, index + 1, this.#editor.state.stepLabel(step), description, actionPalette(action));
     const card = view.card;
     card.dataset.step = identifier;
     if (status) view.showStatus(status);
@@ -465,8 +466,6 @@ export class StepsView {
       elements.button('×', PlanAction.REMOVE_STEP, () => this.#edit(() => this.#editor.state.removeStep(identifier))),
     );
     view.head.append(controls);
-    const documentation = this.#editor.state.curatedSkill(step)?.[SkillKey.DOCUMENTATION];
-    if (documentation) card.append(elements.create('p', ViewClass.SKILL_NOTE, documentation));
     for (const problem of this.#editor.state.problems(step)) card.append(elements.create('p', ViewClass.PROBLEM, problem));
     if (validation) {
       card.dataset.validation = validation[StepValidationKey.VERDICT];

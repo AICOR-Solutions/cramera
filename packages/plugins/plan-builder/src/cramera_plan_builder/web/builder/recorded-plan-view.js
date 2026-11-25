@@ -95,7 +95,7 @@ export class RecordedPlanView {
     }
     const elements = this.#shown;
     const parts = [elements.create('h3', '', 'Recorded plan')];
-    if (!this.#plans.hasFrames()) parts.push(elements.create('p', ViewClass.EMPTY, 'This recording does not say when each step ran, so the steps do not follow the playhead.'));
+    if (!this.#plans.hasFrames()) parts.push(elements.create('p', ViewClass.EMPTY, 'This recording has no step times.'));
     const several = this.#plans.plans.length > 1;
     for (const plan of this.#plans.plans) {
       if (several || plan.robot !== null) parts.push(elements.create('h4', ViewClass.TITLE, plan.title()));

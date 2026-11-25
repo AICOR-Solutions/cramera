@@ -46,9 +46,7 @@ class ContentTooLarge(PlanBuilderError):
         return HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     def message(self) -> str:
-        return (
-            f"The request holds {self.size} bytes; at most {self.limit} are accepted."
-        )
+        return f"The request is too large: {self.size} bytes (limit {self.limit})."
 
 
 @dataclass
@@ -63,7 +61,7 @@ class MalformedRequestBody(PlanBuilderError):
     """
 
     def message(self) -> str:
-        return f"The request body is no JSON text: {self.reason}"
+        return f"The request is not valid JSON: {self.reason}"
 
 
 # %% plans
@@ -192,7 +190,7 @@ class TooManyEntries(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"{self.location} holds {self.count} entries; at most {self.limit} fit."
+        return f"{self.location} has {self.count} entries (limit {self.limit})."
 
 
 @dataclass
@@ -221,8 +219,8 @@ class ValueOutOfRange(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"{self.location} is {self.value}; it must be finite and at most "
-            f"{self.limit} in magnitude."
+            f"{self.location} is {self.value}; it must be between -{self.limit} and "
+            f"{self.limit}."
         )
 
 
@@ -246,9 +244,7 @@ class UnknownReference(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return (
-            f"{self.location} names {self.reference!r}, which the plan does not hold."
-        )
+        return f"{self.location} names {self.reference!r}, which is not in the plan."
 
 
 class MissingValue(StrEnum):
@@ -348,10 +344,7 @@ class UnknownStepAction(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return (
-            f"{self.location} is {self.action!r}, an action the installed CRAM "
-            f"workspace does not offer."
-        )
+        return f"{self.location}: no action {self.action!r} is installed."
 
 
 @dataclass
@@ -380,9 +373,7 @@ class UnavailableStepAction(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return (
-            f"{self.location} is {self.action!r}, which is unavailable: {self.reason}."
-        )
+        return f"{self.location}: {self.action!r} is unavailable: {self.reason}."
 
 
 @dataclass
@@ -410,9 +401,7 @@ class UnknownStepField(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return (
-            f"{self.location} names {self.name!r}, a field {self.action} does not have."
-        )
+        return f"{self.location}: {self.action} has no field {self.name!r}."
 
 
 @dataclass
@@ -458,7 +447,7 @@ class PlanWithoutRobot(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"The plan {self.name!r} holds no robot to perform it."
+        return f"The plan {self.name!r} has no robot."
 
 
 @dataclass
@@ -487,7 +476,10 @@ class UnsupportedByCatalog(PlanBuilderError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"{self.location} is {self.value!r}, which is not one of {self.offered}."
+        return (
+            f"{self.location} is {self.value!r}; choose one of: "
+            f"{', '.join(self.offered)}."
+        )
 
 
 @dataclass
@@ -510,7 +502,7 @@ class PlanTooLarge(PlanBuilderError):
         return HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     def message(self) -> str:
-        return f"The plan holds {self.size} bytes; at most {self.limit} are kept."
+        return f"The plan is too large: {self.size} bytes (limit {self.limit})."
 
 
 @dataclass
@@ -593,7 +585,7 @@ class UnsafeStoragePath(PlanBuilderError):
         return HTTPStatus.INTERNAL_SERVER_ERROR
 
     def message(self) -> str:
-        return f"{str(self.path)!r} is a symbolic link; the plan builder does not follow it."
+        return f"{str(self.path)!r} is a symbolic link, which is not allowed."
 
 
 # %% constraints
@@ -616,8 +608,8 @@ class ConstraintSubjectMissing(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"{self.text!r} is about no object: name one of the plan's objects or "
-            f"attach it to a step that acts on one."
+            f"{self.text!r} names no object: name one, or attach it to a step that "
+            f"acts on one."
         )
 
 
@@ -638,8 +630,8 @@ class ConstraintReferenceMissing(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"{self.text!r} names no second object to keep a distance from: name two "
-            f"of the plan's objects."
+            f"{self.text!r} needs a second object to keep the distance from: name "
+            f"two objects."
         )
 
 
@@ -661,7 +653,7 @@ class NotAUrdfFile(PlanBuilderError):
         return HTTPStatus.NOT_FOUND
 
     def message(self) -> str:
-        return f"{self.path!r} is no URDF or xacro file on the viewer's machine."
+        return f"No URDF or xacro file at {self.path!r}."
 
 
 @dataclass
@@ -679,7 +671,7 @@ class NotAFolder(PlanBuilderError):
         return HTTPStatus.NOT_FOUND
 
     def message(self) -> str:
-        return f"{self.path!r} is no folder on the viewer's machine."
+        return f"No folder at {self.path!r}."
 
 
 @dataclass
@@ -697,7 +689,7 @@ class FolderNotReadable(PlanBuilderError):
         return HTTPStatus.FORBIDDEN
 
     def message(self) -> str:
-        return f"The viewer may not list {self.path!r}."
+        return f"No permission to open the folder {self.path!r}."
 
 
 # %% CRAM
@@ -719,8 +711,7 @@ class CramUnavailable(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"The CRAM workspace is not importable here; missing modules: "
-            f"{', '.join(self.missing)}."
+            f"CRAM is not installed here; missing modules: {', '.join(self.missing)}."
         )
 
 
@@ -747,7 +738,7 @@ class DemoNotStarted(PlanBuilderError):
         return HTTPStatus.INTERNAL_SERVER_ERROR
 
     def message(self) -> str:
-        return f"The demo {str(self.path)!r} could not be started: {self.reason}"
+        return f"Could not start {str(self.path)!r}: {self.reason}"
 
 
 # %% bridge processes
@@ -792,7 +783,7 @@ class OrderCancelled(PlanBuilderError):
         return HTTPStatus.CONFLICT
 
     def message(self) -> str:
-        return f"The request to {self.module} was cancelled before it was answered."
+        return f"The request to {self.module} was cancelled."
 
 
 # %% scans
@@ -805,7 +796,7 @@ class ScanFailed(BridgeProcessFailed):
     """
 
     def message(self) -> str:
-        return f"The scene could not be scanned: {self.reason}"
+        return f"Scan failed: {self.reason}"
 
 
 # %% validation
@@ -818,7 +809,7 @@ class ValidationFailed(BridgeProcessFailed):
     """
 
     def message(self) -> str:
-        return f"The plan could not be validated: {self.reason}"
+        return f"Validation failed: {self.reason}"
 
 
 @dataclass
@@ -829,7 +820,7 @@ class ValidationCancelled(OrderCancelled):
     """
 
     def message(self) -> str:
-        return "The validation was cancelled before it ended; nothing was validated."
+        return "Validation cancelled."
 
 
 @dataclass
@@ -854,14 +845,8 @@ class PlanNotValidated(PlanBuilderError):
 
     def message(self) -> str:
         if self.real:
-            return (
-                "A run on the real robot needs the plan to pass its validation first: "
-                "press Validate, then run it."
-            )
-        return (
-            f"A {self.mode!r} run needs the plan to pass its validation first; validate "
-            f"the plan as it stands now."
-        )
+            return "Validate the plan before running it on the real robot."
+        return f"Validate the plan as it is now before a {self.mode!r} run."
 
 
 @dataclass
@@ -881,8 +866,8 @@ class SafetyStopNotAcknowledged(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"Safety constraint violated: {self.constraint}. Acknowledge the stop "
-            f"before the plan runs or is validated again."
+            f"Safety stop: {self.constraint}. Acknowledge it before running or "
+            f"validating again."
         )
 
 
@@ -903,8 +888,7 @@ class PlanRunning(PlanBuilderError):
 
     def message(self) -> str:
         return (
-            f"A {self.mode!r} run is going on; validate the plan again once it is "
-            f"over or stopped."
+            f"A {self.mode!r} run is in progress; validate once it ends or is stopped."
         )
 
 
@@ -919,10 +903,7 @@ class RunRecordSaving(PlanBuilderError):
         return HTTPStatus.CONFLICT
 
     def message(self) -> str:
-        return (
-            "The last run's record is still being saved; validate or run the plan "
-            "again once it is saved."
-        )
+        return "The last run is still being saved; try again in a moment."
 
 
 # %% reach
@@ -935,4 +916,4 @@ class ReachNotMeasured(BridgeProcessFailed):
     """
 
     def message(self) -> str:
-        return f"What the robot reaches could not be measured: {self.reason}"
+        return f"Could not measure the robot's reach: {self.reason}"

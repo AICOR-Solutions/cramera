@@ -446,7 +446,10 @@ def test_a_cube_no_arm_can_pick_and_put_into_the_zone_fails_saying_so(
     pick = report.steps[1]
     assert pick.verdict is StepVerdict.FAILED
     assert pick.reason is StepFailureReason.SAFETY_LIMIT
-    assert "No arm can pick red_cube" in pick.detail
+    assert "no single arm can safely pick the red cube" in pick.detail
+    assert "only in the right arm's workspace, and left_tray only in the left" in (
+        pick.detail
+    )
     assert "left_tray" in pick.detail
 
 
@@ -514,8 +517,7 @@ def test_a_plan_starting_with_a_tool_outside_its_box_fails_saying_where_it_stand
     first, *later = report.steps
     assert first.verdict is StepVerdict.FAILED
     assert first.reason is StepFailureReason.SAFETY_LIMIT
-    assert "left arm stands outside its workspace box" in first.detail
-    assert "6.0 mm past the box's upper z bound" in first.detail
+    assert "left arm is 6.0 mm past its workspace box's upper z bound" in first.detail
     assert ArmOutsideItsWorkspace.recovery("the left arm") in first.detail
     assert all(step.verdict is StepVerdict.UNCHECKED for step in later)
 

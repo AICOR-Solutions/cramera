@@ -35,7 +35,7 @@ export const READY = 'Ready to validate the plan.';
 /**
  * What the status of a simulated run starts with, by its run mode.
  */
-const SIMULATED = 'Simulation (the real robot does not move)';
+const SIMULATED = 'Simulation';
 
 /**
  * A request the page waits for, during which no other validation, scan or run starts.
@@ -72,7 +72,7 @@ export const UNANSWERED_ADVICE_AFTER = 10000;
 /**
  * What the status adds once the plan builder did not answer for a while.
  */
-const START_ADVICE = 'The platform may have stopped: run ./aicor start in its folder.';
+const START_ADVICE = 'Is the platform running? Start it with ./aicor start.';
 
 /**
  * What decides the status: the page's state at one moment.
@@ -164,7 +164,7 @@ function runningStatus(facts) {
 function requestText(request, real) {
   if (request.kind === FlowRequest.SCAN) return 'Scanning the scene…';
   if (request.kind === FlowRequest.VALIDATE && request.cancelled) return 'Cancelling the validation: the plan changed…';
-  if (request.kind === FlowRequest.VALIDATE) return 'Validating the plan (nothing moves)…';
+  if (request.kind === FlowRequest.VALIDATE) return 'Validating…';
   if (request.mode === RunMode.STAGE) return 'Starting the live scene…';
   return request.mode === RunMode.ROBOT && real ? 'Starting the run on the real robot…' : 'Starting the run…';
 }
@@ -174,9 +174,9 @@ function requestText(request, real) {
  * @returns {FlowStatus} Where the flow stands.
  */
 export function flowStatus(facts) {
-  if (facts.safety === SafetyBannerState.VIOLATED) return new FlowStatus(Tone.ERROR, 'Safety stop: the robot stopped and stands still. Acknowledge it in the red banner to go on.');
+  if (facts.safety === SafetyBannerState.VIOLATED) return new FlowStatus(Tone.ERROR, 'Safety stop: the robot stands still. Acknowledge it to go on.');
   if (facts.safety === SafetyBannerState.ACKNOWLEDGED && facts.request === null) {
-    return new FlowStatus(Tone.WARNING, facts.revalidate ? 'Safety stop acknowledged: validate the plan again, then restart or abort it.' : 'Safety stop acknowledged: restart the plan or abort it.');
+    return new FlowStatus(Tone.WARNING, facts.revalidate ? 'Safety stop acknowledged: validate again, then restart or abort.' : 'Safety stop acknowledged: restart or abort.');
   }
   if (facts.stopping) return new FlowStatus(Tone.PROGRESS, 'Stopping the run…', 'stop');
   if (facts.request) return new FlowStatus(Tone.PROGRESS, requestText(facts.request, facts.real), facts.request.kind);
@@ -190,11 +190,11 @@ export function flowStatus(facts) {
     return new FlowStatus(Tone.WARNING, `The plan builder does not answer (${facts.unanswered}); retrying.${advice}${reminder}`);
   }
   if (state === RunState.RUNNING && !staged) return runningStatus(facts);
-  if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, `${runName(facts.run, facts.real)} finished; the robot stands still while the run's record is saved…`, 'saving');
+  if (state === RunState.SAVING) return new FlowStatus(Tone.PROGRESS, `${runName(facts.run, facts.real)} finished; saving its record…`, 'saving');
   if (state === RunState.RUNNING && !facts.live) return new FlowStatus(Tone.PROGRESS, 'Starting the live scene…', 'stage');
   if (facts.outcome) return new FlowStatus(facts.outcome.tone, facts.outcome.text);
   if (state === RunState.RUNNING) return new FlowStatus(Tone.IDLE, 'The live scene runs.');
-  if (facts.missing.length > 0) return new FlowStatus(Tone.WARNING, `The CRAM workspace is not importable here (missing ${facts.missing.join(', ')}); plans can be composed and saved, not run.`);
+  if (facts.missing.length > 0) return new FlowStatus(Tone.WARNING, `CRAM is missing ${facts.missing.join(', ')}: plans can be edited, not run.`);
   return new FlowStatus(Tone.IDLE, READY);
 }
 
@@ -226,14 +226,14 @@ function runEnd(run, progress, real) {
   const state = run[RunStatusKey.STATE];
   const mode = run[RunStatusKey.MODE];
   const name = runName(run, real);
-  if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: savedRecord(run) ? `${name} finished; its record is saved.` : `${name} finished.` };
-  if (state === RunState.STOPPED && mode === RunMode.ROBOT && real) return { tone: Tone.WARNING, text: `${name} was stopped: Giskard ended, both arms were commanded zero velocities and stand still.` };
+  if (state === RunState.FINISHED) return { tone: Tone.SUCCESS, text: savedRecord(run) ? `${name} finished; record saved.` : `${name} finished.` };
+  if (state === RunState.STOPPED && mode === RunMode.ROBOT && real) return { tone: Tone.WARNING, text: `${name} was stopped; the arms stand still.` };
   if (state === RunState.STOPPED) return { tone: Tone.WARNING, text: `${name} was stopped.` };
-  if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the plan builder could not confirm that the arms stand still and Giskard ended; see Run output. Use the emergency stop now.` };
+  if (state === RunState.HALT_UNCONFIRMED) return { tone: Tone.ERROR, text: `${name} was stopped, but the arms' halt is unconfirmed. Use the emergency stop now.` };
   if (state === RunState.SAFETY_STOPPED) return { tone: Tone.ERROR, text: `A safety stop ended the run: ${run[RunStatusKey.SAFETY_STOP]?.[SafetyStopKey.CONSTRAINT] ?? 'see Run output'}.` };
   if (state === RunState.REFUSED) {
     const refusal = (run[RunStatusKey.EVENTS] ?? []).find((event) => event[RunEventKey.KIND] === RunEventKind.REFUSED)?.[RunEventKey.REASON];
-    return { tone: Tone.WARNING, text: `${refusal ?? 'The real robot is not ready; no motion was started. See Run output.'} The plan is still validated.` };
+    return { tone: Tone.WARNING, text: refusal ?? 'The real robot is not ready; nothing moved.' };
   }
   if (state === RunState.SAVE_FAILED) return { tone: Tone.ERROR, text: `${name} finished, but saving its record failed: ${lastLine(run) || 'see Run output.'}` };
   if (state !== RunState.FAILED) return null;
@@ -275,5 +275,5 @@ export function cutOffOutcome(before, run, real) {
   const going = [RunState.RUNNING, RunState.SAVING].includes(before[RunStatusKey.STATE]) && before[RunStatusKey.MODE] !== RunMode.STAGE;
   if (!going || run[RunStatusKey.STATE] !== RunState.IDLE) return null;
   const name = before[RunStatusKey.MODE] === RunMode.ROBOT && real ? 'the run on the real robot' : 'the run';
-  return { tone: Tone.WARNING, text: `The plan builder restarted while ${name} was going: the run ended there and its record may not be saved. Check where the robot stands before going on.` };
+  return { tone: Tone.WARNING, text: `The plan builder restarted during ${name}, which ended. Check where the robot stands.` };
 }

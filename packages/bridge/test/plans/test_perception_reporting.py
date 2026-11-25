@@ -252,9 +252,9 @@ def test_the_check_of_the_picked_cube_reports_it_24_cm_away(reports):
         ReportedObjectVerdict.WRONG_COLOR,
         ReportedObjectVerdict.WRONG_COLOR,
     ]
-    assert report.summary.startswith(
-        "Checked before the step moved that the object still lies where the plan "
-        "expects it: the red cube was seen 24 cm from where the plan"
+    assert (
+        report.summary
+        == "In-place check: red cube 24 cm off, outside the 7.5 cm search."
     )
 
 
@@ -320,8 +320,9 @@ def test_the_search_after_the_cube_was_not_where_expected_says_so(moved_reports)
 def test_the_run_log_line_warns_that_the_cube_seen_24_cm_away_was_not_used(reports):
     first = reports[0]
     assert first.line().endswith(f" Warning: {first.report.warnings[0]}")
-    assert first.report.warnings[0].startswith(
-        "The red cube seen 24 cm from where the plan was validated was not used"
+    assert (
+        first.report.warnings[0]
+        == "Red cube seen 24 cm off, outside the search, not used."
     )
 
 
@@ -360,9 +361,7 @@ def test_a_step_planned_again_measures_from_where_the_cube_was_last_seen(
     assert (again.validated.x, again.validated.y) == pytest.approx((0.55, 0.1))
     assert (again.grounded.x, again.grounded.y) == pytest.approx((0.79, 0.145))
     assert again.summary == (
-        "Checked before the step moved that the object still lies where the plan "
-        "expects it: the red cube was found 0 cm from where it was last seen, 24 cm "
-        "from where the plan was validated."
+        "In-place check: red cube 0 cm from last seen, 24 cm from the plan."
     )
 
 

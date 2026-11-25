@@ -60,10 +60,10 @@ import { EventBus } from 'cramera-viewer/core/event-bus.js';
 import { PollInterval } from 'cramera-viewer/live/live-session.js';
 import { PanelHost } from 'cramera-viewer/panels/panel-host.js';
 import { IMAGE_SOURCES } from 'cramera-viewer/panels/perception-panel.js';
-import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, EXECUTOR_TITLES, FAILURE_LENGTH_LIMIT, OBJECTS_KEPT, RUN_LABELS, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
+import { BuilderEnvironment, BuilderPage, DEVELOPER_MODE_KEY, DRAFT_KEY, EXECUTOR_TITLES, FAILURE_LENGTH_LIMIT, RUN_LABELS, LENIENT_CHECK, POLL_INTERVAL, ROBOT_MODEL_KEY, ROBOT_RUN_ROW, SCENE_TOLERANCE, TASK_HINT, TOOL_TITLES, URDF_FOLDER_KEY, VALIDATED_FOR_THIS_RUN, VALIDATION_CANCELLED, VALIDATION_LOST, VALIDATION_USED, ViewMode, failureMessage, loadedMessage, scanMessage, viewMode } from '../../src/cramera_plan_builder/web/builder/builder-page.js';
 import { SENTENCES_KEY } from '../../src/cramera_plan_builder/web/builder/constraints-view.js';
 import { DRAG_MEDIA_TYPE, DragKind, DragText, DomEvent, PlanAction, PoseAxis } from '../../src/cramera_plan_builder/web/builder/elements.js';
-import { LEGEND, MarkerKind, Selection, TransformMode } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
+import { LEGEND, MarkerKind, Selection } from '../../src/cramera_plan_builder/web/builder/plan-scene.js';
 import { PlanPose } from '../../src/cramera_plan_builder/web/builder/poses.js';
 import { EMPTY_FOLDER, EnvironmentNote, REAL_ROBOT_POSE, RobotTag, RobotsNote, UrdfButtonTitle } from '../../src/cramera_plan_builder/web/builder/robots-view.js';
 import { END_DROP_HINT, NOT_SET, REASON_TEXTS, STEP_PALETTE_SIZE, noAnnotation, stepParameters } from '../../src/cramera_plan_builder/web/builder/steps-view.js';
@@ -289,7 +289,6 @@ class FakeScene {
     this.environments = [];
     this.shown = null;
     this.selected = null;
-    this.mode = TransformMode.MOVE;
     this.framed = 0;
     this.disposed = false;
   }
@@ -697,7 +696,7 @@ test('pose inputs are labelled with their unit and explain the world frame and t
   assert.deepEqual(shown(robotRow), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.YAW));
   for (const row of rows.filter((candidate) => candidate !== robotRow)) assert.deepEqual(shown(row), expected(PoseAxis.X, PoseAxis.Y, PoseAxis.Z, PoseAxis.YAW));
   assert.equal(labels.length, 3 + 4 + 4);
-  for (const axis of Object.values(PoseAxis)) assert.match(axis.title, axis === PoseAxis.YAW ? /around the vertical axis/ : /world frame/);
+  for (const axis of Object.values(PoseAxis)) assert.match(axis.title, axis === PoseAxis.YAW ? /Heading in degrees/ : /world frame/);
 });
 
 test('the task field says it is a note for people that the robot does not act on', async () => {
@@ -827,8 +826,8 @@ test('the root has no way up and an empty folder says so', async () => {
 });
 
 test('a loaded environment names its first missing meshes', () => {
-  assert.equal(loadedMessage('apartment', ['a.dae']), 'Loaded apartment; 1 mesh it names was not found and left out: a.dae');
-  assert.match(loadedMessage('apartment', ['a', 'b', 'c', 'd']), /4 meshes .*: a, b, c, …$/);
+  assert.equal(loadedMessage('apartment', ['a.dae']), 'Loaded apartment; missing meshes: a.dae');
+  assert.match(loadedMessage('apartment', ['a', 'b', 'c', 'd']), /missing meshes: a, b, c, …$/);
 });
 
 const robotEntries = (root) => byAction(root, PlanAction.SELECT_ROBOT);
@@ -938,7 +937,7 @@ test('a scan shows what perception saw, opened, and the next scan without images
 
 test('a scan assumed from the twin says it is checked again when the plan runs', () => {
   const scan = { [SceneScanKey.OBJECTS]: SCANNED_CUBES, [SceneScanKey.GROUNDING]: DetectionGrounding.ASSUMED, [SceneScanKey.UNRECOGNIZED]: 2 };
-  assert.match(scanMessage(scan), /assumed from the twin.*perceived again in the run.*2 more matched no object model/);
+  assert.match(scanMessage(scan), /assumed, as the camera does not see the table.*2 unrecognized/);
 });
 
 test('a detect step looks at the whole table', async () => {
@@ -1052,14 +1051,12 @@ test('every tool button of the 3D view says what it does as its tooltip', async 
   assert.deepEqual(tools.map((button) => button.title), Object.values(TOOL_TITLES));
 });
 
-test('a picked object is marked in the list and the turn mode reaches the view', async () => {
+test('a picked object is marked in the list', async () => {
   const { root, page, scene } = await openPage();
   byAction(root, PlanAction.ADD_OBJECT)[0].click();
   const milk = page.state.objects()[0][PlannedObjectKey.IDENTIFIER];
   scene().listeners.onPick(new Selection(MarkerKind.OBJECT, milk));
   assert.equal(root.findAll((element) => element.dataset.object === milk)[0].className, 'object selected');
-  byAction(root, PlanAction.TURN)[0].click();
-  assert.equal(scene().mode, TransformMode.TURN);
   byAction(root, PlanAction.FRAME)[0].click();
   assert.equal(scene().framed, 1);
   byAction(root, PlanAction.SELECT_OBJECT)[0].click();
@@ -1084,7 +1081,7 @@ test('a performing run shows the live statuses and attaches its constraints once
   assert.equal(live.attached.length, 1);
   assert.equal(live.attached[0][ConstraintRequestKey.TEXT], page.state.steps()[1][PlanStepKey.CONSTRAINTS][0][StepConstraintKey.TEXT]);
   assert.deepEqual(root.findAll((element) => element.className === 'observation').map((element) => element.textContent), ['TRUE']);
-  assert.match(headline(root), /^Simulation \(the real robot does not move\): /);
+  assert.match(headline(root), /^Simulation: /);
 });
 
 test('a performing run moves the robot and the objects in the 3D view as often as the scene page', async () => {
@@ -1247,14 +1244,13 @@ test('a saved plan keeps its identity and is offered to open', async () => {
   assert.match(message(root), /New plan/);
 });
 
-test('the generated demo is shown and written', async () => {
+test('the generated demo is generated as its section opens, and written', async () => {
   const { root, page } = await openPage();
   const output = root.findAll((element) => element.className === 'demo-source')[0];
   assert.ok(!output.parentElement.open);
-  byAction(root, PlanAction.SHOW_DEMO)[0].click();
+  output.parentElement.open = true;
+  output.parentElement.dispatch(DomEvent.TOGGLE);
   await settled();
-  assert.equal(output.hidden, false);
-  assert.equal(output.parentElement.open, true);
   assert.match(output.textContent, new RegExp(page.state.field(PlanKey.NAME)));
   byAction(root, PlanAction.WRITE_DEMO)[0].click();
   await settled();
@@ -1266,7 +1262,6 @@ test('a written demo is shown in the generated demo at once', async () => {
   byAction(root, PlanAction.WRITE_DEMO)[0].click();
   await settled();
   const output = root.findAll((element) => element.className === 'demo-source')[0];
-  assert.equal(output.hidden, false);
   assert.equal(output.parentElement.open, true);
   assert.match(output.textContent, new RegExp(page.state.field(PlanKey.NAME)));
   assert.match(message(root), /python \/demos\//);
@@ -1344,7 +1339,7 @@ const CURATED_PROFILE = {
   ],
 };
 const skillBlock = (root, identifier) => byAction(root, PlanAction.ADD_SKILL).find((element) => element.dataset.skill === identifier);
-const skillNotes = (root) => root.findAll((element) => element.className === 'step-skill-note').map((element) => element.textContent);
+const stepTitles = (root) => root.findAll((element) => element.className === 'step-name').map((element) => element.title);
 const setDeveloperMode = (root, enabled) => {
   const developer = byAction(root, PlanAction.DEVELOPER_MODE)[0];
   developer.checked = enabled;
@@ -1363,15 +1358,14 @@ test('a step of a skill shows the fields its skill names directly, in developer 
   assert.equal(folds().length, 1);
 });
 
-test('a step of a skill says what the skill does, as the profile documents it, while skills are offered', async () => {
+test('a step of a skill is described as its skill in the palette, while skills are offered', async () => {
   const { root } = await openPage('', ({ api }) => {
     api.catalogAnswer[PlanBuilderCatalogKey.PROFILE] = CURATED_PROFILE;
   }, { robot: false });
   skillBlock(root, 'park').click();
   skillBlock(root, 'detect').click();
-  assert.deepEqual(skillNotes(root), CURATED_PROFILE[RobotProfileKey.SKILLS].map((skill) => skill[SkillKey.DOCUMENTATION]));
-  setDeveloperMode(root, true);
-  assert.deepEqual(skillNotes(root), []);
+  assert.deepEqual(stepTitles(root), CURATED_PROFILE[RobotProfileKey.SKILLS].map((skill) => skill[SkillKey.DOCUMENTATION]));
+  assert.equal(root.findAll((element) => element.className === 'step-skill-note').length, 0);
 });
 
 test('a template of the profile starts a new plan as its copy', async () => {
@@ -1410,7 +1404,7 @@ test('the run on the robot stays disabled until the plan passes its validation',
   assert.equal(api.validated.length, 1);
   assert.equal(robotRun(root).disabled, false);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [StepVerdict.VALID, StepVerdict.VALID, StepVerdict.VALID]);
-  assert.match(headline(root), /^Validated in 2\.5 s: ready to run on the robot\./);
+  assert.match(headline(root), /^Validated in 2\.5 s\./);
   robotRun(root).click();
   await settled();
   assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, false]);
@@ -1459,20 +1453,18 @@ test('attached to the real robot, its robot cannot be removed and stands where t
   assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
   assert.equal(byAction(root, PlanAction.REMOVE_ROBOT).length, 0);
   assert.equal(byAction(root, PlanAction.POSE).length, 0);
-  const notes = root.findAll((element) => element.className === 'muted real-robot-pose').map((element) => element.textContent);
-  assert.deepEqual(notes, [REAL_ROBOT_POSE.NOTE]);
   const facts = root.findAll((element) => element.className === 'robot-facts')[0].textContent;
-  assert.match(facts, new RegExp(REAL_ROBOT_POSE.FACT));
+  assert.match(facts, new RegExp(REAL_ROBOT_POSE));
   assert.doesNotMatch(facts, /starts at/);
 });
 
-test('attached to the real robot, dragging its robot in the 3D view leaves it where it stands', async () => {
-  const { page, scene, root } = await realRobotPage();
+test('attached to the real robot, its robot is fixed in the 3D view and stays where it stands', async () => {
+  const { page, scene } = await realRobotPage();
   const robot = page.state.activeRobot();
   const before = robot[PlannedRobotKey.POSE];
+  assert.ok(scene().shown.overlay.fixed.has(new Selection(MarkerKind.ROBOT, robot[PlannedRobotKey.IDENTIFIER]).key));
   scene().listeners.onPlace(new Selection(MarkerKind.ROBOT, robot[PlannedRobotKey.IDENTIFIER]), PlanPose.of(1, 1, 0, 0));
   assert.deepEqual(page.state.activeRobot()[PlannedRobotKey.POSE], before);
-  assert.equal(message(root), REAL_ROBOT_POSE.NOTE);
 });
 
 test('attached to the real robot, a robot of another model is still a simulated one', async () => {
@@ -1492,7 +1484,7 @@ test('in simulation the robot can be removed and its start pose edited', async (
   assert.equal(byAction(root, PlanAction.POSE).length, 3);
 });
 
-const validationState = (root) => root.findAll((element) => element.className === 'validation-state')[0].textContent;
+const validationState = (root) => root.findAll((element) => element.className === 'validation-state')[0].title;
 
 test('a plan builder that restarted while idle drops the validation the page showed', async () => {
   const { root, api, timer } = await pickAndPlace(profileRunning({ [RunMode.ROBOT]: ExecutorKind.REAL }));
@@ -1570,7 +1562,7 @@ test('developer mode does not let a plan run on the real robot without a passed 
     opened.storage.setItem(DEVELOPER_MODE_KEY, String(true));
   });
   assert.equal(robotRun(root).disabled, true);
-  assert.doesNotMatch(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Developer mode/);
+  assert.doesNotMatch(root.findAll((element) => element.className === 'validation-state')[0].title, /Developer mode/);
   byAction(root, PlanAction.VALIDATE)[0].click();
   await settled();
   robotRun(root).click();
@@ -1585,7 +1577,7 @@ test('developer mode runs on the real robot without a passed validation where th
     opened.storage.setItem(DEVELOPER_MODE_KEY, String(true));
   });
   assert.equal(robotRun(root).disabled, false);
-  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Developer mode lets it run on the real robot anyway, unchecked/);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].title, /Developer mode runs it on the real robot anyway, unchecked/);
   robotRun(root).click();
   await settled();
   assert.deepEqual([api.runs[0].mode, api.runs[0].overrideValidation], [RunMode.ROBOT, true]);
@@ -1610,7 +1602,7 @@ test('a pick out of reach fails its validation as unreachable and the robot run 
   assert.equal(failing.length, 1);
   assert.equal(failing[0], steps(root)[1]);
   assert.match(validation(root)[1], new RegExp(REASON_TEXTS[StepFailureReason.UNREACHABLE]));
-  assert.match(headline(root), /step 2: unreachable/);
+  assert.match(headline(root), /step 2: out of reach/);
   assert.equal(flow(root).dataset.tone, 'error');
   assert.equal(robotRun(root).disabled, true);
 });
@@ -1658,10 +1650,10 @@ test('an assumed step and the arm chosen automatically are shown on their steps'
   });
   byAction(root, PlanAction.VALIDATE)[0].click();
   await settled();
-  assert.match(validation(root)[0], /Assumed/);
+  assert.match(validation(root)[0], /Not seen by the camera/);
   assert.match(validation(root)[1], /Arm: right, chosen automatically/);
   assert.equal(robotRun(root).disabled, false);
-  assert.match(headline(root), /1 step assumed from the twin/);
+  assert.match(headline(root), /1 step not seen by the camera/);
 });
 
 test('a step that was not perceived shows what perception saw under its validation, opened', async () => {
@@ -1690,8 +1682,8 @@ test('an edit of the plan or its scene invalidates the validation', async () => 
   page.placeObject(object, PlanPose.of(3, 3, 0, 0));
   assert.equal(robotRun(root).disabled, true);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
-  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Plan changed since its validation/);
-  assert.match(headline(root), /^Plan changed since its validation: validate again\./);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].title, /Plan changed since its validation/);
+  assert.match(headline(root), /^Plan changed since its validation\./);
   assert.equal(flow(root).dataset.tone, 'warning');
 });
 
@@ -1706,7 +1698,7 @@ test('an edit after a failed validation no longer shows the failure in the statu
   byAction(root, PlanAction.VALIDATE)[0].click();
   await settled();
   page.placeObject(page.state.objects()[0][PlannedObjectKey.IDENTIFIER], PlanPose.of(3, 3, 0, 0));
-  assert.match(headline(root), /^Plan changed since its validation: validate again\./);
+  assert.match(headline(root), /^Plan changed since its validation\./);
 });
 
 test('a live object moved away from its pose in the plan invalidates the validation for good', async () => {
@@ -1732,7 +1724,7 @@ test('a live object moved away from its pose in the plan invalidates the validat
   assert.equal(validatedWhileLive, true);
   assert.equal(robotRun(root).disabled, true);
   assert.deepEqual(steps(root).map((card) => card.dataset.validation), [undefined, undefined, undefined]);
-  assert.match(root.findAll((element) => element.className === 'validation-state')[0].textContent, /Scene changed since its validation/);
+  assert.match(root.findAll((element) => element.className === 'validation-state')[0].title, /Scene changed since its validation/);
 });
 
 test('developer mode runs on the robot without a passed validation', async () => {
@@ -1757,16 +1749,16 @@ test('the physics run is an optional dry-run, not gated by the validation', asyn
   assert.equal(dryRun.disabled, false);
 });
 
-test('each simulated run button says whether it simulates physics and that the real robot does not move', async () => {
+test('each simulated run button says whether it simulates physics', async () => {
   const { root } = await pickAndPlace();
   const perform = byAction(root, PlanAction.PERFORM)[0];
   const simulate = byAction(root, PlanAction.SIMULATE)[0];
   assert.deepEqual([perform.textContent, simulate.textContent], ['Simulate (no physics)', 'Simulate with physics']);
   assert.equal(perform.title, EXECUTOR_TITLES[ExecutorKind.KINEMATIC]);
   assert.equal(simulate.title, EXECUTOR_TITLES[ExecutorKind.PHYSICS]);
-  for (const kind of [ExecutorKind.KINEMATIC, ExecutorKind.PHYSICS, ExecutorKind.PERCEIVED_PHYSICS]) assert.match(EXECUTOR_TITLES[kind], /The real robot does not move\./);
-  assert.match(EXECUTOR_TITLES[ExecutorKind.KINEMATIC], /without physics/);
-  assert.match(EXECUTOR_TITLES[ExecutorKind.PHYSICS], /with physics/);
+  for (const kind of [ExecutorKind.KINEMATIC, ExecutorKind.PHYSICS, ExecutorKind.PERCEIVED_PHYSICS]) assert.match(EXECUTOR_TITLES[kind], /physics/i);
+  assert.match(EXECUTOR_TITLES[ExecutorKind.KINEMATIC], /No physics/);
+  assert.match(EXECUTOR_TITLES[ExecutorKind.PHYSICS], /MuJoCo physics/);
 });
 
 test('a simulated run button follows the executor the robot profile names for its run', async () => {
@@ -1920,8 +1912,8 @@ test('a poll that changes the run log writes the new log', async () => {
 // %% what the 3D view shows
 
 test('the 3D view is labelled with what it shows', () => {
-  assert.deepEqual(viewMode({ published: false, mode: null, real: false, mirroring: false }), { mode: ViewMode.PLAN, text: 'Plan (not running)' });
-  assert.deepEqual(viewMode({ published: false, mode: null, real: true, mirroring: true }), { mode: ViewMode.PLAN, text: 'Plan (not running); the robot stands as the real robot does' });
+  assert.deepEqual(viewMode({ published: false, mode: null, real: false, mirroring: false }), { mode: ViewMode.PLAN, text: 'Not running' });
+  assert.deepEqual(viewMode({ published: false, mode: null, real: true, mirroring: true }), { mode: ViewMode.PLAN, text: 'Not running (real)' });
   assert.deepEqual(viewMode({ published: true, mode: RunMode.STAGE, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live scene)' });
   assert.deepEqual(viewMode({ published: true, mode: RunMode.SIMULATE, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
   assert.deepEqual(viewMode({ published: true, mode: RunMode.ROBOT, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
@@ -1934,7 +1926,7 @@ const legend = (root) => root.findAll((element) => element.className === 'scene-
 
 test('the 3D view says it shows the plan until a run publishes its world, then that it is simulated', async () => {
   const { root, timer } = await openPage();
-  assert.equal(viewLabel(root).textContent, 'Plan (not running)');
+  assert.equal(viewLabel(root).textContent, 'Not running');
   assert.equal(viewLabel(root).dataset.mode, ViewMode.PLAN);
   byAction(root, PlanAction.SIMULATE)[0].click();
   await settled();
@@ -2231,7 +2223,7 @@ test('a run on the real robot its check refused before anything moved keeps the 
   const reason = 'The real robot is not ready: the arm watchdog is not running. No motion was started. Run ./aicor start in the platform\'s folder to start it again, then run the plan again.';
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.REFUSED, [RunStatusKey.RETURN_CODE]: 0, [RunStatusKey.LOG]: `[run] ${reason}`, [RunStatusKey.EVENTS]: [{ kind: RunEventKind.REFUSED, reason }] };
   await timer.tick();
-  assert.equal(headline(root), `${reason} The plan is still validated.`);
+  assert.equal(headline(root), reason);
   assert.equal(robotRun(root).disabled, false);
   robotRun(root).click();
   await settled();
@@ -2289,8 +2281,8 @@ test('while the run\'s record is saved the page says so, offers only Stop and sh
   api.status = { ...api.status, [RunStatusKey.STATE]: RunState.SAVING };
   await timer.tick();
   const runState = root.findAll((element) => element.className === 'run-state')[0];
-  assert.match(runState.textContent, /the run's record is saved/i);
-  assert.match(runState.textContent, /robot stands still/);
+  assert.match(runState.textContent, /saving its record/i);
+  assert.match(runState.textContent, /saving its record/);
   assert.deepEqual(runButtons(root).map((button) => button.disabled), [true, true, true, true, true]);
   assert.equal(scanButton(root).disabled, true);
   assert.equal(byAction(root, PlanAction.STOP)[0].disabled, false);
@@ -2302,7 +2294,7 @@ test('while the run\'s record is saved the page says so, offers only Stop and sh
 
 // %% what the run on the real robot tells
 
-const validationLine = (root) => root.findAll((element) => element.className === 'validation-state')[0].textContent;
+const validationLine = (root) => root.findAll((element) => element.className === 'validation-state')[0].title;
 const runtimeCheckLabel = (root) => root.findAll((element) => element.className === 'runtime-check')[0];
 
 /**
@@ -2340,7 +2332,7 @@ test('after a run on the real robot the page says the run used the validation, n
   assert.equal(validationLine(root), VALIDATION_USED);
   assert.equal(robotRun(root).title, VALIDATION_USED);
   block(root, 'park_arms').click();
-  assert.equal(validationLine(root), 'Not validated: validate before running on the robot.');
+  assert.equal(validationLine(root), 'Not validated.');
 });
 
 test('a finished run with a step that went ahead without the camera confirming its object is a notice naming the step', async () => {
@@ -2358,7 +2350,7 @@ test('a finished run with a step that went ahead without the camera confirming i
     ],
   };
   await timer.tick();
-  assert.match(headline(root), /^The run on the real robot finished\. 1 step went ahead without the camera confirming its object: 2\. .* \(milk 1\)\.$/);
+  assert.match(headline(root), /^The run on the real robot finished\. Not confirmed by the camera: 2\. .* \(milk 1\)\.$/);
   assert.equal(flow(root).dataset.tone, 'warning');
   const marked = runView(root).findAll((element) => element.className === 'run-step' && element.dataset.unseen === 'true');
   assert.deepEqual(marked.map((element) => element.dataset.step), [robotSteps[1]]);
@@ -2405,7 +2397,7 @@ test('a profile with the lenient runtime check says so beside the run controls, 
 
 test('the lenient camera check says a step goes ahead where the plan expects the object, which a step planned again moves', () => {
   assert.equal(LENIENT_CHECK.LABEL, 'Lenient camera check');
-  assert.match(LENIENT_CHECK.TITLE, /^When the camera does not confirm an object, a step goes ahead where the plan expects it/);
+  assert.match(LENIENT_CHECK.TITLE, /goes ahead where the plan expects it/);
   assert.doesNotMatch(LENIENT_CHECK.TITLE, /validated/);
 });
 
@@ -2460,7 +2452,7 @@ test('a plan builder that stops answering is shown until it answers again', asyn
   api.runStatus = runStatus;
   clock.now += POLL_INTERVAL;
   await timer.tick();
-  assert.match(runState(), /^Simulation \(the real robot does not move\): preparing the run…/);
+  assert.match(runState(), /^Simulation: preparing the run…/);
   assert.doesNotMatch(runState(), /does not answer/);
 });
 
@@ -2487,7 +2479,7 @@ test('a plan builder silent for a while is asked less often, says to start the p
   await passSeconds(5);
   assert.match(headline(root), /^The plan builder does not answer \(Failed to fetch\); retrying\.$/);
   await passSeconds(15);
-  assert.match(headline(root), /The platform may have stopped: run \.\/aicor start in its folder\./);
+  assert.match(headline(root), /Start it with \.\/aicor start\./);
   assert.ok(asked.runs <= 8, `asked for the run ${asked.runs} times in 20 s`);
   assert.ok(asked.postures <= 10, `asked for the posture ${asked.postures} times in 20 s`);
   api.runStatus = runStatus;
@@ -2521,7 +2513,7 @@ test('a run on the real robot restarts after its safety stop only once the plan 
   await settled();
   const restart = () => byAction(root, PlanAction.RESTART_PLAN)[0];
   assert.equal(restart().disabled, true);
-  assert.match(root.findAll((element) => element.className === 'safety-message')[0].textContent, /Validate the plan again/);
+  assert.match(root.findAll((element) => element.className === 'safety-message')[0].textContent, /Validate again before restarting/);
   validateButton(root).click();
   await settled();
   await settled();
@@ -2539,14 +2531,14 @@ test('a validation or scan without an answer says which request got none, a refu
   validateButton(root).click();
   await settled();
   await settled();
-  assert.match(headline(root), /^The validation got no answer from the plan builder \(Failed to fetch\)/);
+  assert.match(headline(root), /^The validation got no answer \(Failed to fetch\)/);
   api.scan = async () => {
     throw new TypeError('NetworkError when attempting to fetch resource.');
   };
   scanButton(root).click();
   await settled();
   await settled();
-  assert.match(headline(root), /^The scan got no answer from the plan builder \(NetworkError/);
+  assert.match(headline(root), /^The scan got no answer \(NetworkError/);
   api.validate = async () => {
     throw new RequestRefused(500, 'The plan could not be validated: RoboKudo did not answer within 30 s');
   };
@@ -2620,12 +2612,12 @@ test('the status area starts ready, marks Validate as the next step and says why
   assert.equal(headline(root), READY);
   assert.equal(flow(root).dataset.tone, 'idle');
   assert.equal(validateButton(root).classList.contains('primary'), true);
-  assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
+  assert.equal(robotRun(root).title, 'Not validated.');
   assert.equal(byAction(root, PlanAction.SIMULATE)[0].title, EXECUTOR_TITLES[ExecutorKind.PHYSICS]);
   validateButton(root).click();
   await settled();
   assert.equal(validateButton(root).classList.contains('primary'), false);
-  assert.match(robotRun(root).title, /^Moves the real robot/);
+  assert.match(robotRun(root).title, /emergency stop/);
 });
 
 test('a safety stop fills the status area until acknowledged, then says what comes next', async () => {
@@ -2640,12 +2632,12 @@ test('a safety stop fills the status area until acknowledged, then says what com
     [RunStatusKey.SAFETY_STOP]: { [SafetyStopKey.CONSTRAINT]: 'Left arm workspace', [SafetyStopKey.ACKNOWLEDGED]: false },
   };
   await timer.tick();
-  assert.match(headline(root), /^Safety stop: the robot stopped and stands still/);
+  assert.match(headline(root), /^Safety stop: the robot stands still/);
   assert.equal(flow(root).dataset.tone, 'error');
   assert.equal(robotRun(root).title, 'Acknowledge the safety stop first.');
   byAction(root, PlanAction.ACKNOWLEDGE_STOP)[0].click();
   await settled();
-  assert.equal(headline(root), 'Safety stop acknowledged: validate the plan again, then restart or abort it.');
+  assert.equal(headline(root), 'Safety stop acknowledged: validate again, then restart or abort.');
   byAction(root, PlanAction.ABORT_PLAN)[0].click();
   assert.equal(headline(root), 'The plan was aborted after its safety stop.');
 });
@@ -2733,7 +2725,7 @@ test('a plan cannot be changed, opened or saved while a validation waits for its
   picker.dispatch(DomEvent.CHANGE);
   byAction(root, PlanAction.REPLACE_PLAN)[0].click();
   await settled();
-  assert.equal(robotRun(root).title, 'Not validated: validate before running on the robot.');
+  assert.equal(robotRun(root).title, 'Not validated.');
 });
 
 /**
@@ -3119,7 +3111,6 @@ test('after a run the plan\'s objects stay where the run left them, as an unsave
   await endRun(opened, RunState.FINISHED);
   assert.deepEqual(milkPose(page), STACKED);
   assert.deepEqual(scene().shown.document[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], STACKED);
-  assert.equal(message(root), OBJECTS_KEPT);
   assert.equal(leavingAsks(window), true);
   assert.deepEqual(api.runs[0].plan[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], started);
 });
@@ -3135,7 +3126,7 @@ test('the objects stay where the run left them though its world closed before th
   assert.deepEqual(milkPose(opened.page), STACKED);
 });
 
-test('a stopped run keeps the objects and says an object still held stays in its gripper', async () => {
+test('a stopped run keeps the objects', async () => {
   const opened = await runningWithMilk();
   const started = structuredClone(milkPose(opened.page));
   await moveLiveMilk(opened, STACKED);
@@ -3143,7 +3134,6 @@ test('a stopped run keeps the objects and says an object still held stays in its
   await settled();
   assert.deepEqual(milkPose(opened.page), STACKED);
   assert.deepEqual(opened.api.runs[0].plan[PlanKey.OBJECTS][0][PlannedObjectKey.POSE], started);
-  assert.match(message(opened.root), /still holds stays where its gripper has it/);
 });
 
 test('the objects stay where the run left them while its record is saved', async () => {
@@ -3207,7 +3197,7 @@ test('objects a run moved invalidate the validation, so the robot run waits for 
   await moveLiveMilk(opened, [planned[0] + SCENE_TOLERANCE / 2, ...planned.slice(1)]);
   await endRun(opened, RunState.FINISHED);
   assert.equal(robotRun(opened.root).disabled, true);
-  assert.equal(validationLine(opened.root), 'Plan changed since its validation: validate again.');
+  assert.equal(validationLine(opened.root), 'Plan changed since its validation.');
 });
 
 test('after a run on the real robot that moved the objects the page still says the run used the validation', async () => {

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import signal
 import subprocess
 import threading
@@ -18,6 +19,7 @@ from pathlib import Path
 from typing_extensions import IO, List, Optional
 
 from cramera.process_sessions import ProcessSession
+from cramera_plan_builder.bridge_processes import SUGGESTION_PREFIX
 from cramera_plan_builder.demos import DemoDirectory, DemoTemplate
 from cramera_plan_builder.prepared_demo import DemoOrder, PreparedDemoOption
 from cramera_plan_builder.exceptions import (
@@ -82,9 +84,9 @@ DEMO_PREPARATION = "cramera_bridge.plans.command:PlanDemoCommand.prepare"
 What cramera-bridge does ahead of every demo, as a prepared interpreter is told it.
 """
 
-SUGGESTION_PREFIX = "Suggestion: "
+EXCEPTION_TYPE = re.compile(r"^[A-Za-z_][\w.]*: ")
 """
-How CRAM's exceptions start the line of the suggestion that follows their error.
+How the line of an exception that ended a program starts: its dotted type name.
 """
 
 LOG_ENCODING = "utf-8"
@@ -613,18 +615,19 @@ class DemoProcess:
 
     def reported_log(self) -> str:
         """
-        :return: The demo's newest output; once it failed with an exception whose
-            suggestion stands on a line of its own, followed by a line of the error and
-            then the suggestion, the line the page reads as why the run failed.
+        :return: The demo's newest output; once it failed, followed by its last line
+            without the exception's type and CRAM's suggestion, the line the page reads
+            as why the run failed.
         """
         text = self.log.text()
         if self.process.poll() in (None, 0):
             return text
         lines = [line.strip() for line in text.splitlines() if line.strip()]
-        if len(lines) < 2 or not lines[-1].startswith(SUGGESTION_PREFIX):
+        while lines and lines[-1].startswith(SUGGESTION_PREFIX):
+            lines.pop()
+        if not lines:
             return text
-        error = lines[-2].partition(": ")[2] or lines[-2]
-        return f"{text.rstrip()}\n{error} {lines[-1]}\n"
+        return f"{text.rstrip()}\n{EXCEPTION_TYPE.sub('', lines[-1], count=1)}\n"
 
     def stop(self, timeout: float = STOP_TIMEOUT) -> None:
         """

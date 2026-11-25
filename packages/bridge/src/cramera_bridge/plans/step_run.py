@@ -45,7 +45,7 @@ from cramera_bridge.names import ENUM_NAMES
 from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.plans.actions import DiscoveredActions
 from cramera_bridge.plans.arms import Arms, RobotArms
-from cramera_bridge.plans.grounding import GroundedStep, PlanGrounding
+from cramera_bridge.plans.grounding import GroundedStep, PlanGrounding, failure_text
 from cramera_bridge.plans.perception_reports import object_name
 from cramera_bridge.plans.regions import RegionBoxes
 from cramera_bridge.plans.run_log import (
@@ -256,7 +256,7 @@ class FailedAttempt:
         reason = (
             OBJECT_RECOGNITION_NOT_RUNNING
             if isinstance(failure, PerceptionSourceUnavailable)
-            else failure.error_message()
+            else failure_text(failure)
         )
         return cls(
             reason=reason,
@@ -289,10 +289,7 @@ class FailedAttempt:
         """
         validation = grounded.to_step_validation()
         return cls(
-            reason=(
-                f"{validation.step} cannot be grounded ({validation.reason}): "
-                f"{validation.detail}"
-            ),
+            reason=validation.detail,
             lost_track=grounded.check.cause is FailureCause.NOT_PERCEIVED,
         )
 

@@ -39,12 +39,12 @@ MILLIMETRES = 1000.0
 Millimetres in a metre.
 """
 
-VALIDATED_SPOT = "where the plan was validated"
+VALIDATED_SPOT = "the plan"
 """
 Where a step expects its objects until it is planned again, as a person reads it.
 """
 
-LAST_SEEN_SPOT = "where it was last seen"
+LAST_SEEN_SPOT = "last seen"
 """
 Where a step planned again expects its objects, as a person reads it.
 """
@@ -375,23 +375,17 @@ class PerceptionSearch:
         """
         return f"a {self.color} object" if self.color else "an object"
 
-    def where(self) -> str:
+    def name(self) -> str:
         """
-        :return: Where the query looked, as a person reads it.
+        :return: The object looked for, shortly: "red cube", or "a red object".
         """
-        if self.table_wide:
-            return "on the table"
-        if self.grounded is None:
-            return "in the box looked in"
-        return self.within((self.box.maximum.x - self.box.minimum.x) / 2)
+        return self.looked_for().removeprefix("the ")
 
-    def within(self, distance: float) -> str:
+    def reach(self) -> float:
         """
-        :param distance: How far, in metres, from where the step expects the object.
-        :return: The distance around there as a person reads it, such as "within 2 cm
-            of where the plan was validated".
+        :return: How far, in metres, the box looked in reaches from its middle.
         """
-        return f"within {centimetres(distance)} of {self.spot()}"
+        return (self.box.maximum.x - self.box.minimum.x) / 2
 
     def spot(self) -> str:
         """
@@ -404,65 +398,53 @@ class PerceptionSearch:
         """
         :param position: Where an object was seen.
         :param distance: How far it lies from where the step expects the object.
-        :return: How far it lies from there and, for a step planned again, from where
-            the plan was validated, as a person reads it.
+        :return: How far off it lies, such as "1 cm off", and for a step planned again
+            from both where it was last seen and the plan's spot.
         """
-        away = f"{centimetres(distance)} from {self.spot()}"
         if self.validated is None:
-            return away
+            return f"{centimetres(distance)} off"
         from_validated = math.hypot(
             position.x - self.validated.x, position.y - self.validated.y
         )
-        return f"{away}, {centimetres(from_validated)} from {VALIDATED_SPOT}"
+        return (
+            f"{centimetres(distance)} from {LAST_SEEN_SPOT}, "
+            f"{centimetres(from_validated)} from {VALIDATED_SPOT}"
+        )
 
     def summary(self, answered: bool, objects: List[ReportedObject]) -> str:
         """
         :param answered: Whether the perception answered.
         :param objects: The objects reported, judged.
         :return: Why the step looked, when it did not look for a detection step, and
-            the outcome in one sentence.
+            the outcome, shortly.
         """
         outcome = self.outcome(answered, objects)
         lead = self.lead()
-        if lead is None:
-            return outcome
-        return f"{lead}: {outcome[:1].lower()}{outcome[1:]}"
+        return sentence(outcome if lead is None else f"{lead}: {outcome}")
 
     def lead(self) -> Optional[str]:
         """
-        :return: Why the step looked, as a person reads it before the outcome; None for
-            a detection step's own detection or when it is not known.
+        :return: Why the step looked; None for a detection step's own detection or
+            when it is not known.
         """
-        if self.purpose is DetectionPurpose.IN_PLACE_CHECK:
-            return (
-                "Checked before the step moved that the object still lies where the "
-                "plan expects it"
-            )
-        if self.purpose is DetectionPurpose.BEFORE_GRASP:
-            return "Looked again just before grasping"
-        if self.purpose is DetectionPurpose.TABLE_SEARCH:
-            return (
-                "Searched the table again, the object not being where the plan "
-                "expected it"
-            )
-        return None
+        return {
+            DetectionPurpose.IN_PLACE_CHECK: "in-place check",
+            DetectionPurpose.BEFORE_GRASP: "pre-grasp check",
+            DetectionPurpose.TABLE_SEARCH: "table search",
+        }.get(self.purpose)
 
     def outcome(self, answered: bool, objects: List[ReportedObject]) -> str:
         """
         :param answered: Whether the perception answered.
         :param objects: The objects reported, judged.
-        :return: The outcome in one sentence.
+        :return: The outcome, shortly.
         """
         if not answered:
-            return (
-                f"The object recognition (RoboKudo) did not answer the search for "
-                f"{self.looked_for()}."
-            )
+            return f"RoboKudo did not answer the search for {self.name()}."
         taken = self.taken(objects)
         if taken is not None:
-            return " ".join(
-                part for part in (self.found(taken), self.raised(taken)) if part
-            )
+            raised = self.raised(taken)
+            return f"{self.found(taken)}{'; ' + raised if raised else ''}."
         outside = [
             seen
             for seen in objects
@@ -470,22 +452,23 @@ class PerceptionSearch:
         ]
         if outside and self.grounded is not None:
             nearest = min(outside, key=lambda seen: seen.distance)
-            return sentence(
-                f"{self.looked_for()} was seen "
-                f"{self.away(nearest.position, nearest.distance)}, outside the search "
-                f"{self.where()}."
+            return (
+                f"{self.name()} {self.away(nearest.position, nearest.distance)}, "
+                f"outside the {centimetres(self.reach())} search."
             )
-        nothing = f"no {self.color} object" if self.color else "no object"
+        nothing = f"no {self.color} object" if self.color else "nothing"
         others = len(objects)
-        tail = (
-            ""
-            if others == 0
-            else f"; {others} other object{'s' if others > 1 else ''} "
-            f"{'were' if others > 1 else 'was'} reported"
-        )
-        if self.table_wide:
-            return f"A table-wide search found {nothing}{tail}."
-        return f"{nothing.capitalize()} was found {self.where()}{tail}."
+        tail = "" if others == 0 else f" ({others} other{'s' if others > 1 else ''})"
+        where = "on the table" if self.table_wide else self.where()
+        return f"{nothing} found {where}{tail}."
+
+    def where(self) -> str:
+        """
+        :return: Where the query looked, shortly.
+        """
+        if self.grounded is None:
+            return "in the box"
+        return f"within {centimetres(self.reach())}"
 
     @staticmethod
     def taken(objects: List[ReportedObject]) -> Optional[ReportedObject]:
@@ -516,23 +499,18 @@ class PerceptionSearch:
         if taken.verdict is ReportedObjectVerdict.TOO_FAR:
             warnings.append(
                 sentence(
-                    f"{self.looked_for()} was not acted on: it lies "
-                    f"{centimetres(taken.distance)} from {self.spot()}, farther than "
-                    f"the {centimetres(self.tolerance)} the step allows."
+                    f"{self.name()} not acted on: {centimetres(taken.distance)} off, "
+                    f"more than the {centimetres(self.tolerance)} allowed."
                 )
             )
         not_chosen = sum(
             1 for seen in objects if seen.verdict is ReportedObjectVerdict.NOT_CHOSEN
         )
         if not_chosen:
-            warnings.append(
-                f"{self.more_matching(not_chosen)} {self.was(not_chosen)} ignored; "
-                f"the step used the first one reported."
-            )
+            warnings.append(f"{self.more_matching(not_chosen)} ignored (first used).")
         if outside:
             warnings.append(
-                f"{self.more_matching(len(outside))}, outside the box looked in, "
-                f"{self.was(len(outside))} ignored."
+                f"{self.more_matching(len(outside))} outside the search ignored."
             )
         return warnings
 
@@ -543,16 +521,11 @@ class PerceptionSearch:
         :return: That the nearest of them was not used, and why.
         """
         if self.grounded is None:
-            seen = f"{self.looked_for()} seen outside the box looked in"
-        else:
-            nearest = min(outside, key=lambda seen: seen.distance)
-            seen = (
-                f"{self.looked_for()} seen {centimetres(nearest.distance)} from "
-                f"{self.spot()}"
-            )
+            return sentence(f"{self.name()} seen outside the box, not used.")
+        nearest = min(outside, key=lambda seen: seen.distance)
         return sentence(
-            f"{seen} was not used: the step acts only on {self.looked_for()} found "
-            f"inside the box it looked in."
+            f"{self.name()} seen {centimetres(nearest.distance)} off, outside the "
+            f"search, not used."
         )
 
     def mismeasured(self, taken: ReportedObject) -> str:
@@ -562,55 +535,43 @@ class PerceptionSearch:
         :return: That its size hints at a perception error.
         """
         return sentence(
-            f"{self.looked_for()} used measured {extent(taken.size)}, clearly unlike "
-            f"its {extent(self.expected_size)}: the object recognition likely "
-            f"measured it wrongly."
+            f"{self.name()} measured {extent(taken.size)}, expected "
+            f"{extent(self.expected_size)}: likely a perception error."
         )
 
     @staticmethod
     def more_matching(count: int) -> str:
         """
         :param count: How many objects matching the search were left.
-        :return: Them counted, as a person reads it, such as "2 more objects matching
-            the search".
+        :return: Them counted, such as "2 more matches".
         """
-        return f"{count} more object{'s' if count > 1 else ''} matching the search"
-
-    @staticmethod
-    def was(count: int) -> str:
-        """
-        :param count: How many things a sentence tells of.
-        :return: The past of "to be" agreeing with them.
-        """
-        return "were" if count > 1 else "was"
+        return f"{count} more match{'es' if count > 1 else ''}"
 
     def raised(self, taken: ReportedObject) -> str:
         """
         :param taken: The object the step took.
-        :return: How far it was reported inside the surface it stands on and that it
-            was raised onto it; empty when it lay inside none.
+        :return: How far it was reported inside the surface it stands on, which it
+            was raised onto; empty when it lay inside none.
         """
         inside = taken.inside_surface
         if inside is None:
             return ""
-        return sentence(
-            f"{self.looked_for()} was reported {millimetres(inside.depth)} inside the "
-            f"{inside.surface.replace('_', ' ')} and was raised onto it."
+        return (
+            f"{millimetres(inside.depth)} inside the "
+            f"{inside.surface.replace('_', ' ')}, raised onto it"
         )
 
     def found(self, taken: ReportedObject) -> str:
         """
         :param taken: The object the step took.
-        :return: Where it was found, as a person reads it.
+        :return: Where it was found, shortly.
         """
-        if self.table_wide:
-            return f"A table-wide search found {self.looked_for()}."
-        if taken.distance is None:
-            return sentence(f"{self.looked_for()} was found {self.where()}.")
+        if self.table_wide or taken.distance is None:
+            return f"found {self.name()}"
         away = self.away(taken.position, taken.distance)
         if taken.verdict is ReportedObjectVerdict.TOO_FAR:
-            return sentence(
-                f"{self.looked_for()} was seen {away}; the step goes on only "
-                f"{self.within(self.tolerance)}."
+            return (
+                f"{self.name()} {away}, more than the "
+                f"{centimetres(self.tolerance)} allowed"
             )
-        return sentence(f"{self.looked_for()} was found {away}.")
+        return f"{self.name()} {away}"

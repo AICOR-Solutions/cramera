@@ -269,8 +269,8 @@ def test_a_run_refused_without_the_arm_watchdog_says_so_and_what_to_do():
 
     assert report.refusal() == (
         "The real robot is not ready: the arm watchdog is not running (no heartbeat "
-        "on cramera/arm_watchdog/heartbeat). No motion was started. Run ./aicor start "
-        "in the platform's folder to start it again, then run the plan again."
+        "on cramera/arm_watchdog/heartbeat). Nothing moved. Restart the arm watchdog "
+        "with ./aicor start in the platform folder."
     )
     assert report.to_text().splitlines()[-1] == (
         "The real robot is not ready: the arm watchdog is not running (no heartbeat "
@@ -288,7 +288,7 @@ def test_a_run_refused_for_a_missing_driver_says_to_start_it():
     )
 
     assert report.refusal() == (
-        "The real robot is not ready: gripper action server present: "
-        "left_gripper/gripper_cmd. No motion was started. Start what is missing "
-        "(docs/real-tracy.md), then run the plan again."
+        "The real robot is not ready: no gripper action server "
+        "left_gripper/gripper_cmd. Nothing moved. Start what is missing "
+        "(see docs/real-tracy.md)."
     )

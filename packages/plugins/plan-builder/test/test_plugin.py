@@ -1091,8 +1091,7 @@ def test_a_run_on_the_real_robot_is_refused_in_plain_words_until_validated(
     )
 
     assert json.loads(refused.body)[ErrorKey.ERROR] == (
-        "A run on the real robot needs the plan to pass its validation first: "
-        "press Validate, then run it."
+        "Validate the plan before running it on the real robot."
     )
 
 

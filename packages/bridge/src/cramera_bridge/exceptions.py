@@ -739,10 +739,7 @@ class StepAbandoned(DemoError):
     """
 
     def message(self) -> str:
-        return (
-            f"{self.step} gave up after {self.attempts} attempt(s), so the plan was "
-            f"aborted: {self.reason}"
-        )
+        return f"{self.step} failed after {self.attempts} attempt(s): {self.reason}"
 
 
 @dataclass
@@ -774,10 +771,7 @@ class PerceptionEngineNotNamed(DemoError):
     """
 
     def message(self) -> str:
-        return (
-            f"A perceiving execution needs the RoboKudo analysis engine it perceives "
-            f"with; set {self.variable}."
-        )
+        return f"No RoboKudo analysis engine is set: set {self.variable}."
 
 
 @dataclass
@@ -794,8 +788,8 @@ class EnvironmentBundleHoldsRobot(DemoError):
 
     def message(self) -> str:
         return (
-            f"{str(self.directory)!r} holds a robot model; a task demo starts from an "
-            f"environment bundle."
+            f"{str(self.directory)!r} holds a robot model; use an environment bundle "
+            f"without one."
         )
 
 
@@ -870,7 +864,7 @@ class SurfaceNotInWorld(PlanError):
         surface = self.surface_type + (
             f" {self.surface_name!r}" if self.surface_name is not None else ""
         )
-        return f"The world offers no free spot on a {surface}."
+        return f"No free spot on a {surface}."
 
 
 @dataclass
@@ -893,7 +887,7 @@ class AnnotationNotInWorld(PlanError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"The world holds no {self.annotation} named {self.name!r}."
+        return f"The scene has no {self.annotation} named {self.name!r}."
 
 
 @dataclass
@@ -934,7 +928,7 @@ class ObjectNotGraspable(PlanError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"The object {self.identifier!r} offers no grasp."
+        return f"{self.identifier!r} cannot be grasped."
 
 
 @dataclass
@@ -957,9 +951,7 @@ class UnknownWorkspaceClass(PlanError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return (
-            f"The CRAM workspace defines no {self.name!r}; it defines {self.offered}."
-        )
+        return f"Unknown class {self.name!r}; choose one of: {', '.join(self.offered)}."
 
 
 @dataclass
@@ -983,7 +975,7 @@ class RobotDescriptionUnavailable(PlanError):
         return HTTPStatus.NOT_FOUND
 
     def message(self) -> str:
-        return f"The model of the robot {self.robot!r} cannot be shown: {self.reason}"
+        return f"Cannot show the model of {self.robot!r}: {self.reason}"
 
 
 @dataclass
@@ -1006,7 +998,7 @@ class UnknownAction(PlanError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"The CRAM workspace defines no action {self.name!r}."
+        return f"No action {self.name!r} is installed."
 
 
 # %% detections
@@ -1027,7 +1019,7 @@ class RobotHasNoTable(PlanError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"The robot {self.robot} stands at no table to look on."
+        return f"{self.robot} has no table to look at."
 
 
 @dataclass
@@ -1047,8 +1039,8 @@ class DetectedObjectNotInTwin(PlanError):
 
     def message(self) -> str:
         return (
-            f"The twin holds no object the detection of {self.step} finds; scan the "
-            f"scene so the plan's objects show what stands there."
+            f"The detection in {self.step} matches none of the plan's objects: scan "
+            f"the scene."
         )
 
 
@@ -1074,8 +1066,8 @@ class AmbiguousDetectedObject(PlanError):
 
     def message(self) -> str:
         return (
-            f"The detection of {self.step} finds {self.count} objects of the twin; give "
-            f"it a color or type that tells them apart."
+            f"The detection in {self.step} matches {self.count} objects: give it a "
+            f"color or type that tells them apart."
         )
 
 
@@ -1100,7 +1092,7 @@ class StepNotGrounded(PlanError):
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
-        return f"{self.step} cannot be carried out: {self.failure}"
+        return f"Grounding failed at {self.step.replace('_', ' ')}: {self.failure}"
 
 
 @dataclass
@@ -1137,11 +1129,9 @@ class ArmOutsideItsWorkspace(PlanError):
     def message(self) -> str:
         side = "lower" if self.position < self.bound else "upper"
         return (
-            f"The {self.arm} arm stands outside its workspace box: its tool is "
-            f"{abs(self.position - self.bound) * 1000:.1f} mm past the box's {side} "
-            f"{self.axis} bound ({self.axis} = {self.position:.3f} m, the bound is at "
-            f"{self.bound:.3f} m). The real robot stops any motion while a tool is "
-            f"outside its box, and the platform does not move it back. "
+            f"The {self.arm} arm is {abs(self.position - self.bound) * 1000:.1f} mm "
+            f"past its workspace box's {side} {self.axis} bound ({self.axis} = "
+            f"{self.position:.3f} m, bound {self.bound:.3f} m). "
             f"{self.recovery(f'the {self.arm} arm')}, then validate again."
         )
 
@@ -1154,8 +1144,8 @@ class ArmOutsideItsWorkspace(PlanError):
             follows it, such as a new validation, is left to the sentence it ends.
         """
         return (
-            f"On the real robot, move {arm} back inside its box by hand on its teach "
-            f"pendant (see {RealRobotGuideSection.ARM_BACK_INTO_ITS_BOX.reference()})"
+            f"Move {arm} back into its box with the teach pendant (see "
+            f"{RealRobotGuideSection.ARM_BACK_INTO_ITS_BOX.reference()})"
         )
 
 
@@ -1193,19 +1183,9 @@ class NoArmCarriesObject(PlanError):
     the safety monitor holds the arm to and within its reach.
     """
 
-    object_identifier: str
+    object_name: str
     """
-    The identity of the object.
-    """
-
-    x: float
-    """
-    The object's x coordinate in the world before it is taken, in metres.
-    """
-
-    y: float
-    """
-    The object's y coordinate in the world before it is taken, in metres.
+    The object as a person names it, such as ``red cube (detected in step 2)``.
     """
 
     destination: str
@@ -1218,14 +1198,20 @@ class NoArmCarriesObject(PlanError):
     Why each arm failed, as a person reads it, nearer arm first.
     """
 
+    cause: Optional[str] = None
+    """
+    Why no arm can, as a person reads it, when the arms' workspaces tell, such as the
+    object lying in one arm's and the destination in the other's; None otherwise.
+    """
+
     def status(self) -> HTTPStatus:
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
+        cause = f": {self.cause}" if self.cause else ""
         return (
-            f"No arm can pick {self.object_identifier} at ({self.x:.2f}, {self.y:.2f}) "
-            f"and put it down {self.destination} inside its workspace and reach: "
-            + "; ".join(self.failures)
+            f"no single arm can safely pick the {self.object_name} and put it down "
+            f"{self.destination}{cause} ({'; '.join(self.failures)})"
         )
 
 
@@ -1255,7 +1241,7 @@ class UnknownZone(PlacementNotFound):
     """
 
     def message(self) -> str:
-        return f"The robot profile names no zone {self.zone}."
+        return f"No zone named {self.zone}."
 
 
 @dataclass
@@ -1275,10 +1261,7 @@ class NoFreeSpotInZone(PlacementNotFound):
     """
 
     def message(self) -> str:
-        return (
-            f"The zone {self.zone} has no free spot within reach for "
-            f"{self.object_identifier}."
-        )
+        return f"No free spot within reach in {self.zone} for {self.object_identifier}."
 
 
 @dataclass
@@ -1363,7 +1346,7 @@ class PlaceTaken(PlacementNotFound):
     def message(self) -> str:
         return (
             f"The place at ({self.x:.2f}, {self.y:.2f}) for {self.object_identifier} is "
-            f"taken: {self.taken_by} stands there. Move the place or {self.taken_by}."
+            f"taken by {self.taken_by}. Move the place or {self.taken_by}."
         )
 
 
@@ -1379,7 +1362,7 @@ class UnknownSupportingObject(PlacementNotFound):
     """
 
     def message(self) -> str:
-        return f"The plan holds no object {self.object_identifier} to put anything on."
+        return f"The plan has no object {self.object_identifier} to place on."
 
 
 @dataclass
@@ -1395,8 +1378,8 @@ class JointStatesNotReceived(DemoError):
 
     def message(self) -> str:
         return (
-            f"The real robot reported no joint positions on {', '.join(self.topics)}; "
-            f"check that its drivers run."
+            f"No joint states on {', '.join(self.topics)}: check that the robot's "
+            f"drivers are running."
         )
 
 
@@ -1424,4 +1407,4 @@ class RealRunTerminated(DemoError):
     """
 
     def message(self) -> str:
-        return "The run on the real robot was asked to end; the robot was halted."
+        return "The real run was stopped; the robot is halted."

@@ -55,11 +55,11 @@ export const NotStartedSummary = Object.freeze({
   /**
    * The run was started and is prepared.
    */
-  PREPARING: 'Not started yet: the run is being prepared.',
+  PREPARING: 'Preparing the run…',
   /**
    * No run goes.
    */
-  WAITING: 'Not started: press Run to start.',
+  WAITING: 'Not started.',
 });
 
 /**
@@ -186,8 +186,8 @@ function objectNames(target) {
 export function unseenSentence(steps) {
   if (steps.length === 0) return '';
   const named = steps.map((step) => `${step.name} (${step.unseen.join(', ')})`).join(', ');
-  if (steps.length === 1) return `1 step went ahead without the camera confirming its object: ${named}.`;
-  return `${steps.length} steps went ahead without the camera confirming their objects: ${named}.`;
+  if (steps.length === 1) return `Not confirmed by the camera: ${named}.`;
+  return `Not confirmed by the camera: ${named}.`;
 }
 
 /**
@@ -374,7 +374,7 @@ export class RunProgress {
       else this.perceived[before] = seen;
       this.log.push(`${this.#name(event)}: perceived ${objectNames(target)}${color ? ` (${color})` : ''}`);
     } else if (kind === RunEventKind.REGROUNDED) {
-      this.log.push(`${this.#name(event)}: ${objectNames(event[RunEventKey.TARGET])} found elsewhere on the table; the step was grounded again where it lies`);
+      this.log.push(`${this.#name(event)}: ${objectNames(event[RunEventKey.TARGET])} found elsewhere; replanned there`);
     } else if (kind === RunEventKind.CONTINUED_UNSEEN) {
       const step = this.step(event[RunEventKey.STEP]);
       const names = objectNames(event[RunEventKey.TARGET]);
@@ -382,11 +382,11 @@ export class RunProgress {
       // where the step was grounded with them: where the plan was validated, or where they were found once the step was grounded again
       this.log.push(`${this.#name(event)}: ${event[RunEventKey.REASON]}; continuing where the plan expected ${names}`);
     } else if (kind === RunEventKind.RECORD_SAVING) {
-      this.log.push('Run over; the robot stands still while the run\'s record is saved.');
+      this.log.push('Run over; saving its record.');
     } else if (kind === RunEventKind.SAFETY_STOP) {
       this.safety = MonitorObservation.VIOLATED;
       this.safetyStop = event[RunEventKey.CONSTRAINT];
-      this.log.push(`Safety stop${event[RunEventKey.STEP] ? ` in ${this.#name(event)}` : ''}: ${this.safetyStop}; the robot stopped and stands still.`);
+      this.log.push(`Safety stop${event[RunEventKey.STEP] ? ` in ${this.#name(event)}` : ''}: ${this.safetyStop}; the robot stands still.`);
     }
   }
 
@@ -622,8 +622,7 @@ export class RunView {
     if (step.unseen.length > 0) {
       item.dataset.unseen = 'true';
       const names = step.unseen.join(', ');
-      const pronoun = names.includes(', ') ? 'them' : 'it';
-      item.append(elements.create('p', RunViewClass.UNSEEN, `Went ahead without the camera confirming ${names}: it acted where the plan expected ${pronoun}.`));
+      item.append(elements.create('p', RunViewClass.UNSEEN, `Not confirmed by the camera: ${names}; used where the plan expected.`));
     }
     const perceived = step.state === StepState.DONE ? null : perceptionSentence(step.perceptions);
     if (perceived) item.append(elements.create('p', PerceptionViewClass.SENTENCE, `Perception: ${perceived}`));

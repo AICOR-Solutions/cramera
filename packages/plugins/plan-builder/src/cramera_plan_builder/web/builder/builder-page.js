@@ -62,11 +62,11 @@ import { DomEvent, Elements, PlanAction, showText } from './elements.js';
 import { FreePlace } from './free-place.js';
 import { LiveNames } from './live-client.js';
 import { ObjectsView } from './objects-view.js';
-import { LEGEND, MarkerKind, PlanSceneListeners, SceneOverlay, Selection, TransformMode } from './plan-scene.js';
+import { LEGEND, MarkerKind, PlanSceneListeners, SceneOverlay, Selection } from './plan-scene.js';
 import { HistoryShortcut, HistoryTravel, PlanHistory, describeChange, editsText, historyShortcut } from './plan-history.js';
 import { PlanRefused, PlanState } from './plan-state.js';
 import { PlanPose, PoseIndex } from './poses.js';
-import { EnvironmentView, REAL_ROBOT_POSE, RobotsView } from './robots-view.js';
+import { EnvironmentView, RobotsView } from './robots-view.js';
 import { PollInterval } from '../../../live/live-session.js';
 import { RunProgress, RunView, withoutStopTraceback } from './run-view.js';
 import { SafetyBannerState, SafetyStopBanner } from './safety-stop.js';
@@ -175,28 +175,16 @@ export const NAMED_MISSING_MESHES = 3;
 export const ROBOT_RUN_ROW = 'button-row robot-actions';
 
 /**
- * What stands before the run on the real robot in its row.
- */
-const REAL_MOTION = 'Moves the real robot:';
-
-/**
  * What the page says of the validation of a plan a run on the real robot took it away
  * from as it started, while the run goes on.
  */
-export const VALIDATED_FOR_THIS_RUN = 'Validated for this run; validate again before the next run on the robot.';
+export const VALIDATED_FOR_THIS_RUN = 'Validated for this run only.';
 
 /**
  * What the page says once a run on the real robot ended with the plan unchanged: the
  * run used its validation, so the next run needs a new one.
  */
-export const VALIDATION_USED = 'The last run on the robot used this validation: validate again before the next run.';
-
-/**
- * What the page says once a run left the plan's objects elsewhere than they started,
- * which the plan then takes: the live world does not tell which object a gripper
- * holds, so one still held keeps the pose it has in the gripper.
- */
-export const OBJECTS_KEPT = 'The objects stay where the run left them; an object a robot still holds stays where its gripper has it.';
+export const VALIDATION_USED = 'The last run used this validation; validate again.';
 
 /**
  * What Undo and Redo name the changes the page makes itself rather than an edit of the
@@ -211,14 +199,14 @@ export const PageChange = Object.freeze({
 /**
  * What the page says once it cancelled a validation as the plan changed while it ran.
  */
-export const VALIDATION_CANCELLED = 'Validation cancelled: the plan changed. Validate it again once it is ready.';
+export const VALIDATION_CANCELLED = 'Validation cancelled: the plan changed.';
 
 /**
  * What the page says once the plan builder no longer holds the validation the page
  * shows, which it keeps in memory only: after a restart, or once another plan was
  * validated since.
  */
-export const VALIDATION_LOST = 'The plan builder restarted or validated another plan since, so this validation is gone: validate the plan again.';
+export const VALIDATION_LOST = 'Validation lost: the plan builder restarted or validated another plan. Validate again.';
 
 /**
  * The HTTP status of a request the plan builder refuses as it conflicts with its state,
@@ -234,7 +222,7 @@ const CONFLICT_STATUS = 409;
  */
 export const LENIENT_CHECK = Object.freeze({
   LABEL: 'Lenient camera check',
-  TITLE: 'When the camera does not confirm an object, a step goes ahead where the plan expects it, and the run says so; safety limits, collision checks and Stop work as always.',
+  TITLE: 'A step whose object the camera does not confirm goes ahead where the plan expects it.',
 });
 
 /**
@@ -258,17 +246,17 @@ const DEFAULT_EXECUTORS = Object.freeze({ [RunMode.PERFORM]: ExecutorKind.KINEMA
  * what runs, and whether the robot moves.
  */
 export const EXECUTOR_TITLES = Object.freeze({
-  [ExecutorKind.KINEMATIC]: 'Runs the plan in simulation without physics: the simulated robot follows the planned motions and held objects move with the gripper, so it shows what the plan does, not whether a grasp holds. The real robot does not move.',
-  [ExecutorKind.PHYSICS]: 'Runs the plan in simulation with physics (MuJoCo): objects are held by friction alone and can slip or fall, as on the real robot. The real robot does not move.',
-  [ExecutorKind.PERCEIVED_PHYSICS]: 'Runs the plan in simulation with physics (MuJoCo), and the simulated camera looks for the plan\'s objects as the real robot\'s perception does. The real robot does not move.',
-  [ExecutorKind.REAL]: 'Moves the real robot; keep the emergency stop at hand.',
+  [ExecutorKind.KINEMATIC]: 'No physics: shows the motions, not whether grasps hold.',
+  [ExecutorKind.PHYSICS]: 'MuJoCo physics: objects can slip or fall.',
+  [ExecutorKind.PERCEIVED_PHYSICS]: 'MuJoCo physics with a simulated camera.',
+  [ExecutorKind.REAL]: 'Keep the emergency stop at hand.',
 });
 
 /**
  * What the button starting the live scene says when pointed at, while the scene is
  * simulated.
  */
-export const STAGE_TITLE = 'Shows the plan\'s world in a live simulation, where objects can be placed and their poses captured; no plan runs. The real robot does not move.';
+export const STAGE_TITLE = 'Simulates the plan\'s world live to place objects and capture poses; no plan runs.';
 
 /**
  * What the task field says: it describes the plan for people, and nothing reads it to
@@ -276,7 +264,7 @@ export const STAGE_TITLE = 'Shows the plan\'s world in a live simulation, where 
  */
 export const TASK_HINT = Object.freeze({
   PLACEHOLDER: 'A note for people, e.g. stack the cubes',
-  TITLE: 'Describes the plan for the people who read it. The robot does not act on this text; only the steps decide what it does.',
+  TITLE: 'For people only; the robot ignores it.',
 });
 
 /**
@@ -284,11 +272,9 @@ export const TASK_HINT = Object.freeze({
  * `PlanAction` value.
  */
 export const TOOL_TITLES = Object.freeze({
-  [PlanAction.CAPTURE]: 'Write where the live scene\'s robots and objects stand into the plan.',
-  [PlanAction.TURN]: 'While on, the handle of the robot, object or target picked in the 3D view turns it around the vertical axis instead of moving it; click again to move.',
-  [PlanAction.FRAME]: 'Point the 3D view at the plan\'s robots, objects and targets.',
-  [PlanAction.SHOW_DEMO]: 'Show the Python script generated from the plan below the 3D view.',
-  [PlanAction.WRITE_DEMO]: 'Write the script generated from the plan into the demos folder and say how to run it.',
+  [PlanAction.CAPTURE]: 'Write the live scene\'s poses into the plan.',
+  [PlanAction.FRAME]: 'Fit the plan into the 3D view.',
+  [PlanAction.WRITE_DEMO]: 'Save the plan\'s Python script to the demos folder.',
 });
 
 /**
@@ -300,8 +286,7 @@ export function loadedMessage(label, missing) {
   if (missing.length === 0) return `Loaded ${label}.`;
   const named = missing.slice(0, NAMED_MISSING_MESHES).join(', ');
   const more = missing.length > NAMED_MISSING_MESHES ? ', …' : '';
-  const count = missing.length === 1 ? '1 mesh it names was' : `${missing.length} meshes it names were`;
-  return `Loaded ${label}; ${count} not found and left out: ${named}${more}`;
+  return `Loaded ${label}; missing meshes: ${named}${more}`;
 }
 
 /**
@@ -323,8 +308,8 @@ export function validationMessage(report, steps, label) {
     return `Validation failed at step ${position + 1}: ${REASON_TEXTS[failed[StepValidationKey.REASON]] ?? 'it did not succeed'} (${seconds}).`;
   }
   const assumed = validations.filter((step) => step[StepValidationKey.VERDICT] === StepVerdict.ASSUMED).length;
-  const note = assumed ? ` ${assumed === 1 ? '1 step' : `${assumed} steps`} assumed from the twin, checked again in the run.` : '';
-  return `Validated in ${seconds}: ready to run on the robot.${note}`;
+  const note = assumed ? ` ${assumed === 1 ? '1 step' : `${assumed} steps`} not seen by the camera; checked in the run.` : '';
+  return `Validated in ${seconds}.${note}`;
 }
 
 /**
@@ -336,9 +321,9 @@ export function validationMessage(report, steps, label) {
 export function scanMessage(scan) {
   const count = scan[SceneScanKey.OBJECTS].length;
   const objects = count === 1 ? '1 object' : `${count} objects`;
-  const source = scan[SceneScanKey.GROUNDING] === DetectionGrounding.ASSUMED ? 'assumed from the twin since the camera does not see the table; perceived again in the run' : 'seen by the camera';
+  const source = scan[SceneScanKey.GROUNDING] === DetectionGrounding.ASSUMED ? 'assumed, as the camera does not see the table' : 'seen by the camera';
   const unrecognized = scan[SceneScanKey.UNRECOGNIZED];
-  const left = unrecognized > 0 ? ` ${unrecognized} more matched no object model.` : '';
+  const left = unrecognized > 0 ? ` ${unrecognized} unrecognized.` : '';
   return `Scanned: ${objects}, ${source}.${left}`;
 }
 
@@ -349,7 +334,7 @@ export function scanMessage(scan) {
  *   refusal, else that the request got no answer, as when the connection dropped.
  */
 export function failureMessage(request, error) {
-  const message = error instanceof RequestRefused ? error.message : `${request} got no answer from the plan builder (${error.message}); check that it still runs, then try again.`;
+  const message = error instanceof RequestRefused ? error.message : `${request} got no answer (${error.message}).`;
   return message.length <= FAILURE_LENGTH_LIMIT ? message : `${message.slice(0, FAILURE_LENGTH_LIMIT - 1)}…`;
 }
 
@@ -368,7 +353,7 @@ export const ViewMode = Object.freeze({ PLAN: 'plan', SIMULATION: 'simulation', 
  */
 export function viewMode(facts) {
   if (!facts.published) {
-    const text = facts.mirroring ? 'Plan (not running); the robot stands as the real robot does' : 'Plan (not running)';
+    const text = facts.mirroring ? 'Not running (real)' : 'Not running';
     return { mode: ViewMode.PLAN, text };
   }
   if (facts.mode === RunMode.ROBOT && facts.real) return { mode: ViewMode.REAL, text: 'Real robot (live)' };
@@ -795,7 +780,7 @@ export class BuilderPage {
     else if (draft !== null) this.#restore(JSON.parse(draft));
     this.render();
     const missing = catalog[PlanBuilderCatalogKey.MISSING];
-    this.#pageStatus.ready(missing.length ? `The CRAM workspace is not importable here (missing ${missing.join(', ')}); plans can be composed and saved, not run.` : READY);
+    this.#pageStatus.ready(missing.length ? `CRAM is missing ${missing.join(', ')}: plans can be edited, not run.` : READY);
     if (this.#environment.window) {
       this.#elements.listen(this.#environment.window, DomEvent.BEFORE_UNLOAD, (event) => this.#beforeLeaving(event));
       this.#elements.listen(this.#environment.window, DomEvent.KEY_DOWN, (event) => this.#historyKey(event));
@@ -1240,15 +1225,14 @@ export class BuilderPage {
   /**
    * Replace the plan at once when it has no unsaved changes, else once the person
    * confirms losing them.
-   * @param {string} replacement What replaces the plan, as the confirmation names it.
    * @param {function(): void} replace Replaces the plan.
    */
-  #replacePlan(replacement, replace) {
+  #replacePlan(replace) {
     if (!this.#unsaved()) {
       replace();
       return;
     }
-    this.#parts.replaceText.textContent = `“${this.state.field(PlanKey.NAME)}” has unsaved changes, which ${replacement} replaces. Save it first, or replace it and lose them?`;
+    this.#parts.replaceText.textContent = `“${this.state.field(PlanKey.NAME)}” has unsaved changes.`;
     this.#pendingReplace = replace;
     this.#focusBeforeConfirm = this.#environment.document.activeElement ?? null;
     this.render();
@@ -1355,7 +1339,8 @@ export class BuilderPage {
         if (target.marker) reachable.set(new Selection(MarkerKind.TARGET, step[PlanStepKey.IDENTIFIER], target.field).key, place.reaches(target.pose));
       }
     }
-    return new SceneOverlay(place.zones(this.state.zones()), reachable, this.#shownPerception());
+    const fixed = new Set(this.state.robots().filter((robot) => this.realRobot(robot)).map((robot) => new Selection(MarkerKind.ROBOT, robot[PlannedRobotKey.IDENTIFIER]).key));
+    return new SceneOverlay(place.zones(this.state.zones()), reachable, this.#shownPerception(), fixed);
   }
 
   /**
@@ -1441,16 +1426,7 @@ export class BuilderPage {
   // %% demos
 
   /**
-   * Show the demo generated from the plan.
-   * @returns {Promise<void>} Settles once it is shown or refused.
-   */
-  async #showDemo() {
-    const demo = await this.#generateDemo();
-    if (demo) this.report(`Generated ${demo[DemoSourceKey.FILE_NAME]}.`);
-  }
-
-  /**
-   * Generate the demo from the plan and open it in the generated demo's section.
+   * Generate the demo from the plan and show it in the generated demo's section.
    * @returns {Promise<?Object>} The generated demo, or null once it was refused.
    */
   async #generateDemo() {
@@ -1460,8 +1436,6 @@ export class BuilderPage {
     });
     if (!demo) return null;
     this.#parts.output.textContent = demo[DemoSourceKey.SOURCE];
-    this.#parts.output.hidden = false;
-    this.#parts.output.parentElement.open = true;
     return demo;
   }
 
@@ -1471,6 +1445,7 @@ export class BuilderPage {
    */
   async #writeDemo() {
     if (!(await this.#generateDemo())) return;
+    this.#parts.output.parentElement.open = true;
     const saved = await this.#environment.api.writeDemo(this.state.document).catch((error) => {
       this.report(error.message, Tone.ERROR);
       return null;
@@ -1710,7 +1685,7 @@ export class BuilderPage {
     parts.safety.dataset.state = state;
     if (state === SafetyBannerState.HIDDEN) return;
     const revalidate = this.#revalidate();
-    showText(parts.safetyMessage, `${this.#safetyBanner.message(this.#run)}${revalidate ? '. Validate the plan again before restarting it on the robot.' : ''}`);
+    showText(parts.safetyMessage, `${this.#safetyBanner.message(this.#run)}${revalidate ? '. Validate again before restarting.' : ''}`);
     parts.restartPlan.disabled = revalidate || this.busy();
     parts.acknowledgeStop.hidden = state !== SafetyBannerState.VIOLATED;
     parts.restartPlan.hidden = state !== SafetyBannerState.ACKNOWLEDGED;
@@ -1819,7 +1794,6 @@ export class BuilderPage {
     // the poses are what the run did, not an edit of the person after it
     if (this.#runPlan === ran) this.#runPlan = kept;
     if (this.#validationUsedBy === ran) this.#validationUsedBy = kept;
-    this.report(OBJECTS_KEPT);
     this.render();
   }
 
@@ -1933,9 +1907,10 @@ export class BuilderPage {
    */
   #placed(selection, pose) {
     if (selection.kind === MarkerKind.ROBOT) {
-      const locked = this.realRobot(this.state.robot(selection.identifier)) ? REAL_ROBOT_POSE.NOTE : this.lockedByRun();
+      // the real robot's marker is fixed in the 3D view; it stands where it is
+      const locked = this.realRobot(this.state.robot(selection.identifier)) ? '' : this.lockedByRun();
       if (locked !== null) {
-        this.report(locked);
+        if (locked) this.report(locked);
         this.render();
         return;
       }
@@ -2016,7 +1991,10 @@ export class BuilderPage {
     parts.robot.disabled = blocked !== null || !(passed || this.#mayOverrideValidation());
     this.#showSafetyStop();
     this.#showRunView();
-    showText(parts.validationState, this.#validationState(passed));
+    // a sign beside the run on the robot, whose explanation shows when pointed at
+    showText(parts.validationState, passed || (this.#performing() && this.#validationTaken !== null) ? '✓' : '⚠');
+    parts.validationState.title = this.#validationState(passed);
+    parts.validationState.setAttribute('aria-label', parts.validationState.title);
     parts.validationState.dataset.passed = String(passed);
     this.#showFlowStatus();
     this.#showButtons(blocked, passed, active);
@@ -2027,10 +2005,10 @@ export class BuilderPage {
    *   they may.
    */
   #blocked() {
-    if (this.state.catalog[PlanBuilderCatalogKey.MISSING].length > 0) return 'The CRAM workspace is not importable here.';
+    if (this.state.catalog[PlanBuilderCatalogKey.MISSING].length > 0) return 'CRAM is not importable here.';
     if (this.#safetyBanner.blocksRuns(this.#run)) return 'Acknowledge the safety stop first.';
     if (this.#waiting) return 'Wait until the current request is answered.';
-    if (this.#performing()) return 'Only Stop is offered while the plan runs.';
+    if (this.#performing()) return 'A run is going.';
     return null;
   }
 
@@ -2137,7 +2115,7 @@ export class BuilderPage {
       control.disabled = locked !== null;
       control.title = locked ?? '';
     }
-    parts.stop.title = parts.stop.disabled ? (this.#stopping ? 'Stopping the run…' : 'No run to stop.') : 'Stop the run; the robot halts.';
+    parts.stop.title = parts.stop.disabled ? (this.#stopping ? 'Stopping the run…' : 'No run to stop.') : 'Stop the run.';
     this.#showHistory();
   }
 
@@ -2187,18 +2165,19 @@ export class BuilderPage {
 
   /**
    * @param {boolean} passed Whether the plan as it stands passed its validation.
-   * @returns {string} What the page says of the plan's validation beside the buttons.
+   * @returns {string} What the page says of the plan's validation, shown when the sign
+   *   beside the run on the robot is pointed at.
    */
   #validationState(passed) {
     if (passed) return 'Validated.';
     // a run on the real robot takes the validation away as it starts, for the next run
     if (this.#performing() && this.#validationTaken !== null) return VALIDATED_FOR_THIS_RUN;
-    if (this.validatedReport() !== null) return 'Validation failed: the plan cannot run on the robot.';
-    const where = this.#robotExecutor() === ExecutorKind.REAL ? 'real robot anyway, unchecked' : 'robot anyway';
-    const override = this.#mayOverrideValidation() ? ` Developer mode lets it run on the ${where}.` : '';
+    if (this.validatedReport() !== null) return 'Validation failed.';
+    const where = this.#robotExecutor() === ExecutorKind.REAL ? 'the real robot' : 'the robot';
+    const override = this.#mayOverrideValidation() ? ` Developer mode runs it on ${where} anyway, unchecked.` : '';
     if (this.#validation === null && this.#validationUsedBy === JSON.stringify(this.state.document)) return `${VALIDATION_USED}${override}`;
-    if (this.#validation === null) return `Not validated: validate before running on the robot.${override}`;
-    return `${this.#validation.sceneChanged ? 'Scene' : 'Plan'} changed since its validation: validate again.${override}`;
+    if (this.#validation === null) return `Not validated.${override}`;
+    return `${this.#validation.sceneChanged ? 'Scene' : 'Plan'} changed since its validation.${override}`;
   }
 
   /**
@@ -2272,24 +2251,22 @@ export class BuilderPage {
     parts.task.title = TASK_HINT.TITLE;
     parts.environment = new EnvironmentView(document, this);
     parts.saved = this.#choice(PlanAction.OPEN, this.#planChoices(), OPEN_PROMPT.value, (value) => {
-      const label = this.#planChoices().find((choice) => choice.value === value)?.label ?? value;
-      this.#replacePlan(`opening the saved plan “${label}”`, () => {
+      this.#replacePlan(() => {
         this.#forgetRun();
         this.#open(value).then(() => this.render());
       });
     });
     const bar = elements.create('header', 'bar builder-bar');
     const plansRow = elements.create('div', 'button-row');
-    parts.newPlan = elements.button('New', PlanAction.NEW, () => this.#replacePlan('a new plan', () => this.#newPlan()));
+    parts.newPlan = elements.button('New', PlanAction.NEW, () => this.#replacePlan(() => this.#newPlan()));
     parts.save = elements.button('Save', PlanAction.SAVE, () => this.#save());
     parts.undo = elements.button('Undo', PlanAction.UNDO, () => this.undo());
     parts.redo = elements.button('Redo', PlanAction.REDO, () => this.redo());
     plansRow.append(parts.newPlan, parts.saved, parts.save, parts.undo, parts.redo);
     if ((this.state.catalog[PlanBuilderCatalogKey.TEMPLATES] ?? []).length > 0) {
       parts.templates = this.#choice(PlanAction.NEW_FROM_TEMPLATE, this.#templateChoices(), TEMPLATE_PROMPT.value, (value) => {
-        const label = this.#templateChoices().find((choice) => choice.value === value)?.label ?? value;
         parts.templates.value = TEMPLATE_PROMPT.value;
-        this.#replacePlan(`the template “${label}”`, () => this.#newFromTemplate(value));
+        this.#replacePlan(() => this.#newFromTemplate(value));
       });
       plansRow.append(parts.templates);
     }
@@ -2315,7 +2292,7 @@ export class BuilderPage {
     const side = elements.create('aside', 'builder-side');
     side.append(
       this.#section('Environment', parts.environment.element),
-      this.#section('Robots', parts.robots.element, 'Choose a robot, here or in the 3D view, to edit its plan.'),
+      this.#section('Robots', parts.robots.element, 'Pick a robot to edit its plan.'),
       this.#section('Actions', parts.steps.palette, 'Click or drag an action into the plan.'),
       this.#section('Objects', parts.objects.element),
       this.#section('Constraints', parts.constraints.element, 'Drag a sentence onto a step.'),
@@ -2335,9 +2312,9 @@ export class BuilderPage {
     parts.perform = elements.button(RUN_LABELS[RunMode.PERFORM], PlanAction.PERFORM, () => this.#start(RunMode.PERFORM));
     parts.simulate = elements.button(RUN_LABELS[RunMode.SIMULATE], PlanAction.SIMULATE, () => this.#start(RunMode.SIMULATE));
     parts.validate = elements.button('Validate', PlanAction.VALIDATE, () => this.validate());
-    parts.validate.dataset.hint = 'Tries every step in a copy of the twin; nothing moves.';
+    parts.validate.dataset.hint = 'Tries every step in simulation; nothing moves.';
     parts.scan = elements.button('Scan scene', PlanAction.SCAN_SCENE, () => this.scanScene());
-    parts.scan.dataset.hint = 'Fills the plan\'s objects with what the robot sees on its table.';
+    parts.scan.dataset.hint = 'Fills the plan\'s objects from the camera.';
     const executors = this.state.catalog[PlanBuilderCatalogKey.PROFILE]?.[RobotProfileKey.EXECUTORS] ?? {};
     if (executors[RunMode.STAGE] !== ExecutorKind.REAL) parts.stage.dataset.hint = STAGE_TITLE;
     for (const [mode, button] of [[RunMode.PERFORM, parts.perform], [RunMode.SIMULATE, parts.simulate]]) {
@@ -2350,7 +2327,7 @@ export class BuilderPage {
     parts.robot.hidden = robotExecutor === null;
     if (onRealRobot) {
       parts.robot.classList.add('real-robot');
-      parts.robot.dataset.hint = 'Moves the real robot. Runs a plan that passed its validation against where the robot stands now; keep the emergency stop at hand.';
+      parts.robot.dataset.hint = EXECUTOR_TITLES[ExecutorKind.REAL];
     }
     parts.stop = elements.button('Stop', PlanAction.STOP, () => this.#stop());
     parts.capture = elements.button('Capture live poses', PlanAction.CAPTURE, () => this.#capture());
@@ -2364,13 +2341,6 @@ export class BuilderPage {
     parts.safety.setAttribute('role', 'alert');
     parts.safety.hidden = true;
     parts.safety.append(parts.safetyMessage, parts.acknowledgeStop, parts.restartPlan, parts.abortPlan);
-    let turning = false;
-    const turn = elements.button('Turn', PlanAction.TURN, () => {
-      turning = !turning;
-      turn.setAttribute('aria-pressed', String(turning));
-      this.#scene?.setMode(turning ? TransformMode.TURN : TransformMode.MOVE);
-    });
-    turn.setAttribute('aria-pressed', 'false');
     // the flow in its order first, then the simulated runs, the tools, and apart from them all the run on the robot
     const flowRow = elements.create('div', 'button-row flow-actions');
     const runtimeCheck = elements.create('span', 'runtime-check', LENIENT_CHECK.LABEL);
@@ -2382,16 +2352,14 @@ export class BuilderPage {
     const toolRow = elements.create('div', 'button-row tool-actions');
     toolRow.append(
       parts.capture,
-      turn,
       elements.button('Look at the plan', PlanAction.FRAME, () => this.#scene?.frameMarkers()),
-      elements.button('Show demo', PlanAction.SHOW_DEMO, () => this.#showDemo()),
       elements.button('Write demo', PlanAction.WRITE_DEMO, () => this.#writeDemo()),
     );
     for (const button of toolRow.children) button.title = TOOL_TITLES[button.dataset.action];
     const robotRow = elements.create('div', ROBOT_RUN_ROW);
     robotRow.hidden = parts.robot.hidden;
-    if (onRealRobot) robotRow.append(elements.create('span', 'robot-actions-label', REAL_MOTION));
-    robotRow.append(parts.robot);
+    parts.validationState = elements.create('span', 'validation-state');
+    robotRow.append(parts.robot, parts.validationState);
     const runRow = elements.create('div', 'run-row');
     runRow.append(flowRow, simulatedRow, toolRow, robotRow);
     parts.runState = elements.create('span', 'run-state');
@@ -2401,18 +2369,16 @@ export class BuilderPage {
     const indicator = elements.create('span', 'flow-indicator');
     indicator.setAttribute('aria-hidden', 'true');
     parts.flow.append(indicator, parts.runState, parts.elapsed);
-    parts.validationState = elements.create('span', 'validation-state');
     parts.message = elements.create('span', 'message');
     parts.posture = elements.create('span', 'run-state posture-state');
     parts.posture.dataset.state = RunState.FAILED;
     parts.posture.hidden = true;
     parts.log = elements.create('pre', 'run-log');
     parts.output = elements.create('pre', 'demo-source');
-    parts.output.hidden = true;
     const stage = elements.create('div', 'builder-stage');
     const controls = elements.create('div', 'builder-controls');
     const lines = elements.create('div', 'status-row');
-    lines.append(parts.validationState, parts.posture, parts.message);
+    lines.append(parts.posture, parts.message);
     controls.append(parts.safety, parts.flow, runRow, lines, statusLine);
     const output = elements.create('div', 'builder-output');
     parts.logDetails = this.#details('Run output', parts.log);
@@ -2420,7 +2386,10 @@ export class BuilderPage {
     parts.scanImages = this.#details('What the scan saw', parts.scanFigures);
     parts.scanImages.className = 'scan-images';
     parts.scanImages.hidden = true;
-    output.append(parts.logDetails, parts.scanImages, this.#details('Generated demo', parts.output));
+    const demo = this.#details('Generated demo', parts.output);
+    // the demo is generated from the plan as it stands whenever its section opens
+    elements.listen(demo, DomEvent.TOGGLE, () => demo.open && this.#generateDemo());
+    output.append(parts.logDetails, parts.scanImages, demo);
     const view = elements.create('section', 'builder-view');
     view.append(controls, stage, output);
     const main = elements.create('div', 'builder-main');

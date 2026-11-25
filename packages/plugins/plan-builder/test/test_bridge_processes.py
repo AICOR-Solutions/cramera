@@ -262,7 +262,7 @@ def test_a_failed_process_is_reported_by_its_final_error_apart_from_its_output()
         answer(process, Behaviour.RAISE)
 
     assert failure.value.reason == (
-        "RoboKudo did not answer within 30 s Suggestion: read its log."
+        "RoboKudo did not answer within 30 s"
     )
     assert "a warning before the failure" in failure.value.output
     assert "Traceback (most recent call last):" in failure.value.output
@@ -343,7 +343,7 @@ def test_the_reason_of_a_failure_is_the_message_of_the_final_exception():
     )
 
     assert output.final_error(length_limit=300) == (
-        "RoboKudo did not answer Suggestion: read its log."
+        "RoboKudo did not answer"
     )
 
 

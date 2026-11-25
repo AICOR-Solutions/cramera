@@ -13,7 +13,6 @@ export const PlanAction = Object.freeze({
   SAVE: 'save',
   UNDO: 'undo',
   REDO: 'redo',
-  SHOW_DEMO: 'show-demo',
   WRITE_DEMO: 'write-demo',
   STAGE: 'stage',
   PERFORM: 'perform',
@@ -60,7 +59,6 @@ export const PlanAction = Object.freeze({
   REMOVE_CONSTRAINT: 'remove-constraint',
   ATTACH_CONSTRAINT: 'attach-constraint',
   DETACH_CONSTRAINT: 'detach-constraint',
-  TURN: 'turn',
   FRAME: 'frame',
   TOGGLE_RUN: 'toggle-run',
   REPLACE_PLAN: 'replace-plan',
@@ -74,10 +72,10 @@ export const PlanAction = Object.freeze({
  * frame, whose origin is the environment's.
  */
 export const PoseAxis = Object.freeze({
-  X: Object.freeze({ field: 'x', label: 'x (m)', title: 'Position along the world frame\'s x axis, in metres from the environment\'s origin.' }),
-  Y: Object.freeze({ field: 'y', label: 'y (m)', title: 'Position along the world frame\'s y axis, in metres from the environment\'s origin.' }),
-  Z: Object.freeze({ field: 'z', label: 'z (m)', title: 'Height along the world frame\'s z axis, which points up, in metres from the environment\'s origin.' }),
-  YAW: Object.freeze({ field: 'yaw°', label: 'rotation (°)', title: 'Rotation around the vertical axis, in degrees: 0° faces along the world frame\'s x axis, 90° along its y axis.' }),
+  X: Object.freeze({ field: 'x', label: 'x (m)', title: 'x in metres, world frame.' }),
+  Y: Object.freeze({ field: 'y', label: 'y (m)', title: 'y in metres, world frame.' }),
+  Z: Object.freeze({ field: 'z', label: 'z (m)', title: 'Height in metres, world frame.' }),
+  YAW: Object.freeze({ field: 'yaw°', label: 'rotation (°)', title: 'Heading in degrees: 0° along x, 90° along y.' }),
 });
 
 /**

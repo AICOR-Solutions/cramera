@@ -29,11 +29,6 @@ import { SceneAxes } from './scene-axes.js';
 export const MarkerKind = Object.freeze({ ROBOT: 'robot', OBJECT: 'object', TARGET: 'target' });
 
 /**
- * What the handles change.
- */
-export const TransformMode = Object.freeze({ MOVE: 'translate', TURN: 'rotate' });
-
-/**
  * What separates the namespaces of a live joint's prefixed name from the joint's name.
  */
 const JOINT_NAMESPACE_SEPARATOR = '/';
@@ -458,8 +453,10 @@ export class SceneOverlay {
    *   free-place marker, by its selection's key; null while it is not known.
    * @param {Object|null} perception The `PerceptionReport` whose box, validated spot
    *   and reported objects are drawn, or null for none.
+   * @param {Set<string>} fixed The selection keys of the markers that cannot be moved
+   *   or turned, such as the real robot's.
    */
-  constructor(zones = [], reachable = new Map(), perception = null) {
+  constructor(zones = [], reachable = new Map(), perception = null, fixed = new Set()) {
     /**
      * The zones' corners in world coordinates.
      * @type {Array<{identifier: string, label: string, corners: Array<Array<number>>}>}
@@ -475,6 +472,11 @@ export class SceneOverlay {
      * @type {Object|null}
      */
     this.perception = perception;
+    /**
+     * The selection keys of the markers that cannot be moved or turned.
+     * @type {Set<string>}
+     */
+    this.fixed = fixed;
   }
 }
 
@@ -603,10 +605,10 @@ export class PlanScene {
   #selection = null;
 
   /**
-   * What the handles change.
-   * @type {string}
+   * The selection keys of the markers that cannot be moved or turned.
+   * @type {Set<string>}
    */
-  #mode = TransformMode.MOVE;
+  #fixed = new Set();
 
   /**
    * Where the pointer was pressed, or null.
@@ -705,6 +707,7 @@ export class PlanScene {
     const postures = live.postures ?? new Map();
     const colors = live.colors ?? new Map();
     const stale = live.stale ?? new Set();
+    this.#fixed = overlay.fixed;
     this.#showZones(overlay.zones);
     this.#showPerception(overlay.perception);
     const wanted = new Map();
@@ -774,20 +777,12 @@ export class PlanScene {
   select(selection) {
     this.#selection = selection;
     const marker = selection && this.#byKey.get(selection.key);
-    if (!marker) {
+    if (!marker || this.#fixed.has(selection.key)) {
       this.#handles.detach();
       this.#view.requestRender();
       return;
     }
     if (this.#handles.object !== marker) this.#handles.attach(marker);
-    this.#applyMode();
-  }
-
-  /**
-   * @param {string} mode A `TransformMode` value.
-   */
-  setMode(mode) {
-    this.#mode = mode;
     this.#applyMode();
   }
 
@@ -1056,15 +1051,14 @@ export class PlanScene {
   // %% handles
 
   /**
-   * Let the handles move or turn the selection; robots stay on the floor, and every
-   * marker turns about the vertical only.
+   * Let the handles turn the selection about the vertical; dragging the marker itself
+   * moves it.
    */
   #applyMode() {
-    const grounded = this.#handles.object?.userData.grounded ?? true;
-    this.#handles.setMode(this.#mode);
-    this.#handles.showX = this.#mode === TransformMode.MOVE;
-    this.#handles.showY = this.#mode === TransformMode.MOVE;
-    this.#handles.showZ = this.#mode === TransformMode.TURN || !grounded;
+    this.#handles.setMode('rotate');
+    this.#handles.showX = false;
+    this.#handles.showY = false;
+    this.#handles.showZ = true;
     this.#view.requestRender();
   }
 
@@ -1212,7 +1206,7 @@ export class PlanScene {
     }
     // picking it may have shown the plan again, with a new marker for it
     const marker = this.#byKey.get(selection.key);
-    if (!marker) return;
+    if (!marker || this.#fixed.has(selection.key)) return;
     const height = marker.position.z;
     const grip = this.#planePoint(event, height);
     if (!grip) return;
