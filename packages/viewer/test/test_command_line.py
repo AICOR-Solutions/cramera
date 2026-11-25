@@ -70,6 +70,32 @@ def test_the_configuration_reads_every_option(locations, tmp_path):
     assert configuration.port == 9000 and not configuration.open_browser
 
 
+class FixedUrlServer:
+    """
+    Stands in for a started server, answering its base URL.
+    """
+
+    def url(self) -> str:
+        return "http://127.0.0.1:8711"
+
+
+def test_a_scene_name_opens_the_browser_on_that_scene(locations):
+    configuration = ViewerConfiguration.from_arguments(
+        ["tracy shape", Option.NO_BROWSER], locations
+    )
+    assert configuration.opened_scene == "tracy shape"
+    assert (
+        configuration.page_url(FixedUrlServer())
+        == "http://127.0.0.1:8711/?scene=tracy+shape"
+    )
+
+
+def test_without_a_scene_name_the_browser_opens_the_first_page(locations):
+    configuration = ViewerConfiguration.from_arguments([], locations)
+    assert configuration.opened_scene is None
+    assert configuration.page_url(FixedUrlServer()) == "http://127.0.0.1:8711"
+
+
 def test_the_lan_option_listens_on_every_address(locations):
     configuration = ViewerConfiguration.from_arguments([Option.LAN], locations)
     assert configuration.host == EVERY_ADDRESS

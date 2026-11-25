@@ -21,6 +21,13 @@ question answers at once. Then it opens the browser on the Tracy episode. Choose
 **Paused World** in the drop-down next to **Ask** and write queries. Ctrl+C in the
 terminal stops the viewer.
 
+A scene's name after `cramera` opens the browser on it, so with the demo scenes set this
+starts the viewer on the Tracy episode:
+
+```bash
+CRAMERA_SCENES=~/Projects/cramera/demo cramera tracy_shape_sorting
+```
+
 ## 1. Check out the two branches
 
 The viewer comes from this repository. The query language comes from the CRAM

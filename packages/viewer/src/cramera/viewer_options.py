@@ -33,6 +33,12 @@ class Option(StrEnum):
     The command's options.
     """
 
+    SCENE = "scene"
+    """
+    The scene the browser opens on, by its bundle name; the first page of the viewer
+    when left out.
+    """
+
     HOST = "--host"
     """
     The address to listen on.
