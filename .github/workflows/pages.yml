@@ -7,7 +7,6 @@
 # The questions plugin's browser module is included without krrood and cramera-bridge: on
 # the static site it shows the answers recorded in each bundle's recorded_answers.json,
 # which cramera-bridge's cramera-record-answers writes in a CRAM workspace.
-# The Shared Sim tab embeds the Robot Lobby that https://yxzhan.github.io/robot-lobby/ publishes.
 name: Publish the demo site
 
 on:
