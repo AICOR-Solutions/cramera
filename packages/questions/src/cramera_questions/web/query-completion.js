@@ -26,7 +26,7 @@ const KIND_BADGE = Object.freeze({ variable: 'var', factory: 'fn', entity_type: 
  */
 const WORD_BEFORE_CURSOR = /([A-Za-z_][\w]*)?$/;
 const MEMBER_BEFORE_CURSOR = /([A-Za-z_][\w]*)\.([A-Za-z_]\w*)?$/;
-const PATTERN_FIELD_BEFORE_CURSOR = /\b(?:a|an|the|every_is|none_is|entity|variable)\(\s*([A-Z]\w*)\s*\)\(\s*(?:[\w]+\s*=\s*[^,()]*(?:\([^()]*\))*[^,()]*,\s*)*([A-Za-z_]\w*)?$/;
+const PATTERN_FIELD_BEFORE_CURSOR = /\b(?:a|an|the|every_is|none_is|entity|variable)\(\s*([A-Z]\w*)\s*\)\(\s*(?:\w+\s*=\s*(?:[^,()]|\([^()]*\))*,\s*)*([A-Za-z_]\w*)?$/;
 
 export class QueryCompletion {
   /**

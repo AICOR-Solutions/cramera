@@ -29,6 +29,14 @@ class HighlightKeys(ABC):
         :return: The viewer keys it lights up; empty when it names nothing shown.
         """
 
+    def lights_itself_alone(self, value: Any) -> bool:
+        """
+        :param value: An entity an answer row stands for.
+        :return: Whether its row lights up the entity's own keys only, not what its
+            fields name.
+        """
+        return False
+
 
 @dataclass(frozen=True)
 class EntityNameKeys(HighlightKeys):

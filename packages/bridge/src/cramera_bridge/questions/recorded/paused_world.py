@@ -19,6 +19,7 @@ from typing_extensions import Any, Callable, Dict, List, Optional
 from cramera.scenes import SceneCatalog
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.questions.desk import QuestionDesk
+from cramera_bridge.questions.exceptions import UnknownScope
 from cramera_bridge.questions.highlights import HighlightKeys
 from cramera_bridge.questions.knowledge import QueryDomain
 from cramera_bridge.questions.recorded.entities import (
@@ -71,6 +72,11 @@ The title of the desk answering questions about a paused recording.
 NAME_SEPARATOR = "/"
 """
 What separates a robot's prefix from the names of its links in a bundle's URDF.
+"""
+
+PAUSED_WORLDS: List[World] = []
+"""
+Every paused world built in this process, whose entities the symbol graph keeps.
 """
 
 
@@ -156,6 +162,8 @@ class RecordedRobotDescription:
         )
         text = world_root_joints.sub("", text)
         text = re.sub(r'<link name="world_root"\s*/>', "", text)
+        if not self.prefix:
+            return text
         return text.replace(f'"{self.prefix}{NAME_SEPARATOR}', '"')
 
     def parser(self) -> URDFParser:
@@ -248,7 +256,8 @@ class PausedWorld:
             for body in world.bodies
             if body.name.name == description.key
         }
-        cls.forget_other_worlds(world)
+        PAUSED_WORLDS.append(world)
+        cls.forget_other_worlds()
         paused = cls(world=world, trajectory=trajectory, objects=objects)
         pieces = PieceAnnotations(world, scene).annotate(objects)
         paused.episode = PausedEpisode.of_run(
@@ -277,20 +286,19 @@ class PausedWorld:
         )
 
     @staticmethod
-    def forget_other_worlds(world: World) -> None:
+    def forget_other_worlds() -> None:
         """
-        Drop from the symbol graph the world entities of worlds other than this one,
-        such as the robot's parsed description merged into it, so a class written
-        without a domain ranges over this world's entities only, once each.
-
-        :param world: The world questions are asked about.
+        Drop from the symbol graph the world entities of worlds other than the paused
+        worlds, such as the robot's parsed description merged into one, so a class
+        written without a domain ranges over paused worlds' entities only, once each.
         """
         gc.collect()
+        kept = {id(paused) for paused in PAUSED_WORLDS}
         graph = SymbolGraph()
         graph.remove_dead_instances()
         for wrapped in list(graph.wrapped_instances):
             instance = wrapped.instance
-            if isinstance(instance, WorldEntity) and instance._world is not world:
+            if isinstance(instance, WorldEntity) and id(instance._world) not in kept:
                 graph.remove_node(wrapped_instance=wrapped)
 
     @property
@@ -312,6 +320,8 @@ class PausedWorld:
         if frame == self.frame:
             return
         joint_values = self.trajectory.frames[frame]
+        if frame < len(self.trajectory.base):
+            self.move_robot_base(PoseText(self.trajectory.base[frame]))
         for connection in self.world.connections:
             if not isinstance(connection, ActiveConnection1DOF):
                 continue
@@ -328,6 +338,17 @@ class PausedWorld:
                         self.world.root
                     )
         self.frame = frame
+
+    def move_robot_base(self, pose: PoseText) -> None:
+        """
+        Place the robot's root where the recording has it.
+
+        :param pose: The root's recorded pose.
+        """
+        for robot in self.world.get_semantic_annotations_by_type(AbstractRobot):
+            connection = robot.root.parent_connection
+            if isinstance(connection, Connection6DoF):
+                connection.origin = pose.native(self.world.root)
 
     def shown_frame(self) -> int:
         """
@@ -360,8 +381,13 @@ class PausedWorldHighlightKeys(HighlightKeys):
         if isinstance(value, RecordedStep) and value.picks is not None:
             return [value.picks.key]
         if isinstance(value, SemanticAnnotation):
-            return [key for body in self.own_bodies(value) for key in self.keys_of(body)]
+            return [
+                key for body in self.own_bodies(value) for key in self.keys_of(body)
+            ]
         return []
+
+    def lights_itself_alone(self, value: Any) -> bool:
+        return bool(self.keys_of(value))
 
     @staticmethod
     def own_bodies(annotation: SemanticAnnotation) -> List[Body]:
@@ -380,7 +406,9 @@ class PausedWorldHighlightKeys(HighlightKeys):
                 AbstractRobot
             )
         }
-        chain_root = getattr(annotation, "root", None) if hasattr(annotation, "tip") else None
+        chain_root = (
+            getattr(annotation, "root", None) if hasattr(annotation, "tip") else None
+        )
         if chain_root is not None:
             robot_roots.add(chain_root.id)
         own = [body for body in bodies if body.id not in robot_roots]
@@ -468,7 +496,9 @@ class PausedWorldDesk:
                 EpisodeVariable.HOLDING_NOW, Holding, HoldingsUnderWay(episode, frame)
             ),
             QueryDomain(
-                EpisodeVariable.HELD_PIECE, ShapeSortingPiece, PiecesHeld(episode, frame)
+                EpisodeVariable.HELD_PIECE,
+                ShapeSortingPiece,
+                PiecesHeld(episode, frame),
             ),
         ]
 
@@ -588,10 +618,13 @@ class PausedWorldDesks:
         with self.lock:
             desk = self.built.get(scene)
             if desk is None:
+                robot_type = self.robot_class_of(scene)
+                if robot_type is None:
+                    raise UnknownScope(scope=QueryScope.PAUSED_WORLD, offered=[])
                 paused = PausedWorld.of_scene(
                     self.catalog,
                     scene,
-                    self.robot_class_of(scene),
+                    robot_type,
                     self.recorded_of(scene),
                 )
                 desk = PausedWorldDesk(paused=paused, class_index=self.class_index)

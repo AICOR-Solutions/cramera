@@ -166,7 +166,12 @@ class PausedEpisode:
         steps = {step.name: step for step in recorded.steps}
         for segment in recorded.bundle.scene.segments:
             piece = pieces.get(segment.picks) if segment.picks else None
-            if piece is None or segment.attach is None or segment.detach is None:
+            if (
+                piece is None
+                or not grippers
+                or segment.attach is None
+                or segment.detach is None
+            ):
                 continue
             show_frame((segment.attach + segment.detach) // 2)
             episode.holdings.append(
@@ -195,8 +200,7 @@ class PausedEpisode:
             grippers,
             key=lambda gripper: float(
                 np.linalg.norm(
-                    gripper.tool_frame.global_pose.position.to_np()[:3]
-                    - piece_position
+                    gripper.tool_frame.global_pose.position.to_np()[:3] - piece_position
                 )
             ),
         )
@@ -244,9 +248,7 @@ class HoldingsUnderWay:
 
     def __iter__(self) -> Iterator[Holding]:
         frame = self.frame()
-        return (
-            holding for holding in self.episode.holdings if holding.holds_at(frame)
-        )
+        return (holding for holding in self.episode.holdings if holding.holds_at(frame))
 
 
 @dataclass(frozen=True)
