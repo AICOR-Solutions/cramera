@@ -52,5 +52,8 @@ def test_a_class_of_a_documented_package_links_to_its_page():
 
 def test_a_class_of_any_other_package_has_no_link():
     assert (
-        PublishedDocumentation().resolve(reference=SourceReference(owner_type=ShelfItem)) is None
+        PublishedDocumentation().resolve(
+            reference=SourceReference(owner_type=ShelfItem)
+        )
+        is None
     )

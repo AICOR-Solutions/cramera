@@ -164,9 +164,9 @@ class PlanPerformance:
         """
         executor = self.executor(context, extensions)
         statechart = Statechart(context=executor.context)
-        statechart.add_node(plan)
+        statechart.add_node(node=plan)
         try:
-            executor.compile(statechart)
+            executor.compile(statechart=statechart)
             executor.execute()
         finally:
             executor.close()

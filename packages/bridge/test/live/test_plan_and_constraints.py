@@ -33,6 +33,7 @@ from coraplex.robot_plans.actions.core.robot_body import ParkArmsAction
 from cramph.data_types import LifeCycleValue, ObservationStateValue
 from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPose
 from krrood.entity_query_language.factories import a, variable
+from semantic_digital_twin.world_description.kinematic_chain import KinematicChain
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from krrood_spatial_math.spatial_types import Pose
 from cramera.http.messages import HttpMethod
@@ -99,8 +100,7 @@ def reaching_the_milk(kitchen) -> CartesianPose:
     :return: A motion moving the milk to a pose above the table.
     """
     return CartesianPose(
-        root_link=kitchen.root,
-        tip_link=kitchen.milk,
+        kinematic_chain=KinematicChain(root=kitchen.root, tip=kitchen.milk),
         goal_pose=Pose.from_xyz_rpy(1.0, 0.0, 0.9, reference_frame=kitchen.root),
     )
 

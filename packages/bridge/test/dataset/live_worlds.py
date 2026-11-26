@@ -5,6 +5,8 @@ CRAM classes and plain message stand-ins.
 
 from __future__ import annotations
 
+from semantic_digital_twin.world_description.kinematic_chain import KinematicChain
+
 from dataclasses import dataclass, field
 
 from typing_extensions import List, Optional
@@ -102,11 +104,13 @@ class SmallPlan:
         :param context: The world and the robot that performs the plan.
         :return: The plan, its action expanded; no node has run.
         """
-        executor = KinematicallySimulatedPlanExecutor(context.take_statechart_context())
+        executor = KinematicallySimulatedPlanExecutor(
+            context=context.take_statechart_context()
+        )
         root = Sequence(nodes=[action])
         statechart = Statechart(context=executor.context)
-        statechart.add_node(root)
-        executor.prepare(statechart)
+        statechart.add_node(node=root)
+        executor.prepare(statechart=statechart)
         return cls(
             executor=executor, root=root, action=action, motion=action.children[0]
         )
@@ -156,8 +160,8 @@ class HeightChart:
         """
         executor = StatechartExecutor(
             context=StatechartContext.with_extensions(
-                world,
-                [
+                world=world,
+                extensions=[
                     MotionControlContext(
                         qp_controller_config=QPControllerConfig.create_with_simulation_defaults()
                     )
@@ -166,16 +170,15 @@ class HeightChart:
         )
         chart = Statechart(context=executor.context)
         chart.add_node(
-            HeightMonitor(
-                root_link=world.root,
-                tip_link=body,
+            node=HeightMonitor(
+                kinematic_chain=KinematicChain(root=world.root, tip=body),
                 reference_point=Point3(0, 0, 0, reference_frame=world.root),
                 tip_point=Point3(0, 0, 0, reference_frame=body),
                 lower_limit=0.5,
                 upper_limit=2.0,
             )
         )
-        executor.compile(chart)
+        executor.compile(statechart=chart)
         return cls(chart=chart, executor=executor)
 
 

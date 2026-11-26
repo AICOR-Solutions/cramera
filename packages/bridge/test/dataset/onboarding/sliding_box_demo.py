@@ -175,14 +175,14 @@ def main() -> None:
     executor = KinematicallySimulatedPlanExecutor(StatechartContext(world=scene.world))
     statechart = Statechart(context=executor.context)
     statechart.add_node(
-        Sequence(
+        node=Sequence(
             nodes=[
                 BoxLowering(name=f"lower to {height}", scene=scene, height=height)
                 for height in BOX_HEIGHTS
             ]
         )
     )
-    executor.compile(statechart)
+    executor.compile(statechart=statechart)
     if FAILURE_ARGUMENT in sys.argv[1:]:
         sys.exit(FAILURE_STATUS)
     executor.execute()
