@@ -44,7 +44,7 @@ from cramph.node import StatechartNode
 from krrood.entity_query_language.factories import entity, the, variable
 from semantic_digital_twin.reasoning.world_reasoner import WorldReasoner
 from semantic_digital_twin.robots.garmi import Garmi
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Bowl, Spoon
 from semantic_digital_twin.specifications.connections import (
     Connection6DoFSpecification,
@@ -385,7 +385,7 @@ class GarmiApartmentDemo(RobotTaskDemo):
         )
 
     def transport(
-        self, graspable: HasGraspCandidates, context: TaskContext
+        self, graspable: IsGraspable, context: TaskContext
     ) -> TransportAction:
         """
         :param graspable: The object to carry.

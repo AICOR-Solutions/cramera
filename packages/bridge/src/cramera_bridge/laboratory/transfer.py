@@ -23,7 +23,7 @@ from coraplex.plans.plan import Plan
 from coraplex.plans.plan_node import MotionNode
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from giskardpy.motion_statechart.data_types import LifeCycleValue
 from krrood.entity_query_language.factories import an, entity, the, variable
 from semantic_digital_twin.callbacks.callback import StateChangeCallback
 from semantic_digital_twin.specifications.robots import RobotSpecification
@@ -498,7 +498,7 @@ class VesselTransferDemo(VesselTaskDemo):
         if (
             len(nodes) != 2 * SINGLE_ACTION
             or any(not action for action in motions)
-            or any(status is not LifeCycleValues.SUCCEEDED for status in statuses)
+            or any(status is not LifeCycleValue.SUCCEEDED for status in statuses)
         ):
             raise TaskFailed(
                 TransferFailure.ACTIONS.value.format(

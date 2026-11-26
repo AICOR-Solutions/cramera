@@ -15,7 +15,7 @@ from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from cramera_bridge.performing import TaskContext
 from cramph.composites import Sequence
 from cramph.context import StatechartContext
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.executor import StatechartExecutor
 from cramph.monitors import CountTicks
 from cramph.node import StatechartNode
@@ -88,7 +88,7 @@ class SmallPlan:
         """
         return [self.root, self.action, self.motion]
 
-    def set(self, node: StatechartNode, life_cycle: LifeCycleValues) -> None:
+    def set(self, node: StatechartNode, life_cycle: LifeCycleValue) -> None:
         """
         :param node: A node of the plan.
         :param life_cycle: The life cycle state it is in from now on.

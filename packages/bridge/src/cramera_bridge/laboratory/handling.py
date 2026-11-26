@@ -26,7 +26,7 @@ from semantic_digital_twin.datastructures.definitions import (
     TorsoState,
 )
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.robots.pr2 import PR2
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Container
 from krrood_spatial_math.spatial_types import Pose, Quaternion
@@ -338,7 +338,7 @@ class VesselTaskDemo(RobotTaskDemo, ABC):
 
     @staticmethod
     def grasp_at(
-        context: Context, graspable: HasGraspCandidates, tool_pose: Pose
+        context: Context, graspable: IsGraspable, tool_pose: Pose
     ) -> GraspCandidate:
         """
         :param context: The world and the robot.

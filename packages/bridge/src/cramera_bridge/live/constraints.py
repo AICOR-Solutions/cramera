@@ -26,7 +26,7 @@ from cramera_protocol.live_messages import (
     MonitorParameterKey,
 )
 from cramph.context import StatechartContext
-from cramph.data_types import ObservationStateValues
+from cramph.data_types import ObservationStateValue
 from cramph.executor import StatechartExecutor
 from cramph.statechart import Statechart
 from giskardpy.motion_statechart.context import MotionControlContext
@@ -279,8 +279,8 @@ class AttachedConstraint:
         """
         executor = StatechartExecutor(
             context=StatechartContext.with_extensions(
-                world,
-                [
+                world=world,
+                extensions=[
                     MotionControlContext(
                         qp_controller_config=QPControllerConfig.create_with_simulation_defaults()
                     )
@@ -306,7 +306,7 @@ class AttachedConstraint:
         observation = None
         if self.executor is not None:
             moment = self.executor.statechart.state_history.latest_item
-            observation = ObservationStateValues(
+            observation = ObservationStateValue(
                 float(moment.observation_state[self.monitor])
             ).name
         return ConstraintObservation(

@@ -21,7 +21,7 @@ from cramera_bridge.laboratory.grasping import (
 from cramera_bridge.laboratory.transfer import VesselTransferDemo
 from cramera_bridge.exceptions import TaskFailed
 from krrood_spatial_math.spatial_types import Pose
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from giskardpy.motion_statechart.data_types import LifeCycleValue
 
 
 @pytest.fixture(scope="module")
@@ -125,9 +125,7 @@ def test_an_unexecuted_plan_is_not_accepted(transfer_plan):
         demo.require_success(demo.observation.context)
 
 
-@pytest.mark.parametrize(
-    "status", [LifeCycleValues.NOT_STARTED, LifeCycleValues.FAILED]
-)
+@pytest.mark.parametrize("status", [LifeCycleValue.NOT_STARTED, LifeCycleValue.FAILED])
 def test_one_unfinished_motion_refuses_action_success(
     transfer_plan, monkeypatch, status
 ):
@@ -135,7 +133,7 @@ def test_one_unfinished_motion_refuses_action_success(
     motions = [node for node in plan.nodes if isinstance(node, MotionNode)]
     assert motions
     for motion in motions:
-        monkeypatch.setattr(motion, "status", LifeCycleValues.SUCCEEDED)
+        monkeypatch.setattr(motion, "status", LifeCycleValue.SUCCEEDED)
     demo.require_success(demo.observation.context)
     monkeypatch.setattr(motions[-1], "status", status)
     with pytest.raises(TaskFailed):

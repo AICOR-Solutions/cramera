@@ -66,7 +66,7 @@ from semantic_digital_twin.datastructures.robots.gripper_configuration import (
 )
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.robot_parts import AbstractRobotPart, EndEffector
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -103,7 +103,7 @@ ARM_ENUMERATION = Arms
 The enumeration a field taking a robot's arms offers its choices from.
 """
 
-PLAN_OBJECT_TYPES = (GraspCandidate, HasGraspCandidates)
+PLAN_OBJECT_TYPES = (GraspCandidate, IsGraspable)
 """
 The field types an object the plan places is given as: the object itself, which is
 graspable, or the grasp of it closest to the robot.

@@ -21,7 +21,7 @@ from semantic_digital_twin.adapters.package_resolver import (
     SearchPathFileResolver,
 )
 from semantic_digital_twin.adapters.urdf import URDFParser
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.specifications.connections import (
     Connection6DoFSpecification,
 )
@@ -63,7 +63,7 @@ class EmptyFloor(SceneEnvironment):
 
 
 @dataclass(eq=False)
-class PlannedGraspable(HasGraspCandidates):
+class PlannedGraspable(IsGraspable):
     """
     A free object of a plan, which coraplex's actions take hold of and put down: grasped
     around its own origin, as nothing more is known of its shape.

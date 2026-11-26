@@ -13,7 +13,7 @@ from uuid import UUID
 
 from cramera_bridge.robots import RobotRoster
 from semantic_digital_twin.semantic_annotations.mixins import (
-    HasGraspCandidates,
+    IsGraspable,
     HasMovableJoint,
 )
 from semantic_digital_twin.semantic_annotations.semantic_annotations import (
@@ -27,7 +27,7 @@ from semantic_digital_twin.world_description.world_entity import Body
 if TYPE_CHECKING:
     from semantic_digital_twin.world import World
 
-MANIPULABLE_KINDS = (HasGraspCandidates,)
+MANIPULABLE_KINDS = (IsGraspable,)
 """
 The semantic annotations of things a robot takes hold of: food, tableware, tools and
 whatever else offers grasps.

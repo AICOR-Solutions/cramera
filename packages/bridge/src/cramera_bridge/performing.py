@@ -83,9 +83,9 @@ class TaskContext:
         """
         if self.next_context is None:
             self.next_context = StatechartContext.with_extensions(
-                self.world,
-                [
-                    RobotAccess(self.robot),
+                world=self.world,
+                extensions=[
+                    RobotAccess(robot=self.robot),
                     StatementGrounding(
                         query_backend=self.query_backend,
                         sampling_seed=self.sampling_seed,

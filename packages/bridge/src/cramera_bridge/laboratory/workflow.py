@@ -29,7 +29,7 @@ from coraplex.robot_plans.motions.gripper import (
     MoveGripperMotion,
     MoveToolCenterPointMotion,
 )
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from giskardpy.motion_statechart.data_types import LifeCycleValue
 from semantic_digital_twin.callbacks.callback import StateChangeCallback
 from semantic_digital_twin.collision_checking.collision_rules import (
     AvoidCollisionBetweenGroups,
@@ -1388,7 +1388,7 @@ class LaboratoryWorkflowDemo(VesselTaskDemo):
         motions = [node for node in self.plan.nodes if isinstance(node, MotionNode)]
         statuses = [motion.status for motion in motions]
         if not motions or any(
-            status is not LifeCycleValues.SUCCEEDED for status in statuses
+            status is not LifeCycleValue.SUCCEEDED for status in statuses
         ):
             raise TaskFailed(
                 WorkflowFailure.MOTIONS.value.format(

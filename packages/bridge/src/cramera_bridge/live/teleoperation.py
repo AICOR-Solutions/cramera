@@ -24,8 +24,8 @@ from cramera_bridge.live.activity import SimulationActivity
 from cramera_bridge.robots import RobotParts
 from cramera_protocol.live_messages import TeleoperationRequest
 from semantic_digital_twin.datastructures.definitions import GripperState
-from semantic_digital_twin.spatial_computations.ik_solver import IKSolverException
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
+from semantic_digital_twin.world import World as SemanticWorld
 
 if TYPE_CHECKING:
     from semantic_digital_twin.robots.robot_parts import AbstractRobot, Arm
@@ -47,6 +47,12 @@ WORKSPACE_HALF_EXTENT_METRES = 0.2
 How far a target may lie from where the tool frame stood when hand control started,
 along each axis of the arm's root frame; the request's coordinates from -1 to 1 span
 this box.
+"""
+
+SOLVES_INVERSE_KINEMATICS = hasattr(SemanticWorld, "compute_inverse_kinematics")
+"""
+Whether the CRAM workspace's worlds solve inverse kinematics, which hand control needs;
+CRAM removed the solver after 26.10.
 """
 
 INVERSE_KINEMATICS_ITERATIONS = 60
@@ -141,17 +147,14 @@ class ServoedArm:
         target = HomogeneousTransformationMatrix.from_xyz_quaternion(
             *stepped, *self.orientation, reference_frame=self.arm.root
         )
-        # an unreachable step is an expected outcome of hand control, which the solver
-        # reports only by raising; the arm then keeps its pose for this tick
-        try:
-            solution = self.world.compute_inverse_kinematics(
-                self.arm.root,
-                self.arm.end_effector.tool_frame,
-                target,
-                max_iterations=INVERSE_KINEMATICS_ITERATIONS,
-            )
-        except IKSolverException:
+        if not SOLVES_INVERSE_KINEMATICS:
             return False
+        solution = self.world.compute_inverse_kinematics(
+            self.arm.root,
+            self.arm.end_effector.tool_frame,
+            target,
+            max_iterations=INVERSE_KINEMATICS_ITERATIONS,
+        )
         for degree_of_freedom, value in solution.items():
             self.world.state[degree_of_freedom.id].position = value
         return True
