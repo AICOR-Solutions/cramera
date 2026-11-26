@@ -28,6 +28,31 @@ starts the viewer on the Tracy episode:
 CRAMERA_SCENES=~/Projects/cramera/demo cramera tracy_shape_sorting
 ```
 
+## Asking the running program
+
+A recording is a replay: its Paused World is a CRAM world rebuilt from the recorded
+poses. To ask the real program instead, with its semantic digital twin, MuJoCo and
+giskard running, run a demo live and let the viewer follow it:
+
+```bash
+CRAMERA_SCENES=~/Projects/cramera/demo cramera --live
+```
+
+`--live` opens the browser following the live publisher on this machine, the one
+`cramera-live demo.py` starts. While the viewer shows that run, the EQL panel sends
+every query, hint and plain-language question to the publisher, which answers from the
+running process's own world, held still while the query is answered. The line under
+the query box says so, and the ready-made questions that need a live run are offered.
+Try, while Tracy lifts a piece:
+
+```python
+piece = a(Body).from_(domain=scene_object)
+piece.where(piece.global_pose.z > 0.92)
+```
+
+Hints after a dot follow the whole path, as in `body.global_pose.position.`, a pattern,
+as in `a(Arm).end_effector.`, and a variable the query assigns, as in `piece.`.
+
 ## 1. Check out the two branches
 
 The viewer comes from this repository. The query language comes from the CRAM

@@ -8,8 +8,10 @@ import { QuerySlot } from 'cramera-viewer/panels/query-slot.js';
 import {
   AnswerColumn,
   BundleFile,
+  Capability,
   GraphViewKey,
   GraphViewName,
+  LiveRoute,
   PluginName,
   PresetCatalogKey,
   PresetKey,
@@ -35,8 +37,10 @@ import { FakeDocument } from 'cramera-testing/fake-document.mjs';
 import { AnswerView } from '../../src/cramera_questions/web/answer-view.js';
 import { VIEW_TITLES } from '../../src/cramera_questions/web/graph-panel.js';
 import { graphPanelOf, register } from '../../src/cramera_questions/web/index.js';
+import { LiveQuestionsClient } from '../../src/cramera_questions/web/live-questions-client.js';
 import { QuestionsClient } from '../../src/cramera_questions/web/questions-client.js';
-import { Hint, QuestionsPanel, Status } from '../../src/cramera_questions/web/questions-panel.js';
+import { QueryCompletion } from '../../src/cramera_questions/web/query-completion.js';
+import { Hint, QuestionsPanel, RUNNING_MOMENT, Status } from '../../src/cramera_questions/web/questions-panel.js';
 import { AnswerSources, NotRecorded, RecordedAnswersClient, SceneSource } from '../../src/cramera_questions/web/recorded-answers.js';
 
 const BASE = 'https://sunava.github.io/cramera/';
@@ -338,4 +342,113 @@ test('on a static site registering reads the recorded answers and asks no route'
   assert.ok(requested.length > 0);
   assert.ok(requested.every((url) => url.endsWith(RECORDED_PATH)));
   assert.match(panel.status.textContent, /recorded answers/);
+});
+
+// %% the running process
+
+/**
+ * @returns {{publisher: Object, calls: Array}} A live publisher's routes answering from
+ *   fixed documents, recording each read and change.
+ */
+function fakePublisher() {
+  const calls = [];
+  return {
+    calls,
+    publisher: {
+      read: async (route) => {
+        calls.push(['read', route]);
+        if (route === LiveRoute.PRESETS) return CATALOG;
+        return { entries: [{ name: 'body' }], members: [{ name: 'global_pose' }] };
+      },
+      send: async (route, body) => { calls.push(['send', route, body]); return ANSWER; },
+    },
+  };
+}
+
+/**
+ * @param {Object} publisher The publisher's routes.
+ * @param {string|null} scene The bundle the publisher's world is shown as.
+ * @param {Array<string>} capabilities What the publisher offers.
+ * @returns {Object} A live session as the plugin sees it.
+ */
+function sessionOf(publisher, scene, capabilities = [Capability.QUESTIONS]) {
+  return { client: publisher, scene, offers: (capability) => capabilities.includes(capability) };
+}
+
+test('the running process answers the questions of the scene its world is shown as', async () => {
+  const recorded = new RecordedAnswersClient(new ViewerApi(filesFetch({ [RECORDED_PATH]: RECORDED }), BASE));
+  const served = { presets: async () => CATALOG, readOnly: false };
+  const { publisher } = fakePublisher();
+  const live = await new AnswerSources(served, recorded, () => sessionOf(publisher, 'live run')).forScene('live run');
+  assert.ok(live.client instanceof LiveQuestionsClient);
+  assert.equal(live.recordedAt, null);
+  assert.deepEqual(live.catalog, CATALOG);
+  const other = await new AnswerSources(served, recorded, () => sessionOf(publisher, 'live run')).forScene('cell');
+  assert.equal(other.client, served);
+  const silent = await new AnswerSources(served, recorded, () => sessionOf(publisher, 'live run', [])).forScene('live run');
+  assert.equal(silent.client, served);
+});
+
+test('a running process that cannot list its questions leaves them to the routes', async () => {
+  const recorded = new RecordedAnswersClient(new ViewerApi(filesFetch({}), BASE));
+  const served = { presets: async () => CATALOG, readOnly: false };
+  const failing = { read: async () => { throw new Error('503'); }, send: async () => ANSWER };
+  const source = await new AnswerSources(served, recorded, () => sessionOf(failing, 'live run')).forScene('live run');
+  assert.equal(source.client, served);
+});
+
+test('the live client asks the publisher\'s own routes, and draws graphs from the bundle', async () => {
+  const { publisher, calls } = fakePublisher();
+  const graphs = { graph: async (scene, view) => ({ [GraphViewKey.VIEW]: view, scene }) };
+  const client = new LiveQuestionsClient(publisher, graphs);
+  assert.equal(client.readOnly, false);
+  assert.equal(client.live, true);
+  assert.deepEqual(await client.query('live run', 'an(entity(body))', QueryScope.CURRENT_STATE), ANSWER);
+  await client.question('live run', 'which bodies?');
+  assert.deepEqual(await client.vocabulary('live run', QueryScope.CURRENT_STATE), [{ name: 'body' }]);
+  assert.deepEqual(await client.members('live run', QueryScope.CURRENT_STATE, 'body'), [{ name: 'global_pose' }]);
+  assert.deepEqual(calls, [
+    ['send', LiveRoute.QUERY, { [QueryRequestKey.SCENE]: 'live run', [QueryRequestKey.CODE]: 'an(entity(body))', [QueryRequestKey.SCOPE]: QueryScope.CURRENT_STATE }],
+    ['send', LiveRoute.QUESTION, { [QuestionRequestKey.SCENE]: 'live run', [QuestionRequestKey.TEXT]: 'which bodies?' }],
+    ['read', `${LiveRoute.VOCABULARY}?${QuestionsParameter.SCOPE}=${QueryScope.CURRENT_STATE}`],
+    ['read', `${LiveRoute.MEMBERS}?${QuestionsParameter.SCOPE}=${QueryScope.CURRENT_STATE}&${QuestionsParameter.NAME}=body`],
+  ]);
+  assert.equal((await client.graph('live run', GraphViewName.PLAN)).scene, 'live run');
+  await assert.rejects(new LiveQuestionsClient(publisher, null).graph('live run', GraphViewName.PLAN));
+});
+
+test('a panel answered by the running process says so and offers the questions it needs', () => {
+  const { publisher } = fakePublisher();
+  const panel = new QuestionsPanel(new FakeDocument(), new EventBus());
+  panel.showScene('live run', sourceOf(new LiveQuestionsClient(publisher, null)));
+  assert.equal(panel.status.textContent, Status.RUNNING);
+  assert.match(panel.element.innerText, new RegExp(RUNNING_MOMENT));
+  const presets = panel.element.findAll((element) => element.className === 'preset');
+  assert.deepEqual(presets.map((button) => button.textContent), ['which robot is this?', 'what is the robot doing now?']);
+});
+
+// %% member hints
+
+/**
+ * @param {string} query The query, with the cursor at its end.
+ * @returns {Promise<Array<string>>} The paths the hints asked the members of.
+ */
+async function memberPathsAsked(query) {
+  const asked = [];
+  const input = { value: query, selectionStart: query.length, ownerDocument: new FakeDocument(), addEventListener: () => {} };
+  const completion = new QueryCompletion(input, () => {});
+  completion.useSource({ vocabulary: async () => [], members: async (name) => { asked.push(name); return [{ name: 'x', kind: 'field' }]; } });
+  await completion.update();
+  return asked;
+}
+
+test('a hint after a dot follows the path, the pattern and the assignment written before it', async () => {
+  assert.deepEqual(await memberPathsAsked('body.'), ['body']);
+  assert.deepEqual(await memberPathsAsked('body.global_pose.'), ['body.global_pose']);
+  assert.deepEqual(await memberPathsAsked('body.global_pose.position.z'), ['body.global_pose.position']);
+  assert.deepEqual(await memberPathsAsked('a(Arm).end_effector.'), ['Arm.end_effector']);
+  assert.deepEqual(await memberPathsAsked('an(entity(scene_object)).'), ['scene_object']);
+  assert.deepEqual(await memberPathsAsked('piece = a(Body).from_(domain=scene_object)\npiece.where(piece.global_pose.'), ['Body.global_pose']);
+  assert.deepEqual(await memberPathsAsked('arm = an(entity(arm))\ntool = arm.end_effector.tool_frame\ntool.'), ['arm.end_effector.tool_frame']);
+  assert.deepEqual(await memberPathsAsked('loop = loop\nloop.'), ['loop']);
 });

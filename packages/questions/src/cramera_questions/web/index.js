@@ -43,7 +43,7 @@ export function register(context) {
   style.href = STYLE_SHEET;
   document.head.append(style);
   const served = context.info?.[ViewerInfoKey.SERVING] !== Serving.STATIC;
-  const sources = new AnswerSources(served ? new QuestionsClient(context.api) : null, new RecordedAnswersClient(context.api));
+  const sources = new AnswerSources(served ? new QuestionsClient(context.api) : null, new RecordedAnswersClient(context.api), context.live ?? (() => null));
   const panel = new QuestionsPanel(document, context.bus);
   context.query.fill(new SlotPanel(PluginName.QUESTIONS, PANEL_TITLE, panel.element, panel.status));
   const graphs = Object.entries(VIEW_TITLES).map(([view, title]) => {

@@ -28,9 +28,10 @@ from cramera.http.messages import Header, HttpMethod, MediaType, Request, Respon
 from cramera.http.routing import ExactRoute, PrefixRoute, Route
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT, LiveRoute
 from cramera_protocol.live_messages import LiveParameter
+from cramera_protocol.questions import QuestionsParameter
 from cramera_protocol.viewer import ViewerRoute
 
-RELAYED_READS: Mapping[LiveRoute, FrozenSet[LiveParameter]] = {
+RELAYED_READS: Mapping[LiveRoute, FrozenSet[StrEnum]] = {
     LiveRoute.INFO: frozenset(),
     LiveRoute.STATE: frozenset(),
     LiveRoute.PLAN: frozenset(),
@@ -43,6 +44,9 @@ RELAYED_READS: Mapping[LiveRoute, FrozenSet[LiveParameter]] = {
     LiveRoute.PERCEPTION_IMAGE: frozenset({LiveParameter.KEY}),
     LiveRoute.MARKERS: frozenset(),
     LiveRoute.MARKER_TOPICS: frozenset(),
+    LiveRoute.PRESETS: frozenset(),
+    LiveRoute.VOCABULARY: frozenset({QuestionsParameter.SCOPE}),
+    LiveRoute.MEMBERS: frozenset({QuestionsParameter.SCOPE, QuestionsParameter.NAME}),
 }
 """
 The routes the page reads to follow a run, each with the query parameters it takes; no
@@ -72,6 +76,8 @@ RELAYED_CHANGES: Mapping[LiveRoute, ChangeReach] = {
     LiveRoute.RECORDING_DISCARD: ChangeReach.THIS_MACHINE,
     LiveRoute.RESOLUTION_EXECUTION: ChangeReach.THIS_MACHINE,
     LiveRoute.MARKER_TOPICS: ChangeReach.THIS_MACHINE,
+    LiveRoute.QUERY: ChangeReach.THIS_MACHINE,
+    LiveRoute.QUESTION: ChangeReach.THIS_MACHINE,
     LiveRoute.QUERY_STEPS_NEXT: ChangeReach.CONTROLLING_DEVICES,
     LiveRoute.QUERY_STEPS_MODE: ChangeReach.CONTROLLING_DEVICES,
 }

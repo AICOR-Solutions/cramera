@@ -98,6 +98,12 @@ class Option(StrEnum):
     that started it ends.
     """
 
+    LIVE = "--live"
+    """
+    Open the browser following the live publisher on this machine, such as a demo
+    ``cramera-live`` runs, instead of a saved scene.
+    """
+
 
 class Announcement(StrEnum):
     """

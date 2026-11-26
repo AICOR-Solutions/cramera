@@ -96,6 +96,15 @@ def test_without_a_scene_name_the_browser_opens_the_first_page(locations):
     assert configuration.page_url(FixedUrlServer()) == "http://127.0.0.1:8711"
 
 
+def test_the_live_option_opens_the_browser_following_the_live_publisher(locations):
+    configuration = ViewerConfiguration.from_arguments([Option.LIVE], locations)
+    assert configuration.follows_live
+    assert (
+        configuration.page_url(FixedUrlServer())
+        == "http://127.0.0.1:8711/?live=http%3A%2F%2F127.0.0.1%3A8765"
+    )
+
+
 def test_the_lan_option_listens_on_every_address(locations):
     configuration = ViewerConfiguration.from_arguments([Option.LAN], locations)
     assert configuration.host == EVERY_ADDRESS

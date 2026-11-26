@@ -34,10 +34,16 @@ export const Hint = Object.freeze({
 export const PAUSED_WORLD_SCOPE = 'paused_world';
 
 /**
+ * What the panel says of the moment a query about the running process is asked at.
+ */
+export const RUNNING_MOMENT = 'Asked of the running world itself — the program is held still while the query is answered.';
+
+/**
  * What the status in the card's head says.
  */
 export const Status = Object.freeze({
   LIVE: 'EQL ready',
+  RUNNING: 'EQL · running world',
   LOADING: 'loading…',
   UNAVAILABLE: 'EQL unavailable',
 });
@@ -229,9 +235,10 @@ export class QuestionsPanel {
       this.#answer.message(catalog[PresetCatalogKey.ERROR] ?? 'This scene cannot be asked.', true);
       return;
     }
-    this.status.textContent = readOnly ? `recorded answers · ${source.recordedAt ?? ''}`.trim() : Status.LIVE;
+    const running = source.client.live === true;
+    this.status.textContent = readOnly ? `recorded answers · ${source.recordedAt ?? ''}`.trim() : running ? Status.RUNNING : Status.LIVE;
     this.#showScopes(catalog[PresetCatalogKey.SCOPES] ?? []);
-    this.#showPresets(catalog[PresetCatalogKey.PRESETS] ?? [], readOnly);
+    this.#showPresets(catalog[PresetCatalogKey.PRESETS] ?? [], readOnly, running);
     this.#useScope();
   }
 
@@ -255,6 +262,10 @@ export class QuestionsPanel {
    * the recording's own objects are where they are at it.
    */
   #showMoment() {
+    if (this.#client?.live) {
+      this.#moment.textContent = RUNNING_MOMENT;
+      return;
+    }
     const paused = this.#scope.value === PAUSED_WORLD_SCOPE;
     this.#moment.textContent = paused
       ? `Asked of the world as it is at frame ${this.#frame} — pause anywhere and ask.`
@@ -340,11 +351,13 @@ export class QuestionsPanel {
    * @param {Array<Object>} presets The ready-made questions.
    * @param {boolean} readOnly Whether the answers are recorded, so questions about a
    *   live run cannot be asked.
+   * @param {boolean} running Whether the running process answers, so the questions
+   *   that need it can be asked.
    */
-  #showPresets(presets, readOnly) {
+  #showPresets(presets, readOnly, running = false) {
     const document = this.element.ownerDocument;
     const buttons = presets
-      .filter((preset) => !preset[PresetKey.REQUIRES_LIVE])
+      .filter((preset) => running || !preset[PresetKey.REQUIRES_LIVE])
       .map((preset) => {
         const button = document.createElement('button');
         button.type = 'button';

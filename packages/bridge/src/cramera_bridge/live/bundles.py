@@ -33,6 +33,7 @@ from cramera_protocol.bundle.scene import (
     SceneDescription,
 )
 from cramera_protocol.bundle.trajectory import Trajectory
+from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.live_messages import LivePlan
 from cramera_protocol.query_steps import QuerySteps
 from cramera_protocol.version import CURRENT_VERSION
@@ -330,10 +331,7 @@ class LiveBundleWriter:
         signature = WorldSignature(model, selected_robot).digest()
         directory = BundleDirectory(self.scenes_directory / ReservedSceneName.LIVE)
         with self.lock:
-            existing = DocumentFile(directory.path / BundleFile.SCENE).read_if_present(
-                SceneDescription
-            )
-            if existing is not None and existing.bundle_signature == signature:
+            if self.written_signature(directory) == signature:
                 return ReservedSceneName.LIVE
             staging = directory.staging()
             models = WorldModels(model.world, staging, LIVE_MESH_DIRECTORY).write(
@@ -354,6 +352,24 @@ class LiveBundleWriter:
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
         return ReservedSceneName.LIVE
+
+    @staticmethod
+    def written_signature(directory: BundleDirectory) -> Optional[str]:
+        """
+        The ``__live__`` bundle only caches the world it shows, so one that another
+        version of cramera wrote, which this protocol cannot read, is written anew.
+
+        :param directory: The ``__live__`` bundle.
+        :return: The signature of the model the bundle shows, or None when there is no
+            bundle this protocol can read.
+        """
+        try:
+            existing = DocumentFile(directory.path / BundleFile.SCENE).read_if_present(
+                SceneDescription
+            )
+        except ProtocolError:
+            return None
+        return None if existing is None else existing.bundle_signature
 
     def recording(
         self,

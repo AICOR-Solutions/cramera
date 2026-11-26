@@ -133,6 +133,12 @@ export class LiveSession {
   info = null;
 
   /**
+   * The bundle the publisher's world was last shown as, or null before it is shown.
+   * @type {string|null}
+   */
+  scene = null;
+
+  /**
    * The bundle signature whose scene is shown.
    * @type {string|null}
    */
@@ -199,6 +205,7 @@ export class LiveSession {
     this.#intervals = [];
     if (this.info) this.#bus.publish(ViewerEvent.LIVE_DISCONNECTED, null);
     this.info = null;
+    this.scene = null;
     this.#shownSignature = null;
     this.#sceneShown = false;
     this.#markersVersion = null;
@@ -242,6 +249,7 @@ export class LiveSession {
     if (!scene) return;
     this.#shownSignature = signature;
     this.#sceneShown = false;
+    this.scene = scene;
     this.#listener.showScene(scene);
   }
 
