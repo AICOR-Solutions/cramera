@@ -30,7 +30,7 @@ from cramera_protocol.live_messages import (
     TransformFreshness,
     TransformWriter,
 )
-from cramph.data_types import LifeCycleValues, ObservationStateValues
+from cramph.data_types import LifeCycleValue, ObservationStateValue
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world_description.geometry import Mesh
 
@@ -136,12 +136,12 @@ def test_the_statechart_shows_its_last_native_state(publisher, kitchen):
     statechart = publisher.current_statechart()
     monitor = chart.chart.nodes[0]
     assert statechart.nodes[0].identifier == ChartStructure.identifier(monitor.index)
-    assert statechart.nodes[0].life_cycle == LifeCycleValues.RUNNING.name
-    assert statechart.nodes[0].observation == ObservationStateValues.TRUE.name
+    assert statechart.nodes[0].life_cycle == LifeCycleValue.RUNNING.name
+    assert statechart.nodes[0].observation == ObservationStateValue.TRUE.name
 
 
 def test_the_statechart_is_titled_by_the_running_action(publisher, kitchen, small_plan):
-    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.action, LifeCycleValue.RUNNING)
     publisher.begin_plan(small_plan.executor)
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     chart.executor.tick()

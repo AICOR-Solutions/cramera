@@ -4,7 +4,7 @@ The entities of a recorded scene a query ranges over.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from typing_extensions import Optional
@@ -105,9 +105,16 @@ class RecordedObject(NamedEntity):
     The object's recorded height, or None when the recording measured none.
     """
 
-    position: Position
+    spawn_position: Position
     """
     Where the object stood before the run.
+    """
+
+    position: Position = field(compare=False)
+    """
+    Where the object is at the frame the viewer shows; its spawn position when a
+    question names no frame. Left out of comparing and hashing, so the object stays one
+    entity wherever it moves.
     """
 
 

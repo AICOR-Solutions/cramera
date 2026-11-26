@@ -29,6 +29,14 @@ class HighlightKeys(ABC):
         :return: The viewer keys it lights up; empty when it names nothing shown.
         """
 
+    def lights_itself_alone(self, value: Any) -> bool:
+        """
+        :param value: An entity an answer row stands for.
+        :return: Whether its row lights up the entity's own keys only, not what its
+            fields name.
+        """
+        return False
+
 
 @dataclass(frozen=True)
 class EntityNameKeys(HighlightKeys):
@@ -47,7 +55,14 @@ class EntityNameKeys(HighlightKeys):
     Every key the viewer shows, so a text answer naming one lights it up.
     """
 
+    links_by_name: Dict[str, List[str]] = field(default_factory=dict)
+    """
+    The viewer keys of the links of each named part of a robot, such as an arm.
+    """
+
     def keys_of(self, value: Any) -> List[str]:
+        if isinstance(value, NamedEntity) and value.name in self.links_by_name:
+            return list(self.links_by_name[value.name])
         if isinstance(value, NamedEntity):
             return [self.keys_by_name.get(value.name, value.name)]
         if isinstance(value, str) and value in self.keys_by_name:

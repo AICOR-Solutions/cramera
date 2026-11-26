@@ -13,7 +13,7 @@ from typing_extensions import Optional
 from coraplex.plans.executors import KinematicallySimulatedPlanExecutor
 from cramph.composites import Sequence
 from cramph.context import StatechartContext
-from cramph.data_types import ObservationStateValues
+from cramph.data_types import ObservationStateValue
 from cramph.node import StatechartNode, SucceedsOnObservingTrue
 from cramph.statechart import Statechart
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
@@ -156,9 +156,9 @@ class BoxLowering(SucceedsOnObservingTrue, StatechartNode):
     The height the box is moved to.
     """
 
-    def on_tick(self) -> ObservationStateValues:
+    def on_tick(self) -> ObservationStateValue:
         self.scene.move_box(self.height)
-        return ObservationStateValues.TRUE
+        return ObservationStateValue.TRUE
 
 
 # %% demo
@@ -175,14 +175,14 @@ def main() -> None:
     executor = KinematicallySimulatedPlanExecutor(StatechartContext(world=scene.world))
     statechart = Statechart(context=executor.context)
     statechart.add_node(
-        Sequence(
+        node=Sequence(
             nodes=[
                 BoxLowering(name=f"lower to {height}", scene=scene, height=height)
                 for height in BOX_HEIGHTS
             ]
         )
     )
-    executor.compile(statechart)
+    executor.compile(statechart=statechart)
     if FAILURE_ARGUMENT in sys.argv[1:]:
         sys.exit(FAILURE_STATUS)
     executor.execute()

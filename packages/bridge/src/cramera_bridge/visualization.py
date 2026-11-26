@@ -118,23 +118,23 @@ class PublishedPlanProgress(TickingExecutorExtension):
     The newest state of the statechart whose changes were published.
     """
 
-    def after_compile(self, executor: Executor) -> None:
+    def after_compile(self, *, executor: Executor) -> None:
         """
         Publish the plan the executor compiled, and the nodes its first tick started.
         """
         self.publisher.begin_plan(executor)
         self.report(executor)
 
-    def after_recompile(self, executor: StatechartExecutor) -> None:
+    def after_recompile(self, *, executor: StatechartExecutor) -> None:
         """
         Publishes nothing again: the plan is read from the statechart, which keeps the
         nodes it held.
         """
 
-    def after_tick(self, executor: StatechartExecutor) -> None:
+    def after_tick(self, *, executor: StatechartExecutor) -> None:
         self.report(executor)
 
-    def after_run(self, executor: Executor) -> None:
+    def after_run(self, *, executor: Executor) -> None:
         """
         Publish the state the plan left.
         """

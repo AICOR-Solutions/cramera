@@ -13,6 +13,8 @@ from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 from datetime import datetime
 
 from krrood.entity_query_language import factories
+from krrood.entity_query_language.core.variable import Variable
+from krrood.entity_query_language.query.match import Match
 from krrood.entity_query_language.evaluable import Evaluable
 from krrood.entity_query_language.scope import eql_factory_namespace
 from typing_extensions import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Type
@@ -25,7 +27,7 @@ from cramera_protocol.questions import (
     Verbalization,
 )
 from cramera_bridge.questions.entity import NamedEntity
-from cramera_bridge.questions.exceptions import EmptyQuery
+from cramera_bridge.questions.exceptions import DomainNeverHoldsClass, EmptyQuery
 from cramera_bridge.questions.highlights import (
     EntityNameKeys,
     HighlightKeys,
@@ -74,7 +76,42 @@ NAME_FIELD = "name"
 The field that titles an entity row instead of being one of its columns.
 """
 
+COLLECTION_ITEM_LIMIT = 12
+"""
+The most elements of a collection an answer cell lists.
+"""
+
+REPRESENTATION_LIMIT = 160
+"""
+The most characters of a value's representation an answer cell shows.
+"""
+
 # %% rows
+
+
+@dataclass(frozen=True)
+class SafeRepresentation:
+    """
+    A value's representation for an answer cell: shortened, and the value's type when
+    the value cannot represent itself, as an object detached from its world cannot.
+    """
+
+    value: Any
+    """
+    The value.
+    """
+
+    def text(self) -> str:
+        """
+        :return: The representation, at most :data:`REPRESENTATION_LIMIT` characters.
+        """
+        try:
+            text = repr(self.value)
+        except Exception:  # a value's own __repr__ may raise anything
+            return f"<{type(self.value).__name__}>"
+        if len(text) <= REPRESENTATION_LIMIT:
+            return text
+        return text[: REPRESENTATION_LIMIT - 1] + "…"
 
 
 @dataclass
@@ -229,9 +266,12 @@ class AnswerRenderer:
         :param item: A dataclass instance.
         :return: Its row: its title, its type and its public fields.
         """
-        self.highlight.extend(self.highlight_keys.keys_of(item))
+        own_keys = self.highlight_keys.keys_of(item)
+        highlighted_before = len(self.highlight)
+        self.highlight.extend(own_keys)
         values: Dict[str, Any] = {
-            AnswerColumn.ENTITY.value: self.title_of(item) or repr(item),
+            AnswerColumn.ENTITY.value: self.title_of(item)
+            or SafeRepresentation(item).text(),
             AnswerColumn.TYPE.value: type(item).__name__,
         }
         instance_values = vars(item)
@@ -249,6 +289,10 @@ class AnswerRenderer:
             if replay is None and isinstance(value, datetime):
                 replay = self.timeline.window_around(value)
             values[entity_field.name] = self.text_of(value)
+        if own_keys and self.highlight_keys.lights_itself_alone(item):
+            # An entity with its own place in the scene lights up itself alone, not
+            # what its fields name, such as the body an arm is mounted on.
+            del self.highlight[highlighted_before + len(own_keys) :]
         return AnswerRow(values, replay)
 
     def title_of(self, value: Any) -> Optional[str]:
@@ -259,6 +303,9 @@ class AnswerRenderer:
         """
         if isinstance(value, NamedEntity) or isinstance(value, self.entity_types):
             return str(value.name)
+        name = getattr(value, NAME_FIELD, None)
+        if self.is_entity(value) and name is not None:
+            return str(getattr(name, NAME_FIELD, name))
         return None
 
     def text_of(self, value: Any) -> Any:
@@ -282,11 +329,71 @@ class AnswerRenderer:
             return value
         if self.is_entity(value):
             self.highlight.extend(self.highlight_keys.keys_of(value))
-            return self.title_of(value) or repr(value)
-        return repr(value)
+            return self.title_of(value) or SafeRepresentation(value).text()
+        if self.is_collection(value) and not isinstance(value, Mapping):
+            items = list(value)
+            if all(self.is_entity(item) for item in items):
+                return [self.text_of(item) for item in items[:COLLECTION_ITEM_LIMIT]]
+        return SafeRepresentation(value).text()
 
 
 # %% runner
+
+
+@dataclass(frozen=True)
+class DomainTypeCheck:
+    """
+    Finds a variable of a query asking for a class among a domain whose type it never
+    is, as ``a(Body).from_(domain=scene_object)`` over recorded objects.
+    """
+
+    hint: Optional[str] = None
+    """
+    Where to ask the class instead, said with the error.
+    """
+
+    def check(self, query: Evaluable) -> None:
+        """
+        :param query: A built query.
+        :raises DomainNeverHoldsClass: When one of its variables asks for a class its
+            domain's type is neither a base nor a subclass of.
+        """
+        for variable in self.variables_of(query):
+            asked = variable._type_
+            held = getattr(variable._domain_, "_type_", None)
+            if self.unrelated(asked, held):
+                raise DomainNeverHoldsClass(
+                    asked=asked.__name__, held=held.__name__, hint=self.hint
+                )
+
+    @staticmethod
+    def unrelated(asked: Any, held: Any) -> bool:
+        """
+        :param asked: The class a variable asks for.
+        :param held: The type its domain holds.
+        :return: Whether both are classes and neither derives from the other.
+        """
+        if not isinstance(asked, type) or not isinstance(held, type):
+            return False
+        return not issubclass(asked, held) and not issubclass(held, asked)
+
+    @staticmethod
+    def variables_of(query: Evaluable) -> Iterable[Variable]:
+        """
+        :param query: A built query; a match is walked through the query it lowers to,
+            which holds its variables.
+        :return: The variables of its expression graph, each once.
+        """
+        seen = set()
+        pending = [query.expression if isinstance(query, Match) else query]
+        while pending:
+            expression = pending.pop()
+            if id(expression) in seen:
+                continue
+            seen.add(id(expression))
+            if isinstance(expression, Variable):
+                yield expression
+            pending.extend(getattr(expression, "_children_", None) or ())
 
 
 @dataclass
@@ -318,6 +425,11 @@ class QueryRunner:
     verbalizer: QueryVerbalizer = field(default_factory=QueryVerbalizer)
     """
     Reads queries back as English.
+    """
+
+    elsewhere_hint: Optional[str] = None
+    """
+    Where to ask a class a domain never holds, said when a query asks for one.
     """
 
     def entity_types(self) -> Tuple[Type[Any], ...]:
@@ -383,6 +495,7 @@ class QueryRunner:
         built = self.build(code)
         if not isinstance(built, Evaluable):
             return renderer.answer(built)
+        DomainTypeCheck(hint=self.elsewhere_hint).check(built)
         verbalization = self.verbalizer.verbalize(built)
         answer = renderer.answer(self.evaluation.evaluate(built), verbalization)
         if isinstance(self.evaluation, TranslatedEvaluation):

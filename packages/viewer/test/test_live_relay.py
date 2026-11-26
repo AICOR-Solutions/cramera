@@ -26,6 +26,7 @@ from cramera.live_relay import (
     LiveRelay,
 )
 from cramera_protocol.live import LIVE_HOST, LIVE_PORT, LiveRoute
+from cramera_protocol.questions import QuestionsParameter
 from cramera_protocol.live_messages import LiveParameter
 from cramera_protocol.viewer import ErrorKey, ViewerRoute
 
@@ -171,6 +172,9 @@ def test_the_relay_reads_what_the_page_reads_and_nothing_else():
         LiveRoute.PERCEPTION_IMAGE,
         LiveRoute.MARKERS,
         LiveRoute.MARKER_TOPICS,
+        LiveRoute.PRESETS,
+        LiveRoute.VOCABULARY,
+        LiveRoute.MEMBERS,
     }
 
 
@@ -197,6 +201,18 @@ def test_a_read_carries_only_the_parameters_its_route_takes(relay):
     assert json.loads(answer.body)["query"] == f"{LiveParameter.REVISION}=3"
     plain = relay.answer(relayed(LiveRoute.STATE, query=query), "state")
     assert json.loads(plain.body)["query"] == ""
+
+
+def test_the_names_a_live_query_may_use_are_read_through_the_relay(relay):
+    query = f"{QuestionsParameter.SCOPE}=current_state&{QuestionsParameter.NAME}=body&other=x"
+    members = relay.answer(relayed(LiveRoute.MEMBERS, query=query), "members")
+    assert json.loads(members.body)["query"] == (
+        f"{QuestionsParameter.SCOPE}=current_state&{QuestionsParameter.NAME}=body"
+    )
+    vocabulary = relay.answer(relayed(LiveRoute.VOCABULARY, query=query), "vocabulary")
+    assert json.loads(vocabulary.body)["query"] == (
+        f"{QuestionsParameter.SCOPE}=current_state"
+    )
 
 
 def test_a_perception_image_is_relayed_as_the_image(catalog, locations, relay):
@@ -258,6 +274,7 @@ def test_a_route_that_is_not_relayed_is_not_found_for_the_page(
         LiveRoute.RECORDING_STOP,
         LiveRoute.QUERY_STEPS_NEXT,
         LiveRoute.MARKER_TOPICS,
+        LiveRoute.QUERY,
         LiveRoute.STATE,
     ],
 )
@@ -311,7 +328,7 @@ def test_a_forwarded_page_reads_the_run_through_the_relay(catalog, locations, re
     assert json.loads(answer.body)["route"] == LiveRoute.STATE
 
 
-@pytest.mark.parametrize("route", [LiveRoute.QUERY, LiveRoute.MOVE])
+@pytest.mark.parametrize("route", [LiveRoute.JOINT, LiveRoute.MOVE])
 def test_this_machine_makes_no_other_change_through_the_relay(
     catalog, locations, relay, route
 ):

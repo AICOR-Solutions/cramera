@@ -23,6 +23,7 @@ from cramera_bridge.live.recording import FrameRange, FrameTiming, RecordedFrame
 from cramera_bridge.live.segments import RecordedRun
 from cramera_bridge.live.world_model import ObjectKey, WorldModelView
 from cramera_bridge.robots import RobotRoster
+from cramera_bridge.scenes.world_history import WorldHistory
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import ReservedSceneName
 from cramera_protocol.bundle.scene import (
@@ -33,6 +34,7 @@ from cramera_protocol.bundle.scene import (
     SceneDescription,
 )
 from cramera_protocol.bundle.trajectory import Trajectory
+from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.live_messages import LivePlan
 from cramera_protocol.query_steps import QuerySteps
 from cramera_protocol.version import CURRENT_VERSION
@@ -330,10 +332,7 @@ class LiveBundleWriter:
         signature = WorldSignature(model, selected_robot).digest()
         directory = BundleDirectory(self.scenes_directory / ReservedSceneName.LIVE)
         with self.lock:
-            existing = DocumentFile(directory.path / BundleFile.SCENE).read_if_present(
-                SceneDescription
-            )
-            if existing is not None and existing.bundle_signature == signature:
+            if self.written_signature(directory) == signature:
                 return ReservedSceneName.LIVE
             staging = directory.staging()
             models = WorldModels(model.world, staging, LIVE_MESH_DIRECTORY).write(
@@ -354,6 +353,24 @@ class LiveBundleWriter:
             DocumentFile(staging / BundleFile.SCENE).write(scene)
             directory.publish(staging)
         return ReservedSceneName.LIVE
+
+    @staticmethod
+    def written_signature(directory: BundleDirectory) -> Optional[str]:
+        """
+        The ``__live__`` bundle only caches the world it shows, so one that another
+        version of cramera wrote, which this protocol cannot read, is written anew.
+
+        :param directory: The ``__live__`` bundle.
+        :return: The signature of the model the bundle shows, or None when there is no
+            bundle this protocol can read.
+        """
+        try:
+            existing = DocumentFile(directory.path / BundleFile.SCENE).read_if_present(
+                SceneDescription
+            )
+        except ProtocolError:
+            return None
+        return None if existing is None else existing.bundle_signature
 
     def recording(
         self,
@@ -390,6 +407,12 @@ class LiveBundleWriter:
             statecharts = RecordedStatecharts.of_frames(
                 [frame.statechart for frame in frames]
             )
+            world_captures = [frame.world_state for frame in frames]
+            keeps_world = all(capture is not None for capture in world_captures)
+            if keeps_world:
+                WorldHistory.of_captures(model.world, world_captures).write(
+                    staging / BundleFile.WORLD_HISTORY
+                )
             scene = SceneDescription(
                 name=ReservedSceneName.RECORDING,
                 format_version=CURRENT_VERSION,
@@ -397,6 +420,7 @@ class LiveBundleWriter:
                 trajectory=BundleFile.TRAJECTORY,
                 statecharts=None if statecharts.is_empty() else BundleFile.STATECHARTS,
                 query_steps=None if query_steps is None else BundleFile.QUERY_STEPS,
+                world_history=BundleFile.WORLD_HISTORY if keeps_world else None,
                 models=models.models,
                 robot=models.robot,
                 objects=self.objects(model, frames, staging),

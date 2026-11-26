@@ -115,6 +115,12 @@ class QueryableKnowledge:
     Further names a question about it may use.
     """
 
+    elsewhere_hint: Optional[str] = None
+    """
+    Where to ask a class none of its domains hold, said when a query asks for one; None
+    when it names nowhere.
+    """
+
     def heading(self) -> str:
         """
         :return: The heading its questions are offered under.

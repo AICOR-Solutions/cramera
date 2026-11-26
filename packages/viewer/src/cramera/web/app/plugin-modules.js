@@ -9,7 +9,7 @@ import { PluginKey, ViewerInfoKey } from '../protocol.js';
 
 /**
  * What a plugin module receives: the event bus, the side panels, the viewer's routes,
- * the 3D view, the query slot and the viewer's information.
+ * the 3D view, the query slot, the viewer's information and the live session.
  */
 export class PluginContext {
   /**
@@ -20,8 +20,10 @@ export class PluginContext {
    * @param {import('../panels/query-slot.js').QuerySlot} query The slot above the side
    *   panels one plugin may fill with its question panel.
    * @param {Object} info The viewer's information, which says how it is served.
+   * @param {function(): (import('../live/live-session.js').LiveSession|null)} live
+   *   Answers the session following a live publisher, or null while none is followed.
    */
-  constructor(bus, panels, api, view, query, info) {
+  constructor(bus, panels, api, view, query, info, live = () => null) {
     /**
      * The application's event bus.
      * @type {import('../core/event-bus.js').EventBus}
@@ -52,6 +54,11 @@ export class PluginContext {
      * @type {Object}
      */
     this.info = info;
+    /**
+     * Answers the session following a live publisher, or null while none is followed.
+     * @type {function(): (import('../live/live-session.js').LiveSession|null)}
+     */
+    this.live = live;
   }
 
   /**
@@ -59,7 +66,7 @@ export class PluginContext {
    *   have no tab, as the top bar shows them.
    */
   withoutTabs() {
-    return new PluginContext(this.bus, this.panels.withoutTabs(), this.api, this.view, this.query, this.info);
+    return new PluginContext(this.bus, this.panels.withoutTabs(), this.api, this.view, this.query, this.info, this.live);
   }
 }
 

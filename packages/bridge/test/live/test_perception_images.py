@@ -24,7 +24,7 @@ from cramera_bridge.live.perception_images import (
 )
 from cramera_bridge.performing import TaskContext
 from cramera_protocol.bundle.scene import PerceptionImageSource
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from semantic_digital_twin.datastructures.field_of_view import FieldOfView
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.exceptions import MissingDefaultCameraError
@@ -253,7 +253,7 @@ def detection(kitchen, robot_world) -> SmallPlan:
     return detecting(TaskContext(robot_world.world, robot_world.robot), query)
 
 
-def ended(publisher, detection: SmallPlan, life_cycle: LifeCycleValues):
+def ended(publisher, detection: SmallPlan, life_cycle: LifeCycleValue):
     """
     Run a perception step to its end, and publish the plan again as the tick it ended in
     does.
@@ -270,7 +270,7 @@ def ended(publisher, detection: SmallPlan, life_cycle: LifeCycleValues):
 def test_a_perception_step_lists_its_images_once_it_ended(publisher, camera, detection):
     publisher.begin_plan(detection.executor)
     assert publisher.current_plan().nodes[-1].images == []
-    step = ended(publisher, detection, LifeCycleValues.SUCCEEDED)
+    step = ended(publisher, detection, LifeCycleValue.SUCCEEDED)
     (image,) = step.images
     assert (image.title, image.source) == ("Annotator", PerceptionImageSource.ROBOKUDO)
     assert camera.starts == 1
@@ -279,7 +279,7 @@ def test_a_perception_step_lists_its_images_once_it_ended(publisher, camera, det
 
 
 def test_a_failed_perception_step_still_shows_what_it_saw(publisher, camera, detection):
-    step = ended(publisher, detection, LifeCycleValues.FAILED)
+    step = ended(publisher, detection, LifeCycleValue.FAILED)
     assert step.perceived == []
     assert len(step.images) == 1
 
@@ -292,7 +292,7 @@ def test_an_image_no_step_took_is_not_found(publisher, camera):
 def test_the_recording_keeps_the_images_as_files(
     publisher, camera, detection, tmp_path
 ):
-    ended(publisher, detection, LifeCycleValues.SUCCEEDED)
+    ended(publisher, detection, LifeCycleValue.SUCCEEDED)
     (plan,) = publisher.plan.performed_plans()
     LiveBundleWriter.perception_images([plan], tmp_path)
     (root,) = PlanTrees(plan=publisher.current_plan(), robot=None).roots()

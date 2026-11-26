@@ -30,9 +30,10 @@ from cramera_protocol.live_messages import (
     RobotSelection,
 )
 from coraplex.robot_plans.actions.core.robot_body import ParkArmsAction
-from cramph.data_types import LifeCycleValues, ObservationStateValues
+from cramph.data_types import LifeCycleValue, ObservationStateValue
 from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPose
 from krrood.entity_query_language.factories import a, variable
+from semantic_digital_twin.world_description.kinematic_chain import KinematicChain
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from krrood_spatial_math.spatial_types import Pose
 from cramera.http.messages import HttpMethod
@@ -44,7 +45,7 @@ from .conftest import dataset_body, live_request
 
 
 def test_every_node_shows_its_own_native_status(publisher, small_plan):
-    small_plan.set(small_plan.root, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.root, LifeCycleValue.RUNNING)
     publisher.begin_plan(small_plan.executor)
     plan = publisher.current_plan()
     assert [node.status for node in plan.nodes] == [
@@ -57,7 +58,7 @@ def test_every_node_shows_its_own_native_status(publisher, small_plan):
 
 
 def test_a_parent_status_is_never_derived_from_its_children(publisher, small_plan):
-    small_plan.set(small_plan.action, LifeCycleValues.SUCCEEDED)
+    small_plan.set(small_plan.action, LifeCycleValue.SUCCEEDED)
     publisher.begin_plan(small_plan.executor)
     root = publisher.current_plan().nodes[0]
     assert root.status == PlanNodeStatus.CREATED
@@ -66,25 +67,25 @@ def test_a_parent_status_is_never_derived_from_its_children(publisher, small_pla
 @pytest.mark.parametrize(
     "action_life_cycle, action_status",
     [
-        (LifeCycleValues.NOT_STARTED, PlanNodeStatus.CREATED),
-        (LifeCycleValues.RUNNING, PlanNodeStatus.RUNNING),
-        (LifeCycleValues.PAUSED, PlanNodeStatus.PAUSE),
-        (LifeCycleValues.FAILED, PlanNodeStatus.FAILED),
-        (LifeCycleValues.INTERRUPTED, PlanNodeStatus.INTERRUPTED),
+        (LifeCycleValue.NOT_STARTED, PlanNodeStatus.CREATED),
+        (LifeCycleValue.RUNNING, PlanNodeStatus.RUNNING),
+        (LifeCycleValue.PAUSED, PlanNodeStatus.PAUSE),
+        (LifeCycleValue.FAILED, PlanNodeStatus.FAILED),
+        (LifeCycleValue.INTERRUPTED, PlanNodeStatus.INTERRUPTED),
     ],
 )
 def test_an_action_shows_its_own_status_not_its_motions(
     publisher, small_plan, action_life_cycle, action_status
 ):
     small_plan.set(small_plan.action, action_life_cycle)
-    small_plan.set(small_plan.motion, LifeCycleValues.SUCCEEDED)
+    small_plan.set(small_plan.motion, LifeCycleValue.SUCCEEDED)
     publisher.begin_plan(small_plan.executor)
     _, action, motion = publisher.current_plan().nodes
     assert (action.status, motion.status) == (action_status, PlanNodeStatus.SUCCEEDED)
 
 
 def test_a_running_motion_alone_names_no_running_action(publisher, small_plan):
-    small_plan.set(small_plan.motion, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.motion, LifeCycleValue.RUNNING)
     publisher.begin_plan(small_plan.executor)
     assert publisher.plan.running_action() is None
 
@@ -99,8 +100,7 @@ def reaching_the_milk(kitchen) -> CartesianPose:
     :return: A motion moving the milk to a pose above the table.
     """
     return CartesianPose(
-        root_link=kitchen.root,
-        tip_link=kitchen.milk,
+        kinematic_chain=KinematicChain(root=kitchen.root, tip=kitchen.milk),
         goal_pose=Pose.from_xyz_rpy(1.0, 0.0, 0.9, reference_frame=kitchen.root),
     )
 
@@ -144,7 +144,7 @@ def test_no_plan_has_no_nodes(publisher):
 
 
 def test_the_running_action_names_the_step(publisher, small_plan):
-    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.action, LifeCycleValue.RUNNING)
     publisher.begin_plan(small_plan.executor)
     assert publisher.plan.running_action() == type(small_plan.action).__name__
 
@@ -173,7 +173,7 @@ def test_a_plan_begun_again_is_published_with_its_first_identities(
 
 
 def test_a_robot_cannot_be_selected_while_the_plan_runs(publisher, small_plan):
-    small_plan.set(small_plan.root, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.root, LifeCycleValue.RUNNING)
     publisher.begin_plan(small_plan.executor)
     with pytest.raises(RobotSelectionBusy):
         publisher.select_robot(RobotSelection(identifier="any"))
@@ -221,7 +221,7 @@ def test_an_attached_constraint_is_observed_on_the_next_tick(
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     tick(publisher, chart)
     constraint = publisher.refresh_plan().nodes[0].constraints[0]
-    assert constraint.observation == ObservationStateValues.TRUE.name
+    assert constraint.observation == ObservationStateValue.TRUE.name
 
 
 def test_a_constraint_waits_for_the_next_motion(publisher, kitchen, small_plan):
@@ -237,7 +237,7 @@ def test_a_constraint_waits_for_the_next_motion(publisher, kitchen, small_plan):
     publisher.observe_node_started(small_plan.motion)
     tick(publisher, chart)
     observed = publisher.refresh_plan().nodes[0].constraints[0]
-    assert observed.observation == ObservationStateValues.TRUE.name
+    assert observed.observation == ObservationStateValue.TRUE.name
 
 
 def test_a_constraint_sees_the_world_change(publisher, kitchen, small_plan):
@@ -254,7 +254,7 @@ def test_a_constraint_sees_the_world_change(publisher, kitchen, small_plan):
     )
     tick(publisher, chart)
     observed = publisher.refresh_plan().nodes[0].constraints[0]
-    assert observed.observation == ObservationStateValues.FALSE.name
+    assert observed.observation == ObservationStateValue.FALSE.name
 
 
 def test_a_constraint_reaches_a_node_of_a_later_plan(publisher, kitchen, robot_plans):
@@ -297,7 +297,7 @@ def test_every_monitor_type_is_built_and_observed(
     tick(publisher, HeightChart.build(kitchen.world, kitchen.milk))
     constraint = publisher.refresh_plan().nodes[1].constraints[0]
     assert constraint.monitor == monitor_type
-    assert constraint.observation in ObservationStateValues.__members__
+    assert constraint.observation in ObservationStateValue.__members__
 
 
 @pytest.mark.parametrize(

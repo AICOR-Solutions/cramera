@@ -33,6 +33,12 @@ class Option(StrEnum):
     The command's options.
     """
 
+    SCENE = "scene"
+    """
+    The scene the browser opens on, by its bundle name; the first page of the viewer
+    when left out.
+    """
+
     HOST = "--host"
     """
     The address to listen on.
@@ -90,6 +96,12 @@ class Option(StrEnum):
     """
     End the viewer once its standard input closes, as it does when the SSH connection
     that started it ends.
+    """
+
+    LIVE = "--live"
+    """
+    Open the browser following the live publisher on this machine, such as a demo
+    ``cramera-live`` runs, instead of a saved scene.
     """
 
 

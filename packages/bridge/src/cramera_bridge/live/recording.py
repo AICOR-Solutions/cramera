@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing_extensions import Callable, Dict, List, Optional
 
 from cramera_bridge.exceptions import InvalidFrameRange, NoRecording
+from cramera_bridge.scenes.world_history import WorldStateCapture
 from cramera_protocol.geometry import Pose
 from cramera_protocol.live_messages import (
     LiveState,
@@ -127,6 +128,12 @@ class RecordedFrame:
     actions.
     """
 
+    world_state: Optional[WorldStateCapture] = None
+    """
+    The world's model and every degree of freedom at the frame, or None for a frame
+    taken without them.
+    """
+
     @classmethod
     def of_state(
         cls,
@@ -134,12 +141,14 @@ class RecordedFrame:
         time: float,
         action: Optional[RunningAction],
         statechart: Optional[LiveStatechart],
+        world_state: Optional[WorldStateCapture] = None,
     ) -> RecordedFrame:
         """
         :param state: A state snapshot.
         :param time: When it was taken.
         :param action: The action being performed.
         :param statechart: The statechart being ticked.
+        :param world_state: The world's model and state at the snapshot, if captured.
         :return: The frame, with copies of the snapshot's mappings.
         """
         return cls(
@@ -151,6 +160,7 @@ class RecordedFrame:
             step=None if action is None else action.label,
             statechart=statechart,
             action_node=None if action is None else action.identifier,
+            world_state=world_state,
         )
 
 
@@ -202,6 +212,7 @@ class Recording:
         state: LiveState,
         action: Optional[RunningAction],
         statechart: Optional[LiveStatechart],
+        world_state: Optional[WorldStateCapture] = None,
     ) -> None:
         """
         Record one moment, or nothing while not recording.
@@ -209,8 +220,11 @@ class Recording:
         :param state: The state snapshot.
         :param action: The action being performed.
         :param statechart: The statechart being ticked.
+        :param world_state: The world's model and state at the snapshot, if captured.
         """
-        frame = RecordedFrame.of_state(state, self.clock(), action, statechart)
+        frame = RecordedFrame.of_state(
+            state, self.clock(), action, statechart, world_state
+        )
         with self.lock:
             if self.state is RecordingState.RECORDING:
                 self.frames.append(frame)

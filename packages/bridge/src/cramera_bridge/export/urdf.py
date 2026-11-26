@@ -21,7 +21,7 @@ from cramera_bridge.exceptions import UnrepresentableJointLimits, UrdfSourceNotF
 from cramera_bridge.export.assets import BundledAssets, MeshFormat, MeshReference
 from cramera_bridge.export.textures import SurfaceFile, TexturedSurface
 from cramera_bridge.names import class_path
-from krrood.ormatic.utils import classproperty
+from krrood.patterns.classproperty import classproperty
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (

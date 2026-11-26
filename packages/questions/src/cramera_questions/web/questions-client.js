@@ -56,11 +56,35 @@ export class QuestionsClient {
    * @param {string} scene A bundle name.
    * @param {string} code A query in the entity query language.
    * @param {string} scope The `QueryScope` the query ranges over.
+   * @param {number|null} frame The frame of the recording shown, which a question
+   *   about the paused world is asked at.
    * @returns {Promise<Object>} The answer.
    */
-  query(scene, code, scope) {
+  query(scene, code, scope, frame = null) {
     const body = { [QueryRequestKey.SCENE]: scene, [QueryRequestKey.CODE]: code, [QueryRequestKey.SCOPE]: scope };
+    if (frame !== null) body[QueryRequestKey.FRAME] = frame;
     return this.#api.postJson(this.#url(QuestionsRoute.QUERY), body);
+  }
+
+  /**
+   * @param {string} scene A bundle name.
+   * @param {string} scope A `QueryScope` value.
+   * @returns {Promise<Array<Object>>} The names a query of that scope may use.
+   */
+  async vocabulary(scene, scope) {
+    const answer = await this.#api.json(this.#url(QuestionsRoute.VOCABULARY, { [QuestionsParameter.SCENE]: scene, [QuestionsParameter.SCOPE]: scope }));
+    return answer.entries ?? [];
+  }
+
+  /**
+   * @param {string} scene A bundle name.
+   * @param {string} scope A `QueryScope` value.
+   * @param {string} name A variable's or class's name.
+   * @returns {Promise<Array<Object>>} The members that may follow the name's dot.
+   */
+  async members(scene, scope, name) {
+    const answer = await this.#api.json(this.#url(QuestionsRoute.MEMBERS, { [QuestionsParameter.SCENE]: scene, [QuestionsParameter.SCOPE]: scope, [QuestionsParameter.NAME]: name }));
+    return answer.members ?? answer.entries ?? [];
   }
 
   /**

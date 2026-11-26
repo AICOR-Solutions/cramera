@@ -13,14 +13,14 @@ import sys
 import webbrowser
 from dataclasses import dataclass, field
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 from typing_extensions import Callable, List, Mapping, Optional, Sequence
 
 from cramera.application import ViewerApplication
 from cramera.branding import Branding
 from cramera.exceptions import LogoNotFound, UnsupportedLogo
-from cramera.http.addresses import EVERY_ADDRESS, LOOPBACK
+from cramera.http.addresses import EVERY_ADDRESS, LOOPBACK, url_of
 from cramera.http.origin import KEY_PARAMETER, LOCAL_HOSTS, OriginPolicy
 from cramera.http.server import HttpServer, RequestAnswerer
 from cramera.lifeline import Lifeline
@@ -30,6 +30,8 @@ from cramera.occupant import PortOccupant
 from cramera.plugins import PluginLoader
 from cramera.remote_connection import connect, pipe
 from cramera.scenes import SceneCatalog, SceneDirectory, SceneSource
+from cramera_protocol.live import LIVE_HOST, LIVE_PORT
+from cramera_protocol.page import PageParameter
 from cramera.viewer_options import DEFAULT_PORT, Announcement, Option, Subcommand
 
 logger = logging.getLogger(__name__)
@@ -97,6 +99,16 @@ class ViewerConfiguration:
     Whether the viewer ends once its standard input closes.
     """
 
+    opened_scene: Optional[str] = None
+    """
+    The scene the browser opens on, or None for the viewer's first page.
+    """
+
+    follows_live: bool = False
+    """
+    Whether the browser opens following the live publisher on this machine.
+    """
+
     @classmethod
     def from_arguments(
         cls,
@@ -115,6 +127,7 @@ class ViewerConfiguration:
             prog="cramera", description="Serve the cramera viewer."
         )
         address = parser.add_mutually_exclusive_group()
+        parser.add_argument(Option.SCENE, nargs="?", default=None)
         address.add_argument(Option.HOST, default=LOOPBACK)
         address.add_argument(Option.LAN, action="store_true")
         parser.add_argument(Option.PUBLIC_ORIGIN, default=None)
@@ -126,6 +139,7 @@ class ViewerConfiguration:
         parser.add_argument(Option.LOGO, type=Path, default=None)
         parser.add_argument(Option.LOGO_TEXT, default=None)
         parser.add_argument(Option.LIFELINE, action="store_true")
+        parser.add_argument(Option.LIVE, action="store_true")
         parsed = parser.parse_args(list(arguments))
         # a logo that cannot be shown is a usage error of the command, said as one
         try:
@@ -157,7 +171,22 @@ class ViewerConfiguration:
             branding=branding,
             public_origin=public_origin,
             ends_with_input=parsed.lifeline,
+            opened_scene=parsed.scene,
+            follows_live=parsed.live,
         )
+
+    def page_url(self, server: HttpServer) -> str:
+        """
+        :param server: The started server.
+        :return: The page the browser opens: following the live publisher, else the
+            chosen scene, else the viewer's first page.
+        """
+        if self.follows_live:
+            live = url_of(LIVE_HOST, LIVE_PORT)
+            return f"{server.url()}/?{urlencode({PageParameter.LIVE: live})}"
+        if self.opened_scene is None:
+            return server.url()
+        return f"{server.url()}/?{urlencode({PageParameter.SCENE: self.opened_scene})}"
 
     def scene_directories(self) -> List[SceneDirectory]:
         """
@@ -327,7 +356,7 @@ def serve(arguments: Sequence[str]) -> None:
         logger.info("%s %s", Announcement.SERVING, server.url())
         configuration.announce_network(server)
         if configuration.open_browser:
-            webbrowser.open(server.url())
+            webbrowser.open(configuration.page_url(server))
         signal.sigwait(stop_signals)
     finally:
         server.stop()

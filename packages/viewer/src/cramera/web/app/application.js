@@ -535,7 +535,7 @@ export class Application {
       ),
     );
     this.#view.start((seconds) => this.#tick(seconds));
-    const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info);
+    const context = new PluginContext(this.bus, this.#panels, this.#api, this.#view, this.#querySlot, info, () => this.#live);
     await new PluginModules(importModule).register(info, context, (module) => this.#api.url(module));
     for (const part of [this.#sceneGraph, this.#perception, this.#segmind, this.#resolutions, this.#querySteps, this.#details, this.#livePanel]) this.#panels.add(part.panel);
     const panel = panelOf(this.#location.href);

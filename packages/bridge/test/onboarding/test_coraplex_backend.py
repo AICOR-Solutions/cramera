@@ -76,14 +76,14 @@ def lower_the_box(executor: PlanExecutor, scene: SlidingBoxWorld) -> Statechart:
     """
     statechart = Statechart(context=executor.context)
     statechart.add_node(
-        Sequence(
+        node=Sequence(
             nodes=[
                 BoxLowering(name=str(height), scene=scene, height=height)
                 for height in BOX_HEIGHTS
             ]
         )
     )
-    executor.compile(statechart)
+    executor.compile(statechart=statechart)
     executor.execute()
     return statechart
 
@@ -110,9 +110,9 @@ def test_the_visualization_publishes_the_plan_its_executor_runs(sliding_box, fac
     )
     statechart = Statechart(context=executor.context)
     statechart.add_node(
-        Sequence(nodes=[BoxLowering(name="down", scene=sliding_box, height=1.0)])
+        node=Sequence(nodes=[BoxLowering(name="down", scene=sliding_box, height=1.0)])
     )
-    executor.compile(statechart)
+    executor.compile(statechart=statechart)
     published = visualization.live.publisher.current_plan()
     executor.execute()
     assert [node.label for node in published.nodes] == ["Sequence", "BoxLowering"]

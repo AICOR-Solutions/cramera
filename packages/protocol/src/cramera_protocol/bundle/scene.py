@@ -1561,6 +1561,11 @@ class SceneKey(StrEnum):
     The query steps file.
     """
 
+    WORLD_HISTORY = "worldHistory"
+    """
+    The world history file.
+    """
+
     MODELS = "models"
     """
     The kinematic models.
@@ -1708,6 +1713,15 @@ class SceneDescription(JsonDocument):
     """
     The query steps file, relative to the bundle, or None for a run that published no
     queries.
+    """
+
+    world_history: Optional[str] = document_field(
+        SceneKey.WORLD_HISTORY, default=None
+    )
+    """
+    The file holding the recorded world itself and its state at every frame, relative
+    to the bundle, or None for a bundle that keeps no world of its own. The bridge
+    rebuilds that world to answer questions about the recorded run.
     """
 
     models: List[ModelDescription] = document_field(

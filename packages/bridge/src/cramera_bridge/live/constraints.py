@@ -26,7 +26,7 @@ from cramera_protocol.live_messages import (
     MonitorParameterKey,
 )
 from cramph.context import StatechartContext
-from cramph.data_types import ObservationStateValues
+from cramph.data_types import ObservationStateValue
 from cramph.executor import StatechartExecutor
 from cramph.statechart import Statechart
 from giskardpy.motion_statechart.context import MotionControlContext
@@ -41,6 +41,7 @@ from giskardpy.motion_statechart.monitors.feature_monitors import (
 )
 from giskardpy.qp.qp_controller_config import QPControllerConfig
 from krrood_spatial_math.spatial_types import Point3, Vector3
+from semantic_digital_twin.world_description.kinematic_chain import KinematicChain
 
 if TYPE_CHECKING:
     from semantic_digital_twin.world import World
@@ -173,8 +174,7 @@ class ConstraintMonitorFactory:
         match request.monitor.monitor_type:
             case ConstraintMonitorType.VECTORS_ALIGNED:
                 return VectorsAligned(
-                    root_link=root,
-                    tip_link=tip,
+                    kinematic_chain=KinematicChain(root=root, tip=tip),
                     goal_normal=Vector3(
                         *parameters.numbers(
                             MonitorParameterKey.GOAL_NORMAL, DEFAULT_AXIS
@@ -193,8 +193,7 @@ class ConstraintMonitorFactory:
                 )
             case ConstraintMonitorType.POINTING_AT:
                 return PointingAt(
-                    root_link=root,
-                    tip_link=tip,
+                    kinematic_chain=KinematicChain(root=root, tip=tip),
                     goal_point=self.goal_point(parameters, root),
                     pointing_axis=Vector3(
                         *parameters.numbers(
@@ -211,8 +210,7 @@ class ConstraintMonitorFactory:
             case ConstraintMonitorType.DISTANCE:
                 monitor_class = DistanceMonitor
         return monitor_class(
-            root_link=root,
-            tip_link=tip,
+            kinematic_chain=KinematicChain(root=root, tip=tip),
             reference_point=Point3(0, 0, 0, reference_frame=root),
             tip_point=Point3(0, 0, 0, reference_frame=tip),
             lower_limit=parameters.number(
@@ -279,8 +277,8 @@ class AttachedConstraint:
         """
         executor = StatechartExecutor(
             context=StatechartContext.with_extensions(
-                world,
-                [
+                world=world,
+                extensions=[
                     MotionControlContext(
                         qp_controller_config=QPControllerConfig.create_with_simulation_defaults()
                     )
@@ -288,8 +286,8 @@ class AttachedConstraint:
             )
         )
         chart = Statechart(context=executor.context)
-        chart.add_node(self.monitor)
-        executor.compile(chart)
+        chart.add_node(node=self.monitor)
+        executor.compile(statechart=chart)
         self.executor = executor
 
     def tick(self) -> None:
@@ -306,7 +304,7 @@ class AttachedConstraint:
         observation = None
         if self.executor is not None:
             moment = self.executor.statechart.state_history.latest_item
-            observation = ObservationStateValues(
+            observation = ObservationStateValue(
                 float(moment.observation_state[self.monitor])
             ).name
         return ConstraintObservation(

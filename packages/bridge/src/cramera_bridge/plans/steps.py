@@ -34,7 +34,7 @@ from cramera_protocol.plan_builder import (
     PlanStep,
 )
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -123,7 +123,7 @@ class StepArguments:
 
     def body(
         self, offered: ActionField, value: str
-    ) -> Body | HasGraspCandidates | GraspCandidate:
+    ) -> Body | IsGraspable | GraspCandidate:
         """
         :param offered: A field taking an object of the plan.
         :param value: An object's identity.
@@ -134,7 +134,7 @@ class StepArguments:
         field_type = self.action.field_types[offered.name]
         if field_type is GraspCandidate:
             return self.grasp(value, PlannedGraspable.of(body))
-        if field_type is HasGraspCandidates:
+        if field_type is IsGraspable:
             return PlannedGraspable.of(body)
         return body
 
@@ -220,7 +220,7 @@ class StepArguments:
                 return self.step.values.get(offered.name)
         return None
 
-    def grasp(self, identifier: str, graspable: HasGraspCandidates) -> GraspCandidate:
+    def grasp(self, identifier: str, graspable: IsGraspable) -> GraspCandidate:
         """
         :param identifier: The object's identity.
         :param graspable: Its annotation.

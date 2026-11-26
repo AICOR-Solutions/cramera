@@ -48,11 +48,15 @@ from cramera_bridge.live.plan import PlanPublisher
 from cramera_bridge.live.query_steps import QueryStepBoard
 from cramera_bridge.live.recording import Recording
 from cramera_bridge.live.recording_storage import RecordingStorage
+from cramera_bridge.scenes.world_history import WorldStateCapturer
 from cramera_bridge.live.resolutions import ResolutionBoard
 from cramera_bridge.live.scene_highlights import SceneHighlighter
 from cramera_bridge.live.snapshot_pacing import FRAME_INTERVAL, SnapshotPacing
 from cramera_bridge.live.statechart import StatechartPublisher
-from cramera_bridge.live.teleoperation import TeleoperationDriver
+from cramera_bridge.live.teleoperation import (
+    SOLVES_INVERSE_KINEMATICS,
+    TeleoperationDriver,
+)
 from cramera_bridge.live.transforms import TransformTracker
 from cramera_bridge.live.world_model import WorldModelView
 from cramera_bridge.live.world_state import WorldStatePublisher
@@ -102,7 +106,7 @@ from cramera_protocol.questions import (
 from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from coraplex.plans.context_extensions import RobotAccess
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.node import StatechartNode
 from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
@@ -258,6 +262,13 @@ class LivePublisher:
     The constraints attached to plan nodes.
     """
 
+    world_states: WorldStateCapturer = field(
+        default_factory=WorldStateCapturer, init=False
+    )
+    """
+    Captures the world's model and state for each recorded frame.
+    """
+
     recording: Recording = field(default_factory=Recording, init=False)
     """
     The recording of the run.
@@ -310,6 +321,7 @@ class LivePublisher:
             self.desk = WorldQuestionDesk(
                 world, self.current_objects, self.class_index
             ).desk()
+            self.world_states = WorldStateCapturer()
             self.recording.start()
             self.observe_model_change()
 
@@ -365,6 +377,7 @@ class LivePublisher:
                 snapshot,
                 self.plan.running(),
                 self.statechart.current() if self.motion_running else None,
+                self.world_states.capture(self.model.world),
             )
 
     def begin_plan(self, executor: PlanExecutor) -> None:
@@ -376,7 +389,7 @@ class LivePublisher:
         """
         with self.world_lock:
             self.pacing.plan_started(executor)
-            access = executor.context.get_extension(RobotAccess)
+            access = executor.context.get_extension(extension_type=RobotAccess)
             if access is not None and self.model is not None:
                 if access.robot in self.model.robots:
                     self.select(access.robot)
@@ -429,7 +442,7 @@ class LivePublisher:
             self.constraints.tick(world)
             self.motion_running = any(
                 isinstance(node, MotionStatechartNode)
-                and node.life_cycle_state is LifeCycleValues.RUNNING
+                and node.life_cycle_state is LifeCycleValue.RUNNING
                 for node in chart.nodes
             )
             self.chart_title = self.plan.running_action() or ""
@@ -486,7 +499,8 @@ class LivePublisher:
         if model is not None and len(model.robots) > 1:
             offered.append(Capability.ROBOT_SELECTION)
         if (
-            self.selected_robot is not None
+            SOLVES_INVERSE_KINEMATICS
+            and self.selected_robot is not None
             and RobotParts(model.world, self.selected_robot).arms()
         ):
             offered.append(Capability.TELEOPERATION)
@@ -800,6 +814,10 @@ class LivePublisher:
         :raises TeleoperationUnavailable: Without a selected robot.
         """
         with self.world_lock:
+            if not SOLVES_INVERSE_KINEMATICS:
+                raise TeleoperationUnavailable(
+                    "the CRAM workspace solves no inverse kinematics"
+                )
             if self.selected_robot is None:
                 raise TeleoperationUnavailable("no robot is selected")
             if self.teleoperation is None:

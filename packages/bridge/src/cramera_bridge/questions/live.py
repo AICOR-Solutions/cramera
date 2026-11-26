@@ -305,13 +305,18 @@ class WorldQuestionDesk:
     The workspace classes a query may name.
     """
 
+    title: str = LIVE_TITLE
+    """
+    What the desk is called.
+    """
+
     def desk(self) -> QuestionDesk:
         """
         :return: A desk over the world's current state with the world's presets.
         """
         knowledge = WorldKnowledge(self.world, self.objects)
         return QuestionDesk(
-            title=LIVE_TITLE,
+            title=self.title,
             knowledge=[knowledge.knowledge()],
             presets=knowledge.presets(),
             highlight_keys=WorldHighlightKeys(self.objects),

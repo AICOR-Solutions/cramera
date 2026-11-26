@@ -56,6 +56,15 @@ def test_the_live_bundle_is_written_once_per_model(publisher, kitchen, locations
     assert description.world_bound is True
 
 
+def test_a_live_bundle_another_version_wrote_is_written_anew(publisher, locations):
+    scene_file = locations.local_scenes / ReservedSceneName.LIVE / BundleFile.SCENE
+    scene_file.parent.mkdir(parents=True, exist_ok=True)
+    scene_file.write_text(json.dumps({"name": "__live__", "robot": {"role": "sensor"}}))
+    assert publisher.live_scene().scene == ReservedSceneName.LIVE
+    description = DocumentFile(scene_file).read(SceneDescription)
+    assert description.bundle_signature == publisher.info().bundle_signature
+
+
 def test_the_live_bundle_describes_the_free_objects_where_they_are(
     publisher, kitchen, locations
 ):

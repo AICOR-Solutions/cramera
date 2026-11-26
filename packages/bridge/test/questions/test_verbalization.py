@@ -46,11 +46,14 @@ def test_a_query_opens_with_how_its_backend_answers_it():
 
 def test_a_class_of_a_documented_package_links_to_its_page():
     reference = SourceReference(owner_type=Symbol)
-    link = PublishedDocumentation().resolve(reference)
+    link = PublishedDocumentation().resolve(reference=reference)
     assert link.startswith(f"{DOCUMENTATION_SITE}/{DocumentedPackage.KRROOD}")
 
 
 def test_a_class_of_any_other_package_has_no_link():
     assert (
-        PublishedDocumentation().resolve(SourceReference(owner_type=ShelfItem)) is None
+        PublishedDocumentation().resolve(
+            reference=SourceReference(owner_type=ShelfItem)
+        )
+        is None
     )

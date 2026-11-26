@@ -7,6 +7,7 @@
 
 import {
   BundleFile,
+  Capability,
   GraphViewKey,
   PresetCatalogKey,
   QueryAnswerKey,
@@ -14,6 +15,7 @@ import {
   RecordedAnswerKey,
   RecordedAnswersKey,
 } from '../../protocol.js';
+import { LiveQuestionsClient } from './live-questions-client.js';
 
 /**
  * What the recorded answers say about questions that were not recorded.
@@ -140,8 +142,9 @@ export class SceneSource {
 }
 
 /**
- * Chooses where a scene's questions are answered: by the plugin's routes where they
- * answer, otherwise from the scene's recorded answers.
+ * Chooses where a scene's questions are answered: by the live publisher while its
+ * world is the scene shown, else by the plugin's routes where they answer, otherwise
+ * from the scene's recorded answers.
  */
 export class AnswerSources {
   /**
@@ -157,23 +160,39 @@ export class AnswerSources {
   #recorded;
 
   /**
+   * Answers the session following a live publisher, or null while none is followed.
+   * @type {function(): (import('../../live/live-session.js').LiveSession|null)}
+   */
+  #live;
+
+  /**
    * @param {import('./questions-client.js').QuestionsClient|null} server The plugin's
    *   routes, or null where the viewer is served without them.
    * @param {RecordedAnswersClient} recorded The recorded answers.
+   * @param {function(): (import('../../live/live-session.js').LiveSession|null)} live
+   *   Answers the session following a live publisher, or null while none is followed.
    */
-  constructor(server, recorded) {
+  constructor(server, recorded, live = () => null) {
     this.#server = server;
     this.#recorded = recorded;
+    this.#live = live;
   }
 
   /**
    * @param {string} scene A bundle name.
    * @param {AbortSignal=} signal Cancels the request when another scene is shown.
-   * @returns {Promise<SceneSource>} The routes when they list the scene's questions,
+   * @returns {Promise<SceneSource>} The live publisher when the scene is its world and
+   *   it lists its questions, else the routes when they list the scene's questions,
    *   else the recorded answers when the scene has them, else the routes' failure.
    */
   async forScene(scene, signal) {
     const failure = (error) => ({ [PresetCatalogKey.OK]: false, [PresetCatalogKey.ERROR]: error.message });
+    const session = this.#live();
+    if (session?.scene === scene && session.offers(Capability.QUESTIONS)) {
+      const live = new LiveQuestionsClient(session.client, this.#server);
+      const catalog = await live.presets(scene, signal).catch(failure);
+      if (catalog[PresetCatalogKey.OK] !== false) return new SceneSource(live, catalog, null);
+    }
     const served = this.#server ? await this.#server.presets(scene, signal).catch(failure) : null;
     if (served && served[PresetCatalogKey.OK] !== false) return new SceneSource(this.#server, served, null);
     const recorded = await this.#recorded.recorded(scene);

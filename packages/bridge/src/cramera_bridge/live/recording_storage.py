@@ -26,6 +26,7 @@ from cramera_bridge.exceptions import (
 from cramera_bridge.export.scene_index import SceneIndexFile
 from cramera_bridge.live.bundles import BundleDirectory
 from cramera_bridge.live.recording import FrameRange
+from cramera_bridge.scenes.world_history import WorldHistory
 from cramera_bridge.live.segments import (
     DetectedEventClipping,
     PlanNodeClipping,
@@ -182,7 +183,7 @@ class SavedBundle:
 
     def rewrite(self, name: str, request: RecordingSaveRequest) -> SceneDescription:
         """
-        Trim the copy's trajectory, statecharts, segments, plan steps and detected
+        Trim the copy's trajectory, world history, statecharts, segments, plan steps and detected
         events to the kept frames, and name it.
 
         :param name: The saved name.
@@ -208,6 +209,11 @@ class SavedBundle:
             statecharts_file.write(statecharts)
         scene_file = DocumentFile(self.directory / BundleFile.SCENE)
         scene = scene_file.read(SceneDescription)
+        if scene.world_history is not None:
+            history_path = self.directory / scene.world_history
+            history = WorldHistory.read(history_path)
+            if history is not None:
+                history.trimmed(kept).write(history_path)
         first_poses = trajectory.objects[0] if trajectory.objects else {}
         scene = replace(
             scene,

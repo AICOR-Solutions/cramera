@@ -28,7 +28,7 @@ from cramera_protocol.bundle.scene import SceneDescription
 from cramera_protocol.live import LiveInfo, LiveRoute
 from cramera_protocol.live_messages import LivePlan
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 from .conftest import LIVE_DATASET
@@ -77,7 +77,7 @@ def test_a_started_visualization_serves_and_records(kitchen, locations, small_pl
     with urllib.request.urlopen(started.url() + LiveRoute.INFO) as answer:
         info = LiveInfo.from_json(json.loads(answer.read()))
     progress = started.progress()
-    small_plan.set(small_plan.root, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.root, LifeCycleValue.RUNNING)
     progress.after_compile(small_plan.executor)
     for step in range(3):
         kitchen.milk_connection.origin = HomogeneousTransformationMatrix.from_xyz_rpy(

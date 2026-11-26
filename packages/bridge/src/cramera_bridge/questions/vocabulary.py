@@ -6,6 +6,9 @@ namespace holds, and the members that follow a name's dot.
 from __future__ import annotations
 
 import inspect
+import sys
+import types
+import typing
 from dataclasses import dataclass, field
 
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
@@ -21,6 +24,12 @@ PRIVATE_PREFIX = "_"
 """
 The prefix of the members a query box does not offer.
 """
+
+MEMBER_SEPARATOR = "."
+"""
+Separates the members of a path such as ``body.global_pose``.
+"""
+
 
 # %% vocabulary
 
@@ -63,11 +72,17 @@ class QueryVocabulary:
 
     def members_of(self, name: str) -> List[VocabularyEntry]:
         """
-        :param name: A type's name or a variable's.
-        :return: Fields, then properties, then methods of the type, each name once.
-        :raises UnknownVocabularyName: When no type of that name is in reach.
+        :param name: A type's name or a variable's, optionally followed by members, such
+            as ``body.global_pose``.
+        :return: Fields, then properties, then methods of the type the name or its last
+            member has, each name once.
+        :raises UnknownVocabularyName: When no type of that name is in reach, or a member
+            of the path has no type a query box can follow.
         """
-        owner = self.type_named(name)
+        root, *path = name.split(MEMBER_SEPARATOR)
+        owner = self.type_named(root)
+        for member in path:
+            owner = None if owner is None else self.member_type(owner, member)
         if owner is None:
             raise UnknownVocabularyName(name)
         members: Dict[str, VocabularyEntry] = {}
@@ -177,6 +192,101 @@ class QueryVocabulary:
         resolved = self.class_index.resolve(name)
         return resolved if isinstance(resolved, type) else None
 
+    def member_type(self, owner: type, member: str) -> Optional[type]:
+        """
+        :param owner: A type.
+        :param member: The name of one of its fields or properties.
+        :return: The class the member's annotation names, read through ``Optional`` and
+            a type variable's bound, or None when it names no class.
+        """
+        attribute = inspect.getattr_static(owner, member, None)
+        if isinstance(attribute, property):
+            function = attribute.fget
+            return self.class_of(
+                getattr(function, "__annotations__", {}).get("return"),
+                sys.modules.get(function.__module__),
+            )
+        for declaring_type in inspect.getmro(owner):
+            annotations = vars(declaring_type).get("__annotations__", {})
+            if member in annotations:
+                annotation = annotations[member]
+                module = sys.modules.get(declaring_type.__module__)
+                if isinstance(annotation, str):
+                    annotation = (
+                        vars(module).get(annotation, annotation)
+                        if module
+                        else annotation
+                    )
+                if isinstance(annotation, typing.TypeVar):
+                    annotation = self.type_argument(owner, annotation) or annotation
+                return self.class_of(annotation, module)
+        return None
+
+    @staticmethod
+    def type_argument(owner: type, parameter: typing.TypeVar) -> Optional[Any]:
+        """
+        :param owner: A class whose bases may fill in type parameters, such as
+            ``class Arm(HasEndEffector[EndEffector])``.
+        :param parameter: A type parameter of one of its bases.
+        :return: The type the nearest base fills it with, or None where none does.
+        """
+        for declaring_type in inspect.getmro(owner):
+            for base in getattr(declaring_type, "__orig_bases__", ()):
+                origin = typing.get_origin(base)
+                parameters = getattr(origin, "__parameters__", ())
+                if parameter in parameters:
+                    argument = typing.get_args(base)[parameters.index(parameter)]
+                    if not isinstance(argument, typing.TypeVar):
+                        return argument
+        return None
+
+    def class_of(
+        self, annotation: Any, module: Optional[types.ModuleType]
+    ) -> Optional[type]:
+        """
+        :param annotation: A type annotation.
+        :param module: The module the annotation was written in, whose names an
+            annotation written as text uses.
+        :return: The class it names: an optional value's class, a type variable's
+            bound, a generic's origin, a name written as text or as a forward
+            reference resolved in its module
+            else through the workspace classes; None for a union of several classes or
+            no class.
+        """
+        if isinstance(annotation, typing.ForwardRef):
+            return self.class_written(annotation.__forward_arg__, module)
+        if isinstance(annotation, str):
+            return self.class_written(annotation, module)
+        if isinstance(annotation, typing.TypeVar):
+            return self.class_of(annotation.__bound__, module)
+        arguments = [
+            argument
+            for argument in typing.get_args(annotation)
+            if argument is not type(None)
+        ]
+        origin = typing.get_origin(annotation)
+        if origin in (typing.Union, types.UnionType):
+            return self.class_of(arguments[0], module) if len(arguments) == 1 else None
+        if origin is not None:
+            return origin if isinstance(origin, type) else None
+        return annotation if isinstance(annotation, type) else None
+
+    def class_written(
+        self, text: str, module: Optional[types.ModuleType]
+    ) -> Optional[type]:
+        """
+        :param text: An annotation written as text, such as ``Optional[Body]``.
+        :param module: The module it was written in.
+        :return: The class it names, evaluated among the module's names, else the class
+            of that name in reach of a query.
+        """
+        namespace = {**vars(typing), **(vars(module) if module else {})}
+        try:
+            evaluated = eval(text, namespace)
+        except Exception:
+            return self.type_named(text.strip("'\""))
+        return self.class_of(evaluated, module)
+
     @staticmethod
     def fields_of(owner: type) -> List[VocabularyEntry]:
         """
@@ -191,7 +301,7 @@ class QueryVocabulary:
                 module=owner.__module__,
                 type_name=owner.__name__,
             )
-            for discovered in DataclassOnlyIntrospector().discover(owner)
+            for discovered in DataclassOnlyIntrospector().discover(owner_cls=owner)
         ]
 
     def declared_members(

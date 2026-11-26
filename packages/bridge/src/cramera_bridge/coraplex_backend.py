@@ -64,7 +64,7 @@ class CrameraVisualization(WorldVisualization, TickingExecutorExtension):
     def is_rendering(self) -> bool:
         return self.live is not None and self.live.publisher is not None
 
-    def _start(self, world: World, cleanup: ExitStack) -> None:
+    def _start(self, *, world: World, cleanup: ExitStack) -> None:
         self.live = self.factory(world=world).start()
         cleanup.callback(self._stop_live)
 
@@ -85,35 +85,35 @@ class CrameraVisualization(WorldVisualization, TickingExecutorExtension):
         """
         return self.is_rendering and self.live.world is executor.context.world
 
-    def after_compile(self, executor: Executor) -> None:
+    def after_compile(self, *, executor: Executor) -> None:
         """
         Start serving the executor's world unless it is served already, and publish the
         plan it compiled.
         """
-        self.start(executor.context.world)
+        self.start(world=executor.context.world)
         if not self.shows(executor) or not isinstance(executor, PlanExecutor):
             return
         self.progress = self.live.progress()
-        self.progress.after_compile(executor)
+        self.progress.after_compile(executor=executor)
 
-    def after_recompile(self, executor: StatechartExecutor) -> None:
+    def after_recompile(self, *, executor: StatechartExecutor) -> None:
         """
         Publishes nothing again: the plan is read from the statechart, which keeps the
         nodes it held.
         """
 
-    def after_tick(self, executor: StatechartExecutor) -> None:
+    def after_tick(self, *, executor: StatechartExecutor) -> None:
         if self.progress is not None and self.shows(executor):
-            self.progress.after_tick(executor)
+            self.progress.after_tick(executor=executor)
 
-    def after_run(self, executor: Executor) -> None:
+    def after_run(self, *, executor: Executor) -> None:
         """
         Publish the state the plan left, then stop serving the world if this extension
         started serving it, which writes the recording with that state.
         """
         if self.progress is not None and self.shows(executor):
-            self.progress.after_run(executor)
-        super().after_run(executor)
+            self.progress.after_run(executor=executor)
+        super().after_run(executor=executor)
 
 
 # %% registration

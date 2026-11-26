@@ -45,6 +45,15 @@ from cramera_bridge.questions.recorded.urdf import UrdfStructure
 from cramera_bridge.questions.replay import FrameTimeline
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 
+PAUSED_WORLD_HINT = (
+    "Choose Paused World next to Ask to name any CRAM class, such as Body, as the "
+    "world is at the shown frame."
+)
+"""
+Where a class of CRAM is asked about a recorded scene, said when a query asks the
+recording's own summary for one.
+"""
+
 RECORDED_PRECISION = 3
 """
 Decimal places of a recorded position, duration or joint value.
@@ -257,19 +266,44 @@ class RecordedKnowledge:
         :param scene: The scene description.
         :return: The free objects at their spawn positions.
         """
-        return [
-            RecordedObject(
-                name=entry.identifier,
-                key=entry.key,
-                height_metres=entry.height,
-                position=Position(
-                    round(entry.spawn.x, RECORDED_PRECISION),
-                    round(entry.spawn.y, RECORDED_PRECISION),
-                    round(entry.spawn.z, RECORDED_PRECISION),
-                ),
+        objects = []
+        for entry in scene.objects:
+            spawn = Position(
+                round(entry.spawn.x, RECORDED_PRECISION),
+                round(entry.spawn.y, RECORDED_PRECISION),
+                round(entry.spawn.z, RECORDED_PRECISION),
             )
-            for entry in scene.objects
-        ]
+            objects.append(
+                RecordedObject(
+                    name=entry.identifier,
+                    key=entry.key,
+                    height_metres=entry.height,
+                    spawn_position=spawn,
+                    position=spawn,
+                )
+            )
+        return objects
+
+    def show(self, frame: Optional[int]) -> None:
+        """
+        Move each free object's position to where the recording has it at a frame.
+
+        :param frame: A frame of the recording, clamped to its ends, or None for the
+            spawn positions.
+        """
+        trajectory = self.bundle.trajectory
+        poses = [] if trajectory is None else trajectory.objects
+        for recorded_object in self.objects:
+            recorded_object.position = recorded_object.spawn_position
+            if frame is None or not poses:
+                continue
+            pose = poses[min(max(frame, 0), len(poses) - 1)].get(recorded_object.key)
+            if pose is not None:
+                recorded_object.position = Position(
+                    round(pose.x, RECORDED_PRECISION),
+                    round(pose.y, RECORDED_PRECISION),
+                    round(pose.z, RECORDED_PRECISION),
+                )
 
     def read_robot(self, robot: RobotDescription) -> None:
         """
@@ -437,6 +471,7 @@ class RecordedKnowledge:
                 QueryDomain(QueryVariable.JOINT, JointMotion, self.joints),
                 QueryDomain(QueryVariable.PLAN_NODE, RecordedPlanNode, self.plan_nodes),
             ],
+            elsewhere_hint=PAUSED_WORLD_HINT,
         )
         if not self.events:
             return [current]
@@ -469,6 +504,22 @@ class RecordedKnowledge:
         robot_questions = RobotQuestions(len(self.robots())).presets()
         return (robot_questions if self.robot else []) + self.event_questions().listed()
 
+    def part_links(self) -> Dict[str, List[str]]:
+        """
+        :return: The viewer keys of the links of the robot and of each of its parts,
+            without the robot's base body, which every part's chain starts from.
+        """
+        robot = self.bundle.scene.robot
+        if robot is None:
+            return {}
+        prefix = f"{robot.prefix}/" if robot.prefix else ""
+        parts = {
+            part: [f"{prefix}{link}" for link in links if link != robot.base_body]
+            for part, links in robot.parts.items()
+        }
+        parts[robot.name] = [link for links in parts.values() for link in links]
+        return parts
+
     def desk(self, class_index: WorkspaceClassIndex) -> QuestionDesk:
         """
         :param class_index: The workspace classes a query may name.
@@ -483,6 +534,7 @@ class RecordedKnowledge:
             highlight_keys=EntityNameKeys(
                 keys_by_name={entity.name: entity.key for entity in self.objects},
                 known_keys=frozenset(entity.key for entity in self.objects),
+                links_by_name=self.part_links(),
             ),
             class_index=class_index,
             timeline=FrameTimeline.of_trajectory(self.bundle.trajectory),

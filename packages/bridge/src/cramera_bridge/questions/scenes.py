@@ -15,6 +15,12 @@ from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.graph.views import GraphViews
 from cramera_bridge.questions.recorded.bundle import BundleReader, RecordedBundle
 from cramera_bridge.questions.recorded.knowledge_base import RecordedKnowledge
+from cramera_bridge.questions.live import WorldVariable
+from cramera_bridge.questions.recorded.paused_world import (
+    EpisodeVariable,
+    PausedWorldDesks,
+)
+from cramera_bridge.questions.recorded.replayed_world import ReplayedWorldDesks
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_protocol.questions import (
     GraphView,
@@ -25,6 +31,7 @@ from cramera_protocol.questions import (
     QueryScope,
     QuestionMatch,
     QuestionRequest,
+    ScopeDescription,
     Vocabulary,
 )
 
@@ -51,6 +58,20 @@ class SceneQuestions:
     """
     The desk answering questions about the scene.
     """
+
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    """
+    Keeps one question at a time moving the scene's objects to its frame.
+    """
+
+    def answer_query(self, request: QueryRequest) -> QueryAnswer:
+        """
+        :param request: A query and the frame it is asked at.
+        :return: Its answer, with the free objects where they are at that frame.
+        """
+        with self.lock:
+            self.knowledge.show(request.frame)
+            return self.desk.answer_query(request)
 
 
 @dataclass
@@ -113,6 +134,17 @@ class RecordedSceneQuestions:
     The questions of each scene.
     """
 
+    paused_worlds: PausedWorldDesks
+    """
+    The desks answering questions about a scene rebuilt as a world at a frame.
+    """
+
+    recorded_worlds: Optional[ReplayedWorldDesks] = None
+    """
+    The desks answering questions about a scene in the very world it was recorded in,
+    for scenes that keep it; None asks every scene through its recorded knowledge.
+    """
+
     graph_views: GraphViews = field(default_factory=GraphViews)
     """
     Builds the graph views.
@@ -130,14 +162,61 @@ class RecordedSceneQuestions:
         """
         if class_index is None:
             class_index = WorkspaceClassIndex.of_installed_packages()
-        return cls(SceneQuestionCache(catalog, class_index))
+        cache = SceneQuestionCache(catalog, class_index)
+        return cls(
+            cache,
+            PausedWorldDesks(
+                catalog,
+                class_index,
+                lambda scene: cache.of_scene(scene).knowledge,
+            ),
+            ReplayedWorldDesks(catalog, class_index),
+        )
+
+    def keeps_world(self, scene: str) -> bool:
+        """
+        :param scene: A bundle name.
+        :return: Whether the scene is asked about in the world it was recorded in, with
+            the classes, instances and presets its live run answered with.
+        """
+        return self.recorded_worlds is not None and self.recorded_worlds.offers(scene)
 
     def preset_catalog(self, scene: str) -> PresetCatalog:
         """
         :param scene: A bundle name.
         :return: The scene's ready-made questions.
         """
-        return self.cache.of_scene(scene).desk.preset_catalog()
+        if self.keeps_world(scene):
+            return self.recorded_worlds.of_scene(scene).preset_catalog()
+        catalog = self.cache.of_scene(scene).desk.preset_catalog()
+        if self.paused_worlds.offers(scene):
+            self.paused_worlds.warm_up(scene)
+            catalog.scopes.append(self.paused_world_scope())
+        return catalog
+
+    @staticmethod
+    def paused_world_scope() -> ScopeDescription:
+        """
+        :return: The paused world as a body of knowledge.
+        """
+        return ScopeDescription(
+            name=QueryScope.PAUSED_WORLD,
+            label="Paused World (any CRAM class, at the shown frame)",
+            variables=[variable.value for variable in WorldVariable]
+            + [variable.value for variable in EpisodeVariable],
+        )
+
+    def desk_of(self, scene: str, scope: QueryScope):
+        """
+        :param scene: A bundle name.
+        :param scope: A body of knowledge.
+        :return: The desk answering questions of that body of knowledge.
+        """
+        if self.keeps_world(scene):
+            return self.recorded_worlds.of_scene(scene)
+        if scope is QueryScope.PAUSED_WORLD:
+            return self.paused_worlds.of_scene(scene).desk
+        return self.cache.of_scene(scene).desk
 
     def vocabulary(self, scene: str, scope: QueryScope) -> Vocabulary:
         """
@@ -145,7 +224,7 @@ class RecordedSceneQuestions:
         :param scope: A body of knowledge.
         :return: The names a query of it may use.
         """
-        return self.cache.of_scene(scene).desk.vocabulary(scope)
+        return self.desk_of(scene, scope).vocabulary(scope)
 
     def members(self, scene: str, scope: QueryScope, name: str) -> Members:
         """
@@ -154,7 +233,7 @@ class RecordedSceneQuestions:
         :param name: A type's name or a variable's.
         :return: The members that may follow the name's dot.
         """
-        return self.cache.of_scene(scene).desk.members(scope, name)
+        return self.desk_of(scene, scope).members(scope, name)
 
     def graph_view(self, scene: str, view: str) -> GraphView:
         """
@@ -170,7 +249,11 @@ class RecordedSceneQuestions:
         :param request: A query.
         :return: Its answer.
         """
-        return self.cache.of_scene(scene).desk.answer_query(request)
+        if self.keeps_world(scene):
+            return self.recorded_worlds.of_scene(scene).answer_query(request)
+        if request.scope is QueryScope.PAUSED_WORLD:
+            return self.paused_worlds.of_scene(scene).answer_query(request)
+        return self.cache.of_scene(scene).answer_query(request)
 
     def answer_question(self, scene: str, request: QuestionRequest) -> QuestionMatch:
         """
@@ -178,4 +261,6 @@ class RecordedSceneQuestions:
         :param request: A plain-language question.
         :return: The ready-made question it asks, or the reply that none does.
         """
+        if self.keeps_world(scene):
+            return self.recorded_worlds.of_scene(scene).answer_question(request)
         return self.cache.of_scene(scene).desk.answer_question(request)

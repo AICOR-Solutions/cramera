@@ -490,7 +490,7 @@ class QueryStepper:
         return [
             node
             for statechart in self.statecharts
-            for node in statechart.get_nodes_by_type(StatementNode)
+            for node in statechart.get_nodes_by_type(node_type=StatementNode)
             if node.statement is open_part
         ]
 
@@ -559,7 +559,7 @@ class ActionProgress(TickingExecutorExtension):
     The newest state of the statechart whose changes were followed.
     """
 
-    def after_compile(self, executor: Executor) -> None:
+    def after_compile(self, *, executor: Executor) -> None:
         """
         Follow the plan the executor compiled, from the nodes its first tick started.
         """
@@ -567,12 +567,12 @@ class ActionProgress(TickingExecutorExtension):
             self.stepper.statecharts.append(executor.statechart)
         self.follow(executor)
 
-    def after_recompile(self, executor: StatechartExecutor) -> None:
+    def after_recompile(self, *, executor: StatechartExecutor) -> None:
         """
         Follows nothing new: the statechart keeps the nodes it held.
         """
 
-    def after_tick(self, executor: StatechartExecutor) -> None:
+    def after_tick(self, *, executor: StatechartExecutor) -> None:
         self.follow(executor)
 
     def follow(self, executor: Executor) -> None:

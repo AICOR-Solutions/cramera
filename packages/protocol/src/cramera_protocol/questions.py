@@ -40,6 +40,12 @@ class QueryScope(StrEnum):
     What finished runs recorded of themselves.
     """
 
+    PAUSED_WORLD = "paused_world"
+    """
+    The recorded scene rebuilt as a CRAM world, its robot and objects where they were at
+    the frame the viewer shows.
+    """
+
 
 class QuestionsRoute(StrEnum):
     """
@@ -126,6 +132,11 @@ class QueryRequestKey(StrEnum):
     The bundle asked about.
     """
 
+    FRAME = "frame"
+    """
+    The frame of the recording the viewer shows.
+    """
+
 
 @dataclass(kw_only=True)
 class QueryRequest(JsonDocument):
@@ -148,6 +159,12 @@ class QueryRequest(JsonDocument):
     scene: Optional[str] = document_field(QueryRequestKey.SCENE, default=None)
     """
     The bundle asked about; live publishers answer about their own world.
+    """
+
+    frame: Optional[int] = document_field(QueryRequestKey.FRAME, default=None)
+    """
+    The frame of the recording the viewer shows, which a question about the paused
+    world is asked at; None asks at the first frame.
     """
 
 

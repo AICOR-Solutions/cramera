@@ -7,6 +7,7 @@
 
 import {
   PresetCatalogKey,
+  QueryScope,
   PresetKey,
   QueryAnswerKey,
   QuestionMatchKey,
@@ -16,6 +17,7 @@ import {
   ViewerEvent,
 } from '../../protocol.js';
 import { AnswerView } from './answer-view.js';
+import { QueryCompletion } from './query-completion.js';
 
 /**
  * What the panel says while nothing was asked yet.
@@ -28,10 +30,27 @@ export const Hint = Object.freeze({
 });
 
 /**
+ * The scope whose questions are asked of the world at the shown frame.
+ */
+export const PAUSED_WORLD_SCOPE = QueryScope.PAUSED_WORLD;
+
+/**
+ * The scopes a recorded scene answers about its world as it stands at the shown frame:
+ * the paused world rebuilt from the bundle, and the recorded world itself.
+ */
+export const WORLD_AT_FRAME_SCOPES = Object.freeze([PAUSED_WORLD_SCOPE, QueryScope.CURRENT_STATE]);
+
+/**
+ * What the panel says of the moment a query about the running process is asked at.
+ */
+export const RUNNING_MOMENT = 'Asked of the running world itself — the program is held still while the query is answered.';
+
+/**
  * What the status in the card's head says.
  */
 export const Status = Object.freeze({
   LIVE: 'EQL ready',
+  RUNNING: 'EQL · running world',
   LOADING: 'loading…',
   UNAVAILABLE: 'EQL unavailable',
 });
@@ -112,6 +131,25 @@ export class QuestionsPanel {
   #answer;
 
   /**
+   * The hints shown while a query is written.
+   * @type {QueryCompletion}
+   */
+  #completion;
+
+  /**
+   * The frame of the recording the viewer shows, which questions about the paused
+   * world are asked at.
+   * @type {number}
+   */
+  #frame = 0;
+
+  /**
+   * Says which frame a question about the paused world is asked at.
+   * @type {HTMLElement}
+   */
+  #moment;
+
+  /**
    * @param {Document} document The page.
    * @param {import('../../core/event-bus.js').EventBus} bus The application's event bus.
    */
@@ -129,14 +167,18 @@ export class QuestionsPanel {
     const code = document.createElement('textarea');
     code.rows = 2;
     code.spellcheck = false;
-    code.placeholder = 'the(entity(robot))';
+    code.placeholder = 'an(Arm)  ·  hints while you type · Ctrl+Space lists names · Ctrl+Enter runs';
     code.setAttribute('aria-label', 'Query in the entity query language');
     const run = document.createElement('button');
     run.type = 'button';
     run.className = 'run';
     run.textContent = 'Run';
     run.addEventListener('click', () => this.run(code.value, this.#scope.value));
-    bar.append(code, run);
+    const field = document.createElement('div');
+    field.className = 'query-field';
+    this.#completion = new QueryCompletion(code, () => this.run(code.value, this.#scope.value));
+    field.append(code, this.#completion.element);
+    bar.append(field, run);
     this.#code = { input: code, button: run };
     const ask = document.createElement('form');
     ask.className = 'ask';
@@ -148,13 +190,20 @@ export class QuestionsPanel {
     askButton.textContent = 'Ask';
     this.#scope = document.createElement('select');
     this.#scope.setAttribute('aria-label', 'Query scope');
+    this.#scope.addEventListener('change', () => this.#useScope());
     ask.append(question, this.#scope, askButton);
     ask.addEventListener('submit', (event) => {
       event.preventDefault();
       this.ask(question.value);
     });
     this.#question = { input: question, button: askButton };
-    box.append(bar, ask);
+    this.#moment = document.createElement('p');
+    this.#moment.className = 'query-moment';
+    box.append(bar, this.#moment, ask);
+    bus.subscribe(ViewerEvent.FRAME_CHANGED, (frame) => {
+      this.#frame = frame;
+      this.#showMoment();
+    });
     const body = document.createElement('div');
     body.className = 'console-body';
     this.#reading = document.createElement('p');
@@ -193,9 +242,41 @@ export class QuestionsPanel {
       this.#answer.message(catalog[PresetCatalogKey.ERROR] ?? 'This scene cannot be asked.', true);
       return;
     }
-    this.status.textContent = readOnly ? `recorded answers · ${source.recordedAt ?? ''}`.trim() : Status.LIVE;
+    const running = source.client.live === true;
+    this.status.textContent = readOnly ? `recorded answers · ${source.recordedAt ?? ''}`.trim() : running ? Status.RUNNING : Status.LIVE;
     this.#showScopes(catalog[PresetCatalogKey.SCOPES] ?? []);
-    this.#showPresets(catalog[PresetCatalogKey.PRESETS] ?? [], readOnly);
+    this.#showPresets(catalog[PresetCatalogKey.PRESETS] ?? [], readOnly, running);
+    this.#useScope();
+  }
+
+  /**
+   * Offer the names of the chosen scope while a query is written.
+   */
+  #useScope() {
+    const client = this.#client;
+    const scene = this.#scene;
+    const scope = this.#scope.value;
+    const readOnly = !client || client.readOnly || !client.vocabulary;
+    this.#completion.useSource(readOnly ? null : {
+      vocabulary: () => client.vocabulary(scene, scope),
+      members: (name) => client.members(scene, scope, name),
+    });
+    this.#showMoment();
+  }
+
+  /**
+   * Say which frame a question is asked at: the paused world stands as it is at it, and
+   * the recording's own objects are where they are at it.
+   */
+  #showMoment() {
+    if (this.#client?.live) {
+      this.#moment.textContent = RUNNING_MOMENT;
+      return;
+    }
+    const paused = WORLD_AT_FRAME_SCOPES.includes(this.#scope.value);
+    this.#moment.textContent = paused
+      ? `Asked of the world as it is at frame ${this.#frame} — pause anywhere and ask.`
+      : `Objects' positions are read at frame ${this.#frame}; their spawn_position is where they started.`;
   }
 
   /**
@@ -225,10 +306,14 @@ export class QuestionsPanel {
   async run(code, scope, reading = null) {
     if (!this.#scene || !code.trim()) return;
     this.#code.input.value = code;
-    this.#scope.value = scope;
+    if (this.#scope.value !== scope) {
+      this.#scope.value = scope;
+      this.#useScope();
+    }
     this.#showReading(reading);
     this.#answer.message('Answering…');
-    const answer = await this.#client.query(this.#scene, code, scope).catch((error) => ({ [QueryAnswerKey.OK]: false, [QueryAnswerKey.ERROR]: error.message }));
+    const frame = this.#frame;
+    const answer = await this.#client.query(this.#scene, code, scope, frame).catch((error) => ({ [QueryAnswerKey.OK]: false, [QueryAnswerKey.ERROR]: error.message }));
     this.#showReading(answer[QueryAnswerKey.VERBALIZATION] ?? reading);
     this.#answer.show(answer);
     this.#bus.publish(ViewerEvent.ENTITY_HIGHLIGHTED, answer[QueryAnswerKey.HIGHLIGHT] ?? []);
@@ -273,11 +358,13 @@ export class QuestionsPanel {
    * @param {Array<Object>} presets The ready-made questions.
    * @param {boolean} readOnly Whether the answers are recorded, so questions about a
    *   live run cannot be asked.
+   * @param {boolean} running Whether the running process answers, so the questions
+   *   that need it can be asked.
    */
-  #showPresets(presets, readOnly) {
+  #showPresets(presets, readOnly, running = false) {
     const document = this.element.ownerDocument;
     const buttons = presets
-      .filter((preset) => !preset[PresetKey.REQUIRES_LIVE])
+      .filter((preset) => running || !preset[PresetKey.REQUIRES_LIVE])
       .map((preset) => {
         const button = document.createElement('button');
         button.type = 'button';

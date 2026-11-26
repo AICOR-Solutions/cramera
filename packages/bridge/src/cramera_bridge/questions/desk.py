@@ -189,6 +189,7 @@ class QuestionDesk:
             evaluation=knowledge.evaluation,
             class_index=self.class_index,
             verbalizer=self.verbalizer,
+            elsewhere_hint=knowledge.elsewhere_hint,
         )
 
     def vocabulary_of(self, scope: QueryScope) -> QueryVocabulary:
