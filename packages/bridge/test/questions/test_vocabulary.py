@@ -4,7 +4,10 @@ The names a query box offers.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import pytest
+from typing_extensions import Generic, Optional, TypeVar
 
 from cramera_protocol.questions import VocabularyKind
 from cramera_bridge.questions.entity import NamedEntity
@@ -79,6 +82,57 @@ def test_a_value_and_a_class_name_have_members():
 def test_an_unknown_name_has_no_members():
     with pytest.raises(UnknownVocabularyName):
         VOCABULARY.members_of("nothing")
+
+
+# %% member paths
+
+TGrip = TypeVar("TGrip")
+
+
+@dataclass
+class Fingertip:
+    width: float
+
+
+@dataclass
+class Gripper:
+    tip: Optional[Fingertip]
+
+
+@dataclass
+class HoldsGripper(Generic[TGrip]):
+    gripper: TGrip
+
+
+@dataclass
+class Hand(HoldsGripper[Gripper]):
+    label: str
+
+    @property
+    def spare(self) -> "Gripper":
+        return self.gripper
+
+
+PATHS = QueryVocabulary(domains=[QueryDomain("hand", Hand, [])])
+
+
+@pytest.mark.parametrize(
+    "path, member",
+    [
+        ("hand.gripper", "tip"),
+        ("hand.gripper.tip", "width"),
+        ("hand.spare.tip", "width"),
+        ("Hand.gripper", "tip"),
+    ],
+)
+def test_the_members_of_a_path_are_those_of_its_last_member_s_type(path, member):
+    assert member in [entry.name for entry in PATHS.members_of(path)]
+
+
+@pytest.mark.parametrize("path", ["hand.nothing", "hand.gripper.tip.nothing", "x.y"])
+def test_a_path_through_an_unknown_member_has_no_members(path):
+    with pytest.raises(UnknownVocabularyName):
+        PATHS.members_of(path)
 
 
 def test_properties_are_described_without_running_them():

@@ -25,7 +25,23 @@ const KIND_BADGE = Object.freeze({ variable: 'var', factory: 'fn', entity_type: 
  * The word being written, and what it follows.
  */
 const WORD_BEFORE_CURSOR = /([A-Za-z_][\w]*)?$/;
-const MEMBER_BEFORE_CURSOR = /([A-Za-z_][\w]*)\.([A-Za-z_]\w*)?$/;
+const MEMBER_BEFORE_CURSOR = /([A-Za-z_][\w]*|\))\.([A-Za-z_]\w*)?$/;
+
+/**
+ * A pattern or reference a member path starts from: `a(Body)`, `an(entity(body))` or
+ * `entity(body)`, with the class or variable it names.
+ */
+const PATTERN_ROOT = /\b(?:a|an|the|entity|variable|every_is|none_is)\(\s*(?:entity\(\s*)?([A-Za-z_]\w*)\s*\)?\s*\)$/;
+
+/**
+ * The member path that ends where a dot is written: a name or a pattern, then members.
+ */
+const PATH_BEFORE_DOT = /((?:\b(?:a|an|the|entity|variable|every_is|none_is)\(\s*(?:entity\(\s*)?[A-Za-z_]\w*\s*\)?\s*\))|[A-Za-z_]\w*)((?:\.[A-Za-z_]\w*)*)$/;
+
+/**
+ * How many assignments a member path may be followed through, against a loop of them.
+ */
+const MAXIMUM_ASSIGNMENTS = 8;
 const PATTERN_FIELD_BEFORE_CURSOR = /\b(?:a|an|the|every_is|none_is|entity|variable)\(\s*([A-Z]\w*)\s*\)\(\s*(?:\w+\s*=\s*(?:[^,()]|\([^()]*\))*,\s*)*([A-Za-z_]\w*)?$/;
 
 export class QueryCompletion {
@@ -129,7 +145,7 @@ export class QueryCompletion {
     const member = MEMBER_BEFORE_CURSOR.exec(text);
     if (member) {
       const prefix = member[2] ?? '';
-      const owner = this.#ownerName(text.slice(0, text.length - prefix.length - 1), member[1]);
+      const owner = this.#ownerName(text.slice(0, text.length - prefix.length - 1), text);
       const members = await this.#membersOf(owner);
       return this.#ranked(members, prefix).map((entry) => ({ entry, start: text.length - prefix.length, insert: entry.name }));
     }
@@ -139,15 +155,37 @@ export class QueryCompletion {
   }
 
   /**
-   * The name whose members follow a dot: a pattern's class when the dot follows a
-   * pattern such as `a(Arm)`, else the word before the dot.
+   * The path whose members follow a dot, such as `body.global_pose`: its start is a
+   * name in reach, the class of a pattern such as `a(Arm)`, or what a variable the
+   * query assigns, such as `piece = a(Body)`, stands for.
    * @param {string} before The query up to the dot.
-   * @param {string} word The word before the dot.
-   * @returns {string} The name to ask the members of.
+   * @param {string} query The query, whose assignments name what a variable stands for.
+   * @param {number} depth How many assignments were followed so far.
+   * @returns {string} The path to ask the members of.
    */
-  #ownerName(before, word) {
-    const pattern = /\b(?:a|an|the|entity|variable)\(\s*([A-Z]\w*)\s*\)$/.exec(before);
-    return pattern ? pattern[1] : word;
+  #ownerName(before, query, depth = 0) {
+    const path = PATH_BEFORE_DOT.exec(before);
+    if (!path) return before.trim();
+    const [, start, members] = path;
+    const pattern = PATTERN_ROOT.exec(start);
+    if (pattern) return `${pattern[1]}${members}`;
+    const assigned = depth < MAXIMUM_ASSIGNMENTS ? this.#assignmentOf(start, query) : null;
+    if (assigned) return `${this.#ownerName(assigned, query, depth + 1)}${members}`;
+    return `${start}${members}`;
+  }
+
+  /**
+   * @param {string} name A variable the query may assign.
+   * @param {string} query The query.
+   * @returns {string|null} The expression its last assignment gives it, cut where
+   *   the pattern or path it starts with ends, or null when the query does not assign it.
+   */
+  #assignmentOf(name, query) {
+    const assignments = [...query.matchAll(new RegExp(`(?:^|\\n|;)\\s*${name}\\s*=(?!=)\\s*([^\\n;]+)`, 'g'))];
+    if (!assignments.length) return null;
+    const expression = assignments[assignments.length - 1][1];
+    const start = /^((?:(?:a|an|the|entity|variable|every_is|none_is)\(\s*(?:entity\(\s*)?[A-Za-z_]\w*\s*\)?\s*\))|[A-Za-z_]\w*)((?:\.[A-Za-z_]\w*)*)/.exec(expression);
+    return start && start[1] !== name ? start[0].replace(/\.(?:from_|where|order_by|limit|distinct)$/, '') : null;
   }
 
   /**
