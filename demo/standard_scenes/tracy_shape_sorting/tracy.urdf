@@ -5,12 +5,24 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/meshes/tracebot_setup_w_adapter_at_origin.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="meshes/recording/meshes-a470c3a2/tracebot_setup_w_adapter_at_origin.stl" scale="0.001 0.001 0.001" />
       </geometry>
-      <material name="">
-        <color rgba="1.0 1.0 1.0 1.0" />
+      <material name="tracy/table#0">
+        <color rgba="0.792157 0.819608 0.933333 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.59 0.0 -0.4275" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="1.18 1.6 0.855" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.13 0.0 0.125" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.2 0.2 0.25" />
+      </geometry>
+    </collision>
   </link>
   <joint name="world_root_to_tracy/table" type="fixed">
     <parent link="world_root" />
@@ -45,12 +57,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
       <geometry>
-        <mesh filename="meshes/recording/visual/base.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/base.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_base_link_inertia#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/base.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_base_link-base_link_inertia" type="fixed">
     <parent link="tracy/right_base_link" />
@@ -61,136 +79,184 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
       <geometry>
-        <mesh filename="meshes/recording/visual/shoulder.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/shoulder.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_shoulder_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/shoulder.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_shoulder_pan_joint" type="revolute">
     <parent link="tracy/right_base_link_inertia" />
     <child link="tracy/right_shoulder_link" />
     <origin xyz="0.0 0.0 0.1807" rpy="0.0 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.13333333333333333" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.133333" effort="0.0" />
   </joint>
   <link name="tracy/right_upper_arm_link">
     <visual>
       <origin xyz="0.0 0.0 0.1762" rpy="1.570796 0.0 -1.570796" />
       <geometry>
-        <mesh filename="meshes/recording/visual/upperarm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/upperarm.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_upper_arm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.1762" rpy="1.570796 0.0 -1.570796" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/upperarm.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_shoulder_lift_joint" type="revolute">
     <parent link="tracy/right_shoulder_link" />
     <child link="tracy/right_upper_arm_link" />
     <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.13333333333333333" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.133333" effort="0.0" />
   </joint>
   <link name="tracy/right_forearm_link">
     <visual>
       <origin xyz="0.0 0.0 0.0393" rpy="1.570796 0.0 -1.570796" />
       <geometry>
-        <mesh filename="meshes/recording/visual/forearm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/forearm.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_forearm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0393" rpy="1.570796 0.0 -1.570796" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/forearm.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_elbow_joint" type="revolute">
     <parent link="tracy/right_upper_arm_link" />
     <child link="tracy/right_forearm_link" />
     <origin xyz="-0.6127 0.0 0.0" rpy="0.0 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-3.141592653589793" upper="3.141592653589793" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-3.141593" upper="3.141593" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/right_wrist_1_link">
     <visual>
       <origin xyz="0.0 0.0 -0.135" rpy="1.570796 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/visual/wrist1.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/wrist1.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_wrist_1_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.135" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/wrist1.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_wrist_1_joint" type="revolute">
     <parent link="tracy/right_forearm_link" />
     <child link="tracy/right_wrist_1_link" />
     <origin xyz="-0.57155 0.0 0.17415" rpy="0.0 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/right_wrist_2_link">
     <visual>
       <origin xyz="0.0 0.0 -0.12" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/visual/wrist2.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/wrist2.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_wrist_2_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.12" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/wrist2.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_wrist_2_joint" type="revolute">
     <parent link="tracy/right_wrist_1_link" />
     <child link="tracy/right_wrist_2_link" />
     <origin xyz="0.0 -0.11985 -0.0" rpy="1.570796 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/right_wrist_3_link">
     <visual>
       <origin xyz="0.0 -0.0005 -0.1168" rpy="1.570796 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/visual/wrist3.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/wrist3.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_wrist_3_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 -0.0005 -0.1168" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/wrist3.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_wrist_3_joint" type="revolute">
     <parent link="tracy/right_wrist_2_link" />
     <child link="tracy/right_wrist_3_link" />
     <origin xyz="0.0 0.11655 -0.0" rpy="-1.570796 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/right_robotiq_85_base_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/robotiq_base.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/robotiq_base.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_base_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/robotiq_base.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_base_joint" type="fixed">
     <parent link="tracy/right_wrist_3_link" />
     <child link="tracy/right_robotiq_85_base_link" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="tracy/right_robotiq_85_right_inner_knuckle_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_inner_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_inner_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_right_inner_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_inner_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_right_inner_knuckle_joint" type="revolute">
     <parent link="tracy/right_robotiq_85_base_link" />
@@ -203,12 +269,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_inner_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_inner_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_left_inner_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_inner_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_left_inner_knuckle_joint" type="revolute">
     <parent link="tracy/right_robotiq_85_base_link" />
@@ -221,12 +293,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_right_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_right_knuckle_joint" type="revolute">
     <parent link="tracy/right_robotiq_85_base_link" />
@@ -239,12 +317,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_right_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_finger.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_right_finger_joint" type="fixed">
     <parent link="tracy/right_robotiq_85_right_knuckle_link" />
@@ -255,12 +339,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_right_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_finger_tip.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_right_finger_tip_joint" type="revolute">
     <parent link="tracy/right_robotiq_85_right_finger_link" />
@@ -279,12 +369,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_left_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_left_knuckle_joint" type="revolute">
     <parent link="tracy/right_robotiq_85_base_link" />
@@ -297,12 +393,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_left_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_finger.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_left_finger_joint" type="fixed">
     <parent link="tracy/right_robotiq_85_left_knuckle_link" />
@@ -313,12 +415,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/right_robotiq_85_left_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_finger_tip.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/right_robotiq_85_left_finger_tip_joint" type="revolute">
     <parent link="tracy/right_robotiq_85_left_finger_link" />
@@ -331,19 +439,19 @@
   <joint name="tracy/right_wrist_3-flange" type="fixed">
     <parent link="tracy/right_wrist_3_link" />
     <child link="tracy/right_flange" />
-    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 -1.570796 0.0" />
+    <origin xyz="0.0 -0.0 0.0" rpy="-1.570796 -1.570796 0.0" />
   </joint>
   <link name="tracy/right_tool0" />
   <joint name="tracy/right_flange-tool0" type="fixed">
     <parent link="tracy/right_flange" />
     <child link="tracy/right_tool0" />
-    <origin xyz="0.0 0.0 0.0" rpy="1.570796 -0.0 1.570796" />
+    <origin xyz="0.0 0.0 -0.0" rpy="1.570796 0.0 1.570796" />
   </joint>
   <link name="tracy/right_ft_frame" />
   <joint name="tracy/right_wrist_3_link-ft_frame" type="fixed">
     <parent link="tracy/right_wrist_3_link" />
     <child link="tracy/right_ft_frame" />
-    <origin xyz="0.0 0.0 0.0" rpy="3.141593 0.0 0.0" />
+    <origin xyz="0.0 -0.0 0.0" rpy="3.141593 0.0 0.0" />
   </joint>
   <link name="tracy/left_arm_mount" />
   <joint name="tracy/left_arm_joint" type="fixed">
@@ -373,12 +481,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
       <geometry>
-        <mesh filename="meshes/recording/visual/base.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/base.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_base_link_inertia#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/base.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_base_link-base_link_inertia" type="fixed">
     <parent link="tracy/left_base_link" />
@@ -389,120 +503,162 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
       <geometry>
-        <mesh filename="meshes/recording/visual/shoulder.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/shoulder.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_shoulder_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.141593" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/shoulder.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_shoulder_pan_joint" type="revolute">
     <parent link="tracy/left_base_link_inertia" />
     <child link="tracy/left_shoulder_link" />
     <origin xyz="0.0 0.0 0.1807" rpy="0.0 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.13333333333333333" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.133333" effort="0.0" />
   </joint>
   <link name="tracy/left_upper_arm_link">
     <visual>
       <origin xyz="0.0 0.0 0.1762" rpy="1.570796 0.0 -1.570796" />
       <geometry>
-        <mesh filename="meshes/recording/visual/upperarm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/upperarm.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_upper_arm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.1762" rpy="1.570796 0.0 -1.570796" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/upperarm.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_shoulder_lift_joint" type="revolute">
     <parent link="tracy/left_shoulder_link" />
     <child link="tracy/left_upper_arm_link" />
     <origin xyz="0.0 0.0 0.0" rpy="1.570796 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.13333333333333333" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.133333" effort="0.0" />
   </joint>
   <link name="tracy/left_forearm_link">
     <visual>
       <origin xyz="0.0 0.0 0.0393" rpy="1.570796 0.0 -1.570796" />
       <geometry>
-        <mesh filename="meshes/recording/visual/forearm.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/forearm.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_forearm_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0393" rpy="1.570796 0.0 -1.570796" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/forearm.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_elbow_joint" type="revolute">
     <parent link="tracy/left_upper_arm_link" />
     <child link="tracy/left_forearm_link" />
     <origin xyz="-0.6127 0.0 0.0" rpy="0.0 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-3.141592653589793" upper="3.141592653589793" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-3.141593" upper="3.141593" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/left_wrist_1_link">
     <visual>
       <origin xyz="0.0 0.0 -0.135" rpy="1.570796 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/visual/wrist1.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/wrist1.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_wrist_1_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.135" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/wrist1.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_wrist_1_joint" type="revolute">
     <parent link="tracy/left_forearm_link" />
     <child link="tracy/left_wrist_1_link" />
     <origin xyz="-0.57155 0.0 0.17415" rpy="0.0 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/left_wrist_2_link">
     <visual>
       <origin xyz="0.0 0.0 -0.12" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/visual/wrist2.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/wrist2.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_wrist_2_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 -0.12" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/wrist2.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_wrist_2_joint" type="revolute">
     <parent link="tracy/left_wrist_1_link" />
     <child link="tracy/left_wrist_2_link" />
     <origin xyz="0.0 -0.11985 -0.0" rpy="1.570796 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/left_wrist_3_link">
     <visual>
       <origin xyz="0.0 -0.0005 -0.1168" rpy="1.570796 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/visual/wrist3.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/visual-b4398541/wrist3.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_wrist_3_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 -0.0005 -0.1168" rpy="1.570796 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/collision-0178d8ec/wrist3.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_wrist_3_joint" type="revolute">
     <parent link="tracy/left_wrist_2_link" />
     <child link="tracy/left_wrist_3_link" />
     <origin xyz="0.0 0.11655 -0.0" rpy="-1.570796 0.0 0.0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-6.283185307179586" upper="6.283185307179586" velocity="0.19999999999999998" effort="0.0" />
+    <limit lower="-6.283185" upper="6.283185" velocity="0.2" effort="0.0" />
   </joint>
   <link name="tracy/left_robotiq_85_base_link">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/robotiq_base.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/robotiq_base.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_base_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/robotiq_base.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_base_joint" type="fixed">
     <parent link="tracy/left_wrist_3_link" />
@@ -513,12 +669,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_inner_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_inner_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_right_inner_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_inner_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_right_inner_knuckle_joint" type="revolute">
     <parent link="tracy/left_robotiq_85_base_link" />
@@ -531,12 +693,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_inner_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_inner_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_left_inner_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_inner_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_left_inner_knuckle_joint" type="revolute">
     <parent link="tracy/left_robotiq_85_base_link" />
@@ -549,12 +717,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_right_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_right_knuckle_joint" type="revolute">
     <parent link="tracy/left_robotiq_85_base_link" />
@@ -567,12 +741,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_right_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_finger.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_right_finger_joint" type="fixed">
     <parent link="tracy/left_robotiq_85_right_knuckle_link" />
@@ -583,12 +763,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/right_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/right_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_right_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/right_finger_tip.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_right_finger_tip_joint" type="revolute">
     <parent link="tracy/left_robotiq_85_right_finger_link" />
@@ -607,12 +793,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_knuckle.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_knuckle.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_left_knuckle_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_knuckle.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_left_knuckle_joint" type="revolute">
     <parent link="tracy/left_robotiq_85_base_link" />
@@ -625,12 +817,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_finger.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_finger.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_left_finger_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_finger.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_left_finger_joint" type="fixed">
     <parent link="tracy/left_robotiq_85_left_knuckle_link" />
@@ -641,12 +839,18 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/2f_85/left_finger_tip.dae" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/2f_85-0ca74eae/left_finger_tip.dae" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/left_robotiq_85_left_finger_tip_link#0">
         <color rgba="1.0 1.0 1.0 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <mesh filename="meshes/recording/2f_85-e28d1c17/left_finger_tip.stl" scale="1.0 1.0 1.0" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/left_robotiq_85_left_finger_tip_joint" type="revolute">
     <parent link="tracy/left_robotiq_85_left_finger_link" />
@@ -673,7 +877,14 @@
     <child link="tracy/left_ft_frame" />
     <origin xyz="0.0 0.0 0.0" rpy="3.141593 0.0 0.0" />
   </joint>
-  <link name="tracy/camera_link" />
+  <link name="tracy/camera_link">
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <sphere radius="0.05" />
+      </geometry>
+    </collision>
+  </link>
   <joint name="tracy/camera_link_joint" type="fixed">
     <parent link="tracy/table" />
     <child link="tracy/camera_link" />
@@ -685,7 +896,7 @@
       <geometry>
         <box size="0.12 0.455 0.04" />
       </geometry>
-      <material name="">
+      <material name="tracy/camera_pole#0">
         <color rgba="0.792157 0.819608 0.933333 1.0" />
       </material>
     </visual>
@@ -694,7 +905,7 @@
       <geometry>
         <box size="0.04 0.04 1.0" />
       </geometry>
-      <material name="">
+      <material name="tracy/camera_pole#1">
         <color rgba="0.792157 0.819608 0.933333 1.0" />
       </material>
     </visual>
@@ -703,10 +914,28 @@
       <geometry>
         <box size="0.04 0.2 0.08" />
       </geometry>
-      <material name="">
+      <material name="tracy/camera_pole#2">
         <color rgba="0.792157 0.819608 0.933333 1.0" />
       </material>
     </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.02" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.12 0.455 0.04" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 0.54" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.04 0.04 1.0" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 0.08" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.04 0.2 0.08" />
+      </geometry>
+    </collision>
   </link>
   <joint name="tracy/camera_pole_joint" type="fixed">
     <parent link="tracy/table" />

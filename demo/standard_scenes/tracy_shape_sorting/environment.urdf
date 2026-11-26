@@ -1,26 +1,572 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="environment">
   <link name="world_root" />
-  <link name="tracy/map" />
-  <joint name="world_root_to_tracy/map" type="fixed">
+  <link name="world" />
+  <joint name="world_root_to_world" type="fixed">
     <parent link="world_root" />
+    <child link="world" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <link name="tracy/map" />
+  <joint name="tracy/world_T_map" type="fixed">
+    <parent link="world" />
     <child link="tracy/map" />
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
-  <link name="seen/board">
+  <link name="shape_sorting_board">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <mesh filename="meshes/recording/47531_xqn6t5rr/47531_xqn6t5rr.obj" scale="1.0 1.0 1.0" />
+        <mesh filename="meshes/recording/resources-382ef60d/board.stl" scale="1.0 1.0 1.0" />
       </geometry>
-      <material name="">
-        <color rgba="0.62 0.45 0.3 1.0" />
+      <material name="shape_sorting_board#0">
+        <color rgba="1.0 0.32 0.0 1.0" />
       </material>
     </visual>
+    <visual>
+      <origin xyz="-0.052 -0.087 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.084 0.064" />
+      </geometry>
+      <material name="shape_sorting_board#1">
+        <color rgba="0.85 0.27 0.0 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.052 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.084 0.064" />
+      </geometry>
+      <material name="shape_sorting_board#2">
+        <color rgba="0.85 0.27 0.0 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.052 0.087 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.084 0.064" />
+      </geometry>
+      <material name="shape_sorting_board#3">
+        <color rgba="0.85 0.27 0.0 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.0625 -0.087 -0.004" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.015 0.03 0.015" />
+      </geometry>
+      <material name="shape_sorting_board#4">
+        <color rgba="0.5 0.5 0.5 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.0625 0.0 -0.004" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.015 0.03 0.015" />
+      </geometry>
+      <material name="shape_sorting_board#5">
+        <color rgba="0.5 0.5 0.5 1.0" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.0625 0.087 -0.004" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.015 0.03 0.015" />
+      </geometry>
+      <material name="shape_sorting_board#6">
+        <color rgba="0.5 0.5 0.5 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.133 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.098 0.008 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 -0.133 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.098 0.008 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.045 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.258 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 0.0435 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.093 0.003 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 -0.0435 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.093 0.003 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.11 0.282 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 -0.087 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.032 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 0.0 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.042 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 0.091 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.04 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.04625 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0175 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0265 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.022 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0265 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.022 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0265 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.022 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0265 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.022 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0265 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.022 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0265 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.022 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 0.0 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.042 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0105 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.01 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 -0.087 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.032 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 0.0 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.042 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.0025 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 -0.087 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.032 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0015 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 -0.087 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.032 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 0.091 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.04 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0035 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.002 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 0.091 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.04 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0135 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.018 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.025 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.005 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.025 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.005 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.025 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.005 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.025 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.005 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 0.091 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.04 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.032 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.009 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 -0.122 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.038 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 -0.087 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.032 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 -0.046 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.05 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 0.0 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.042 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 0.044 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.046 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 0.069 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 0.091 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.04 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 0.113 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.004 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.04575 0.128 0.036" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.0185 0.026 0.008" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.052 -0.087 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.084 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.052 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.084 0.064" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.052 0.087 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.006 0.084 0.064" />
+      </geometry>
+    </collision>
   </link>
-  <joint name="seen/map_T_board" type="fixed">
+  <joint name="shape_sorting_board_connection" type="fixed">
     <parent link="tracy/map" />
-    <child link="seen/board" />
-    <origin xyz="0.794321 0.137905 0.92" rpy="0.0 0.0 -0.133261" />
+    <child link="shape_sorting_board" />
+    <origin xyz="0.85 0.0 0.92" rpy="0.0 0.0 0.0" />
   </joint>
 </robot>

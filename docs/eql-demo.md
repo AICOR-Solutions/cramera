@@ -16,10 +16,10 @@ Once the stack is installed (steps 1 and 2), this starts everything:
 ~/Projects/cramera/scripts/eql_demo.sh
 ```
 
-It starts the viewer and builds Tracy's paused world in the background, so the first
-question answers at once. Then it opens the browser on the Tracy episode. Choose
-**Paused World** in the drop-down next to **Ask** and write queries. Ctrl+C in the
-terminal stops the viewer.
+It starts the viewer and rebuilds the world Tracy's run was recorded in, so the first
+question answers at once. Then it opens the browser on the Tracy episode, where queries
+are asked of that world at the frame the timeline shows. Ctrl+C in the terminal stops
+the viewer.
 
 A scene's name after `cramera` opens the browser on it, so with the demo scenes set this
 starts the viewer on the Tracy episode:
@@ -64,7 +64,8 @@ frame where Tracy lifts a piece, answers that piece, and nothing at a frame wher
 piece lies on the table.
 
 Scenes recorded without a world, such as converted stages and older recordings, are
-still asked through the recorded knowledge and the Paused World described below.
+still asked through their recorded knowledge, and through a Paused World rebuilt from
+the recorded poses.
 
 ## 1. Check out the two branches
 
@@ -104,20 +105,18 @@ Open <http://127.0.0.1:8722/>. In **Task** choose **tracy_shape_sorting**.
 
 ## 4. Ask the recorded scene
 
-The **EQL** box at the top right holds the query. The drop-down next to **Ask** chooses
-what the query ranges over:
-
-| Scope | What it asks |
-| --- | --- |
-| Current State Queries | The recording's own summary: its robot, arms, grippers, objects, steps, joints and plan nodes. An object's `position` is where it is at the shown frame, and its `spawn_position` is where it started. |
-| Paused World (any CRAM class, at the shown frame) | The scene rebuilt as a CRAM world, with Tracy's joints and the free objects where they are at the frame the timeline shows. Every class of the semantic digital twin can be named. |
+The Tracy episode was recorded live from the MuJoCo demo and keeps the world it ran in
+(see "Asking a recording of a live run" above). The **EQL** box at the top right holds
+the query, and every query is asked of that world, rebuilt and moved to the frame the
+timeline shows: Tracy's own robot, arms, grippers, table and pieces, as the classes of
+CRAM's semantic digital twin.
 
 Hints appear as you type. Arrow keys choose a hint, and **Tab** or **Enter** takes it.
 **Ctrl+Space** lists every name, and **Ctrl+Enter** runs the query. After `a(Arm)(`, the
 hints are the fields of `Arm` that the pattern may constrain. After a dot, they are the
 attributes of the name before it.
 
-Try these, in **Paused World**:
+Try these:
 
 ```python
 an(Arm)                                                     # both arms light up
@@ -125,25 +124,11 @@ an(EndEffector)(fingers=none_is(TracyRightGripperLeftFinger))   # the left gripp
 an(Arm)(end_effector=an(EndEffector)(fingers=a(TracyRightGripperLeftFinger)))
 a(Tracy)(left_arm=an(Arm)(end_effector=a(TracyLeftGripper)))
 a(ShapeSortingPiece)                                        # the four pieces
+an(entity(surface))                                         # the table
 ```
 
-The run itself is in the same scope: its steps, its plan and its actions, which piece a
-gripper holds and from when to when, and what of it is under way at the shown frame.
-
-| Variable | What it ranges over |
-| --- | --- |
-| `piece` | the four pieces, as `ShapeSortingPiece` |
-| `holding` | every holding of a piece by a gripper, as `Holding(gripper, piece, step, grasped_at_frame, released_at_frame)` |
-| `step`, `plan_node`, `action` | the run's steps, the executed plan's nodes and its actions |
-| `held_piece`, `holding_now`, `step_now` | the same, under way at the shown frame |
-
-```python
-a(Holding)(gripper=a(TracyLeftGripper)).from_(domain=holding_now)   # held now? lights gripper and piece
-an(entity(held_piece))
-an(entity(step_now))
-an(RecordedPlanNode)(kind=PlanNodeKind.ACTION, target="cylinder 1")
-an(RecordedPlanNode)(label="PickUpAction")
-```
+The variables are the live run's: `body`, `scene_object`, `annotation`, `handle`,
+`surface`, `robot`, `arm` and `world`.
 
 ### Pause and ask: the world changes over the run
 
@@ -155,25 +140,14 @@ piece = a(Body).from_(domain=scene_object)
 piece.where(piece.global_pose.z > 0.92)
 ```
 
-| Frame | `piece.global_pose.z > 0.92` | `held_piece` | `step_now` |
-| --- | --- | --- | --- |
-| 100 | nothing: every piece lies on the table | nothing | `run` |
-| 400 | `cylinder 1` | `cylinder 1`, in the left gripper | `move_cylinder 1` |
-| 600 | `cylinder 1`, put down on the board | nothing | `move_cylinder 1` |
-
-In **Current State Queries** the objects are the recording's own `RecordedObject`s, not
-CRAM bodies, so the same question is asked of their `position`:
-
-```python
-an(entity(arm))                                             # the recorded arms, lit up
-a(RecordedObject)(height_metres=0.03)
-lifted = a(RecordedObject).from_(domain=scene_object)
-lifted.where(lifted.position.z > 0.92)                      # cylinder 1 from frame 268 on
-```
-
-A query naming a class its domain never holds, such as `a(Body).from_(domain=scene_object)`
-here, does not answer an empty list. It answers an error that names both types and says to
-choose **Paused World**.
+| Frame | `piece.global_pose.z > 0.92` |
+| --- | --- |
+| 800 | nothing: every piece lies on the table |
+| 1200 | `square_piece`, lifted by Tracy |
+| 2000 | nothing: the square piece is in its hole |
+| 2400 | `circle_piece` |
+| 3600 | `rectangle_piece` |
+| 5600 | `triangle_piece` |
 
 ## 5. Replay the walkthrough automatically
 
@@ -191,8 +165,6 @@ It saves a screenshot of every step and a `.webm` video of the whole walk to
 
 - The pieces are `ShapeSortingPiece` only. The cylinder, cube and prism classes arrive
   when the Montessori shape vocabulary (#488) lands.
-- The recording does not say when each plan node ran, so `step_now` comes from the
-  run's segments, not from the plan's actions.
 - `an(Arm | EndEffector)` repeats some of its answers.
 - Reading an attribute of a `the(...)` query, as in `the(...).global_pose`, answers the
   expression instead of its value. Select the attribute inside the query instead.

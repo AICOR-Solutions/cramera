@@ -3,7 +3,7 @@
 #
 #     ~/Projects/cramera/scripts/eql_demo.sh
 #
-# It starts the viewer, builds the paused world in the background so the first question
+# It starts the viewer, rebuilds the world the run was recorded in so the first question
 # answers at once, and opens the browser on the Tracy episode. Ctrl+C stops it.
 #
 # Settings, each with a default: CRAMERA_EQL_VENV (the environment install_stack.py
@@ -36,16 +36,16 @@ until curl -s -o /dev/null "http://127.0.0.1:${PORT}/api/scenes"; do
   sleep 1
 done
 
-echo "Building Tracy's world for paused-world questions (about 30 s)…"
+echo "Rebuilding the world Tracy's run was recorded in…"
 curl -s -o /dev/null "${API}/presets?scene=${SCENE}"
 curl -s -o /dev/null -X POST "${API}/query" -H 'content-type: application/json' \
-  -d "{\"scene\":\"${SCENE}\",\"code\":\"an(Arm)\",\"scope\":\"paused_world\",\"frame\":0}"
+  -d "{\"scene\":\"${SCENE}\",\"code\":\"an(Arm)\",\"scope\":\"current_state\",\"frame\":0}"
 
 xdg-open "${URL}" >/dev/null 2>&1 || true
 cat <<EOF
 
 Ready: ${URL}
-  In the drop-down next to Ask, choose "Paused World", then write queries:
+  Write queries, asked of the recorded world at the frame the timeline shows:
   hints as you type, Tab takes one, Ctrl+Space lists every name, Ctrl+Enter runs.
   Ctrl+C here stops the viewer.
 EOF
