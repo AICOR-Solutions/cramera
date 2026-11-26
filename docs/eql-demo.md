@@ -30,9 +30,8 @@ CRAMERA_SCENES=~/Projects/cramera/demo cramera tracy_shape_sorting
 
 ## Asking the running program
 
-A recording is a replay: its Paused World is a CRAM world rebuilt from the recorded
-poses. To ask the real program instead, with its semantic digital twin, MuJoCo and
-giskard running, run a demo live and let the viewer follow it:
+To ask the real program, with its semantic digital twin, MuJoCo and giskard running, run
+a demo live and let the viewer follow it:
 
 ```bash
 CRAMERA_SCENES=~/Projects/cramera/demo cramera --live
@@ -52,6 +51,20 @@ piece.where(piece.global_pose.z > 0.92)
 
 Hints after a dot follow the whole path, as in `body.global_pose.position.`, a pattern,
 as in `a(Arm).end_effector.`, and a variable the query assigns, as in `piece.`.
+
+## Asking a recording of a live run
+
+A run recorded live and saved from the viewer keeps the world it ran in: the bundle's
+`world_history.json.gz` holds the CRAM world's modification blocks and the value of every
+degree of freedom at every frame. Asking such a scene rebuilds that very world, with the
+same bodies, robot, arms, grippers and annotations, and moves it to the frame the
+viewer shows. It is answered by the same desk as the live run: the same variables,
+classes, ready-made questions and hints. The query above, asked of the recording at a
+frame where Tracy lifts a piece, answers that piece, and nothing at a frame where every
+piece lies on the table.
+
+Scenes recorded without a world, such as converted stages and older recordings, are
+still asked through the recorded knowledge and the Paused World described below.
 
 ## 1. Check out the two branches
 

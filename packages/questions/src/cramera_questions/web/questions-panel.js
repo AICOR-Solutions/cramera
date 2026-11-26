@@ -7,6 +7,7 @@
 
 import {
   PresetCatalogKey,
+  QueryScope,
   PresetKey,
   QueryAnswerKey,
   QuestionMatchKey,
@@ -31,7 +32,13 @@ export const Hint = Object.freeze({
 /**
  * The scope whose questions are asked of the world at the shown frame.
  */
-export const PAUSED_WORLD_SCOPE = 'paused_world';
+export const PAUSED_WORLD_SCOPE = QueryScope.PAUSED_WORLD;
+
+/**
+ * The scopes a recorded scene answers about its world as it stands at the shown frame:
+ * the paused world rebuilt from the bundle, and the recorded world itself.
+ */
+export const WORLD_AT_FRAME_SCOPES = Object.freeze([PAUSED_WORLD_SCOPE, QueryScope.CURRENT_STATE]);
 
 /**
  * What the panel says of the moment a query about the running process is asked at.
@@ -266,7 +273,7 @@ export class QuestionsPanel {
       this.#moment.textContent = RUNNING_MOMENT;
       return;
     }
-    const paused = this.#scope.value === PAUSED_WORLD_SCOPE;
+    const paused = WORLD_AT_FRAME_SCOPES.includes(this.#scope.value);
     this.#moment.textContent = paused
       ? `Asked of the world as it is at frame ${this.#frame} — pause anywhere and ask.`
       : `Objects' positions are read at frame ${this.#frame}; their spawn_position is where they started.`;

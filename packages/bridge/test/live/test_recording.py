@@ -594,10 +594,10 @@ def robotless_plan(kitchen) -> KinematicallySimulatedPlanExecutor:
         robot and not run.
     """
     executor = KinematicallySimulatedPlanExecutor(
-        StatechartContext.with_extensions(kitchen.world, [])
+        context=StatechartContext.with_extensions(world=kitchen.world, extensions=[])
     )
     statechart = Statechart(context=executor.context)
-    statechart.add_node(Sequence(nodes=[CountTicks(name="wait", ticks=1)]))
+    statechart.add_node(node=Sequence(nodes=[CountTicks(name="wait", ticks=1)]))
     executor.prepare(statechart)
     return executor
 

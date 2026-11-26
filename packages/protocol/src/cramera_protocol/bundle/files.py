@@ -34,6 +34,11 @@ class BundleFile(StrEnum):
     The queries a recorded run asked, which the viewer steps through in its replay.
     """
 
+    WORLD_HISTORY = "world_history.json.gz"
+    """
+    The recorded world's model and its state at every frame, gzipped.
+    """
+
     ENVIRONMENT = "environment.urdf"
     """
     The links and joints of a converted stage.

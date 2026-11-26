@@ -23,6 +23,7 @@ from cramera_bridge.live.recording import FrameRange, FrameTiming, RecordedFrame
 from cramera_bridge.live.segments import RecordedRun
 from cramera_bridge.live.world_model import ObjectKey, WorldModelView
 from cramera_bridge.robots import RobotRoster
+from cramera_bridge.scenes.world_history import WorldHistory
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import ReservedSceneName
 from cramera_protocol.bundle.scene import (
@@ -406,6 +407,12 @@ class LiveBundleWriter:
             statecharts = RecordedStatecharts.of_frames(
                 [frame.statechart for frame in frames]
             )
+            world_captures = [frame.world_state for frame in frames]
+            keeps_world = all(capture is not None for capture in world_captures)
+            if keeps_world:
+                WorldHistory.of_captures(model.world, world_captures).write(
+                    staging / BundleFile.WORLD_HISTORY
+                )
             scene = SceneDescription(
                 name=ReservedSceneName.RECORDING,
                 format_version=CURRENT_VERSION,
@@ -413,6 +420,7 @@ class LiveBundleWriter:
                 trajectory=BundleFile.TRAJECTORY,
                 statecharts=None if statecharts.is_empty() else BundleFile.STATECHARTS,
                 query_steps=None if query_steps is None else BundleFile.QUERY_STEPS,
+                world_history=BundleFile.WORLD_HISTORY if keeps_world else None,
                 models=models.models,
                 robot=models.robot,
                 objects=self.objects(model, frames, staging),

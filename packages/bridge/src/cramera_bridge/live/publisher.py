@@ -48,6 +48,7 @@ from cramera_bridge.live.plan import PlanPublisher
 from cramera_bridge.live.query_steps import QueryStepBoard
 from cramera_bridge.live.recording import Recording
 from cramera_bridge.live.recording_storage import RecordingStorage
+from cramera_bridge.scenes.world_history import WorldStateCapturer
 from cramera_bridge.live.resolutions import ResolutionBoard
 from cramera_bridge.live.scene_highlights import SceneHighlighter
 from cramera_bridge.live.snapshot_pacing import FRAME_INTERVAL, SnapshotPacing
@@ -261,6 +262,13 @@ class LivePublisher:
     The constraints attached to plan nodes.
     """
 
+    world_states: WorldStateCapturer = field(
+        default_factory=WorldStateCapturer, init=False
+    )
+    """
+    Captures the world's model and state for each recorded frame.
+    """
+
     recording: Recording = field(default_factory=Recording, init=False)
     """
     The recording of the run.
@@ -313,6 +321,7 @@ class LivePublisher:
             self.desk = WorldQuestionDesk(
                 world, self.current_objects, self.class_index
             ).desk()
+            self.world_states = WorldStateCapturer()
             self.recording.start()
             self.observe_model_change()
 
@@ -368,6 +377,7 @@ class LivePublisher:
                 snapshot,
                 self.plan.running(),
                 self.statechart.current() if self.motion_running else None,
+                self.world_states.capture(self.model.world),
             )
 
     def begin_plan(self, executor: PlanExecutor) -> None:
