@@ -1083,10 +1083,12 @@ FIELD_ROLES: Dict[str, FieldRole] = {
     "arms": FieldRole(DesignatorRole.EFFECTOR),
     "gripper": FieldRole(DesignatorRole.EFFECTOR),
     "end_effector": FieldRole(DesignatorRole.EFFECTOR),
+    "tip_link": FieldRole(DesignatorRole.EFFECTOR),
     "tool": FieldRole(DesignatorRole.INSTRUMENT),
     "target_location": FieldRole(DesignatorRole.LOCATION),
     "target_locations": FieldRole(DesignatorRole.LOCATION),
     "target_pose": FieldRole(DesignatorRole.LOCATION),
+    "goal_pose": FieldRole(DesignatorRole.LOCATION),
     "target": FieldRole(DesignatorRole.LOCATION),
     "target_container": FieldRole(DesignatorRole.LOCATION),
     "surface": FieldRole(DesignatorRole.LOCATION),
@@ -1097,5 +1099,8 @@ The role each field fills, by the field's identifier: cramera's reading of CRAM'
 fields, not a name CRAM defines. CRAM takes the agent from the plan's context, named
 here ``robot``; only a tool, such as a knife or a whisk, is read as an instrument, so a
 centrifuge the robot loads is the reference of a location, not an instrument. A field
-missing here fills no role, such as a velocity, a threshold or a nested action.
+missing here fills no role, such as a velocity, a threshold or a nested action. A
+motion is a giskard goal: the link it moves (``tip_link``) is its effector and the pose
+it moves it to (``goal_pose``) its location; the link the goal is reached relative to
+(``root_link``) fills no role.
 """

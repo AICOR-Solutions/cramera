@@ -21,6 +21,7 @@ from cramera_protocol.live_messages import SavedScene
 CRAM_PACKAGES = (
     "semantic_digital_twin",
     "coraplex",
+    "cramph",
     "giskardpy",
     "krrood",
     "segmind",

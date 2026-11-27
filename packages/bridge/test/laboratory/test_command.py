@@ -21,7 +21,12 @@ def test_dependency_discovery_names_missing_modules_without_importing(monkeypatc
         lambda name: object() if name in present else None,
     )
     before = set(sys.modules)
-    assert command.missing_libraries() == ["giskardpy", "krrood", "segmind"]
+    assert command.missing_libraries() == [
+        "cramph",
+        "giskardpy",
+        "krrood",
+        "segmind",
+    ]
     assert set(sys.modules) == before
 
 

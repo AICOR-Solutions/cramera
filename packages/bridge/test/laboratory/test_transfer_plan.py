@@ -5,78 +5,63 @@ Build the current CRAM transfer without executing robot motion.
 import pytest
 import numpy as np
 
-from coraplex.plans.attachment_nodes import ReAttachNode
-from coraplex.plans.plan_node import MotionNode
+from coraplex.robot_plans.actions.base import Action
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
-from coraplex.robot_plans.motions.gripper import (
-    MoveToolCenterPointMotion,
-    MoveGripperMotion,
-)
 from cramera_bridge.laboratory.grasping import (
-    PadContactMotion,
-    PadContactNode,
+    PadContactAction,
+    PadContactGoal,
     VesselReachAction,
+    tool_goal_of,
 )
 from cramera_bridge.laboratory.transfer import VesselTransferDemo
 from cramera_bridge.exceptions import TaskFailed
+from cramph.data_types import LifeCycleValues
+from cramph.world_modification_nodes import MoveBranch
+from giskardpy.motion_statechart.goals.gripper import MoveFingers
 from krrood_spatial_math.spatial_types import Pose
-from giskardpy.motion_statechart.data_types import LifeCycleValues
 
 
 @pytest.fixture(scope="module")
-def transfer_plan(laboratory_bundle):
+def transfer_plan(laboratory_bundle, expand):
     """
-    :return: The transfer and its expanded native plan at the authored start state.
+    :return: The transfer and the statechart its expanded plan joined, at the authored
+        start state.
     """
     demo = VesselTransferDemo.at_the_bench(laboratory_bundle)
     context = demo.build_context(demo.build_world())
-    plan = demo.build_plan(context)
-    plan.root.notify()
-    return demo, plan
+    statechart = expand(demo.build_plan(context), context)
+    return demo, statechart
 
 
 def test_the_transfer_picks_and_places_the_same_vessel(transfer_plan):
-    demo, plan = transfer_plan
-    [pickup] = plan.get_nodes_by_designator_type(PickUpAction)
-    [placing] = plan.get_nodes_by_designator_type(PlaceAction)
-    assert pickup.designator.grasp.graspable.root is demo.observation.body
-    assert placing.designator.object_designator.root is demo.observation.body
-    assert pickup.designator.arm is demo.observation.context.robot.left_arm
+    demo, statechart = transfer_plan
+    [pickup] = statechart.get_nodes_by_type(PickUpAction)
+    [placing] = statechart.get_nodes_by_type(PlaceAction)
+    assert pickup.grasp.graspable.root is demo.observation.body
+    assert placing.object_designator.root is demo.observation.body
+    assert pickup.arm is demo.observation.context.robot.left_arm
     assert not demo.observation.context.robot.drive.has_hardware_interface
 
 
-def test_contact_measurement_is_an_execution_boundary_after_the_approach(transfer_plan):
-    demo, plan = transfer_plan
-    contacts = [
-        node for node in plan.root.descendants if isinstance(node, PadContactNode)
-    ]
-    assert len(contacts) == 1
-    assert contacts[0].contains_execution_boundary
-    [closing] = plan.get_nodes_by_designator_type(PadContactMotion)
-    assert closing.designator.object_designator is demo.observation.body
-
-    def leaves(node):
-        if not node.children:
-            yield node
-        for child in node.children:
-            yield from leaves(child)
-
-    ordered = [
-        node
-        for node in leaves(plan.root)
-        if isinstance(node, (MotionNode, PadContactNode, ReAttachNode))
-    ]
-    position = ordered.index(contacts[0])
-    first, opening, final = ordered[position - 3 : position]
-    boundary, close, attach = ordered[position : position + 3]
-    assert isinstance(first.designator, MoveToolCenterPointMotion)
-    assert isinstance(opening.designator, MoveGripperMotion)
-    assert isinstance(final.designator, MoveToolCenterPointMotion)
-    assert boundary is contacts[0]
-    assert close is closing
-    assert isinstance(attach, ReAttachNode)
-    assert attach.body is demo.observation.body
+def test_the_finger_stop_is_found_after_the_approach_then_the_vessel_attached(
+    transfer_plan,
+):
+    demo, statechart = transfer_plan
+    [pickup] = statechart.get_nodes_by_type(PickUpAction)
+    reach, closing, attach, _ = pickup.nodes
+    assert isinstance(reach, VesselReachAction)
+    first, opening, final = reach.nodes
+    assert tool_goal_of(first).tip_link is pickup.arm.end_effector.tool_frame
+    assert isinstance(opening, MoveFingers)
+    assert tool_goal_of(final).tip_link is pickup.arm.end_effector.tool_frame
+    assert isinstance(closing, PadContactAction)
+    assert closing.object_designator is demo.observation.body
+    [contact] = statechart.get_nodes_by_type(PadContactGoal)
+    assert contact.parent_node is closing
+    assert contact.goal is None and not contact.nodes
+    assert isinstance(attach, MoveBranch)
+    assert attach.branch_root is demo.observation.body
     assert (
         attach.new_parent
         is demo.observation.context.robot.left_arm.end_effector.tool_frame
@@ -84,15 +69,11 @@ def test_contact_measurement_is_an_execution_boundary_after_the_approach(transfe
 
 
 def test_the_grasp_candidate_preserves_the_calibrated_tool_pose(transfer_plan):
-    demo, plan = transfer_plan
-    [reach] = plan.get_nodes_by_designator_type(VesselReachAction)
-    motion_nodes = [
-        node
-        for node in reach.descendants
-        if hasattr(node, "designator")
-        and isinstance(node.designator, MoveToolCenterPointMotion)
+    demo, statechart = transfer_plan
+    [reach] = statechart.get_nodes_by_type(VesselReachAction)
+    approach, grasp = [
+        tool_goal_of(step).goal_pose for step in (reach.nodes[0], reach.nodes[-1])
     ]
-    approach, grasp = [node.designator.target for node in motion_nodes]
     expected = Pose.from_xyz_quaternion(
         0,
         0,
@@ -106,11 +87,9 @@ def test_the_grasp_candidate_preserves_the_calibrated_tool_pose(transfer_plan):
         demo.laboratory.vessels.outer_radius + demo.approach_margin
     ) * expected_approach[:3, 0]
     np.testing.assert_allclose(approach.to_np(), expected_approach, atol=1e-12)
-    [pickup] = plan.get_nodes_by_designator_type(PickUpAction)
-    poses = pickup.designator.grasp_pose_sequence(
-        pickup.designator.grasp.grasp_pose,
-        pickup.designator.arm.end_effector,
-        pickup.designator.grasp,
+    [pickup] = statechart.get_nodes_by_type(PickUpAction)
+    poses = pickup.grasp_pose_sequence(
+        pickup.grasp.grasp_pose, pickup.arm.end_effector, pickup.grasp
     )
     np.testing.assert_allclose(
         poses.retreat.to_np()[:3, 3] - poses.grasp.to_np()[:3, 3],
@@ -128,21 +107,23 @@ def test_an_unexecuted_plan_is_not_accepted(transfer_plan):
 @pytest.mark.parametrize(
     "status", [LifeCycleValues.NOT_STARTED, LifeCycleValues.FAILED]
 )
-def test_one_unfinished_motion_refuses_action_success(
-    transfer_plan, monkeypatch, status
-):
-    demo, plan = transfer_plan
-    motions = [node for node in plan.nodes if isinstance(node, MotionNode)]
-    assert motions
-    for motion in motions:
-        monkeypatch.setattr(motion, "status", LifeCycleValues.SUCCEEDED)
-    demo.require_success(demo.observation.context)
-    monkeypatch.setattr(motions[-1], "status", status)
-    with pytest.raises(TaskFailed):
+def test_one_unfinished_action_refuses_the_transfers_success(transfer_plan, status):
+    demo, statechart = transfer_plan
+    actions = statechart.get_nodes_by_type(Action)
+    assert actions
+    try:
+        for action in actions:
+            statechart.life_cycle_state[action] = LifeCycleValues.SUCCEEDED
         demo.require_success(demo.observation.context)
+        statechart.life_cycle_state[actions[-1]] = status
+        with pytest.raises(TaskFailed):
+            demo.require_success(demo.observation.context)
+    finally:
+        for action in actions:
+            statechart.life_cycle_state[action] = LifeCycleValues.NOT_STARTED
 
 
-def test_actions_without_motion_descendants_refuse_success(transfer_plan):
+def test_a_plan_that_joined_no_statechart_refuses_success(transfer_plan):
     demo, _ = transfer_plan
     unexpanded = VesselTransferDemo.at_the_bench(demo.laboratory.directory)
     unexpanded.build_plan(demo.observation.context)

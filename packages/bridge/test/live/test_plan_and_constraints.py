@@ -389,18 +389,31 @@ def test_a_value_left_open_is_named_by_its_type():
     assert DesignatorSummary.render(variable(Pose, domain=[]), set()) == "any Pose"
 
 
-def test_a_node_names_the_entities_its_designator_fields_fill_roles_with(
-    publisher, small_plan, kitchen, robot_world
+def test_an_action_names_the_robot_of_its_context_as_its_agent(
+    publisher, small_plan, robot_world
 ):
-    publisher.begin_plan(small_plan.plan)
+    publisher.begin_plan(small_plan.executor)
     root, action, motion = publisher.current_plan().nodes
     assert root.roles == []
-    roles = {slot.field: slot for slot in motion.roles}
-    assert roles["arm"].role is DesignatorRole.EFFECTOR
-    assert roles["arm"].entities[0].name == str(robot_world.robot.left_arm.name)
-    assert roles["object_part"].role is DesignatorRole.OBJECT
-    assert roles["object_part"].entities[0].keys == [str(kitchen.milk.id)]
-    assert "robot" not in roles, "a motion takes no agent of its own"
+    (agent,) = [slot for slot in action.roles if slot.role is DesignatorRole.AGENT]
+    assert agent.field == "robot"
+    assert agent.entities[0].name == str(robot_world.robot.name)
+    assert all(slot.role is not DesignatorRole.AGENT for slot in motion.roles)
+
+
+def test_a_motion_moves_its_tip_link_to_its_goal_pose(publisher, kitchen):
+    keys = set(publisher.model.object_keys())
+    roles = {
+        slot.field: slot
+        for slot in DesignatorSummary(reaching_the_milk(kitchen)).roles(keys, None)
+    }
+    assert roles["tip_link"].role is DesignatorRole.EFFECTOR
+    assert roles["tip_link"].entities[0].keys == [str(kitchen.milk.id)]
+    location = roles["goal_pose"]
+    assert location.role is DesignatorRole.LOCATION
+    assert location.reference.name == str(kitchen.root.name)
+    assert [location.pose.x, location.pose.y, location.pose.z] == [1.0, 0.0, 0.9]
+    assert "root_link" not in roles
 
 
 def test_a_pose_is_named_by_the_place_whose_pose_it_is_and_no_other(kitchen):

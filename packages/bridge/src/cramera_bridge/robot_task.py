@@ -186,7 +186,7 @@ class RobotTaskDemo(ABC):
         """
         return [self.build_plan(context)]
 
-    def named_places(self, context: Context) -> List[NamedPlace]:
+    def named_places(self, context: TaskContext) -> List[NamedPlace]:
         """
         :param context: The world and the robot the task is performed with.
         :return: The poses the task builds for the places of its layout, each under
