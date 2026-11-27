@@ -15,7 +15,7 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/robots/pr2/index.html#semantic_digital_twin.robots.pr2.PR2\" title=\"The PR2 robot built by Willow Garage.\"><span style=\"color:cornflowerblue\">PR2</span></a>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/handling.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/handling.py",
     "function": "VesselTaskDemo.the_robot",
     "firstLine": 224,
     "lines": [
@@ -262,7 +262,7 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 5.303885001922026,
+   "milliseconds": 4.469288978725672,
    "frame": 1,
    "entities": [
     {
@@ -388,9 +388,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_clear&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1188,
+    "firstLine": 1192,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -398,17 +398,17 @@
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
-     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:",
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1192,
-    "focusLastLine": 1192
+    "focusFirstLine": 1196,
+    "focusLastLine": 1196
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1192
+    "line": 1196
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -420,21 +420,21 @@
    ],
    "highlight": {
     "keys": [
-     "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
+     "9c1e3853-b64a-42d2-b01d-77338e163f76"
     ],
     "regions": [],
     "framed": [
-     "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
+     "9c1e3853-b64a-42d2-b01d-77338e163f76"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.517954988637939,
-   "frame": 13,
+   "milliseconds": 6.77234199247323,
+   "frame": 5,
    "entities": [
     {
      "keys": [
-      "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
+      "9c1e3853-b64a-42d2-b01d-77338e163f76"
      ],
      "name": "tube_clear",
      "type": "Body"
@@ -452,9 +452,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_teal&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1188,
+    "firstLine": 1192,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -462,17 +462,17 @@
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
-     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:",
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1192,
-    "focusLastLine": 1192
+    "focusFirstLine": 1196,
+    "focusLastLine": 1196
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1192
+    "line": 1196
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -484,21 +484,21 @@
    ],
    "highlight": {
     "keys": [
-     "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
+     "3dcd40cf-f1d8-4945-91c3-c69f2134af2a"
     ],
     "regions": [],
     "framed": [
-     "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
+     "3dcd40cf-f1d8-4945-91c3-c69f2134af2a"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.4978100011358038,
-   "frame": 15,
+   "milliseconds": 4.739338997751474,
+   "frame": 6,
    "entities": [
     {
      "keys": [
-      "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
+      "3dcd40cf-f1d8-4945-91c3-c69f2134af2a"
      ],
      "name": "tube_teal",
      "type": "Body"
@@ -516,9 +516,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_amber&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1188,
+    "firstLine": 1192,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -526,17 +526,17 @@
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
-     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:",
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1192,
-    "focusLastLine": 1192
+    "focusFirstLine": 1196,
+    "focusLastLine": 1196
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1192
+    "line": 1196
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -548,21 +548,21 @@
    ],
    "highlight": {
     "keys": [
-     "144e778c-8f01-499c-81c8-fcad489789db"
+     "5f042e35-5951-4086-9a98-f1128c995b7e"
     ],
     "regions": [],
     "framed": [
-     "144e778c-8f01-499c-81c8-fcad489789db"
+     "5f042e35-5951-4086-9a98-f1128c995b7e"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.549164001015015,
-   "frame": 15,
+   "milliseconds": 4.721772012999281,
+   "frame": 6,
    "entities": [
     {
      "keys": [
-      "144e778c-8f01-499c-81c8-fcad489789db"
+      "5f042e35-5951-4086-9a98-f1128c995b7e"
      ],
      "name": "tube_amber",
      "type": "Body"
@@ -580,9 +580,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle\" title=\"A handle is a physical entity that can be grasped by a hand or a robotic gripper to\"><span style=\"color:cornflowerblue\">Handle</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle.root\" title=\"The root kinematic structure entity of the semantic annotation.\"><span style=\"color:#8FC7B8\">root</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;laboratory_refrigerator_door_handle&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.handle",
-    "firstLine": 1178,
+    "firstLine": 1182,
     "lines": [
      "        :param name: One of the laboratory's handles.",
      "        :return: The handle's annotation, found by an entity query.",
@@ -594,13 +594,13 @@
      "    def the_vessel(world: World, key: str) -> Body:",
      "        \"\"\""
     ],
-    "focusFirstLine": 1182,
-    "focusLastLine": 1182
+    "focusFirstLine": 1186,
+    "focusLastLine": 1186
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.handle",
     "module": "workflow",
-    "line": 1182
+    "line": 1186
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -621,8 +621,8 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 1.4743799983989447,
-   "frame": 15,
+   "milliseconds": 2.1629070106428117,
+   "frame": 6,
    "entities": [
     {
      "keys": [
@@ -644,9 +644,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_teal&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1188,
+    "firstLine": 1192,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -654,17 +654,17 @@
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
-     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:",
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1192,
-    "focusLastLine": 1192
+    "focusFirstLine": 1196,
+    "focusLastLine": 1196
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1192
+    "line": 1196
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -676,21 +676,21 @@
    ],
    "highlight": {
     "keys": [
-     "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
+     "3dcd40cf-f1d8-4945-91c3-c69f2134af2a"
     ],
     "regions": [],
     "framed": [
-     "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
+     "3dcd40cf-f1d8-4945-91c3-c69f2134af2a"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.5310079983901232,
-   "frame": 15,
+   "milliseconds": 5.9169160085730255,
+   "frame": 6,
    "entities": [
     {
      "keys": [
-      "d9fcdefa-5bd1-4838-a0d7-bdec4e9f4fd3"
+      "3dcd40cf-f1d8-4945-91c3-c69f2134af2a"
      ],
      "name": "tube_teal",
      "type": "Body"
@@ -708,9 +708,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle\" title=\"A handle is a physical entity that can be grasped by a hand or a robotic gripper to\"><span style=\"color:cornflowerblue\">Handle</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/semantic_annotations/semantic_annotations/index.html#semantic_digital_twin.semantic_annotations.semantic_annotations.Handle.root\" title=\"The root kinematic structure entity of the semantic annotation.\"><span style=\"color:#8FC7B8\">root</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;laboratory_centrifuge_lid_handle&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.handle",
-    "firstLine": 1178,
+    "firstLine": 1182,
     "lines": [
      "        :param name: One of the laboratory's handles.",
      "        :return: The handle's annotation, found by an entity query.",
@@ -722,13 +722,13 @@
      "    def the_vessel(world: World, key: str) -> Body:",
      "        \"\"\""
     ],
-    "focusFirstLine": 1182,
-    "focusLastLine": 1182
+    "focusFirstLine": 1186,
+    "focusLastLine": 1186
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.handle",
     "module": "workflow",
-    "line": 1182
+    "line": 1186
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -749,8 +749,8 @@
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 1.5345410065492615,
-   "frame": 15,
+   "milliseconds": 5.092259001685306,
+   "frame": 6,
    "entities": [
     {
      "keys": [
@@ -772,9 +772,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_clear&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1188,
+    "firstLine": 1192,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -782,17 +782,17 @@
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
-     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:",
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1192,
-    "focusLastLine": 1192
+    "focusFirstLine": 1196,
+    "focusLastLine": 1196
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1192
+    "line": 1196
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -804,21 +804,21 @@
    ],
    "highlight": {
     "keys": [
-     "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
+     "9c1e3853-b64a-42d2-b01d-77338e163f76"
     ],
     "regions": [],
     "framed": [
-     "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
+     "9c1e3853-b64a-42d2-b01d-77338e163f76"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 3.458299004705623,
-   "frame": 15,
+   "milliseconds": 4.797023982973769,
+   "frame": 6,
    "entities": [
     {
      "keys": [
-      "40b62a27-6f7c-471b-a042-3e1797dcc8c0"
+      "9c1e3853-b64a-42d2-b01d-77338e163f76"
      ],
      "name": "tube_clear",
      "type": "Body"
@@ -836,9 +836,9 @@
     "html": "<span style=\"color:#eded18\">Find</span> the unique <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body\" title=\"Represents a body in the world.\"><span style=\"color:cornflowerblue\">Body</span></a>&nbsp;<span style=\"color:#eded18\">such that</span> the <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/datastructures/prefixed_name/index.html#semantic_digital_twin.datastructures.prefixed_name.PrefixedName.name\" title=\"The local name identifying the entity.\"><span style=\"color:#8FC7B8\">name</span></a> of <span style=\"color:cornflowerblue\">its</span> <a target=\"_blank\" rel=\"noopener\" href=\"https://cram2.github.io/cognitive_robot_abstract_machine/semantic_digital_twin/autoapi/semantic_digital_twin/world_description/world_entity/index.html#semantic_digital_twin.world_description.world_entity.Body.name\" title=\"The identifier for this world entity.\"><span style=\"color:#8FC7B8\">name</span></a> <span style=\"color:#ff7f0e\">is</span> <span style=\"color:#949292\">&#x27;tube_amber&#x27;</span>"
    },
    "code": {
-    "file": "/home/mbeetz/cramera/.claude/worktrees/reverent-carson-8dad12/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
+    "file": "/tmp/claude-1000/-home-mbeetz-cramera--claude-worktrees-reverent-carson-8dad12/cb07a65b-c5e7-4574-af81-2898bfeece1f/scratchpad/designators-view/packages/bridge/src/cramera_bridge/laboratory/workflow.py",
     "function": "LaboratoryWorkflowDemo.the_vessel",
-    "firstLine": 1188,
+    "firstLine": 1192,
     "lines": [
      "        :param key: The name of a vessel's body.",
      "        :return: The vessel, found by an entity query.",
@@ -846,17 +846,17 @@
      "        body = variable(Body, world.bodies)",
      "        return the(entity(body).where(body.name.name == key)).first()",
      "",
-     "    def drive(self, context: Context, stand: Stand) -> DriveAction:",
+     "    def drive(self, context: TaskContext, stand: Stand) -> DriveAction:",
      "        \"\"\"",
      "        :param context: The world and the robot."
     ],
-    "focusFirstLine": 1192,
-    "focusLastLine": 1192
+    "focusFirstLine": 1196,
+    "focusLastLine": 1196
    },
    "caller": {
     "function": "LaboratoryWorkflowDemo.the_vessel",
     "module": "workflow",
-    "line": 1192
+    "line": 1196
    },
    "backend": {
     "name": "EntityQueryLanguageBackend",
@@ -868,21 +868,21 @@
    ],
    "highlight": {
     "keys": [
-     "144e778c-8f01-499c-81c8-fcad489789db"
+     "5f042e35-5951-4086-9a98-f1128c995b7e"
     ],
     "regions": [],
     "framed": [
-     "144e778c-8f01-499c-81c8-fcad489789db"
+     "5f042e35-5951-4086-9a98-f1128c995b7e"
     ]
    },
    "variables": [],
    "enclosing": [],
-   "milliseconds": 4.404866005643271,
-   "frame": 15,
+   "milliseconds": 5.7193340035155416,
+   "frame": 6,
    "entities": [
     {
      "keys": [
-      "144e778c-8f01-499c-81c8-fcad489789db"
+      "5f042e35-5951-4086-9a98-f1128c995b7e"
      ],
      "name": "tube_amber",
      "type": "Body"

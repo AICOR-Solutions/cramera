@@ -152,7 +152,7 @@
   <joint name="pr2/l_upper_arm_joint" type="fixed">
     <parent link="pr2/l_upper_arm_roll_link" />
     <child link="pr2/l_upper_arm_link" />
-    <origin xyz="0.0 0.0 -0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/l_elbow_flex_link">
     <visual>
@@ -233,7 +233,7 @@
   <joint name="pr2/l_forearm_joint" type="fixed">
     <parent link="pr2/l_forearm_roll_link" />
     <child link="pr2/l_forearm_link" />
-    <origin xyz="-0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/l_wrist_flex_link">
     <visual>
@@ -286,7 +286,7 @@
   <joint name="pr2/l_force_torque_adapter_joint" type="fixed">
     <parent link="pr2/l_wrist_roll_link" />
     <child link="pr2/l_force_torque_adapter_link" />
-    <origin xyz="0.0356 -0.0 0.0" rpy="0.0 -1.570796 0.0" />
+    <origin xyz="0.0356 0.0 0.0" rpy="0.0 -1.570796 0.0" />
   </joint>
   <link name="pr2/l_force_torque_link">
     <visual>
@@ -467,7 +467,7 @@
   <joint name="pr2/l_gripper_led_joint" type="fixed">
     <parent link="pr2/l_gripper_palm_link" />
     <child link="pr2/l_gripper_led_frame" />
-    <origin xyz="0.0513 -0.0 0.0244" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0513 0.0 0.0244" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_shoulder_pan_link">
     <visual>
@@ -561,7 +561,7 @@
   <joint name="pr2/r_upper_arm_joint" type="fixed">
     <parent link="pr2/r_upper_arm_roll_link" />
     <child link="pr2/r_upper_arm_link" />
-    <origin xyz="0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_elbow_flex_link">
     <visual>
@@ -620,7 +620,7 @@
   <joint name="pr2/r_forearm_cam_optical_frame_joint" type="fixed">
     <parent link="pr2/r_forearm_cam_frame" />
     <child link="pr2/r_forearm_cam_optical_frame" />
-    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 -0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/r_forearm_link">
     <visual>
@@ -711,7 +711,7 @@
   <joint name="pr2/r_gripper_palm_joint" type="fixed">
     <parent link="pr2/r_wrist_roll_link" />
     <child link="pr2/r_gripper_palm_link" />
-    <origin xyz="0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_gripper_r_finger_link">
     <visual>
@@ -836,19 +836,19 @@
   <joint name="pr2/r_gripper_tool_joint" type="fixed">
     <parent link="pr2/r_gripper_palm_link" />
     <child link="pr2/r_gripper_tool_frame" />
-    <origin xyz="0.18 -0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.18 0.0 -0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_gripper_motor_accelerometer_link" />
   <joint name="pr2/r_gripper_motor_accelerometer_joint" type="fixed">
     <parent link="pr2/r_gripper_palm_link" />
     <child link="pr2/r_gripper_motor_accelerometer_link" />
-    <origin xyz="0.0 -0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/r_gripper_led_frame" />
   <joint name="pr2/r_gripper_led_joint" type="fixed">
     <parent link="pr2/r_gripper_palm_link" />
     <child link="pr2/r_gripper_led_frame" />
-    <origin xyz="0.0513 -0.0 0.0244" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0513 0.0 0.0244" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/laser_tilt_mount_link">
     <visual>
@@ -878,7 +878,7 @@
   <joint name="pr2/laser_tilt_joint" type="fixed">
     <parent link="pr2/laser_tilt_mount_link" />
     <child link="pr2/laser_tilt_link" />
-    <origin xyz="0.0 0.0 0.029202" rpy="0.0 0.0 -0.011866" />
+    <origin xyz="-0.0 0.0 0.029202" rpy="0.0 0.0 -0.011866" />
   </joint>
   <link name="pr2/head_pan_link">
     <visual>
@@ -988,7 +988,7 @@
   <joint name="pr2/head_mount_prosilica_optical_frame_joint" type="fixed">
     <parent link="pr2/head_mount_prosilica_link" />
     <child link="pr2/head_mount_prosilica_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/head_mount_kinect_ir_link" />
   <joint name="pr2/head_mount_kinect_ir_joint" type="fixed">
@@ -1006,7 +1006,7 @@
   <joint name="pr2/head_mount_kinect_rgb_optical_frame_joint" type="fixed">
     <parent link="pr2/head_mount_kinect_rgb_link" />
     <child link="pr2/head_mount_kinect_rgb_optical_frame" />
-    <origin xyz="-0.0 -0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 -0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/head_mount_kinect_ir_optical_frame" />
   <joint name="pr2/head_mount_kinect_ir_optical_frame_joint" type="fixed">
@@ -1024,7 +1024,7 @@
   <joint name="pr2/projector_wg6802418_child_frame_joint" type="fixed">
     <parent link="pr2/projector_wg6802418_frame" />
     <child link="pr2/projector_wg6802418_child_frame" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 -1.570796 0.0" />
+    <origin xyz="0.0 -0.0 0.0" rpy="0.0 -1.570796 0.0" />
   </joint>
   <link name="pr2/sensor_mount_link" />
   <joint name="pr2/sensor_mount_frame_joint" type="fixed">
@@ -1058,13 +1058,13 @@
   <joint name="pr2/narrow_stereo_l_stereo_camera_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_link" />
     <child link="pr2/narrow_stereo_l_stereo_camera_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/narrow_stereo_r_stereo_camera_frame" />
   <joint name="pr2/narrow_stereo_r_stereo_camera_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_l_stereo_camera_frame" />
     <child link="pr2/narrow_stereo_r_stereo_camera_frame" />
-    <origin xyz="-0.0 -0.09 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 -0.09 0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/narrow_stereo_r_stereo_camera_optical_frame" />
   <joint name="pr2/narrow_stereo_r_stereo_camera_optical_frame_joint" type="fixed">
@@ -1076,13 +1076,13 @@
   <joint name="pr2/narrow_stereo_l_stereo_camera_optical_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_l_stereo_camera_frame" />
     <child link="pr2/narrow_stereo_l_stereo_camera_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/narrow_stereo_optical_frame" />
   <joint name="pr2/narrow_stereo_optical_frame_joint" type="fixed">
     <parent link="pr2/narrow_stereo_link" />
     <child link="pr2/narrow_stereo_optical_frame" />
-    <origin xyz="-0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
+    <origin xyz="0.0 0.0 0.0" rpy="-1.570796 0.0 -1.570796" />
   </joint>
   <link name="pr2/wide_stereo_link" />
   <joint name="pr2/wide_stereo_frame_joint" type="fixed">
@@ -1100,7 +1100,7 @@
   <joint name="pr2/wide_stereo_r_stereo_camera_frame_joint" type="fixed">
     <parent link="pr2/wide_stereo_l_stereo_camera_frame" />
     <child link="pr2/wide_stereo_r_stereo_camera_frame" />
-    <origin xyz="0.0 -0.09 0.0" rpy="0.0 0.0 0.0" />
+    <origin xyz="0.0 -0.09 -0.0" rpy="0.0 0.0 0.0" />
   </joint>
   <link name="pr2/wide_stereo_r_stereo_camera_optical_frame" />
   <joint name="pr2/wide_stereo_r_stereo_camera_optical_frame_joint" type="fixed">
@@ -1220,7 +1220,7 @@
   <joint name="pr2/t_torso_lift_side_item_profile_joint" type="fixed">
     <parent link="pr2/m_torso_lift_side_item_profile_link" />
     <child link="pr2/t_torso_lift_side_item_profile_link" />
-    <origin xyz="-0.0 0.0 0.52" rpy="1.570796 0.0 0.0" />
+    <origin xyz="0.0 0.0 0.52" rpy="1.570796 0.0 0.0" />
   </joint>
   <link name="pr2/l_torso_lift_side_plate_link" />
   <joint name="pr2/l_torso_lift_side_plate_joint" type="fixed">

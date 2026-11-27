@@ -19,6 +19,8 @@ from coraplex.robot_plans.actions.composite.transporting import MoveAndPickUpAct
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from cramera_protocol.designator_roles import DesignatorRole
+from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPosition
+from krrood_spatial_math.spatial_types import Point3
 from cramera_bridge.live.plan import (
     DesignatorSummary,
     NamedPlace,
@@ -429,3 +431,29 @@ def test_a_pose_is_named_by_the_place_whose_pose_it_is_and_no_other(kitchen):
     assert holder.names(same)
     assert not holder.names(above), "a pose above the holder is not the holder"
     assert not holder.names(elsewhere), "the same numbers in another frame"
+
+
+def test_a_position_goal_names_its_point_in_the_frame_of_what_it_reaches_for(
+    publisher, kitchen
+):
+    keys = set(publisher.model.object_keys())
+    reaching = CartesianPosition(
+        root_link=kitchen.root,
+        tip_link=kitchen.milk,
+        goal_point=Point3(0.0, 0.0, 0.1, reference_frame=kitchen.milk),
+    )
+    location = {
+        slot.field: slot for slot in DesignatorSummary(reaching).roles(keys, None)
+    }["goal_point"]
+    assert location.role is DesignatorRole.LOCATION
+    assert location.reference.keys == [str(kitchen.milk.id)]
+    pose = location.pose
+    assert [pose.x, pose.y, pose.z, pose.qx, pose.qy, pose.qz, pose.qw] == [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    ]

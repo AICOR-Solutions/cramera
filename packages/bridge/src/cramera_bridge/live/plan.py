@@ -59,7 +59,7 @@ from semantic_digital_twin.robots.robot_parts import (
     AbstractRobotPart,
     Arm,
 )
-from krrood_spatial_math.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Point3, Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
     SemanticAnnotation,
@@ -391,16 +391,16 @@ class DesignatorSummary:
                         (
                             self.entity(each.reference_frame, object_keys)
                             for each in values
-                            if isinstance(each, Pose)
+                            if isinstance(each, (Pose, Point3))
                             and isinstance(each.reference_frame, Body)
                         ),
                         None,
                     ),
                     pose=next(
                         (
-                            NumericPose.of_matrix(each.to_np()).published()
+                            NumericPose.of_matrix(self.matrix_of(each)).published()
                             for each in values
-                            if isinstance(each, Pose)
+                            if isinstance(each, (Pose, Point3))
                             and isinstance(each.reference_frame, Body)
                         ),
                         None,
@@ -418,6 +418,19 @@ class DesignatorSummary:
                 )
             )
         return slots
+
+    @staticmethod
+    def matrix_of(location: Pose | Point3) -> numpy.ndarray:
+        """
+        :param location: A pose, or a point a goal moves a link to.
+        :return: Its homogeneous matrix in its reference frame; a point's orientation is
+            its reference frame's own.
+        """
+        if isinstance(location, Pose):
+            return location.to_np()
+        matrix = numpy.eye(4)
+        matrix[:3, 3] = location.to_np()[:3]
+        return matrix
 
     @classmethod
     def entity(cls, value: object, object_keys: Set[str]) -> RoleEntity:
