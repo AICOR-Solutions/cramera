@@ -26,6 +26,21 @@ which this repository was mirrored until 22 Oct 2026.
   removed.
 
 ### Added
+- **Focusing the camera on a body.** Double-clicking a body in the 3D view selects it
+  and glides the camera onto it: near enough to frame a small body, or onto the point
+  hit for one too big to frame from where the camera stands, so a double click never
+  moves the camera away. F frames the selection, and the scroll wheel zooms towards
+  the cursor instead of the orbit centre (#107).
+- **`cramera connect`: a live run on a remote server or in a container, in the
+  laptop's browser.** Every page now reads the live publisher through the viewer's
+  `/api/live/` relay, which also relays the page's changes (stopping, saving and
+  discarding the recording, executing a resolution) for this machine, so the viewer's
+  port is the only one to reach. `cramera connect user@server [--container NAME]
+  [--start]` reaches it through the user's own `ssh`, carrying each connection into a
+  container with `docker exec -i NAME cramera pipe`; nothing on the server listens
+  beyond its loopback address. `cramera --lifeline` ends the viewer when its input
+  closes, as `--start` uses it. `Option` and `DEFAULT_PORT` moved to
+  `cramera.viewer_options`; `RELAYED_CHANGES` maps each change to its `ChangeReach`.
 - **The Designators tab: the action under way, its roles and how they were resolved.**
   `?layout=designators` shows the 3D scene beside three panes bound to the top-level
   action at the playback frame: the twin's entities that fill a role in it (selecting
@@ -441,6 +456,61 @@ which this repository was mirrored until 22 Oct 2026.
   robot in the builder keeps its height.
 
 ### Fixed
+- **The live view draws the ROS debug markers again.** The publisher read and served
+  them, but no part of the v1 viewer asked for them. The page now reads the overlay
+  whenever a state names a new version, through the viewer's relay, and draws every
+  marker kind the way RViz does: arrows by scale or between two points, boxes,
+  spheres, upright cylinders, line strips and lists as solid lines, box and sphere
+  lists, points with their own colours, and texts facing the camera. A marker that
+  only moved is moved, not built again. *ROS markers* in the Layers overlay switches
+  them, and the Live panel chooses the topics read and the namespaces drawn. Markers
+  that arrive while the world rests now take a snapshot; the last of a burst is taken
+  when the page next reads the state. A marker given in a body's frame follows the
+  body: the state carries its pose, so the overlay is not read again while it moves.
+  A marker whose quaternion is all zero, as publishers that set no orientation leave
+  it, is drawn unrotated instead of failing the snapshot (#114).
+- **A live run shows the kitchen's joints where the physics has them.** While a plan
+  runs, a MuJoCo synchronizer can leave the joints that are not the robot's to the
+  physics, and the world then keeps its own positions of them: the viewer showed a
+  drawer or door standing still while the robot pushed it, and jumping when the plan
+  ended. A snapshot now takes those joints' positions from every synchronizer that
+  gives them, through `physics_positions_left_to_the_physics` (#111).
+- **A saved scene's Statechart tab draws its recorded statecharts again.** Since the
+  Chart states tab was dropped, the tab only said the scene held no statechart, even
+  when its bundle had one. It now draws the chart of the shown frame as a tree,
+  coloured by each node's life cycle, and follows the playback. CRAM's internal nodes,
+  such as the collision avoidance's task per link, are folded into the node above
+  them, whose details count them by life cycle (#110).
+- **A live run records only settled states, at most 30 a second.** The live publisher
+  took a full snapshot of every state change, so the planner's checks, which set a
+  state and restore it, slowed the run down and landed in the recording as poses the
+  robot never took. While a plan performs, snapshots are now taken after the
+  executor's ticks, never from a state change itself; outside a plan, at most one per
+  frame interval. The last state of a plan, and of a recording when it ends, is always
+  kept (#100).
+
+- **Saving a run right after stopping it saves that run.** The recording counted as
+  ended before its bundle was written, so a save in those seconds copied whatever
+  `__recording__` bundle an earlier run had left, or found none. A save now waits for
+  the written bundle, which the Live panel offers to save only once it is there, and a
+  new recording deletes the unsaved bundle an earlier one left.
+
+- **A world followed live draws its free objects.** The live bundle described none,
+  so walls, sinks and fixtures loaded from MJCF appeared only in a saved recording.
+  It now describes every free object at the pose it holds when the bundle is written,
+  and an object added, removed or drawn anew rewrites the bundle.
+
+- **Doors and drawers of MJCF worlds sit where the world has them.** The URDF export
+  dropped a connection's pose of its child relative to the joint, so every MJCF hinge
+  and slide child was drawn displaced by its joint's position. Such a joint now moves a
+  link of its own at the joint frame, `<child>_connection_frame`, to which the child is
+  fixed; the child link keeps its body's frame and the joint its name.
+- **Textured surfaces keep their textures in the viewer.** A world loaded from MJCF,
+  such as a RoboCasa kitchen, was drawn in flat colours. A primitive with a texture
+  and a mesh painted with a texture its own file does not name are now written into
+  the bundle as binary glTF holding the geometry, the texture coordinates and the
+  image, in the URDF models and for the free objects alike (`TexturedSurface`); a
+  primitive's texture repeats per meter or across each face, as the texture states.
 - **Nothing comes between the cinematic camera and what it films.** The film's wide
   orbit and its close-ups could stand behind a wall, inside a cabinet or beyond a door,
   so the picture showed that and not the robot. The camera now casts rays against the
@@ -540,6 +610,18 @@ which this repository was mirrored until 22 Oct 2026.
   meshes are now found beside the URDF.
 
 ### Changed
+- **cramera-bridge follows CRAM 26.10.** A plan runs as one cramph statechart, so
+  the bridge follows it through executor extensions instead of plan callbacks:
+  `CrameraVisualization` is the world visualization of coraplex's executors, and
+  `CoraplexBackendRegistration` adds it to every plan executor a demo file creates for
+  its world, which replaces the `CORAPLEX_VISUALIZATION` selection and the
+  `coraplex.visualizations` entry point. The plan view shows the statechart's actions,
+  composites, statements and the motions they expand into with their own life cycles,
+  the statechart view the whole statechart. Robot task demos build their plans as
+  statechart nodes with a `TaskContext` and perform them through `PlanPerformance`
+  (`cramera_bridge.performing`); `RobotTaskDemo.executor_type` replaces
+  `execution_type`. Spatial types come from `krrood_spatial_math`, worlds are created
+  with `create_world()`, colours from RGBA.
 - **The scene builder opens with an empty draft.** It no longer restores the draft of
   the last visit, so it starts without the scene opened before; only a reload, or the
   browser's back and forward buttons, continue the draft the tab was editing. The copy

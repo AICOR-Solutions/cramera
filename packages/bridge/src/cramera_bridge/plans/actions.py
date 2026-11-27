@@ -1,7 +1,12 @@
 """
 The native actions of the CRAM workspace as the builder offers them: every concrete
-action dataclass of coraplex's actions package, each field read on its own from the
+action dataclass of coraplex's actions package, each parameter read on its own from the
 class that declares it and mapped to a form control by its type.
+
+An action's parameters are the init fields its own classes declare, those
+:attr:`~coraplex.robot_plans.actions.base.Action.designator_parameter` lists, not the
+fields every statechart node has; a gripper configuration is offered as the arm whose
+gripper it configures and the gripper state it brings the gripper into.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ from typing_extensions import (
     Dict,
     List,
     Optional,
+    Set,
     Tuple,
     Type,
     Union,
@@ -35,7 +41,7 @@ from typing_extensions import (
 )
 
 import coraplex.robot_plans.actions
-from coraplex.robot_plans.actions.base import ActionDescription
+from coraplex.robot_plans.actions.base import Action
 from cramera_bridge.plans.arms import ArmField, Arms
 from cramera_bridge.exceptions import UnknownAction
 from cramera_bridge.names import (
@@ -54,10 +60,14 @@ from cramera_protocol.plan_builder import (
     HiddenActionField,
 )
 from krrood.utils import recursive_subclasses
+from semantic_digital_twin.datastructures.definitions import GripperState
+from semantic_digital_twin.datastructures.robots.gripper_configuration import (
+    GripperConfiguration,
+)
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
-from semantic_digital_twin.robots.robot_parts import AbstractRobotPart
+from semantic_digital_twin.robots.robot_parts import AbstractRobotPart, EndEffector
 from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
-from semantic_digital_twin.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world_description.world_entity import (
     Body,
     SemanticAnnotation,
@@ -111,6 +121,61 @@ class ActionConvention(StrEnum):
     acts on no object.
     """
 
+
+class GripperConfigurationPart(StrEnum):
+    """
+    The fields a gripper configuration is offered as, named as coraplex named them
+    before its actions took a configuration.
+    """
+
+    GRIPPER = "gripper"
+    """
+    The arm whose gripper is configured.
+    """
+
+    MOTION = "motion"
+    """
+    The gripper state the gripper is brought into.
+    """
+
+
+@dataclass(frozen=True)
+class ConfigurationPart:
+    """
+    One field a gripper configuration is offered as.
+    """
+
+    part: GripperConfigurationPart
+    """
+    The field's name.
+    """
+
+    python_type: Any
+    """
+    The type the field takes.
+    """
+
+    documentation: str
+    """
+    What the field means.
+    """
+
+
+GRIPPER_CONFIGURATION_PARTS: Tuple[ConfigurationPart, ...] = (
+    ConfigurationPart(
+        part=GripperConfigurationPart.GRIPPER,
+        python_type=EndEffector,
+        documentation="The gripper that is configured, picked by its arm.",
+    ),
+    ConfigurationPart(
+        part=GripperConfigurationPart.MOTION,
+        python_type=GripperState,
+        documentation="The state the gripper is brought into.",
+    ),
+)
+"""
+The fields a gripper configuration is offered as, in the order they are offered.
+"""
 
 # %% modules
 
@@ -529,6 +594,35 @@ class DeclaredField:
         return self.name.replace(NAME_SEPARATOR, " ")
 
 
+@dataclass(frozen=True)
+class ActionParameters:
+    """
+    The parameters of an action class, as
+    :attr:`~coraplex.robot_plans.actions.base.Action.designator_parameter` lists them
+    for an action.
+    """
+
+    action: type
+    """
+    The action class.
+    """
+
+    def declarations(self) -> List[dataclasses.Field]:
+        """
+        :return: The init fields the action's classes declare besides those of every
+            :class:`~coraplex.robot_plans.actions.base.Action`, which the statechart
+            node it runs as has, in declaration order.
+        """
+        statechart_fields = {
+            declaration.name for declaration in dataclasses.fields(Action)
+        }
+        return [
+            declaration
+            for declaration in dataclasses.fields(self.action)
+            if declaration.init and declaration.name not in statechart_fields
+        ]
+
+
 # %% schemas
 
 
@@ -538,7 +632,7 @@ class DiscoveredAction:
     A native action class with the schema the builder offers it by.
     """
 
-    action_class: Type[ActionDescription]
+    action_class: Type[Action]
     """
     The action's class.
     """
@@ -558,6 +652,24 @@ class DiscoveredAction:
     The keyword argument each field identifier stands for.
     """
 
+    configurations: Dict[str, Dict[GripperConfigurationPart, str]] = field(
+        default_factory=dict
+    )
+    """
+    The identifier of each field a gripper configuration is offered as, by the keyword
+    argument taking the configuration.
+    """
+
+    def configuration_parts(self) -> Set[str]:
+        """
+        :return: The identifiers of the fields gripper configurations are offered as.
+        """
+        return {
+            identifier
+            for parts in self.configurations.values()
+            for identifier in parts.values()
+        }
+
     def field_name(self, identifier: str) -> str:
         """
         :param identifier: A field identifier of the schema.
@@ -572,7 +684,7 @@ class ActionSchemaBuilder:
     Reads the schema of one action class.
     """
 
-    action_class: Type[ActionDescription]
+    action_class: Type[Action]
     """
     The action's class.
     """
@@ -617,6 +729,13 @@ class ActionSchemaBuilder:
     The keyword argument of each field identifier.
     """
 
+    configurations: Dict[str, Dict[GripperConfigurationPart, str]] = field(
+        default_factory=dict, init=False
+    )
+    """
+    The fields each gripper configuration is offered as, by its keyword argument.
+    """
+
     @property
     def identifier(self) -> str:
         """
@@ -637,9 +756,8 @@ class ActionSchemaBuilder:
         """
         :return: The action with its schema.
         """
-        for declaration in dataclasses.fields(self.action_class):
-            if declaration.init:
-                self.read(DeclaredField(self.action_class, declaration))
+        for declaration in ActionParameters(self.action_class).declarations():
+            self.read(DeclaredField(self.action_class, declaration))
         self.mark_surface_fields()
         schema = ActionSchema(
             name=self.identifier,
@@ -658,6 +776,7 @@ class ActionSchemaBuilder:
             schema=schema,
             field_types=self.field_types,
             field_names=self.field_names,
+            configurations=self.configurations,
         )
 
     def read(self, declared: DeclaredField) -> None:
@@ -667,6 +786,11 @@ class ActionSchemaBuilder:
         :param declared: An init field of the action.
         """
         annotation = declared.annotation()
+        if isinstance(annotation, type) and issubclass(
+            annotation, GripperConfiguration
+        ):
+            self.read_configuration(declared)
+            return
         classified = None
         if not isinstance(annotation, UnresolvedType):
             classified = self.kinds.classify(annotation)
@@ -718,27 +842,59 @@ class ActionSchemaBuilder:
             ),
         )
         if classified.kind is ActionFieldKind.ENUM:
-            enumeration = (
-                ARM_ENUMERATION
-                if ArmField(classified.python_type).part() is not None
-                else classified.python_type
+            self.enumerate(
+                offered, classified.python_type, declared.declaration.default
             )
-            offered.enum_type = ENUM_NAMES.identifier_of(enumeration)
-            offered.members = [
-                ENUM_NAMES.member_identifier(enumeration, member)
-                for member in enumeration
-            ]
-            offered.saved_members = ENUM_NAMES.saved_members(enumeration)
-            # an arm field's default is a member of the planner's own arm choice,
-            # which shares its member names with the enumeration offered
-            default = declared.declaration.default
-            if isinstance(default, Enum) and default.name in enumeration.__members__:
-                offered.default = ENUM_NAMES.member_identifier(
-                    enumeration, enumeration[default.name]
-                )
         if classified.kind is ActionFieldKind.ANNOTATION:
             offered.annotation = ANNOTATION_NAMES.identifier_of(classified.python_type)
         return offered
+
+    @staticmethod
+    def enumerate(offered: ActionField, python_type: Any, default: Any) -> None:
+        """
+        Give an enumeration field the members it offers.
+
+        :param offered: A field of kind enumeration.
+        :param python_type: The enumeration it takes, or a type taking the robot's arms.
+        :param default: The field's native default.
+        """
+        enumeration = (
+            ARM_ENUMERATION if ArmField(python_type).part() is not None else python_type
+        )
+        offered.enum_type = ENUM_NAMES.identifier_of(enumeration)
+        offered.members = [
+            ENUM_NAMES.member_identifier(enumeration, member) for member in enumeration
+        ]
+        offered.saved_members = ENUM_NAMES.saved_members(enumeration)
+        # an arm field's default is a member of the planner's own arm choice, which
+        # shares its member names with the enumeration offered
+        if isinstance(default, Enum) and default.name in enumeration.__members__:
+            offered.default = ENUM_NAMES.member_identifier(
+                enumeration, enumeration[default.name]
+            )
+
+    def read_configuration(self, declared: DeclaredField) -> None:
+        """
+        Offer a gripper configuration as the fields of
+        :data:`GRIPPER_CONFIGURATION_PARTS`.
+
+        :param declared: An init field taking a gripper configuration.
+        """
+        parts = {}
+        for part in GRIPPER_CONFIGURATION_PARTS:
+            identifier = FIELD_NAMES.identifier_of(self.identifier, part.part)
+            offered = ActionField(
+                name=identifier,
+                label=part.part.replace(NAME_SEPARATOR, " "),
+                kind=ActionFieldKind.ENUM,
+                required=not declared.has_default(),
+                documentation=part.documentation,
+            )
+            self.enumerate(offered, part.python_type, None)
+            self.field_types[identifier] = part.python_type
+            self.fields.append(offered)
+            parts[part.part] = identifier
+        self.configurations[declared.name] = parts
 
     def mark_surface_fields(self) -> None:
         """
@@ -843,7 +999,7 @@ class ActionDiscovery:
         prefix = f"{self.modules.package.__name__}."
         classes = {
             candidate
-            for candidate in recursive_subclasses(ActionDescription)
+            for candidate in recursive_subclasses(Action)
             if candidate.__module__.startswith(prefix)
             and dataclasses.is_dataclass(candidate)
             and not inspect.isabstract(candidate)

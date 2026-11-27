@@ -11,7 +11,7 @@ from cramera_bridge.robots import RobotRoster
 from cramera_bridge.scenes.bundle_world import BundleEnvironment
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from semantic_digital_twin.robots.pr2 import PR2
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 TORSO = "torso_lift_joint"
 """

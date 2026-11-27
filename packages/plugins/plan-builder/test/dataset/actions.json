@@ -575,42 +575,179 @@
       "available": true
     },
     {
-      "name": "swirling", "savedAs": ["SwirlingAction"],
-      "module": "coraplex.robot_plans.actions.composite.swirling",
-      "label": "Swirling",
+      "name": "wiping",
+      "savedAs": [
+        "WipingAction"
+      ],
+      "module": "coraplex.robot_plans.actions.composite.tool_based",
+      "label": "Wiping",
       "group": "composite",
-      "documentation": "Mix a held container by orbiting its bottom while preserving the current grasp.",
+      "documentation": "Wipe a surface or a patch around a target pose with a tool.",
       "fields": [
-        {
-          "name": "container",
-          "label": "container",
-          "kind": "body",
-          "required": true,
-          "members": [], "savedMembers": {},
-          "acceptsSurface": false,
-          "derivedFrom": [],
-          "documentation": "Container already held by the selected arm."
-        },
         {
           "name": "arm",
           "label": "arm",
           "kind": "enum",
           "required": true,
           "enumType": "arms",
-          "members": ["left", "right", "both"], "savedMembers": {"LEFT": "left", "RIGHT": "right", "BOTH": "both"},
+          "members": [
+            "left",
+            "right",
+            "both"
+          ],
+          "savedMembers": {
+            "LEFT": "left",
+            "RIGHT": "right",
+            "BOTH": "both"
+          },
           "acceptsSurface": false,
           "derivedFrom": [],
-          "documentation": "Arm whose existing grasp is preserved."
+          "documentation": "The arm holding the tool."
+        },
+        {
+          "name": "tool",
+          "label": "tool",
+          "kind": "annotation",
+          "required": true,
+          "members": [],
+          "savedMembers": {},
+          "annotation": "tool",
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The tool that performs the motion."
+        },
+        {
+          "name": "position_threshold",
+          "label": "position threshold",
+          "kind": "number",
+          "required": false,
+          "default": 0.005,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Distance threshold in meters for goal achievement, tighter than giskard's own task\ndefault so an approach does not stop short of a small object."
+        },
+        {
+          "name": "orientation_threshold",
+          "label": "orientation threshold",
+          "kind": "number",
+          "required": false,
+          "default": 0.02,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Rotation threshold in rad for goal achievement."
+        },
+        {
+          "name": "pointer_stride",
+          "label": "pointer stride",
+          "kind": "integer",
+          "required": false,
+          "default": 1,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Keep every Nth sampled waypoint for execution."
+        },
+        {
+          "name": "maximum_skip_ahead",
+          "label": "maximum skip ahead",
+          "kind": "integer",
+          "required": false,
+          "default": 2,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "How many waypoints ahead the tool may already be heading for, so a path is followed\nas a continuous stroke rather than stopping at every point."
+        },
+        {
+          "name": "surface",
+          "label": "surface",
+          "kind": "body",
+          "required": false,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The surface body to wipe.\n\nIf None, ``target_pose`` is used instead."
+        },
+        {
+          "name": "target_pose",
+          "label": "target pose",
+          "kind": "pose",
+          "required": false,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Center pose of the wiping patch.\n\nOnly used if ``surface`` is None."
+        },
+        {
+          "name": "technique",
+          "label": "technique",
+          "kind": "enum",
+          "required": false,
+          "default": "wipe",
+          "enumType": "wiping_technique",
+          "members": [
+            "wipe",
+            "shear",
+            "spread"
+          ],
+          "savedMembers": {
+            "WIPE": "wipe",
+            "SHEAR": "shear",
+            "SPREAD": "spread"
+          },
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "The wiping technique to use."
+        },
+        {
+          "name": "length",
+          "label": "length",
+          "kind": "number",
+          "required": false,
+          "default": 0.2,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Sweep length in meters for the spreading motion."
+        },
+        {
+          "name": "cycles",
+          "label": "cycles",
+          "kind": "number",
+          "required": false,
+          "default": 1.0,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Number of sweep cycles for the spreading motion."
+        },
+        {
+          "name": "final_waypoint_success_tolerance",
+          "label": "final waypoint success tolerance",
+          "kind": "number",
+          "required": false,
+          "default": 0.08,
+          "members": [],
+          "savedMembers": {},
+          "acceptsSurface": false,
+          "derivedFrom": [],
+          "documentation": "Accept a stalled motion as successful if the tool ended up within this distance in\nmeters of the final waypoint."
         }
       ],
       "hidden": [
         {
-          "name": "profile",
-          "type": "SwirlProfile"
-        },
-        {
-          "name": "pivot",
-          "type": "Point3 | None"
+          "name": "stall_timeout",
+          "type": "timedelta"
         }
       ],
       "available": true

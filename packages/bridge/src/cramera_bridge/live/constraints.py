@@ -3,9 +3,9 @@ Constraints a person attaches to plan nodes, compiled to native statechart monit
 observed against the live world while the plan runs.
 
 A monitor only observes; it does not steer the robot. Each attached constraint therefore
-runs as a monitor-only motion statechart of its own, compiled against the live world and
-ticked on the simulation thread with every motion tick, so its native observation is
-what the plan view shows next to the node.
+runs as a monitor-only statechart of its own, compiled against the live world without
+motion control and ticked on the simulation thread with every tick of the plan, so its
+native observation is what the plan view shows next to the node.
 """
 
 from __future__ import annotations
@@ -25,9 +25,11 @@ from cramera_protocol.live_messages import (
     ConstraintRequest,
     MonitorParameterKey,
 )
-from giskardpy.executor import Executor
-from giskardpy.motion_statechart.context import MotionStatechartContext
-from giskardpy.motion_statechart.data_types import ObservationStateValues
+from cramph.context import StatechartContext
+from cramph.data_types import ObservationStateValues
+from cramph.executor import StatechartExecutor
+from cramph.statechart import Statechart
+from giskardpy.motion_statechart.context import MotionControlContext
 from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from giskardpy.motion_statechart.monitors.cartesian_monitors import (
     PointingAt,
@@ -37,8 +39,8 @@ from giskardpy.motion_statechart.monitors.feature_monitors import (
     DistanceMonitor,
     HeightMonitor,
 )
-from giskardpy.motion_statechart.motion_statechart import MotionStatechart
-from semantic_digital_twin.spatial_types import Point3, Vector3
+from giskardpy.qp.qp_controller_config import QPControllerConfig
+from krrood_spatial_math.spatial_types import Point3, Vector3
 
 if TYPE_CHECKING:
     from semantic_digital_twin.world import World
@@ -260,7 +262,7 @@ class AttachedConstraint:
     The native monitor.
     """
 
-    executor: Optional[Executor] = None
+    executor: Optional[StatechartExecutor] = None
     """
     The executor ticking the monitor's statechart, once the constraint is active.
     """
@@ -270,12 +272,24 @@ class AttachedConstraint:
         Compile the monitor into a statechart of its own against the world; the
         constraint counts as active only once it is compiled.
 
+        The statechart's context carries the motion control context the monitors read,
+        but no motion control runs, so ticking it moves nothing.
+
         :param world: The live world.
         """
-        chart = MotionStatechart()
+        executor = StatechartExecutor(
+            context=StatechartContext.with_extensions(
+                world,
+                [
+                    MotionControlContext(
+                        qp_controller_config=QPControllerConfig.create_with_simulation_defaults()
+                    )
+                ],
+            )
+        )
+        chart = Statechart(context=executor.context)
         chart.add_node(self.monitor)
-        executor = Executor(MotionStatechartContext(world=world))
-        executor.compile(motion_statechart=chart)
+        executor.compile(chart)
         self.executor = executor
 
     def tick(self) -> None:
@@ -291,9 +305,9 @@ class AttachedConstraint:
         """
         observation = None
         if self.executor is not None:
-            history = self.executor.motion_statechart.history.history
+            moment = self.executor.statechart.state_history.latest_item
             observation = ObservationStateValues(
-                float(history[-1].observation_state[self.monitor])
+                float(moment.observation_state[self.monitor])
             ).name
         return ConstraintObservation(
             text=self.request.text,

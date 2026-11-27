@@ -172,6 +172,7 @@ VIEWER_PACKAGES = (
     PackageDirectory("packages/plugins/laboratory", extra=Extra.BRIDGE),
     PackageDirectory("packages/plugins/scene-builder"),
     PackageDirectory("packages/plugins/plan-builder", extra=Extra.BRIDGE),
+    PackageDirectory("packages/plugins/scene-runs"),
 )
 """
 The viewer and its plugins, which install without CRAM.

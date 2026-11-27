@@ -30,11 +30,8 @@ from cramera_protocol.live_messages import (
     TransformFreshness,
     TransformWriter,
 )
-from giskardpy.motion_statechart.data_types import (
-    LifeCycleValues,
-    ObservationStateValues,
-)
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from cramph.data_types import LifeCycleValues, ObservationStateValues
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world_description.geometry import Mesh
 
 from ..dataset.live_worlds import HeightChart
@@ -135,14 +132,21 @@ def test_a_mesh_of_another_format_has_no_material_library(tmp_path):
 def test_the_statechart_shows_its_last_native_state(publisher, kitchen):
     chart = HeightChart.build(kitchen.world, kitchen.milk)
     chart.executor.tick()
-    publisher.chart_title = "observe"
-    publisher.observe_motion_tick(chart.chart)
+    publisher.observe_tick(chart.chart, False)
     statechart = publisher.current_statechart()
     monitor = chart.chart.nodes[0]
-    assert statechart.title == "observe"
     assert statechart.nodes[0].identifier == ChartStructure.identifier(monitor.index)
     assert statechart.nodes[0].life_cycle == LifeCycleValues.RUNNING.name
     assert statechart.nodes[0].observation == ObservationStateValues.TRUE.name
+
+
+def test_the_statechart_is_titled_by_the_running_action(publisher, kitchen, small_plan):
+    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
+    publisher.begin_plan(small_plan.executor)
+    chart = HeightChart.build(kitchen.world, kitchen.milk)
+    chart.executor.tick()
+    publisher.observe_tick(chart.chart, False)
+    assert publisher.current_statechart().title == type(small_plan.action).__name__
 
 
 def test_an_unchanged_statechart_is_not_republished(publisher, kitchen):

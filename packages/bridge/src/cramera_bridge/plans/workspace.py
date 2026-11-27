@@ -7,7 +7,6 @@ protocol's documents.
 
 from __future__ import annotations
 
-import importlib
 import inspect
 import pkgutil
 from dataclasses import dataclass, field
@@ -21,7 +20,11 @@ import semantic_digital_twin.robots
 
 # defines the concrete surface annotations the catalog lists
 import semantic_digital_twin.semantic_annotations.semantic_annotations  # noqa: F401
-from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
+from cramera_bridge.plans.actions import (
+    ActionDiscovery,
+    ActionModules,
+    DiscoveredActions,
+)
 from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.objects import ObjectLibraries
 from cramera_bridge.exceptions import (
@@ -194,10 +197,12 @@ class RobotAnnotations:
     def annotations(self) -> List[Type[AbstractRobot]]:
         """
         :return: Every concrete robot annotation with a model description, sorted by
-            name, after importing every module of :attr:`package`.
+            name, after importing every module of :attr:`package`; a module that fails
+            to import, such as one needing a ROS package this machine lacks, hides only
+            its own robots.
         """
         for module in pkgutil.iter_modules(self.package.__path__):
-            importlib.import_module(f"{self.package.__name__}.{module.name}")
+            ActionModules.imported(f"{self.package.__name__}.{module.name}")
         concrete = [
             annotation
             for annotation in recursive_subclasses(AbstractRobot)

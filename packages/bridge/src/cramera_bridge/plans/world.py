@@ -151,7 +151,7 @@ class PlannedObjects:
             str(path),
             prefix=planned.identifier + PREFIX_SEPARATOR,
             path_resolver=resolver,
-        ).parse()
+        ).create_world()
         root = model.root.id
         with world.modify_world():
             connection = Connection6DoF.create_with_dofs(

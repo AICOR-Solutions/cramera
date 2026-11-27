@@ -18,7 +18,7 @@ from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.specifications.worlds import WorldSpecification
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
 
@@ -198,7 +198,7 @@ class RobotScene:
         :param environment: The scene the robots stand in, or None for an empty world.
         :return: A new world holding every robot at its start pose and posture.
         """
-        world = WorldSpecification().to_domain_object()
+        world = WorldSpecification().create_world()
         for placement in self.placements:
             placement.place(world)
         with world.modify_world():

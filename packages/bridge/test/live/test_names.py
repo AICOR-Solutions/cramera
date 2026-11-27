@@ -11,7 +11,6 @@ from abc import ABC
 
 import pytest
 
-from coraplex.plans.plan_node import PlanNode
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
 from cramera_bridge.names import (
     ACTION_NAMES,
@@ -39,6 +38,7 @@ from cramera_bridge.names import (
 from cramera_bridge.plans.actions import ActionDiscovery
 from cramera_bridge.plans.workspace import RobotAnnotations, SurfaceAnnotations
 from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
+from cramph.monitors import CountTicks
 from segmind.datastructures import events
 from segmind.datastructures.events import LossOfSupportEvent, PickUpEvent
 from semantic_digital_twin.datastructures.definitions import TorsoState
@@ -49,7 +49,9 @@ from semantic_digital_twin.robots.pr2 import PR2
 
 @pytest.mark.parametrize("entry", ACTIONS + ROBOTS, ids=lambda entry: entry.identifier)
 def test_every_pinned_class_is_where_the_table_says(entry: PinnedClass):
-    resolved = entry.resolve()
+    resolved = entry.resolve_if_installed()
+    if resolved is None:
+        pytest.skip(f"{entry.path} needs a package that is not installed")
     assert f"{resolved.__module__}.{resolved.__name__}" == entry.path
 
 
@@ -131,9 +133,10 @@ def test_a_class_not_pinned_yet_gets_an_identifier_from_its_name():
 
 
 def test_plan_nodes_are_named_by_the_protocols_kinds(small_plan):
+    assert plan_node_kind(small_plan.root) is PlanNodeKind.SEQUENCE
     assert plan_node_kind(small_plan.action) is PlanNodeKind.ACTION
     assert plan_node_kind(small_plan.motion) is PlanNodeKind.MOTION
-    assert plan_node_kind(PlanNode()) is PlanNodeKind.OTHER
+    assert plan_node_kind(CountTicks(name="wait", ticks=1)) is PlanNodeKind.OTHER
 
 
 def test_detected_events_are_named_by_the_protocols_kinds(kitchen):
@@ -182,15 +185,24 @@ def test_every_pinned_member_still_exists(entry: PinnedEnum):
 @pytest.mark.parametrize("action", sorted(FIELDS), ids=str)
 def test_every_pinned_field_still_exists(action: str):
     pinned = next(entry for entry in ACTIONS if entry.identifier == action)
+    resolved = pinned.resolve()
     names = {
-        declared.name
-        for declared in dataclasses.fields(pinned.resolve())
-        if declared.init
+        declared.name for declared in dataclasses.fields(resolved) if declared.init
     }
+    offered = next(
+        (
+            discovered
+            for discovered in ActionDiscovery().discover().actions
+            if discovered.action_class is resolved
+        ),
+        None,
+    )
+    parts = set() if offered is None else offered.configuration_parts()
     gone = [
         identifier
         for identifier in FIELDS[action]
         if FIELD_NAMES.field_name(action, identifier) not in names
+        and identifier not in parts
     ]
     assert gone == [], "map these fields in FIELD_RENAMES of cramera_bridge/names.py"
 

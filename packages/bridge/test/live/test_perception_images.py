@@ -12,9 +12,6 @@ import numpy as np
 import pytest
 from typing_extensions import List, Optional, Sequence
 
-from coraplex.plans.plan import Plan
-from coraplex.plans.plan_node import MotionNode, PlanNode
-from coraplex.robot_plans.motions.misc import DetectingMotion
 from cramera_bridge.exceptions import UnknownPerceptionImage
 from cramera_bridge.live.bundles import LiveBundleWriter, PlanTrees
 from cramera_bridge.live.perception_images import (
@@ -25,19 +22,21 @@ from cramera_bridge.live.perception_images import (
     SeenImage,
     WorldModelCamera,
 )
+from cramera_bridge.performing import TaskContext
 from cramera_protocol.bundle.scene import PerceptionImageSource
-from giskardpy.motion_statechart.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValues
 from semantic_digital_twin.datastructures.field_of_view import FieldOfView
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.exceptions import MissingDefaultCameraError
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import FixedConnection
 from semantic_digital_twin.world_description.geometry import Box, Color, Scale
 from semantic_digital_twin.world_description.shape_collection import ShapeCollection
 from semantic_digital_twin.world_description.world_entity import Body
 
-from .test_perception import SeenQuery
+from ..dataset.live_worlds import SmallPlan
+from .test_perception import SeenQuery, detecting
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 """
@@ -112,7 +111,9 @@ class BoxWorld:
         world = World()
         root = Body(name=PrefixedName("map"))
         shapes = ShapeCollection(
-            shapes=[Box(scale=Scale(0.2, 0.4, 0.4), color=Color(0.8, 0.1, 0.1))]
+            shapes=[
+                Box(scale=Scale(0.2, 0.4, 0.4), color=Color.from_rgba(0.8, 0.1, 0.1))
+            ]
         )
         box = Body(name=PrefixedName("box"), visual=shapes, collision=shapes)
         with world.modify_world():
@@ -244,34 +245,30 @@ def camera(publisher) -> FixedCamera:
 
 
 @pytest.fixture
-def detection(kitchen) -> MotionNode:
+def detection(kitchen, robot_world) -> SmallPlan:
     """
-    :return: The motion of a plan that detects, answered by a robot.
+    :return: A plan that detects, whose perception step is answered by a robot.
     """
-    plan = Plan(None)
-    root = PlanNode()
-    plan.add_node(root)
     query = SeenQuery([kitchen.milk], world=kitchen.world, robot=CameraRobot(None))
-    motion = MotionNode(designator=DetectingMotion(query=query))
-    root.add_child(motion)
-    return motion
+    return detecting(TaskContext(robot_world.world, robot_world.robot), query)
 
 
-def ended(publisher, motion: MotionNode, status: LifeCycleValues):
+def ended(publisher, detection: SmallPlan, life_cycle: LifeCycleValues):
     """
-    Run a perception step to its end.
+    Run a perception step to its end, and publish the plan again as the tick it ended in
+    does.
 
     :return: The step as the plan publishes it.
     """
-    publisher.begin_plan(motion.plan)
-    publisher.observe_node_started(motion)
-    motion.status = status
-    publisher.observe_node_ended(motion)
-    return publisher.current_plan().nodes[-1]
+    publisher.begin_plan(detection.executor)
+    publisher.observe_node_started(detection.motion)
+    detection.set(detection.motion, life_cycle)
+    publisher.observe_node_ended(detection.motion)
+    return publisher.refresh_plan().nodes[-1]
 
 
 def test_a_perception_step_lists_its_images_once_it_ended(publisher, camera, detection):
-    publisher.begin_plan(detection.plan)
+    publisher.begin_plan(detection.executor)
     assert publisher.current_plan().nodes[-1].images == []
     step = ended(publisher, detection, LifeCycleValues.SUCCEEDED)
     (image,) = step.images
@@ -299,11 +296,12 @@ def test_the_recording_keeps_the_images_as_files(
     (plan,) = publisher.plan.performed_plans()
     LiveBundleWriter.perception_images([plan], tmp_path)
     (root,) = PlanTrees(plan=publisher.current_plan(), robot=None).roots()
-    (motion,) = root.children
-    (image,) = motion.images
+    (action,) = root.children
+    (step,) = action.children
+    (image,) = step.images
     assert image.file.startswith("perception/") and image.file.endswith(".png")
     assert (tmp_path / image.file).read_bytes() == PNG_SIGNATURE
-    assert root.images is None
+    assert (root.images, action.images) == (None, None)
 
 
 # %% images from ROS

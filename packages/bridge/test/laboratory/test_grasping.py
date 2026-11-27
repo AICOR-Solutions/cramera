@@ -9,7 +9,7 @@ import pytest
 
 from cramera_bridge.laboratory.grasping import PadContact
 from cramera_bridge.laboratory.workflow import LaboratoryWorkflowDemo
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix, Pose
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose
 
 
 @pytest.fixture(scope="module")

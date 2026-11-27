@@ -18,7 +18,7 @@ from semantic_digital_twin.adapters.package_resolver import (
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.specifications.worlds import WorldSpecification
-from semantic_digital_twin.spatial_types import HomogeneousTransformationMatrix
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (
     Connection6DoF,
@@ -42,7 +42,7 @@ class SceneEnvironment(ABC):
         :param robots: The robots to place in the world; none creates only the scene.
         :return: A new world holding the robots and the scene.
         """
-        world = WorldSpecification(robots=list(robots)).to_domain_object()
+        world = WorldSpecification(robots=list(robots)).create_world()
         self.populate(world)
         return world
 
@@ -71,7 +71,7 @@ class SceneEnvironment(ABC):
         )
         return URDFParser.from_file(
             str(description), prefix=prefix, path_resolver=resolver
-        ).parse()
+        ).create_world()
 
     @staticmethod
     def merge_model(

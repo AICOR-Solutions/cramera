@@ -12,11 +12,9 @@ from pathlib import Path
 
 from typing_extensions import Dict, Iterator, List
 
-from coraplex.datastructures.dataclasses import Context
-from coraplex.plans.factories import sequential
-from coraplex.plans.plan import Plan
 from cramera_bridge.exceptions import TaskFailed
 from cramera_bridge.geometry import NumericPose
+from cramera_bridge.performing import TaskContext
 from cramera_bridge.robot_task import NAME_PART_SEPARATOR, RobotTaskDemo
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_bridge.plans.actions import ActionDiscovery, DiscoveredActions
@@ -27,6 +25,8 @@ from cramera_bridge.scenes.bundle_world import PoseText
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
 from cramera_protocol.bundle.index import SceneName
 from cramera_protocol.geometry import Pose as PlannedPose
+from cramph.composites import Sequence
+from cramph.node import StatechartNode
 from cramera_protocol.plan_builder import (
     ActionFieldKind,
     DemoDocument,
@@ -230,16 +230,19 @@ class PlannedTaskDemo(RobotTaskDemo):
         self.bodies = PlannedObjects(self.plan.objects).spawn(world)
         return world
 
-    def build_context(self, world: World) -> Context:
-        return Context(world=world, robot=self.robot_scene.selected_robot(world))
+    def build_context(self, world: World) -> TaskContext:
+        return TaskContext(world=world, robot=self.robot_scene.selected_robot(world))
 
-    def build_plan(self, context: Context) -> Plan:
+    def build_plan(self, context: TaskContext) -> StatechartNode:
+        """
+        :param context: The world and the performing robot.
+        :return: The performing robot's steps as their native actions, one after
+            another.
+        """
         actions = StepActions(context, self.bodies, self.discovered_actions)
-        return sequential(
-            [actions.action(step) for step in self.steps()], context=context
-        ).plan
+        return Sequence(nodes=[actions.action(step) for step in self.steps()])
 
-    def measure(self, context: Context) -> AcceptanceMetrics:
+    def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
         Measure how far each object put down at a pose ended from it.
 

@@ -32,6 +32,8 @@ CRAM_PACKAGES = frozenset(
         "semantic_digital_twin",
         "giskardpy",
         "krrood",
+        "krrood_spatial_math",
+        "cramph",
         "segmind",
         "robokudo",
         "physics_simulators",

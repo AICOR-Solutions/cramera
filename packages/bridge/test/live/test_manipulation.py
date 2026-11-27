@@ -57,7 +57,8 @@ def test_a_move_while_a_plan_runs_waits_for_the_next_tick(publisher, kitchen):
     )
     assert NumericPose.of_entity(kitchen.world, kitchen.milk).position[0] != 3.0
     assert publisher.captured_objects().objects[str(kitchen.milk.id)].x == 3.0
-    publisher.observe_motion_tick(chart.chart)
+    chart.executor.tick()
+    publisher.observe_tick(chart.chart, False)
     assert NumericPose.of_entity(kitchen.world, kitchen.milk).position[0] == 3.0
 
 
@@ -75,7 +76,7 @@ def test_unknown_and_fixed_objects_are_not_moved(publisher, kitchen):
 
 
 def test_a_joint_is_held_within_its_limits(robot_world, locations):
-    robot_publisher = LivePublisher(locations=locations)
+    robot_publisher = LivePublisher(locations=locations, snapshot_interval=0.0)
     robot_publisher.attach(robot_world.world)
     joint = robot_publisher.model.joint_named("pr2/torso_lift_joint")
     previous = joint.position

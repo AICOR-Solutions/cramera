@@ -12,7 +12,7 @@ from typing_extensions import Iterator, List, Optional
 from cramera_bridge.plans.workspace import SurfaceAnnotations
 from cramera_bridge.exceptions import SurfaceNotInWorld
 from semantic_digital_twin.semantic_annotations.mixins import HasSupportingSurface
-from semantic_digital_twin.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 

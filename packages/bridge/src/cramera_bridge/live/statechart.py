@@ -1,5 +1,6 @@
 """
-The motion statechart being ticked, read from its native state history.
+The statechart being ticked, read from its native state history: the plan's actions and
+the motions they expand into, which run as one cramph statechart.
 """
 
 from __future__ import annotations
@@ -11,14 +12,12 @@ from typing_extensions import TYPE_CHECKING, List, Optional
 
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.live_messages import LiveChartNode, LiveStatechart
-from giskardpy.motion_statechart.data_types import ObservationStateValues
+from cramph.data_types import ObservationStateValues
 
 if TYPE_CHECKING:
-    from giskardpy.motion_statechart.graph_node import MotionStatechartNode
-    from giskardpy.motion_statechart.motion_statechart import (
-        MotionStatechart,
-        StateHistoryItem,
-    )
+    from cramph.node import StatechartNode
+    from cramph.state_history import StateHistoryItem
+    from cramph.statechart import Statechart
 
 CHART_NODE_PREFIX = "chart_node_"
 """
@@ -39,7 +38,7 @@ class ChartStructure:
     The nodes and transitions of one chart, which do not change while it is ticked.
     """
 
-    chart: MotionStatechart
+    chart: Statechart
     """
     The chart.
     """
@@ -94,17 +93,17 @@ class StatechartPublisher:
     Guards :attr:`latest`.
     """
 
-    def observe(self, chart: MotionStatechart, title: str) -> bool:
+    def observe(self, chart: Statechart, title: str) -> bool:
         """
         Read the chart's last recorded state.
 
         :param chart: The chart being ticked.
-        :param title: What the chart executes.
+        :param title: The action under way.
         :return: Whether the published snapshot changed.
         """
-        if not chart.history.history:
+        moment = chart.state_history.latest_item
+        if moment is None:
             return False
-        moment = chart.history.history[-1]
         structure = ChartStructure(chart)
         snapshot = LiveStatechart(
             signature=structure.signature(),
@@ -119,9 +118,7 @@ class StatechartPublisher:
         return True
 
     @staticmethod
-    def node_state(
-        node: MotionStatechartNode, moment: StateHistoryItem
-    ) -> LiveChartNode:
+    def node_state(node: StatechartNode, moment: StateHistoryItem) -> LiveChartNode:
         """
         :param node: A node of the chart.
         :param moment: The chart's last recorded state.

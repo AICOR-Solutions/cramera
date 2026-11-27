@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pytest
 
-from coraplex.datastructures.dataclasses import Context
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from cramera.locations import DataLocations
 from cramera_bridge.demos.navigation import (
@@ -19,6 +18,7 @@ from cramera_bridge.demos.navigation import (
     NavigationMeasurement,
 )
 from cramera_bridge.exceptions import TaskFailed
+from cramera_bridge.performing import TaskContext
 from semantic_digital_twin.specifications.robots import RobotSpecification
 from semantic_digital_twin.robots.pr2 import PR2
 
@@ -40,7 +40,7 @@ def demo(tmp_path) -> NavigationDemo:
 
 
 @pytest.fixture
-def context(demo) -> Context:
+def context(demo) -> TaskContext:
     """
     :return: The demo's world and robot before the drive.
     """
@@ -57,8 +57,7 @@ def test_the_barrier_stands_halfway(demo, context):
 
 
 def test_the_plan_navigates_to_the_target(demo, context):
-    plan = demo.build_plan(context)
-    action = plan.root.designator
+    action = demo.build_plan(context)
     assert isinstance(action, NavigateAction)
     assert action.target_location.position.to_np()[0] == pytest.approx(demo.target_x)
 

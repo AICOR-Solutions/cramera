@@ -2,9 +2,10 @@
 The live publisher: what a running CRAM world offers the viewer.
 
 The simulation thread reports the world's state and model changes, the plan's progress
-and every motion tick; each component takes its snapshot then. HTTP threads only read
-those snapshots, and queue the changes a person makes, which are written on the thread
-that owns the world.
+and every motion tick; each component takes its snapshot then, the world's state only
+once it is settled (see :mod:`cramera_bridge.live.snapshot_pacing`). HTTP threads only
+read those snapshots, and queue the changes a person makes, which are written on the
+thread that owns the world.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from cramera_bridge.exceptions import (
     MarkersUnavailable,
     NoRecording,
     NoWorldAttached,
+    RecordingNotWritten,
     RobotSelectionBusy,
     TeleoperationUnavailable,
     UnknownPerceptionImage,
@@ -48,6 +50,7 @@ from cramera_bridge.live.recording import Recording
 from cramera_bridge.live.recording_storage import RecordingStorage
 from cramera_bridge.live.resolutions import ResolutionBoard
 from cramera_bridge.live.scene_highlights import SceneHighlighter
+from cramera_bridge.live.snapshot_pacing import FRAME_INTERVAL, SnapshotPacing
 from cramera_bridge.live.statechart import StatechartPublisher
 from cramera_bridge.live.teleoperation import TeleoperationDriver
 from cramera_bridge.live.transforms import TransformTracker
@@ -98,12 +101,15 @@ from cramera_protocol.questions import (
 )
 from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
-from coraplex.plans.plan_node import MotionNode, PlanNode
+from coraplex.plans.context_extensions import RobotAccess
+from cramph.data_types import LifeCycleValues
+from cramph.node import StatechartNode
+from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
 
 if TYPE_CHECKING:
-    from coraplex.plans.plan import Plan
-    from giskardpy.motion_statechart.motion_statechart import MotionStatechart
+    from coraplex.plans.executors import PlanExecutor
+    from cramph.statechart import Statechart
     from semantic_digital_twin.world import World
     from semantic_digital_twin.world_description.world_entity import Body
 
@@ -119,8 +125,8 @@ The package's version when it runs from its source tree without being installed.
 
 PLAN_REFRESH_TICKS = 5
 """
-How many motion ticks pass between two plan snapshots; walking the plan costs more than
-a tick and its statuses change far less often.
+How many ticks pass between two plan snapshots; walking the plan costs more than a tick
+and its statuses change far less often.
 """
 
 # %% publisher
@@ -154,7 +160,12 @@ class LivePublisher:
 
     clock: Callable[[], float] = time.monotonic
     """
-    The monotonic clock transforms are aged with.
+    The monotonic clock transforms are aged and state snapshots spaced with.
+    """
+
+    snapshot_interval: float = FRAME_INTERVAL
+    """
+    The shortest time between two state snapshots, in seconds.
     """
 
     world: Optional[World] = field(default=None, init=False)
@@ -188,6 +199,11 @@ class LivePublisher:
     The state snapshots.
     """
 
+    pacing: SnapshotPacing = field(init=False)
+    """
+    When the next state snapshot is taken.
+    """
+
     objects: ObjectCatalogPublisher = field(
         default_factory=ObjectCatalogPublisher, init=False
     )
@@ -209,7 +225,7 @@ class LivePublisher:
 
     chart_title: str = field(default="", init=False)
     """
-    The action whose motions the ticked statechart executes.
+    The action under way while the statechart was ticked last.
     """
 
     motion_running: bool = field(default=False, init=False)
@@ -219,7 +235,7 @@ class LivePublisher:
 
     ticks: int = field(default=0, init=False)
     """
-    How many motion ticks happened.
+    How many ticks happened.
     """
 
     transforms: TransformTracker = field(default_factory=TransformTracker, init=False)
@@ -274,16 +290,20 @@ class LivePublisher:
 
     def __post_init__(self) -> None:
         self.bundle_writer = LiveBundleWriter(self.locations.local_scenes)
+        self.pacing = SnapshotPacing(clock=self.clock, interval=self.snapshot_interval)
+        self.markers.change_listener = self.observe_state_change
 
     # %% simulation thread
 
     def attach(self, world: World) -> None:
         """
-        Start publishing a world and recording its run.
+        Start publishing a world and recording its run, deleting an unsaved bundle an
+        earlier recording left, so that no save takes it for this run.
 
         :param world: The world.
         """
         with self.world_lock:
+            RecordingStorage(self.locations).discard()
             self.world = world
             self.model = None
             self.selected_robot = None
@@ -316,18 +336,29 @@ class LivePublisher:
                 )
             self.objects.refresh(self.model)
             self.desk.presets = WorldKnowledge(world, self.current_objects).presets()
-            self.observe_state_change()
+            self.take_snapshot()
 
     def observe_state_change(self) -> None:
+        """
+        Note that the world's state or its debug markers changed, and take a snapshot
+        unless a plan performs, whose ticks take them, or the last one is too recent.
+        """
+        with self.world_lock:
+            if self.model is not None and self.pacing.state_changed():
+                self.take_snapshot()
+
+    def take_snapshot(self) -> None:
         """
         Take a state snapshot and record it.
         """
         with self.world_lock:
             if self.model is None:
                 return
+            self.pacing.taken()
             self.markers.refresh(self.model.world)
+            markers_version, marker_poses = self.markers.placed(self.model.world)
             snapshot = self.state.refresh(
-                self.model, self.selected_robot, self.markers.version()
+                self.model, self.selected_robot, markers_version, marker_poses
             )
             self.transforms.observe(self.model.world, self.clock())
             self.recording.append(
@@ -337,53 +368,59 @@ class LivePublisher:
                 self.plan.running_motion(),
             )
 
-    def begin_plan(self, plan: Plan) -> None:
+    def begin_plan(self, executor: PlanExecutor) -> None:
         """
         Publish a plan that is about to perform, keeping the plans performed before for
         the recording; its robot becomes the selected one.
 
-        :param plan: The plan.
+        :param executor: The executor that compiled the plan.
         """
         with self.world_lock:
-            if plan.context is not None and self.model is not None:
-                robot = plan.context.robot
-                if robot in self.model.robots:
-                    self.select(robot)
-            self.plan.begin(plan)
+            self.pacing.plan_started(executor)
+            access = executor.context.get_extension(RobotAccess)
+            if access is not None and self.model is not None:
+                if access.robot in self.model.robots:
+                    self.select(access.robot)
+            self.plan.begin(executor)
             self.constraints.clear()
             self.refresh_plan()
 
-    def observe_node_started(self, node: PlanNode) -> None:
+    def end_plan(self, executor: PlanExecutor) -> None:
+        """
+        Take the state a plan left, however it stopped.
+
+        :param executor: The executor whose plan stopped performing.
+        """
+        with self.world_lock:
+            if self.pacing.plan_ended(executor):
+                self.take_snapshot()
+
+    def observe_node_started(self, node: StatechartNode) -> None:
         """
         :param node: The plan node that started.
         """
         with self.world_lock:
-            if isinstance(node, MotionNode):
-                action = node.parent_action_node
-                self.chart_title = (
-                    type(action.designator).__name__ if action is not None else ""
-                )
+            if isinstance(node, MotionStatechartNode):
                 self.motion_running = True
                 self.constraints.note_motion_started()
             self.plan.observe_started(node)
-            self.refresh_plan()
 
-    def observe_node_ended(self, node: PlanNode) -> None:
+    def observe_node_ended(self, node: StatechartNode) -> None:
         """
         :param node: The plan node that ended.
         """
         with self.world_lock:
-            if isinstance(node, MotionNode):
-                self.motion_running = False
             object_keys = set() if self.model is None else set(self.model.object_keys())
             self.plan.observe_ended(node, object_keys)
-            self.refresh_plan()
 
-    def observe_motion_tick(self, chart: MotionStatechart) -> None:
+    def observe_tick(self, chart: Statechart, changed: bool) -> None:
         """
-        Write the waiting changes, evaluate the constraints and publish the statechart.
+        Write the waiting changes, evaluate the constraints, publish the statechart and
+        take a state snapshot when one is due.
 
         :param chart: The statechart the executor ticks.
+        :param changed: Whether a node started or ended in the tick, so the plan is
+            published again at once.
         """
         with self.world_lock:
             self.activity.tick()
@@ -391,10 +428,18 @@ class LivePublisher:
             if self.edits.apply(self.model, self.transforms):
                 world.notify_state_change()
             self.constraints.tick(world)
+            self.motion_running = any(
+                isinstance(node, MotionStatechartNode)
+                and node.life_cycle_state is LifeCycleValues.RUNNING
+                for node in chart.nodes
+            )
+            self.chart_title = self.plan.running_action() or ""
             self.statechart.observe(chart, self.chart_title)
             self.ticks += 1
-            if self.ticks % PLAN_REFRESH_TICKS == 0:
+            if changed or self.ticks % PLAN_REFRESH_TICKS == 0:
                 self.refresh_plan()
+            if self.pacing.is_due():
+                self.take_snapshot()
 
     def refresh_plan(self) -> LivePlan:
         """
@@ -478,8 +523,17 @@ class LivePublisher:
 
     def current_state(self) -> LiveState:
         """
-        :return: The newest state snapshot.
+        :return: The newest state snapshot, after taking the one a change between plans
+            is owed: the interval held it back, and while the world rests nothing else
+            takes it.
         """
+        with self.world_lock:
+            if (
+                self.model is not None
+                and not self.pacing.is_performing()
+                and self.pacing.is_due()
+            ):
+                self.take_snapshot()
         return self.state.state()
 
     def current_plan(self) -> LivePlan:
@@ -621,7 +675,7 @@ class LivePublisher:
         self.stop_teleoperation()
         self.teleoperation = None
         self.selected_robot = robot
-        self.observe_state_change()
+        self.take_snapshot()
 
     # %% questions
 
@@ -791,13 +845,16 @@ class LivePublisher:
 
     def finish_recording(self) -> RecordingStatus:
         """
-        End the recording and write it as the ``__recording__`` bundle; finishing it
-        again reports the same bundle.
+        End the recording, with the last state when no plan performs, and write it as
+        the ``__recording__`` bundle; finishing it again reports the same bundle.
 
         :return: The recording's state, naming the bundle.
         :raises NoRecording: When nothing was recorded.
         :raises EmptyRecording: When the recording has no frames.
         """
+        with self.world_lock:
+            if self.pacing.pending and not self.pacing.is_performing():
+                self.take_snapshot()
         frames = self.recording.finish()
         if self.recording.status().scene_name is not None:
             return self.recording.status()
@@ -824,9 +881,14 @@ class LivePublisher:
         :param request: The save request.
         :return: The saved run.
         :raises NoRecording: While no finished recording waits to be saved.
+        :raises RecordingNotWritten: While the finished recording's bundle is still
+            being written, so that the save cannot take an older bundle for it.
         """
-        if self.recording.status().state is not RecordingState.FINALIZED:
+        status = self.recording.status()
+        if status.state is not RecordingState.FINALIZED:
             raise NoRecording(RecordingState.FINALIZED)
+        if status.scene_name is None:
+            raise RecordingNotWritten()
         run = RecordingStorage(self.locations).save(request)
         NativePlans(run).store(self.plan.performed_plans())
         self.recording.discard()
