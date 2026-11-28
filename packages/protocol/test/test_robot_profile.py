@@ -17,6 +17,7 @@ from cramera_protocol.robot_profile import (
     ArmWorkspace,
     ArmWorkspaceKey,
     ExecutorKind,
+    GraspClosingAxis,
     PerceptionSettings,
     PerceptionSettingsKey,
     RobotProfile,
@@ -238,3 +239,25 @@ def test_a_profile_without_a_runtime_check_holds_its_runs_to_the_strict_one(
 
 def test_the_browser_reads_how_strictly_a_run_checks_what_it_perceives():
     assert {PerceptionSettingsKey, RuntimeCheck} <= set(BROWSER_ENUMERATIONS)
+
+
+# %% grasping
+
+
+def test_a_profile_without_a_grasp_closing_axis_closes_along_the_objects_x_axis(
+    profile_file,
+):
+    assert RobotProfile.from_file(profile_file).grasp_closing_axis is GraspClosingAxis.X
+
+
+def test_a_profile_says_its_hand_closes_along_an_objects_y_axis():
+    profile = RobotProfile.from_json(
+        {
+            RobotProfileKey.ROBOT: "example.walker_s2",
+            RobotProfileKey.LABEL: "Walker S2",
+            RobotProfileKey.GRASP_CLOSING_AXIS: GraspClosingAxis.Y.value,
+        }
+    )
+
+    assert profile.grasp_closing_axis is GraspClosingAxis.Y
+    assert RobotProfile.from_json(profile.to_json()) == profile

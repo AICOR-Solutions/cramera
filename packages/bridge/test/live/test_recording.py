@@ -61,7 +61,7 @@ from cramera.locations import DataLocations
 from coraplex.plans.executors import KinematicallySimulatedPlanExecutor
 from cramph.composites import Sequence
 from cramph.context import StatechartContext
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.monitors import CountTicks
 from cramph.statechart import Statechart
 from semantic_digital_twin.datastructures.definitions import TorsoState
@@ -457,11 +457,11 @@ def run_the_small_plan(kitchen, publisher, small_plan) -> FrameRange:
     """
     publisher.begin_plan(small_plan.executor)
     carry_milk(kitchen, publisher)
-    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.action, LifeCycleValue.RUNNING)
     first = publisher.recording.frame_count()
     carry_milk(kitchen, publisher)
     running = FrameRange(first, publisher.recording.frame_count() - 1)
-    small_plan.set(small_plan.action, LifeCycleValues.SUCCEEDED)
+    small_plan.set(small_plan.action, LifeCycleValue.SUCCEEDED)
     carry_milk(kitchen, publisher)
     return running
 
@@ -511,9 +511,9 @@ def test_a_recorded_step_keeps_its_parameters_and_constraints(
         )
     )
     live = publisher.refresh_plan().nodes[1].constraints[0]
-    small_plan.set(small_plan.action, LifeCycleValues.RUNNING)
+    small_plan.set(small_plan.action, LifeCycleValue.RUNNING)
     carry_milk(kitchen, publisher)
-    small_plan.set(small_plan.action, LifeCycleValues.SUCCEEDED)
+    small_plan.set(small_plan.action, LifeCycleValue.SUCCEEDED)
     carry_milk(kitchen, publisher)
     publisher.finish_recording()
     root = bundle_files(locations)[1].plan_trees[0]
@@ -615,11 +615,11 @@ def robotless_plan(kitchen) -> KinematicallySimulatedPlanExecutor:
         robot and not run.
     """
     executor = KinematicallySimulatedPlanExecutor(
-        StatechartContext.with_extensions(kitchen.world, [])
+        context=StatechartContext.with_extensions(world=kitchen.world, extensions=[])
     )
     statechart = Statechart(context=executor.context)
-    statechart.add_node(Sequence(nodes=[CountTicks(name="wait", ticks=1)]))
-    executor.prepare(statechart)
+    statechart.add_node(node=Sequence(nodes=[CountTicks(name="wait", ticks=1)]))
+    executor.prepare(statechart=statechart)
     return executor
 
 

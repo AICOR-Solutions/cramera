@@ -101,6 +101,29 @@ class ExecutorKind(StrEnum):
     """
 
 
+class BaseInPhysics(StrEnum):
+    """
+    How a run in physics moves the base of a robot that walks on legs, as its profile
+    chooses. Holding the base is a simulation shortcut; the real robot keeps balancing.
+    """
+
+    FIXED = "fixed"
+    """
+    The base is held where the run starts it, and nothing walks it.
+    """
+
+    WALK_THEN_FIX = "walk_then_fix"
+    """
+    The robot walks on its legs to every pose a step sends it to; once it stands still
+    there, its base is held where it stands until the next walk.
+    """
+
+    WALKING = "walking"
+    """
+    The robot balances on its legs all the time, also while its arms work.
+    """
+
+
 class CameraMount(StrEnum):
     """
     How a robot's camera is mounted, which decides how a step keeps an object in view.
@@ -115,6 +138,24 @@ class CameraMount(StrEnum):
     """
     The camera turns with a head, so keeping an object in view is a gaze the robot
     actuates.
+    """
+
+
+class GraspClosingAxis(StrEnum):
+    """
+    The axis of an object taken from above, in the object's own frame, that the robot's
+    hand closes along.
+    """
+
+    X = "x"
+    """
+    The object's x-axis, as a parallel gripper such as Tracy's takes a block.
+    """
+
+    Y = "y"
+    """
+    The object's y-axis, which a hand reaching forward over a table, such as a
+    humanoid's, closes along with its wrist barely turned.
     """
 
 
@@ -465,6 +506,11 @@ class RobotProfileKey(StrEnum):
     How the robot's camera is mounted.
     """
 
+    GRASP_CLOSING_AXIS = "graspClosingAxis"
+    """
+    The axis of an object taken from above the robot's hand closes along.
+    """
+
     SAFETY = "safety"
     """
     The safety limits the robot's runs are held to.
@@ -473,6 +519,11 @@ class RobotProfileKey(StrEnum):
     PERCEPTION = "perception"
     """
     How the robot's perception is asked.
+    """
+
+    BASE_IN_PHYSICS = "baseInPhysics"
+    """
+    How a run in physics moves the base of a robot that walks on legs.
     """
 
 
@@ -549,6 +600,14 @@ class RobotProfile(JsonDocument):
     in view it is offered; None offers every one.
     """
 
+    grasp_closing_axis: GraspClosingAxis = document_field(
+        RobotProfileKey.GRASP_CLOSING_AXIS, default=GraspClosingAxis.X
+    )
+    """
+    The axis of an object taken from above, in its own frame, the robot's hand closes
+    along.
+    """
+
     safety: Optional[SafetyLimits] = document_field(
         RobotProfileKey.SAFETY, default=None
     )
@@ -562,6 +621,14 @@ class RobotProfile(JsonDocument):
     )
     """
     How the robot's perception is asked.
+    """
+
+    base_in_physics: Optional[BaseInPhysics] = document_field(
+        RobotProfileKey.BASE_IN_PHYSICS, default=None
+    )
+    """
+    How a run in physics moves the base of a robot that walks on legs; None walks it
+    on its legs all the time.
     """
 
     format_version: ProtocolVersion = document_field(

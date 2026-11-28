@@ -24,7 +24,7 @@ from cramera_protocol.plan_builder import (
     RunMonitor,
     StepState,
 )
-from krrood.ormatic.utils import classproperty
+from krrood.patterns.classproperty import classproperty
 
 # %% entries
 

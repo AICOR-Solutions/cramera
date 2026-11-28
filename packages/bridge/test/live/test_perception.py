@@ -17,7 +17,7 @@ from cramera_bridge.live.plan import PlanNodeStatus
 from cramera_bridge.performing import TaskContext
 from cramera_bridge.visualization import PublishedPlanProgress
 from cramph.state_history import StateHistoryItem
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Handle
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
@@ -85,7 +85,7 @@ def nodes(publisher):
     return publisher.current_plan().nodes
 
 
-def ended(publisher, detection: SmallPlan, life_cycle: LifeCycleValues) -> None:
+def ended(publisher, detection: SmallPlan, life_cycle: LifeCycleValue) -> None:
     """
     Let the perception step of a published plan end, and publish the plan again as the
     tick it ended in does.
@@ -118,7 +118,7 @@ def test_a_perception_step_that_ended_reports_what_it_saw(
     publisher, detection, kitchen
 ):
     publisher.begin_plan(detection.executor)
-    ended(publisher, detection, LifeCycleValues.SUCCEEDED)
+    ended(publisher, detection, LifeCycleValue.SUCCEEDED)
     *_, step = nodes(publisher)
     assert step.perceived == [str(kitchen.milk.id)]
     assert step.reason is None
@@ -126,14 +126,14 @@ def test_a_perception_step_that_ended_reports_what_it_saw(
 
 def test_a_failed_perception_step_reports_nothing(publisher, detection):
     publisher.begin_plan(detection.executor)
-    ended(publisher, detection, LifeCycleValues.FAILED)
+    ended(publisher, detection, LifeCycleValue.FAILED)
     *_, step = nodes(publisher)
     assert step.perceived == []
 
 
 def test_the_recording_keeps_what_a_perception_step_saw(publisher, detection, kitchen):
     publisher.begin_plan(detection.executor)
-    ended(publisher, detection, LifeCycleValues.SUCCEEDED)
+    ended(publisher, detection, LifeCycleValue.SUCCEEDED)
     (root,) = PlanTrees(plan=publisher.current_plan(), robot=None).roots()
     (action,) = root.children
     (step,) = action.children
@@ -141,7 +141,7 @@ def test_the_recording_keeps_what_a_perception_step_saw(publisher, detection, ki
     assert action.perceived is None
 
 
-def reported_by_the_motion_server(detection: SmallPlan, life_cycle: LifeCycleValues):
+def reported_by_the_motion_server(detection: SmallPlan, life_cycle: LifeCycleValue):
     """
     Let the perception step end as a motion server reports it on the real robot: its
     state is recorded in the plan's history, and no executor of this process ticks.
@@ -164,7 +164,7 @@ def test_a_perception_step_the_motion_server_ran_reports_what_it_saw(
 ):
     progress = PublishedPlanProgress(publisher=publisher)
     progress.after_compile(detection.executor)
-    reported_by_the_motion_server(detection, LifeCycleValues.SUCCEEDED)
+    reported_by_the_motion_server(detection, LifeCycleValue.SUCCEEDED)
     *_, step = nodes(publisher)
     assert step.perceived == [str(kitchen.milk.id)]
     assert step.status == PlanNodeStatus.SUCCEEDED

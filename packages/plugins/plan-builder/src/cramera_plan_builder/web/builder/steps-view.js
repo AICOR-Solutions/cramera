@@ -360,7 +360,7 @@ export class StepsView {
     if (state.curated()) {
       const section = elements.create('div', ViewClass.GROUP);
       section.dataset.group = 'skills';
-      section.append(elements.create('h3', '', 'Skills'), ...state.offeredSkills(robot).map((skill) => this.#skillBlock(skill)));
+      section.append(...state.offeredSkills(robot).map((skill) => this.#skillBlock(skill)));
       entries.push(section);
       return entries;
     }

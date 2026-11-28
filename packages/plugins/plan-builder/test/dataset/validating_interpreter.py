@@ -4,7 +4,8 @@ Stands in for the interpreter running cramera-bridge's validator: called as
 ``<interpreter> -m <module> <order file> <report file> [<expected order file>]``, once
 its input closes, it
 writes a report in which every step of the plan's selected robot holds, unless the
-plan's task names the step that fails as unreachable.
+plan's task names the step that fails as unreachable; a passed report passes a grounding
+on.
 """
 
 import json
@@ -21,5 +22,8 @@ for step in robot["steps"]:
         steps.append({"step": step["id"], "verdict": "failed", "reason": "unreachable"})
     else:
         steps.append({"step": step["id"], "verdict": "valid"})
+written = {"steps": steps}
+if all(step["verdict"] == "valid" for step in steps):
+    written["grounding"] = {"demo": "stand-in", "steps": []}
 with open(report_file, "w", encoding="utf-8") as report:
-    json.dump({"steps": steps}, report)
+    json.dump(written, report)

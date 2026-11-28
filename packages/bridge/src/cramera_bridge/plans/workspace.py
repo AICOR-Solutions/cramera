@@ -7,6 +7,7 @@ protocol's documents.
 
 from __future__ import annotations
 
+import functools
 import inspect
 import pkgutil
 from dataclasses import dataclass, field
@@ -15,7 +16,6 @@ from types import ModuleType
 
 from typing_extensions import Dict, List, Set, Type, get_args
 
-import coraplex
 import semantic_digital_twin.robots
 
 # defines the concrete surface annotations the catalog lists
@@ -36,9 +36,15 @@ from cramera_bridge.export.urdf import URDF_SUFFIX, XACRO_SUFFIX, UrdfBundle
 from cramera_bridge.export.urdf_environment import UrdfEnvironmentBundle
 from cramera_bridge.scenes.bundle_world import BundleEnvironment
 from cramera_bridge.scenes.semantics import UsdPrimAnnotation
-from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
+from cramera_bridge.names import (
+    ANNOTATION_NAMES,
+    ENUM_NAMES,
+    ROBOT_NAMES,
+    missing_namespace,
+)
 from cramera_protocol.bundle.files import MeshFormat
 from cramera_protocol.live_messages import SurfaceDescription
+from cramera_protocol.registry import IdKind, Registry
 from cramera_protocol.plan_builder import (
     ActionCatalog,
     EnvironmentAnnotations,
@@ -48,6 +54,7 @@ from cramera_protocol.plan_builder import (
 )
 from krrood.class_diagrams.attribute_introspector import DataclassOnlyIntrospector
 from krrood.utils import recursive_subclasses
+from semantic_digital_twin.adapters.package_resolver import ROSPackageLocator
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.robot_part_mixins import HasLeftRightArm
 from semantic_digital_twin.robots.robot_parts import (
@@ -60,12 +67,19 @@ from semantic_digital_twin.semantic_annotations import mixins
 from semantic_digital_twin.semantic_annotations.mixins import HasSupportingSurface
 from xacro import XacroException
 
-OBJECT_DIRECTORY = (
-    Path(coraplex.__file__).resolve().parents[2] / "resources" / "objects"
-)
+OBJECT_PACKAGE = "iai_objects"
 """
-The object meshes coraplex's own demos and tests place, beside its sources.
+The ROS package of the object meshes CRAM's own demos and tests place.
 """
+
+
+@functools.cache
+def cram_object_directory() -> Path:
+    """
+    :return: The directory of the object meshes CRAM's own demos and tests place, in
+        :data:`OBJECT_PACKAGE`.
+    """
+    return Path(ROSPackageLocator().resolve(OBJECT_PACKAGE)) / "objects"
 
 # %% classes by name
 
@@ -116,7 +130,7 @@ class RobotAnnotation:
                 continue
             found.add(candidate)
             pending.extend(
-                attribute.field.type for attribute in introspector.discover(candidate)
+                attribute.field.type for attribute in introspector.discover(owner_cls=candidate)
             )
         return found
 
@@ -194,15 +208,26 @@ class RobotAnnotations:
     The package whose modules define the robot annotations.
     """
 
+    registry: Registry = field(default_factory=Registry.installed)
+    """
+    The identifier registry, whose robots' modules are imported besides
+    :attr:`package`'s.
+    """
+
     def annotations(self) -> List[Type[AbstractRobot]]:
         """
         :return: Every concrete robot annotation with a model description, sorted by
-            name, after importing every module of :attr:`package`; a module that fails
-            to import, such as one needing a ROS package this machine lacks, hides only
-            its own robots.
+            name, after importing every module of :attr:`package` and the module of
+            every robot the registry declares; a module that fails to import, such as
+            one needing a ROS package this machine lacks or one of a package that is
+            not installed, hides only its own robots.
         """
         for module in pkgutil.iter_modules(self.package.__path__):
             ActionModules.imported(f"{self.package.__name__}.{module.name}")
+        for module in sorted(
+            {entry.module for entry in self.registry.entries(IdKind.ROBOT)}
+        ):
+            ActionModules.imported(module)
         concrete = [
             annotation
             for annotation in recursive_subclasses(AbstractRobot)
@@ -222,7 +247,9 @@ class RobotAnnotations:
             if ROBOT_NAMES.matches(annotation, name):
                 return annotation
         raise UnknownWorkspaceClass(
-            name, [ROBOT_NAMES.identifier_of(annotation) for annotation in annotations]
+            name,
+            [ROBOT_NAMES.identifier_of(annotation) for annotation in annotations],
+            missing_namespace(IdKind.ROBOT, name),
         )
 
 
@@ -337,7 +364,7 @@ class PlanWorkspace:
     The robot annotations.
     """
 
-    directory: Path = OBJECT_DIRECTORY
+    directory: Path = field(default_factory=cram_object_directory)
     """
     The directory of the object meshes.
     """

@@ -75,6 +75,42 @@ def test_a_directory_sharing_a_modules_name_is_not_the_module():
     assert modules.missing() == [module.value for module in CramModule]
 
 
+def test_a_namespace_package_split_over_distributions_is_the_module(tmp_path: Path):
+    """
+    A module spread over several distributions, as krrood is, is found as a namespace
+    package, which has no origin; one of its parts holding a package makes it the
+    module.
+    """
+    bare = tmp_path / "checkout" / "krrood"
+    bare.mkdir(parents=True)
+    (bare / "conftest.py").write_text("")
+    part = tmp_path / "krrood-core" / "src" / "krrood" / "patterns"
+    part.mkdir(parents=True)
+    (part / "__init__.py").write_text("")
+
+    def namespace(name: str) -> ModuleSpec:
+        spec = ModuleSpec(name, loader=None, origin=None, is_package=True)
+        spec.submodule_search_locations = [str(bare), str(part.parent)]
+        return spec
+
+    assert CramModules(finder=namespace).missing() == []
+
+
+def test_a_namespace_package_of_bare_directories_is_not_the_module(tmp_path: Path):
+    bare = tmp_path / "checkout" / "krrood"
+    bare.mkdir(parents=True)
+    (bare / "conftest.py").write_text("")
+
+    def namespace(name: str) -> ModuleSpec:
+        spec = ModuleSpec(name, loader=None, origin=None, is_package=True)
+        spec.submodule_search_locations = [str(bare)]
+        return spec
+
+    assert CramModules(finder=namespace).missing() == [
+        module.value for module in CramModule
+    ]
+
+
 def test_without_a_module_the_loader_answers_the_missing_workspace():
     loader = WorkspaceLoader(
         modules=CramModules(finder=finder_without(CramModule.KRROOD))

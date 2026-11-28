@@ -30,6 +30,7 @@ from cramera_bridge.plans.arms import Arms
 from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.exceptions import UnknownAction
 from cramera_protocol.plan_builder import ActionFieldKind, ActionGroup
+from cramera_protocol.registry import DeclaredEntryPoint, Registry, RegistryGroup
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Tool
 from semantic_digital_twin.world_description.color_names import ColorName
 
@@ -243,3 +244,66 @@ def test_the_catalog_lists_every_schema(native):
         discovered.schema.name for discovered in native.actions
     ]
     assert catalog.failed_modules == native.failed_modules
+
+
+# %% actions other packages declare in the registry
+
+
+REGISTERED_MODULE = f"{mimic_actions.__name__.rpartition('.')[0]}.registered_parts"
+"""
+The module of the action another package declares in the registry.
+"""
+
+
+def registry_declaring(*targets: str) -> Registry:
+    """
+    :param targets: The classes, ``module:Class``, the package ``acme`` declares as
+        actions named ``action_<i>``.
+    :return: The registry.
+    """
+    return Registry.from_declarations(
+        [DeclaredEntryPoint("acme-skills", RegistryGroup.NAMESPACES, "acme", "acme")]
+        + [
+            DeclaredEntryPoint(
+                "acme-skills", RegistryGroup.ACTIONS, f"action_{index}", target
+            )
+            for index, target in enumerate(targets)
+        ]
+    )
+
+
+def test_an_action_another_package_declares_is_offered_in_its_namespaces_group():
+    registry = registry_declaring(f"{REGISTERED_MODULE}:BowAction")
+    discovered = ActionDiscovery(
+        modules=ActionModules(package=mimic_actions, registry=registry)
+    ).discover()
+    bow = next(
+        action
+        for action in discovered.actions
+        if action.action_class.__name__ == "BowAction"
+    )
+    assert bow.schema.group == "acme"
+    assert [failed.module for failed in discovered.failed_modules] == [BROKEN_MODULE]
+
+
+def test_a_declared_action_whose_module_fails_to_import_is_reported():
+    registry = registry_declaring("acme_missing.skills:DigAction")
+    discovered = ActionDiscovery(
+        modules=ActionModules(package=mimic_actions, registry=registry)
+    ).discover()
+    assert "acme_missing.skills" in [
+        failed.module for failed in discovered.failed_modules
+    ]
+
+
+def test_cram_actions_are_found_by_their_namespaced_identifier(native):
+    assert native.named("cram.pick_up").action_class is PickUpAction
+    assert native.named("pick_up").action_class is PickUpAction
+    assert native.named("PickUpAction").action_class is PickUpAction
+
+
+def test_an_action_of_a_package_not_installed_is_reported_unavailable(native):
+    with pytest.raises(UnknownAction) as raised:
+        native.named("acme.dig")
+    assert raised.value.missing_namespace == "acme"
+    assert "not installed" in str(raised.value)

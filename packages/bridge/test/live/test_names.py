@@ -62,7 +62,10 @@ def test_every_action_the_workspace_offers_is_pinned():
         for action in discovered
         if ACTION_NAMES.entry_of(action.action_class) is None
     ]
-    assert unpinned == [], "pin these actions in cramera_bridge/names.py"
+    assert unpinned == [], (
+        "pin these actions in the cramera.actions entry points of "
+        "packages/bridge/pyproject.toml"
+    )
 
 
 def test_every_robot_the_workspace_offers_is_pinned():
@@ -71,7 +74,10 @@ def test_every_robot_the_workspace_offers_is_pinned():
         for annotation in RobotAnnotations().annotations()
         if ROBOT_NAMES.entry_of(annotation) is None
     ]
-    assert unpinned == [], "pin these robots in cramera_bridge/names.py"
+    assert unpinned == [], (
+        "pin these robots in the cramera.robots entry points of "
+        "packages/bridge/pyproject.toml"
+    )
 
 
 def test_identifiers_are_unique_and_snake_case():
@@ -204,7 +210,10 @@ def test_every_pinned_field_still_exists(action: str):
         if FIELD_NAMES.field_name(action, identifier) not in names
         and identifier not in parts
     ]
-    assert gone == [], "map these fields in FIELD_RENAMES of cramera_bridge/names.py"
+    assert gone == [], (
+        "map these fields in the cramera.action_fields entry points of "
+        "packages/bridge/pyproject.toml"
+    )
 
 
 def test_members_are_named_in_lower_case_and_found_by_their_saved_names():

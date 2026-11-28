@@ -21,6 +21,7 @@ from typing_extensions import Dict, List, Optional, Tuple
 
 from cramera.cram_imports import CramImports
 from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
+from cramera_protocol.registry import IdKind, IdStatus, Registry, RegistryId
 
 # %% pinned classes
 
@@ -52,6 +53,12 @@ class PinnedClass:
     saved_as: Tuple[str, ...] = ()
     """
     The names files saved for the class before the protocol named it.
+    """
+
+    namespaced: str = ""
+    """
+    Its namespaced identifier in the registry, such as ``cram.tracy``, or empty for a
+    class the registry does not hold.
     """
 
     def resolve(self) -> type:
@@ -123,208 +130,47 @@ class PinnedEnum:
         return identifier.upper()
 
 
-ACTIONS = (
-    PinnedClass(
-        "close",
-        "coraplex.robot_plans.actions.core.container.CloseAction",
-        ("CloseAction",),
-    ),
-    PinnedClass(
-        "container",
-        "coraplex.robot_plans.actions.core.container.MovesContainerByItsHandle",
-        ("ContainerAction",),
-    ),
-    PinnedClass(
-        "detect",
-        "coraplex.robot_plans.actions.core.misc.DetectAction",
-        ("DetectAction",),
-    ),
-    PinnedClass(
-        "elevator_navigation",
-        "coraplex.robot_plans.actions.core.navigation.ElevatorNavigation",
-        ("ElevatorNavigation",),
-    ),
-    PinnedClass(
-        "face_at",
-        "coraplex.robot_plans.actions.core.navigation.FaceAtAction",
-        ("FaceAtAction",),
-    ),
-    PinnedClass(
-        "follow_tool_center_point_path",
-        "coraplex.robot_plans.actions.core.robot_body.FollowToolCenterPointPathAction",
-        ("FollowToolCenterPointPathAction",),
-    ),
-    PinnedClass(
-        "grasping",
-        "coraplex.robot_plans.actions.core.pick_up.GraspingAction",
-        ("GraspingAction",),
-    ),
-    PinnedClass(
-        "look_at",
-        "coraplex.robot_plans.actions.core.navigation.LookAtAction",
-        ("LookAtAction",),
-    ),
-    PinnedClass(
-        "move_manipulator",
-        "coraplex.robot_plans.actions.core.robot_body.MoveManipulatorAction",
-        ("MoveManipulatorAction",),
-    ),
-    PinnedClass(
-        "move_to_reach",
-        "coraplex.robot_plans.actions.core.misc.MoveToReach",
-        ("MoveToReach",),
-    ),
-    PinnedClass(
-        "move_fingers_to_width",
-        "coraplex.robot_plans.actions.core.robot_body.MoveFingersToWidthAction",
-        ("MoveFingersToWidthAction",),
-    ),
-    PinnedClass(
-        "move_torso",
-        "coraplex.robot_plans.actions.core.robot_body.MoveTorsoAction",
-        ("MoveTorsoAction",),
-    ),
-    PinnedClass(
-        "navigate",
-        "coraplex.robot_plans.actions.core.navigation.NavigateAction",
-        ("NavigateAction",),
-    ),
-    PinnedClass(
-        "open",
-        "coraplex.robot_plans.actions.core.container.OpenAction",
-        ("OpenAction",),
-    ),
-    PinnedClass(
-        "park_arms",
-        "coraplex.robot_plans.actions.core.robot_body.ParkArmsAction",
-        ("ParkArmsAction",),
-    ),
-    PinnedClass(
-        "path_planning_navigate",
-        "coraplex.robot_plans.actions.core.navigation.PathPlanningNavigateAction",
-        ("PathPlanningNavigateAction",),
-    ),
-    PinnedClass(
-        "pick_up",
-        "coraplex.robot_plans.actions.core.pick_up.PickUpAction",
-        ("PickUpAction",),
-    ),
-    PinnedClass(
-        "place",
-        "coraplex.robot_plans.actions.core.placing.PlaceAction",
-        ("PlaceAction",),
-    ),
-    PinnedClass(
-        "reach",
-        "coraplex.robot_plans.actions.core.pick_up.ReachAction",
-        ("ReachAction",),
-    ),
-    PinnedClass(
-        "set_gripper",
-        "coraplex.robot_plans.actions.core.robot_body.SetGripperAction",
-        ("SetGripperAction",),
-    ),
-    PinnedClass(
-        "carry",
-        "coraplex.robot_plans.actions.composite.carrying.CarryAction",
-        ("CarryAction",),
-    ),
-    PinnedClass(
-        "cutting",
-        "coraplex.robot_plans.actions.composite.tool_based.CuttingAction",
-        ("CuttingAction",),
-    ),
-    PinnedClass(
-        "face_and_look_at",
-        "coraplex.robot_plans.actions.composite.facing.FaceAndLookAtAction",
-        ("FaceAndLookAtAction",),
-    ),
-    PinnedClass(
-        "mixing",
-        "coraplex.robot_plans.actions.composite.tool_based.MixingAction",
-        ("MixingAction",),
-    ),
-    PinnedClass(
-        "move_and_open",
-        "coraplex.robot_plans.actions.composite.transporting.MoveAndOpenAction",
-        ("MoveAndOpenAction",),
-    ),
-    PinnedClass(
-        "move_and_pick_up",
-        "coraplex.robot_plans.actions.composite.transporting.MoveAndPickUpAction",
-        ("MoveAndPickUpAction",),
-    ),
-    PinnedClass(
-        "move_and_place",
-        "coraplex.robot_plans.actions.composite.transporting.MoveAndPlaceAction",
-        ("MoveAndPlaceAction",),
-    ),
-    PinnedClass(
-        "look_at_and_detect",
-        "coraplex.robot_plans.actions.composite.searching.LookAtAndDetectAction",
-        ("LookAtAndDetectAction",),
-    ),
-    PinnedClass(
-        "pick_and_place",
-        "coraplex.robot_plans.actions.composite.transporting.PickAndPlaceAction",
-        ("PickAndPlaceAction",),
-    ),
-    PinnedClass(
-        "pouring",
-        "coraplex.robot_plans.actions.composite.tool_based.PouringAction",
-        ("PouringAction",),
-    ),
-    PinnedClass(
-        "search",
-        "coraplex.robot_plans.actions.composite.searching.SearchAction",
-        ("SearchAction",),
-    ),
-    PinnedClass(
-        "transport",
-        "coraplex.robot_plans.actions.composite.transporting.TransportAction",
-        ("TransportAction",),
-    ),
-    PinnedClass(
-        "wiping",
-        "coraplex.robot_plans.actions.composite.tool_based.WipingAction",
-        ("WipingAction",),
-    ),
-)
+def registered(kind: IdKind) -> Tuple[PinnedClass, ...]:
+    """
+    :param kind: Robots or actions.
+    :return: The classes of that kind the installed packages declare in the identifier
+        registry, each pinned to the name documents use for it: its short name in the
+        default namespace ``cram``, else its namespaced identifier, such as
+        ``example.walker_s2``; its aliases are the names files saved before.
+    """
+    registry = Registry.installed()
+    return tuple(
+        PinnedClass(
+            registry.public_name(entry),
+            entry.path,
+            tuple(registry.aliases_of(entry)),
+            str(entry.identifier),
+        )
+        for entry in registry.entries(kind)
+    )
+
+
+def missing_namespace(kind: IdKind, name: str) -> Optional[str]:
+    """
+    :param kind: Robots or actions.
+    :param name: A name a plan or a profile uses.
+    :return: The namespace of the name when no installed package declares it, so the
+        name stands for a robot or action of a missing package; else None.
+    """
+    if Registry.installed().status(kind, name) == IdStatus.NAMESPACE_NOT_INSTALLED:
+        return RegistryId.parse(name).namespace
+    return None
+
+
+ACTIONS = registered(IdKind.ACTION)
 """
-The native actions a plan step names.
+The native actions a plan step names: CRAM's own, which cramera-bridge declares in the
+registry's ``cram`` namespace (its ``pyproject.toml``), and those of other packages.
 """
 
-ROBOTS = (
-    PinnedClass("armar7", "semantic_digital_twin.robots.armar7.Armar7", ("Armar7",)),
-    PinnedClass("daisy", "semantic_digital_twin.robots.daisy.DAiSy", ("DAiSy",)),
-    PinnedClass("garmi", "semantic_digital_twin.robots.garmi.Garmi", ("Garmi",)),
-    PinnedClass("hsrb", "semantic_digital_twin.robots.hsrb.HSRB", ("HSRB",)),
-    PinnedClass("icub3", "semantic_digital_twin.robots.icub3.ICub3", ("ICub3",)),
-    PinnedClass("justin", "semantic_digital_twin.robots.justin.Justin", ("Justin",)),
-    PinnedClass(
-        "mmp_dresden",
-        "semantic_digital_twin.robots.mmp_dresden.MMPDresden",
-        ("MMPDresden",),
-    ),
-    PinnedClass("pr2", "semantic_digital_twin.robots.pr2.PR2", ("PR2",)),
-    PinnedClass(
-        "stretch", "semantic_digital_twin.robots.stretch.Stretch", ("Stretch",)
-    ),
-    PinnedClass("tiago", "semantic_digital_twin.robots.tiago.Tiago", ("Tiago",)),
-    PinnedClass(
-        "tiago_mujoco",
-        "semantic_digital_twin.robots.tiago.TiagoMujoco",
-        ("TiagoMujoco",),
-    ),
-    PinnedClass("tracy", "semantic_digital_twin.robots.tracy.Tracy", ("Tracy",)),
-    PinnedClass(
-        "unitree_g1",
-        "semantic_digital_twin.robots.unitree_g1.UnitreeG1",
-        ("UnitreeG1",),
-    ),
-)
+ROBOTS = registered(IdKind.ROBOT)
 """
-The robot annotations a plan's robot names as its model.
+The robot annotations a plan's robot names as its model, declared like :data:`ACTIONS`.
 """
 
 PLAN_NODE_KINDS = (
@@ -357,6 +203,7 @@ The module segmind defines its events in.
 DETECTED_EVENT_KINDS = (
     (f"{SEGMIND_EVENTS}.AbstractContactEvent", DetectedEventKind.CONTACT),
     (f"{SEGMIND_EVENTS}.MotionEvent", DetectedEventKind.MOTION),
+    (f"{SEGMIND_EVENTS}.OpeningEvent", DetectedEventKind.MOTION),
     (f"{SEGMIND_EVENTS}.SupportEvent", DetectedEventKind.SUPPORT),
     (f"{SEGMIND_EVENTS}.LossOfSupportEvent", DetectedEventKind.SUPPORT),
     (f"{SEGMIND_EVENTS}.ContainmentEvent", DetectedEventKind.CONTAINMENT),
@@ -677,18 +524,14 @@ FIELDS = {
         "position_threshold",
         "orientation_threshold",
         "target_pose",
-        "end_effector",
         "allow_gripper_collision",
     ),
     "move_to_reach": (
         "position_threshold",
         "orientation_threshold",
-        "approach_clearance",
-        "retreat_distance",
         "target_pose_offset_robot",
         "hip_rotation",
         "reference_T_grasp",
-        "end_effector",
     ),
     "move_torso": ("torso_state",),
     "navigate": ("target_location",),
@@ -718,7 +561,6 @@ FIELDS = {
     "place": (
         "position_threshold",
         "orientation_threshold",
-        "grasp_detection_threshold",
         "placing_linear_velocity",
         "transport_linear_velocity",
         "release_opening_velocity",
@@ -727,7 +569,6 @@ FIELDS = {
         "retreat_distance",
         "object_designator",
         "target_location",
-        "grasp_release_threshold",
     ),
     "reach": (
         "position_threshold",
@@ -801,10 +642,16 @@ The identifier of every field of each pinned action, by the action's identifier:
 field names when the action was pinned.
 """
 
-FIELD_RENAMES: Dict[str, Dict[str, str]] = {"detect": {"region": "detection_box"}}
+FIELD_RENAMES: Dict[str, Dict[str, str]] = {
+    pinned.identifier: Registry.installed().field_attributes.get(
+        RegistryId.parse(pinned.namespaced), {}
+    )
+    for pinned in ACTIONS
+}
 """
 The field each identifier stands for where CRAM renamed the field since the action was
-pinned, by the action's identifier and the field's identifier.
+pinned, by the action's identifier and the field's identifier, as the registry's
+``cramera.action_fields`` entries declare it.
 """
 
 # %% identifiers of classes not pinned yet
@@ -880,9 +727,16 @@ class ClassNames:
         """
         :param cls: A CRAM class.
         :param name: A name a plan or a file uses for a class.
-        :return: Whether the name is the class's identifier or a name it was saved as.
+        :return: Whether the name is the class's identifier, its namespaced identifier
+            in the registry or a name it was saved as.
         """
-        return name == self.identifier_of(cls) or name in self.saved_as(cls)
+        entry = self.entry_of(cls)
+        namespaced = "" if entry is None else entry.namespaced
+        return (
+            name == self.identifier_of(cls)
+            or name in self.saved_as(cls)
+            or (namespaced != "" and name == namespaced)
+        )
 
 
 ACTION_NAMES = ClassNames(ACTIONS, ACTION_SUFFIX)

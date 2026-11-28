@@ -66,6 +66,11 @@ class SkipReason(StrEnum):
     The prim has no faces.
     """
 
+    OUTSIDE_REGION = "outside the region"
+    """
+    None of the prim's faces lies over the part of the floor plan the conversion draws.
+    """
+
     LOOP_CLOSING_JOINT = "loop-closing joint"
     """
     The joint would give a link a second parent; URDF describes trees only.

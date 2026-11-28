@@ -50,7 +50,10 @@ from cramera_bridge.names import (
     ANNOTATION_NAMES,
     ENUM_NAMES,
     FIELD_NAMES,
+    class_path,
+    missing_namespace,
 )
+from cramera_protocol.registry import IdKind, Registry, RegistryEntry
 from cramera_protocol.plan_builder import (
     ActionCatalog,
     ActionField,
@@ -67,8 +70,8 @@ from semantic_digital_twin.datastructures.robots.gripper_configuration import (
 )
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.robot_parts import AbstractRobotPart, EndEffector
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
-from krrood_spatial_math.spatial_types import Pose
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
+from krrood_spatial_math.spatial_types import Pose, Pose2D
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
 from semantic_digital_twin.world_description.world_entity import (
     Body,
@@ -105,7 +108,7 @@ ARM_ENUMERATION = Arms
 The enumeration a field taking a robot's arms offers its choices from.
 """
 
-PLAN_OBJECT_TYPES = (GraspCandidate, HasGraspCandidates)
+PLAN_OBJECT_TYPES = (GraspCandidate, IsGraspable)
 """
 The field types an object the plan places is given as: the object itself, which is
 graspable, or the grasp of it closest to the robot.
@@ -194,13 +197,38 @@ class ActionModules:
     The actions package.
     """
 
+    registry: Registry = field(default_factory=Registry)
+    """
+    The identifier registry whose actions are offered besides those of
+    :attr:`package`; none by default, the installed packages' for :meth:`workspace`.
+    """
+
+    @classmethod
+    def workspace(cls) -> ActionModules:
+        """
+        :return: coraplex's actions package and the actions the installed packages
+            declare in the identifier registry.
+        """
+        return cls(registry=Registry.installed())
+
+    def registered(self) -> Dict[str, RegistryEntry]:
+        """
+        :return: The registry's actions by the dotted path of their class.
+        """
+        return {entry.path: entry for entry in self.registry.entries(IdKind.ACTION)}
+
     def import_all(self) -> List[FailedActionModule]:
         """
-        Import every module below :attr:`package`, the packages' modules included.
+        Import every module below :attr:`package`, the packages' modules included, and
+        the module of every action the registry declares.
 
         :return: The modules that failed to import, sorted by name.
         """
         failed = []
+        for module in sorted({entry.module for entry in self.registered().values()}):
+            imported = self.imported(module)
+            if isinstance(imported, FailedActionModule):
+                failed.append(imported)
         pending = [self.package]
         while pending:
             package = pending.pop()
@@ -230,12 +258,27 @@ class ActionModules:
                 module=name, error=f"{type(error).__name__}: {error}"
             )
 
-    def group_of(self, module: str) -> str:
+    def group_of(self, action_class: type) -> str:
         """
-        :param module: A module below :attr:`package`.
-        :return: The package right below :attr:`package` it lies in.
+        :param action_class: An action of :attr:`package` or of the registry.
+        :return: The package right below :attr:`package` it lies in, else the namespace
+            of the registry entry declaring it.
         """
-        return module.removeprefix(f"{self.package.__name__}.").split(".")[0]
+        module = action_class.__module__
+        prefix = f"{self.package.__name__}."
+        if not module.startswith(prefix):
+            return self.registered()[class_path(action_class)].identifier.namespace
+        return module.removeprefix(prefix).split(".")[0]
+
+    def offers(self, action_class: type) -> bool:
+        """
+        :param action_class: An action class.
+        :return: Whether it lies below :attr:`package` or the registry declares it.
+        """
+        return (
+            action_class.__module__.startswith(f"{self.package.__name__}.")
+            or class_path(action_class) in self.registered()
+        )
 
 
 # %% field types
@@ -366,6 +409,7 @@ FIELD_KIND_RULES: Tuple[FieldKindRule, ...] = (
     SubclassRule(Body, ActionFieldKind.BODY),
     SubclassRule(VolumetricBoundingBox, ActionFieldKind.REGION),
     SubclassRule(Pose, ActionFieldKind.POSE),
+    SubclassRule(Pose2D, ActionFieldKind.POSE),
     SubclassRule(bool, ActionFieldKind.BOOLEAN),
     SubclassRule(int, ActionFieldKind.INTEGER),
     SubclassRule(float, ActionFieldKind.NUMBER),
@@ -1010,7 +1054,9 @@ class DiscoveredActions:
             if ACTION_NAMES.matches(discovered.action_class, name):
                 return discovered
         raise UnknownAction(
-            name, [discovered.schema.name for discovered in self.actions]
+            name,
+            [discovered.schema.name for discovered in self.actions],
+            missing_namespace(IdKind.ACTION, name),
         )
 
 
@@ -1020,9 +1066,9 @@ class ActionDiscovery:
     Finds the concrete action dataclasses of the actions package.
     """
 
-    modules: ActionModules = field(default_factory=ActionModules)
+    modules: ActionModules = field(default_factory=ActionModules.workspace)
     """
-    The actions package's modules.
+    The actions package's modules and the registry's actions.
     """
 
     kinds: FieldKinds = field(default_factory=FieldKinds)
@@ -1037,11 +1083,10 @@ class ActionDiscovery:
             :class:`~abc.ABC` directly is no action a step can be.
         """
         failed = self.modules.import_all()
-        prefix = f"{self.modules.package.__name__}."
         classes = {
             candidate
             for candidate in recursive_subclasses(Action)
-            if candidate.__module__.startswith(prefix)
+            if self.modules.offers(candidate)
             and dataclasses.is_dataclass(candidate)
             and not inspect.isabstract(candidate)
             and ABC not in candidate.__bases__
@@ -1050,7 +1095,7 @@ class ActionDiscovery:
         discovered = [
             ActionSchemaBuilder(
                 action_class=candidate,
-                group=self.modules.group_of(candidate.__module__),
+                group=self.modules.group_of(candidate),
                 kinds=self.kinds,
                 sources=sources,
             ).build()

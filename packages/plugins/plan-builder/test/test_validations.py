@@ -19,6 +19,7 @@ from cramera_protocol.plan_builder import DemoDocument
 from cramera_protocol.validation import (
     StepValidation,
     StepVerdict,
+    ValidatedGrounding,
     ValidationOrder,
     ValidationReport,
 )
@@ -133,3 +134,44 @@ def test_a_validation_after_the_refused_run_replaces_the_kept_one(plan):
     gate.record(plan, report_of(StepVerdict.FAILED))
 
     assert not gate.admits(plan)
+
+
+# %% the grounding a passed validation passes on
+
+
+def grounded(plan) -> ValidationReport:
+    """
+    :return: A passed report of the plan passing its grounding on.
+    """
+    return replace(
+        report_of(StepVerdict.VALID),
+        grounding=ValidatedGrounding(
+            demo=ValidatedGrounding.fingerprint(DemoDocument(plan=plan))
+        ),
+    )
+
+
+def test_the_gate_keeps_the_grounding_of_the_plan_that_passed_last(plan):
+    gate = ValidationGate()
+    report = grounded(plan)
+    gate.record(plan, report)
+
+    assert gate.grounding_for(plan) == report.grounding
+    assert gate.grounding_for(replace(plan, task="something else")) is None
+
+
+def test_a_failed_validation_leaves_no_grounding(plan):
+    gate = ValidationGate()
+    gate.record(plan, grounded(plan))
+    gate.record(plan, report_of(StepVerdict.FAILED))
+
+    assert gate.grounding_for(plan) is None
+
+
+def test_a_run_on_the_robot_drops_the_grounding_even_once_refused(plan):
+    gate = ValidationGate()
+    gate.record(plan, grounded(plan))
+    gate.close(kept_if=lambda: True)
+
+    assert gate.admits(plan)
+    assert gate.grounding_for(plan) is None

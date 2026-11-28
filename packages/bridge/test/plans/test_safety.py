@@ -299,7 +299,7 @@ def test_a_run_on_the_real_robot_holds_the_tools_to_its_own_velocity(
     ).envelope(tracy_context)
 
     limits = [
-        constraint.maximum_velocity
+        constraint.speed_limit
         for constraint in envelope.constraints
         if isinstance(constraint, MaximumToolVelocity)
     ]

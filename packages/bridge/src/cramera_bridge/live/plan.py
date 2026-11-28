@@ -25,13 +25,14 @@ from coraplex.perception import PerceptionTask
 from coraplex.plans.context_extensions import RobotAccess
 from coraplex.robot_plans.actions.base import Action
 from cramph.composites import StatementNode
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.node import CompositeNode, StatechartNode
 from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from krrood.entity_query_language.core.variable import Variable
 from krrood.entity_query_language.query.match import Match
 from semantic_digital_twin.robots.robot_parts import Arm
 from krrood_spatial_math.spatial_types import Pose
+from semantic_digital_twin.world_description.kinematic_chain import KinematicChain
 from semantic_digital_twin.world_description.world_entity import (
     Body,
     SemanticAnnotation,
@@ -138,25 +139,25 @@ class PlanNodeStatus(StrEnum):
     """
 
     @classmethod
-    def of(cls, value: LifeCycleValues) -> PlanNodeStatus:
+    def of(cls, value: LifeCycleValue) -> PlanNodeStatus:
         """
         :param value: A node's native life cycle value.
         :return: The status it stands for.
         """
         return {
-            LifeCycleValues.NOT_STARTED: cls.CREATED,
-            LifeCycleValues.RUNNING: cls.RUNNING,
-            LifeCycleValues.PAUSED: cls.PAUSE,
-            LifeCycleValues.SUCCEEDED: cls.SUCCEEDED,
-            LifeCycleValues.FAILED: cls.FAILED,
-            LifeCycleValues.INTERRUPTED: cls.INTERRUPTED,
+            LifeCycleValue.NOT_STARTED: cls.CREATED,
+            LifeCycleValue.RUNNING: cls.RUNNING,
+            LifeCycleValue.PAUSED: cls.PAUSE,
+            LifeCycleValue.SUCCEEDED: cls.SUCCEEDED,
+            LifeCycleValue.FAILED: cls.FAILED,
+            LifeCycleValue.INTERRUPTED: cls.INTERRUPTED,
         }[value]
 
 
 FINISHED_LIFE_CYCLES = (
-    LifeCycleValues.SUCCEEDED,
-    LifeCycleValues.FAILED,
-    LifeCycleValues.INTERRUPTED,
+    LifeCycleValue.SUCCEEDED,
+    LifeCycleValue.FAILED,
+    LifeCycleValue.INTERRUPTED,
 )
 """
 The life cycle values of a node that ended.
@@ -203,9 +204,16 @@ class DesignatorSummary:
 
     def values(self) -> List[object]:
         """
-        :return: The values of the parameters the node is described by.
+        :return: The values of the parameters the node is described by, a kinematic
+            chain by its root and its tip.
         """
-        return list(self.described_by().values())
+        values = []
+        for value in self.described_by().values():
+            if isinstance(value, KinematicChain):
+                values.extend([value.root, value.tip])
+            else:
+                values.append(value)
+        return values
 
     def arm(self) -> Optional[str]:
         """
@@ -294,7 +302,7 @@ class DesignatorSummary:
             designator; a description nested deeper is named by its class.
         :return: The value as the viewer shows it: a class by its name, an enumeration
             member by its name, a body by its published key else its name, an annotation
-            by its name, a pose by its position, a boolean as on or off, a list by its
+            by its name, a pose by its position, or as open while it is not set yet, a boolean as on or off, a list by its
             items, a nested description by its fields, and anything else by its text.
         """
         if isinstance(value, type):
@@ -306,6 +314,9 @@ class DesignatorSummary:
             return key if key in object_keys else str(value.name)
         if isinstance(value, SemanticAnnotation):
             return str(value.name)
+        if isinstance(value, Pose) and not value.is_constant():
+            # a pose an action sets once it starts, such as where a place releases
+            return f"{OPEN_VALUE} {type(value).__name__}"
         if isinstance(value, Pose):
             return PARAMETER_SEPARATOR.join(
                 COORDINATE_FORMAT.format(float(coordinate))
@@ -407,7 +418,7 @@ class PerformedPlan:
         :param images: Takes and keeps the images of its perception steps.
         :return: The plan the executor runs, with the robot its context names.
         """
-        access = executor.context.get_extension(RobotAccess)
+        access = executor.context.get_extension(extension_type=RobotAccess)
         return cls(
             statechart=executor.statechart,
             plan_nodes=list(executor.plan_nodes),
@@ -531,7 +542,7 @@ class PerformedPlan:
         if not self.is_perception(node):
             return
         query = node.query
-        succeeded = node.life_cycle_state is LifeCycleValues.SUCCEEDED
+        succeeded = node.life_cycle_state is LifeCycleValue.SUCCEEDED
         reported = query.from_world() if succeeded else []
         if succeeded:
             self.perceived[node.index] = [
@@ -557,7 +568,7 @@ class PerformedPlan:
             node
             for node in self.nodes()
             if isinstance(node, Action)
-            and node.life_cycle_state is LifeCycleValues.RUNNING
+            and node.life_cycle_state is LifeCycleValue.RUNNING
         ]
         if not running:
             return None

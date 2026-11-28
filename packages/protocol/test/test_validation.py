@@ -11,19 +11,23 @@ from cramera_protocol.browser import BROWSER_ENUMERATIONS
 from cramera_protocol.plan_builder import (
     DemoDocument,
     PlanDocument,
+    PlanStep,
     RunMode,
     RunRequest,
 )
 from cramera_protocol.bundle.scene import PerceptionImageSource
 from cramera_protocol.detection import InlineImage
 from cramera_protocol.validation import (
+    GroundedStepDocument,
     StepFailureReason,
     StepValidation,
     StepValidationKey,
     StepVerdict,
     ValidationCancellation,
     ValidationOrder,
+    ValidatedGrounding,
     ValidationReport,
+    ValidationReportKey,
     ValidationRequest,
 )
 
@@ -115,3 +119,46 @@ def test_the_browser_reads_the_names_of_a_validation():
         StepFailureReason,
         StepValidationKey,
     } <= set(BROWSER_ENUMERATIONS)
+
+
+# %% the grounding a validation passes on
+
+
+def grounded_tower() -> ValidatedGrounding:
+    demo = DemoDocument(plan=PlanDocument(name="tower"))
+    return ValidatedGrounding(
+        demo=ValidatedGrounding.fingerprint(demo),
+        steps=[
+            GroundedStepDocument(
+                resolved=PlanStep(
+                    identifier="step_1",
+                    skill="pick",
+                    action="pick_up",
+                    values={"grasp": "red_cube", "arm": "left"},
+                ),
+                expected_positions={"red_cube": [0.4, 0.1, 0.95]},
+            )
+        ],
+    )
+
+
+def test_a_report_keeps_the_grounding_its_validation_passes_on_through_its_json():
+    report = ValidationReport(
+        steps=[StepValidation(step="step_1", verdict=StepVerdict.VALID, arm="left")],
+        grounding=grounded_tower(),
+    )
+
+    assert ValidationReport.from_json(report.to_json()) == report
+
+
+def test_a_report_without_a_grounding_writes_none():
+    report = ValidationReport(steps=[])
+
+    assert ValidationReportKey.GROUNDING not in report.to_json()
+
+
+def test_a_grounding_describes_only_the_demo_it_was_made_in():
+    grounding = grounded_tower()
+
+    assert grounding.describes(DemoDocument(plan=PlanDocument(name="tower")))
+    assert not grounding.describes(DemoDocument(plan=PlanDocument(name="sort")))

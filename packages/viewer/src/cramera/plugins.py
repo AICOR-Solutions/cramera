@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
 
@@ -24,6 +24,7 @@ from cramera.http.routing import (
 from cramera.locations import DataLocations
 from cramera.scenes import SceneCatalog
 from cramera_protocol.live import Capability
+from cramera_protocol.version import ProtocolVersion
 from cramera_protocol.viewer import (
     NavigationGroup,
     PluginGroup,
@@ -33,6 +34,13 @@ from cramera_protocol.viewer import (
 )
 
 # %% plugin interface
+
+PLUGIN_API_VERSION = ProtocolVersion(major=1, minor=0)
+"""
+The version of the plugin API this viewer offers: :class:`ViewerPlugin` and the
+facade :mod:`cramera_plan_builder.plugin_api`. A plugin written for another major
+version is not loaded; a new minor version only adds to the API.
+"""
 
 
 @dataclass(frozen=True)
@@ -214,6 +222,13 @@ class ViewerPlugin(ABC):
         :return: The plugin's version.
         """
 
+    def api_version(self) -> ProtocolVersion:
+        """
+        :return: The version of the plugin API the plugin was written for; the
+            viewer's own by default, so a plugin that does not say is taken to fit.
+        """
+        return PLUGIN_API_VERSION
+
     def capabilities(self) -> List[Capability]:
         """
         :return: What the plugin adds; nothing by default.
@@ -283,6 +298,38 @@ class ViewerPlugin(ABC):
         )
 
 
+@dataclass
+class UnloadablePlugin(ViewerPlugin):
+    """
+    An installed plugin that could not be loaded: it adds nothing, and the viewer's
+    information says why.
+    """
+
+    plugin_name: str
+    """
+    The name of the plugin's entry point.
+    """
+
+    plugin_version: str
+    """
+    The version of the package installing it, or empty when unknown.
+    """
+
+    error: str
+    """
+    Why it could not be loaded.
+    """
+
+    def name(self) -> str:
+        return self.plugin_name
+
+    def version(self) -> str:
+        return self.plugin_version
+
+    def info(self) -> PluginInfo:
+        return replace(super().info(), error=self.error)
+
+
 PluginFactory = Callable[[], ViewerPlugin]
 """
 What a plugin's entry point names: a callable that creates the plugin.
@@ -307,11 +354,12 @@ class PluginLoader:
 
     def load(self) -> List[ViewerPlugin]:
         """
-        :return: The plugins, sorted by name.
+        :return: The plugins, sorted by name; a plugin that cannot be loaded is among
+            them as an :class:`UnloadablePlugin` saying why.
         :raises InvalidPluginName: When a plugin's name is not a route segment.
         :raises DuplicatePlugin: When two plugins share a name.
         """
-        plugins = [entry_point.load()() for entry_point in self.entry_points]
+        plugins = [self.loaded(entry_point) for entry_point in self.entry_points]
         names: List[str] = []
         for plugin in plugins:
             name = plugin.name()
@@ -321,3 +369,34 @@ class PluginLoader:
                 raise DuplicatePlugin(name)
             names.append(name)
         return sorted(plugins, key=lambda plugin: plugin.name())
+
+    @staticmethod
+    def loaded(entry_point: EntryPoint) -> ViewerPlugin:
+        """
+        Loading one plugin is isolated from the others: a plugin whose package fails to
+        import or whose factory raises, as one missing a dependency does, is the
+        boundary where that failure becomes the plugin's reported error, so the viewer
+        and every other plugin keep working.
+
+        :param entry_point: A plugin's entry point.
+        :return: The plugin, or an :class:`UnloadablePlugin` saying why it is not
+            loaded, including a plugin written for another major plugin API version.
+        """
+        distribution = entry_point.dist
+        version = "" if distribution is None else distribution.version
+        try:
+            plugin = entry_point.load()()
+        except Exception as error:
+            return UnloadablePlugin(
+                entry_point.name, version, f"{type(error).__name__}: {error}"
+            )
+        written_for = plugin.api_version()
+        if written_for.major != PLUGIN_API_VERSION.major:
+            return UnloadablePlugin(
+                plugin.name(),
+                plugin.version(),
+                f"The plugin was written for plugin API {written_for.to_json()}; "
+                f"this viewer offers {PLUGIN_API_VERSION.to_json()}. Install a version "
+                f"of the plugin made for plugin API {PLUGIN_API_VERSION.major}.x.",
+            )
+        return plugin

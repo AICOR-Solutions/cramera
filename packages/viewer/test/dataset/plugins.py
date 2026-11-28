@@ -5,6 +5,7 @@ Plugins that stand in for installed viewer plugins.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from importlib.metadata import Distribution
 from pathlib import Path
 
 from typing_extensions import List, Optional
@@ -20,6 +21,7 @@ from cramera.plugins import (
     ViewerPlugin,
 )
 from cramera_protocol.live import Capability
+from cramera_protocol.version import ProtocolVersion
 
 PLUGIN_WEB = Path(__file__).parent / "plugin_web"
 """
@@ -116,6 +118,49 @@ class SilentPlugin(ViewerPlugin):
 
 
 @dataclass
+class FuturePlugin(SilentPlugin):
+    """
+    A plugin written for a plugin API this viewer does not offer.
+    """
+
+    plugin_name: str = "future"
+    """
+    The name the plugin reports.
+    """
+
+    written_for: ProtocolVersion = ProtocolVersion(major=2, minor=0)
+    """
+    The plugin API version the plugin was written for.
+    """
+
+    def api_version(self) -> ProtocolVersion:
+        return self.written_for
+
+
+@dataclass
+class BrokenEntryPoint:
+    """
+    Stands in for an installed entry point whose plugin fails to import.
+    """
+
+    name: str
+    """
+    The entry point's name.
+    """
+
+    dist: Optional[Distribution] = None
+    """
+    The distribution declaring the entry point; none for a stand-in.
+    """
+
+    def load(self):
+        """
+        :raises ImportError: Always, as a plugin missing a dependency does.
+        """
+        raise ImportError(f"No module named '{self.name}_dependency'")
+
+
+@dataclass
 class RecordingPlugin(ViewerPlugin):
     """
     A plugin writing down when the viewer asks for its routes and when it starts it.
@@ -155,6 +200,18 @@ class FactoryEntryPoint:
     """
     The plugin the factory creates.
     """
+
+    dist: Optional[Distribution] = None
+    """
+    The distribution declaring the entry point; none for a stand-in.
+    """
+
+    @property
+    def name(self) -> str:
+        """
+        :return: The entry point's name: the plugin's.
+        """
+        return self.plugin.name()
 
     def load(self):
         """

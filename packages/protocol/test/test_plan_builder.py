@@ -79,7 +79,10 @@ from cramera_protocol.plan_builder import (
     StepConstraintKey,
 )
 from cramera_protocol.robot_profile import (
+    BaseInPhysics,
+    CameraMount,
     ExecutorKind,
+    GraspClosingAxis,
     PerceptionSettings,
     SafetyLimits,
 )
@@ -638,6 +641,36 @@ def test_a_demo_document_carries_the_profiles_perception_settings():
     )
 
     assert DemoDocument.from_json(demo.to_json()) == demo
+
+
+def test_a_demo_document_carries_the_axis_the_profiles_hand_closes_along():
+    demo = DemoDocument(
+        plan=PlanDocument(name="x"), grasp_closing_axis=GraspClosingAxis.Y
+    )
+
+    assert DemoDocument.from_json(demo.to_json()) == demo
+    assert (
+        DemoDocument.from_json(
+            DemoDocument(plan=demo.plan).to_json()
+        ).grasp_closing_axis
+        is GraspClosingAxis.X
+    )
+
+
+def test_a_demo_document_carries_how_the_profiles_camera_is_mounted():
+    demo = DemoDocument(plan=PlanDocument(name="x"), camera_mount=CameraMount.FIXED)
+
+    assert DemoDocument.from_json(demo.to_json()) == demo
+    assert DemoDocument(plan=demo.plan).camera_mount is None
+
+
+def test_a_demo_document_carries_how_the_profile_moves_a_walking_base_in_physics():
+    demo = DemoDocument(
+        plan=PlanDocument(name="x"), base_in_physics=BaseInPhysics.WALK_THEN_FIX
+    )
+
+    assert DemoDocument.from_json(demo.to_json()) == demo
+    assert DemoDocument(plan=demo.plan).base_in_physics is None
 
 
 def test_a_demo_document_carries_the_profiles_safety_limits():

@@ -33,7 +33,7 @@ from coraplex.robot_plans.actions.core.robot_body import ParkArmsAction
 from coraplex.robot_plans.plan_transformations import OpenDrawerBeforeMoveAndPickUp
 from cramera_bridge.exceptions import TaskFailed
 from cramera_bridge.performing import TaskContext
-from cramera_bridge.plans.workspace import OBJECT_DIRECTORY
+from cramera_bridge.plans.workspace import cram_object_directory
 from cramera_bridge.robot_task import RobotTaskDemo, TaskCommand
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_protocol.bundle.acceptance import AcceptanceMetrics
@@ -44,7 +44,7 @@ from cramph.node import StatechartNode
 from krrood.entity_query_language.factories import entity, the, variable
 from semantic_digital_twin.reasoning.world_reasoner import WorldReasoner
 from semantic_digital_twin.robots.garmi import Garmi
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.semantic_annotations.semantic_annotations import Bowl, Spoon
 from semantic_digital_twin.specifications.connections import (
     Connection6DoFSpecification,
@@ -125,7 +125,7 @@ class SceneFile(StrEnum):
             return os.path.join(
                 get_package_share_directory(APARTMENT_PACKAGE), self.value
             )
-        return str(OBJECT_DIRECTORY / self.value)
+        return str(cram_object_directory() / self.value)
 
 
 class SceneBody(StrEnum):
@@ -369,7 +369,7 @@ class GarmiApartmentDemo(RobotTaskDemo):
         )
 
     def transport(
-        self, graspable: HasGraspCandidates, context: TaskContext
+        self, graspable: IsGraspable, context: TaskContext
     ) -> TransportAction:
         """
         :param graspable: The object to carry.
@@ -379,10 +379,12 @@ class GarmiApartmentDemo(RobotTaskDemo):
         """
         target = self.targets[graspable.root.name.name]
         return TransportAction.from_graspable_by_closest_grasps(
-            graspable,
-            Pose(position=target.position, reference_frame=context.world.root),
-            context.robot.get_right_arm_if_specified(),
-            context.statechart_context(),
+            graspable=graspable,
+            goal_pose=Pose(
+                position=target.position, reference_frame=context.world.root
+            ),
+            arm=context.robot.get_right_arm_if_specified(),
+            context=context.statechart_context(),
         )
 
     def build_plan(self, context: TaskContext) -> StatechartNode:

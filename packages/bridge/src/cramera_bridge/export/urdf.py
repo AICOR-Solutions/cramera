@@ -21,14 +21,13 @@ from cramera_bridge.exceptions import UnrepresentableJointLimits, UrdfSourceNotF
 from cramera_bridge.export.assets import BundledAssets, MeshFormat, MeshReference
 from cramera_bridge.export.textures import SurfaceFile, TexturedSurface
 from cramera_bridge.names import class_path
-from krrood.ormatic.utils import classproperty
+from krrood.patterns.classproperty import classproperty
 from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import (
     ActiveConnection1DOF,
     FixedConnection,
-    PrismaticConnection,
-    RevoluteConnection,
+    ScrewAxisConnection,
 )
 from semantic_digital_twin.world_description.geometry import (
     Box,
@@ -729,7 +728,11 @@ class UrdfDocument:
         ElementTree.SubElement(
             joint,
             UrdfElement.AXIS,
-            {UrdfAttribute.TRANSLATION: UrdfNumbers.text(connection.axis.to_np()[:3])},
+            {
+                UrdfAttribute.TRANSLATION: UrdfNumbers.text(
+                    connection.screw_axis.unit_direction.to_np()[:3]
+                )
+            },
         )
         self.movable_joints.append(name)
         if joint_type in LIMITED_JOINT_TYPES:
@@ -799,16 +802,29 @@ class UrdfDocument:
     def joint_type(connection: Connection) -> UrdfJointType:
         """
         :param connection: A connection.
-        :return: The joint type it becomes; a revolute connection without position
-            limits is continuous, a connection URDF has no type for is floating.
+        :return: The joint type it becomes; a screw axis connection that only turns is
+            revolute, or continuous without position limits, one that only moves is
+            prismatic, and a connection URDF has no type for, such as a helical one,
+            is floating.
         """
         if isinstance(connection, FixedConnection):
             return UrdfJointType.FIXED
-        if isinstance(connection, RevoluteConnection):
+        if not isinstance(connection, ScrewAxisConnection):
+            return UrdfJointType.FLOATING
+        screw_axis = connection.screw_axis
+        turns = (
+            numpy.linalg.norm(screw_axis.rotation_per_unit_position.to_np()[:3])
+            > screw_axis.normalization_tolerance
+        )
+        moves = (
+            numpy.linalg.norm(screw_axis.translation_per_unit_position.to_np()[:3])
+            > screw_axis.normalization_tolerance
+        )
+        if turns and not moves:
             if connection.dof.has_position_limits():
                 return UrdfJointType.REVOLUTE
             return UrdfJointType.CONTINUOUS
-        if isinstance(connection, PrismaticConnection):
+        if moves and not turns:
             return UrdfJointType.PRISMATIC
         return UrdfJointType.FLOATING
 

@@ -115,7 +115,7 @@ def test_a_later_step_takes_the_object_the_detection_finds(plan):
     reference = DetectedObjectReference("step_1").text
     assert demo.bodies[reference] is demo.bodies["red_cube"]
     assert isinstance(pick, PickUpAction)
-    assert pick.grasp.graspable.root is demo.bodies["red_cube"]
+    assert pick.grasp_candidate.graspable.root is demo.bodies["red_cube"]
 
 
 def test_a_detection_finding_several_objects_cannot_be_named(plan):

@@ -403,6 +403,8 @@ viewer reads: `$CRAMERA_SCENES`, else `$CRAMERA_DATA/scenes`, else
 | `--fps` | playback rate (default 30) |
 | `--robot PRIM` | the robot's root link; the robot becomes a model of its own with a base pose track, kept although the stage marks it |
 | `--record FILE.json` | a run record whose steps become the timeline segments |
+| `--origin X Y Z YAW` | the stage point (metres, Z up) and heading (degrees about Z) that become the bundle's origin and x axis, such as where a robot is to stand at a table of a scanned building; the camera options are given in the placed frame |
+| `--region MIN_X MIN_Y MAX_X MAX_Y` | draw only the geometry over this rectangle of the placed floor plan: triangles crossing its edge are cut there, prims with nothing over it are skipped (`outside the region`); collision boxes are kept whole |
 
 **Robots stay out by default.** A prim the stage marks as a robot is left out with
 everything below it: Isaac Sim's robot schema (`IsaacRobotAPI`) in the prim's authored

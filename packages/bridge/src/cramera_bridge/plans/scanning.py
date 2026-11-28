@@ -95,16 +95,20 @@ class SceneScanner:
                 PhysicalExecution().prepare(world)
             context = believed.build_context(world)
             query = PerceptionQuery(
-                OBJECT_TYPE_ANNOTATIONS[ObjectType.OBJECT],
-                RegionBoxes(context.robot, site=believed.site).box(self.order.region),
-                context.robot,
-                world,
+                semantic_annotation=OBJECT_TYPE_ANNOTATIONS[ObjectType.OBJECT],
+                region=RegionBoxes(context.robot, site=believed.site).box(
+                    self.order.region
+                ),
+                robot=context.robot,
+                world=world,
             )
             camera.observe_started()
             with self.perception.perceiving() as live:
-                grounded = ValidationPerception(live).look_for(query)
+                grounded = ValidationPerception(live=live).look_for(query=query)
             grounding = DetectionGrounding(grounded.grounding.value)
-            bodies = DetectedScene(grounded.detections, query.region).apply_to(world)
+            bodies = DetectedScene(
+                detections=grounded.detections, region=query.region
+            ).apply_to(world=world)
             images = (
                 camera.images(world, context.robot, bodies)
                 if grounding is DetectionGrounding.PERCEIVED

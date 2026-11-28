@@ -947,10 +947,21 @@ class UnknownWorkspaceClass(PlanError):
     The class names the workspace defines.
     """
 
+    missing_namespace: Optional[str] = None
+    """
+    The registry namespace the name belongs to when no installed package declares it,
+    else None.
+    """
+
     def status(self) -> HTTPStatus:
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
+        if self.missing_namespace is not None:
+            return (
+                f"{self.name!r} is unavailable: the package declaring the namespace "
+                f"{self.missing_namespace!r} is not installed."
+            )
         return f"Unknown class {self.name!r}; choose one of: {', '.join(self.offered)}."
 
 
@@ -994,10 +1005,21 @@ class UnknownAction(PlanError):
     The class names of the actions the workspace defines.
     """
 
+    missing_namespace: Optional[str] = None
+    """
+    The registry namespace the name belongs to when no installed package declares it,
+    else None.
+    """
+
     def status(self) -> HTTPStatus:
         return HTTPStatus.UNPROCESSABLE_ENTITY
 
     def message(self) -> str:
+        if self.missing_namespace is not None:
+            return (
+                f"The action {self.name!r} is unavailable: the package declaring the "
+                f"namespace {self.missing_namespace!r} is not installed."
+            )
         return f"No action {self.name!r} is installed."
 
 
@@ -1007,7 +1029,8 @@ class UnknownAction(PlanError):
 @dataclass
 class RobotHasNoTable(PlanError):
     """
-    A region on the table named for a robot that is mounted on none.
+    A region on the table named for a robot that is mounted on none and stands at no
+    table of its environment.
     """
 
     robot: str

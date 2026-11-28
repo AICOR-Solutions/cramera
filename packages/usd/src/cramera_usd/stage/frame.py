@@ -8,13 +8,14 @@ from dataclasses import dataclass
 
 import numpy
 from pxr import Usd, UsdGeom
-from typing_extensions import Self
+from typing_extensions import Optional, Self
 
 from cramera_usd.geometry.transforms import (
     HOMOGENEOUS_SIZE,
     SPACE_DIMENSIONS,
     RigidTransform,
 )
+from cramera_usd.stage.placement import StageOrigin
 
 # %% constants
 
@@ -44,7 +45,8 @@ class StageFrame:
 
     correction: numpy.ndarray
     """
-    The 4x4 matrix taking stage coordinates into metres with Z up.
+    The 4x4 matrix taking stage coordinates into metres with Z up, placed at the
+    converted world's origin.
     """
 
     meters_per_unit: float
@@ -58,9 +60,11 @@ class StageFrame:
     """
 
     @classmethod
-    def of_stage(cls, stage: Usd.Stage) -> Self:
+    def of_stage(cls, stage: Usd.Stage, origin: Optional[StageOrigin] = None) -> Self:
         """
         :param stage: A composed stage.
+        :param origin: The stage point that becomes the converted world's origin, or
+            None to keep the stage's own.
         :return: Its frame.
         """
         meters_per_unit = UsdGeom.GetStageMetersPerUnit(stage)
@@ -69,10 +73,13 @@ class StageFrame:
             if stage.HasAuthoredTimeCodeRange()
             else Usd.TimeCode.Default()
         )
+        correction = cls.correction_of(stage, meters_per_unit)
+        if origin is not None:
+            correction = origin.bundle_from_stage() @ correction
         return cls(
             stage=stage,
             time=time,
-            correction=cls.correction_of(stage, meters_per_unit),
+            correction=correction,
             meters_per_unit=meters_per_unit,
             transforms=UsdGeom.XformCache(time),
         )

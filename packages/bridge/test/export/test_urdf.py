@@ -31,8 +31,7 @@ from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from krrood_spatial_math.spatial_types import Vector3
 from semantic_digital_twin.world_description.connections import (
     ActiveConnection1DOF,
-    PrismaticConnection,
-    RevoluteConnection,
+    ScrewAxisConnection,
 )
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -217,11 +216,13 @@ def test_a_prismatic_joint_without_limits_is_refused(kitchen, tmp_path):
     slide = Body(name=PrefixedName("slide", "kitchen"))
     with kitchen.world.modify_world():
         kitchen.world.add_connection(
-            PrismaticConnection.create_with_dofs(
+            ScrewAxisConnection.create_with_dofs(
                 world=kitchen.world,
                 parent=kitchen.table,
                 child=slide,
-                axis=Vector3.X(reference_frame=kitchen.table),
+                screw_axis=ScrewAxisConnection.create_prismatic_screw_axis(
+                    axis=Vector3.X(reference_frame=kitchen.table)
+                ),
             )
         )
     with pytest.raises(UnrepresentableJointLimits):
@@ -231,11 +232,13 @@ def test_a_prismatic_joint_without_limits_is_refused(kitchen, tmp_path):
 def test_an_unlimited_revolute_joint_is_continuous(kitchen, tmp_path):
     wheel = Body(name=PrefixedName("wheel", "kitchen"))
     with kitchen.world.modify_world():
-        connection = RevoluteConnection.create_with_dofs(
+        connection = ScrewAxisConnection.create_with_dofs(
             world=kitchen.world,
             parent=kitchen.table,
             child=wheel,
-            axis=Vector3.Z(reference_frame=kitchen.table),
+            screw_axis=ScrewAxisConnection.create_revolute_screw_axis(
+                axis=Vector3.Z(reference_frame=kitchen.table)
+            ),
         )
         kitchen.world.add_connection(connection)
     report = document(kitchen.world, tmp_path).write([kitchen.table, wheel], "wheel")

@@ -74,6 +74,16 @@ test('a validation names the plan and a robot run may override it', async () => 
   assert.deepEqual(started.body, { [RunRequestKey.PLAN]: { name: 'x' }, [RunRequestKey.MODE]: RunMode.ROBOT, [RunRequestKey.OVERRIDE_VALIDATION]: true });
 });
 
+test('a check names the plan and posts to its own route', async () => {
+  const fake = new FakeFetch({ [route(PlanBuilderRoute.CHECK)]: { passed: true, diagnostics: [] } });
+  const api = new PlanBuilderApi(fake.fetch, VIEWER);
+  const diagnostics = await api.check({ name: 'x' });
+  const [checked] = fake.requests;
+  assert.equal(checked.url, route(PlanBuilderRoute.CHECK));
+  assert.deepEqual(checked.body, { [ValidationRequestKey.PLAN]: { name: 'x' } });
+  assert.equal(diagnostics.passed, true);
+});
+
 test('cancelling the validation posts to its own route', async () => {
   const fake = new FakeFetch({ [route(PlanBuilderRoute.VALIDATE_CANCEL)]: { cancelled: true } });
   const api = new PlanBuilderApi(fake.fetch, VIEWER);

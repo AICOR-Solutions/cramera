@@ -436,6 +436,13 @@ test('the page starts a plan in the first environment and is ready', async () =>
   assert.equal(timer.callbacks.size, 2);
 });
 
+test('the side column offers the skills first and the environment last', async () => {
+  const { root } = await openPage();
+  const [side] = root.findAll((element) => element.tagName === 'ASIDE');
+  const headings = side.children.map((section) => section.children[0].textContent);
+  assert.deepEqual(headings, ['Skills', 'Constraints', 'Objects', 'Robots', 'Environment']);
+});
+
 test('the page starts in the environment its query names, with the last robot model', async () => {
   const { page } = await openPage(`${PlanBuilderPageParameter.ENVIRONMENT}=nowhere`, ({ storage }) => storage.setItem(ROBOT_MODEL_KEY, 'tracy'));
   assert.equal(page.state.activeRobot()[PlannedRobotKey.MODEL], 'tracy');
@@ -1914,6 +1921,7 @@ test('a poll that changes the run log writes the new log', async () => {
 test('the 3D view is labelled with what it shows', () => {
   assert.deepEqual(viewMode({ published: false, mode: null, real: false, mirroring: false }), { mode: ViewMode.PLAN, text: 'Not running' });
   assert.deepEqual(viewMode({ published: false, mode: null, real: true, mirroring: true }), { mode: ViewMode.PLAN, text: 'Not running (real)' });
+  assert.deepEqual(viewMode({ published: false, starting: true, mode: RunMode.SIMULATE, real: false, mirroring: false }), { mode: ViewMode.PLAN, text: 'Starting the run…' });
   assert.deepEqual(viewMode({ published: true, mode: RunMode.STAGE, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live scene)' });
   assert.deepEqual(viewMode({ published: true, mode: RunMode.SIMULATE, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
   assert.deepEqual(viewMode({ published: true, mode: RunMode.ROBOT, real: false, mirroring: false }), { mode: ViewMode.SIMULATION, text: 'Simulation (live)' });
@@ -1933,6 +1941,20 @@ test('the 3D view says it shows the plan until a run publishes its world, then t
   await timer.tick();
   assert.equal(viewLabel(root).textContent, 'Simulation (live)');
   assert.equal(viewLabel(root).dataset.mode, ViewMode.SIMULATION);
+});
+
+test('the 3D view says a run starts until its world is published', async () => {
+  const { root, timer, live } = await openPage();
+  const up = live.world;
+  live.world = { ...up, info: { ...up.info, running: false } };
+  byAction(root, PlanAction.SIMULATE)[0].click();
+  await settled();
+  await timer.tick();
+  assert.equal(viewLabel(root).textContent, 'Starting the run…');
+  assert.equal(viewLabel(root).dataset.mode, ViewMode.PLAN);
+  live.world = up;
+  await timer.tick();
+  assert.equal(viewLabel(root).textContent, 'Simulation (live)');
 });
 
 test('the 3D view has a folded legend naming every kind of marker it draws', async () => {

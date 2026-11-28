@@ -16,6 +16,7 @@ from cramera_usd.scene.stage import ConvertedStage
 from cramera_usd.stage.conversion import StageConversion
 from cramera_usd.stage.frame import StageFrame
 from cramera_usd.stage.motion import StageMotion
+from cramera_usd.stage.placement import FloorRegion, StageOrigin
 from cramera_usd.stage.robots import PrimExclusion
 from cramera_usd.stage.variants import VariantSelection
 
@@ -49,6 +50,17 @@ class StageReader:
     The prims left out with their subtrees; by default the robots the stage marks.
     """
 
+    origin: Optional[StageOrigin] = None
+    """
+    The stage point that becomes the converted world's origin, or None to keep the
+    stage's own.
+    """
+
+    region: Optional[FloorRegion] = None
+    """
+    The part of the floor plan whose geometry is drawn, or None to draw all of it.
+    """
+
     composed: Optional[Usd.Stage] = field(default=None, init=False, repr=False)
     """
     The composed stage once it has been opened.
@@ -79,10 +91,12 @@ class StageReader:
         :return: The neutral description of the selected part of the stage.
         """
         stage = self.open()
-        frame = StageFrame.of_stage(stage)
+        frame = StageFrame.of_stage(stage, self.origin)
         roots = self.selected_roots(stage)
         self.exclusion.validate(stage, roots, frame.time)
-        return StageConversion(frame, roots, self.stage_path, self.exclusion).run()
+        return StageConversion(
+            frame, roots, self.stage_path, self.exclusion, region=self.region
+        ).run()
 
     def motion(self, paths: List[str], frames_per_second: float) -> BodyTrace:
         """
@@ -92,9 +106,9 @@ class StageReader:
             stage's time samples.
         """
         stage = self.open()
-        return StageMotion(StageFrame.of_stage(stage), self.stage_path).trace(
-            paths, frames_per_second
-        )
+        return StageMotion(
+            StageFrame.of_stage(stage, self.origin), self.stage_path
+        ).trace(paths, frames_per_second)
 
     def selected_roots(self, stage: Usd.Stage) -> List[Usd.Prim]:
         """

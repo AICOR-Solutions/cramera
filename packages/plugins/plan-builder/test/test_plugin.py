@@ -54,6 +54,7 @@ from cramera_protocol.plan_builder import (
     ArmReport,
     ConstraintText,
     DemoDocument,
+    DemoOption,
     Destination,
     PlacementMode,
     LoadedEnvironment,
@@ -63,7 +64,9 @@ from cramera_protocol.plan_builder import (
     PlanBuilderRoute,
     PlanBuilderVariable,
     PlanList,
+    PlanDocument,
     PlanRecord,
+    PlannedRobot,
     RobotPosture,
     RunMode,
     RunRequest,
@@ -74,7 +77,9 @@ from cramera_protocol.plan_builder import (
     UrdfEnvironment,
 )
 from cramera_protocol.robot_profile import (
+    BaseInPhysics,
     ExecutorKind,
+    GraspClosingAxis,
     RobotConnection,
     RobotProfile,
     RobotProfileKey,
@@ -489,6 +494,49 @@ def test_the_catalog_carries_the_robot_profile_the_environment_names(
     assert PlanBuilderCatalog.from_json(json.loads(answer.body)).profile == profile
 
 
+def test_the_catalog_stands_the_profiles_robot_at_the_height_of_its_scene(
+    serve, output, workspace_loader, tmp_path
+):
+    """
+    A robot added by hand stands where the profile's scene stands it, such as a
+    humanoid whose pelvis is its root, rather than with its root on the floor.
+    """
+    scene = PlanDocument(
+        name="standing",
+        robots=[
+            PlannedRobot(
+                identifier="robot_1",
+                model="tracy",
+                label="Tracy",
+                pose=Pose(0.0, 0.0, 0.9025, 0.0, 0.0, 0.0, 1.0),
+            )
+        ],
+    )
+    (tmp_path / "standing.json").write_text(
+        json.dumps(scene.to_json()), encoding="utf-8"
+    )
+    profile = RobotProfile(
+        robot="tracy", label="Tracy", simulated_scene="standing.json"
+    )
+    path = tmp_path / "tracy.json"
+    path.write_text(json.dumps(profile.to_json()), encoding="utf-8")
+    plugin = PlanBuilderPlugin(
+        environment={
+            PlanBuilderVariable.OUTPUT: str(output),
+            RobotProfileVariable.PROFILE: str(path),
+        },
+        workspace=workspace_loader,
+    )
+
+    answer = send(serve(plugin), HttpMethod.GET, PlanBuilderRoute.CATALOG)
+
+    heights = {
+        robot.name: robot.standing_height
+        for robot in PlanBuilderCatalog.from_json(json.loads(answer.body)).robots
+    }
+    assert heights == {"pr2": 0.0, "tracy": scene.robots[0].pose.z}
+
+
 def test_without_a_configured_profile_the_catalog_carries_none(get):
     answer = get(PlanBuilderRoute.CATALOG)
     assert PlanBuilderCatalog.from_json(json.loads(answer.body)).profile is None
@@ -734,6 +782,48 @@ def test_a_validation_answers_the_validators_report(validating, plan):
         step.identifier for step in plan.performing_robot().steps
     ]
     assert report.seconds > 0
+
+
+def test_the_page_is_never_sent_the_grounding_a_validation_passes_on(validating, plan):
+    report = validate(validating, plan)
+
+    assert report.passed
+    assert report.grounding is None
+
+
+def started_with(answer, plan, mode: RunMode) -> str:
+    """
+    :return: The output of the plan's demo started in the mode, once it ended.
+    """
+    send(
+        answer,
+        HttpMethod.POST,
+        PlanBuilderRoute.RUN,
+        json.dumps(RunRequest(plan=plan, mode=mode).to_json()).encode(),
+    )
+    deadline = time.monotonic() + 10.0
+    status = run_status(answer)
+    while status.state is RunState.RUNNING and time.monotonic() < deadline:
+        time.sleep(0.05)
+        status = run_status(answer)
+    return status.log
+
+
+def test_a_simulated_run_of_the_validated_plan_is_handed_its_grounding(
+    validating, plan
+):
+    validate(validating, plan)
+
+    assert DemoOption.GROUNDING in started_with(validating, plan, RunMode.PERFORM)
+
+
+def test_a_simulated_run_of_a_changed_plan_is_handed_no_grounding(validating, plan):
+    validate(validating, plan)
+    changed = replace(plan, task="something else")
+
+    assert DemoOption.GROUNDING not in started_with(
+        validating, changed, RunMode.PERFORM
+    )
 
 
 def test_a_robot_run_of_a_plan_never_validated_is_refused(validating, plan):
@@ -1357,6 +1447,83 @@ def test_a_demo_carries_the_profiles_perception_settings(profiled, plan):
     document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
     profile = RobotProfile.from_file(DATASET / "profile" / "tracy.json")
     assert document.perception == profile.perception
+
+
+def test_a_demo_carries_the_profiles_grasp_axis_and_camera_mount(profiled, plan):
+    answer = send(
+        profiled,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(plan.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.OK, answer.body
+    document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
+    profile = RobotProfile.from_file(DATASET / "profile" / "tracy.json")
+    assert document.grasp_closing_axis is profile.grasp_closing_axis
+    assert document.camera_mount is profile.camera_mount
+
+
+def test_a_demo_of_a_profile_closing_its_hand_along_y_says_so(
+    serve, output, workspace_loader, plan, tmp_path
+):
+    written = RobotProfile.from_file(DATASET / "profile" / "tracy.json").to_json()
+    written[RobotProfileKey.GRASP_CLOSING_AXIS] = GraspClosingAxis.Y.value
+    written[RobotProfileKey.TEMPLATES] = []
+    del written[RobotProfileKey.SIMULATED_SCENE]
+    profile_file = tmp_path / "profile.json"
+    profile_file.write_text(json.dumps(written), encoding="utf-8")
+    plan_builder = serve(
+        PlanBuilderPlugin(
+            environment={
+                PlanBuilderVariable.OUTPUT: str(output),
+                RobotProfileVariable.PROFILE: str(profile_file),
+            },
+            workspace=workspace_loader,
+        )
+    )
+
+    answer = send(
+        plan_builder,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(plan.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.OK, answer.body
+    document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
+    assert document.grasp_closing_axis is GraspClosingAxis.Y
+
+
+def test_a_demo_carries_how_the_profile_moves_a_walking_base_in_physics(
+    serve, output, workspace_loader, plan, tmp_path
+):
+    written = RobotProfile.from_file(DATASET / "profile" / "tracy.json").to_json()
+    written[RobotProfileKey.BASE_IN_PHYSICS] = BaseInPhysics.WALK_THEN_FIX.value
+    written[RobotProfileKey.TEMPLATES] = []
+    del written[RobotProfileKey.SIMULATED_SCENE]
+    profile_file = tmp_path / "profile.json"
+    profile_file.write_text(json.dumps(written), encoding="utf-8")
+    plan_builder = serve(
+        PlanBuilderPlugin(
+            environment={
+                PlanBuilderVariable.OUTPUT: str(output),
+                RobotProfileVariable.PROFILE: str(profile_file),
+            },
+            workspace=workspace_loader,
+        )
+    )
+
+    answer = send(
+        plan_builder,
+        HttpMethod.POST,
+        PlanBuilderRoute.DEMO,
+        json.dumps(plan.to_json()).encode(),
+    )
+
+    assert answer.status == HTTPStatus.OK, answer.body
+    document = demo_document(DemoSource.from_json(json.loads(answer.body)).source)
+    assert document.base_in_physics is BaseInPhysics.WALK_THEN_FIX
 
 
 @pytest.mark.parametrize(

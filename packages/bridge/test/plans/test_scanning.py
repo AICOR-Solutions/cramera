@@ -99,8 +99,8 @@ class ReportedColors:
     def look_for(self, query: PerceptionQuery) -> list[Detection]:
         return [
             Detection(
-                query.semantic_annotation,
-                Pose.from_xyz_rpy(
+                semantic_annotation=query.semantic_annotation,
+                pose=Pose.from_xyz_rpy(
                     0.55, 0.1 * number, 0.906, reference_frame=query.world.root
                 ),
                 color=color,
@@ -153,7 +153,9 @@ def test_a_cube_found_is_a_copy_of_the_model_of_its_color(monkeypatch, cubes):
 
     for standing in cubes.objects:
         color = ColorName(standing.identifier.removesuffix("_cube"))
-        found = Detection(PlannedGraspable, Pose(), color=color)
+        found = Detection(
+            semantic_annotation=PlannedGraspable, pose=Pose(), color=color
+        )
         assert scanner.matching_model(found) == standing.model
 
 
@@ -161,7 +163,9 @@ def test_a_found_object_of_a_color_no_model_shows_matches_none(monkeypatch, cube
     monkeypatch.setenv(LIBRARY_VARIABLE, str(CUBE_LIBRARY))
     scanner = SceneScanner(SceneScanOrder(demo=DemoDocument(plan=cubes)))
 
-    found = Detection(PlannedGraspable, Pose(), color=ColorName.GREEN)
+    found = Detection(
+        semantic_annotation=PlannedGraspable, pose=Pose(), color=ColorName.GREEN
+    )
 
     assert scanner.matching_model(found) is None
 

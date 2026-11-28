@@ -26,6 +26,7 @@ from coraplex.perception import ROBOKUDO_QUERY_ACTION_NAME, WorldPerception
 from coraplex.plans.executors import KinematicallySimulatedPlanExecutor, PlanExecutor
 from coraplex.robot_plans.plan_transformations import DetectWithRoboKudo
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
+from coraplex.robot_plans.actions.core.placing import PlaceAction
 from cramera_bridge.exceptions import (
     ArmOutsideItsWorkspace,
     StepAbandoned,
@@ -34,6 +35,8 @@ from cramera_bridge.exceptions import (
 from cramera_bridge.execution import (
     PERCEPTION_ENGINE_VARIABLE,
     KinematicExecution,
+    PhysicalExecution,
+    RealExecution,
     StartingPosture,
 )
 from cramera_bridge.geometry import NumericPose
@@ -65,6 +68,7 @@ from cramera_protocol.robot_profile import (
 from cramera_protocol.validation import (
     StepFailureReason,
     StepVerdict,
+    ValidatedGrounding,
     ValidationOrder,
     ValidationReport,
 )
@@ -833,6 +837,39 @@ def test_a_plan_runs_with_the_arm_its_grounding_chose(pick_and_place):
     assert pick.arm is context.robot.get_right_arm_if_specified()
 
 
+def test_a_place_runs_with_the_arm_that_picked_its_cube_up(pick_and_place):
+    demo = PlannedTaskDemo.of_document(
+        DemoDocument(plan=with_red_cube_at(pick_and_place, *RIGHT_ARM_ONLY)), port=0
+    )
+    world = demo.build_world()
+    context = demo.build_context(world)
+
+    plan = demo.build_plan(context)
+
+    [place] = [
+        node
+        for step in plan.nodes
+        for node in [step, *step.descendants]
+        if isinstance(node, PlaceAction)
+    ]
+    assert place.arm is context.robot.get_right_arm_if_specified()
+
+
+def test_a_place_after_a_pick_naming_its_arm_puts_down_with_that_arm(pick_and_place):
+    plan = with_pick_arm(pick_and_place, Arms.RIGHT)
+    demo = PlannedTaskDemo.of_document(DemoDocument(plan=plan), port=0)
+    world = demo.build_world()
+    context = demo.build_context(world)
+    steps = tuple(demo.steps())
+    [place] = [step for step in steps if step.action == "place"]
+
+    node = StepActions(
+        context, demo.bodies, demo.discovered_actions, steps=steps
+    ).action(place)
+
+    assert node.arm is context.robot.get_right_arm_if_specified()
+
+
 def test_a_plan_no_arm_reaches_is_refused_before_it_runs(pick_and_place):
     demo = PlannedTaskDemo.of_document(
         DemoDocument(plan=with_red_cube_at(pick_and_place, *OUT_OF_REACH)), port=0
@@ -841,6 +878,121 @@ def test_a_plan_no_arm_reaches_is_refused_before_it_runs(pick_and_place):
 
     with pytest.raises(StepNotGrounded):
         demo.build_plan(demo.build_context(world))
+
+
+# %% running on the grounding of a passed validation
+
+
+def test_a_passed_validation_passes_its_grounding_on(pick_and_place):
+    demo = DemoDocument(plan=with_red_cube_at(pick_and_place, *RIGHT_ARM_ONLY))
+
+    report = PlanValidator(ValidationOrder(demo=demo)).validate()
+
+    assert report.grounding.describes(demo)
+    pick = report.grounding.steps[1].resolved
+    assert pick.values["arm"] == Arms.RIGHT.name.lower()
+
+
+def test_a_validation_from_the_real_robots_posture_passes_no_grounding_on(
+    pick_and_place, monkeypatch
+):
+    monkeypatch.setattr(PlanValidator, "build_world", lambda self, demo: demo.build_world())
+    order = ValidationOrder(
+        demo=DemoDocument(plan=pick_and_place), reads_robot_posture=True
+    )
+
+    report = PlanValidator(order).validate()
+
+    assert report.passed
+    assert report.grounding is None
+
+
+def test_a_failed_validation_passes_no_grounding_on(pick_and_place):
+    report = validated(with_red_cube_at(pick_and_place, *OUT_OF_REACH))
+
+    assert report.grounding is None
+
+
+def planned_pick_arm(demo: PlannedTaskDemo):
+    """
+    :return: The arm the pick of the demo's plan runs with.
+    """
+    context = demo.build_context(demo.build_world())
+    plan = demo.build_plan(context)
+    step = plan.nodes[1]
+    [pick] = [
+        node for node in [step, *step.descendants] if isinstance(node, PickUpAction)
+    ]
+    return context, pick.arm
+
+
+def with_the_left_arm_chosen(grounding: ValidatedGrounding) -> ValidatedGrounding:
+    """
+    :return: The grounding with its pick given the left arm, which no grounding of a
+        cube only the right arm reaches would choose.
+    """
+    pick = grounding.steps[1]
+    resolved = replace(
+        pick.resolved,
+        values={**pick.resolved.values, "arm": Arms.LEFT.name.lower()},
+    )
+    steps = list(grounding.steps)
+    steps[1] = replace(pick, resolved=resolved)
+    return replace(grounding, steps=steps)
+
+
+def test_a_simulated_run_performs_the_grounding_its_validation_passed_on(
+    pick_and_place,
+):
+    document = DemoDocument(plan=with_red_cube_at(pick_and_place, *RIGHT_ARM_ONLY))
+    grounding = PlanValidator(ValidationOrder(demo=document)).validate().grounding
+    demo = PlannedTaskDemo.of_document(document, port=0)
+    demo.validated_grounding = with_the_left_arm_chosen(grounding)
+
+    context, arm = planned_pick_arm(demo)
+
+    assert arm is context.robot.get_left_arm_if_specified()
+
+
+def test_a_run_of_a_changed_plan_grounds_it_afresh(pick_and_place):
+    validated_document = DemoDocument(plan=pick_and_place)
+    grounding = PlanValidator(ValidationOrder(demo=validated_document)).validate()
+    demo = PlannedTaskDemo.of_document(
+        DemoDocument(plan=with_red_cube_at(pick_and_place, *RIGHT_ARM_ONLY)), port=0
+    )
+    demo.validated_grounding = with_the_left_arm_chosen(grounding.grounding)
+
+    context, arm = planned_pick_arm(demo)
+
+    assert arm is context.robot.get_right_arm_if_specified()
+
+
+def test_both_simulations_perform_a_validations_grounding():
+    assert KinematicExecution().performs_validated_grounding()
+    assert PhysicalExecution().performs_validated_grounding()
+
+
+class RealExecutionOfTheTwin(KinematicExecution):
+    """
+    Stands in for the real robot's execution: it never performs a validation's
+    grounding, as the real world may have moved since the validation.
+    """
+
+    def performs_validated_grounding(self) -> bool:
+        return RealExecution().performs_validated_grounding()
+
+
+def test_a_run_on_the_real_robot_grounds_its_plan_afresh(pick_and_place):
+    document = DemoDocument(plan=with_red_cube_at(pick_and_place, *RIGHT_ARM_ONLY))
+    grounding = PlanValidator(ValidationOrder(demo=document)).validate().grounding
+    demo = PlannedTaskDemo.of_document(document, port=0)
+    demo.execution = RealExecutionOfTheTwin()
+    demo.validated_grounding = with_the_left_arm_chosen(grounding)
+
+    context, arm = planned_pick_arm(demo)
+
+    assert not RealExecution().performs_validated_grounding()
+    assert arm is context.robot.get_right_arm_if_specified()
 
 
 # %% detecting what the camera does not see
@@ -890,7 +1042,7 @@ def test_a_detection_assumed_from_the_twin_is_checked_again_when_the_plan_runs(
     assert abandoned.value == StepAbandoned(
         detect.step,
         demo.step_run.attempts,
-        NothingPerceived(PlannedGraspableFromAbove).error_message(),
+        NothingPerceived(semantic_annotation=PlannedGraspableFromAbove).error_message(),
     )
 
 
@@ -1019,7 +1171,7 @@ class KinematicExecutionAskingRoboKudo(KinematicExecution):
         safety: SafetyEnvelope,
     ) -> PlanExecutor:
         return KinematicallySimulatedPlanExecutor(
-            context,
+            context=context,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
             safety=safety,
@@ -1087,8 +1239,8 @@ def test_a_run_robokudo_does_not_answer_fails_its_detection_without_another_atte
         detect.identifier,
         1,
         PerceptionSourceDidNotAnswer(
-            ROBOKUDO_QUERY_ACTION_NAME,
-            timedelta(seconds=perception.answer_timeout),
-            "",
+            action_name=ROBOKUDO_QUERY_ACTION_NAME,
+            answer_timeout=timedelta(seconds=perception.answer_timeout),
+            waiting_for="",
         ).error_message(),
     )

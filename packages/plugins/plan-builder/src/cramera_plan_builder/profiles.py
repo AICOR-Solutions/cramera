@@ -27,6 +27,7 @@ from cramera_protocol.robot_profile import (
     RobotProfile,
     RobotProfileVariable,
 )
+from cramera_protocol.registry import IdKind, Registry
 from cramera_protocol.validation import ValidationOrder
 
 # %% configured profile
@@ -52,6 +53,12 @@ class ConfiguredProfile:
     """
     The objects of the simulated scene the robot's camera sees, or None when the robot's
     own perception sees the scene.
+    """
+
+    standing_height: Optional[float] = None
+    """
+    How high the profile's scene, or else its first template holding the profile's
+    robot, stands that robot's root, in metres; None when none of them holds it.
     """
 
     connection: RobotConnection = RobotConnection.SIMULATED
@@ -86,16 +93,24 @@ class ConfiguredProfile:
 
     @classmethod
     def of_file(
-        cls, path: Path, connection: RobotConnection = RobotConnection.SIMULATED
+        cls,
+        path: Path,
+        connection: RobotConnection = RobotConnection.SIMULATED,
+        registry: Optional[Registry] = None,
     ) -> ConfiguredProfile:
         """
         :param path: A profile's JSON file.
         :param connection: Whether the deployment is attached to the real robot.
+        :param registry: The identifier registry the profile's robot and skill actions
+            are named by; the installed packages' by default.
         :return: The profile with the templates and the simulated scene it names, read
             relative to the file; attached to the real robot, the robot perceives the
             scene itself, else no run mode executes on the real robot.
         """
-        profile = RobotProfile.from_file(path)
+        profile = cls.with_registry_names(
+            RobotProfile.from_file(path),
+            Registry.installed() if registry is None else registry,
+        )
         if connection is RobotConnection.SIMULATED:
             profile = replace(
                 profile,
@@ -105,21 +120,61 @@ class ConfiguredProfile:
                     if executor is not ExecutorKind.REAL
                 },
             )
+        templates = [
+            PlanTemplate(
+                identifier=Path(template).stem,
+                plan=cls.plan_file(path.parent / template),
+            )
+            for template in profile.templates
+        ]
+        scene = (
+            None
+            if profile.simulated_scene is None
+            else cls.plan_file(path.parent / profile.simulated_scene)
+        )
+        plans = [] if scene is None else [scene]
+        plans.extend(template.plan for template in templates)
         return cls(
             profile=profile,
-            templates=[
-                PlanTemplate(
-                    identifier=Path(template).stem,
-                    plan=cls.plan_file(path.parent / template),
-                )
-                for template in profile.templates
-            ],
+            templates=templates,
             simulated_objects=(
                 None
-                if profile.simulated_scene is None or connection is RobotConnection.REAL
-                else cls.plan_file(path.parent / profile.simulated_scene).objects
+                if scene is None or connection is RobotConnection.REAL
+                else scene.objects
+            ),
+            standing_height=next(
+                (
+                    robot.pose.z
+                    for plan in plans
+                    for robot in plan.robots
+                    if robot.model == profile.robot
+                ),
+                None,
             ),
             connection=connection,
+        )
+
+    @staticmethod
+    def with_registry_names(profile: RobotProfile, registry: Registry) -> RobotProfile:
+        """
+        A profile may name its robot and its skills' actions by any of their names in
+        the registry, such as ``cram.tracy``, ``tracy`` or ``Tracy``; the catalog and
+        plans use one name each.
+
+        :param profile: A profile as its file names things.
+        :param registry: The identifier registry.
+        :return: The profile naming its robot and its skills' actions as the catalog
+            does; names no installed package declares are kept.
+        """
+        return replace(
+            profile,
+            robot=registry.public_name_of(IdKind.ROBOT, profile.robot),
+            skills=[
+                replace(
+                    skill, action=registry.public_name_of(IdKind.ACTION, skill.action)
+                )
+                for skill in profile.skills
+            ],
         )
 
     def validation_order(self, demo: DemoDocument) -> ValidationOrder:

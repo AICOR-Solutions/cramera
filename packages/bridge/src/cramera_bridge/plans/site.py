@@ -1,6 +1,6 @@
 """
-Where a plan stands the robot that performs it, and the robot profile's named zones on
-the robot's table, which are written in the frame of that pose.
+Where a plan stands the robot that performs it to work, and the robot profile's named
+zones on the robot's table, which are written in the frame of that pose.
 """
 
 from __future__ import annotations
@@ -13,7 +13,12 @@ from typing_extensions import List, Optional, Tuple
 from cramera_bridge.exceptions import UnknownZone
 from cramera_protocol.geometry import FloorRectangle
 from cramera_protocol.geometry import Pose as PlannedPose
-from cramera_protocol.plan_builder import DemoDocument
+from cramera_protocol.plan_builder import (
+    DemoDocument,
+    LegacyStepKind,
+    MigratedActionField,
+    PlannedRobot,
+)
 from cramera_protocol.robot_profile import Zone
 
 # %% the robot's site
@@ -28,7 +33,7 @@ class RobotSite:
 
     pose: PlannedPose = PlannedPose(0, 0, 0, 0, 0, 0, 1)
     """
-    The pose the plan stands the performing robot at, in world coordinates.
+    The pose the plan stands the performing robot at to work, in world coordinates.
     """
 
     zones: List[Zone] = field(default_factory=list)
@@ -45,7 +50,24 @@ class RobotSite:
         robot = document.plan.performing_robot()
         if robot is None:
             return cls(zones=list(document.zones))
-        return cls(pose=robot.pose, zones=list(document.zones))
+        return cls(pose=cls.working_pose(robot), zones=list(document.zones))
+
+    @staticmethod
+    def working_pose(robot: PlannedRobot) -> PlannedPose:
+        """
+        :param robot: A robot of a plan.
+        :return: Where the robot works: the target of its last navigation, or where it
+            starts if it never moves its base.
+        """
+        targets = [
+            step.values[MigratedActionField.TARGET]
+            for step in robot.steps
+            if step.action == LegacyStepKind.NAVIGATE
+            and MigratedActionField.TARGET in step.values
+        ]
+        if not targets:
+            return robot.pose
+        return PlannedPose.from_json(targets[-1])
 
     def zone(self, identifier: str) -> Zone:
         """

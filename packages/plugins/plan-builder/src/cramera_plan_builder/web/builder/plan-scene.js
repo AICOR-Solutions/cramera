@@ -356,6 +356,39 @@ export class FirstFraming {
 }
 
 /**
+ * What the view frames: an environment the size of a room whole, but in one larger than
+ * a room, such as a scanned building, the robots and objects of the plan with the table
+ * around them, where the person works.
+ */
+export class WorkAreaFraming {
+  /**
+   * The longest horizontal side, in metres, of an environment still framed whole.
+   * @type {number}
+   */
+  static LARGEST_ROOM = 12;
+
+  /**
+   * How far, in metres, the framed work area reaches beyond the plan's markers on the
+   * floor, so the table they stand at is in view.
+   * @type {number}
+   */
+  static MARGIN = 0.6;
+
+  /**
+   * @param {Bounds|null} environment The shown environment's bounds, or null.
+   * @param {Bounds|null} markers The bounds of the plan's markers, or null.
+   * @returns {Bounds|null} What to frame; null when there is neither.
+   */
+  static bounds(environment, markers) {
+    if (environment === null || markers === null) return environment ?? markers;
+    const [width, depth] = environment.size();
+    if (Math.max(width, depth) <= WorkAreaFraming.LARGEST_ROOM) return environment;
+    const margin = WorkAreaFraming.MARGIN;
+    return new Bounds([markers.min[0] - margin, markers.min[1] - margin, markers.min[2]], [markers.max[0] + margin, markers.max[1] + margin, markers.max[2]]);
+  }
+}
+
+/**
  * How an object's marker is coloured: a library model in the colours its URDF gives it,
  * unless the plan or a perception names one colour for the object, and a put-down target
  * see-through.
@@ -787,11 +820,24 @@ export class PlanScene {
   }
 
   /**
-   * Look at the shown environment, or at the markers on an empty floor.
+   * Look at the shown environment, or at the robot's work area in one larger than a
+   * room (see {@link WorkAreaFraming}), or at the markers on an empty floor.
    */
   frame() {
-    const bounds = this.#view.contentBounds() ?? this.#markerBounds() ?? FLOOR_REGION;
+    const bounds = WorkAreaFraming.bounds(this.#view.contentBounds(), this.#markerBounds()) ?? FLOOR_REGION;
     this.#view.frame(bounds);
+  }
+
+  /**
+   * Look at a box chosen by the page, such as a table top, and keep looking at it: a
+   * robot model loaded afterwards does not frame the view again, as after the person
+   * moved the camera.
+   * @param {Bounds|{min: Array<number>, max: Array<number>}} bounds The box, in metres
+   *   in the scene's frame.
+   */
+  frameOn(bounds) {
+    this.#firstFraming.notePersonMoved();
+    this.#view.frame(bounds instanceof Bounds ? bounds : new Bounds(bounds.min, bounds.max));
   }
 
   /**

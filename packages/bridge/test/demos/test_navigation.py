@@ -59,7 +59,9 @@ def test_the_barrier_stands_halfway(demo, context):
 def test_the_plan_navigates_to_the_target(demo, context):
     action = demo.build_plan(context)
     assert isinstance(action, NavigateAction)
-    assert action.target_location.position.to_np()[0] == pytest.approx(demo.target_x)
+    assert action.planar_goal_pose.pose.position.to_np()[0] == pytest.approx(
+        demo.target_x
+    )
 
 
 # %% measurement

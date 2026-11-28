@@ -16,8 +16,9 @@ from cramera_bridge.scenes.bundle_world import ColorText, PoseText
 from cramera_bridge.scenes.environment import SceneEnvironment
 from cramera_bridge.plans.object_types import ObjectType
 from cramera_bridge.plans.objects import ObjectGrasp, ObjectLibraries
-from cramera_bridge.plans.workspace import OBJECT_DIRECTORY
+from cramera_bridge.plans.workspace import cram_object_directory
 from cramera_protocol.plan_builder import PlannedObject
+from cramera_protocol.robot_profile import GraspClosingAxis
 from semantic_digital_twin.adapters.package_resolver import (
     CompositePathResolver,
     PackageUriResolver,
@@ -28,7 +29,7 @@ from semantic_digital_twin.adapters.urdf import URDFParser
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.exceptions import NoGraspGeometry
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.specifications.connections import (
     Connection6DoFSpecification,
 )
@@ -70,7 +71,7 @@ class EmptyFloor(SceneEnvironment):
 
 
 @dataclass(eq=False)
-class PlannedGraspable(HasGraspCandidates):
+class PlannedGraspable(IsGraspable):
     """
     A free object of a plan, which coraplex's actions take hold of and put down: grasped
     around its own origin, as nothing more is known of its shape.
@@ -109,11 +110,17 @@ class PlannedGraspableFromAbove(PlannedGraspable):
     physics.
     """
 
+    closing_axis: GraspClosingAxis = GraspClosingAxis.X
+    """
+    The axis of the object's own frame the hand closes along, as the robot profile
+    says.
+    """
+
     def default_grasp_candidates(self) -> List[GraspCandidate]:
         """
         :return: The grasp approaching straight down along the object's own z-axis to
             the middle of its collision geometry's footprint, :attr:`grasp_depth` below
-            its top, closing along the object's x-axis.
+            its top, closing along the object's :attr:`closing_axis`.
         :raises NoGraspGeometry: When the object has no collision geometry.
         """
         if not self.root.has_collision():
@@ -132,7 +139,12 @@ class PlannedGraspableFromAbove(PlannedGraspable):
                         reference_frame=self.root,
                     ),
                     orientation=RotationMatrix.from_vectors(
-                        x=Vector3.NEGATIVE_Z(), y=Vector3.X()
+                        x=Vector3.NEGATIVE_Z(),
+                        y=(
+                            Vector3.Y()
+                            if self.closing_axis is GraspClosingAxis.Y
+                            else Vector3.X()
+                        ),
                     ).quaternion,
                     reference_frame=self.root,
                 ),
@@ -177,7 +189,7 @@ class PlannedObjects:
     The objects.
     """
 
-    directory: Path = field(default=OBJECT_DIRECTORY)
+    directory: Path = field(default_factory=cram_object_directory)
     """
     The directory of the object meshes.
     """
@@ -185,6 +197,11 @@ class PlannedObjects:
     libraries: ObjectLibraries = field(default_factory=ObjectLibraries.of_environment)
     """
     The object libraries the plan's models may come from.
+    """
+
+    grasp_closing_axis: GraspClosingAxis = GraspClosingAxis.X
+    """
+    The axis of an object taken from above the robot profile's hand closes along.
     """
 
     def spawn(self, world: World) -> Dict[str, Body]:
@@ -200,9 +217,10 @@ class PlannedObjects:
         with world.modify_world():
             for planned in self.objects:
                 graspable_type = GRASPABLE_TYPES[self.libraries.grasp_of(planned.model)]
-                world.add_semantic_annotation(
-                    graspable_type(root=bodies[planned.identifier])
-                )
+                graspable = graspable_type(root=bodies[planned.identifier])
+                if isinstance(graspable, PlannedGraspableFromAbove):
+                    graspable.closing_axis = self.grasp_closing_axis
+                world.add_semantic_annotation(graspable)
         return bodies
 
     def spawn_one(self, world: World, planned: PlannedObject) -> Body:

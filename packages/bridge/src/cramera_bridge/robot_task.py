@@ -318,9 +318,12 @@ class RobotTaskDemo(ABC):
         Perform the task while it is published and recorded, measure the outcome and
         save the recording with its measurements.
 
-        A run stepping through its queries is published from before its setup, so it can
-        be held at the first query it asks. The world is built while :attr:`execution`
-        reaches the robot. The plans it performed are stored once the robot is released.
+        The world is published from before its setup, so the viewer shows it while the
+        plans are built, which takes long for a plan grounded first. A run stepping
+        through its queries is recorded from then, so it can be held at the first query
+        it asks; any other run is recorded from once its plans are built. The world is
+        built while :attr:`execution` reaches the robot. The plans it performed are
+        stored once the robot is released.
 
         :return: The saved bundle; None when the robot was not ready, so nothing was
             performed or saved.
@@ -353,16 +356,15 @@ class RobotTaskDemo(ABC):
         :raises TaskFailed: When the measured outcome is not the task's.
         """
         world = self.build_world()
-        prepared = None if self.step_queries else self.prepare(world)
         visualization = LiveVisualization(
             world=world, port=self.port, locations=self.locations
         ).start()
         try:
             self.on_live_started(visualization)
             with self.stepping(visualization):
-                if prepared is None:
-                    prepared = self.prepare(world)
-                context, plans = prepared
+                context, plans = self.prepare(world)
+                if self.stepper is None:
+                    visualization.publisher.restart_recording()
                 self.enter_phase(StepPhase.EXECUTION)
                 performance = self.performance(context)
                 with self.execution.running(world):

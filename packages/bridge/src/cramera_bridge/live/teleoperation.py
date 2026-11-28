@@ -20,12 +20,12 @@ from cramera_bridge.exceptions import (
     TeleoperationUnavailable,
 )
 from cramera_bridge.geometry import NumericPose
+from cramera_bridge.live.inverse_kinematics import ChainInverseKinematics
 from cramera_bridge.live.activity import SimulationActivity
 from cramera_bridge.live.world_lock import PublishedWorldLock
 from cramera_bridge.robots import RobotParts
 from cramera_protocol.live_messages import TeleoperationRequest
 from semantic_digital_twin.datastructures.definitions import GripperState
-from semantic_digital_twin.spatial_computations.ik_solver import IKSolverException
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 
 if TYPE_CHECKING:
@@ -105,7 +105,15 @@ class ServoedArm:
     The tool frame's orientation then, held while the hand moves.
     """
 
+    inverse_kinematics: ChainInverseKinematics = field(init=False)
+    """
+    The inverse kinematics of the chain from the arm's root to its tool frame.
+    """
+
     def __post_init__(self) -> None:
+        self.inverse_kinematics = ChainInverseKinematics(
+            self.world, self.arm.root, self.arm.end_effector.tool_frame
+        )
         pose = self.tool_pose()
         self.centre = numpy.asarray(pose.position)
         self.orientation = pose.quaternion
@@ -142,16 +150,12 @@ class ServoedArm:
         target = HomogeneousTransformationMatrix.from_xyz_quaternion(
             *stepped, *self.orientation, reference_frame=self.arm.root
         )
-        # an unreachable step is an expected outcome of hand control, which the solver
-        # reports only by raising; the arm then keeps its pose for this tick
-        try:
-            solution = self.world.compute_inverse_kinematics(
-                self.arm.root,
-                self.arm.end_effector.tool_frame,
-                target,
-                max_iterations=INVERSE_KINEMATICS_ITERATIONS,
-            )
-        except IKSolverException:
+        solution = self.inverse_kinematics.solve(
+            target.to_np(), INVERSE_KINEMATICS_ITERATIONS
+        )
+        # an unreachable step is an expected outcome of hand control; the arm then
+        # keeps its pose for this tick
+        if solution is None:
             return False
         for degree_of_freedom, value in solution.items():
             self.world.state[degree_of_freedom.id].position = value

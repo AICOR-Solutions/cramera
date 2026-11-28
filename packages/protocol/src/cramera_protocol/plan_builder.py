@@ -27,8 +27,10 @@ from cramera_protocol.live_messages import (
     SurfaceDescription,
 )
 from cramera_protocol.robot_profile import (
+    BaseInPhysics,
     CameraMount,
     ExecutorKind,
+    GraspClosingAxis,
     PerceptionSettings,
     RobotProfile,
     SafetyLimits,
@@ -170,6 +172,13 @@ class PlanBuilderRoute(StrEnum):
     """
     Ends the validations running now, each of which then answers that it was
     cancelled; a post answers with the validation cancellation.
+    """
+
+    CHECK = "check"
+    """
+    The grounding and check service's entry: validates a posted plan as
+    :attr:`VALIDATE` does, without admitting it to a run, and answers with the
+    plan's diagnostics.
     """
 
     REACH = "reach"
@@ -2635,6 +2644,21 @@ class DemoDocumentKey(StrEnum):
     How the robot profile's perception is asked.
     """
 
+    GRASP_CLOSING_AXIS = "graspClosingAxis"
+    """
+    The axis of an object taken from above the robot profile's hand closes along.
+    """
+
+    CAMERA_MOUNT = "cameraMount"
+    """
+    How the robot profile says its camera is mounted.
+    """
+
+    BASE_IN_PHYSICS = "baseInPhysics"
+    """
+    How the robot profile has a run in physics move a walking robot's base.
+    """
+
 
 @dataclass(kw_only=True)
 class DemoDocument(JsonDocument):
@@ -2674,6 +2698,30 @@ class DemoDocument(JsonDocument):
     How the robot profile's perception is asked.
     """
 
+    grasp_closing_axis: GraspClosingAxis = document_field(
+        DemoDocumentKey.GRASP_CLOSING_AXIS, default=GraspClosingAxis.X
+    )
+    """
+    The axis of an object taken from above, in its own frame, the robot profile's hand
+    closes along.
+    """
+
+    camera_mount: Optional[CameraMount] = document_field(
+        DemoDocumentKey.CAMERA_MOUNT, default=None
+    )
+    """
+    How the robot profile says the robot's camera is mounted, which decides whether a
+    grasp turns the camera to its object first; None leaves it to the robot's parts.
+    """
+
+    base_in_physics: Optional[BaseInPhysics] = document_field(
+        DemoDocumentKey.BASE_IN_PHYSICS, default=None
+    )
+    """
+    How the robot profile has a run in physics move the base of a robot that walks on
+    legs; None walks it on its legs all the time.
+    """
+
 
 class DemoOption(StrEnum):
     """
@@ -2701,6 +2749,14 @@ class DemoOption(StrEnum):
     """
     How the plan's motions are executed, an :class:`ExecutorKind` value; kinematically
     when it is left out.
+    """
+
+    GROUNDING = "--grounding"
+    """
+    A file holding the grounding a passed validation made of the plan, see
+    :class:`~cramera_protocol.validation.ValidatedGrounding`, which a simulated run
+    performs instead of grounding the plan again; the plan is grounded as it runs when
+    it is left out.
     """
 
 

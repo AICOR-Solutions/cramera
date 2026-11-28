@@ -95,7 +95,7 @@ class PublishedDocumentation:
         if package not in {member.value for member in DocumentedPackage}:
             return None
         return AutoAPIResolver(base_url=f"{self.site.rstrip('/')}/{package}").resolve(
-            reference
+            reference=reference
         )
 
 
@@ -109,8 +109,8 @@ class EscapedHtmlFormatter(HTMLFormatter):
     a person typed.
     """
 
-    def colorize(self, text: str, role: SemanticRole) -> str:
-        return super().colorize(html.escape(text), role)
+    def colorize(self, *, text: str, role: SemanticRole) -> str:
+        return super().colorize(text=html.escape(text), role=role)
 
 
 @dataclass(frozen=True)
@@ -138,7 +138,7 @@ class QueryVerbalizer:
         """
         try:
             fragment = EQLVerbalizer().build(
-                expression,
+                expression=expression,
                 performative=None if backend is None else backend.opening_directive,
             )
         except UnverbalizableExpressionError:
@@ -146,8 +146,8 @@ class QueryVerbalizer:
             # than wording it; a query without a wording is still answered.
             return None
         return Verbalization(
-            text=ParagraphRenderer().render(fragment),
+            text=ParagraphRenderer().render(fragment=fragment),
             html=ParagraphRenderer(
-                EscapedHtmlFormatter(), link_resolver=self.documentation
-            ).render(fragment),
+                formatter=EscapedHtmlFormatter(), link_resolver=self.documentation
+            ).render(fragment=fragment),
         )

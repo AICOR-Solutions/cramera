@@ -15,7 +15,7 @@ from coraplex.robot_plans.actions.core.robot_body import MoveTorsoAction
 from cramera_bridge.performing import TaskContext
 from cramph.composites import Sequence
 from cramph.context import StatechartContext
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.executor import StatechartExecutor
 from cramph.monitors import CountTicks
 from cramph.node import StatechartNode
@@ -26,6 +26,7 @@ from giskardpy.qp.qp_controller_config import QPControllerConfig
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from krrood_spatial_math.spatial_types import Point3
 from semantic_digital_twin.world import World
+from semantic_digital_twin.world_description.kinematic_chain import KinematicChain
 from semantic_digital_twin.world_description.world_entity import Body
 
 # %% plans
@@ -88,7 +89,7 @@ class SmallPlan:
         """
         return [self.root, self.action, self.motion]
 
-    def set(self, node: StatechartNode, life_cycle: LifeCycleValues) -> None:
+    def set(self, node: StatechartNode, life_cycle: LifeCycleValue) -> None:
         """
         :param node: A node of the plan.
         :param life_cycle: The life cycle state it is in from now on.
@@ -102,11 +103,13 @@ class SmallPlan:
         :param context: The world and the robot that performs the plan.
         :return: The plan, its action expanded; no node has run.
         """
-        executor = KinematicallySimulatedPlanExecutor(context.take_statechart_context())
+        executor = KinematicallySimulatedPlanExecutor(
+            context=context.take_statechart_context()
+        )
         root = Sequence(nodes=[action])
         statechart = Statechart(context=executor.context)
-        statechart.add_node(root)
-        executor.prepare(statechart)
+        statechart.add_node(node=root)
+        executor.prepare(statechart=statechart)
         return cls(
             executor=executor, root=root, action=action, motion=action.children[0]
         )
@@ -156,8 +159,8 @@ class HeightChart:
         """
         executor = StatechartExecutor(
             context=StatechartContext.with_extensions(
-                world,
-                [
+                world=world,
+                extensions=[
                     MotionControlContext(
                         qp_controller_config=QPControllerConfig.create_with_simulation_defaults()
                     )
@@ -166,16 +169,15 @@ class HeightChart:
         )
         chart = Statechart(context=executor.context)
         chart.add_node(
-            HeightMonitor(
-                root_link=world.root,
-                tip_link=body,
+            node=HeightMonitor(
+                kinematic_chain=KinematicChain(root=world.root, tip=body),
                 reference_point=Point3(0, 0, 0, reference_frame=world.root),
                 tip_point=Point3(0, 0, 0, reference_frame=body),
                 lower_limit=0.5,
                 upper_limit=2.0,
             )
         )
-        executor.compile(chart)
+        executor.compile(statechart=chart)
         return cls(chart=chart, executor=executor)
 
 

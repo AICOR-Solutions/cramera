@@ -37,7 +37,7 @@ from cramera_protocol.plan_builder import (
     RunEventKind,
     SurfaceDepth,
 )
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.executor import Executor, ExecutorExtension
 from cramph.node import StatechartNode
 from krrood_spatial_math.spatial_types import (
@@ -206,8 +206,8 @@ class PerceptionReporting(ExecutorExtension):
             (ticks.start_tick, place, node)
             for place, node in enumerate(executor.statechart.nodes)
             if isinstance(node, PerceptionTask)
-            and node.life_cycle_state is not LifeCycleValues.NOT_STARTED
-            and (ticks := history.get_current_run_ticks_of_node(node)) is not None
+            and node.life_cycle_state is not LifeCycleValue.NOT_STARTED
+            and (ticks := history.get_current_run_ticks_of_node(node=node)) is not None
         ]
         return [node for _, _, node in sorted(started, key=lambda run: run[:2])]
 
@@ -372,7 +372,7 @@ class PerceptionReporting(ExecutorExtension):
             return expected[1].body
         reach = self.reach_of(task)
         if reach is not None:
-            return reach.grasp.graspable.root
+            return reach.grasp_candidate.graspable.root
         if purpose is DetectionPurpose.STEP and step is not None:
             return self.step_run.bodies.get(DetectedObjectReference(step).text)
         return None
@@ -516,7 +516,9 @@ class PerceptionReporting(ExecutorExtension):
                     reference_frame=frame,
                 ),
             ).depth_inside_surface(
-                body, world, task.query.trust_detected_orientation
+                body=body,
+                world=world,
+                trust_orientation=task.query.trust_detected_orientation,
             )
         )
         return ReportedDesignator(

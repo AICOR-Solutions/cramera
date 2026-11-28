@@ -17,7 +17,7 @@ from krrood_spatial_math.spatial_types import Vector3
 from semantic_digital_twin.callbacks.callback import ModelChangeCallback
 from semantic_digital_twin.datastructures.prefixed_name import PrefixedName
 from semantic_digital_twin.world import World
-from semantic_digital_twin.world_description.connections import PrismaticConnection
+from semantic_digital_twin.world_description.connections import ScrewAxisConnection
 from semantic_digital_twin.world_description.degree_of_freedom import DegreeOfFreedom
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -53,7 +53,7 @@ class Cabinet:
     The world itself.
     """
 
-    drawer: PrismaticConnection
+    drawer: ScrewAxisConnection
     """
     The drawer's joint.
     """
@@ -86,11 +86,13 @@ def cabinet() -> Cabinet:
         world.add_body(drawer_body)
         degree_of_freedom = DegreeOfFreedom(name=PrefixedName("drawer"))
         world.add_degree_of_freedom(degree_of_freedom)
-        drawer = PrismaticConnection(
+        drawer = ScrewAxisConnection(
             name=PrefixedName("drawer"),
             parent=root,
             child=drawer_body,
-            axis=Vector3.X(reference_frame=root),
+            screw_axis=ScrewAxisConnection.create_prismatic_screw_axis(
+                axis=Vector3.X(reference_frame=root)
+            ),
             raw_dof=degree_of_freedom,
             multiplier=MULTIPLIER,
             offset=OFFSET,

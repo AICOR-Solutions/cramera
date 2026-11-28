@@ -30,6 +30,7 @@ from cramera_usd.materials.images import DEFAULT_TEXTURE_SIZE, TextureSizeLimit
 from cramera_usd.scene.kinematics import JointKind
 from cramera_usd.scene.log import ConversionLog
 from cramera_usd.scene.stage import ConvertedStage
+from cramera_usd.stage.placement import FloorRegion, StageOrigin
 from cramera_usd.stage.reader import StageReader
 from cramera_usd.stage.robots import (
     ENTITY_TYPE_ATTRIBUTE,
@@ -137,6 +138,16 @@ class ImportOption(StrEnum):
     The longest side of an embedded texture image.
     """
 
+    ORIGIN = "--origin"
+    """
+    The stage point and heading that become the bundle's origin and its x axis.
+    """
+
+    REGION = "--region"
+    """
+    The rectangle of the bundle's floor plan whose geometry is drawn.
+    """
+
 
 class ImportDestination(StrEnum):
     """
@@ -167,6 +178,16 @@ The command's name.
 COORDINATES = ("X", "Y", "Z")
 """
 The names of a point's coordinates in the help.
+"""
+
+ORIGIN_PARTS = ("X", "Y", "Z", "YAW")
+"""
+The names of an origin's parts in the help.
+"""
+
+REGION_PARTS = ("MIN_X", "MIN_Y", "MAX_X", "MAX_Y")
+"""
+The names of a region's corners in the help.
 """
 
 VARIANT_PARTS = ("PRIM", "SET", "VARIANT")
@@ -316,6 +337,24 @@ class ImportParser:
             f"down, {UNLIMITED_TEXTURE_SIZE} keeps every image at its own size "
             "(default: %(default)s)",
         )
+        parser.add_argument(
+            ImportOption.ORIGIN,
+            type=float,
+            nargs=len(ORIGIN_PARTS),
+            metavar=ORIGIN_PARTS,
+            help="the stage point (metres, Z up) and heading (degrees about Z) that "
+            "become the bundle's origin and x axis, such as where a robot stands "
+            "(default: the stage's own origin)",
+        )
+        parser.add_argument(
+            ImportOption.REGION,
+            type=float,
+            nargs=len(REGION_PARTS),
+            metavar=REGION_PARTS,
+            help="draw only the geometry over this rectangle of the bundle's floor "
+            "plan, after the origin is applied, cutting triangles at its edges; "
+            "collision boxes are kept whole (default: draw everything)",
+        )
         return parser
 
 
@@ -388,6 +427,16 @@ class ImportCommand:
     The largest image a GLB embeds.
     """
 
+    origin: Optional[StageOrigin] = None
+    """
+    The stage point that becomes the bundle's origin, or None for the stage's own.
+    """
+
+    region: Optional[FloorRegion] = None
+    """
+    The part of the floor plan whose geometry is drawn, or None for all of it.
+    """
+
     @classmethod
     def from_options(
         cls,
@@ -425,7 +474,25 @@ class ImportCommand:
             record=options.record,
             free_objects=options.free_objects,
             texture_size=cls.texture_size_of(options, parser),
+            origin=None if options.origin is None else StageOrigin(*options.origin),
+            region=None if options.region is None else cls.region_of(options, parser),
         )
+
+    @staticmethod
+    def region_of(
+        options: argparse.Namespace, parser: argparse.ArgumentParser
+    ) -> FloorRegion:
+        """
+        :param options: The parsed import options, with a region.
+        :param parser: The parser, to refuse a region whose corners are swapped.
+        :return: The region the options give.
+        """
+        region = FloorRegion(*options.region)
+        if region.minimum_x >= region.maximum_x or region.minimum_y >= region.maximum_y:
+            parser.error(
+                f"{ImportOption.REGION} gives the smallest x and y before the largest"
+            )
+        return region
 
     @staticmethod
     def texture_size_of(
@@ -487,7 +554,12 @@ class ImportCommand:
         """
         started = time.perf_counter()
         reader = StageReader(
-            self.stage, self.prim_paths, self.variant_selections, self.exclusion
+            self.stage,
+            self.prim_paths,
+            self.variant_selections,
+            self.exclusion,
+            origin=self.origin,
+            region=self.region,
         )
         stage = reader.read()
         bundle = SceneBundle(

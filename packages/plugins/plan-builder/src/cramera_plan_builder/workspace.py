@@ -117,10 +117,19 @@ class CramModules:
     def is_installed(self, module: CramModule) -> bool:
         """
         :param module: A top-level module.
-        :return: Whether a module with code of its own is found under that name.
+        :return: Whether a module with code of its own is found under that name: a
+            module with an origin, or a namespace package one of whose parts holds a
+            package.
         """
         specification = self.finder(module)
-        return specification is not None and specification.origin is not None
+        if specification is None:
+            return False
+        if specification.origin is not None:
+            return True
+        return any(
+            any(Path(location).glob("*/__init__.py"))
+            for location in specification.submodule_search_locations or []
+        )
 
 
 # %% workspace

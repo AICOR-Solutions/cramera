@@ -19,7 +19,7 @@ from cramph.node import StatechartNode
 from semantic_digital_twin.specifications.kinematic_structure_entities import (
     BodySpecification,
 )
-from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose2D
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.geometry import Scale
 
@@ -105,8 +105,10 @@ class NavigationDemo(RobotTaskDemo):
     """
 
     def build_plan(self, context: TaskContext) -> StatechartNode:
-        target = Pose.from_xyz_rpy(self.target_x, reference_frame=context.world.root)
-        return NavigateAction(target_location=target)
+        target = Pose2D.from_xy_yaw(
+            x=self.target_x, y=0.0, yaw=0.0, reference_frame=context.world.root
+        )
+        return NavigateAction(planar_goal_pose=target)
 
     def measure(self, context: TaskContext) -> AcceptanceMetrics:
         position = NumericPose.of_entity(context.world, context.robot.root).position

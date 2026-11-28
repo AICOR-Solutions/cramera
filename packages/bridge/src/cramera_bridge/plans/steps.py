@@ -14,9 +14,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from typing_extensions import Any, Callable, Dict, Iterable, List, Optional
+from typing_extensions import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from coraplex.querying.grasp_closeness import GraspsByCloseness
+from coraplex.querying.predicates import GripperHolds
 from coraplex.robot_plans.actions.base import Action
 from cramph.composites import StatementNode
 from cramera_bridge.names import ENUM_NAMES
@@ -51,9 +52,9 @@ from cramera_protocol.plan_builder import (
 )
 from krrood.entity_query_language.factories import a
 from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
-from krrood_spatial_math.spatial_types import Pose
+from krrood_spatial_math.spatial_types import Pose, Pose2D
 from semantic_digital_twin.world_description.world_entity import (
     Body,
     SemanticAnnotation,
@@ -93,6 +94,13 @@ class StepArguments:
     Where the plan stands the robot, and the robot profile's zones.
     """
 
+    carrying_arm: Optional[Arms] = None
+    """
+    The arm an earlier step of the plan took the object the step acts on with, which
+    a field taking one arm the step leaves open is given when no arm holds the object
+    yet; None when no earlier step names one.
+    """
+
     def arguments(self) -> Dict[str, Any]:
         """
         :return: A value for every field the step gives, a gripper configuration for
@@ -113,12 +121,11 @@ class StepArguments:
         }
         schema = self.action.schema
         parts = self.action.configuration_parts()
+        values = self.values()
         converted = {
-            offered.name: converters[offered.kind](
-                offered, self.step.values[offered.name]
-            )
+            offered.name: converters[offered.kind](offered, values[offered.name])
             for offered in schema.fields
-            if offered.name in self.step.values
+            if offered.name in values
         }
         arguments = {
             self.action.field_name(identifier): value
@@ -143,16 +150,78 @@ class StepArguments:
             whose arm the step leaves to be chosen; None when it chooses every arm
             itself.
         """
-        for offered in self.action.schema.fields:
-            field_type = ArmField(self.action.field_types.get(offered.name))
+        values = self.values()
+        for offered in self.single_arm_fields():
             if (
-                offered.name in self.step.values
-                and field_type.part() is not None
-                and not field_type.takes_several()
-                and ENUM_NAMES.member(Arms, self.step.values[offered.name])
-                is Arms.AUTOMATIC
+                offered.name in values
+                and ENUM_NAMES.member(Arms, values[offered.name]) is Arms.AUTOMATIC
             ):
                 return offered.name
+        return None
+
+    def single_arm_fields(self) -> List[ActionField]:
+        """
+        :return: The fields of the step's action taking one arm, or one arm's end
+            effector.
+        """
+        return [
+            offered
+            for offered in self.action.schema.fields
+            if ArmField(self.action.field_types.get(offered.name)).part() is not None
+            and not ArmField(self.action.field_types.get(offered.name)).takes_several()
+        ]
+
+    def values(self) -> Dict[str, Any]:
+        """
+        :return: The step's values, where a field taking one arm that the step leaves
+            to be chosen, or leaves out though the action needs it, is given the arm
+            that holds the object the step acts on, else the :attr:`carrying_arm`;
+            when neither is known, a field left out that the action needs is left to
+            be chosen.
+        """
+        values = dict(self.step.values)
+        holding = self.holding_arms() or self.carrying_arm
+        for offered in self.single_arm_fields():
+            given = values.get(offered.name)
+            if (
+                given is not None
+                and ENUM_NAMES.member(Arms, given) is not Arms.AUTOMATIC
+            ):
+                continue
+            if holding is not None:
+                values[offered.name] = ENUM_NAMES.member_identifier(Arms, holding)
+            elif given is None and offered.required:
+                values[offered.name] = ENUM_NAMES.member_identifier(
+                    Arms, Arms.AUTOMATIC
+                )
+        return values
+
+    def held_arm_values(self) -> Dict[str, Any]:
+        """
+        :return: The value of each field taking one arm that :meth:`values` gives the
+            arm holding the object the step acts on, in place of the step's own.
+        """
+        values = self.values()
+        return {
+            offered.name: values[offered.name]
+            for offered in self.single_arm_fields()
+            if offered.name in values
+            and values[offered.name] != self.step.values.get(offered.name)
+            and ENUM_NAMES.member(Arms, values[offered.name]) is not Arms.AUTOMATIC
+        }
+
+    def holding_arms(self) -> Optional[Arms]:
+        """
+        :return: The side of the arm whose gripper holds the object the step acts on,
+            or None when no arm holds it or the step acts on no object.
+        """
+        body = self.acted_on()
+        if body is None:
+            return None
+        robot = self.context.robot
+        for arm in robot.all_arms:
+            if GripperHolds(end_effector=arm.end_effector, body=body)():
+                return RobotArms(robot).find_side(arm)
         return None
 
     def acted_on(self) -> Optional[Body]:
@@ -179,7 +248,7 @@ class StepArguments:
 
     def body(
         self, offered: ActionField, value: str
-    ) -> Body | HasGraspCandidates | GraspCandidate:
+    ) -> Body | IsGraspable | GraspCandidate:
         """
         :param offered: A field taking an object of the plan.
         :param value: An object's identity.
@@ -190,7 +259,7 @@ class StepArguments:
         field_type = self.action.field_types[offered.name]
         if field_type is GraspCandidate:
             return self.grasp(value, PlannedGraspable.of(body))
-        if field_type is HasGraspCandidates:
+        if field_type is IsGraspable:
             return PlannedGraspable.of(body)
         return body
 
@@ -236,12 +305,15 @@ class StepArguments:
             DetectionRegion.from_json(value)
         )
 
-    def pose(self, offered: ActionField, value: Any) -> Pose:
+    def pose(self, offered: ActionField, value: Any) -> Pose | Pose2D:
         """
         :param offered: A pose field.
         :param value: A pose, or a destination when the field accepts a surface.
-        :return: The pose, or the best rated spot of the surface now.
+        :return: The pose, or the best rated spot of the surface now; for a field
+            taking a pose on the floor, the pose's position and yaw.
         """
+        if self.action.field_types[offered.name] is Pose2D:
+            return Pose2D.from_pose(self.native(PlannedPose.from_json(value)))
         if not offered.accepts_surface:
             return self.native(PlannedPose.from_json(value))
         destination = Destination.from_json(value)
@@ -399,7 +471,7 @@ class StepArguments:
                 return self.step.values.get(offered.name)
         return None
 
-    def grasp(self, identifier: str, graspable: HasGraspCandidates) -> GraspCandidate:
+    def grasp(self, identifier: str, graspable: IsGraspable) -> GraspCandidate:
         """
         :param identifier: The object's identity.
         :param graspable: Its annotation.
@@ -408,7 +480,9 @@ class StepArguments:
         :raises ObjectNotGraspable: When the object offers no grasp.
         """
         closest = GraspsByCloseness(
-            graspable, self.context.robot.root.global_pose, number_of_grasps=1
+            graspable=graspable,
+            standing_position=Pose2D(reference_frame=self.context.robot.root),
+            number_of_grasps=1,
         )()
         if not closest:
             raise ObjectNotGraspable(identifier)
@@ -453,6 +527,49 @@ class StepActions:
     Where the plan stands the robot, and the robot profile's zones.
     """
 
+    steps: Tuple[PlanStep, ...] = ()
+    """
+    The steps of the plan the robot performs, in order, whose earlier steps tell the
+    arm a step carries its object with; empty when the steps are built on their own.
+    """
+
+    def arguments_of(self, step: PlanStep) -> StepArguments:
+        """
+        :param step: A step.
+        :return: Its arguments.
+        """
+        return StepArguments(
+            context=self.context,
+            bodies=self.bodies,
+            action=self.actions.named(step.action),
+            step=step,
+            site=self.site,
+        )
+
+    def carrying_arm(self, step: PlanStep) -> Optional[Arms]:
+        """
+        :param step: One of :attr:`steps`.
+        :return: The arm the latest earlier step taking an arm and acting on the step's
+            object names, such as the pick-up of an object a place puts down; None
+            when that step leaves its arm to be chosen or no earlier step names one.
+        """
+        identifiers = [earlier.identifier for earlier in self.steps]
+        if step.identifier not in identifiers:
+            return None
+        carried = self.arguments_of(step).object_identifier()
+        if carried is None:
+            return None
+        for earlier in reversed(self.steps[: identifiers.index(step.identifier)]):
+            arguments = self.arguments_of(earlier)
+            fields = arguments.single_arm_fields()
+            if arguments.object_identifier() != carried or not fields:
+                continue
+            given = earlier.values.get(fields[0].name)
+            if given is None or ENUM_NAMES.member(Arms, given) is Arms.AUTOMATIC:
+                return None
+            return ENUM_NAMES.member(Arms, given)
+        return None
+
     def action(self, step: PlanStep) -> Action | StatementNode:
         """
         :param step: A step the plan builder checked against its action's schema.
@@ -467,6 +584,7 @@ class StepActions:
             action=discovered,
             step=step,
             site=self.site,
+            carrying_arm=self.carrying_arm(step),
         )
         arguments = step_arguments.arguments()
         if step_arguments.find_open_arm_field() is not None:

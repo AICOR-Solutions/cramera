@@ -1,6 +1,6 @@
 """
 When the world's state is worth a snapshot: only once it is settled, and not more often
-than the viewer can use.
+than the viewer can use; and when a performing plan's progress is worth publishing.
 
 Planning code sets the world's state to check a candidate and restores it right after,
 within one tick of the executor performing the plan, and the world reports both changes.
@@ -18,6 +18,12 @@ from typing_extensions import Any, Callable, Optional, Set
 FRAME_INTERVAL = 1 / 30
 """
 The shortest time between two snapshots, in seconds.
+"""
+
+PROGRESS_INTERVAL = 1 / 10
+"""
+The shortest time between two publications of a plan's progress, in seconds, unless a
+node started or ended: the page shows no more.
 """
 
 # %% pacing
@@ -101,3 +107,43 @@ class SnapshotPacing:
         """
         self.pending = False
         self.last_snapshot = self.clock()
+
+
+@dataclass
+class ProgressPacing:
+    """
+    Decides when the publisher publishes a performing plan's progress, the plan and its
+    statechart: at most once per :attr:`interval`, but at once when a node started or
+    ended. The publisher's world lock guards it.
+    """
+
+    clock: Callable[[], float] = time.monotonic
+    """
+    The monotonic clock publications are spaced with.
+    """
+
+    interval: float = PROGRESS_INTERVAL
+    """
+    The shortest time between two publications, in seconds.
+    """
+
+    last_published: Optional[float] = field(default=None, init=False)
+    """
+    When the progress was published last, or None before the first time.
+    """
+
+    def is_due(self, changed: bool) -> bool:
+        """
+        :param changed: Whether a node started or ended in the tick.
+        :return: Whether to publish the progress now; once it says so, the progress
+            counts as published.
+        """
+        now = self.clock()
+        if (
+            not changed
+            and self.last_published is not None
+            and now - self.last_published < self.interval
+        ):
+            return False
+        self.last_published = now
+        return True

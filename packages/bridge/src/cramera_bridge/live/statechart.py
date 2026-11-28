@@ -12,7 +12,7 @@ from typing_extensions import TYPE_CHECKING, List, Optional
 
 from cramera_protocol.bundle.statecharts import ChartEdge
 from cramera_protocol.live_messages import LiveChartNode, LiveStatechart
-from cramph.data_types import ObservationStateValues
+from cramph.data_types import ObservationStateValue
 
 if TYPE_CHECKING:
     from cramph.node import StatechartNode
@@ -131,7 +131,7 @@ class StatechartPublisher:
             class_name=type(node).__name__,
             parent=None if parent is None else ChartStructure.identifier(parent),
             life_cycle=moment.life_cycle_state[node].name,
-            observation=ObservationStateValues(
+            observation=ObservationStateValue(
                 float(moment.observation_state[node])
             ).name,
         )

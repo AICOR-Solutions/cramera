@@ -9,14 +9,21 @@ the scene invalidates the report.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from enum import StrEnum
 
-from typing_extensions import List, Optional
+from typing_extensions import Dict, List, Optional
 
 from cramera_protocol.detection import InlineImage
 from cramera_protocol.document import JsonDocument, document_field
-from cramera_protocol.plan_builder import DemoDocument, PlanDocument, PlannedObject
+from cramera_protocol.plan_builder import (
+    DemoDocument,
+    PlanDocument,
+    PlannedObject,
+    PlanStep,
+)
 
 # %% verdicts
 
@@ -169,6 +176,101 @@ class StepValidation(JsonDocument):
     """
 
 
+# %% the grounding a validation passes on
+
+
+class GroundedStepKey(StrEnum):
+    """
+    The keys of a step as a validation grounded it.
+    """
+
+    RESOLVED = "resolved"
+    """
+    The step naming the arm and the poses its grounding chose.
+    """
+
+    EXPECTED_POSITIONS = "expectedPositions"
+    """
+    Where the objects the step expects in place lay, by their identity.
+    """
+
+
+@dataclass(kw_only=True)
+class GroundedStepDocument(JsonDocument):
+    """
+    A step of the performing robot as a passed validation grounded it.
+    """
+
+    resolved: PlanStep = document_field(GroundedStepKey.RESOLVED)
+    """
+    The step naming the arm it was given in place of an open one, and the poses its
+    destinations resolved to.
+    """
+
+    expected_positions: Dict[str, List[float]] = document_field(
+        GroundedStepKey.EXPECTED_POSITIONS, default_factory=dict
+    )
+    """
+    Where the objects the step expects in place lay when it was grounded, by their
+    identity, in the world's coordinates.
+    """
+
+
+class ValidatedGroundingKey(StrEnum):
+    """
+    The keys of the grounding a validation passes on.
+    """
+
+    DEMO = "demo"
+    """
+    The fingerprint of the plan and its environment that were grounded.
+    """
+
+    STEPS = "steps"
+    """
+    The performing robot's steps as they were grounded.
+    """
+
+
+@dataclass(kw_only=True)
+class ValidatedGrounding(JsonDocument):
+    """
+    How a passed validation grounded the performing robot's steps in a copy of the
+    twin, which a simulated run of the same plan in the same twin performs instead of
+    grounding the plan again; a run on the real robot always grounds it afresh, since
+    the real world may have moved since.
+    """
+
+    demo: str = document_field(ValidatedGroundingKey.DEMO)
+    """
+    The :meth:`fingerprint` of the plan and its environment that were grounded.
+    """
+
+    steps: List[GroundedStepDocument] = document_field(
+        ValidatedGroundingKey.STEPS, default_factory=list
+    )
+    """
+    The performing robot's steps as they were grounded, in their order.
+    """
+
+    @staticmethod
+    def fingerprint(demo: DemoDocument) -> str:
+        """
+        :param demo: A plan and its environment.
+        :return: A digest of its JSON, the same for the same plan in the same twin and
+            environment, and different once anything of them changed.
+        """
+        text = json.dumps(demo.to_json(), sort_keys=True)
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def describes(self, demo: DemoDocument) -> bool:
+        """
+        :param demo: The plan and environment of a run.
+        :return: Whether this grounding was made of exactly that plan and environment.
+        """
+        return self.demo == self.fingerprint(demo)
+
+
 # %% report
 
 
@@ -185,6 +287,11 @@ class ValidationReportKey(StrEnum):
     SECONDS = "seconds"
     """
     How long the validation took.
+    """
+
+    GROUNDING = "grounding"
+    """
+    The grounding a simulated run of the validated plan may perform.
     """
 
 
@@ -205,6 +312,16 @@ class ValidationReport(JsonDocument):
     seconds: float = document_field(ValidationReportKey.SECONDS, default=0.0)
     """
     How long the validation took, in seconds.
+    """
+
+    grounding: Optional[ValidatedGrounding] = document_field(
+        ValidationReportKey.GROUNDING, default=None
+    )
+    """
+    The grounding of a passed validation that a simulated run of the same plan may
+    perform instead of grounding it again; None when the validation failed, perceived
+    objects or started from the real robot's posture. The plan builder keeps it and
+    never sends it to the page.
     """
 
     @property

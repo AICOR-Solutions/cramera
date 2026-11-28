@@ -159,6 +159,11 @@ class PluginKey(StrEnum):
     The plugin's entry in the viewer's navigation.
     """
 
+    ERROR = "error"
+    """
+    Why the plugin could not be loaded.
+    """
+
 
 class NavigationGroup(StrEnum):
     """
@@ -260,6 +265,12 @@ class PluginInfo(JsonDocument):
     )
     """
     The plugin's entry in the viewer's navigation, or None for a plugin without one.
+    """
+
+    error: Optional[str] = document_field(PluginKey.ERROR, default=None)
+    """
+    Why the plugin could not be loaded, or None for a loaded plugin; a plugin that
+    could not be loaded adds nothing to the viewer.
     """
 
 

@@ -24,7 +24,7 @@ from semantic_digital_twin.semantic_annotations.semantic_annotations import (
     Milk,
     Table,
 )
-from semantic_digital_twin.world_description.connections import PrismaticConnection
+from semantic_digital_twin.world_description.connections import ScrewAxisConnection
 
 from ..dataset.worlds import (
     BRICKS_TEXTURE,
@@ -86,7 +86,7 @@ def test_the_bundle_names_the_class_of_each_entity(robot_world, robot_bundle):
         type(robot_world.robot.root)
     )
     assert classes.connections["pr2/torso_lift_joint"] == class_path(
-        PrismaticConnection
+        ScrewAxisConnection
     )
     assert classes.annotations == {
         str(part.name): class_path(type(part)) for part in parts

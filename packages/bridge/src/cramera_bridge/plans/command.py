@@ -13,6 +13,7 @@ import threading
 from argparse import ArgumentParser
 from contextlib import ExitStack
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from typing_extensions import Any, Optional, Sequence
 
@@ -30,6 +31,7 @@ from cramera_protocol.live import LIVE_PORT
 from cramera_protocol.live_messages import SavedScene
 from cramera_protocol.plan_builder import DemoDocument, DemoOption, SafetyStop
 from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.validation import ValidatedGrounding
 
 STOP_SIGNALS = (signal.SIGTERM, signal.SIGINT)
 """
@@ -134,11 +136,22 @@ class PlanDemoCommand:
             default=ExecutorKind.KINEMATIC,
             help="how the plan's motions are executed",
         )
+        parser.add_argument(
+            DemoOption.GROUNDING,
+            type=Path,
+            default=None,
+            help="a file with the grounding a passed validation made of the plan, "
+            "which a simulated run performs instead of grounding the plan again",
+        )
         options, remaining = parser.parse_known_args(list(arguments))
         if options.lifeline:
             Lifeline(sys.stdin.fileno()).watch()
         demo = PlannedTaskDemo.of_document(self.document, port=options.port)
-        demo.execution = PlanExecution.of_kind(options.executor)
+        demo.execution = PlanExecution.of_kind(options.executor, self.document)
+        if options.grounding is not None:
+            demo.validated_grounding = ValidatedGrounding.from_json(
+                json.loads(options.grounding.read_text("utf-8"))
+            )
         if options.stage:
             StagedWorld(demo).run()
             return None

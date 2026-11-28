@@ -6,6 +6,8 @@ plans current.
 from __future__ import annotations
 
 import json
+import shutil
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -13,6 +15,7 @@ import pytest
 from cramera_plan_builder.exceptions import RunModeNotOffered
 from cramera_plan_builder.profiles import ConfiguredProfile
 from cramera_protocol.geometry import Pose
+from cramera_protocol.registry import DeclaredEntryPoint, Registry, RegistryGroup
 from cramera_protocol.validation import ValidationOrder
 from cramera_protocol.plan_builder import (
     DemoDocument,
@@ -245,3 +248,52 @@ def test_a_simulated_deployment_offers_no_run_on_the_real_robot(
     with pytest.raises(RunModeNotOffered):
         configured.executor_for(RunMode.ROBOT)
     assert configured.simulated_objects is not None
+
+
+# %% registry names
+
+
+def test_a_profile_naming_its_robot_and_skills_by_namespaced_identifiers_reads_as_today(
+    tmp_path, profile_file
+):
+    registry = Registry.from_declarations(
+        [
+            DeclaredEntryPoint("bridge", RegistryGroup.NAMESPACES, "cram", "coraplex"),
+            DeclaredEntryPoint("bridge", RegistryGroup.ROBOTS, "tracy", "t:Tracy"),
+            DeclaredEntryPoint("bridge", RegistryGroup.ACTIONS, "park_arms", "p:Park"),
+        ]
+    )
+    data = json.loads(profile_file.read_text("utf-8"))
+    today = ConfiguredProfile.of_file(profile_file, registry=registry).profile
+    data["robot"] = "cram.tracy"
+    for skill in data["skills"]:
+        if skill["action"] == "park_arms":
+            skill["action"] = "cram.park_arms"
+    shutil.copytree(profile_file.parent, tmp_path / "profile")
+    namespaced = tmp_path / "profile" / profile_file.name
+    namespaced.write_text(json.dumps(data), "utf-8")
+    read = ConfiguredProfile.of_file(namespaced, registry=registry).profile
+    assert read.robot == today.robot == "tracy"
+    assert [skill.action for skill in read.skills] == [
+        skill.action for skill in today.skills
+    ]
+
+
+def test_a_profile_naming_a_robot_of_another_package_keeps_its_identifier(
+    profile_file,
+):
+    registry = Registry.from_declarations(
+        [
+            DeclaredEntryPoint(
+                "example-robots", RegistryGroup.NAMESPACES, "example", "s"
+            ),
+            DeclaredEntryPoint(
+                "example-robots", RegistryGroup.ROBOTS, "walker_s2", "s:WalkerS2"
+            ),
+        ]
+    )
+    profile = ConfiguredProfile.of_file(profile_file, registry=registry).profile
+    renamed = ConfiguredProfile.with_registry_names(
+        replace(profile, robot="example.walker_s2"), registry
+    )
+    assert renamed.robot == "example.walker_s2"

@@ -6,12 +6,14 @@ physical execution sets up, and the execution a generated demo's command chooses
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from importlib.util import find_spec
 
 import pytest
 
 from coraplex.datastructures.enums import PerceptionSource
 from coraplex.perception import PerceptionTask
+from cramera_bridge import execution
 from cramera_bridge.exceptions import ExecutionNotRunning, PerceptionEngineNotNamed
 from cramera_bridge.execution import (
     EXECUTIONS,
@@ -28,7 +30,7 @@ from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.world import PlannedGraspableFromAbove
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.plan_builder import DemoDocument, DemoOption, PlanDocument
-from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.robot_profile import BaseInPhysics, ExecutorKind
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
 from cramph.context import StatechartContext
 from cramph.statechart import Statechart
@@ -126,10 +128,43 @@ def test_a_task_is_executed_kinematically_unless_asked_otherwise():
     assert PlanExecution.of_kind(ExecutorKind.KINEMATIC) == KinematicExecution()
 
 
+def test_a_physical_execution_moves_a_walking_base_as_the_demo_says():
+    document = DemoDocument(
+        plan=PlanDocument(name="x"), base_in_physics=BaseInPhysics.WALK_THEN_FIX
+    )
+
+    execution = PlanExecution.of_kind(ExecutorKind.PHYSICS, document)
+
+    assert execution.base_in_physics is BaseInPhysics.WALK_THEN_FIX
+
+
+def test_a_physical_execution_walks_a_walking_base_unless_the_demo_says_otherwise():
+    execution = PlanExecution.of_kind(
+        ExecutorKind.PHYSICS, DemoDocument(plan=PlanDocument(name="x"))
+    )
+
+    assert execution.base_in_physics is BaseInPhysics.WALKING
+    assert execution.held_base_note() is None
+
+
+@pytest.mark.parametrize(
+    "base_in_physics", [BaseInPhysics.FIXED, BaseInPhysics.WALK_THEN_FIX]
+)
+def test_a_physical_execution_names_a_held_pelvis_a_simulation_shortcut(
+    base_in_physics,
+):
+    execution = PhysicalExecution(base_in_physics=base_in_physics)
+
+    assert "(simulation shortcut)" in execution.held_base_note()
+
+
 def test_a_physical_execution_gives_no_executor_before_its_physics_runs():
     with pytest.raises(ExecutionNotRunning):
         PhysicalExecution().executor(
-            StatechartContext.with_extensions(World(), []), False, [], SafetyEnvelope()
+            StatechartContext.with_extensions(world=World(), extensions=[]),
+            False,
+            [],
+            SafetyEnvelope(),
         )
 
 
@@ -148,6 +183,47 @@ def test_physics_starts_with_the_arms_parked_and_free_objects_held_by_friction(
     [geometry] = block.root.collision
     contact = geometry.get_simulator_property_of_type(ContactParameters)
     assert contact == ContactParameters.create_for_grasped_object()
+
+
+def test_a_physics_run_builds_the_scenery_by_its_colliders_only(monkeypatch):
+    """
+    The meshes drawing the scenery, such as a scanned building, stay out of the physics
+    of a run no camera renders, so it neither loads nor keeps them; a perceiving run
+    renders the robot's camera and keeps them.
+    """
+    built = []
+
+    @dataclass
+    class StandInSimulation:
+        world: World
+        draws_scenery_meshes: bool
+        headless: bool = True
+        step_size: float = 1e-3
+        cone: object = None
+        impratio: float = 0.0
+        noslip_iterations: int = 0
+        walking_mode: object = None
+        walking: tuple = ()
+
+        def __post_init__(self):
+            built.append(self)
+
+        def start_stepped_simulation(self):
+            pass
+
+        def step_simulation(self, duration):
+            pass
+
+        def stop_simulation(self):
+            pass
+
+    monkeypatch.setattr(execution, "MujocoSim", StandInSimulation)
+    with PhysicalExecution().running(World()):
+        pass
+
+    [simulation] = built
+    assert not simulation.draws_scenery_meshes
+    assert PerceivingPhysicalExecution(analysis_engine="").draws_scenery_meshes
 
 
 # %% perceiving in physics
@@ -206,8 +282,8 @@ def test_every_pick_of_a_plan_detects_its_object_first_in_every_execution(
             pick_step
         )
         statechart = Statechart(context=executor.context)
-        statechart.add_node(pick)
-        executor.prepare(statechart)
+        statechart.add_node(node=pick)
+        executor.prepare(statechart=statechart)
         executor.close()
     tasks = [node for node in pick.descendants if isinstance(node, PerceptionTask)]
     assert [task.answered_by for task in tasks] == [answered_by]

@@ -10,7 +10,12 @@ from dataclasses import dataclass
 import pytest
 
 from cramera_bridge.live.publisher import LivePublisher
-from cramera_bridge.live.snapshot_pacing import FRAME_INTERVAL, SnapshotPacing
+from cramera_bridge.live.snapshot_pacing import (
+    FRAME_INTERVAL,
+    PROGRESS_INTERVAL,
+    ProgressPacing,
+    SnapshotPacing,
+)
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from cramera_bridge.visualization import PublishedStateChange
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
@@ -108,6 +113,19 @@ def test_changes_while_a_plan_performs_wait_for_its_ticks_and_its_end(clock):
     assert not pacing.is_performing()
 
 
+def test_progress_is_due_at_once_then_after_its_interval_or_a_change(clock):
+    pacing = ProgressPacing(clock=clock)
+    assert pacing.is_due(changed=False)
+    assert not pacing.is_due(changed=False)
+    assert pacing.is_due(changed=True)
+    clock.advance(1.5 * PROGRESS_INTERVAL)
+    assert pacing.is_due(changed=False)
+
+
+def test_progress_is_published_at_most_ten_times_a_second():
+    assert PROGRESS_INTERVAL == pytest.approx(0.1)
+
+
 # %% the publisher
 
 
@@ -160,3 +178,25 @@ def test_a_plan_records_at_its_ticks_and_its_last_state_when_it_ends(
     paced.end_plan(small_plan.executor)
     assert paced.recording.frame_count() == first + 2
     assert recorded_milk_x(paced, kitchen) == pytest.approx(1.4)
+
+
+def test_a_plan_publishes_its_progress_once_an_interval_or_when_a_node_changed(
+    paced, small_plan, clock, monkeypatch
+):
+    refreshed = []
+    observed = []
+    monkeypatch.setattr(paced, "refresh_plan", lambda: refreshed.append(True))
+    monkeypatch.setattr(
+        paced.statechart, "observe", lambda chart, title: observed.append(title)
+    )
+    paced.begin_plan(small_plan.executor)
+    refreshed.clear()
+
+    for _ in range(5):
+        paced.observe_tick(small_plan.statechart, False)
+    assert (len(refreshed), len(observed)) == (1, 1)
+    paced.observe_tick(small_plan.statechart, True)
+    assert (len(refreshed), len(observed)) == (2, 2)
+    clock.advance(1.5 * PROGRESS_INTERVAL)
+    paced.observe_tick(small_plan.statechart, False)
+    assert (len(refreshed), len(observed)) == (3, 3)

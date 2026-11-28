@@ -49,7 +49,11 @@ from cramera_bridge.live.recording import Recording
 from cramera_bridge.live.recording_storage import RecordingStorage
 from cramera_bridge.live.resolutions import ResolutionBoard
 from cramera_bridge.live.scene_highlights import SceneHighlighter
-from cramera_bridge.live.snapshot_pacing import FRAME_INTERVAL, SnapshotPacing
+from cramera_bridge.live.snapshot_pacing import (
+    FRAME_INTERVAL,
+    ProgressPacing,
+    SnapshotPacing,
+)
 from cramera_bridge.live.statechart import StatechartPublisher
 from cramera_bridge.live.teleoperation import TeleoperationDriver
 from cramera_bridge.live.transforms import TransformTracker
@@ -102,7 +106,7 @@ from cramera_protocol.questions import (
 from cramera_bridge.questions.desk import QuestionDesk
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
 from coraplex.plans.context_extensions import RobotAccess
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.node import StatechartNode
 from giskardpy.motion_statechart.graph_node import MotionStatechartNode
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
@@ -123,11 +127,6 @@ SOURCE_VERSION = "1.0.0"
 The package's version when it runs from its source tree without being installed.
 """
 
-PLAN_REFRESH_TICKS = 5
-"""
-How many ticks pass between two plan snapshots; walking the plan costs more than a tick
-and its statuses change far less often.
-"""
 
 # %% publisher
 
@@ -235,9 +234,9 @@ class LivePublisher:
     Whether a motion runs, so a recorded frame shows the statechart.
     """
 
-    ticks: int = field(default=0, init=False)
+    progress_pacing: ProgressPacing = field(init=False)
     """
-    How many ticks happened.
+    When a performing plan's progress is published next.
     """
 
     transforms: TransformTracker = field(default_factory=TransformTracker, init=False)
@@ -293,6 +292,7 @@ class LivePublisher:
     def __post_init__(self) -> None:
         self.bundle_writer = LiveBundleWriter(self.locations.local_scenes)
         self.pacing = SnapshotPacing(clock=self.clock, interval=self.snapshot_interval)
+        self.progress_pacing = ProgressPacing(clock=self.clock)
         self.markers.change_listener = self.observe_state_change
 
     # %% simulation thread
@@ -315,6 +315,15 @@ class LivePublisher:
             ).desk()
             self.recording.start()
             self.observe_model_change()
+
+    def restart_recording(self) -> None:
+        """
+        Record the run from the world as it stands now, dropping the frames recorded
+        before, such as those of a setup that moved nothing.
+        """
+        with self.world_lock:
+            self.recording.start()
+            self.take_snapshot()
 
     def current_objects(self) -> List[Body]:
         """
@@ -379,7 +388,7 @@ class LivePublisher:
         """
         with self.world_lock:
             self.pacing.plan_started(executor)
-            access = executor.context.get_extension(RobotAccess)
+            access = executor.context.get_extension(extension_type=RobotAccess)
             if access is not None and self.model is not None:
                 if access.robot in self.model.robots:
                     self.select(access.robot)
@@ -417,8 +426,9 @@ class LivePublisher:
 
     def observe_tick(self, chart: Statechart, changed: bool) -> None:
         """
-        Write the waiting changes, evaluate the constraints, publish the statechart and
-        take a state snapshot when one is due.
+        Write the waiting changes, evaluate the constraints, publish the plan and the
+        statechart when their progress is due (see :class:`ProgressPacing`) and take a
+        state snapshot when one is due.
 
         :param chart: The statechart the executor ticks.
         :param changed: Whether a node started or ended in the tick, so the plan is
@@ -430,15 +440,14 @@ class LivePublisher:
             if self.edits.apply(self.model, self.transforms):
                 world.notify_state_change()
             self.constraints.tick(world)
-            self.motion_running = any(
-                isinstance(node, MotionStatechartNode)
-                and node.life_cycle_state is LifeCycleValues.RUNNING
-                for node in chart.nodes
-            )
-            self.chart_title = self.plan.running_action() or ""
-            self.statechart.observe(chart, self.chart_title)
-            self.ticks += 1
-            if changed or self.ticks % PLAN_REFRESH_TICKS == 0:
+            if self.progress_pacing.is_due(changed):
+                self.motion_running = any(
+                    isinstance(node, MotionStatechartNode)
+                    and node.life_cycle_state is LifeCycleValue.RUNNING
+                    for node in chart.nodes
+                )
+                self.chart_title = self.plan.running_action() or ""
+                self.statechart.observe(chart, self.chart_title)
                 self.refresh_plan()
             if self.pacing.is_due():
                 self.take_snapshot()

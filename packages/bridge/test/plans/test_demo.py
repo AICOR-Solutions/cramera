@@ -33,6 +33,7 @@ from cramera_bridge.plans.demo import (
 )
 from cramera_bridge.plans.steps import StepActions
 from cramera_bridge.plans.run_log import RunLog
+from cramera_bridge.robot_task import TaskCommand
 from cramera_bridge.plans.surfaces import SurfaceTargets
 from cramera_bridge.plans.world import PlannedGraspable
 from cramera_bridge.questions.workspace_classes import WorkspaceClassIndex
@@ -48,6 +49,7 @@ from cramera_protocol.plan_builder import (
     RunEventKind,
     StepConstraint,
 )
+from cramera_protocol.validation import ValidatedGrounding
 from cramera_protocol.viewer import EnvironmentVariable
 from semantic_digital_twin.datastructures.definitions import (
     GripperState,
@@ -172,7 +174,9 @@ def actions(demo, built) -> StepActions:
     :return: Builds the native actions of the test plan's steps.
     """
     _, context = built
-    return StepActions(context, demo.bodies, demo.discovered_actions)
+    return StepActions(
+        context, demo.bodies, demo.discovered_actions, steps=tuple(demo.steps())
+    )
 
 
 def test_the_steps_become_their_native_actions(demo, built, actions):
@@ -191,23 +195,24 @@ def test_the_steps_become_their_native_actions(demo, built, actions):
 def test_a_pick_up_takes_the_grasp_of_its_object(demo, built, actions):
     _, context = built
     pick_up = actions.action(demo.steps()[2])
-    assert isinstance(pick_up.grasp, GraspCandidate)
-    assert pick_up.grasp.graspable is PlannedGraspable.of(demo.bodies["milk"])
+    assert isinstance(pick_up.grasp_candidate, GraspCandidate)
+    assert pick_up.grasp_candidate.graspable is PlannedGraspable.of(demo.bodies["milk"])
     assert pick_up.arm is context.robot.left_arm
 
 
 def test_a_place_puts_down_the_object_it_names(demo, actions):
     place = actions.action(demo.steps()[3])
-    assert place.object_designator is PlannedGraspable.of(demo.bodies["milk"])
+    assert place.graspable is PlannedGraspable.of(demo.bodies["milk"])
 
 
 def test_a_gripper_step_opens_and_closes_the_gripper(demo, built, actions):
     _, context = built
     close, open_ = (actions.action(step) for step in demo.steps()[4:])
     gripper = context.robot.left_arm.end_effector
-    assert close.configuration.end_effector is gripper
+    assert close.gripper_configuration.end_effector is gripper
     assert [
-        action.configuration.joint_state.target_values for action in (close, open_)
+        action.gripper_configuration.joint_state.target_values
+        for action in (close, open_)
     ] == [
         gripper.get_joint_state_by_type(state).target_values
         for state in (GripperState.CLOSE, GripperState.OPEN)
@@ -225,7 +230,7 @@ def test_a_navigation_drives_to_its_target(document, actions):
     navigate = document.plan.robots[1].steps[0]
     action = actions.action(navigate)
     assert isinstance(action, NavigateAction)
-    assert action.target_location.position.to_np()[:3] == pytest.approx(
+    assert action.planar_goal_pose.pose.position.to_np()[:3] == pytest.approx(
         navigate.values["target_location"][:3]
     )
 
@@ -337,6 +342,27 @@ def test_the_plan_is_performed_and_its_recording_saved(document, locations):
     assert saved.scene == document.plan.name
     assert (bundle / BundleFile.SCENE).is_file()
     assert math.isfinite(error) and error <= PLACEMENT_TOLERANCE
+
+
+def test_a_demo_started_with_a_validations_grounding_performs_it(
+    document, tmp_path, monkeypatch
+):
+    grounding = ValidatedGrounding(
+        demo=ValidatedGrounding.fingerprint(document), steps=[]
+    )
+    grounding_file = tmp_path / "grounding.json"
+    grounding_file.write_text(json.dumps(grounding.to_json()), "utf-8")
+    started = []
+    monkeypatch.setattr(
+        TaskCommand, "main", lambda command, arguments: started.append(command.demo)
+    )
+
+    PlanDemoCommand(document).main(
+        [DemoOption.PORT, "0", DemoOption.GROUNDING, str(grounding_file)]
+    )
+
+    [demo] = started
+    assert demo.validated_grounding == grounding
 
 
 def test_a_run_whose_robot_was_released_reports_saving_its_record(demo):

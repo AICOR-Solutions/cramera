@@ -35,6 +35,11 @@ class BrowserTestVariable(StrEnum):
     The plugin's web directory.
     """
 
+    PLUGIN_NAME = "CRAMERA_PLUGIN_NAME"
+    """
+    The plugin's name, its route segment below ``/plugins/``.
+    """
+
 
 @dataclass(frozen=True)
 class PluginBrowserTests:
@@ -57,6 +62,12 @@ class PluginBrowserTests:
     The viewer's web directory.
     """
 
+    plugin_name: str = ""
+    """
+    The plugin's name, so viewer modules reaching ``plugins/<name>/``, as the plugin
+    SDK does, reach :attr:`plugin_web`; empty for none.
+    """
+
     def run(self) -> subprocess.CompletedProcess:
         """
         Write ``protocol.js`` next to the viewer's modules, as the server serves it, and
@@ -71,6 +82,7 @@ class PluginBrowserTests:
             **os.environ,
             BrowserTestVariable.VIEWER_WEB: str(self.viewer_web),
             BrowserTestVariable.PLUGIN_WEB: str(self.plugin_web),
+            BrowserTestVariable.PLUGIN_NAME: self.plugin_name,
         }
         return subprocess.run(
             [

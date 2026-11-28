@@ -344,17 +344,21 @@ export function failureMessage(request, error) {
 export const ViewMode = Object.freeze({ PLAN: 'plan', SIMULATION: 'simulation', REAL: 'real' });
 
 /**
- * @param {{published: boolean, mode: string|null, real: boolean, mirroring: boolean}} facts
- *   Whether a run publishes its world, the `RunMode` of the run, whether the robot run
- *   mode moves the real robot, and whether the robot stands in the posture the real
+ * @param {Object} facts What decides the view:
+ * @param {boolean} facts.published Whether a run publishes its world.
+ * @param {boolean} [facts.starting] Whether a run goes whose world is not published yet,
+ *   as while it builds its world and grounds its plan.
+ * @param {string|null} facts.mode The `RunMode` of the run.
+ * @param {boolean} facts.real Whether the robot run mode moves the real robot.
+ * @param {boolean} facts.mirroring Whether the robot stands in the posture the real
  *   robot's drivers report.
  * @returns {{mode: string, text: string}} What the 3D view shows, as a `ViewMode` and
  *   as its label says.
  */
 export function viewMode(facts) {
   if (!facts.published) {
-    const text = facts.mirroring ? 'Not running (real)' : 'Not running';
-    return { mode: ViewMode.PLAN, text };
+    if (facts.starting) return { mode: ViewMode.PLAN, text: 'Starting the run…' };
+    return { mode: ViewMode.PLAN, text: facts.mirroring ? 'Not running (real)' : 'Not running' };
   }
   if (facts.mode === RunMode.ROBOT && facts.real) return { mode: ViewMode.REAL, text: 'Real robot (live)' };
   return { mode: ViewMode.SIMULATION, text: facts.mode === RunMode.STAGE ? 'Simulation (live scene)' : 'Simulation (live)' };
@@ -2199,7 +2203,7 @@ export class BuilderPage {
     this.#parts.posture.hidden = stale.size === 0;
     showText(this.#parts.posture, stale.size === 0 ? '' : `${this.#postureStale} — the picture may not match the robot.`);
     this.#scene.show(this.state, { objects: this.#world.objects, robots, postures, colors: this.#perceivedColors(), stale }, this.#overlay());
-    const shown = viewMode({ published: this.#world.published, mode: this.#run[RunStatusKey.MODE] ?? null, real: this.#robotExecutor() === ExecutorKind.REAL, mirroring: this.#mirroring });
+    const shown = viewMode({ published: this.#world.published, starting: LIVE_STATES.includes(this.#run[RunStatusKey.STATE]), mode: this.#run[RunStatusKey.MODE] ?? null, real: this.#robotExecutor() === ExecutorKind.REAL, mirroring: this.#mirroring });
     showText(this.#parts.viewMode, shown.text);
     this.#parts.viewMode.dataset.mode = shown.mode;
   }
@@ -2291,11 +2295,11 @@ export class BuilderPage {
     parts.constraints = new ConstraintsView(document, this, new ConstraintSentences(this.state.catalog[PlanBuilderCatalogKey.CONSTRAINT_RULES], this.#environment.storage));
     const side = elements.create('aside', 'builder-side');
     side.append(
-      this.#section('Environment', parts.environment.element),
-      this.#section('Robots', parts.robots.element, 'Pick a robot to edit its plan.'),
-      this.#section('Actions', parts.steps.palette, 'Click or drag an action into the plan.'),
-      this.#section('Objects', parts.objects.element),
+      this.#section('Skills', parts.steps.palette, 'Click or drag a skill into the plan.'),
       this.#section('Constraints', parts.constraints.element, 'Drag a sentence onto a step.'),
+      this.#section('Objects', parts.objects.element),
+      this.#section('Robots', parts.robots.element, 'Pick a robot to edit its plan.'),
+      this.#section('Environment', parts.environment.element),
     );
     parts.planTitle = elements.create('h2');
     parts.runView = new RunView(elements);

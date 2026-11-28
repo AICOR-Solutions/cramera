@@ -5,6 +5,7 @@ Robot task demos: running, measuring, saving and publishing a task.
 from __future__ import annotations
 
 import shutil
+import time
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field, replace
 
@@ -24,6 +25,9 @@ from cramera_bridge.database.runs import (
 from cramera_bridge.demos.navigation import BarrierEnvironment
 from cramera_bridge.documents import DocumentFile
 from cramera_bridge.execution import KinematicExecution
+from cramera_bridge.performing import TaskContext
+from cramera_bridge.visualization import LiveVisualization
+from cramph.node import StatechartNode
 from cramera_bridge.exceptions import (
     EnvironmentBundleHoldsRobot,
     RecordingNotSaved,
@@ -310,6 +314,67 @@ def test_an_execution_that_attaches_says_it_is_ready():
     with execution.attached_when_ready() as refusal:
         assert refusal is None
         assert execution.is_attached
+
+
+@dataclass
+class PublicationWatchingTorsoDemo(TorsoDemo):
+    """
+    The torso demo noting whether its world is published while its plans are built,
+    and what its recording holds once the first plan performs.
+    """
+
+    visualization: Optional[LiveVisualization] = None
+    """
+    The visualization publishing the run, once started.
+    """
+
+    published_while_building: List[bool] = field(default_factory=list)
+    """
+    For each time the plans were built: whether the world was published then.
+    """
+
+    built_at: Optional[float] = None
+    """
+    The wall-clock time the plans were built at.
+    """
+
+    recorded_before_performing: List[List[float]] = field(default_factory=list)
+    """
+    For each plan performed: the times of the frames recorded before it.
+    """
+
+    def on_live_started(self, visualization: LiveVisualization) -> None:
+        self.visualization = visualization
+
+    def build_plans(self, context: TaskContext) -> List[StatechartNode]:
+        self.published_while_building.append(self.visualization is not None)
+        plans = super().build_plans(context)
+        self.built_at = time.time()
+        return plans
+
+    def perform_plan(self, plan, context, performance, extensions) -> None:
+        self.recorded_before_performing.append(
+            self.visualization.publisher.recording.frame_times()
+        )
+        super().perform_plan(plan, context, performance, extensions)
+
+
+def test_a_run_publishes_its_world_while_its_plans_are_built(locations):
+    demo = torso_demo(locations, PublicationWatchingTorsoDemo)
+
+    demo.run()
+
+    assert demo.published_while_building == [True]
+
+
+def test_a_run_is_recorded_from_once_its_plans_are_built(locations):
+    demo = torso_demo(locations, PublicationWatchingTorsoDemo)
+
+    demo.run()
+
+    [recorded] = demo.recorded_before_performing
+    assert recorded
+    assert min(recorded) >= demo.built_at
 
 
 def test_a_saved_task_runs_again_as_a_further_run(locations):

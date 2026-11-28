@@ -54,7 +54,8 @@ from cramera_bridge.real_robot import (
 )
 from cramera_bridge.plans.robokudo_answers import RoboKudoAnswers
 from cramera_bridge.ros_node import SpinningNode
-from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.plan_builder import DemoDocument
+from cramera_protocol.robot_profile import BaseInPhysics, ExecutorKind
 from cramph.context import StatechartContext
 from cramph.executor import ExecutorExtension
 from giskardpy.motion_statechart.monitors.safety_monitors import SafetyEnvelope
@@ -66,7 +67,8 @@ from semantic_digital_twin.adapters.ros.world_fetcher import fetch_world_from_se
 from semantic_digital_twin.adapters.ros.world_synchronizer import WorldSynchronizer
 from semantic_digital_twin.datastructures.definitions import StaticJointState
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
-from semantic_digital_twin.semantic_annotations.mixins import HasGraspCandidates
+from semantic_digital_twin.robots.walking import PhysicalBaseMode
+from semantic_digital_twin.semantic_annotations.mixins import IsGraspable
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import Connection6DoF
 from semantic_digital_twin.world_description.contact import ContactParameters
@@ -117,12 +119,28 @@ class PlanExecution(ABC):
     """
 
     @classmethod
-    def of_kind(cls, kind: ExecutorKind) -> PlanExecution:
+    def of_kind(
+        cls, kind: ExecutorKind, document: Optional[DemoDocument] = None
+    ) -> PlanExecution:
         """
         :param kind: How the plans are to be executed.
-        :return: A new execution of that kind with its default settings.
+        :param document: The demo whose plans are executed, whose robot profile's
+            settings the execution takes; None for the default settings.
+        :return: A new execution of that kind.
         """
-        return EXECUTIONS[kind]()
+        execution_type = EXECUTIONS[kind]
+        if document is None:
+            return execution_type()
+        return execution_type.from_document(document)
+
+    @classmethod
+    def from_document(cls, document: DemoDocument) -> PlanExecution:
+        """
+        :param document: The demo whose plans are executed.
+        :return: A new execution with the settings the demo's robot profile gives it;
+            the default ones unless a kind of execution reads a setting.
+        """
+        return cls()
 
     @contextmanager
     def attached(self) -> Iterator[None]:
@@ -158,6 +176,14 @@ class PlanExecution(ABC):
         """
         return None
 
+    def performs_validated_grounding(self) -> bool:
+        """
+        :return: Whether a run may perform the grounding a passed validation made of
+            the same plan in the same twin, rather than grounding the plan again; only
+            a simulation may, whose world is the twin the validation grounded in.
+        """
+        return False
+
     @contextmanager
     def running(self, world: World) -> Iterator[None]:
         """
@@ -192,6 +218,9 @@ class KinematicExecution(PlanExecution):
     Moves the world kinematically, as fast as the controller computes the motions.
     """
 
+    def performs_validated_grounding(self) -> bool:
+        return True
+
     def executor(
         self,
         context: StatechartContext,
@@ -200,7 +229,7 @@ class KinematicExecution(PlanExecution):
         safety: SafetyEnvelope,
     ) -> PlanExecutor:
         return KinematicallySimulatedPlanExecutor(
-            context,
+            context=context,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
             safety=safety,
@@ -258,10 +287,54 @@ class PhysicalExecution(PlanExecution):
     Whether the physics runs without a MuJoCo window of its own.
     """
 
+    draws_scenery_meshes: bool = False
+    """
+    Whether the physics builds the meshes only drawing the scenery, such as a scanned
+    building: no camera renders a run that does not perceive, so the scenery collides
+    by its colliders alone and its meshes are neither loaded nor kept.
+    """
+
+    base_in_physics: BaseInPhysics = BaseInPhysics.WALKING
+    """
+    How the physics moves the base of a robot that walks on legs.
+    """
+
     simulation: Optional[MujocoSim] = field(default=None, init=False)
     """
     The running physics while plans are performed, else None.
     """
+
+    @classmethod
+    def from_document(cls, document: DemoDocument) -> PhysicalExecution:
+        """
+        Differs from :meth:`PlanExecution.from_document` in moving a walking robot's
+        base as the robot profile chooses.
+        """
+        if document.base_in_physics is None:
+            return cls()
+        return cls(base_in_physics=document.base_in_physics)
+
+    def performs_validated_grounding(self) -> bool:
+        return True
+
+    def held_base_note(self) -> Optional[str]:
+        """
+        :return: What the run reports about a walking robot whose pelvis the physics
+            holds, naming the hold a simulation shortcut; None where nothing holds it.
+        """
+        match self.base_in_physics:
+            case BaseInPhysics.FIXED:
+                return (
+                    "Physics: the walking robot's pelvis is held where it starts "
+                    "(simulation shortcut)."
+                )
+            case BaseInPhysics.WALK_THEN_FIX:
+                return (
+                    "Physics: the walking robot walks on its legs; its pelvis is held "
+                    "after walking (simulation shortcut)."
+                )
+            case BaseInPhysics.WALKING:
+                return None
 
     @contextmanager
     def running(self, world: World) -> Iterator[None]:
@@ -280,8 +353,13 @@ class PhysicalExecution(PlanExecution):
             cone=self.friction_cone,
             impratio=self.impedance_ratio,
             noslip_iterations=self.no_slip_iterations,
+            draws_scenery_meshes=self.draws_scenery_meshes,
+            walking_mode=PhysicalBaseMode(self.base_in_physics),
         )
         simulation.start_stepped_simulation()
+        note = self.held_base_note()
+        if simulation.walking and note is not None:
+            print(note, flush=True)
         self.simulation = simulation
         try:
             simulation.step_simulation(self.settling_duration)
@@ -301,7 +379,7 @@ class PhysicalExecution(PlanExecution):
         StartingPosture(self.starting_posture).apply(world)
         ContactParameters.create_for_grasped_object().apply_to(
             graspable.root
-            for graspable in world.get_semantic_annotations_by_type(HasGraspCandidates)
+            for graspable in world.get_semantic_annotations_by_type(IsGraspable)
             if isinstance(graspable.root.parent_connection, Connection6DoF)
         )
 
@@ -318,7 +396,7 @@ class PhysicalExecution(PlanExecution):
         if self.simulation is None:
             raise ExecutionNotRunning(ExecutorKind.PHYSICS)
         return PhysicallySimulatedPlanExecutor(
-            context,
+            context=context,
             simulation=self.simulation,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
@@ -333,6 +411,11 @@ class PerceivingPhysicalExecution(PhysicalExecution):
     plans' detections the way the real robot does: a RoboKudo analysis engine looks
     through the robot's camera, rendered from the simulated world, over RoboKudo's query
     action.
+    """
+
+    draws_scenery_meshes: bool = True
+    """
+    The robot's camera renders the scenery, so its meshes are built.
     """
 
     analysis_engine: str = field(
@@ -398,7 +481,7 @@ class PerceivingPhysicalExecution(PhysicalExecution):
         if self.simulation is None or self.ros_node is None:
             raise ExecutionNotRunning(ExecutorKind.PERCEIVED_PHYSICS)
         return PhysicallySimulatedPlanExecutor(
-            context,
+            context=context,
             simulation=self.simulation,
             collision_avoidance=collision_avoidance,
             extensions=list(extensions),
@@ -570,6 +653,13 @@ class RealExecution(PlanExecution):
     def perception_answers(self) -> Optional[RoboKudoAnswers]:
         return self.answers
 
+    def performs_validated_grounding(self) -> bool:
+        """
+        Never: the real world may have moved since the validation, so a run on the real
+        robot always grounds its plan afresh, where the robot and its objects stand.
+        """
+        return False
+
     def executor(
         self,
         context: StatechartContext,
@@ -588,7 +678,7 @@ class RealExecution(PlanExecution):
         if self.ros_node is None:
             raise ExecutionNotRunning(ExecutorKind.REAL)
         return RealRobotPlanExecutor(
-            context,
+            context=context,
             ros_node=self.ros_node,
             collision_avoidance=collision_avoidance,
             extensions=[*extensions, self.standstill],

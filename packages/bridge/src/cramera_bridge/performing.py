@@ -89,7 +89,7 @@ class TaskContext:
         """
         if self.next_context is None:
             self.next_context = StatechartContext.with_extensions(
-                self.world, self.context_extensions()
+                world=self.world, extensions=self.context_extensions()
             )
         return self.next_context
 
@@ -99,7 +99,7 @@ class TaskContext:
             its statements are grounded and :attr:`extensions`.
         """
         return [
-            RobotAccess(self.robot),
+            RobotAccess(robot=self.robot),
             StatementGrounding(
                 query_backend=self.query_backend,
                 sampling_seed=self.sampling_seed,
@@ -169,7 +169,8 @@ class PlanPerformance:
         statechart_context = context.take_statechart_context()
         if self.plan_transformations:
             rewriting = (
-                statechart_context.get_extension(PlanRewriting) or PlanRewriting()
+                statechart_context.get_extension(extension_type=PlanRewriting)
+                or PlanRewriting()
             )
             statechart_context.extensions[PlanRewriting] = PlanRewriting(
                 transformations=[
@@ -203,9 +204,9 @@ class PlanPerformance:
         """
         executor = self.executor(context, extensions)
         statechart = Statechart(context=executor.context)
-        statechart.add_node(plan)
+        statechart.add_node(node=plan)
         try:
-            executor.compile(statechart)
+            executor.compile(statechart=statechart)
             executor.execute()
         finally:
             executor.close()

@@ -269,15 +269,36 @@ class WorkspaceClassIndex:
         :return: An index of the installed packages' classes, read from their sources
             without importing them.
         """
-        directories: Dict[WorkspacePackage, Path] = {}
-        for package in packages:
-            specification = importlib.util.find_spec(package.value)
-            if specification is None or not specification.submodule_search_locations:
-                continue
-            directories[package] = Path(
-                list(specification.submodule_search_locations)[0]
+        return cls.of_classes(
+            location
+            for package in packages
+            for directory in cls.source_directories(package)
+            for location in SourceTreeScanner(directory, package).classes()
+        )
+
+    @staticmethod
+    def source_directories(package: WorkspacePackage) -> List[Path]:
+        """
+        :param package: A package.
+        :return: The source directories of the package when it is installed, each part
+            of a namespace package split across distributions; a directory holding
+            another of them is a checkout's directory of that name on the path, not a
+            part of the package, and is left out.
+        """
+        specification = importlib.util.find_spec(package.value)
+        if specification is None or not specification.submodule_search_locations:
+            return []
+        locations = [
+            Path(location) for location in specification.submodule_search_locations
+        ]
+        return [
+            location
+            for location in locations
+            if not any(
+                other != location and other.is_relative_to(location)
+                for other in locations
             )
-        return cls.of_package_directories(directories)
+        ]
 
     @classmethod
     @cache

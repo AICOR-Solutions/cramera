@@ -10,7 +10,6 @@ beside coraplex keeps its bare file name.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -19,9 +18,15 @@ from pathlib import Path
 
 from typing_extensions import Dict, List, Mapping, Optional
 
+from cramera_protocol.object_library import (
+    CollectionFile,
+    CollectionKey,
+    LibraryVariable,
+    ObjectCollection,
+)
 from cramera_protocol.plan_builder import ObjectModel
 
-LIBRARY_VARIABLE = "CRAMERA_OBJECT_LIBRARIES"
+LIBRARY_VARIABLE = LibraryVariable.LIBRARIES.value
 """
 The environment variable naming further libraries, separated like ``PATH``.
 """
@@ -58,42 +63,10 @@ class LibraryFile(StrEnum):
     A model's description, in its own folder.
     """
 
-    COLLECTION = "collection.json"
+    COLLECTION = CollectionFile.COLLECTION.value
     """
-    The names of a collection's models, by the slug of their folders.
-    """
-
-
-class CollectionKey(StrEnum):
-    """
-    The keys of a collection file.
-    """
-
-    OBJECTS = "objects"
-    """
-    The models.
-    """
-
-    SLUG = "slug"
-    """
-    A model's folder name without its catalogue number.
-    """
-
-    NAME = "name"
-    """
-    A model's name for people.
-    """
-
-    GRASP = "grasp"
-    """
-    How a model is taken hold of, an :class:`ObjectGrasp` value; from any side when it
-    is left out.
-    """
-
-    COLOR = "color"
-    """
-    The name perception gives a model's color, such as ``red``; left out for a model of
-    no single color.
+    The names of a collection's models, by the slug of their folders, read by
+    :class:`~cramera_protocol.object_library.ObjectCollection`.
     """
 
 
@@ -179,8 +152,10 @@ class ObjectLibrary:
         for collection in sorted(
             (self.directory / LibraryFile.OBJECTS).rglob(LibraryFile.COLLECTION)
         ):
-            document = json.loads(collection.read_text(encoding="utf-8"))
-            entries.extend(document.get(CollectionKey.OBJECTS, []))
+            entries.extend(
+                entry.to_json()
+                for entry in ObjectCollection.from_file(collection).entries
+            )
         return entries
 
     @staticmethod

@@ -6,7 +6,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from typing_extensions import Any, Tuple
+from typing_extensions import TYPE_CHECKING, Any, Tuple
+
+if TYPE_CHECKING:
+    from cramera_protocol.registry import IdStatus
 
 # %% base
 
@@ -169,4 +172,247 @@ class UnsupportedFieldType(ProtocolError):
         return (
             f"{self.document}.{self.field_name} has the type {self.annotation}, "
             f"which protocol documents cannot hold."
+        )
+
+
+# %% registry
+
+
+@dataclass
+class RegistryError(ProtocolError):
+    """
+    An identifier registry that installed packages declare inconsistently, or an
+    identifier it does not know.
+    """
+
+
+@dataclass
+class MalformedRegistryId(RegistryError):
+    """
+    A text that is no namespaced identifier ``<namespace>.<name>``.
+    """
+
+    text: str
+    """
+    The text.
+    """
+
+    def message(self) -> str:
+        return (
+            f"{self.text!r} is no namespaced identifier: it needs a namespace of "
+            f"lowercase letters, digits and underscores, a dot and a name."
+        )
+
+
+@dataclass
+class DuplicateNamespace(RegistryError):
+    """
+    A namespace two packages claim, or a package claiming two namespaces.
+    """
+
+    namespace: str
+    """
+    The namespace claimed twice, or the second one a package claims.
+    """
+
+    distributions: Tuple[str, ...]
+    """
+    The packages involved.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The namespace {self.namespace!r} conflicts between the packages "
+            f"{', '.join(self.distributions)}: every package declares one namespace "
+            f"and no two packages share one."
+        )
+
+
+@dataclass
+class DuplicateRegistryId(RegistryError):
+    """
+    An identifier declared twice.
+    """
+
+    kind: str
+    """
+    What the identifier names, such as a robot.
+    """
+
+    identifier: str
+    """
+    The identifier.
+    """
+
+    def message(self) -> str:
+        return f"The {self.kind} {self.identifier!r} is declared twice."
+
+
+@dataclass
+class DuplicateRegistryAlias(RegistryError):
+    """
+    An alias declared twice, or one that is also an identifier or a short name.
+    """
+
+    alias: str
+    """
+    The alias.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The alias {self.alias!r} is declared twice or is already the name of "
+            f"another entry."
+        )
+
+
+@dataclass
+class UnknownRegistryId(RegistryError):
+    """
+    A name that no installed package declares.
+    """
+
+    kind: str
+    """
+    What the name was looked up as, such as a robot.
+    """
+
+    name: str
+    """
+    The name.
+    """
+
+    status: IdStatus
+    """
+    Why it is not available.
+    """
+
+    def message(self) -> str:
+        namespace = self.name.partition(".")[0]
+        if self.status == "namespace_not_installed":
+            return (
+                f"The {self.kind} {self.name!r} is unavailable: no installed package "
+                f"declares the namespace {namespace!r}."
+            )
+        return f"No installed package declares the {self.kind} {self.name!r}."
+
+
+# %% sites
+
+
+@dataclass
+class SiteError(ProtocolError):
+    """
+    A site file that cannot be read as a site.
+    """
+
+
+@dataclass
+class MissingSiteFormatVersion(SiteError):
+    """
+    A site file that does not declare the format version it is written in.
+    """
+
+    site: str
+    """
+    The site's identity.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The site {self.site!r} declares no formatVersion; every site file "
+            f"declares the version of the site format it is written in."
+        )
+
+
+@dataclass
+class DuplicateSiteRobot(SiteError):
+    """
+    A site naming one robot twice.
+    """
+
+    site: str
+    """
+    The site's identity.
+    """
+
+    robot: str
+    """
+    The robot named twice.
+    """
+
+    def message(self) -> str:
+        return f"The site {self.site!r} names the robot {self.robot!r} twice."
+
+
+@dataclass
+class DuplicateSiteZone(SiteError):
+    """
+    A site naming one zone twice.
+    """
+
+    site: str
+    """
+    The site's identity.
+    """
+
+    zone: str
+    """
+    The zone named twice.
+    """
+
+    def message(self) -> str:
+        return f"The site {self.site!r} names the zone {self.zone!r} twice."
+
+
+@dataclass
+class InvalidSiteRobotPose(SiteError):
+    """
+    A robot pose whose orientation is no unit quaternion.
+    """
+
+    site: str
+    """
+    The site's identity.
+    """
+
+    robot: str
+    """
+    The robot the pose stands.
+    """
+
+    norm: float
+    """
+    The length of the pose's quaternion.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The site {self.site!r} stands the robot {self.robot!r} at a pose whose "
+            f"quaternion has length {self.norm:.4f}, not 1."
+        )
+
+
+@dataclass
+class UnsetSiteVariable(SiteError):
+    """
+    A site path naming an environment variable that is not set, such as the directory
+    of data kept outside every repository.
+    """
+
+    path: str
+    """
+    The path as the site writes it.
+    """
+
+    variable: str
+    """
+    The variable that is not set.
+    """
+
+    def message(self) -> str:
+        return (
+            f"The site path {self.path!r} names the environment variable "
+            f"{self.variable!r}, which is not set; set it to where that data lies on "
+            f"this machine."
         )

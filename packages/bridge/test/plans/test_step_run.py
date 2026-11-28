@@ -47,7 +47,7 @@ from cramera_bridge.plans.step_run import (
 from cramera_protocol.geometry import FloorRectangle
 from cramph.composites import Sequence
 from cramph.context import StatechartContext
-from cramph.data_types import LifeCycleValues
+from cramph.data_types import LifeCycleValue
 from cramph.executor import Executor, StatechartExecutor
 from cramph.monitors import CountTicks
 from cramph.statechart import Statechart
@@ -160,7 +160,7 @@ def test_the_steps_of_a_plan_ticked_in_another_process_are_followed_as_they_run(
     context = StatechartContext(world=World())
     statechart = Statechart(context=context)
     first, second = CountTicks(ticks=1), CountTicks(ticks=1)
-    statechart.add_node(Sequence(nodes=[first, second]))
+    statechart.add_node(node=Sequence(nodes=[first, second]))
     stream = io.StringIO()
     progress = AttemptProgress(run_log=RunLog(stream=stream), attempts=3)
     progress.steps = [
@@ -168,11 +168,11 @@ def test_the_steps_of_a_plan_ticked_in_another_process_are_followed_as_they_run(
         AttemptedStep(node=second, step="step_2", number=1),
     ]
     other_process = StatechartExecutor(context=context)
-    other_process.compile(statechart)
+    other_process.compile(statechart=statechart)
     following = FollowingExecutor(context=context)
-    following.compile(statechart)
+    following.compile(statechart=statechart)
     progress.after_compile(following)
-    while second.life_cycle_state is not LifeCycleValues.RUNNING:
+    while second.life_cycle_state is not LifeCycleValue.RUNNING:
         other_process.tick()
     reported_while_running = [
         (event.step, event.state) for event in progress.run_log.events()

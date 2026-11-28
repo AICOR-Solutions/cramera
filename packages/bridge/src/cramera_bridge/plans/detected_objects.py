@@ -123,9 +123,9 @@ class DetectedObjects:
             elif field_type is ColorName:
                 color = arguments.member(offered, value)
         return PerceptionQuery(
-            object_type,
-            region,
-            self.context.robot,
-            self.context.world,
+            semantic_annotation=object_type,
+            region=region,
+            robot=self.context.robot,
+            world=self.context.world,
             color=color,
         )

@@ -61,7 +61,8 @@ from cramera_protocol.plan_builder import (
     PlannedRobot,
     PlanStep,
 )
-from cramera_protocol.robot_profile import RuntimeCheck
+from cramera_protocol.robot_profile import CameraMount, RuntimeCheck
+from cramera_protocol.validation import ValidatedGrounding
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.world_entity import Body
 
@@ -271,6 +272,15 @@ class PlannedTaskDemo(RobotTaskDemo):
     The plan of the first attempt at every step, once the plan was built.
     """
 
+    validated_grounding: Optional[ValidatedGrounding] = field(
+        default=None, kw_only=True
+    )
+    """
+    The grounding a passed validation made of the plan, which a simulated run performs
+    instead of grounding the plan again while it describes the run's plan and twin;
+    None grounds the plan as it runs.
+    """
+
     scene_worlds: Optional[SceneWorlds] = field(default=None, kw_only=True)
     """
     The robots' worlds built before, which :meth:`build_world` copies instead of
@@ -358,7 +368,9 @@ class PlannedTaskDemo(RobotTaskDemo):
             StartingPosture().apply(world)
         else:
             self.robot_scene.selected_placement().name_reported_robot(world)
-        self.bodies = PlannedObjects(self.plan.objects).spawn(world)
+        self.bodies = PlannedObjects(
+            self.plan.objects, grasp_closing_axis=self.document.grasp_closing_axis
+        ).spawn(world)
         return world
 
     def build_robots_world(self) -> World:
@@ -402,12 +414,18 @@ class PlannedTaskDemo(RobotTaskDemo):
         turning detects no object before the final approach of a grasp: each step
         detected its objects with the same camera just before it moved, see
         :meth:`StepRun.step_node`, and acts where they were found, or where the plan
-        was grounded with them when they were not.
+        was grounded with them when they were not. The robot profile's camera mount
+        says whether the camera turns; without one, a robot with a torso turns it.
         """
         performance = super().performance(context)
+        camera_turns = (
+            context.robot.get_torso_if_specified() is not None
+            if self.document.camera_mount is None
+            else self.document.camera_mount is CameraMount.HEAD
+        )
         detects_before_grasp = (
             self.document.perception.runtime_check is RuntimeCheck.STRICT
-            or context.robot.get_torso_if_specified() is not None
+            or camera_turns
         )
         performance.plan_transformations = [
             *([DetectBeforeGrasp()] if detects_before_grasp else []),
@@ -549,6 +567,9 @@ class PlannedTaskDemo(RobotTaskDemo):
         steps = self.steps()
         if not any(self.is_left_open(context, step) for step in steps):
             return [ScheduledStep(step=step, resolved=step) for step in steps]
+        validated = self.validated_steps(steps)
+        if validated is not None:
+            return validated
         grounding = PlanGrounding(
             context=context,
             bodies=dict(self.bodies),
@@ -567,6 +588,32 @@ class PlannedTaskDemo(RobotTaskDemo):
         return [
             ScheduledStep.from_grounded_step(grounded_step)
             for grounded_step in grounded
+        ]
+
+    def validated_steps(self, steps: List[PlanStep]) -> Optional[List[ScheduledStep]]:
+        """
+        :param steps: The performing robot's steps.
+        :return: The steps as :attr:`validated_grounding` grounded them, where the
+            execution performs a validation's grounding and it was made of exactly this
+            plan in this twin and environment; None where the plan is to be grounded
+            afresh, always on the real robot.
+        """
+        grounding = self.validated_grounding
+        if (
+            grounding is None
+            or not self.execution.performs_validated_grounding()
+            or not grounding.describes(self.document)
+            or [grounded.resolved.identifier for grounded in grounding.steps]
+            != [step.identifier for step in steps]
+        ):
+            return None
+        return [
+            ScheduledStep(
+                step=step,
+                resolved=grounded.resolved,
+                expected_positions=dict(grounded.expected_positions),
+            )
+            for step, grounded in zip(steps, grounding.steps)
         ]
 
     def is_left_open(self, context: TaskContext, step: PlanStep) -> bool:

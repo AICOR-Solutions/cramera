@@ -83,6 +83,14 @@ holds the run's thread with `HeldQueries`.
   `protocolVersion` into the live `/info` answer. A document without a version is
   version 0 and still readable. An unknown major version is refused with
   `UnsupportedProtocolVersion`.
+- A site (`cramera_protocol.site`, `site.json`) names the environment bundle its
+  robots stand in, each robot by its registry identifier with its profile file, its
+  pose and its commissioning facts (safety limits and further facts kept as data), and
+  the site's zones. Version 1.1 adds an optional `description` (one or two plain
+  sentences for people) and `thumbnail` (a square picture, relative to the site file).
+  A site file must declare its `formatVersion` (1.0 or 1.1); a later minor version's
+  unknown keys are kept. The format is open, the site files belong to whoever runs the
+  site. Nothing in the run path reads a site yet.
 - The browser does not keep a second copy of these names. The viewer generates the
   ES module `protocol.js` from the Python enums, at request time when serving and at
   build time for the static demo site.

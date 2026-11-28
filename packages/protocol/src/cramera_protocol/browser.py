@@ -165,6 +165,12 @@ from cramera_protocol.detection import (
     ScanRequestKey,
     SceneScanKey,
 )
+from cramera_protocol.grounding import (
+    DiagnosticCode,
+    DiagnosticKey,
+    DiagnosticSeverity,
+    PlanDiagnosticsKey,
+)
 from cramera_protocol.validation import (
     StepFailureReason,
     StepValidationKey,
@@ -773,6 +779,10 @@ BROWSER_ENUMERATIONS: Tuple[Type[StrEnum], ...] = (
     StepValidationKey,
     ValidationReportKey,
     ValidationRequestKey,
+    DiagnosticCode,
+    DiagnosticSeverity,
+    DiagnosticKey,
+    PlanDiagnosticsKey,
 )
 """
 The enumerations the browser application reads.

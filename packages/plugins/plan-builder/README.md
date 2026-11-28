@@ -20,6 +20,9 @@ cramera
   every object library, surface types the native annotation classes with a supporting
   surface. Environments are the viewer's bundles without a robot model. Without the
   CRAM workspace the catalog names the missing modules and offers environments only.
+- **The side column** lists, from the top, what is used most while composing: the
+  **Skills** palette of actions, the **Constraints** sentences, the plan's **Objects**,
+  then the **Robots** and the **Environment** that are set once per plan.
 - **A URDF as the environment.** The Environment section's **Browse…** opens a picker
   of the viewer's machine's folders and their URDF and xacro files, reopening on the
   folder it showed last, and loads a file as soon as it is picked; the path field with

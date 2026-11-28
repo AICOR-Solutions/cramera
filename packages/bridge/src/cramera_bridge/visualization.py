@@ -130,7 +130,7 @@ class PublishedPlanProgress(TickingExecutorExtension, StateHistoryObserver):
         and follow every state its history records.
         """
         self.publisher.begin_plan(executor)
-        executor.statechart.state_history.add_observer(self)
+        executor.statechart.state_history.add_observer(observer=self)
         self.report(executor)
 
     def after_recompile(self, executor: StatechartExecutor) -> None:
@@ -155,7 +155,7 @@ class PublishedPlanProgress(TickingExecutorExtension, StateHistoryObserver):
         """
         Publish the state the plan left.
         """
-        executor.statechart.state_history.remove_observer(self)
+        executor.statechart.state_history.remove_observer(observer=self)
         self.report_nodes(executor.statechart.state_history)
         self.publisher.end_plan(executor)
 

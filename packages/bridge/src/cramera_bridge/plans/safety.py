@@ -240,9 +240,9 @@ class RobotSafety:
                 constraints.append(
                     MaximumToolVelocity(
                         constraint=f"{side} tool velocity ({tool_velocity} m/s)",
-                        root_link=robot.root,
+                        reference_frame=robot.root,
                         tool=arm.end_effector.tool_frame,
-                        maximum_velocity=tool_velocity,
+                        speed_limit=tool_velocity,
                     )
                 )
         return constraints

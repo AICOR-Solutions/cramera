@@ -25,6 +25,7 @@ from cramera_plan_builder.exceptions import (
     ContentTooLarge,
     MalformedRequestBody,
     NotAUrdfFile,
+    PlanBuilderError,
     PlanNotValidated,
     UnsupportedByCatalog,
 )
@@ -38,6 +39,7 @@ from cramera_plan_builder.urdf_folders import URDF_SOURCE_SUFFIXES, UrdfFolders
 from cramera_plan_builder.validations import PlanValidations, ValidationGate
 from cramera_plan_builder.workspace import RobotModelFiles, WorkspaceLoader
 from cramera_protocol.detection import ScanRequest, SceneScanOrder
+from cramera_protocol.grounding import PlanDiagnostics
 from cramera_protocol.plan_builder import (
     ActionSchema,
     ConstraintText,
@@ -48,6 +50,7 @@ from cramera_protocol.plan_builder import (
     PlanDocument,
     PlanList,
     PlanRecord,
+    RobotModel,
     RunRequest,
     RunStatus,
     SavedNames,
@@ -58,6 +61,7 @@ from cramera_protocol.plan_builder import (
 from cramera_protocol.reach import ReachRequest, ReachRequestKey
 from cramera_protocol.robot_profile import (
     ExecutorKind,
+    GraspClosingAxis,
     PerceptionSettings,
     RobotProfileVariable,
 )
@@ -259,6 +263,7 @@ class PlanBuilderRoutes:
                 PlanBuilderRoute.VALIDATE_CANCEL,
                 self.answer_cancel_validation,
             ),
+            PluginRoute(HttpMethod.POST, PlanBuilderRoute.CHECK, self.answer_check),
             PluginRoute(HttpMethod.POST, PlanBuilderRoute.REACH, self.answer_reach),
             PluginPrefixRoute(
                 HttpMethod.GET, PlanBuilderRoute.OBJECT_FILES, self.answer_object_file
@@ -279,7 +284,7 @@ class PlanBuilderRoutes:
         actions = workspace.action_catalog()
         return PlanBuilderCatalog(
             live_url=self.live_url,
-            robots=workspace.robots(),
+            robots=self.robots_standing_as_profiled(workspace.robots()),
             environments=EnvironmentBundles(self.scenes).entries(),
             objects=workspace.objects(),
             surface_types=workspace.surface_types(),
@@ -294,6 +299,25 @@ class PlanBuilderRoutes:
             templates=self.profile.templates,
             unvalidated_real_runs=self.profile.unvalidated_real_runs,
         )
+
+    def robots_standing_as_profiled(self, robots: List[RobotModel]) -> List[RobotModel]:
+        """
+        :param robots: The robot models the workspace offers.
+        :return: The same models, the profile's robot standing at the height the
+            profile's scene or templates stand it at, where they do.
+        """
+        height = self.profile.standing_height
+        profile = self.profile.profile
+        if height is None or profile is None:
+            return robots
+        return [
+            (
+                replace(robot, standing_height=height)
+                if robot.name == profile.robot
+                else robot
+            )
+            for robot in robots
+        ]
 
     def answer_catalog(self, request: Request) -> Response:
         """
@@ -448,23 +472,25 @@ class PlanBuilderRoutes:
         """
         :param plan: A checked plan.
         :return: The plan with its environment's directory, found among the viewer's
-            scenes, and the robot profile's zones and safety limits.
+            scenes, and the robot profile's zones, safety limits and how its runs in
+            physics move a walking robot's base.
         """
         profile = self.profile.profile
-        zones = [] if profile is None else list(profile.zones)
-        safety = None if profile is None else profile.safety
-        perception = PerceptionSettings() if profile is None else profile.perception
-        if plan.environment is None:
-            return DemoDocument(
-                plan=plan, zones=zones, safety=safety, perception=perception
-            )
-        directory = self.scenes.directory_of(plan.environment).path / plan.environment
+        environment_directory = None
+        if plan.environment is not None:
+            directory = self.scenes.directory_of(plan.environment).path
+            environment_directory = str((directory / plan.environment).resolve())
         return DemoDocument(
             plan=plan,
-            environment_directory=str(directory.resolve()),
-            zones=zones,
-            safety=safety,
-            perception=perception,
+            environment_directory=environment_directory,
+            zones=[] if profile is None else list(profile.zones),
+            safety=None if profile is None else profile.safety,
+            perception=PerceptionSettings() if profile is None else profile.perception,
+            grasp_closing_axis=(
+                GraspClosingAxis.X if profile is None else profile.grasp_closing_axis
+            ),
+            camera_mount=None if profile is None else profile.camera_mount,
+            base_in_physics=None if profile is None else profile.base_in_physics,
         )
 
     def answer_demo(self, request: Request) -> Response:
@@ -510,7 +536,12 @@ class PlanBuilderRoutes:
                     RobotProfileVariable.UNVALIDATED_REAL_RUNS.value,
                 )
         executor = self.profile.executor_for(run.mode)
-        status = self.runner.start(demo, run.mode, executor)
+        status = self.runner.start(
+            demo,
+            run.mode,
+            executor,
+            grounding=self.gate.grounding_for(demo.plan),
+        )
         if executor is ExecutorKind.REAL:
             self.gate.close(kept_if=self.runner.current.refused_before_motion)
         return Response.of_json(self.with_validation_held(status))
@@ -587,7 +618,8 @@ class PlanBuilderRoutes:
         The plan may run where a run needs a validated plan once it passed.
 
         :param request: A request whose body is a :class:`ValidationRequest`.
-        :return: The :class:`ValidationReport`.
+        :return: The :class:`ValidationReport`, without the grounding it passes on,
+            which the gate keeps for a simulated run.
         :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
             the demo started last.
         :raises RunRecordSaving: While the demo started last saves its run's record.
@@ -603,7 +635,37 @@ class PlanBuilderRoutes:
         )
         self.runner.refuse_validated(before)
         self.gate.record(demo.plan, report)
-        return Response.of_json(report)
+        return Response.of_json(replace(report, grounding=None))
+
+    def answer_check(self, request: Request) -> Response:
+        """
+        Check a plan for whatever generated it, such as a goal page or a goal planner:
+        the plan is validated as :meth:`answer_validate` validates it, but the check
+        leaves the gate as it is, so only a validation admits a plan to a run.
+
+        :param request: A request whose body is a :class:`ValidationRequest`.
+        :return: The :class:`PlanDiagnostics`; a plan the builder refuses before
+            trying a step is one diagnostic saying why.
+        :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop of
+            the demo started last.
+        :raises RunRecordSaving: While the demo started last saves its run's record.
+        :raises PlanRunning: While a demo performs a plan, or when one started while
+            the plan was checked.
+        :raises ValidationCancelled: When the validation was cancelled before it ended.
+        """
+        plan = ValidationRequest.from_json(self.body(request)).plan
+        # User-facing (approved exception): a generator iterating on its plan reads
+        # why the builder refused it as a diagnostic, instead of an error answer.
+        try:
+            demo = self.runnable(plan)
+        except PlanBuilderError as refusal:
+            return Response.of_json(PlanDiagnostics.of_refusal(refusal.message()))
+        before = self.runner.refuse_to_validate()
+        report = self.report_unoffered_skills(demo.plan) or self.validations.validate(
+            self.profile.validation_order(demo)
+        )
+        self.runner.refuse_validated(before)
+        return Response.of_json(PlanDiagnostics.of_report(demo.plan, report))
 
     def answer_cancel_validation(self, request: Request) -> Response:
         """

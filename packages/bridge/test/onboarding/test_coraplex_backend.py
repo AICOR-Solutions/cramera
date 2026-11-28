@@ -63,7 +63,9 @@ def executor_of(scene: SlidingBoxWorld) -> KinematicallySimulatedPlanExecutor:
     :param scene: The world a plan is performed in.
     :return: A new executor of a plan in it.
     """
-    return KinematicallySimulatedPlanExecutor(StatechartContext(world=scene.world))
+    return KinematicallySimulatedPlanExecutor(
+        context=StatechartContext(world=scene.world)
+    )
 
 
 def lower_the_box(executor: PlanExecutor, scene: SlidingBoxWorld) -> Statechart:
@@ -76,14 +78,14 @@ def lower_the_box(executor: PlanExecutor, scene: SlidingBoxWorld) -> Statechart:
     """
     statechart = Statechart(context=executor.context)
     statechart.add_node(
-        Sequence(
+        node=Sequence(
             nodes=[
                 BoxLowering(name=str(height), scene=scene, height=height)
                 for height in BOX_HEIGHTS
             ]
         )
     )
-    executor.compile(statechart)
+    executor.compile(statechart=statechart)
     executor.execute()
     return statechart
 
@@ -106,13 +108,13 @@ def cramera_visualizations(executor: PlanExecutor) -> List[CrameraVisualization]
 def test_the_visualization_publishes_the_plan_its_executor_runs(sliding_box, factory):
     visualization = CrameraVisualization(factory=factory)
     executor = KinematicallySimulatedPlanExecutor(
-        StatechartContext(world=sliding_box.world), extensions=[visualization]
+        context=StatechartContext(world=sliding_box.world), extensions=[visualization]
     )
     statechart = Statechart(context=executor.context)
     statechart.add_node(
-        Sequence(nodes=[BoxLowering(name="down", scene=sliding_box, height=1.0)])
+        node=Sequence(nodes=[BoxLowering(name="down", scene=sliding_box, height=1.0)])
     )
-    executor.compile(statechart)
+    executor.compile(statechart=statechart)
     published = visualization.live.publisher.current_plan()
     executor.execute()
     assert [node.label for node in published.nodes] == ["Sequence", "BoxLowering"]
@@ -122,7 +124,7 @@ def test_a_visualization_it_started_stops_once_the_run_stopped(
     sliding_box, factory, created
 ):
     executor = KinematicallySimulatedPlanExecutor(
-        StatechartContext(world=sliding_box.world),
+        context=StatechartContext(world=sliding_box.world),
         extensions=[CrameraVisualization(factory=factory)],
     )
     lower_the_box(executor, sliding_box)
@@ -132,7 +134,7 @@ def test_a_visualization_it_started_stops_once_the_run_stopped(
 def test_a_visualization_it_was_given_keeps_running_after_the_run(sliding_box, factory):
     live = factory(world=sliding_box.world).start()
     executor = KinematicallySimulatedPlanExecutor(
-        StatechartContext(world=sliding_box.world),
+        context=StatechartContext(world=sliding_box.world),
         extensions=[CrameraVisualization(live=live)],
     )
     lower_the_box(executor, sliding_box)

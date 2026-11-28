@@ -6,6 +6,7 @@ itself when the viewer goes away.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -32,6 +33,7 @@ from cramera_protocol.exceptions import ProtocolError
 from cramera_protocol.plan_builder import (
     DemoDocument,
     DemoOption,
+    DemoSource,
     RunEvent,
     RunEventKind,
     RunMode,
@@ -42,6 +44,7 @@ from cramera_protocol.plan_builder import (
     StopAfterMotions,
 )
 from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.validation import ValidatedGrounding
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +90,11 @@ What cramera-bridge does ahead of every demo, as a prepared interpreter is told 
 EXCEPTION_TYPE = re.compile(r"^[A-Za-z_][\w.]*: ")
 """
 How the line of an exception that ended a program starts: its dotted type name.
+"""
+
+GROUNDING_SUFFIX = ".grounding.json"
+"""
+What the file of the grounding handed to a demo is named after the demo's own name.
 """
 
 LOG_ENCODING = "utf-8"
@@ -773,12 +781,16 @@ class DemoRunner:
         demo: DemoDocument,
         mode: RunMode,
         executor: Optional[ExecutorKind] = None,
+        grounding: Optional[ValidatedGrounding] = None,
     ) -> RunStatus:
         """
         :param demo: A checked plan and its environment.
         :param mode: What the demo does.
         :param executor: How a demo performing the plan executes it; the mode's default
             when None.
+        :param grounding: The grounding a passed validation made of the plan, which a
+            simulated run performs instead of grounding the plan again; a run on the
+            real robot is never handed one and grounds its plan afresh.
         :return: The started demo's state.
         :raises DemoNotStarted: When the operating system cannot start it.
         :raises SafetyStopNotAcknowledged: While nobody acknowledged the safety stop
@@ -788,11 +800,22 @@ class DemoRunner:
         with self.lock:
             self.refuse_to_start()
             self.release()
-            saved = self.directory.write(self.template.render(demo))
+            source = self.template.render(demo)
+            saved = self.directory.write(source)
             path = Path(saved.path)
+            command = self.command(path, mode, executor)
+            performed_by = executor or mode.default_executor
+            if (
+                grounding is not None
+                and mode.performs_plan
+                and performed_by is not ExecutorKind.REAL
+            ):
+                command.extend(
+                    (DemoOption.GROUNDING, self.write_grounding(source, grounding))
+                )
             prepared, self.prepared = self.prepared, None
             self.current = DemoProcess.start(
-                self.command(path, mode, executor),
+                command,
                 path,
                 mode,
                 OutputLog(self.log_limit),
@@ -804,6 +827,20 @@ class DemoRunner:
                 prepared=prepared,
             )
             return self.current.status()
+
+    def write_grounding(self, source: DemoSource, grounding: ValidatedGrounding) -> str:
+        """
+        :param source: The demo the grounding is handed to.
+        :param grounding: The grounding a passed validation made of its plan.
+        :return: Where the grounding was written, beside the demo.
+        """
+        written = self.directory.write(
+            DemoSource(
+                file_name=f"{Path(source.file_name).stem}{GROUNDING_SUFFIX}",
+                source=json.dumps(grounding.to_json()),
+            )
+        )
+        return written.path
 
     def command(
         self, path: Path, mode: RunMode, executor: Optional[ExecutorKind] = None

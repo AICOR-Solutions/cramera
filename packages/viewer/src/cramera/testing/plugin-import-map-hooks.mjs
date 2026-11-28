@@ -4,7 +4,8 @@
  * leaving it, such as `../../protocol.js`, reaches the viewer's web directory; bare
  * specifiers resolve through the import map of the viewer's page. Tests reach the
  * viewer's modules through `cramera-viewer/` and this directory's helpers through
- * `cramera-testing/`.
+ * `cramera-testing/`. A viewer module reaching `plugins/<name>/` of the plugin under test,
+ * as the plugin SDK does, reaches the plugin's web directory.
  */
 
 import { readFileSync } from 'node:fs';
@@ -14,6 +15,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
  * The environment variables naming the viewer's and the plugin's web directories.
  */
 const Directory = Object.freeze({ VIEWER: 'CRAMERA_VIEWER_WEB', PLUGIN: 'CRAMERA_PLUGIN_WEB' });
+
+/**
+ * The environment variable naming the plugin, whose web directory a viewer module such
+ * as the plugin SDK reaches at `plugins/<name>/`.
+ */
+const PLUGIN_NAME = process.env.CRAMERA_PLUGIN_NAME ?? '';
 
 /**
  * The prefixes tests import the viewer's modules and these helpers by.
@@ -67,6 +74,11 @@ export async function resolve(specifier, context, nextResolve) {
     if (address.startsWith(SERVED_ROOT) && !address.startsWith(PLUGIN_WEB)) {
       return nextResolve(VIEWER_WEB + address.slice(SERVED_ROOT.length), context);
     }
+  }
+  if (PLUGIN_NAME && specifier.startsWith('.') && context.parentURL?.startsWith(VIEWER_WEB)) {
+    const address = new URL(specifier, context.parentURL).href;
+    const served = `${VIEWER_WEB}plugins/${PLUGIN_NAME}/`;
+    if (address.startsWith(served)) return nextResolve(PLUGIN_WEB + address.slice(served.length), context);
   }
   return nextResolve(specifier, context);
 }

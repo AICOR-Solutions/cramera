@@ -2,7 +2,8 @@
 Validating a plan before it runs on the robot: each validation runs cramera-bridge's
 validator as a child process of its own, which expects the order validated last and
 builds its robots meanwhile, and the plan builder remembers the plan whose validation
-passed last, which alone may then run on the robot.
+passed last, which alone may then run on the robot, and the grounding it passed on,
+which a simulated run of that plan performs instead of grounding it again.
 """
 
 from __future__ import annotations
@@ -22,7 +23,11 @@ from cramera_plan_builder.exceptions import (
 )
 from cramera_protocol.document import JsonDocument
 from cramera_protocol.plan_builder import PlanDocument
-from cramera_protocol.validation import ValidationOrder, ValidationReport
+from cramera_protocol.validation import (
+    ValidatedGrounding,
+    ValidationOrder,
+    ValidationReport,
+)
 
 # %% validator
 
@@ -80,6 +85,13 @@ class ValidationGate:
     validation failed or none ran.
     """
 
+    grounding: Optional[ValidatedGrounding] = None
+    """
+    The grounding the validation that passed last passed on, which a simulated run of
+    its plan performs; None when it passed none on or a run on the robot closed the
+    gate since.
+    """
+
     kept: Optional[str] = None
     """
     The JSON text of the plan whose passed validation the run that closed the gate
@@ -103,7 +115,20 @@ class ValidationGate:
         """
         with self.lock:
             self.validated = self.serialize(plan) if report.passed else None
+            self.grounding = report.grounding if report.passed else None
             self.kept = None
+
+    def grounding_for(self, plan: PlanDocument) -> Optional[ValidatedGrounding]:
+        """
+        :param plan: A plan to run in simulation.
+        :return: The grounding the validation that passed last passed on, when that
+            validated this plan unchanged and no run on the robot followed it; else
+            None, and the run grounds the plan itself.
+        """
+        with self.lock:
+            if self.validated != self.serialize(plan):
+                return None
+            return self.grounding
 
     def admits(self, plan: PlanDocument) -> bool:
         """
@@ -144,6 +169,7 @@ class ValidationGate:
             self.kept = self.admitted()
             self.kept_if = kept_if
             self.validated = None
+            self.grounding = None
 
     @staticmethod
     def serialize(plan: PlanDocument) -> str:

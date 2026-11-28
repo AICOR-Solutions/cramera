@@ -490,7 +490,7 @@ class PlanGrounding:
         arguments = self.arguments(step)
         body = arguments.acted_on()
         if body is None or any(
-            GripperHolds(arm.end_effector, body)()
+            GripperHolds(end_effector=arm.end_effector, body=body)()
             for arm in self.copied_context.robot.all_arms
         ):
             return None
@@ -516,7 +516,7 @@ class PlanGrounding:
         arguments = self.arguments(step)
         body = arguments.acted_on()
         if body is None or not any(
-            GripperHolds(arm.end_effector, body)()
+            GripperHolds(end_effector=arm.end_effector, body=body)()
             for arm in self.copied_context.robot.all_arms
         ):
             return None
@@ -793,6 +793,8 @@ class PlanGrounding:
             if identifier in self.copied_bodies
         }
         open_field = arguments.find_open_arm_field()
+        # read before the check, which puts an object it holds down in the copy
+        held = arguments.held_arm_values()
         placement_failure = arguments.placement_failure()
         if placement_failure is not None:
             return GroundedStep(
@@ -803,7 +805,7 @@ class PlanGrounding:
             )
         resolved = arguments.resolved_destinations()
         check = self.validation.check(
-            StepActions(
+            step=StepActions(
                 self.copied_context, self.copied_bodies, self.actions, site=self.site
             ).action(replace(step, values={**step.values, **resolved})),
             safety=self.workspaces,
@@ -816,6 +818,17 @@ class PlanGrounding:
             self.picked_at[arguments.object_identifier()] = self.step_numbers[
                 step.identifier
             ]
+        if open_field is None and held:
+            # the arm holding the object the step acts on is the step's arm
+            held_field, held_arm = next(iter(held.items()))
+            return GroundedStep(
+                step=step,
+                check=check,
+                arm=ENUM_NAMES.member(Arms, held_arm),
+                arm_field=held_field,
+                resolved_destinations=resolved,
+                expected_positions=expected,
+            )
         if open_field is None or check.grounded_action is None:
             return GroundedStep(
                 step=step,
@@ -845,7 +858,7 @@ class PlanGrounding:
         ).query(step)
         if self.camera is not None:
             self.camera.observe_started()
-        check = self.validation.check_detection(query)
+        check = self.validation.check_detection(query=query)
         if check.found:
             self.copied_bodies[DetectedObjectReference(step.identifier).text] = (
                 check.found[0]

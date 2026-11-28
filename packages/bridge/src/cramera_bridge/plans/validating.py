@@ -17,18 +17,23 @@ from __future__ import annotations
 
 import sys
 from contextlib import nullcontext
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
-from typing_extensions import Any, Optional
+from typing_extensions import Any, List, Optional
 
 from coraplex.perception import WorldPerception
 from cramera_bridge.plans.demo import PlannedTaskDemo, SceneWorlds
-from cramera_bridge.plans.grounding import PlanGrounding
+from cramera_bridge.plans.grounding import GroundedStep, PlanGrounding
 from cramera_bridge.plans.order_command import OrderCommand
 from cramera_bridge.plans.robot_perception import RobotPerception
 from cramera_bridge.plans.workspace import RobotAnnotations
 from cramera_bridge.real_robot import ReportedPosture
-from cramera_protocol.validation import ValidationOrder, ValidationReport
+from cramera_protocol.validation import (
+    GroundedStepDocument,
+    ValidatedGrounding,
+    ValidationOrder,
+    ValidationReport,
+)
 from semantic_digital_twin.world import World
 
 # %% validating
@@ -99,7 +104,30 @@ class PlanValidator:
                     safety=demo.document.safety,
                     camera=camera,
                 ).ground(steps)
-        return ValidationReport(steps=[step.to_step_validation() for step in grounded])
+        report = ValidationReport(
+            steps=[step.to_step_validation() for step in grounded]
+        )
+        if not report.passed or looks or self.order.reads_robot_posture:
+            return report
+        return replace(report, grounding=self.passed_on(grounded))
+
+    def passed_on(self, grounded: List[GroundedStep]) -> ValidatedGrounding:
+        """
+        :param grounded: The steps of a passed validation that perceived nothing and
+            started from the posture the plan gives the robot, as a simulated run of the
+            plan starts.
+        :return: Their grounding, which such a run of the same plan performs.
+        """
+        return ValidatedGrounding(
+            demo=ValidatedGrounding.fingerprint(self.order.demo),
+            steps=[
+                GroundedStepDocument(
+                    resolved=step.resolved_step(),
+                    expected_positions=dict(step.expected_positions),
+                )
+                for step in grounded
+            ],
+        )
 
     def build_world(self, demo: PlannedTaskDemo) -> World:
         """

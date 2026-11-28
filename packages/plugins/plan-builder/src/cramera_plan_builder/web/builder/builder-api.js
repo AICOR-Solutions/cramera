@@ -242,6 +242,17 @@ export class PlanBuilderApi {
   }
 
   /**
+   * Check a plan for whatever generated it, such as a goal page: it is validated like
+   * `validate`, but not admitted to a run.
+   * @param {Object} plan A plan document.
+   * @returns {Promise<Object>} The `PlanDiagnostics`: whether it passed and a finding
+   *   with a stable `DiagnosticCode` for each step that did not simply hold.
+   */
+  check(plan) {
+    return this.#client.post(this.url(PlanBuilderRoute.CHECK), { [ValidationRequestKey.PLAN]: plan });
+  }
+
+  /**
    * End the validation running now, which then answers that it was cancelled.
    * @returns {Promise<Object>} The `ValidationCancellation`: whether one ran.
    */

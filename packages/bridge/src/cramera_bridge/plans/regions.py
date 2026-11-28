@@ -14,8 +14,10 @@ from cramera_protocol.geometry import FloorRectangle
 from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix
 from semantic_digital_twin.robots.robot_part_mixins import HasMountingTable
 from semantic_digital_twin.robots.robot_parts import AbstractRobot
+from semantic_digital_twin.semantic_annotations.semantic_annotations import Table
 from semantic_digital_twin.world_description.geometry import VolumetricBoundingBox
 from semantic_digital_twin.world_description.shape_collection import ShapeCollection
+from semantic_digital_twin.world_description.world_entity import Body
 
 # %% regions
 
@@ -108,11 +110,10 @@ class RegionBoxes:
         """
         :return: The box above the whole top of the robot's table, up to
             :attr:`height_above_table`.
-        :raises RobotHasNoTable: When the robot is mounted on no table.
+        :raises RobotHasNoTable: When the robot is mounted on no table and stands at
+            none.
         """
-        if not isinstance(self.robot, HasMountingTable):
-            raise RobotHasNoTable(type(self.robot).__name__)
-        table = self.robot.table.root
+        table = self.table_body()
         world = table._world
         tabletop = max(table.collision, key=lambda shape: shape.scale.x * shape.scale.y)
         top = (
@@ -129,3 +130,39 @@ class RegionBoxes:
             max_z=top.max_z + self.height_above_table,
             origin=HomogeneousTransformationMatrix(reference_frame=world.root),
         )
+
+    def table_body(self) -> Body:
+        """
+        :return: The body of the table the robot is mounted on; for a robot mounted on
+            none, such as one standing on the floor, the body of the environment's table
+            whose collision geometry lies nearest to the robot's root, measured on the
+            floor.
+        :raises RobotHasNoTable: When the robot is mounted on no table and the world
+            holds no table with collision geometry.
+        """
+        if isinstance(self.robot, HasMountingTable):
+            return self.robot.table.root
+        world = self.robot._world
+        tables = [
+            annotation.root
+            for annotation in world.get_semantic_annotations_by_type(Table)
+            if annotation.root.has_collision()
+        ]
+        if not tables:
+            raise RobotHasNoTable(type(self.robot).__name__)
+        return min(tables, key=self.floor_distance_to)
+
+    def floor_distance_to(self, body: Body) -> float:
+        """
+        :param body: A body with collision geometry.
+        :return: How far, in metres on the floor, the robot's root lies from the
+            footprint of the body's collision geometry; 0 above or below it.
+        """
+        world = body._world
+        box = body.collision.as_bounding_box_collection_in_frame(
+            world.root
+        ).bounding_box()
+        root = self.robot.root.global_pose.to_np()[:2, 3]
+        dx = max(float(box.min_x) - root[0], 0.0, root[0] - float(box.max_x))
+        dy = max(float(box.min_y) - root[1], 0.0, root[1] - float(box.max_y))
+        return (dx**2 + dy**2) ** 0.5

@@ -51,6 +51,7 @@ from krrood.entity_query_language.backends import (
     QueryBackend,
 )
 from krrood.entity_query_language.evaluable import Evaluable
+from krrood.entity_query_language.ground_term import TermReader
 from krrood.entity_query_language.verbalization.vocabulary.english import Directive
 from semantic_digital_twin.semantic_annotations.mixins import (
     HasRootKinematicStructureEntity,
@@ -208,9 +209,9 @@ class SteppedBackend(QueryBackend):
     Whether it answers the parts a plan leaves open, each a query of the task's own.
     """
 
-    def evaluate(self, expression: Evaluable) -> Iterable[Any]:
+    def evaluate(self, *, expression: Evaluable) -> Iterable[Any]:
         if threading.current_thread() is not self.stepper.thread:
-            return self.inner.evaluate(expression)
+            return self.inner.evaluate(expression=expression)
         return self.stepper.answer(expression, self.inner, self.resolves)
 
     def __deepcopy__(self, memo: Dict[int, Any]) -> QueryBackend:
@@ -291,16 +292,22 @@ class QueryStepper:
         original = Evaluable.evaluate
         stepper = self
 
-        def evaluate(expression: Evaluable, backend: Optional[QueryBackend] = None):
+        def evaluate(
+            expression: Evaluable,
+            *,
+            backend: Optional[QueryBackend] = None,
+            state: Optional[TermReader] = None,
+        ):
             if isinstance(backend, SteppedBackend) or not stepper.owns(
                 sys._getframe(1)
             ):
-                return original(expression, backend)
+                return original(expression, backend=backend, state=state)
             return original(
                 expression,
-                SteppedBackend(
+                backend=SteppedBackend(
                     inner=backend or EntityQueryLanguageBackend(), stepper=stepper
                 ),
+                state=state,
             )
 
         self.thread = threading.current_thread()
@@ -361,7 +368,7 @@ class QueryStepper:
         step = self.ask(expression, inner, resolves)
         self.hold(step)
         started = time.perf_counter()
-        answers = iter(inner.evaluate(expression))
+        answers = iter(inner.evaluate(expression=expression))
         about = []
         ended = False
         try:
@@ -490,7 +497,7 @@ class QueryStepper:
         return [
             node
             for statechart in self.statecharts
-            for node in statechart.get_nodes_by_type(StatementNode)
+            for node in statechart.get_nodes_by_type(node_type=StatementNode)
             if node.statement is open_part
         ]
 

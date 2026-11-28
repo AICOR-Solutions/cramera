@@ -5,7 +5,7 @@ geometry, lights, cameras and semantics.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import numpy
@@ -26,6 +26,7 @@ from cramera_usd.stage.joints import JointReader
 from cramera_usd.stage.lights import CameraReader, LightReader
 from cramera_usd.stage.materials import MaterialReader
 from cramera_usd.stage.partition import LinkPartition
+from cramera_usd.stage.placement import FloorRegion
 from cramera_usd.stage.robots import PrimExclusion
 from cramera_usd.stage.semantics import SemanticsReader
 from cramera_usd.stage.separation import RobotSeparation
@@ -79,6 +80,11 @@ class GeometryCollection:
     The log collecting skipped geometry.
     """
 
+    region: Optional[FloorRegion] = None
+    """
+    The part of the floor plan whose geometry is drawn, or None to draw all of it.
+    """
+
     world_points: List[numpy.ndarray] = field(
         default_factory=lambda: [numpy.zeros((0, SPACE_DIMENSIONS))]
     )
@@ -104,6 +110,12 @@ class GeometryCollection:
             if len(piece.mesh.triangles) == 0:
                 self.log.skip(SkipReason.EMPTY_GEOMETRY, path)
                 continue
+            if self.region is not None:
+                cropped = self.region.crop(piece.mesh, self.frame.world_matrix(prim))
+                if cropped is None:
+                    self.log.skip(SkipReason.OUTSIDE_REGION, path)
+                    continue
+                piece = replace(piece, mesh=cropped)
             local = piece.mesh.transformed(to_link)
             link.meshes.append(
                 LinkMesh(path, local.single_precision(), piece.material, double_sided)
@@ -220,6 +232,11 @@ class StageConversion:
     What the conversion read, skipped and left out.
     """
 
+    region: Optional[FloorRegion] = field(default=None, kw_only=True)
+    """
+    The part of the floor plan whose geometry is drawn, or None to draw all of it.
+    """
+
     def run(self) -> ConvertedStage:
         """
         :return: The neutral description of the selected prims.
@@ -266,7 +283,11 @@ class StageConversion:
             ],
         )
         collection = GeometryCollection(
-            self.frame, GeometryReader(self.frame, materials), tree, self.log
+            self.frame,
+            GeometryReader(self.frame, materials),
+            tree,
+            self.log,
+            region=self.region,
         )
         for prim in geometry:
             collection.add(prim)

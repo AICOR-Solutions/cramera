@@ -70,7 +70,7 @@ from cramera_protocol.plan_builder import PlanStep, StepConstraint
 from cramera_protocol.robot_profile import RuntimeCheck, SafetyLimits
 from cramph.composites import CancelledWhenTrue
 from cramph.composites import Sequence as StepSequence
-from cramph.data_types import LifeCycleValues, ObservationStateValues
+from cramph.data_types import LifeCycleValue, ObservationStateValue
 from cramph.exceptions import ExecutionFailure
 from cramph.executor import (
     Executor,
@@ -246,10 +246,10 @@ class FailedAttempt:
         if isinstance(failure, MotionDidNotFinish):
             failure = next(
                 (
-                    NothingPerceived(task.query.semantic_annotation)
+                    NothingPerceived(semantic_annotation=task.query.semantic_annotation)
                     for task in [node, *node.descendants]
                     if isinstance(task, PerceptionTask)
-                    and task.life_cycle_state is LifeCycleValues.FAILED
+                    and task.life_cycle_state is LifeCycleValue.FAILED
                 ),
                 failure,
             )
@@ -344,7 +344,7 @@ class AttemptedStep:
         """
         return (
             self.action is not None
-            and self.action.life_cycle_state is LifeCycleValues.NOT_STARTED
+            and self.action.life_cycle_state is LifeCycleValue.NOT_STARTED
         )
 
     def has_perceived(self) -> bool:
@@ -353,7 +353,7 @@ class AttemptedStep:
         """
         return any(
             isinstance(node, PerceptionTask)
-            and node.life_cycle_state is LifeCycleValues.SUCCEEDED
+            and node.life_cycle_state is LifeCycleValue.SUCCEEDED
             for node in self.node.descendants
         )
 
@@ -468,7 +468,7 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
         """
         Follow every state the compiled plan's history records.
         """
-        executor.statechart.state_history.add_observer(self)
+        executor.statechart.state_history.add_observer(observer=self)
 
     def on_state_change(self, history: StateHistory) -> None:
         self.follow()
@@ -488,7 +488,7 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
             (
                 attempted
                 for attempted in self.steps
-                if attempted.node.life_cycle_state is not LifeCycleValues.SUCCEEDED
+                if attempted.node.life_cycle_state is not LifeCycleValue.SUCCEEDED
             ),
             None,
         )
@@ -514,7 +514,7 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
         )
 
     def after_run(self, executor: StatechartExecutor) -> None:
-        executor.statechart.state_history.remove_observer(self)
+        executor.statechart.state_history.remove_observer(observer=self)
         for attempted in self.steps:
             self.write_success(attempted)
         self.write_safety_stop(executor)
@@ -529,9 +529,9 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
             (
                 node
                 for node in executor.statechart.get_nodes_by_type(
-                    CancelOnSafetyViolation
+                    node_type=CancelOnSafetyViolation
                 )
-                if node.life_cycle_state is not LifeCycleValues.NOT_STARTED
+                if node.life_cycle_state is not LifeCycleValue.NOT_STARTED
             ),
             None,
         )
@@ -546,7 +546,7 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
         attempted = next(
             attempted
             for attempted in self.steps
-            if attempted.node.life_cycle_state is not LifeCycleValues.SUCCEEDED
+            if attempted.node.life_cycle_state is not LifeCycleValue.SUCCEEDED
         )
         self.run_log.write(
             StepAttempt(
@@ -607,7 +607,7 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
         """
         if attempted.step in self.succeeded:
             return
-        if attempted.node.life_cycle_state is not LifeCycleValues.SUCCEEDED:
+        if attempted.node.life_cycle_state is not LifeCycleValue.SUCCEEDED:
             return
         self.write_start(attempted)
         self.succeeded.add(attempted.step)
@@ -628,14 +628,14 @@ class AttemptProgress(TickingExecutorExtension, StateHistoryObserver):
         :param watched: A look-at of the plan, written when what it observes changed
             while it runs.
         """
-        if watched.monitor.life_cycle_state is not LifeCycleValues.RUNNING:
+        if watched.monitor.life_cycle_state is not LifeCycleValue.RUNNING:
             return
         observation = watched.monitor.observation_state
-        if observation == ObservationStateValues.UNKNOWN:
+        if observation == ObservationStateValue.UNKNOWN:
             return
         view = (
             View.OUT_OF_VIEW
-            if observation == ObservationStateValues.TRUE
+            if observation == ObservationStateValue.TRUE
             else View.IN_VIEW
         )
         if self.views.get(watched.step) is view:
@@ -672,7 +672,7 @@ class AttemptPlan:
         offset = next(
             index
             for index, node in enumerate(self.plan.nodes)
-            if node.life_cycle_state is not LifeCycleValues.SUCCEEDED
+            if node.life_cycle_state is not LifeCycleValue.SUCCEEDED
         )
         return self.first + offset
 

@@ -14,15 +14,18 @@ from cramera.exceptions import DuplicatePlugin, InvalidPluginName
 from cramera.http.messages import Header, HttpMethod, MediaType, Request
 from cramera.http.origin import OriginPolicy
 from cramera.http.server import RequestAnswerer
-from cramera.plugins import PageEntry, PanelEntry, PluginLoader
+from cramera.plugins import PLUGIN_API_VERSION, PageEntry, PanelEntry, PluginLoader
 from cramera_protocol.browser import BrowserModule
 from cramera_protocol.bundle.files import BundleFile
 from cramera_protocol.bundle.index import SceneIndex
 from cramera_protocol.live import Capability
+from cramera_protocol.version import ProtocolVersion
 from cramera_protocol.viewer import NavigationGroup, ViewerInfo, ViewerRoute
 
 from .dataset.plugins import (
+    BrokenEntryPoint,
     FactoryEntryPoint,
+    FuturePlugin,
     QuestionPlugin,
     RecordingPlugin,
     SilentPlugin,
@@ -156,6 +159,12 @@ def test_the_packaged_page_exists(answerer):
     assert get(answerer, "/").status is HTTPStatus.OK
 
 
+def test_the_plugin_sdk_is_served_as_a_module(answerer):
+    answer = get(answerer, "/sdk/v1/index.js")
+    assert answer.status is HTTPStatus.OK
+    assert answer.media_type is MediaType.JAVASCRIPT
+
+
 # %% loading plugins
 
 
@@ -182,6 +191,34 @@ def test_plugins_are_loaded_from_entry_points_sorted_by_name():
         ]
     )
     assert [plugin.name() for plugin in loader.load()] == ["questions", "silent"]
+
+
+def test_a_plugin_that_fails_to_load_is_reported_and_the_others_still_load():
+    plugins = PluginLoader(
+        entry_points=[BrokenEntryPoint("broken"), FactoryEntryPoint(SilentPlugin())]
+    ).load()
+    assert [plugin.name() for plugin in plugins] == ["broken", "silent"]
+    broken = plugins[0].info()
+    assert "broken_dependency" in broken.error
+    assert broken.module is None and broken.navigation is None
+    assert plugins[1].info().error is None
+
+
+def test_a_plugin_written_for_another_major_api_version_is_refused_saying_why():
+    [plugin] = PluginLoader(entry_points=[FactoryEntryPoint(FuturePlugin())]).load()
+    error = plugin.info().error
+    assert "plugin API 2.0" in error
+    assert f"offers {PLUGIN_API_VERSION.to_json()}" in error
+    assert plugin.routes(None) == []
+
+
+def test_a_plugin_of_the_viewers_major_api_version_loads():
+    written_for = ProtocolVersion(PLUGIN_API_VERSION.major, PLUGIN_API_VERSION.minor + 1)
+    [plugin] = PluginLoader(
+        entry_points=[FactoryEntryPoint(FuturePlugin(written_for=written_for))]
+    ).load()
+    assert plugin.info().error is None
+    assert SilentPlugin().api_version() == PLUGIN_API_VERSION
 
 
 def test_installed_entry_points_are_read_by_default():

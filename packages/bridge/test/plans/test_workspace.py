@@ -4,6 +4,7 @@ The installed CRAM workspace as the catalog reads it.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,7 @@ from cramera_bridge.exceptions import (
 from cramera_bridge.names import ANNOTATION_NAMES, ENUM_NAMES, ROBOT_NAMES
 from cramera_bridge.scenes.multi_robot import RobotPlacement, RobotScene
 from cramera_protocol.bundle.files import MeshFormat
+from cramera_protocol.registry import DeclaredEntryPoint, Registry, RegistryGroup
 from semantic_digital_twin.datastructures.definitions import TorsoState
 from semantic_digital_twin.robots.minimal_robot import MinimalRobot
 from semantic_digital_twin.robots.pr2 import PR2
@@ -138,6 +140,39 @@ def test_the_surfaces_are_concrete_annotations_without_the_mixins(workspace):
     assert HasCaseAsRootBody.__name__ not in surfaces
     assert SurfaceAnnotations().named(ANNOTATION_NAMES.identifier_of(Table)) is Table
     assert SurfaceAnnotations().named(Table.__name__) is Table
+
+
+def test_the_module_of_a_robot_a_package_declares_is_imported_to_offer_it():
+    module = f"{__name__.rpartition('.')[0].rpartition('.')[0]}.dataset.registered_robots"
+    registry = Registry.from_declarations(
+        [
+            DeclaredEntryPoint(
+                "acme-robots", RegistryGroup.ROBOTS, "digger", f"{module}:Digger"
+            ),
+            DeclaredEntryPoint(
+                "acme-robots", RegistryGroup.ROBOTS, "ghost", "acme_missing.robots:Ghost"
+            ),
+        ]
+    )
+    names = [
+        annotation.__name__
+        for annotation in RobotAnnotations(registry=registry).annotations()
+    ]
+    assert module in sys.modules
+    assert PR2.__name__ in names
+
+
+def test_a_robot_is_found_by_its_namespaced_identifier_and_its_old_names():
+    assert RobotAnnotations().named("cram.tracy") is Tracy
+    assert RobotAnnotations().named("tracy") is Tracy
+    assert RobotAnnotations().named("Tracy") is Tracy
+
+
+def test_a_robot_of_a_package_not_installed_is_reported_unavailable():
+    with pytest.raises(UnknownWorkspaceClass) as raised:
+        RobotAnnotations().named("acme.digger")
+    assert raised.value.missing_namespace == "acme"
+    assert "not installed" in str(raised.value)
 
 
 def test_an_unknown_class_name_is_refused():

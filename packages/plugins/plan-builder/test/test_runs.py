@@ -4,6 +4,7 @@ Running a generated demo as a child process the plan builder owns.
 
 from __future__ import annotations
 
+import json
 import signal
 import sys
 import time
@@ -35,6 +36,7 @@ from cramera_protocol.plan_builder import (
     StepState,
 )
 from cramera_protocol.robot_profile import ExecutorKind
+from cramera_protocol.validation import ValidatedGrounding
 
 from .dataset.given_workspace import DATASET
 
@@ -175,6 +177,43 @@ def test_a_performing_demo_is_told_how_to_execute_the_plan(
     ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
     assert ended.mode is mode
     assert f"{DemoOption.EXECUTOR} {expected}" in ended.log
+
+
+def a_grounding_of(demo: DemoDocument) -> ValidatedGrounding:
+    """
+    :return: A grounding a passed validation made of the demo.
+    """
+    return ValidatedGrounding(demo=ValidatedGrounding.fingerprint(demo))
+
+
+@pytest.mark.parametrize("executor", [ExecutorKind.KINEMATIC, ExecutorKind.PHYSICS])
+def test_a_simulated_run_is_handed_its_validations_grounding(runner, demo, executor):
+    grounding = a_grounding_of(demo)
+
+    runner.start(demo, RunMode.PERFORM, executor, grounding=grounding)
+
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    arguments = ended.log.split()
+    grounding_file = Path(arguments[arguments.index(DemoOption.GROUNDING) + 1])
+    written = json.loads(grounding_file.read_text("utf-8"))
+    assert ValidatedGrounding.from_json(written) == grounding
+
+
+def test_a_run_on_the_real_robot_is_never_handed_a_grounding(tmp_path, demo):
+    runner = runner_of(tmp_path, "waiting_demo.py")
+
+    runner.start(demo, RunMode.ROBOT, ExecutorKind.REAL, grounding=a_grounding_of(demo))
+
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    assert DemoOption.EXECUTOR in ended.log
+    assert DemoOption.GROUNDING not in ended.log
+
+
+def test_a_run_without_a_grounding_grounds_its_plan_itself(runner, demo):
+    runner.start(demo, RunMode.PERFORM, ExecutorKind.KINEMATIC)
+
+    ended = wait_for(runner, lambda status: status.state is not RunState.RUNNING)
+    assert DemoOption.GROUNDING not in ended.log
 
 
 def test_a_staged_demo_executes_nothing(runner, demo):

@@ -15,6 +15,54 @@ beyond the viewer. The README's section *Install the pages and panels* lists the
 answer names the plugins it has loaded, which is the first thing to check when a
 page is missing from the top bar.
 
+## Plugin API 1
+
+A plugin outside this repository uses only the versioned plugin API:
+
+- Python: `cramera_plan_builder.plugin_api` (the viewer's plugin interface, `ViewerError`,
+  `PlanBuilderServices.of(context, environment)` with the saved plans, the configured
+  robot profile, the object catalogue and the page opening a plan, and the identifier
+  registry) plus the protocol `cramera_protocol`.
+- Browser: the SDK module `/sdk/v1/index.js`, imported as `../../sdk/v1/index.js` from a
+  page below `/plugins/<name>/`: the protocol's keys, `ViewerApi`, `Bounds`, the plan
+  builder's `PlanScene` (with `frameOn(bounds)`), `PlanSceneListeners`, `SceneOverlay`
+  and `PlanBuilderApi`.
+- `ViewerPlugin.api_version()` returns the plugin API version the plugin was written for
+  (the viewer's own by default). The viewer refuses a plugin of another major version,
+  and a plugin that fails to import or to start is listed in `/api/info` with its
+  `error` while the viewer and the other plugins keep running.
+- Declare the range in `pyproject.toml`: `cramera-plan-builder>=1.0,<2`,
+  `cramera-protocol>=1.0,<2`.
+
+## Identifier registry
+
+Robots and actions are named by namespaced identifiers, `<namespace>.<name>` (such as
+`example.walker_s2`); CRAM's own are in the namespace `cram`, which may be left out
+(`tracy`). A package contributes through entry points that `cramera_protocol.registry`
+reads from its metadata without loading them; the bridge loads the classes:
+
+```toml
+[project.entry-points."cramera.namespaces"]
+example = "example_robots"                  # the package's one namespace
+
+[project.entry-points."cramera.robots"]
+walker_s2 = "example_robots.robots.walker_s2:WalkerS2"
+
+[project.entry-points."cramera.actions"]
+stack_cube = "example_robots.skills:StackCubeAction"
+
+[project.entry-points."cramera.action_fields"]
+"stack_cube.target" = "target_pose"         # only where a field's identifier differs
+
+[project.entry-points."cramera.aliases"]
+WalkerS2 = "example.walker_s2"              # older names that must keep resolving
+```
+
+A package without a `cramera.namespaces` entry gets its normalized distribution name as
+namespace. Two packages claiming one namespace, an identifier or an alias declared twice
+are refused. A name whose namespace no installed package declares is reported as
+unavailable.
+
 ## Python side
 
 ```toml
@@ -120,6 +168,15 @@ Rules for browser modules:
 
 A plugin may also ship pages of its own in its web directory, for example a builder
 that needs the whole window; declare a `PageEntry` so the top bar links to it.
+
+A plugin that generates plans, such as a goal page, checks them through the plan
+builder's `check` route (`PlanBuilderApi.check(plan)` in the SDK). It validates the
+plan as `validate` does, but never admits it to a run, and answers with
+`PlanDiagnostics` (`cramera_protocol.grounding`): `passed` and, for each step that did
+not simply hold, a finding with a stable `DiagnosticCode` (such as
+`step.unreachable`), a `DiagnosticSeverity`, the step's index and identity, a sentence
+for people and the planner's detail. A plan the builder refuses before trying a step is
+one `plan.refused` finding. Act on the codes, not on the sentences.
 
 On a static site (`cramera-export-site --plugin NAME`) the plugin's browser files are
 copied, but its routes do not exist. A plugin that wants to show something there
