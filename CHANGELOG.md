@@ -80,6 +80,9 @@ which this repository was mirrored until 22 Oct 2026.
   frame (`LaboratoryEnvironment.slot_pose`), as the centrifuge's and the
   refrigerator's holders are in theirs, so a vessel's target follows the rack and the
   view names the rack, not the map, as the frame of the location.
+  On CRAM 26.10, where a motion is a giskard goal, the goal's `tip_link` is its effector
+  and its `goal_pose` or `goal_point` its location, a point shown by its coordinates;
+  both bundles are recorded on the laboratory's port to CRAM 26.10 (#95).
 - **The Segmind tab: what segmind saw, annotated in the replay.** A run recorded with
   segmind watching (`cramera-onboard --detect-events`, or `CRAMERA_DETECT_EVENTS=1` for
   a live run) lists every event with its sort, the frame it happened at and the keys

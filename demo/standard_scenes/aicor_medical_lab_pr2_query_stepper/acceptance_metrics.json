@@ -1,8 +1,8 @@
 {
- "positionError": 0.00013976749441837932,
- "orientationError": 0.00038847002587656166,
- "maximumLift": 0.16447615249136394,
+ "positionError": 0.00013976749441871116,
+ "orientationError": 0.00038847002644814914,
+ "maximumLift": 0.16447631021292242,
  "carriedTicks": 262,
- "smallestPadClearance": 0.0002566500998201649,
+ "smallestPadClearance": 0.0002566500998202894,
  "smallestCollisionDistance": 0.1070803038709705
 }

@@ -1,7 +1,7 @@
 {
  "name": "aicor_medical_lab_pr2_query_stepper",
  "formatVersion": "1.0",
- "framesPerSecond": 7.34,
+ "framesPerSecond": 8.25,
  "trajectory": "trajectory.json",
  "statecharts": "statecharts.json",
  "querySteps": "query_steps.json",
@@ -75,7 +75,7 @@
     "pr2/fl_caster_l_wheel_joint"
    ],
    "posedJoints": [],
-   "identifier": "104276a3-e503-4e06-8220-468cc1721dbc",
+   "identifier": "2ac98652-a48d-4ded-886b-9ad9e392fd0a",
    "pose": [
     0.4,
     -0.72,
@@ -221,13 +221,13 @@
     "attachedTo": "PR2RightArm"
    }
   ],
-  "identifier": "104276a3-e503-4e06-8220-468cc1721dbc",
+  "identifier": "2ac98652-a48d-4ded-886b-9ad9e392fd0a",
   "label": "PR2"
  },
  "objects": [
   {
    "id": "laboratory_rack",
-   "key": "17d8f933-96ae-4d25-bb95-b2f4fecedaea",
+   "key": "fda60764-04c9-49ca-9f22-499f66f7b586",
    "spawn": [
     0.22,
     -0.04,
@@ -239,11 +239,11 @@
    ],
    "color": "#ffffff",
    "height": 0.0681,
-   "mesh": "meshes/objects/17d8f933-96ae-4d25-bb95-b2f4fecedaea/tube_rack.glb"
+   "mesh": "meshes/objects/fda60764-04c9-49ca-9f22-499f66f7b586/tube_rack.glb"
   },
   {
    "id": "tube_clear",
-   "key": "09afd195-586c-4d7d-a617-316c87a12329",
+   "key": "62ac5709-d425-415e-a4b9-12b708bc7f86",
    "spawn": [
     0.16,
     -0.065,
@@ -255,11 +255,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/09afd195-586c-4d7d-a617-316c87a12329/tube_clear.glb"
+   "mesh": "meshes/objects/62ac5709-d425-415e-a4b9-12b708bc7f86/tube_clear.glb"
   },
   {
    "id": "tube_amber",
-   "key": "d4ba115b-0f0e-4fe4-9417-0d319f80152e",
+   "key": "7ff445f1-0649-4123-b2e8-01726af2118d",
    "spawn": [
     0.22,
     -0.065,
@@ -271,11 +271,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/d4ba115b-0f0e-4fe4-9417-0d319f80152e/tube_amber.glb"
+   "mesh": "meshes/objects/7ff445f1-0649-4123-b2e8-01726af2118d/tube_amber.glb"
   },
   {
    "id": "tube_teal",
-   "key": "594c6011-d196-44c9-af81-aab5d9f840c0",
+   "key": "7767cfaa-a595-4ed7-8b83-f090997a2d1b",
    "spawn": [
     0.16,
     -0.015,
@@ -287,11 +287,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/594c6011-d196-44c9-af81-aab5d9f840c0/tube_teal.glb"
+   "mesh": "meshes/objects/7767cfaa-a595-4ed7-8b83-f090997a2d1b/tube_teal.glb"
   },
   {
    "id": "tube_reserve",
-   "key": "27766535-d6e9-4823-8223-f19a7637a776",
+   "key": "a06d22e9-ea2e-40dd-8475-69c0f071527d",
    "spawn": [
     0.28,
     -0.015,
@@ -303,11 +303,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/27766535-d6e9-4823-8223-f19a7637a776/tube_clear.glb"
+   "mesh": "meshes/objects/a06d22e9-ea2e-40dd-8475-69c0f071527d/tube_clear.glb"
   },
   {
    "id": "stopper",
-   "key": "13b0d066-b547-4334-b307-85605e785712",
+   "key": "f82e25cf-d278-47a3-9667-a534d2d9e52e",
    "spawn": [
     0.5,
     -0.12,
@@ -319,22 +319,22 @@
    ],
    "color": "#ffffff",
    "height": 0.021,
-   "mesh": "meshes/objects/13b0d066-b547-4334-b307-85605e785712/stopper.glb"
+   "mesh": "meshes/objects/f82e25cf-d278-47a3-9667-a534d2d9e52e/stopper.glb"
   }
  ],
  "segments": [
   {
    "step": "run",
    "start": 0,
-   "end": 62
+   "end": 60
   },
   {
    "step": "VesselPickUpAction",
-   "start": 62,
-   "end": 217,
-   "picks": "09afd195-586c-4d7d-a617-316c87a12329",
-   "attach": 62,
-   "detach": 211
+   "start": 60,
+   "end": 200,
+   "picks": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+   "attach": 60,
+   "detach": 195
   }
  ],
  "planTrees": [
@@ -367,14 +367,14 @@
            "id": "plan_node_6",
            "parent": "plan_node_3",
            "start": 5,
-           "end": 37,
+           "end": 32,
            "parameters": {
             "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
             "threshold": "0.0005",
             "root_link": "pr2/base_footprint",
             "tip_link": "pr2/l_gripper_tool_frame",
             "binding_policy": "Bind_on_start",
-            "goal_point": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx [1.05702e-17, 1.71314e-17, 0.214, 1], pinned_free_variables ",
+            "goal_point": "0.000, 0.000, 0.214",
             "reference_velocity": "0.2"
            },
            "constraints": [],
@@ -398,11 +398,11 @@
              "field": "goal_point",
              "role": "location",
              "source": "field",
-             "value": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx [1.05702e-17, 1.71314e-17, 0.214, 1], pinned_free_variables ",
+             "value": "0.000, 0.000, 0.214",
              "entities": [],
              "reference": {
               "keys": [
-               "09afd195-586c-4d7d-a617-316c87a12329"
+               "62ac5709-d425-415e-a4b9-12b708bc7f86"
               ],
               "name": "tube_clear",
               "type": "Body"
@@ -433,7 +433,7 @@
             "root_link": "pr2/base_footprint",
             "tip_link": "pr2/l_gripper_tool_frame",
             "binding_policy": "Bind_on_start",
-            "goal_orientation": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+            "goal_orientation": "reference_frame 62ac5709-d425-415e-a4b9-12b708bc7f86, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
             "reference_velocity": "0.2"
            },
            "constraints": [],
@@ -529,7 +529,7 @@
          "id": "plan_node_3",
          "parent": "plan_node_2",
          "start": 5,
-         "end": 37,
+         "end": 32,
          "parameters": {
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
@@ -566,7 +566,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "09afd195-586c-4d7d-a617-316c87a12329"
+             "62ac5709-d425-415e-a4b9-12b708bc7f86"
             ],
             "name": "tube_clear",
             "type": "Body"
@@ -596,14 +596,14 @@
            "target": "pr2/l_gripper_tool_frame",
            "id": "plan_node_9",
            "parent": "plan_node_8",
-           "start": 38,
-           "end": 41,
+           "start": 33,
+           "end": 35,
            "parameters": {
             "weight": "1",
             "threshold": "0.001",
             "root_link": "pr2/l_gripper_tool_frame",
-            "reference_point": "reference_frame pr2/l_gripper_r_finger_tip_link, _casadi_sx [-0.025956, 0.0158212, -0.0112393, 1], pinned_free_variables ",
-            "tip_point": "reference_frame pr2/l_gripper_l_finger_tip_link, _casadi_sx [-0.025956, -0.0158212, -0.0111983, 1], pinned_free_variables ",
+            "reference_point": "-0.026, 0.016, -0.011",
+            "tip_point": "-0.026, -0.016, -0.011",
             "axis": "reference_frame pr2/l_gripper_tool_frame, _casadi_sx @1=0, [@1, 1, @1, @1], pinned_free_variables ",
             "distance": "0.092012",
             "reference_velocity": "0.2"
@@ -614,8 +614,8 @@
          ],
          "id": "plan_node_8",
          "parent": "plan_node_2",
-         "start": 38,
-         "end": 41,
+         "start": 33,
+         "end": 35,
          "parameters": {
           "tolerate_stall": "off",
           "gripper": "PR2LeftGripper",
@@ -664,15 +664,15 @@
            "target": "pr2/base_footprint",
            "id": "plan_node_13",
            "parent": "plan_node_10",
-           "start": 42,
-           "end": 52,
+           "start": 36,
+           "end": 48,
            "parameters": {
             "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
             "threshold": "0.0005",
             "root_link": "pr2/base_footprint",
             "tip_link": "pr2/l_gripper_tool_frame",
             "binding_policy": "Bind_on_start",
-            "goal_point": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx [-1.53118e-18, -1.02079e-18, 0.105, 1], pinned_free_variables ",
+            "goal_point": "-0.000, -0.000, 0.105",
             "reference_velocity": "0.2"
            },
            "constraints": [],
@@ -696,11 +696,11 @@
              "field": "goal_point",
              "role": "location",
              "source": "field",
-             "value": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx [-1.53118e-18, -1.02079e-18, 0.105, 1], pinned_free_variables ",
+             "value": "-0.000, -0.000, 0.105",
              "entities": [],
              "reference": {
               "keys": [
-               "09afd195-586c-4d7d-a617-316c87a12329"
+               "62ac5709-d425-415e-a4b9-12b708bc7f86"
               ],
               "name": "tube_clear",
               "type": "Body"
@@ -731,7 +731,7 @@
             "root_link": "pr2/base_footprint",
             "tip_link": "pr2/l_gripper_tool_frame",
             "binding_policy": "Bind_on_start",
-            "goal_orientation": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+            "goal_orientation": "reference_frame 62ac5709-d425-415e-a4b9-12b708bc7f86, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
             "reference_velocity": "0.2"
            },
            "constraints": [],
@@ -826,8 +826,8 @@
          "target": "pr2/base_footprint",
          "id": "plan_node_10",
          "parent": "plan_node_2",
-         "start": 42,
-         "end": 52,
+         "start": 36,
+         "end": 48,
          "parameters": {
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
@@ -864,7 +864,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "09afd195-586c-4d7d-a617-316c87a12329"
+             "62ac5709-d425-415e-a4b9-12b708bc7f86"
             ],
             "name": "tube_clear",
             "type": "Body"
@@ -886,7 +886,7 @@
        "id": "plan_node_2",
        "parent": "plan_node_1",
        "start": 5,
-       "end": 52,
+       "end": 48,
        "parameters": {
         "grasp_detection_threshold": "0.9",
         "pre_approach_linear_velocity": "0.12",
@@ -1066,7 +1066,7 @@
          "entities": [
           {
            "keys": [
-            "09afd195-586c-4d7d-a617-316c87a12329"
+            "62ac5709-d425-415e-a4b9-12b708bc7f86"
            ],
            "name": "Container \u00b7 tube_clear",
            "type": "Container"
@@ -1092,8 +1092,8 @@
            "children": [],
            "id": "plan_node_60",
            "parent": "plan_node_16",
-           "start": 54,
-           "end": 61,
+           "start": 50,
+           "end": 59,
            "parameters": {
             "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
             "threshold": "0.0001",
@@ -1104,14 +1104,14 @@
            "roles": []
           }
          ],
-         "target": "09afd195-586c-4d7d-a617-316c87a12329",
+         "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
          "id": "plan_node_16",
          "parent": "plan_node_15",
-         "start": 54,
-         "end": 61,
+         "start": 50,
+         "end": 59,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "09afd195-586c-4d7d-a617-316c87a12329",
+          "object_designator": "62ac5709-d425-415e-a4b9-12b708bc7f86",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
@@ -1147,11 +1147,11 @@
            "field": "object_designator",
            "role": "object",
            "source": "field",
-           "value": "09afd195-586c-4d7d-a617-316c87a12329",
+           "value": "62ac5709-d425-415e-a4b9-12b708bc7f86",
            "entities": [
             {
              "keys": [
-              "09afd195-586c-4d7d-a617-316c87a12329"
+              "62ac5709-d425-415e-a4b9-12b708bc7f86"
              ],
              "name": "tube_clear",
              "type": "Body"
@@ -1168,8 +1168,8 @@
          "target": "map",
          "id": "plan_node_17",
          "parent": "plan_node_15",
-         "start": 53,
-         "end": 53,
+         "start": 49,
+         "end": 49,
          "parameters": {
           "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
           "root_link": "map",
@@ -1235,14 +1235,14 @@
          ]
         }
        ],
-       "target": "09afd195-586c-4d7d-a617-316c87a12329",
+       "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
        "id": "plan_node_15",
        "parent": "plan_node_1",
-       "start": 53,
-       "end": 61,
+       "start": 49,
+       "end": 59,
        "parameters": {
         "gripper": "PR2LeftGripper",
-        "object_designator": "09afd195-586c-4d7d-a617-316c87a12329",
+        "object_designator": "62ac5709-d425-415e-a4b9-12b708bc7f86",
         "contact_clearance": "0.00025",
         "joint_position_threshold": "0.0001",
         "finger_velocity": "0.1"
@@ -1396,11 +1396,11 @@
          "field": "object_designator",
          "role": "object",
          "source": "field",
-         "value": "09afd195-586c-4d7d-a617-316c87a12329",
+         "value": "62ac5709-d425-415e-a4b9-12b708bc7f86",
          "entities": [
           {
            "keys": [
-            "09afd195-586c-4d7d-a617-316c87a12329"
+            "62ac5709-d425-415e-a4b9-12b708bc7f86"
            ],
            "name": "tube_clear",
            "type": "Body"
@@ -1414,11 +1414,11 @@
        "label": "MoveBranch",
        "status": "SUCCEEDED",
        "children": [],
-       "target": "09afd195-586c-4d7d-a617-316c87a12329",
+       "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
        "id": "plan_node_19",
        "parent": "plan_node_1",
        "parameters": {
-        "branch_root": "09afd195-586c-4d7d-a617-316c87a12329",
+        "branch_root": "62ac5709-d425-415e-a4b9-12b708bc7f86",
         "new_parent": "pr2/l_gripper_tool_frame"
        },
        "constraints": [],
@@ -1437,15 +1437,15 @@
          "target": "pr2/base_footprint",
          "id": "plan_node_21",
          "parent": "plan_node_20",
-         "start": 64,
-         "end": 102,
+         "start": 62,
+         "end": 97,
          "parameters": {
           "weight": "1",
           "threshold": "0.0005",
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_point": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx @1=0, [@1, @1, 0.265, 1], pinned_free_variables ",
+          "goal_point": "0.000, 0.000, 0.265",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -1469,11 +1469,11 @@
            "field": "goal_point",
            "role": "location",
            "source": "field",
-           "value": "reference_frame 09afd195-586c-4d7d-a617-316c87a12329, _casadi_sx @1=0, [@1, @1, 0.265, 1], pinned_free_variables ",
+           "value": "0.000, 0.000, 0.265",
            "entities": [],
            "reference": {
             "keys": [
-             "09afd195-586c-4d7d-a617-316c87a12329"
+             "62ac5709-d425-415e-a4b9-12b708bc7f86"
             ],
             "name": "tube_clear",
             "type": "Body"
@@ -1562,8 +1562,8 @@
        ],
        "id": "plan_node_20",
        "parent": "plan_node_1",
-       "start": 64,
-       "end": 102,
+       "start": 62,
+       "end": 97,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -1573,7 +1573,7 @@
      "id": "plan_node_1",
      "parent": "plan_node_0",
      "start": 5,
-     "end": 102,
+     "end": 97,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "pre_approach_linear_velocity": "0.12",
@@ -1720,7 +1720,7 @@
        "entities": [
         {
          "keys": [
-          "09afd195-586c-4d7d-a617-316c87a12329"
+          "62ac5709-d425-415e-a4b9-12b708bc7f86"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -1784,15 +1784,15 @@
          "target": "pr2/base_footprint",
          "id": "plan_node_28",
          "parent": "plan_node_25",
-         "start": 103,
-         "end": 121,
+         "start": 98,
+         "end": 115,
          "parameters": {
           "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
           "threshold": "0.003",
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_point": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.271, 1], pinned_free_variables ",
+          "goal_point": "0.060, -0.025, 0.271",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -1816,11 +1816,11 @@
            "field": "goal_point",
            "role": "location",
            "source": "field",
-           "value": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.271, 1], pinned_free_variables ",
+           "value": "0.060, -0.025, 0.271",
            "entities": [],
            "reference": {
             "keys": [
-             "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -1851,7 +1851,7 @@
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_orientation": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+          "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -1946,8 +1946,8 @@
        "target": "pr2/base_footprint",
        "id": "plan_node_25",
        "parent": "plan_node_24",
-       "start": 103,
-       "end": 121,
+       "start": 98,
+       "end": 115,
        "parameters": {
         "root_link": "pr2/base_footprint",
         "tip_link": "pr2/l_gripper_tool_frame",
@@ -1984,7 +1984,7 @@
          "entities": [],
          "reference": {
           "keys": [
-           "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+           "fda60764-04c9-49ca-9f22-499f66f7b586"
           ],
           "name": "laboratory_rack",
           "type": "Body"
@@ -2014,15 +2014,15 @@
          "target": "pr2/base_footprint",
          "id": "plan_node_33",
          "parent": "plan_node_30",
-         "start": 122,
-         "end": 198,
+         "start": 116,
+         "end": 185,
          "parameters": {
           "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
           "threshold": "0.0005",
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_point": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.111, 1], pinned_free_variables ",
+          "goal_point": "0.060, -0.025, 0.111",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -2046,11 +2046,11 @@
            "field": "goal_point",
            "role": "location",
            "source": "field",
-           "value": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.111, 1], pinned_free_variables ",
+           "value": "0.060, -0.025, 0.111",
            "entities": [],
            "reference": {
             "keys": [
-             "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -2081,7 +2081,7 @@
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_orientation": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+          "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -2176,8 +2176,8 @@
        "target": "pr2/base_footprint",
        "id": "plan_node_30",
        "parent": "plan_node_24",
-       "start": 122,
-       "end": 198,
+       "start": 116,
+       "end": 185,
        "parameters": {
         "root_link": "pr2/base_footprint",
         "tip_link": "pr2/l_gripper_tool_frame",
@@ -2214,7 +2214,7 @@
          "entities": [],
          "reference": {
           "keys": [
-           "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+           "fda60764-04c9-49ca-9f22-499f66f7b586"
           ],
           "name": "laboratory_rack",
           "type": "Body"
@@ -2249,14 +2249,14 @@
            "target": "pr2/l_gripper_tool_frame",
            "id": "plan_node_37",
            "parent": "plan_node_36",
-           "start": 199,
-           "end": 209,
+           "start": 186,
+           "end": 193,
            "parameters": {
             "weight": "1",
             "threshold": "0.001",
             "root_link": "pr2/l_gripper_tool_frame",
-            "reference_point": "reference_frame pr2/l_gripper_r_finger_tip_link, _casadi_sx [-0.025956, 0.0158212, -0.0112393, 1], pinned_free_variables ",
-            "tip_point": "reference_frame pr2/l_gripper_l_finger_tip_link, _casadi_sx [-0.025956, -0.0158212, -0.0111983, 1], pinned_free_variables ",
+            "reference_point": "-0.026, 0.016, -0.011",
+            "tip_point": "-0.026, -0.016, -0.011",
             "axis": "reference_frame pr2/l_gripper_tool_frame, _casadi_sx @1=0, [@1, 1, @1, @1], pinned_free_variables ",
             "distance": "0.092012",
             "reference_velocity": "0.2"
@@ -2267,8 +2267,8 @@
          ],
          "id": "plan_node_36",
          "parent": "plan_node_35",
-         "start": 199,
-         "end": 209,
+         "start": 186,
+         "end": 193,
          "parameters": {
           "tolerate_stall": "off",
           "gripper": "PR2LeftGripper",
@@ -2323,7 +2323,7 @@
             "root_link": "pr2/base_footprint",
             "tip_link": "pr2/l_gripper_tool_frame",
             "binding_policy": "Bind_on_start",
-            "goal_point": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.111, 1], pinned_free_variables ",
+            "goal_point": "0.060, -0.025, 0.111",
             "reference_velocity": "0.2"
            },
            "constraints": [],
@@ -2347,11 +2347,11 @@
              "field": "goal_point",
              "role": "location",
              "source": "field",
-             "value": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.111, 1], pinned_free_variables ",
+             "value": "0.060, -0.025, 0.111",
              "entities": [],
              "reference": {
               "keys": [
-               "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+               "fda60764-04c9-49ca-9f22-499f66f7b586"
               ],
               "name": "laboratory_rack",
               "type": "Body"
@@ -2382,7 +2382,7 @@
             "root_link": "pr2/base_footprint",
             "tip_link": "pr2/l_gripper_tool_frame",
             "binding_policy": "Bind_on_start",
-            "goal_orientation": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+            "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
             "reference_velocity": "0.2"
            },
            "constraints": [],
@@ -2480,7 +2480,7 @@
            "entities": [],
            "reference": {
             "keys": [
-             "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -2500,8 +2500,8 @@
        ],
        "id": "plan_node_35",
        "parent": "plan_node_24",
-       "start": 199,
-       "end": 209,
+       "start": 186,
+       "end": 193,
        "parameters": {},
        "constraints": [],
        "roles": []
@@ -2511,11 +2511,11 @@
        "label": "MoveBranch",
        "status": "SUCCEEDED",
        "children": [],
-       "target": "09afd195-586c-4d7d-a617-316c87a12329",
+       "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
        "id": "plan_node_42",
        "parent": "plan_node_24",
        "parameters": {
-        "branch_root": "09afd195-586c-4d7d-a617-316c87a12329",
+        "branch_root": "62ac5709-d425-415e-a4b9-12b708bc7f86",
         "new_parent": "map"
        },
        "constraints": [],
@@ -2534,15 +2534,15 @@
          "target": "pr2/base_footprint",
          "id": "plan_node_46",
          "parent": "plan_node_43",
-         "start": 211,
-         "end": 216,
+         "start": 195,
+         "end": 199,
          "parameters": {
           "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
           "threshold": "0.0005",
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_point": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.22, 1], pinned_free_variables ",
+          "goal_point": "0.060, -0.025, 0.220",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -2566,11 +2566,11 @@
            "field": "goal_point",
            "role": "location",
            "source": "field",
-           "value": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx [0.06, -0.025, 0.22, 1], pinned_free_variables ",
+           "value": "0.060, -0.025, 0.220",
            "entities": [],
            "reference": {
             "keys": [
-             "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
             ],
             "name": "laboratory_rack",
             "type": "Body"
@@ -2601,7 +2601,7 @@
           "root_link": "pr2/base_footprint",
           "tip_link": "pr2/l_gripper_tool_frame",
           "binding_policy": "Bind_on_start",
-          "goal_orientation": "reference_frame 17d8f933-96ae-4d25-bb95-b2f4fecedaea, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+          "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
           "reference_velocity": "0.2"
          },
          "constraints": [],
@@ -2696,8 +2696,8 @@
        "target": "pr2/base_footprint",
        "id": "plan_node_43",
        "parent": "plan_node_24",
-       "start": 211,
-       "end": 216,
+       "start": 195,
+       "end": 199,
        "parameters": {
         "root_link": "pr2/base_footprint",
         "tip_link": "pr2/l_gripper_tool_frame",
@@ -2734,7 +2734,7 @@
          "entities": [],
          "reference": {
           "keys": [
-           "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+           "fda60764-04c9-49ca-9f22-499f66f7b586"
           ],
           "name": "laboratory_rack",
           "type": "Body"
@@ -2754,8 +2754,8 @@
      ],
      "id": "plan_node_24",
      "parent": "plan_node_0",
-     "start": 103,
-     "end": 216,
+     "start": 98,
+     "end": 199,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "placing_linear_velocity": "0.02",
@@ -2898,7 +2898,7 @@
        "entities": [
         {
          "keys": [
-          "09afd195-586c-4d7d-a617-316c87a12329"
+          "62ac5709-d425-415e-a4b9-12b708bc7f86"
          ],
          "name": "Container \u00b7 tube_clear",
          "type": "Container"
@@ -2913,7 +2913,7 @@
        "entities": [],
        "reference": {
         "keys": [
-         "17d8f933-96ae-4d25-bb95-b2f4fecedaea"
+         "fda60764-04c9-49ca-9f22-499f66f7b586"
         ],
         "name": "laboratory_rack",
         "type": "Body"
@@ -2934,7 +2934,7 @@
    ],
    "id": "plan_node_0",
    "start": 5,
-   "end": 216,
+   "end": 199,
    "robot": "PR2",
    "parameters": {},
    "constraints": [],
@@ -2987,7 +2987,7 @@
    "laboratory_cabinet_right_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_middle_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_lower_handle": "semantic_digital_twin.world_description.world_entity.Body",
-   "f4ec1d02-5c31-45ef-9aaa-440c9df04cdf/odom": "semantic_digital_twin.world_description.world_entity.Body",
+   "457ac75c-7d11-43ce-865f-8d4efee4c035/odom": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_link": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/torso_lift_motor_screw_link": "semantic_digital_twin.world_description.world_entity.Body",
@@ -3117,7 +3117,7 @@
    "aicor_medical_lab/laboratory_cabinet_right_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_middle_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_lower_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "f4ec1d02-5c31-45ef-9aaa-440c9df04cdf/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
+   "457ac75c-7d11-43ce-865f-8d4efee4c035/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/base_footprint_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/torso_lift_motor_screw_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",

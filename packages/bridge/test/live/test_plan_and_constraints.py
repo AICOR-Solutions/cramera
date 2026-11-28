@@ -447,6 +447,7 @@ def test_a_position_goal_names_its_point_in_the_frame_of_what_it_reaches_for(
     }["goal_point"]
     assert location.role is DesignatorRole.LOCATION
     assert location.reference.keys == [str(kitchen.milk.id)]
+    assert location.value == "0.000, 0.000, 0.100"
     pose = location.pose
     assert [pose.x, pose.y, pose.z, pose.qx, pose.qy, pose.qz, pose.qw] == [
         0.0,

@@ -509,7 +509,7 @@ class DesignatorSummary:
             designator; a description nested deeper is named by its class.
         :return: The value as the viewer shows it: a class by its name, an enumeration
             member by its name, a body by its published key else its name, an annotation
-            by its name, a pose by its position, a boolean as on or off, a list by its
+            by its name, a pose or a point by its position, a boolean as on or off, a list by its
             items, a nested description by its fields, and anything else by its text.
         """
         if isinstance(value, type):
@@ -525,6 +525,11 @@ class DesignatorSummary:
             return PARAMETER_SEPARATOR.join(
                 COORDINATE_FORMAT.format(float(coordinate))
                 for coordinate in value.position.to_np()[:3]
+            )
+        if isinstance(value, Point3):
+            return PARAMETER_SEPARATOR.join(
+                COORDINATE_FORMAT.format(float(coordinate))
+                for coordinate in value.to_np()[:3]
             )
         if isinstance(value, bool):
             return SWITCH_VALUES[value]
