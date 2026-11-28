@@ -28,7 +28,9 @@ from types import FrameType
 from typing_extensions import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 from coraplex.robot_plans.actions.base import Action
+from cramera_bridge.live.plan import DesignatorSummary
 from cramera_bridge.live.publisher import LivePublisher
+from cramera_bridge.live.world_model import ObjectKey
 from cramera_bridge.live.query_steps import HeldQueries
 from cramera_bridge.questions.verbalization import QueryVerbalizer
 from cramera_protocol.query_steps import (
@@ -40,6 +42,7 @@ from cramera_protocol.query_steps import (
     StepMoment,
     StepPhase,
 )
+from cramera_protocol.designator_roles import RoleEntity
 from cramera_protocol.resolutions import BackendDescription, KnowledgeSource
 from cramph.composites import StatementNode
 from cramph.executor import Executor, StatechartExecutor, TickingExecutorExtension
@@ -55,7 +58,11 @@ from krrood.entity_query_language.verbalization.vocabulary.english import Direct
 from semantic_digital_twin.semantic_annotations.mixins import (
     HasRootKinematicStructureEntity,
 )
-from semantic_digital_twin.world_description.world_entity import WorldEntity
+from semantic_digital_twin.world_description.world_entity import (
+    Body,
+    SemanticAnnotation,
+    WorldEntity,
+)
 
 EXCERPT_CONTEXT = 4
 """
@@ -374,6 +381,8 @@ class QueryStepper:
                 finally:
                     self.asking.pop()
                 step.answers.append(self.word(answer))
+                if isinstance(answer, (Body, SemanticAnnotation)):
+                    step.entities.append(self.entity(answer))
                 about.append(answer)
                 self.show(step, about, started)
                 self.publish()
@@ -422,6 +431,8 @@ class QueryStepper:
                 name=type(inner).__name__, source=KnowledgeSource.WORKING_MEMORY
             ),
             generates=inner.opening_directive is Directive.GENERATE,
+            frame=self.publisher.recording.frame_count(),
+            plan_node=self.running_action(),
         )
         self.steps.append(step)
         return step
@@ -465,6 +476,22 @@ class QueryStepper:
         )
 
     # %% describing
+
+    def entity(self, answer: Body | SemanticAnnotation) -> RoleEntity:
+        """
+        :param answer: An answer that is a body or an annotation of the world.
+        :return: It as a designator's role names it, with the keys the scene lights up.
+        """
+        object_keys = {ObjectKey.of(body) for body in self.publisher.current_objects()}
+        return DesignatorSummary.entity(answer, object_keys)
+
+    def running_action(self) -> Optional[str]:
+        """
+        :return: The identity of the deepest action under way, as the recording's plan
+            trees name it, or None while no plan runs.
+        """
+        running = self.publisher.plan.running()
+        return None if running is None else running.identifier
 
     def during(self, open_part: Optional[Evaluable] = None) -> str:
         """

@@ -36,6 +36,7 @@ from cramera_bridge.exceptions import (
 )
 from cramera_bridge.export.scene_index import SceneIndexFile
 from cramera_bridge.live.query_steps import HeldQueries
+from cramera_bridge.live.plan import NamedPlace
 from cramera_bridge.live.server import LIVE_PORT
 from cramera_bridge.performing import PlanPerformance, TaskContext
 from cramera_bridge.query_stepping import QueryStepper
@@ -185,6 +186,15 @@ class RobotTaskDemo(ABC):
         """
         return [self.build_plan(context)]
 
+    def named_places(self, context: TaskContext) -> List[NamedPlace]:
+        """
+        :param context: The world and the robot the task is performed with.
+        :return: The poses the task builds for the places of its layout, each under
+            the place's name, so a designator's location that is one of them is named
+            by it; none by default.
+        """
+        return []
+
     @abstractmethod
     def measure(self, context: TaskContext) -> AcceptanceMetrics:
         """
@@ -317,6 +327,7 @@ class RobotTaskDemo(ABC):
                 if prepared is None:
                     prepared = self.prepare(world)
                 context, plans = prepared
+                visualization.publisher.plan.places = self.named_places(context)
                 self.enter_phase(StepPhase.EXECUTION)
                 performance = self.performance()
                 for plan in plans:

@@ -19,27 +19,35 @@ import numpy as np
 import trimesh
 from typing_extensions import List, Optional
 
-from coraplex.datastructures.enums import MovementType
+from coraplex.robot_plans.actions.base import GoalAction, ParallelAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction, ReachAction
 from coraplex.robot_plans.actions.core.placing import PlaceAction
-from coraplex.robot_plans.motions.base import BaseMotion
-from coraplex.robot_plans.motions.gripper import (
-    MoveGripperMotion,
-    MoveToolCenterPointMotion,
+from coraplex.robot_plans.mixins import OperatesGripper
+from cramph.composites import Parallel
+from cramph.node import (
+    CompositeNode,
+    NodeArtifacts,
+    StatechartNode,
+    SucceedsOnObservingTrue,
+    expanded_child_field,
 )
-from coraplex.plans.attachment_nodes import ReAttachNode
-from coraplex.plans.factories import sequential
-from coraplex.plans.executables import Executable
-from coraplex.plans.plan_node import ExecutionBoundaryNode, MotionNode, PlanNode
-from giskardpy.motion_statechart.context import MotionStatechartContext
-from giskardpy.motion_statechart.goals.templates import Parallel, Sequence
 from giskardpy.motion_statechart.graph_node import MotionStatechartNode
-from giskardpy.motion_statechart.tasks.cartesian_tasks import HoldPose
+from giskardpy.motion_statechart.tasks.cartesian_tasks import (
+    CartesianPose,
+    CartesianPosition,
+    HoldPose,
+)
 from giskardpy.motion_statechart.tasks.joint_tasks import JointPositionList
+from krrood.symbolic_math.symbolic_math import Scalar, trinary_if_cases
+from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose
+from semantic_digital_twin.collision_checking.collision_matrix import CollisionRule
+from semantic_digital_twin.collision_checking.collision_rules import (
+    AllowCollisionForEndEffector,
+)
 from semantic_digital_twin.datastructures.definitions import GripperState
 from semantic_digital_twin.datastructures.joint_state import JointState
+from semantic_digital_twin.grasping.grasp_candidates import GraspCandidate
 from semantic_digital_twin.robots.robot_parts import EndEffector
-from krrood_spatial_math.spatial_types import HomogeneousTransformationMatrix, Pose
 from semantic_digital_twin.world import World
 from semantic_digital_twin.world_description.connections import ActiveConnection1DOF
 from semantic_digital_twin.world_description.world_entity import Body
@@ -396,7 +404,19 @@ class PadContact:
         return opened
 
 
-# %% contact motion and actions
+# %% plan steps
+
+
+def tool_goal_of(step: StatechartNode) -> CartesianPose:
+    """
+    :param step: A step moving the tool center point, as CRAM's
+        :meth:`~coraplex.robot_plans.mixins.MovesToolCenterPoint.tool_center_point_goal`
+        creates it.
+    :return: The goal reaching the step's target pose.
+    """
+    if isinstance(step, CartesianPose):
+        return step
+    return next(node for node in step.nodes if isinstance(node, CartesianPose))
 
 
 class CalibratedVesselApproach:
@@ -404,7 +424,7 @@ class CalibratedVesselApproach:
     Preserves the laboratory's approach and lift distances at the tool frame.
     """
 
-    def _approach_distance(self, grasp=None) -> float:
+    def _approach_distance(self, grasp: Optional[GraspCandidate] = None) -> float:
         return self.approach_clearance
 
     def _retreat_pose(self, reference_T_grasp: Pose, tool_goal: Pose) -> Pose:
@@ -417,66 +437,16 @@ class CalibratedVesselApproach:
         return world.transform(world_T_lift @ world_T_tool, target).pose
 
 
-@dataclass
-class VesselReachAction(CalibratedVesselApproach, ReachAction):
-    """
-    Reaches the vessel using the calibrated tool-frame distances.
-    """
-
-    grasp_position_threshold: Optional[float] = field(default=None, kw_only=True)
-    """
-    The tool's position tolerance at the grasp itself, in metres; the reach's
-    :attr:`position_threshold` when None.
-    """
-
-    @property
-    def _action_plan(self) -> PlanNode:
-        plan = super()._action_plan
-        if self.grasp_position_threshold is not None:
-            final_approach = [
-                node
-                for node in plan.descendants
-                if isinstance(node, MotionNode)
-                and isinstance(node.designator, MoveToolCenterPointMotion)
-            ][-1]
-            final_approach.designator.position_threshold = self.grasp_position_threshold
-        return plan
-
-
-@dataclass(eq=False, repr=False)
-class PadContactGoal(Sequence):
-    """
-    Resolves the finger stop when the chart starts, after the approach has finished.
-    """
-
-    motion: PadContactMotion = field(kw_only=True)
-    """
-    The closing motion.
-    """
-
-    def expand(self, context: MotionStatechartContext) -> None:
-        """
-        :param context: The statechart's context at the reached grasp.
-        """
-        self.nodes = [
-            JointPositionList(
-                goal_state=self.motion.goal_state(),
-                threshold=self.motion.joint_position_threshold,
-                max_velocity=self.motion.finger_velocity,
-            )
-        ]
-        super().expand(context)
-
-
 class ToolHolding:
     """
-    A gripper motion that holds the tool and the base where they are while the fingers
-    move, so collision avoidance cannot move the arm, and with it the glass the fingers
-    take or let go of.
+    An action that holds the tool and the base where they are while the fingers move, so
+    collision avoidance cannot move the arm, and with it the glass the fingers take or
+    let go of.
     """
 
-    def tool_held(self) -> List[MotionStatechartNode]:
+    def tool_held(self, gripper: EndEffector) -> List[MotionStatechartNode]:
         """
+        :param gripper: The gripper whose fingers move.
         :return: The tasks holding the base and the gripper's tool frame where they are.
         """
         return [
@@ -484,13 +454,120 @@ class ToolHolding:
             HoldPose(
                 name="hold tool",
                 root_link=self.world.root,
-                tip_link=self.gripper.tool_frame,
+                tip_link=gripper.tool_frame,
             ),
         ]
 
 
-@dataclass
-class PadContactMotion(ToolHolding, BaseMotion):
+@dataclass(eq=False, repr=False, kw_only=True)
+class VesselReachAction(CalibratedVesselApproach, ReachAction):
+    """
+    Reaches the vessel using the calibrated tool-frame distances.
+    """
+
+    grasp_position_threshold: Optional[float] = None
+    """
+    The tool's position tolerance at the grasp itself, in metres; the reach's
+    :attr:`position_threshold` when None.
+    """
+
+    def create_steps(self) -> List[StatechartNode]:
+        steps = super().create_steps()
+        if self.grasp_position_threshold is not None:
+            tool_goal_of(steps[-1]).translation_threshold = (
+                self.grasp_position_threshold
+            )
+        return steps
+
+
+@dataclass(eq=False, repr=False, kw_only=True)
+class PadContactGoal(SucceedsOnObservingTrue, CompositeNode):
+    """
+    Closes the fingers to their stop at the glass, which it finds when it starts: after
+    the approach has finished, at the grasp pose the tool reached.
+
+    It succeeds once the fingers reached the stop, and fails once they no longer can.
+    """
+
+    accepts_children_after_compile: bool = field(init=False, default=True)
+
+    gripper: EndEffector
+    """
+    The gripper at the vessel.
+    """
+
+    object_designator: Body
+    """
+    The glass between the pads.
+    """
+
+    contact_clearance: float = 0.00025
+    """
+    The clearance each pad keeps from the glass, in metres.
+    """
+
+    joint_position_threshold: float = 0.0001
+    """
+    How close the fingers come to their stop, in radians.
+    """
+
+    finger_velocity: float = 0.1
+    """
+    The maximum finger velocity, in radians per second.
+    """
+
+    goal: Optional[JointPositionList] = expanded_child_field(default=None)
+    """
+    The child moving the fingers to their stop, None until this node started.
+    """
+
+    def goal_state(self) -> JointState:
+        """
+        :return: The finger stop at the reached pose.
+        """
+        return PadContact(
+            self.context.world,
+            self.gripper,
+            self.object_designator,
+            clearance=self.contact_clearance,
+        ).goal_state()
+
+    def on_start(self) -> None:
+        """
+        Find the finger stop and put the goal reaching it below this node, once.
+        """
+        super().on_start()
+        if self.goal is not None:
+            return
+        with self.statechart.modify():
+            self.goal = JointPositionList(
+                goal_state=self.goal_state(),
+                threshold=self.joint_position_threshold,
+                max_velocity=self.finger_velocity,
+            )
+            self._add_child_to_statechart(self.goal)
+            self._succeed_at_its_goal(self.goal)
+            self.statechart.request_rebuild(self)
+
+    def build_artifacts(self) -> NodeArtifacts:
+        """
+        Report how the goal ended, or nothing while it has not, or before it exists.
+        """
+        if self.goal is None:
+            return NodeArtifacts(observation=Scalar.const_trinary_unknown())
+        return NodeArtifacts(
+            observation=trinary_if_cases(
+                cases=[
+                    (self.goal.is_succeeded, Scalar.const_true()),
+                    (self.goal.is_failed_or_interrupted, Scalar.const_false()),
+                ],
+                else_result=Scalar.const_trinary_unknown(),
+            )
+        )
+
+
+@dataclass(eq=False, repr=False, kw_only=True)
+class PadContactAction(ToolHolding, ParallelAction):
     """
     Closes the fingers until both pads reach the glass, the tool held where the approach
     ended.
@@ -521,166 +598,149 @@ class PadContactMotion(ToolHolding, BaseMotion):
     The maximum finger velocity, in radians per second.
     """
 
-    @property
-    def _motion_chart(self) -> MotionStatechartNode:
-        return Parallel(
-            [PadContactGoal(motion=self), *self.tool_held()],
-            name=self.__class__.__name__,
-        )
-
-    def goal_state(self) -> JointState:
-        """
-        :return: The finger stop at the reached pose.
-        """
-        return PadContact(
-            self.world,
-            self.gripper,
-            self.object_designator,
-            clearance=self.contact_clearance,
-        ).goal_state()
+    def create_steps(self) -> List[StatechartNode]:
+        return [
+            PadContactGoal(
+                gripper=self.gripper,
+                object_designator=self.object_designator,
+                contact_clearance=self.contact_clearance,
+                joint_position_threshold=self.joint_position_threshold,
+                finger_velocity=self.finger_velocity,
+            ),
+            *self.tool_held(self.gripper),
+        ]
 
 
-@dataclass(eq=False, repr=False)
-class PadContactNode(ExecutionBoundaryNode):
-    """
-    Ends the approach chart before the next chart measures the finger stop.
-    """
-
-    def notify(self) -> None:
-        """
-        This boundary has no children to expand.
-        """
-
-    def parse(self) -> Executable:
-        """
-        :return: An empty boundary between the approach and closing charts.
-        """
-        return Executable(context=self.context)
-
-
-@dataclass
+@dataclass(eq=False, repr=False, kw_only=True)
 class VesselPickUpAction(CalibratedVesselApproach, PickUpAction):
     """
     CRAM's pickup, closing the fingers only until both pads reach the glass.
     """
 
-    grasp_joint_position_threshold: float = field(default=0.0001, kw_only=True)
+    grasp_joint_position_threshold: float = 0.0001
     """
     How close the fingers must come to their stop, in radians.
     """
 
-    contact_clearance: float = field(default=0.00025, kw_only=True)
+    contact_clearance: float = 0.00025
     """
     The clearance each pad keeps from the glass, in metres.
     """
 
-    grasp_position_threshold: Optional[float] = field(default=None, kw_only=True)
+    grasp_position_threshold: Optional[float] = None
     """
     The tool's position tolerance at the grasp itself, before the fingers close, in
     metres; :attr:`position_threshold` when None.
     """
 
-    lift_movement: MovementType = field(default=MovementType.TRANSLATION, kw_only=True)
+    lifts_upright: bool = False
     """
-    How the lift moves the tool: by its position only, as CRAM's pickup does, which lets
-    the vessel tilt, or with its orientation kept, which keeps the vessel upright.
+    Whether the lift keeps the tool's orientation, which keeps the vessel upright, or
+    moves the tool by its position only, which lets the vessel tilt.
     """
 
-    @property
-    def _action_plan(self) -> PlanNode:
-        plan = super()._action_plan
-        plan.children[-1].designator.movement_type = self.lift_movement
-        return plan
-
-    def _grasp_attempt_plan(self) -> PlanNode:
+    def _grasp_steps(self) -> List[StatechartNode]:
         """
         :return: Reach the grasp, close to contact, then attach the carried vessel.
         """
-        return sequential(
-            children=[
-                VesselReachAction(
-                    grasp=self.grasp,
-                    arm=self.arm,
-                    approach_clearance=self.approach_clearance,
-                    retreat_distance=self.retreat_distance,
-                    pre_approach_linear_velocity=self.pre_approach_linear_velocity,
-                    final_approach_linear_velocity=self.final_approach_linear_velocity,
-                    open_gripper_at_pre_pose=True,
-                    position_threshold=self.position_threshold,
-                    orientation_threshold=self.orientation_threshold,
-                    grasp_position_threshold=self.grasp_position_threshold,
-                ),
-                PadContactNode(),
-                PadContactMotion(
-                    gripper=self.arm.end_effector,
-                    object_designator=self.grasp.graspable.root,
-                    contact_clearance=self.contact_clearance,
-                    finger_velocity=self.grasp_closing_velocity,
-                    joint_position_threshold=self.grasp_joint_position_threshold,
-                ),
-                ReAttachNode(
-                    body=self.grasp.graspable.root,
-                    new_parent=self.arm.end_effector.tool_frame,
-                ),
-            ]
-        )
+        return [
+            VesselReachAction(
+                grasp=self.grasp,
+                arm=self.arm,
+                approach_clearance=self.approach_clearance,
+                retreat_distance=self.retreat_distance,
+                pre_approach_linear_velocity=self.pre_approach_linear_velocity,
+                final_approach_linear_velocity=self.final_approach_linear_velocity,
+                open_gripper_at_pre_pose=True,
+                position_threshold=self.position_threshold,
+                orientation_threshold=self.orientation_threshold,
+                grasp_position_threshold=self.grasp_position_threshold,
+            ),
+            PadContactAction(
+                gripper=self.arm.end_effector,
+                object_designator=self.grasp.graspable.root,
+                contact_clearance=self.contact_clearance,
+                finger_velocity=self.grasp_closing_velocity,
+                joint_position_threshold=self.grasp_joint_position_threshold,
+            ),
+            *self.reattach(self.grasp.graspable.root, self.arm.end_effector.tool_frame),
+        ]
 
+    def create_steps(self) -> List[StatechartNode]:
+        lift_to_pose = self.grasp_pose_sequence(
+            self.grasp.grasp_pose, self.arm.end_effector, self.grasp
+        ).retreat
+        return [*self._grasp_steps(), self.lift_goal(lift_to_pose)]
 
-@dataclass
-class HeldToolGripperMotion(ToolHolding, MoveGripperMotion):
-    """
-    CRAM's gripper motion, with the tool and the base held where they are.
-    """
-
-    @classmethod
-    def of(cls, motion: MoveGripperMotion) -> HeldToolGripperMotion:
+    def lift_goal(self, target: Pose) -> MotionStatechartNode:
         """
-        :param motion: A gripper motion.
-        :return: The same gripper motion with the tool and the base held.
+        :param target: Where the tool is lifted to.
+        :return: The goal lifting the tool there, by its pose if :attr:`lifts_upright`,
+            otherwise by its position only, with the lift's speed cap and the base held.
         """
-        return cls(
-            motion.motion,
-            motion.gripper,
-            allow_gripper_collision=motion.allow_gripper_collision,
-            finger_velocity=motion.finger_velocity,
-            stall_minimum_time=motion.stall_minimum_time,
-            tolerate_stall=motion.tolerate_stall,
-        )
-
-    @property
-    def _motion_chart(self) -> MotionStatechartNode:
+        if self.lifts_upright:
+            return self.tool_center_point_goal(
+                target, self.arm, max_linear_velocity=self.lift_linear_velocity
+            )
+        root = self.controlled_root
+        tip = self.arm.end_effector.tool_frame
         return Parallel(
-            [super()._motion_chart, *self.tool_held()],
-            name=self.__class__.__name__,
+            nodes=[
+                CartesianPosition(
+                    root_link=root,
+                    tip_link=tip,
+                    goal_point=target.position,
+                    threshold=self.position_threshold,
+                ),
+                *self._velocity_limits(root, tip, self.lift_linear_velocity, None),
+                *self.keep_base_still(),
+            ],
+            name=CartesianPosition.__name__,
         )
 
 
-@dataclass
+@dataclass(eq=False, repr=False, kw_only=True)
 class RackPlaceAction(CalibratedVesselApproach, PlaceAction):
     """
-    CRAM's placing, with looser tolerance above the rack and tight insertion tolerance,
-    the tool held where it set the vessel down while the fingers let go.
+    CRAM's placing, with looser tolerance above the rack and tight insertion tolerance;
+    as CRAM's placing does, the tool stays where it set the vessel down while the
+    fingers let go.
     """
 
-    approach_position_threshold: float = field(default=0.003, kw_only=True)
+    approach_position_threshold: float = 0.003
     """
     The tool's position tolerance above the rack, in metres.
     """
 
-    @property
-    def _action_plan(self) -> PlanNode:
-        plan = super()._action_plan
-        for node in plan.descendants:
-            if isinstance(node, MotionNode) and isinstance(
-                node.designator, MoveToolCenterPointMotion
-            ):
-                node.designator.position_threshold = self.approach_position_threshold
-                break
-        for node in plan.descendants:
-            if (
-                isinstance(node, MotionNode)
-                and type(node.designator) is MoveGripperMotion
-            ):
-                node.designator = HeldToolGripperMotion.of(node.designator)
-                node.designator.plan_node = node
-        return plan
+    def create_steps(self) -> List[StatechartNode]:
+        steps = super().create_steps()
+        tool_goal_of(steps[0]).translation_threshold = self.approach_position_threshold
+        return steps
+
+
+@dataclass(eq=False, repr=False, kw_only=True)
+class MoveGripperAction(OperatesGripper, GoalAction):
+    """
+    Opens or closes a gripper, which may touch its surroundings meanwhile.
+    """
+
+    gripper: EndEffector
+    """
+    The gripper moved.
+    """
+
+    state: GripperState
+    """
+    Whether the gripper ends open or closed.
+    """
+
+    def create_temporary_collision_rules(self) -> List[CollisionRule]:
+        """
+        :return: An allowance for the gripper to touch its surroundings.
+        """
+        return [AllowCollisionForEndEffector(end_effector=self.gripper)]
+
+    def create_goal(self) -> StatechartNode:
+        return self.gripper_goal_type.moving_gripper_to(
+            self.gripper.default_configuration(self.state)
+        )

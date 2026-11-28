@@ -18,6 +18,7 @@ from cramera_protocol.document import (
 )
 from cramera_protocol.geometry import Bounds, FloorRectangle, Pose, Vector3
 from cramera_protocol.version import CURRENT_VERSION, UNVERSIONED, ProtocolVersion
+from cramera_protocol.designator_roles import RoleSlot
 
 # %% models
 
@@ -637,6 +638,11 @@ class PlanNodeKey(StrEnum):
     What a perception step saw.
     """
 
+    ROLES = "roles"
+    """
+    The roles the fields of the node's designator fill.
+    """
+
 
 class PlanConstraintKey(StrEnum):
     """
@@ -955,6 +961,12 @@ class PlanNode(JsonDocument):
     """
     For a perception step: the images of what it saw, empty when none were taken; None
     for every other node and in recordings written before.
+    """
+
+    roles: List[RoleSlot] = document_field(PlanNodeKey.ROLES, default_factory=list)
+    """
+    The roles the fields of the node's designator fill, with the entities each names;
+    empty for a node without a designator and in recordings written before.
     """
 
     extensions: Dict[str, Any] = extension_field()

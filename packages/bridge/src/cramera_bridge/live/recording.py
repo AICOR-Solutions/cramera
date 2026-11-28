@@ -127,6 +127,12 @@ class RecordedFrame:
     actions.
     """
 
+    motion_node: Optional[str] = None
+    """
+    The identity of the plan node of the motion the plan performed, or None while no
+    motion ran.
+    """
+
     @classmethod
     def of_state(
         cls,
@@ -134,12 +140,14 @@ class RecordedFrame:
         time: float,
         action: Optional[RunningAction],
         statechart: Optional[LiveStatechart],
+        motion: Optional[str] = None,
     ) -> RecordedFrame:
         """
         :param state: A state snapshot.
         :param time: When it was taken.
         :param action: The action being performed.
         :param statechart: The statechart being ticked.
+        :param motion: The identity of the motion being performed, or None.
         :return: The frame, with copies of the snapshot's mappings.
         """
         return cls(
@@ -151,6 +159,7 @@ class RecordedFrame:
             step=None if action is None else action.label,
             statechart=statechart,
             action_node=None if action is None else action.identifier,
+            motion_node=motion,
         )
 
 
@@ -202,6 +211,7 @@ class Recording:
         state: LiveState,
         action: Optional[RunningAction],
         statechart: Optional[LiveStatechart],
+        motion: Optional[str] = None,
     ) -> None:
         """
         Record one moment, or nothing while not recording.
@@ -209,8 +219,9 @@ class Recording:
         :param state: The state snapshot.
         :param action: The action being performed.
         :param statechart: The statechart being ticked.
+        :param motion: The identity of the motion being performed, or None.
         """
-        frame = RecordedFrame.of_state(state, self.clock(), action, statechart)
+        frame = RecordedFrame.of_state(state, self.clock(), action, statechart, motion)
         with self.lock:
             if self.state is RecordingState.RECORDING:
                 self.frames.append(frame)

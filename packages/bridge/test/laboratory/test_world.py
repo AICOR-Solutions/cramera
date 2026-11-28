@@ -60,12 +60,16 @@ def test_the_closed_cabinet_has_collision_but_no_visual(world):
     assert not cabinet.visual.shapes
 
 
-def test_a_slot_pose_is_the_bench_layout_in_the_world_root(environment, world):
+def test_a_slot_pose_is_given_in_the_racks_frame_where_the_layout_puts_it(
+    environment, world
+):
     slot = environment.bench.rack_slots[-1]
     pose = environment.slot_pose(slot.identifier, world)
-    assert pose.reference_frame is world.root
+    assert pose.reference_frame is world.get_body_by_name(LaboratoryLink.RACK.value)
     np.testing.assert_allclose(
-        pose.to_np()[:3, 3], [slot.pose.x, slot.pose.y, slot.pose.z]
+        world.transform(pose, world.root).to_np()[:3, 3],
+        [slot.pose.x, slot.pose.y, slot.pose.z],
+        atol=1e-9,
     )
 
 

@@ -18,9 +18,12 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
+from importlib.metadata import entry_points
+
 from typing_extensions import Dict, List, Optional, Tuple
 
 from cramera_protocol.bundle.scene import DetectedEventKind, PlanNodeKind
+from cramera_protocol.designator_roles import DesignatorRole
 
 # %% pinned classes
 
@@ -1044,3 +1047,88 @@ FIELD_NAMES = FieldNames(FIELD_RENAMES)
 """
 The identifiers of the actions' fields.
 """
+
+# %% roles
+
+
+@dataclass(frozen=True)
+class FieldRole:
+    """
+    The role a field of an action or a motion fills, wherever it occurs.
+    """
+
+    role: DesignatorRole
+    """
+    The role.
+    """
+
+    within: Tuple[str, ...] = ()
+    """
+    The fields, nested in the field's value, that name the role's filler, such as the
+    graspable a grasp candidate takes; empty when the value itself fills it.
+    """
+
+
+FIELD_ROLES: Dict[str, FieldRole] = {
+    "robot": FieldRole(DesignatorRole.AGENT),
+    "object_designator": FieldRole(DesignatorRole.OBJECT),
+    "object_sem_annotation": FieldRole(DesignatorRole.OBJECT),
+    "grasp": FieldRole(DesignatorRole.OBJECT, within=("graspable",)),
+    "handle": FieldRole(DesignatorRole.OBJECT),
+    "part": FieldRole(DesignatorRole.OBJECT),
+    "object_part": FieldRole(DesignatorRole.OBJECT),
+    "container": FieldRole(DesignatorRole.OBJECT),
+    "source_container": FieldRole(DesignatorRole.OBJECT),
+    "object_to_cut": FieldRole(DesignatorRole.OBJECT),
+    "elevator": FieldRole(DesignatorRole.OBJECT),
+    "arm": FieldRole(DesignatorRole.EFFECTOR),
+    "arms": FieldRole(DesignatorRole.EFFECTOR),
+    "gripper": FieldRole(DesignatorRole.EFFECTOR),
+    "end_effector": FieldRole(DesignatorRole.EFFECTOR),
+    "tip_link": FieldRole(DesignatorRole.EFFECTOR),
+    "tool": FieldRole(DesignatorRole.INSTRUMENT),
+    "target_location": FieldRole(DesignatorRole.LOCATION),
+    "target_locations": FieldRole(DesignatorRole.LOCATION),
+    "target_pose": FieldRole(DesignatorRole.LOCATION),
+    "goal_pose": FieldRole(DesignatorRole.LOCATION),
+    "goal_point": FieldRole(DesignatorRole.LOCATION),
+    "target": FieldRole(DesignatorRole.LOCATION),
+    "target_container": FieldRole(DesignatorRole.LOCATION),
+    "surface": FieldRole(DesignatorRole.LOCATION),
+    "region": FieldRole(DesignatorRole.LOCATION),
+}
+"""
+The role each field fills, by the field's identifier: cramera's reading of CRAM's
+fields, not a name CRAM defines. CRAM takes the agent from the plan's context, named
+here ``robot``; only a tool, such as a knife or a whisk, is read as an instrument, so a
+centrifuge the robot loads is the reference of a location, not an instrument. A field
+missing here fills no role, such as a velocity, a threshold or a nested action. A
+motion is a giskard goal: the link it moves (``tip_link``) is its effector and the pose
+it moves it to (``goal_pose``, or ``goal_point`` for a position goal) its location; the link the goal is reached relative to
+(``root_link``) fills no role.
+"""
+
+
+FIELD_ROLES_GROUP = "cramera.field_roles"
+"""
+The entry point group in which a plugin registers the roles of its domain's fields: each
+entry point names a callable that returns a dictionary from field identifier to
+:class:`FieldRole`.
+"""
+
+
+@functools.cache
+def field_roles() -> Dict[str, FieldRole]:
+    """
+    :return: :data:`FIELD_ROLES` with the roles the installed plugins add.
+    :raises ConflictingFieldRole: If a plugin gives a field a role it already has otherwise.
+    """
+    from cramera_bridge.exceptions import ConflictingFieldRole
+
+    roles = dict(FIELD_ROLES)
+    for entry_point in entry_points(group=FIELD_ROLES_GROUP):
+        for identifier, field_role in entry_point.load()().items():
+            if roles.get(identifier, field_role) != field_role:
+                raise ConflictingFieldRole(identifier, entry_point.name)
+            roles[identifier] = field_role
+    return roles

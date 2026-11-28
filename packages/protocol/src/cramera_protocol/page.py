@@ -45,6 +45,12 @@ class PageLayout(StrEnum):
     The scene alone, as in a window it was popped out into.
     """
 
+    DESIGNATORS = "designators"
+    """
+    The scene beside the Designators panel alone: the action under way, the entities
+    filling its roles and how they were resolved.
+    """
+
 
 # %% appearance
 

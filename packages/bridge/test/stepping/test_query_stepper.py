@@ -16,7 +16,9 @@ import pytest
 from typing_extensions import Any, Iterable, List, Tuple
 
 from cramera_bridge import query_stepping
+from cramera_bridge.live.plan import PlanPublisher
 from cramera_bridge.live.query_steps import HeldQueries, QueryStepBoard
+from cramera_bridge.live.recording import Recording
 from cramera_bridge.query_stepping import (
     ANSWER_LENGTH,
     QueryStepper,
@@ -83,6 +85,22 @@ class HighlightingBoard:
     """
     The answers each highlight was asked for, in order.
     """
+
+    recording: Recording = field(default_factory=Recording)
+    """
+    The run's frames, none recorded unless a test adds them.
+    """
+
+    plan: PlanPublisher = field(default_factory=PlanPublisher)
+    """
+    The plans performed, none unless a test begins one.
+    """
+
+    def current_objects(self) -> List[Body]:
+        """
+        :return: No free objects.
+        """
+        return []
 
     def scene_highlight(
         self, about: Iterable[Any], framed: Iterable[Any] = ()
@@ -357,3 +375,30 @@ def test_a_package_that_is_not_installed_has_no_directory():
     assert all(
         directory.endswith(os.sep) for directory in package_directories(["krrood"])
     )
+
+
+def test_a_step_is_stamped_with_the_frame_it_was_asked_at_and_no_action_outside_a_plan():
+    stepped = stepper()
+    stepped.publisher.recording.frames = [object()] * 3
+    with stepped.watching():
+        the_red_cup()
+    (step,) = stepped.steps
+    assert step.frame == 3
+    assert step.plan_node is None
+
+
+def test_an_answer_that_is_a_body_or_an_annotation_names_its_entity():
+    cup = Body(name=PrefixedName("cup"))
+    stepped = stepper()
+    with stepped.watching():
+        found = variable(Body, [cup])
+        the(entity(found)).first()
+        handle = variable(Handle, [Handle(root=cup)])
+        the(entity(handle)).first()
+        the_red_cup()
+    bodies, handles, cups = stepped.steps
+    assert [(each.name, each.type_name, each.keys) for each in bodies.entities] == [
+        ("cup", "Body", ["cup"])
+    ]
+    assert handles.entities[0].type_name == "Handle"
+    assert cups.entities == []

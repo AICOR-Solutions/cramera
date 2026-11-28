@@ -18,7 +18,15 @@ from cramera_bridge.exceptions import (
 from coraplex.robot_plans.actions.composite.transporting import MoveAndPickUpAction
 from coraplex.robot_plans.actions.core.navigation import NavigateAction
 from coraplex.robot_plans.actions.core.pick_up import PickUpAction
-from cramera_bridge.live.plan import DesignatorSummary, PLAN_NODE_PREFIX, PlanNodeStatus
+from cramera_protocol.designator_roles import DesignatorRole
+from giskardpy.motion_statechart.tasks.cartesian_tasks import CartesianPosition
+from krrood_spatial_math.spatial_types import Point3
+from cramera_bridge.live.plan import (
+    DesignatorSummary,
+    NamedPlace,
+    PLAN_NODE_PREFIX,
+    PlanNodeStatus,
+)
 from cramera_protocol.live import LiveRoute
 from cramera_protocol.live_messages import (
     ConstraintActivation,
@@ -381,3 +389,72 @@ def test_a_sub_action_left_to_be_found_is_named_by_what_it_matches():
 
 def test_a_value_left_open_is_named_by_its_type():
     assert DesignatorSummary.render(variable(Pose, domain=[]), set()) == "any Pose"
+
+
+def test_an_action_names_the_robot_of_its_context_as_its_agent(
+    publisher, small_plan, robot_world
+):
+    publisher.begin_plan(small_plan.executor)
+    root, action, motion = publisher.current_plan().nodes
+    assert root.roles == []
+    (agent,) = [slot for slot in action.roles if slot.role is DesignatorRole.AGENT]
+    assert agent.field == "robot"
+    assert agent.entities[0].name == str(robot_world.robot.name)
+    assert all(slot.role is not DesignatorRole.AGENT for slot in motion.roles)
+
+
+def test_a_motion_moves_its_tip_link_to_its_goal_pose(publisher, kitchen):
+    keys = set(publisher.model.object_keys())
+    roles = {
+        slot.field: slot
+        for slot in DesignatorSummary(reaching_the_milk(kitchen)).roles(keys, None)
+    }
+    assert roles["tip_link"].role is DesignatorRole.EFFECTOR
+    assert roles["tip_link"].entities[0].keys == [str(kitchen.milk.id)]
+    location = roles["goal_pose"]
+    assert location.role is DesignatorRole.LOCATION
+    assert location.reference.name == str(kitchen.root.name)
+    assert [location.pose.x, location.pose.y, location.pose.z] == [1.0, 0.0, 0.9]
+    assert "root_link" not in roles
+
+
+def test_a_pose_is_named_by_the_place_whose_pose_it_is_and_no_other(kitchen):
+    milk = kitchen.milk
+    holder = NamedPlace(
+        "centrifuge C4", Pose.from_xyz_rpy(0.0, -0.072, 0.008, reference_frame=milk)
+    )
+    same = Pose.from_xyz_rpy(0.0, -0.072, 0.008, reference_frame=milk)
+    above = Pose.from_xyz_rpy(0.0, -0.072, 0.188, reference_frame=milk)
+    elsewhere = Pose.from_xyz_rpy(
+        0.0, -0.072, 0.008, reference_frame=kitchen.world.root
+    )
+    assert holder.names(same)
+    assert not holder.names(above), "a pose above the holder is not the holder"
+    assert not holder.names(elsewhere), "the same numbers in another frame"
+
+
+def test_a_position_goal_names_its_point_in_the_frame_of_what_it_reaches_for(
+    publisher, kitchen
+):
+    keys = set(publisher.model.object_keys())
+    reaching = CartesianPosition(
+        root_link=kitchen.root,
+        tip_link=kitchen.milk,
+        goal_point=Point3(0.0, 0.0, 0.1, reference_frame=kitchen.milk),
+    )
+    location = {
+        slot.field: slot for slot in DesignatorSummary(reaching).roles(keys, None)
+    }["goal_point"]
+    assert location.role is DesignatorRole.LOCATION
+    assert location.reference.keys == [str(kitchen.milk.id)]
+    assert location.value == "0.000, 0.000, 0.100"
+    pose = location.pose
+    assert [pose.x, pose.y, pose.z, pose.qx, pose.qy, pose.qz, pose.qw] == [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    ]

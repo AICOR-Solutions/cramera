@@ -1,8 +1,9 @@
 {
  "name": "aicor_medical_lab_pr2_query_stepper",
  "formatVersion": "1.0",
- "framesPerSecond": 31.91,
+ "framesPerSecond": 8.25,
  "trajectory": "trajectory.json",
+ "statecharts": "statecharts.json",
  "querySteps": "query_steps.json",
  "models": [
   {
@@ -74,7 +75,7 @@
     "pr2/fl_caster_l_wheel_joint"
    ],
    "posedJoints": [],
-   "identifier": "5de30326-184f-459d-8b3e-102a18cc6d96",
+   "identifier": "2ac98652-a48d-4ded-886b-9ad9e392fd0a",
    "pose": [
     0.4,
     -0.72,
@@ -220,13 +221,13 @@
     "attachedTo": "PR2RightArm"
    }
   ],
-  "identifier": "5de30326-184f-459d-8b3e-102a18cc6d96",
+  "identifier": "2ac98652-a48d-4ded-886b-9ad9e392fd0a",
   "label": "PR2"
  },
  "objects": [
   {
    "id": "laboratory_rack",
-   "key": "5e35a92d-cd0f-409d-9728-9e9e658e603e",
+   "key": "fda60764-04c9-49ca-9f22-499f66f7b586",
    "spawn": [
     0.22,
     -0.04,
@@ -238,11 +239,11 @@
    ],
    "color": "#ffffff",
    "height": 0.0681,
-   "mesh": "meshes/objects/5e35a92d-cd0f-409d-9728-9e9e658e603e/tube_rack.glb"
+   "mesh": "meshes/objects/fda60764-04c9-49ca-9f22-499f66f7b586/tube_rack.glb"
   },
   {
    "id": "tube_clear",
-   "key": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+   "key": "62ac5709-d425-415e-a4b9-12b708bc7f86",
    "spawn": [
     0.16,
     -0.065,
@@ -254,11 +255,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/1acf45bb-c50d-47a3-a893-c681ed5c5b4b/tube_clear.glb"
+   "mesh": "meshes/objects/62ac5709-d425-415e-a4b9-12b708bc7f86/tube_clear.glb"
   },
   {
    "id": "tube_amber",
-   "key": "3f75538d-a269-48f2-bf92-49feaf8c6352",
+   "key": "7ff445f1-0649-4123-b2e8-01726af2118d",
    "spawn": [
     0.22,
     -0.065,
@@ -270,11 +271,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/3f75538d-a269-48f2-bf92-49feaf8c6352/tube_amber.glb"
+   "mesh": "meshes/objects/7ff445f1-0649-4123-b2e8-01726af2118d/tube_amber.glb"
   },
   {
    "id": "tube_teal",
-   "key": "f77fca6f-4789-4c22-9cff-730db09a8694",
+   "key": "7767cfaa-a595-4ed7-8b83-f090997a2d1b",
    "spawn": [
     0.16,
     -0.015,
@@ -286,11 +287,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/f77fca6f-4789-4c22-9cff-730db09a8694/tube_teal.glb"
+   "mesh": "meshes/objects/7767cfaa-a595-4ed7-8b83-f090997a2d1b/tube_teal.glb"
   },
   {
    "id": "tube_reserve",
-   "key": "f577379e-4fb0-42e6-b3c7-2aed3d6ec9cd",
+   "key": "a06d22e9-ea2e-40dd-8475-69c0f071527d",
    "spawn": [
     0.28,
     -0.015,
@@ -302,11 +303,11 @@
    ],
    "color": "#ffffff",
    "height": 0.15,
-   "mesh": "meshes/objects/f577379e-4fb0-42e6-b3c7-2aed3d6ec9cd/tube_clear.glb"
+   "mesh": "meshes/objects/a06d22e9-ea2e-40dd-8475-69c0f071527d/tube_clear.glb"
   },
   {
    "id": "stopper",
-   "key": "d1eae4a0-e1fc-4158-99d5-20838819b894",
+   "key": "f82e25cf-d278-47a3-9667-a534d2d9e52e",
    "spawn": [
     0.5,
     -0.12,
@@ -318,28 +319,28 @@
    ],
    "color": "#ffffff",
    "height": 0.021,
-   "mesh": "meshes/objects/d1eae4a0-e1fc-4158-99d5-20838819b894/stopper.glb"
+   "mesh": "meshes/objects/f82e25cf-d278-47a3-9667-a534d2d9e52e/stopper.glb"
   }
  ],
  "segments": [
   {
    "step": "run",
    "start": 0,
-   "end": 341
+   "end": 60
   },
   {
    "step": "VesselPickUpAction",
-   "start": 341,
-   "end": 651,
-   "picks": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
-   "attach": 341,
-   "detach": 620
+   "start": 60,
+   "end": 200,
+   "picks": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+   "attach": 60,
+   "detach": 195
   }
  ],
  "planTrees": [
   {
    "kind": "sequence",
-   "label": "SequentialNode",
+   "label": "Sequence",
    "status": "SUCCEEDED",
    "children": [
     {
@@ -348,203 +349,1231 @@
      "status": "SUCCEEDED",
      "children": [
       {
-       "kind": "condition",
-       "label": "ConditionNode",
-       "status": "CREATED",
-       "children": [],
-       "id": "plan_node_10",
-       "parent": "plan_node_1",
-       "parameters": {},
-       "constraints": []
-      },
-      {
-       "kind": "sequence",
-       "label": "SequentialNode",
-       "status": "CREATED",
+       "kind": "action",
+       "label": "VesselReachAction",
+       "status": "SUCCEEDED",
        "children": [
         {
-         "kind": "action",
-         "label": "VesselReachAction",
+         "kind": "parallel",
+         "label": "CartesianPose",
          "status": "SUCCEEDED",
          "children": [
           {
-           "kind": "condition",
-           "label": "ConditionNode",
-           "status": "CREATED",
+           "kind": "motion",
+           "label": "CartesianPosition",
+           "status": "INTERRUPTED",
            "children": [],
-           "id": "plan_node_16",
-           "parent": "plan_node_4",
-           "parameters": {},
-           "constraints": []
-          },
-          {
-           "kind": "sequence",
-           "label": "SequentialNode",
-           "status": "CREATED",
-           "children": [
+           "target": "pr2/base_footprint",
+           "id": "plan_node_6",
+           "parent": "plan_node_3",
+           "start": 5,
+           "end": 32,
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.0005",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "binding_policy": "Bind_on_start",
+            "goal_point": "0.000, 0.000, 0.214",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": [
             {
-             "kind": "motion",
-             "label": "MoveToolCenterPointMotion",
-             "status": "SUCCEEDED",
-             "children": [],
-             "arm": "PR2LeftArm",
-             "id": "plan_node_12",
-             "parent": "plan_node_9",
-             "parameters": {
-              "max_linear_velocity": "0.12",
-              "target": "0.000, 0.000, 0.214",
-              "arm": "PR2LeftArm",
-              "allow_gripper_collision": "on",
-              "movement_type": "CARTESIAN"
-             },
-             "constraints": []
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
             },
             {
-             "kind": "motion",
-             "label": "MoveGripperMotion",
-             "status": "SUCCEEDED",
-             "children": [],
-             "id": "plan_node_13",
-             "parent": "plan_node_9",
-             "parameters": {
-              "tolerate_stall": "off",
-              "motion": "OPEN",
-              "gripper": "PR2LeftGripper"
+             "field": "goal_point",
+             "role": "location",
+             "source": "field",
+             "value": "0.000, 0.000, 0.214",
+             "entities": [],
+             "reference": {
+              "keys": [
+               "62ac5709-d425-415e-a4b9-12b708bc7f86"
+              ],
+              "name": "tube_clear",
+              "type": "Body"
              },
-             "constraints": []
-            },
-            {
-             "kind": "motion",
-             "label": "MoveToolCenterPointMotion",
-             "status": "SUCCEEDED",
-             "children": [],
-             "arm": "PR2LeftArm",
-             "id": "plan_node_14",
-             "parent": "plan_node_9",
-             "parameters": {
-              "position_threshold": "0.0005",
-              "max_linear_velocity": "0.025",
-              "target": "-0.000, -0.000, 0.105",
-              "arm": "PR2LeftArm",
-              "allow_gripper_collision": "on",
-              "movement_type": "CARTESIAN"
-             },
-             "constraints": []
+             "pose": [
+              0.0,
+              0.0,
+              0.214,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+             ]
             }
-           ],
-           "id": "plan_node_9",
-           "parent": "plan_node_4",
-           "parameters": {},
-           "constraints": []
+           ]
           },
           {
-           "kind": "condition",
-           "label": "ConditionNode",
-           "status": "CREATED",
+           "kind": "motion",
+           "label": "CartesianOrientation",
+           "status": "INTERRUPTED",
            "children": [],
-           "id": "plan_node_17",
-           "parent": "plan_node_4",
-           "parameters": {},
-           "constraints": []
+           "target": "pr2/base_footprint",
+           "id": "plan_node_7",
+           "parent": "plan_node_3",
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.003",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "binding_policy": "Bind_on_start",
+            "goal_orientation": "reference_frame 62ac5709-d425-415e-a4b9-12b708bc7f86, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "CartesianPositionVelocityLimit",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/base_footprint",
+           "id": "plan_node_4",
+           "parent": "plan_node_3",
+           "parameters": {
+            "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "max_linear_velocity": "0.12"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "HoldPose",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "map",
+           "id": "plan_node_5",
+           "parent": "plan_node_3",
+           "parameters": {
+            "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+            "root_link": "map",
+            "tip_link": "pr2/base_footprint",
+            "reference_angular_velocity": "0.2",
+            "orientation_threshold": "0.01",
+            "reference_linear_velocity": "0.2",
+            "translation_threshold": "0.01"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/base_footprint",
+             "entities": [
+              {
+               "keys": [
+                "pr2/base_footprint"
+               ],
+               "name": "pr2/base_footprint",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
           }
          ],
-         "arm": "PR2LeftArm",
-         "id": "plan_node_4",
-         "parent": "plan_node_3",
-         "start": 11,
-         "end": 280,
+         "target": "pr2/base_footprint",
+         "id": "plan_node_3",
+         "parent": "plan_node_2",
+         "start": 5,
+         "end": 32,
          "parameters": {
-          "grasp_detection_threshold": "0.9",
-          "pre_approach_linear_velocity": "0.12",
-          "final_approach_linear_velocity": "0.025",
-          "approach_clearance": "0.109",
-          "retreat_distance": "0.16",
-          "arm": "PR2LeftArm",
-          "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
-          "reverse_reach_order": "off",
-          "open_gripper_at_pre_pose": "on",
-          "grasp_position_threshold": "0.0005"
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "goal_pose": "0.000, 0.000, 0.214",
+          "reference_linear_velocity": "0.2",
+          "reference_angular_velocity": "0.2",
+          "translation_threshold": "0.0005",
+          "orientation_threshold": "0.003",
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "binding_policy": "Bind_on_start"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_pose",
+           "role": "location",
+           "source": "field",
+           "value": "0.000, 0.000, 0.214",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "62ac5709-d425-415e-a4b9-12b708bc7f86"
+            ],
+            "name": "tube_clear",
+            "type": "Body"
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.214,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          }
+         ]
         },
+        {
+         "kind": "parallel",
+         "label": "MoveGripper",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "motion",
+           "label": "DistanceAlongAxis",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/l_gripper_tool_frame",
+           "id": "plan_node_9",
+           "parent": "plan_node_8",
+           "start": 33,
+           "end": 35,
+           "parameters": {
+            "weight": "1",
+            "threshold": "0.001",
+            "root_link": "pr2/l_gripper_tool_frame",
+            "reference_point": "-0.026, 0.016, -0.011",
+            "tip_point": "-0.026, -0.016, -0.011",
+            "axis": "reference_frame pr2/l_gripper_tool_frame, _casadi_sx @1=0, [@1, 1, @1, @1], pinned_free_variables ",
+            "distance": "0.092012",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": []
+          }
+         ],
+         "id": "plan_node_8",
+         "parent": "plan_node_2",
+         "start": 33,
+         "end": 35,
+         "parameters": {
+          "tolerate_stall": "off",
+          "gripper": "PR2LeftGripper",
+          "width": "0.092012",
+          "threshold": "0.001"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "gripper",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftGripper",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftGripper",
+             "type": "PR2LeftGripper"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "parallel",
+         "label": "CartesianPose",
+         "status": "SUCCEEDED",
+         "children": [
+          {
+           "kind": "motion",
+           "label": "CartesianPosition",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/base_footprint",
+           "id": "plan_node_13",
+           "parent": "plan_node_10",
+           "start": 36,
+           "end": 48,
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.0005",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "binding_policy": "Bind_on_start",
+            "goal_point": "-0.000, -0.000, 0.105",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            },
+            {
+             "field": "goal_point",
+             "role": "location",
+             "source": "field",
+             "value": "-0.000, -0.000, 0.105",
+             "entities": [],
+             "reference": {
+              "keys": [
+               "62ac5709-d425-415e-a4b9-12b708bc7f86"
+              ],
+              "name": "tube_clear",
+              "type": "Body"
+             },
+             "pose": [
+              -0.0,
+              -0.0,
+              0.105,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "CartesianOrientation",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/base_footprint",
+           "id": "plan_node_14",
+           "parent": "plan_node_10",
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.003",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "binding_policy": "Bind_on_start",
+            "goal_orientation": "reference_frame 62ac5709-d425-415e-a4b9-12b708bc7f86, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "CartesianPositionVelocityLimit",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/base_footprint",
+           "id": "plan_node_11",
+           "parent": "plan_node_10",
+           "parameters": {
+            "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "max_linear_velocity": "0.025"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "HoldPose",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "map",
+           "id": "plan_node_12",
+           "parent": "plan_node_10",
+           "parameters": {
+            "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+            "root_link": "map",
+            "tip_link": "pr2/base_footprint",
+            "reference_angular_velocity": "0.2",
+            "orientation_threshold": "0.01",
+            "reference_linear_velocity": "0.2",
+            "translation_threshold": "0.01"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/base_footprint",
+             "entities": [
+              {
+               "keys": [
+                "pr2/base_footprint"
+               ],
+               "name": "pr2/base_footprint",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          }
+         ],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_10",
+         "parent": "plan_node_2",
+         "start": 36,
+         "end": 48,
+         "parameters": {
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "goal_pose": "-0.000, -0.000, 0.105",
+          "reference_linear_velocity": "0.2",
+          "reference_angular_velocity": "0.2",
+          "translation_threshold": "0.0005",
+          "orientation_threshold": "0.003",
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "binding_policy": "Bind_on_start"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_pose",
+           "role": "location",
+           "source": "field",
+           "value": "-0.000, -0.000, 0.105",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "62ac5709-d425-415e-a4b9-12b708bc7f86"
+            ],
+            "name": "tube_clear",
+            "type": "Body"
+           },
+           "pose": [
+            -0.0,
+            -0.0,
+            0.105,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          }
+         ]
+        }
+       ],
+       "arm": "PR2LeftArm",
+       "id": "plan_node_2",
+       "parent": "plan_node_1",
+       "start": 5,
+       "end": 48,
+       "parameters": {
+        "grasp_detection_threshold": "0.9",
+        "pre_approach_linear_velocity": "0.12",
+        "final_approach_linear_velocity": "0.025",
+        "approach_clearance": "0.109",
+        "retreat_distance": "0.16",
+        "position_threshold": "0.0005",
+        "orientation_threshold": "0.003",
+        "arm": "PR2LeftArm",
+        "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
+        "reverse_reach_order": "off",
+        "open_gripper_at_pre_pose": "on",
+        "grasp_position_threshold": "0.0005"
+       },
+       "constraints": [],
+       "roles": [
+        {
+         "field": "robot",
+         "role": "agent",
+         "source": "context",
+         "value": "PR2",
+         "entities": [
+          {
+           "keys": [
+            "pr2/base_footprint",
+            "pr2/base_link",
+            "pr2/base_bellow_link",
+            "pr2/base_laser_link",
+            "pr2/fl_caster_rotation_link",
+            "pr2/fl_caster_l_wheel_link",
+            "pr2/fl_caster_r_wheel_link",
+            "pr2/fr_caster_rotation_link",
+            "pr2/fr_caster_l_wheel_link",
+            "pr2/fr_caster_r_wheel_link",
+            "pr2/bl_caster_rotation_link",
+            "pr2/bl_caster_l_wheel_link",
+            "pr2/bl_caster_r_wheel_link",
+            "pr2/br_caster_rotation_link",
+            "pr2/br_caster_l_wheel_link",
+            "pr2/br_caster_r_wheel_link",
+            "pr2/torso_lift_link",
+            "pr2/l_torso_lift_side_plate_link",
+            "pr2/r_torso_lift_side_plate_link",
+            "pr2/torso_lift_motor_screw_link",
+            "pr2/imu_link",
+            "pr2/head_pan_link",
+            "pr2/head_tilt_link",
+            "pr2/head_plate_frame",
+            "pr2/sensor_mount_link",
+            "pr2/high_def_frame",
+            "pr2/high_def_optical_frame",
+            "pr2/double_stereo_link",
+            "pr2/wide_stereo_link",
+            "pr2/wide_stereo_optical_frame",
+            "pr2/wide_stereo_l_stereo_camera_frame",
+            "pr2/wide_stereo_l_stereo_camera_optical_frame",
+            "pr2/wide_stereo_r_stereo_camera_frame",
+            "pr2/wide_stereo_r_stereo_camera_optical_frame",
+            "pr2/narrow_stereo_link",
+            "pr2/narrow_stereo_optical_frame",
+            "pr2/narrow_stereo_l_stereo_camera_frame",
+            "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+            "pr2/narrow_stereo_r_stereo_camera_frame",
+            "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+            "pr2/projector_wg6802418_frame",
+            "pr2/projector_wg6802418_child_frame",
+            "pr2/head_mount_link",
+            "pr2/head_mount_kinect_ir_link",
+            "pr2/head_mount_kinect_ir_optical_frame",
+            "pr2/head_mount_kinect_rgb_link",
+            "pr2/head_mount_kinect_rgb_optical_frame",
+            "pr2/head_mount_kinect2_rgb_optical_frame",
+            "pr2/head_mount_kinect2_ir_optical_frame",
+            "pr2/head_mount_prosilica_link",
+            "pr2/head_mount_prosilica_optical_frame",
+            "pr2/laser_tilt_mount_link",
+            "pr2/laser_tilt_link",
+            "pr2/r_shoulder_pan_link",
+            "pr2/r_shoulder_lift_link",
+            "pr2/r_upper_arm_roll_link",
+            "pr2/r_upper_arm_link",
+            "pr2/r_elbow_flex_link",
+            "pr2/r_forearm_roll_link",
+            "pr2/r_forearm_link",
+            "pr2/r_wrist_flex_link",
+            "pr2/r_wrist_roll_link",
+            "pr2/r_gripper_palm_link",
+            "pr2/r_gripper_led_frame",
+            "pr2/r_gripper_motor_accelerometer_link",
+            "pr2/r_gripper_tool_frame",
+            "pr2/r_gripper_motor_slider_link",
+            "pr2/r_gripper_motor_screw_link",
+            "pr2/r_gripper_l_finger_link",
+            "pr2/r_gripper_r_finger_tip_link",
+            "pr2/r_gripper_l_finger_tip_frame",
+            "pr2/l_shoulder_pan_link",
+            "pr2/l_shoulder_lift_link",
+            "pr2/l_upper_arm_roll_link",
+            "pr2/l_upper_arm_link",
+            "pr2/l_elbow_flex_link",
+            "pr2/l_forearm_roll_link",
+            "pr2/l_forearm_link",
+            "pr2/l_wrist_flex_link",
+            "pr2/l_wrist_roll_link",
+            "pr2/l_force_torque_adapter_link",
+            "pr2/l_force_torque_link",
+            "pr2/l_gripper_palm_link",
+            "pr2/l_gripper_led_frame",
+            "pr2/l_gripper_motor_accelerometer_link",
+            "pr2/l_gripper_tool_frame",
+            "pr2/l_gripper_motor_slider_link",
+            "pr2/l_gripper_motor_screw_link",
+            "pr2/l_gripper_l_finger_link",
+            "pr2/l_gripper_r_finger_tip_link",
+            "pr2/l_gripper_l_finger_tip_frame",
+            "pr2/l_forearm_cam_frame",
+            "pr2/l_forearm_cam_optical_frame",
+            "pr2/r_forearm_cam_frame",
+            "pr2/r_forearm_cam_optical_frame",
+            "pr2/head_mount_kinect2_link",
+            "pr2/l_torso_lift_side_item_profile_link",
+            "pr2/r_torso_lift_side_item_profile_link",
+            "pr2/m_torso_lift_side_item_profile_link",
+            "pr2/t_torso_lift_side_item_profile_link",
+            "pr2/r_gripper_r_finger_link",
+            "pr2/r_gripper_l_finger_tip_link",
+            "pr2/l_gripper_r_finger_link",
+            "pr2/l_gripper_l_finger_tip_link"
+           ],
+           "name": "PR2",
+           "type": "PR2"
+          }
+         ]
+        },
+        {
+         "field": "arm",
+         "role": "effector",
+         "source": "field",
+         "value": "PR2LeftArm",
+         "entities": [
+          {
+           "keys": [
+            "pr2/torso_lift_link",
+            "pr2/l_shoulder_pan_link",
+            "pr2/l_shoulder_lift_link",
+            "pr2/l_upper_arm_roll_link",
+            "pr2/l_upper_arm_link",
+            "pr2/l_elbow_flex_link",
+            "pr2/l_forearm_roll_link",
+            "pr2/l_forearm_link",
+            "pr2/l_wrist_flex_link",
+            "pr2/l_wrist_roll_link",
+            "pr2/l_force_torque_adapter_link",
+            "pr2/l_force_torque_link",
+            "pr2/l_gripper_palm_link",
+            "pr2/l_gripper_r_finger_link",
+            "pr2/l_gripper_l_finger_tip_link",
+            "pr2/l_gripper_led_frame",
+            "pr2/l_gripper_motor_accelerometer_link",
+            "pr2/l_gripper_tool_frame",
+            "pr2/l_gripper_motor_slider_link",
+            "pr2/l_gripper_motor_screw_link",
+            "pr2/l_gripper_l_finger_link",
+            "pr2/l_gripper_r_finger_tip_link",
+            "pr2/l_gripper_l_finger_tip_frame"
+           ],
+           "name": "PR2LeftArm",
+           "type": "PR2LeftArm"
+          }
+         ]
+        },
+        {
+         "field": "grasp.graspable",
+         "role": "object",
+         "source": "field",
+         "value": "Container",
+         "entities": [
+          {
+           "keys": [
+            "62ac5709-d425-415e-a4b9-12b708bc7f86"
+           ],
+           "name": "Container \u00b7 tube_clear",
+           "type": "Container"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "kind": "action",
+       "label": "PadContactAction",
+       "status": "SUCCEEDED",
+       "children": [
         {
          "kind": "other",
-         "label": "PadContactNode",
-         "status": "CREATED",
-         "children": [],
-         "id": "plan_node_5",
-         "parent": "plan_node_3",
-         "parameters": {},
-         "constraints": []
-        },
-        {
-         "kind": "motion",
-         "label": "PadContactMotion",
+         "label": "PadContactGoal",
          "status": "SUCCEEDED",
-         "children": [],
-         "target": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
-         "id": "plan_node_6",
-         "parent": "plan_node_3",
+         "children": [
+          {
+           "kind": "motion",
+           "label": "JointPositionList",
+           "status": "SUCCEEDED",
+           "children": [],
+           "id": "plan_node_60",
+           "parent": "plan_node_16",
+           "start": 50,
+           "end": 59,
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.0001",
+            "goal_state": "connections RevoluteConnection, target_values 0.122014, name PrefixedName",
+            "max_velocity": "0.1"
+           },
+           "constraints": [],
+           "roles": []
+          }
+         ],
+         "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+         "id": "plan_node_16",
+         "parent": "plan_node_15",
+         "start": 50,
+         "end": 59,
          "parameters": {
           "gripper": "PR2LeftGripper",
-          "object_designator": "1acf45bb-c50d-47a3-a893-c681ed5c5b4b",
+          "object_designator": "62ac5709-d425-415e-a4b9-12b708bc7f86",
           "contact_clearance": "0.00025",
           "joint_position_threshold": "0.0001",
           "finger_velocity": "0.1"
          },
-         "constraints": []
-        },
-        {
-         "kind": "attachment",
-         "label": "ReAttachNode",
-         "status": "SUCCEEDED",
-         "children": [],
-         "id": "plan_node_7",
-         "parent": "plan_node_3",
-         "parameters": {},
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "gripper",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftGripper",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftGripper",
+             "type": "PR2LeftGripper"
+            }
+           ]
+          },
+          {
+           "field": "object_designator",
+           "role": "object",
+           "source": "field",
+           "value": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+           "entities": [
+            {
+             "keys": [
+              "62ac5709-d425-415e-a4b9-12b708bc7f86"
+             ],
+             "name": "tube_clear",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "motion",
-         "label": "MoveToolCenterPointMotion",
-         "status": "SUCCEEDED",
+         "label": "HoldPose",
+         "status": "INTERRUPTED",
          "children": [],
-         "arm": "PR2LeftArm",
-         "id": "plan_node_8",
-         "parent": "plan_node_3",
+         "target": "map",
+         "id": "plan_node_17",
+         "parent": "plan_node_15",
+         "start": 49,
+         "end": 49,
          "parameters": {
-          "max_linear_velocity": "0.04",
-          "target": "0.000, 0.000, 0.265",
-          "arm": "PR2LeftArm",
-          "allow_gripper_collision": "on",
-          "movement_type": "TRANSLATION"
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "map",
+          "tip_link": "pr2/base_footprint",
+          "reference_angular_velocity": "0.2",
+          "orientation_threshold": "0.01",
+          "reference_linear_velocity": "0.2",
+          "translation_threshold": "0.01"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/base_footprint",
+           "entities": [
+            {
+             "keys": [
+              "pr2/base_footprint"
+             ],
+             "name": "pr2/base_footprint",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "HoldPose",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "map",
+         "id": "plan_node_18",
+         "parent": "plan_node_15",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "map",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "reference_angular_velocity": "0.2",
+          "orientation_threshold": "0.01",
+          "reference_linear_velocity": "0.2",
+          "translation_threshold": "0.01"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
         }
        ],
-       "id": "plan_node_3",
+       "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+       "id": "plan_node_15",
        "parent": "plan_node_1",
-       "start": 11,
-       "end": 280,
-       "parameters": {},
-       "constraints": []
+       "start": 49,
+       "end": 59,
+       "parameters": {
+        "gripper": "PR2LeftGripper",
+        "object_designator": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+        "contact_clearance": "0.00025",
+        "joint_position_threshold": "0.0001",
+        "finger_velocity": "0.1"
+       },
+       "constraints": [],
+       "roles": [
+        {
+         "field": "robot",
+         "role": "agent",
+         "source": "context",
+         "value": "PR2",
+         "entities": [
+          {
+           "keys": [
+            "pr2/base_footprint",
+            "pr2/base_link",
+            "pr2/base_bellow_link",
+            "pr2/base_laser_link",
+            "pr2/fl_caster_rotation_link",
+            "pr2/fl_caster_l_wheel_link",
+            "pr2/fl_caster_r_wheel_link",
+            "pr2/fr_caster_rotation_link",
+            "pr2/fr_caster_l_wheel_link",
+            "pr2/fr_caster_r_wheel_link",
+            "pr2/bl_caster_rotation_link",
+            "pr2/bl_caster_l_wheel_link",
+            "pr2/bl_caster_r_wheel_link",
+            "pr2/br_caster_rotation_link",
+            "pr2/br_caster_l_wheel_link",
+            "pr2/br_caster_r_wheel_link",
+            "pr2/torso_lift_link",
+            "pr2/l_torso_lift_side_plate_link",
+            "pr2/r_torso_lift_side_plate_link",
+            "pr2/torso_lift_motor_screw_link",
+            "pr2/imu_link",
+            "pr2/head_pan_link",
+            "pr2/head_tilt_link",
+            "pr2/head_plate_frame",
+            "pr2/sensor_mount_link",
+            "pr2/high_def_frame",
+            "pr2/high_def_optical_frame",
+            "pr2/double_stereo_link",
+            "pr2/wide_stereo_link",
+            "pr2/wide_stereo_optical_frame",
+            "pr2/wide_stereo_l_stereo_camera_frame",
+            "pr2/wide_stereo_l_stereo_camera_optical_frame",
+            "pr2/wide_stereo_r_stereo_camera_frame",
+            "pr2/wide_stereo_r_stereo_camera_optical_frame",
+            "pr2/narrow_stereo_link",
+            "pr2/narrow_stereo_optical_frame",
+            "pr2/narrow_stereo_l_stereo_camera_frame",
+            "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+            "pr2/narrow_stereo_r_stereo_camera_frame",
+            "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+            "pr2/projector_wg6802418_frame",
+            "pr2/projector_wg6802418_child_frame",
+            "pr2/head_mount_link",
+            "pr2/head_mount_kinect_ir_link",
+            "pr2/head_mount_kinect_ir_optical_frame",
+            "pr2/head_mount_kinect_rgb_link",
+            "pr2/head_mount_kinect_rgb_optical_frame",
+            "pr2/head_mount_kinect2_rgb_optical_frame",
+            "pr2/head_mount_kinect2_ir_optical_frame",
+            "pr2/head_mount_prosilica_link",
+            "pr2/head_mount_prosilica_optical_frame",
+            "pr2/laser_tilt_mount_link",
+            "pr2/laser_tilt_link",
+            "pr2/r_shoulder_pan_link",
+            "pr2/r_shoulder_lift_link",
+            "pr2/r_upper_arm_roll_link",
+            "pr2/r_upper_arm_link",
+            "pr2/r_elbow_flex_link",
+            "pr2/r_forearm_roll_link",
+            "pr2/r_forearm_link",
+            "pr2/r_wrist_flex_link",
+            "pr2/r_wrist_roll_link",
+            "pr2/r_gripper_palm_link",
+            "pr2/r_gripper_led_frame",
+            "pr2/r_gripper_motor_accelerometer_link",
+            "pr2/r_gripper_tool_frame",
+            "pr2/r_gripper_motor_slider_link",
+            "pr2/r_gripper_motor_screw_link",
+            "pr2/r_gripper_l_finger_link",
+            "pr2/r_gripper_r_finger_tip_link",
+            "pr2/r_gripper_l_finger_tip_frame",
+            "pr2/l_shoulder_pan_link",
+            "pr2/l_shoulder_lift_link",
+            "pr2/l_upper_arm_roll_link",
+            "pr2/l_upper_arm_link",
+            "pr2/l_elbow_flex_link",
+            "pr2/l_forearm_roll_link",
+            "pr2/l_forearm_link",
+            "pr2/l_wrist_flex_link",
+            "pr2/l_wrist_roll_link",
+            "pr2/l_force_torque_adapter_link",
+            "pr2/l_force_torque_link",
+            "pr2/l_gripper_palm_link",
+            "pr2/l_gripper_led_frame",
+            "pr2/l_gripper_motor_accelerometer_link",
+            "pr2/l_gripper_tool_frame",
+            "pr2/l_gripper_motor_slider_link",
+            "pr2/l_gripper_motor_screw_link",
+            "pr2/l_gripper_l_finger_link",
+            "pr2/l_gripper_r_finger_tip_link",
+            "pr2/l_gripper_l_finger_tip_frame",
+            "pr2/l_forearm_cam_frame",
+            "pr2/l_forearm_cam_optical_frame",
+            "pr2/r_forearm_cam_frame",
+            "pr2/r_forearm_cam_optical_frame",
+            "pr2/head_mount_kinect2_link",
+            "pr2/l_torso_lift_side_item_profile_link",
+            "pr2/r_torso_lift_side_item_profile_link",
+            "pr2/m_torso_lift_side_item_profile_link",
+            "pr2/t_torso_lift_side_item_profile_link",
+            "pr2/r_gripper_r_finger_link",
+            "pr2/r_gripper_l_finger_tip_link",
+            "pr2/l_gripper_r_finger_link",
+            "pr2/l_gripper_l_finger_tip_link"
+           ],
+           "name": "PR2",
+           "type": "PR2"
+          }
+         ]
+        },
+        {
+         "field": "gripper",
+         "role": "effector",
+         "source": "field",
+         "value": "PR2LeftGripper",
+         "entities": [
+          {
+           "keys": [
+            "pr2/l_gripper_palm_link",
+            "pr2/l_gripper_r_finger_link",
+            "pr2/l_gripper_l_finger_tip_link",
+            "pr2/l_gripper_led_frame",
+            "pr2/l_gripper_motor_accelerometer_link",
+            "pr2/l_gripper_tool_frame",
+            "pr2/l_gripper_motor_slider_link",
+            "pr2/l_gripper_motor_screw_link",
+            "pr2/l_gripper_l_finger_link",
+            "pr2/l_gripper_r_finger_tip_link",
+            "pr2/l_gripper_l_finger_tip_frame"
+           ],
+           "name": "PR2LeftGripper",
+           "type": "PR2LeftGripper"
+          }
+         ]
+        },
+        {
+         "field": "object_designator",
+         "role": "object",
+         "source": "field",
+         "value": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+         "entities": [
+          {
+           "keys": [
+            "62ac5709-d425-415e-a4b9-12b708bc7f86"
+           ],
+           "name": "tube_clear",
+           "type": "Body"
+          }
+         ]
+        }
+       ]
       },
       {
-       "kind": "condition",
-       "label": "ConditionNode",
-       "status": "CREATED",
+       "kind": "attachment",
+       "label": "MoveBranch",
+       "status": "SUCCEEDED",
        "children": [],
-       "id": "plan_node_11",
+       "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+       "id": "plan_node_19",
        "parent": "plan_node_1",
+       "parameters": {
+        "branch_root": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+        "new_parent": "pr2/l_gripper_tool_frame"
+       },
+       "constraints": [],
+       "roles": []
+      },
+      {
+       "kind": "parallel",
+       "label": "Parallel",
+       "status": "SUCCEEDED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "CartesianPosition",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_21",
+         "parent": "plan_node_20",
+         "start": 62,
+         "end": 97,
+         "parameters": {
+          "weight": "1",
+          "threshold": "0.0005",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_point": "0.000, 0.000, 0.265",
+          "reference_velocity": "0.2"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_point",
+           "role": "location",
+           "source": "field",
+           "value": "0.000, 0.000, 0.265",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "62ac5709-d425-415e-a4b9-12b708bc7f86"
+            ],
+            "name": "tube_clear",
+            "type": "Body"
+           },
+           "pose": [
+            0.0,
+            0.0,
+            0.265,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "CartesianPositionVelocityLimit",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_22",
+         "parent": "plan_node_20",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "max_linear_velocity": "0.04"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "HoldPose",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "map",
+         "id": "plan_node_23",
+         "parent": "plan_node_20",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "map",
+          "tip_link": "pr2/base_footprint",
+          "reference_angular_velocity": "0.2",
+          "orientation_threshold": "0.01",
+          "reference_linear_velocity": "0.2",
+          "translation_threshold": "0.01"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/base_footprint",
+           "entities": [
+            {
+             "keys": [
+              "pr2/base_footprint"
+             ],
+             "name": "pr2/base_footprint",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "id": "plan_node_20",
+       "parent": "plan_node_1",
+       "start": 62,
+       "end": 97,
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
       }
      ],
      "arm": "PR2LeftArm",
      "id": "plan_node_1",
      "parent": "plan_node_0",
-     "start": 11,
-     "end": 344,
+     "start": 5,
+     "end": 97,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "pre_approach_linear_velocity": "0.12",
@@ -555,13 +1584,187 @@
       "retreat_distance": "0.16",
       "grasp": "graspable Container, grasp_pose -0.000, 0.000, 0.114",
       "arm": "PR2LeftArm",
+      "position_threshold": "0.0005",
+      "orientation_threshold": "0.003",
       "tolerate_grasp_stall": "off",
       "grasp_joint_position_threshold": "0.0001",
       "contact_clearance": "0.00025",
       "grasp_position_threshold": "0.0005",
-      "lift_movement": "TRANSLATION"
+      "lifts_upright": "off"
      },
-     "constraints": []
+     "constraints": [],
+     "roles": [
+      {
+       "field": "robot",
+       "role": "agent",
+       "source": "context",
+       "value": "PR2",
+       "entities": [
+        {
+         "keys": [
+          "pr2/base_footprint",
+          "pr2/base_link",
+          "pr2/base_bellow_link",
+          "pr2/base_laser_link",
+          "pr2/fl_caster_rotation_link",
+          "pr2/fl_caster_l_wheel_link",
+          "pr2/fl_caster_r_wheel_link",
+          "pr2/fr_caster_rotation_link",
+          "pr2/fr_caster_l_wheel_link",
+          "pr2/fr_caster_r_wheel_link",
+          "pr2/bl_caster_rotation_link",
+          "pr2/bl_caster_l_wheel_link",
+          "pr2/bl_caster_r_wheel_link",
+          "pr2/br_caster_rotation_link",
+          "pr2/br_caster_l_wheel_link",
+          "pr2/br_caster_r_wheel_link",
+          "pr2/torso_lift_link",
+          "pr2/l_torso_lift_side_plate_link",
+          "pr2/r_torso_lift_side_plate_link",
+          "pr2/torso_lift_motor_screw_link",
+          "pr2/imu_link",
+          "pr2/head_pan_link",
+          "pr2/head_tilt_link",
+          "pr2/head_plate_frame",
+          "pr2/sensor_mount_link",
+          "pr2/high_def_frame",
+          "pr2/high_def_optical_frame",
+          "pr2/double_stereo_link",
+          "pr2/wide_stereo_link",
+          "pr2/wide_stereo_optical_frame",
+          "pr2/wide_stereo_l_stereo_camera_frame",
+          "pr2/wide_stereo_l_stereo_camera_optical_frame",
+          "pr2/wide_stereo_r_stereo_camera_frame",
+          "pr2/wide_stereo_r_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_link",
+          "pr2/narrow_stereo_optical_frame",
+          "pr2/narrow_stereo_l_stereo_camera_frame",
+          "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_r_stereo_camera_frame",
+          "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+          "pr2/projector_wg6802418_frame",
+          "pr2/projector_wg6802418_child_frame",
+          "pr2/head_mount_link",
+          "pr2/head_mount_kinect_ir_link",
+          "pr2/head_mount_kinect_ir_optical_frame",
+          "pr2/head_mount_kinect_rgb_link",
+          "pr2/head_mount_kinect_rgb_optical_frame",
+          "pr2/head_mount_kinect2_rgb_optical_frame",
+          "pr2/head_mount_kinect2_ir_optical_frame",
+          "pr2/head_mount_prosilica_link",
+          "pr2/head_mount_prosilica_optical_frame",
+          "pr2/laser_tilt_mount_link",
+          "pr2/laser_tilt_link",
+          "pr2/r_shoulder_pan_link",
+          "pr2/r_shoulder_lift_link",
+          "pr2/r_upper_arm_roll_link",
+          "pr2/r_upper_arm_link",
+          "pr2/r_elbow_flex_link",
+          "pr2/r_forearm_roll_link",
+          "pr2/r_forearm_link",
+          "pr2/r_wrist_flex_link",
+          "pr2/r_wrist_roll_link",
+          "pr2/r_gripper_palm_link",
+          "pr2/r_gripper_led_frame",
+          "pr2/r_gripper_motor_accelerometer_link",
+          "pr2/r_gripper_tool_frame",
+          "pr2/r_gripper_motor_slider_link",
+          "pr2/r_gripper_motor_screw_link",
+          "pr2/r_gripper_l_finger_link",
+          "pr2/r_gripper_r_finger_tip_link",
+          "pr2/r_gripper_l_finger_tip_frame",
+          "pr2/l_shoulder_pan_link",
+          "pr2/l_shoulder_lift_link",
+          "pr2/l_upper_arm_roll_link",
+          "pr2/l_upper_arm_link",
+          "pr2/l_elbow_flex_link",
+          "pr2/l_forearm_roll_link",
+          "pr2/l_forearm_link",
+          "pr2/l_wrist_flex_link",
+          "pr2/l_wrist_roll_link",
+          "pr2/l_force_torque_adapter_link",
+          "pr2/l_force_torque_link",
+          "pr2/l_gripper_palm_link",
+          "pr2/l_gripper_led_frame",
+          "pr2/l_gripper_motor_accelerometer_link",
+          "pr2/l_gripper_tool_frame",
+          "pr2/l_gripper_motor_slider_link",
+          "pr2/l_gripper_motor_screw_link",
+          "pr2/l_gripper_l_finger_link",
+          "pr2/l_gripper_r_finger_tip_link",
+          "pr2/l_gripper_l_finger_tip_frame",
+          "pr2/l_forearm_cam_frame",
+          "pr2/l_forearm_cam_optical_frame",
+          "pr2/r_forearm_cam_frame",
+          "pr2/r_forearm_cam_optical_frame",
+          "pr2/head_mount_kinect2_link",
+          "pr2/l_torso_lift_side_item_profile_link",
+          "pr2/r_torso_lift_side_item_profile_link",
+          "pr2/m_torso_lift_side_item_profile_link",
+          "pr2/t_torso_lift_side_item_profile_link",
+          "pr2/r_gripper_r_finger_link",
+          "pr2/r_gripper_l_finger_tip_link",
+          "pr2/l_gripper_r_finger_link",
+          "pr2/l_gripper_l_finger_tip_link"
+         ],
+         "name": "PR2",
+         "type": "PR2"
+        }
+       ]
+      },
+      {
+       "field": "grasp.graspable",
+       "role": "object",
+       "source": "field",
+       "value": "Container",
+       "entities": [
+        {
+         "keys": [
+          "62ac5709-d425-415e-a4b9-12b708bc7f86"
+         ],
+         "name": "Container \u00b7 tube_clear",
+         "type": "Container"
+        }
+       ]
+      },
+      {
+       "field": "arm",
+       "role": "effector",
+       "source": "field",
+       "value": "PR2LeftArm",
+       "entities": [
+        {
+         "keys": [
+          "pr2/torso_lift_link",
+          "pr2/l_shoulder_pan_link",
+          "pr2/l_shoulder_lift_link",
+          "pr2/l_upper_arm_roll_link",
+          "pr2/l_upper_arm_link",
+          "pr2/l_elbow_flex_link",
+          "pr2/l_forearm_roll_link",
+          "pr2/l_forearm_link",
+          "pr2/l_wrist_flex_link",
+          "pr2/l_wrist_roll_link",
+          "pr2/l_force_torque_adapter_link",
+          "pr2/l_force_torque_link",
+          "pr2/l_gripper_palm_link",
+          "pr2/l_gripper_r_finger_link",
+          "pr2/l_gripper_l_finger_tip_link",
+          "pr2/l_gripper_led_frame",
+          "pr2/l_gripper_motor_accelerometer_link",
+          "pr2/l_gripper_tool_frame",
+          "pr2/l_gripper_motor_slider_link",
+          "pr2/l_gripper_motor_screw_link",
+          "pr2/l_gripper_l_finger_link",
+          "pr2/l_gripper_r_finger_tip_link",
+          "pr2/l_gripper_l_finger_tip_frame"
+         ],
+         "name": "PR2LeftArm",
+         "type": "PR2LeftArm"
+        }
+       ]
+      }
+     ]
     },
     {
      "kind": "action",
@@ -569,117 +1772,990 @@
      "status": "SUCCEEDED",
      "children": [
       {
-       "kind": "condition",
-       "label": "ConditionNode",
-       "status": "CREATED",
-       "children": [],
-       "id": "plan_node_24",
-       "parent": "plan_node_2",
-       "parameters": {},
-       "constraints": []
-      },
-      {
-       "kind": "sequence",
-       "label": "SequentialNode",
-       "status": "CREATED",
+       "kind": "parallel",
+       "label": "CartesianPose",
+       "status": "SUCCEEDED",
        "children": [
         {
          "kind": "motion",
-         "label": "MoveToolCenterPointMotion",
-         "status": "SUCCEEDED",
+         "label": "CartesianPosition",
+         "status": "INTERRUPTED",
          "children": [],
-         "arm": "PR2LeftArm",
-         "id": "plan_node_18",
-         "parent": "plan_node_15",
+         "target": "pr2/base_footprint",
+         "id": "plan_node_28",
+         "parent": "plan_node_25",
+         "start": 98,
+         "end": 115,
          "parameters": {
-          "position_threshold": "0.003",
-          "max_linear_velocity": "0.08",
-          "target": "0.280, -0.065, 1.171",
-          "arm": "PR2LeftArm",
-          "allow_gripper_collision": "on",
-          "movement_type": "CARTESIAN"
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "threshold": "0.003",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_point": "0.060, -0.025, 0.271",
+          "reference_velocity": "0.2"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_point",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.271",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.271,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+           ]
+          }
+         ]
         },
         {
          "kind": "motion",
-         "label": "MoveToolCenterPointMotion",
-         "status": "SUCCEEDED",
+         "label": "CartesianOrientation",
+         "status": "INTERRUPTED",
          "children": [],
-         "arm": "PR2LeftArm",
-         "id": "plan_node_19",
-         "parent": "plan_node_15",
+         "target": "pr2/base_footprint",
+         "id": "plan_node_29",
+         "parent": "plan_node_25",
          "parameters": {
-          "max_linear_velocity": "0.02",
-          "target": "0.280, -0.065, 1.011",
-          "arm": "PR2LeftArm",
-          "allow_gripper_collision": "on",
-          "movement_type": "CARTESIAN"
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "threshold": "0.003",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+          "reference_velocity": "0.2"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "motion",
-         "label": "HeldToolGripperMotion",
-         "status": "SUCCEEDED",
+         "label": "CartesianPositionVelocityLimit",
+         "status": "INTERRUPTED",
          "children": [],
-         "id": "plan_node_20",
-         "parent": "plan_node_15",
+         "target": "pr2/base_footprint",
+         "id": "plan_node_26",
+         "parent": "plan_node_25",
          "parameters": {
-          "tolerate_stall": "off",
-          "motion": "OPEN",
-          "gripper": "PR2LeftGripper",
-          "allow_gripper_collision": "on"
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "max_linear_velocity": "0.08"
          },
-         "constraints": []
-        },
-        {
-         "kind": "attachment",
-         "label": "ReAttachNode",
-         "status": "SUCCEEDED",
-         "children": [],
-         "id": "plan_node_21",
-         "parent": "plan_node_15",
-         "parameters": {},
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
         },
         {
          "kind": "motion",
-         "label": "MoveToolCenterPointMotion",
-         "status": "SUCCEEDED",
+         "label": "HoldPose",
+         "status": "INTERRUPTED",
          "children": [],
-         "arm": "PR2LeftArm",
-         "id": "plan_node_22",
-         "parent": "plan_node_15",
+         "target": "map",
+         "id": "plan_node_27",
+         "parent": "plan_node_25",
          "parameters": {
-          "max_linear_velocity": "0.08",
-          "target": "0.280, -0.065, 1.120",
-          "arm": "PR2LeftArm",
-          "movement_type": "CARTESIAN"
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "map",
+          "tip_link": "pr2/base_footprint",
+          "reference_angular_velocity": "0.2",
+          "orientation_threshold": "0.01",
+          "reference_linear_velocity": "0.2",
+          "translation_threshold": "0.01"
          },
-         "constraints": []
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/base_footprint",
+           "entities": [
+            {
+             "keys": [
+              "pr2/base_footprint"
+             ],
+             "name": "pr2/base_footprint",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
         }
        ],
-       "id": "plan_node_15",
-       "parent": "plan_node_2",
-       "parameters": {},
-       "constraints": []
+       "target": "pr2/base_footprint",
+       "id": "plan_node_25",
+       "parent": "plan_node_24",
+       "start": 98,
+       "end": 115,
+       "parameters": {
+        "root_link": "pr2/base_footprint",
+        "tip_link": "pr2/l_gripper_tool_frame",
+        "goal_pose": "0.060, -0.025, 0.271",
+        "reference_linear_velocity": "0.2",
+        "reference_angular_velocity": "0.2",
+        "translation_threshold": "0.003",
+        "orientation_threshold": "0.003",
+        "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+        "binding_policy": "Bind_on_start"
+       },
+       "constraints": [],
+       "roles": [
+        {
+         "field": "tip_link",
+         "role": "effector",
+         "source": "field",
+         "value": "pr2/l_gripper_tool_frame",
+         "entities": [
+          {
+           "keys": [
+            "pr2/l_gripper_tool_frame"
+           ],
+           "name": "pr2/l_gripper_tool_frame",
+           "type": "Body"
+          }
+         ]
+        },
+        {
+         "field": "goal_pose",
+         "role": "location",
+         "source": "field",
+         "value": "0.060, -0.025, 0.271",
+         "entities": [],
+         "reference": {
+          "keys": [
+           "fda60764-04c9-49ca-9f22-499f66f7b586"
+          ],
+          "name": "laboratory_rack",
+          "type": "Body"
+         },
+         "pose": [
+          0.06,
+          -0.025,
+          0.271,
+          0.2706,
+          0.65328,
+          -0.2706,
+          0.65328
+         ]
+        }
+       ]
       },
       {
-       "kind": "condition",
-       "label": "ConditionNode",
-       "status": "CREATED",
-       "children": [],
-       "id": "plan_node_25",
-       "parent": "plan_node_2",
+       "kind": "parallel",
+       "label": "CartesianPose",
+       "status": "SUCCEEDED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "CartesianPosition",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_33",
+         "parent": "plan_node_30",
+         "start": 116,
+         "end": 185,
+         "parameters": {
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "threshold": "0.0005",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_point": "0.060, -0.025, 0.111",
+          "reference_velocity": "0.2"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_point",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.111",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.111,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "CartesianOrientation",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_34",
+         "parent": "plan_node_30",
+         "parameters": {
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "threshold": "0.003",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+          "reference_velocity": "0.2"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "CartesianPositionVelocityLimit",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_31",
+         "parent": "plan_node_30",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "max_linear_velocity": "0.02"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "HoldPose",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "map",
+         "id": "plan_node_32",
+         "parent": "plan_node_30",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "map",
+          "tip_link": "pr2/base_footprint",
+          "reference_angular_velocity": "0.2",
+          "orientation_threshold": "0.01",
+          "reference_linear_velocity": "0.2",
+          "translation_threshold": "0.01"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/base_footprint",
+           "entities": [
+            {
+             "keys": [
+              "pr2/base_footprint"
+             ],
+             "name": "pr2/base_footprint",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "target": "pr2/base_footprint",
+       "id": "plan_node_30",
+       "parent": "plan_node_24",
+       "start": 116,
+       "end": 185,
+       "parameters": {
+        "root_link": "pr2/base_footprint",
+        "tip_link": "pr2/l_gripper_tool_frame",
+        "goal_pose": "0.060, -0.025, 0.111",
+        "reference_linear_velocity": "0.2",
+        "reference_angular_velocity": "0.2",
+        "translation_threshold": "0.0005",
+        "orientation_threshold": "0.003",
+        "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+        "binding_policy": "Bind_on_start"
+       },
+       "constraints": [],
+       "roles": [
+        {
+         "field": "tip_link",
+         "role": "effector",
+         "source": "field",
+         "value": "pr2/l_gripper_tool_frame",
+         "entities": [
+          {
+           "keys": [
+            "pr2/l_gripper_tool_frame"
+           ],
+           "name": "pr2/l_gripper_tool_frame",
+           "type": "Body"
+          }
+         ]
+        },
+        {
+         "field": "goal_pose",
+         "role": "location",
+         "source": "field",
+         "value": "0.060, -0.025, 0.111",
+         "entities": [],
+         "reference": {
+          "keys": [
+           "fda60764-04c9-49ca-9f22-499f66f7b586"
+          ],
+          "name": "laboratory_rack",
+          "type": "Body"
+         },
+         "pose": [
+          0.06,
+          -0.025,
+          0.111,
+          0.2706,
+          0.65328,
+          -0.2706,
+          0.65328
+         ]
+        }
+       ]
+      },
+      {
+       "kind": "parallel",
+       "label": "Parallel",
+       "status": "SUCCEEDED",
+       "children": [
+        {
+         "kind": "parallel",
+         "label": "MoveGripper",
+         "status": "INTERRUPTED",
+         "children": [
+          {
+           "kind": "motion",
+           "label": "DistanceAlongAxis",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/l_gripper_tool_frame",
+           "id": "plan_node_37",
+           "parent": "plan_node_36",
+           "start": 186,
+           "end": 193,
+           "parameters": {
+            "weight": "1",
+            "threshold": "0.001",
+            "root_link": "pr2/l_gripper_tool_frame",
+            "reference_point": "-0.026, 0.016, -0.011",
+            "tip_point": "-0.026, -0.016, -0.011",
+            "axis": "reference_frame pr2/l_gripper_tool_frame, _casadi_sx @1=0, [@1, 1, @1, @1], pinned_free_variables ",
+            "distance": "0.092012",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": []
+          }
+         ],
+         "id": "plan_node_36",
+         "parent": "plan_node_35",
+         "start": 186,
+         "end": 193,
+         "parameters": {
+          "tolerate_stall": "off",
+          "gripper": "PR2LeftGripper",
+          "width": "0.092012",
+          "threshold": "0.001"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "gripper",
+           "role": "effector",
+           "source": "field",
+           "value": "PR2LeftGripper",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_palm_link",
+              "pr2/l_gripper_r_finger_link",
+              "pr2/l_gripper_l_finger_tip_link",
+              "pr2/l_gripper_led_frame",
+              "pr2/l_gripper_motor_accelerometer_link",
+              "pr2/l_gripper_tool_frame",
+              "pr2/l_gripper_motor_slider_link",
+              "pr2/l_gripper_motor_screw_link",
+              "pr2/l_gripper_l_finger_link",
+              "pr2/l_gripper_r_finger_tip_link",
+              "pr2/l_gripper_l_finger_tip_frame"
+             ],
+             "name": "PR2LeftGripper",
+             "type": "PR2LeftGripper"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "parallel",
+         "label": "CartesianPose",
+         "status": "INTERRUPTED",
+         "children": [
+          {
+           "kind": "motion",
+           "label": "CartesianPosition",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/base_footprint",
+           "id": "plan_node_40",
+           "parent": "plan_node_38",
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.0005",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "binding_policy": "Bind_on_start",
+            "goal_point": "0.060, -0.025, 0.111",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            },
+            {
+             "field": "goal_point",
+             "role": "location",
+             "source": "field",
+             "value": "0.060, -0.025, 0.111",
+             "entities": [],
+             "reference": {
+              "keys": [
+               "fda60764-04c9-49ca-9f22-499f66f7b586"
+              ],
+              "name": "laboratory_rack",
+              "type": "Body"
+             },
+             "pose": [
+              0.06,
+              -0.025,
+              0.111,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "CartesianOrientation",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "pr2/base_footprint",
+           "id": "plan_node_41",
+           "parent": "plan_node_38",
+           "parameters": {
+            "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+            "threshold": "0.003",
+            "root_link": "pr2/base_footprint",
+            "tip_link": "pr2/l_gripper_tool_frame",
+            "binding_policy": "Bind_on_start",
+            "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+            "reference_velocity": "0.2"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/l_gripper_tool_frame",
+             "entities": [
+              {
+               "keys": [
+                "pr2/l_gripper_tool_frame"
+               ],
+               "name": "pr2/l_gripper_tool_frame",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "kind": "motion",
+           "label": "HoldPose",
+           "status": "INTERRUPTED",
+           "children": [],
+           "target": "map",
+           "id": "plan_node_39",
+           "parent": "plan_node_38",
+           "parameters": {
+            "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+            "root_link": "map",
+            "tip_link": "pr2/base_footprint",
+            "reference_angular_velocity": "0.2",
+            "orientation_threshold": "0.01",
+            "reference_linear_velocity": "0.2",
+            "translation_threshold": "0.01"
+           },
+           "constraints": [],
+           "roles": [
+            {
+             "field": "tip_link",
+             "role": "effector",
+             "source": "field",
+             "value": "pr2/base_footprint",
+             "entities": [
+              {
+               "keys": [
+                "pr2/base_footprint"
+               ],
+               "name": "pr2/base_footprint",
+               "type": "Body"
+              }
+             ]
+            }
+           ]
+          }
+         ],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_38",
+         "parent": "plan_node_35",
+         "parameters": {
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "goal_pose": "0.060, -0.025, 0.111",
+          "reference_linear_velocity": "0.2",
+          "reference_angular_velocity": "0.2",
+          "translation_threshold": "0.0005",
+          "orientation_threshold": "0.003",
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "binding_policy": "Bind_on_start"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_pose",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.111",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.111,
+            0.2706,
+            0.65328,
+            -0.2706,
+            0.65328
+           ]
+          }
+         ]
+        }
+       ],
+       "id": "plan_node_35",
+       "parent": "plan_node_24",
+       "start": 186,
+       "end": 193,
        "parameters": {},
-       "constraints": []
+       "constraints": [],
+       "roles": []
+      },
+      {
+       "kind": "attachment",
+       "label": "MoveBranch",
+       "status": "SUCCEEDED",
+       "children": [],
+       "target": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+       "id": "plan_node_42",
+       "parent": "plan_node_24",
+       "parameters": {
+        "branch_root": "62ac5709-d425-415e-a4b9-12b708bc7f86",
+        "new_parent": "map"
+       },
+       "constraints": [],
+       "roles": []
+      },
+      {
+       "kind": "parallel",
+       "label": "CartesianPose",
+       "status": "SUCCEEDED",
+       "children": [
+        {
+         "kind": "motion",
+         "label": "CartesianPosition",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_46",
+         "parent": "plan_node_43",
+         "start": 195,
+         "end": 199,
+         "parameters": {
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "threshold": "0.0005",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_point": "0.060, -0.025, 0.220",
+          "reference_velocity": "0.2"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          },
+          {
+           "field": "goal_point",
+           "role": "location",
+           "source": "field",
+           "value": "0.060, -0.025, 0.220",
+           "entities": [],
+           "reference": {
+            "keys": [
+             "fda60764-04c9-49ca-9f22-499f66f7b586"
+            ],
+            "name": "laboratory_rack",
+            "type": "Body"
+           },
+           "pose": [
+            0.06,
+            -0.025,
+            0.22,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "CartesianOrientation",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_47",
+         "parent": "plan_node_43",
+         "parameters": {
+          "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+          "threshold": "0.003",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "binding_policy": "Bind_on_start",
+          "goal_orientation": "reference_frame fda60764-04c9-49ca-9f22-499f66f7b586, _casadi_sx @1=-2.77556e-16, @2=0.707107, \n[[-1.38778e-16, 0.707107, @2, 00], \n [@1, @2, -0.707107, 00], \n [-1, @1, 1.38778e-16, 00], \n [00, 00, 00, 1]], pinned_free_variables ",
+          "reference_velocity": "0.2"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "CartesianPositionVelocityLimit",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "pr2/base_footprint",
+         "id": "plan_node_44",
+         "parent": "plan_node_43",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "pr2/base_footprint",
+          "tip_link": "pr2/l_gripper_tool_frame",
+          "max_linear_velocity": "0.08"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/l_gripper_tool_frame",
+           "entities": [
+            {
+             "keys": [
+              "pr2/l_gripper_tool_frame"
+             ],
+             "name": "pr2/l_gripper_tool_frame",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "kind": "motion",
+         "label": "HoldPose",
+         "status": "INTERRUPTED",
+         "children": [],
+         "target": "map",
+         "id": "plan_node_45",
+         "parent": "plan_node_43",
+         "parameters": {
+          "weight": "WEIGHT_ABOVE_COLLISION_AVOIDANCE",
+          "root_link": "map",
+          "tip_link": "pr2/base_footprint",
+          "reference_angular_velocity": "0.2",
+          "orientation_threshold": "0.01",
+          "reference_linear_velocity": "0.2",
+          "translation_threshold": "0.01"
+         },
+         "constraints": [],
+         "roles": [
+          {
+           "field": "tip_link",
+           "role": "effector",
+           "source": "field",
+           "value": "pr2/base_footprint",
+           "entities": [
+            {
+             "keys": [
+              "pr2/base_footprint"
+             ],
+             "name": "pr2/base_footprint",
+             "type": "Body"
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "target": "pr2/base_footprint",
+       "id": "plan_node_43",
+       "parent": "plan_node_24",
+       "start": 195,
+       "end": 199,
+       "parameters": {
+        "root_link": "pr2/base_footprint",
+        "tip_link": "pr2/l_gripper_tool_frame",
+        "goal_pose": "0.060, -0.025, 0.220",
+        "reference_linear_velocity": "0.2",
+        "reference_angular_velocity": "0.2",
+        "translation_threshold": "0.0005",
+        "orientation_threshold": "0.003",
+        "weight": "WEIGHT_BELOW_COLLISION_AVOIDANCE",
+        "binding_policy": "Bind_on_start"
+       },
+       "constraints": [],
+       "roles": [
+        {
+         "field": "tip_link",
+         "role": "effector",
+         "source": "field",
+         "value": "pr2/l_gripper_tool_frame",
+         "entities": [
+          {
+           "keys": [
+            "pr2/l_gripper_tool_frame"
+           ],
+           "name": "pr2/l_gripper_tool_frame",
+           "type": "Body"
+          }
+         ]
+        },
+        {
+         "field": "goal_pose",
+         "role": "location",
+         "source": "field",
+         "value": "0.060, -0.025, 0.220",
+         "entities": [],
+         "reference": {
+          "keys": [
+           "fda60764-04c9-49ca-9f22-499f66f7b586"
+          ],
+          "name": "laboratory_rack",
+          "type": "Body"
+         },
+         "pose": [
+          0.06,
+          -0.025,
+          0.22,
+          0.2706,
+          0.65328,
+          -0.2706,
+          0.65328
+         ]
+        }
+       ]
       }
      ],
-     "id": "plan_node_2",
+     "id": "plan_node_24",
      "parent": "plan_node_0",
-     "start": 418,
-     "end": 647,
+     "start": 98,
+     "end": 199,
      "parameters": {
       "grasp_detection_threshold": "0.9",
       "placing_linear_velocity": "0.02",
@@ -687,20 +2763,182 @@
       "retract_linear_velocity": "0.08",
       "approach_clearance": "0.109",
       "retreat_distance": "0.16",
+      "position_threshold": "0.0005",
+      "orientation_threshold": "0.003",
       "object_designator": "Container",
-      "target_location": "0.280, -0.065, 0.906",
+      "target_location": "0.060, -0.025, 0.006",
       "grasp_release_threshold": "0.1",
       "approach_position_threshold": "0.003"
      },
-     "constraints": []
+     "constraints": [],
+     "roles": [
+      {
+       "field": "robot",
+       "role": "agent",
+       "source": "context",
+       "value": "PR2",
+       "entities": [
+        {
+         "keys": [
+          "pr2/base_footprint",
+          "pr2/base_link",
+          "pr2/base_bellow_link",
+          "pr2/base_laser_link",
+          "pr2/fl_caster_rotation_link",
+          "pr2/fl_caster_l_wheel_link",
+          "pr2/fl_caster_r_wheel_link",
+          "pr2/fr_caster_rotation_link",
+          "pr2/fr_caster_l_wheel_link",
+          "pr2/fr_caster_r_wheel_link",
+          "pr2/bl_caster_rotation_link",
+          "pr2/bl_caster_l_wheel_link",
+          "pr2/bl_caster_r_wheel_link",
+          "pr2/br_caster_rotation_link",
+          "pr2/br_caster_l_wheel_link",
+          "pr2/br_caster_r_wheel_link",
+          "pr2/torso_lift_link",
+          "pr2/l_torso_lift_side_plate_link",
+          "pr2/r_torso_lift_side_plate_link",
+          "pr2/torso_lift_motor_screw_link",
+          "pr2/imu_link",
+          "pr2/head_pan_link",
+          "pr2/head_tilt_link",
+          "pr2/head_plate_frame",
+          "pr2/sensor_mount_link",
+          "pr2/high_def_frame",
+          "pr2/high_def_optical_frame",
+          "pr2/double_stereo_link",
+          "pr2/wide_stereo_link",
+          "pr2/wide_stereo_optical_frame",
+          "pr2/wide_stereo_l_stereo_camera_frame",
+          "pr2/wide_stereo_l_stereo_camera_optical_frame",
+          "pr2/wide_stereo_r_stereo_camera_frame",
+          "pr2/wide_stereo_r_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_link",
+          "pr2/narrow_stereo_optical_frame",
+          "pr2/narrow_stereo_l_stereo_camera_frame",
+          "pr2/narrow_stereo_l_stereo_camera_optical_frame",
+          "pr2/narrow_stereo_r_stereo_camera_frame",
+          "pr2/narrow_stereo_r_stereo_camera_optical_frame",
+          "pr2/projector_wg6802418_frame",
+          "pr2/projector_wg6802418_child_frame",
+          "pr2/head_mount_link",
+          "pr2/head_mount_kinect_ir_link",
+          "pr2/head_mount_kinect_ir_optical_frame",
+          "pr2/head_mount_kinect_rgb_link",
+          "pr2/head_mount_kinect_rgb_optical_frame",
+          "pr2/head_mount_kinect2_rgb_optical_frame",
+          "pr2/head_mount_kinect2_ir_optical_frame",
+          "pr2/head_mount_prosilica_link",
+          "pr2/head_mount_prosilica_optical_frame",
+          "pr2/laser_tilt_mount_link",
+          "pr2/laser_tilt_link",
+          "pr2/r_shoulder_pan_link",
+          "pr2/r_shoulder_lift_link",
+          "pr2/r_upper_arm_roll_link",
+          "pr2/r_upper_arm_link",
+          "pr2/r_elbow_flex_link",
+          "pr2/r_forearm_roll_link",
+          "pr2/r_forearm_link",
+          "pr2/r_wrist_flex_link",
+          "pr2/r_wrist_roll_link",
+          "pr2/r_gripper_palm_link",
+          "pr2/r_gripper_led_frame",
+          "pr2/r_gripper_motor_accelerometer_link",
+          "pr2/r_gripper_tool_frame",
+          "pr2/r_gripper_motor_slider_link",
+          "pr2/r_gripper_motor_screw_link",
+          "pr2/r_gripper_l_finger_link",
+          "pr2/r_gripper_r_finger_tip_link",
+          "pr2/r_gripper_l_finger_tip_frame",
+          "pr2/l_shoulder_pan_link",
+          "pr2/l_shoulder_lift_link",
+          "pr2/l_upper_arm_roll_link",
+          "pr2/l_upper_arm_link",
+          "pr2/l_elbow_flex_link",
+          "pr2/l_forearm_roll_link",
+          "pr2/l_forearm_link",
+          "pr2/l_wrist_flex_link",
+          "pr2/l_wrist_roll_link",
+          "pr2/l_force_torque_adapter_link",
+          "pr2/l_force_torque_link",
+          "pr2/l_gripper_palm_link",
+          "pr2/l_gripper_led_frame",
+          "pr2/l_gripper_motor_accelerometer_link",
+          "pr2/l_gripper_tool_frame",
+          "pr2/l_gripper_motor_slider_link",
+          "pr2/l_gripper_motor_screw_link",
+          "pr2/l_gripper_l_finger_link",
+          "pr2/l_gripper_r_finger_tip_link",
+          "pr2/l_gripper_l_finger_tip_frame",
+          "pr2/l_forearm_cam_frame",
+          "pr2/l_forearm_cam_optical_frame",
+          "pr2/r_forearm_cam_frame",
+          "pr2/r_forearm_cam_optical_frame",
+          "pr2/head_mount_kinect2_link",
+          "pr2/l_torso_lift_side_item_profile_link",
+          "pr2/r_torso_lift_side_item_profile_link",
+          "pr2/m_torso_lift_side_item_profile_link",
+          "pr2/t_torso_lift_side_item_profile_link",
+          "pr2/r_gripper_r_finger_link",
+          "pr2/r_gripper_l_finger_tip_link",
+          "pr2/l_gripper_r_finger_link",
+          "pr2/l_gripper_l_finger_tip_link"
+         ],
+         "name": "PR2",
+         "type": "PR2"
+        }
+       ]
+      },
+      {
+       "field": "object_designator",
+       "role": "object",
+       "source": "field",
+       "value": "Container",
+       "entities": [
+        {
+         "keys": [
+          "62ac5709-d425-415e-a4b9-12b708bc7f86"
+         ],
+         "name": "Container \u00b7 tube_clear",
+         "type": "Container"
+        }
+       ]
+      },
+      {
+       "field": "target_location",
+       "role": "location",
+       "source": "field",
+       "value": "0.060, -0.025, 0.006",
+       "entities": [],
+       "reference": {
+        "keys": [
+         "fda60764-04c9-49ca-9f22-499f66f7b586"
+        ],
+        "name": "laboratory_rack",
+        "type": "Body"
+       },
+       "pose": [
+        0.06,
+        -0.025,
+        0.006,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+       ],
+       "place": "rack A3"
+      }
+     ]
     }
    ],
    "id": "plan_node_0",
-   "start": 11,
-   "end": 647,
+   "start": 5,
+   "end": 199,
    "robot": "PR2",
    "parameters": {},
-   "constraints": []
+   "constraints": [],
+   "roles": []
   }
  ],
  "actions": [],
@@ -730,7 +2968,6 @@
    "pr2": "semantic_digital_twin.robots.pr2.PR2"
   },
   "bodies": {
-   "world_root": "semantic_digital_twin.world_description.world_entity.Body",
    "map": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_root": "semantic_digital_twin.world_description.world_entity.Body",
@@ -750,7 +2987,7 @@
    "laboratory_cabinet_right_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_middle_handle": "semantic_digital_twin.world_description.world_entity.Body",
    "laboratory_cabinet_lower_handle": "semantic_digital_twin.world_description.world_entity.Body",
-   "a4a9200d-5986-443d-ac00-639076713a6b/odom": "semantic_digital_twin.world_description.world_entity.Body",
+   "457ac75c-7d11-43ce-865f-8d4efee4c035/odom": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_footprint": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/base_link": "semantic_digital_twin.world_description.world_entity.Body",
    "pr2/torso_lift_motor_screw_link": "semantic_digital_twin.world_description.world_entity.Body",
@@ -863,7 +3100,6 @@
    "stopper": "semantic_digital_twin.world_description.world_entity.Body"
   },
   "connections": {
-   "world_root_to_map": "semantic_digital_twin.world_description.connections.FixedConnection",
    "map_T_laboratory_cabinet": "semantic_digital_twin.world_description.connections.FixedConnection",
    "map_T_laboratory_root": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_refrigerator_base_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
@@ -875,15 +3111,13 @@
    "aicor_medical_lab/laboratory_centrifuge_lid_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_centrifuge_rotor_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "aicor_medical_lab/laboratory_balance_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "world_root_to_laboratory_rack_handle": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_drawer_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",
    "aicor_medical_lab/laboratory_drawer_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_room_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_right_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_middle_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "aicor_medical_lab/laboratory_cabinet_lower_handle_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "a4a9200d-5986-443d-ac00-639076713a6b/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
-   "world_root_to_pr2/base_footprint": "semantic_digital_twin.world_description.connections.FixedConnection",
+   "457ac75c-7d11-43ce-865f-8d4efee4c035/map_T_odom": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/base_footprint_joint": "semantic_digital_twin.world_description.connections.FixedConnection",
    "pr2/torso_lift_motor_screw_joint": "semantic_digital_twin.world_description.connections.RevoluteConnection",
    "pr2/torso_lift_joint": "semantic_digital_twin.world_description.connections.PrismaticConnection",
@@ -996,6 +3230,55 @@
   }
  },
  "annotations": [
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_rack_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_drawer_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_cabinet_lower_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_cabinet_middle_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_cabinet_right_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_centrifuge_lid_handle"
+   ]
+  },
+  {
+   "name": "Handle",
+   "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Handle",
+   "bodies": [
+    "laboratory_refrigerator_door_handle"
+   ]
+  },
   {
    "name": "laboratory_drawer",
    "class": "semantic_digital_twin.semantic_annotations.semantic_annotations.Drawer",

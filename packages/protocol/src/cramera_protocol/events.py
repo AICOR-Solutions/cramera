@@ -61,6 +61,13 @@ class ViewerEvent(StrEnum):
     The camera should glide onto entities and regions; the payload lists their keys.
     """
 
+    TARGET_MARKED = "target:marked"
+    """
+    The 3D view should mark where the running step of the plan acts; the payload names
+    the keys and the name of the body the target is given in, the target's pose there
+    (null for the body's own origin) and a label, or is null to clear the mark.
+    """
+
     QUESTION_ASKED = "question:asked"
     """
     A question or query was submitted.
