@@ -30,7 +30,7 @@ from cramera_bridge.geometry import NumericPose
 from cramera_bridge.names import (
     ACTION_NAMES,
     FIELD_NAMES,
-    FIELD_ROLES,
+    field_roles,
     plan_node_kind,
 )
 from cramera_bridge.live.perception_images import PerceptionImages
@@ -345,7 +345,7 @@ class DesignatorSummary:
         :param places: The places the task named; a pose that is one of them carries
             its name.
         :return: The roles the parameters the node is described by fill, by
-            :data:`FIELD_ROLES`, with the entities each names; an action's agent first,
+            :func:`field_roles`, with the entities each names; an action's agent first,
             from the context, since no parameter of the action names it.
         """
         slots = []
@@ -367,7 +367,7 @@ class DesignatorSummary:
         action = ACTION_NAMES.identifier_of(described)
         for name, value in self.described_by().items():
             identifier = FIELD_NAMES.identifier_of(action, name)
-            field_role = FIELD_ROLES.get(identifier)
+            field_role = field_roles().get(identifier)
             if field_role is None:
                 continue
             path = [identifier]
